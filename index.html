@@ -702,6 +702,11 @@ function Dashboard() {
   const [generatedShop, setGeneratedShop] = useState(null);
   const [showAddPerson, setShowAddPerson] = useState(false);
   const [newPersonName, setNewPersonName] = useState("");
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardInputs, setOnboardInputs] = useState({ conditions: "", medications: "", neurodiversity: "", bloods: "", goals: "", activity: "", equipment: "", dietary: "", allergies: "" });
+  const [genPlanLoading, setGenPlanLoading] = useState(false);
+  const [genMealsLoading, setGenMealsLoading] = useState(false);
+  const [assessment, setAssessment] = useState(null);
   const [showNewSection, setShowNewSection] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
   const [editExercise, setEditExercise] = useState(null);
@@ -1147,12 +1152,15 @@ function Dashboard() {
         {/* BODY */}
         {section === "body" && (<div>
           {/* Profile */}
-          {(() => { const prof = p.profile || {}; return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
+          {(() => { const prof = p.profile || {}; const hasBaseline = p.body && p.body.weight && p.body.weight.length > 0; return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ fontSize: 14, fontWeight: 700 }}>{prof.name || (isJC ? "JC" : "Becks")}</div>
-              <button onClick={() => { setShowProfile(!showProfile); setProfileInputs(Object.assign({}, prof)); }} style={{ fontSize: 10, color: "#64748b", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, padding: "3px 8px", cursor: "pointer" }}>{showProfile ? "Close" : "Edit Profile"}</button>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>{prof.name || "New User"}</div>
+              <div style={{ display: "flex", gap: 4 }}>
+                <button onClick={() => { setShowProfile(!showProfile); setProfileInputs(Object.assign({}, prof)); }} style={{ fontSize: 10, color: "#64748b", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, padding: "3px 8px", cursor: "pointer" }}>{showProfile ? "Close" : "Edit Profile"}</button>
+                <button onClick={() => setShowOnboarding(!showOnboarding)} style={{ fontSize: 10, color: "#166534", background: "#dcfce7", border: "1px solid #86efac", borderRadius: 6, padding: "3px 8px", cursor: "pointer" }}>{showOnboarding ? "Close" : "Setup"}</button>
+              </div>
             </div>
-            {!showProfile && (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, fontSize: 11, color: "#475569" }}>
+            {!showProfile && !showOnboarding && (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, fontSize: 11, color: "#475569" }}>
               <div>Age: <strong>{prof.age || "—"}</strong></div>
               <div>Sex: <strong>{prof.sex || "—"}</strong></div>
               <div>Height: <strong>{prof.height || "—"}</strong></div>
@@ -1161,67 +1169,92 @@ function Dashboard() {
               <div style={{ gridColumn: "1 / -1" }}>Fibre: <strong>{prof.fibreType || "—"}</strong></div>
               {prof.notes && <div style={{ gridColumn: "1 / -1", color: "#94a3b8", fontSize: 10, marginTop: 4 }}>{prof.notes}</div>}
             </div>)}
-            {showProfile && (<div style={{ marginTop: 8 }}>
+
+            {/* ONBOARDING QUESTIONNAIRE */}
+            {showOnboarding && (<div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Getting Started — Tell us about you</div>
+              <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Answer as much as you can. This information is used to generate your personalised body profile, exercise plan, and dietary recommendations.</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                {[["name","Name"],["age","Age"],["sex","Sex"],["height","Height"],["bodyType","Body Type"],["fibreType","Fibre Type"],["idealWeight","Ideal Weight"]].map(([k,l]) => (<div key={k}><label style={labelStyle}>{l}</label><input value={profileInputs[k] || ""} onChange={e => setProfileInputs(q => ({ ...q, [k]: e.target.value }))} style={inputStyle} /></div>))}
+                {[["name","Name"],["age","Age"],["sex","Sex (Male/Female)"],["height","Height (e.g. 5ft 11)"]].map(function(pair) { return (<div key={pair[0]}><label style={labelStyle}>{pair[1]}</label><input value={onboardInputs[pair[0]] || prof[pair[0]] || ""} onChange={function(e) { setOnboardInputs(function(q) { var n = Object.assign({}, q); n[pair[0]] = e.target.value; return n; }); }} style={inputStyle} /></div>); })}
               </div>
-              <div style={{ marginTop: 8 }}><label style={labelStyle}>Notes</label><textarea value={profileInputs.notes || ""} onChange={e => setProfileInputs(q => ({ ...q, notes: e.target.value }))} style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
-              <button onClick={async () => { const nd = JSON.parse(JSON.stringify(data)); nd[activeTab].profile = profileInputs; if (profileInputs.age) profileInputs.age = parseInt(profileInputs.age) || profileInputs.age; await saveData(nd); setShowProfile(false); setFormMsg("✓ Profile updated"); setTimeout(() => setFormMsg(""), 3000); }} style={{ ...btnP(), marginTop: 8 }}>Save Profile</button>
-              {/* Body Type Photo Analysis */}
+              <div style={{ marginTop: 8 }}><label style={labelStyle}>Medical conditions (e.g. thyroid, high cholesterol, diabetes, PCOS, heart conditions)</label><textarea value={onboardInputs.conditions} onChange={function(e) { setOnboardInputs(function(q) { return Object.assign({}, q, { conditions: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 40, resize: "vertical" }} placeholder="List any diagnosed conditions..." /></div>
+              <div style={{ marginTop: 6 }}><label style={labelStyle}>Current medications and supplements</label><textarea value={onboardInputs.medications} onChange={function(e) { setOnboardInputs(function(q) { return Object.assign({}, q, { medications: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 40, resize: "vertical" }} placeholder="e.g. Atorvastatin 20mg, Levothyroxine 200mcg, Vitamin D..." /></div>
+              <div style={{ marginTop: 6 }}><label style={labelStyle}>Neurodiversity (e.g. ADHD, autism, dyslexia) and mental health</label><textarea value={onboardInputs.neurodiversity} onChange={function(e) { setOnboardInputs(function(q) { return Object.assign({}, q, { neurodiversity: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 40, resize: "vertical" }} placeholder="Any diagnoses or suspected conditions..." /></div>
+              <div style={{ marginTop: 6 }}><label style={labelStyle}>Recent blood results (if known — e.g. cholesterol, HbA1c, TSH)</label><textarea value={onboardInputs.bloods} onChange={function(e) { setOnboardInputs(function(q) { return Object.assign({}, q, { bloods: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 40, resize: "vertical" }} placeholder="e.g. LDL 3.4, TSH 14.2, HbA1c 43..." /></div>
+              <div style={{ marginTop: 6 }}><label style={labelStyle}>Goals (what do you want to achieve?)</label><textarea value={onboardInputs.goals} onChange={function(e) { setOnboardInputs(function(q) { return Object.assign({}, q, { goals: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 40, resize: "vertical" }} placeholder="e.g. Lose weight, build muscle, improve cholesterol, get fitter..." /></div>
+              <div style={{ marginTop: 6 }}><label style={labelStyle}>Current activity level and exercise experience</label><textarea value={onboardInputs.activity} onChange={function(e) { setOnboardInputs(function(q) { return Object.assign({}, q, { activity: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 40, resize: "vertical" }} placeholder="e.g. Sedentary, walk daily, gym 2x/week, swimming..." /></div>
+              <div style={{ marginTop: 6 }}><label style={labelStyle}>Equipment available (home gym, gym membership, none)</label><textarea value={onboardInputs.equipment} onChange={function(e) { setOnboardInputs(function(q) { return Object.assign({}, q, { equipment: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 30, resize: "vertical" }} placeholder="e.g. Marcy HG5000 home gym, dumbbells, resistance bands, gym membership..." /></div>
+              <div style={{ marginTop: 6 }}><label style={labelStyle}>Dietary preferences, restrictions, or allergies</label><textarea value={onboardInputs.dietary} onChange={function(e) { setOnboardInputs(function(q) { return Object.assign({}, q, { dietary: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 30, resize: "vertical" }} placeholder="e.g. Vegetarian, gluten-free, nut allergy, low sodium..." /></div>
+              <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (onboardInputs.name) { if (!nd[activeTab].profile) nd[activeTab].profile = {}; nd[activeTab].profile.name = onboardInputs.name; nd[activeTab].profile.age = onboardInputs.age || nd[activeTab].profile.age; nd[activeTab].profile.sex = onboardInputs.sex || nd[activeTab].profile.sex; nd[activeTab].profile.height = onboardInputs.height || nd[activeTab].profile.height; } await saveData(nd); setFormMsg("✓ Profile saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(), marginTop: 10 }}>Save Answers</button>
+
+              {/* Body Type Photo Upload */}
               <div style={{ marginTop: 12, padding: 12, background: "#f0fdf4", borderRadius: 8, border: "1px solid #bbf7d0" }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#166534", marginBottom: 6 }}>📸 Body Type Assessment</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#166534", marginBottom: 6 }}>📸 Body Type Photos</div>
                 <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>Upload photos for AI body type analysis. Best results from:<br/>• Front relaxed (full body, arms at sides)<br/>• Bicep flex (single arm, side on)<br/>• Side profile (relaxed)<br/>• Back relaxed or flexed<br/>• Legs: quad flex and calf raise</div>
                 <label style={{ display: "block", padding: 10, background: "#fff", border: "2px dashed #86efac", borderRadius: 8, textAlign: "center", cursor: "pointer", fontSize: 11, color: "#166534" }}>
                   📷 Upload Body Type Photos
-                  <input type="file" accept="image/*" multiple onChange={async function(e) {
-                    var files = e.target.files;
-                    if (!files || files.length === 0) return;
-                    setFormMsg("Analysing photos...");
-                    var nd = JSON.parse(JSON.stringify(data));
-                    if (!nd[activeTab].bodyPhotos) nd[activeTab].bodyPhotos = [];
-                    var imageContents = [];
-                    for (var fi = 0; fi < Math.min(files.length, 5); fi++) {
-                      try {
-                        var b64 = await new Promise(function(res, rej) { var r = new FileReader(); r.onload = function() { res(r.result.split(",")[1]); }; r.onerror = function() { rej("fail"); }; r.readAsDataURL(files[fi]); });
-                        nd[activeTab].bodyPhotos.push({ date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), name: files[fi].name, thumbnail: b64.substring(0, 500), type: "baseline" });
-                        imageContents.push({ type: "image", source: { type: "base64", media_type: files[fi].type || "image/jpeg", data: b64 } });
-                      } catch(re) {}
-                    }
-                    // AI analysis
-                    if (imageContents.length > 0) {
-                      try {
-                        var content = imageContents.concat([{ type: "text", text: "Analyse this person's physique. Determine: 1) Somatotype (ectomorph/mesomorph/endomorph or combination), 2) Upper or lower body dominant, 3) Likely fast-twitch or slow-twitch dominant (from muscle shape under contraction), 4) Notable strengths or development. Return ONLY JSON: {\"bodyType\":\"...\",\"dominance\":\"...\",\"fibreType\":\"...\",\"strengths\":\"...\",\"notes\":\"...\"}" }]);
-                        var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: content }] }) });
-                        var result = await resp.json();
-                        var txt = "";
-                        if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt = txt + result.content[ci].text; } }
-                        if (txt) {
-                          var parsed = JSON.parse(txt.replace(/```json|```/g, "").trim());
-                          if (!nd[activeTab].profile) nd[activeTab].profile = {};
-                          if (parsed.bodyType) nd[activeTab].profile.bodyType = parsed.bodyType;
-                          if (parsed.dominance) nd[activeTab].profile.bodyType = (nd[activeTab].profile.bodyType || "") + ", " + parsed.dominance;
-                          if (parsed.fibreType) nd[activeTab].profile.fibreType = parsed.fibreType;
-                          if (parsed.strengths) nd[activeTab].profile.notes = (nd[activeTab].profile.notes ? nd[activeTab].profile.notes + ". " : "") + "Photo analysis: " + parsed.strengths;
-                          nd[activeTab].bodyAnalysis = parsed;
-                        }
-                      } catch(ae) {}
-                    }
-                    if (nd[activeTab].bodyPhotos.length > 20) nd[activeTab].bodyPhotos = nd[activeTab].bodyPhotos.slice(-20);
-                    await saveData(nd);
-                    setFormMsg("✓ " + files.length + " photo(s) analysed and stored");
-                    setTimeout(function() { setFormMsg(""); }, 4000);
-                    e.target.value = "";
-                  }} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)", border: 0 }} />
+                  <input type="file" accept="image/*" multiple onChange={async function(e) { var files = e.target.files; if (!files || files.length === 0) return; setFormMsg("Analysing photos..."); var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].bodyPhotos) nd[activeTab].bodyPhotos = []; var imageContents = []; for (var fi = 0; fi < Math.min(files.length, 5); fi++) { try { var b64 = await new Promise(function(res, rej) { var r = new FileReader(); r.onload = function() { res(r.result.split(",")[1]); }; r.onerror = function() { rej("fail"); }; r.readAsDataURL(files[fi]); }); nd[activeTab].bodyPhotos.push({ date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), name: files[fi].name, thumbnail: b64.substring(0, 500), type: "baseline" }); imageContents.push({ type: "image", source: { type: "base64", media_type: files[fi].type || "image/jpeg", data: b64 } }); } catch(re) {} } if (imageContents.length > 0) { try { var content = imageContents.concat([{ type: "text", text: "Analyse this person's physique. Determine: 1) Somatotype, 2) Upper or lower body dominant, 3) Fast-twitch or slow-twitch dominant, 4) Notable strengths. Return ONLY JSON: {\"bodyType\":\"...\",\"dominance\":\"...\",\"fibreType\":\"...\",\"strengths\":\"...\",\"notes\":\"...\"}" }]); var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: content }] }) }); var result = await resp.json(); var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt = txt + result.content[ci].text; } } if (txt) { var parsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); if (!nd[activeTab].profile) nd[activeTab].profile = {}; if (parsed.bodyType) nd[activeTab].profile.bodyType = parsed.bodyType + (parsed.dominance ? ", " + parsed.dominance : ""); if (parsed.fibreType) nd[activeTab].profile.fibreType = parsed.fibreType; nd[activeTab].bodyAnalysis = parsed; } } catch(ae) {} } if (nd[activeTab].bodyPhotos.length > 20) nd[activeTab].bodyPhotos = nd[activeTab].bodyPhotos.slice(-20); await saveData(nd); setFormMsg("✓ Photos analysed"); setTimeout(function() { setFormMsg(""); }, 4000); e.target.value = ""; }} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)", border: 0 }} />
                 </label>
-                {p.bodyAnalysis && (<div style={{ marginTop: 8, padding: 8, background: "#fff", borderRadius: 6, fontSize: 11, color: "#475569" }}>
-                  <div style={{ fontWeight: 600, marginBottom: 2 }}>AI Assessment</div>
-                  {p.bodyAnalysis.bodyType && <div>Type: <strong>{p.bodyAnalysis.bodyType}</strong></div>}
-                  {p.bodyAnalysis.dominance && <div>Dominance: <strong>{p.bodyAnalysis.dominance}</strong></div>}
-                  {p.bodyAnalysis.fibreType && <div>Fibre: <strong>{p.bodyAnalysis.fibreType}</strong></div>}
-                  {p.bodyAnalysis.strengths && <div>Strengths: <strong>{p.bodyAnalysis.strengths}</strong></div>}
-                  {p.bodyAnalysis.notes && <div style={{ color: "#94a3b8", marginTop: 2 }}>{p.bodyAnalysis.notes}</div>}
-                </div>)}
               </div>
+
+              {/* Baseline Body Comp Upload */}
+              <div style={{ marginTop: 10, padding: 10, background: hasBaseline ? "#f1f5f9" : "#fef3c7", borderRadius: 8, border: "1px solid " + (hasBaseline ? "#e2e8f0" : "#fde68a"), opacity: hasBaseline ? 0.6 : 1 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: hasBaseline ? "#64748b" : "#854d0e" }}>{hasBaseline ? "✓ Baseline body composition recorded" : "📊 Upload baseline body composition from your scales app (weight, body fat %, muscle mass etc)"}</div>
+              </div>
+
+              {/* Generate Body Profile */}
+              <button onClick={async function() {
+                setGenPlanLoading(true); setFormMsg("Generating body profile...");
+                try {
+                  var ob = p.onboarding || onboardInputs;
+                  var prompt = "Based on this person's information, generate a body profile. " + (ob.name || "") + ", " + (ob.age || prof.age || "") + ", " + (ob.sex || prof.sex || "") + ", " + (ob.height || prof.height || "") + ". Conditions: " + (ob.conditions || "none stated") + ". Medications: " + (ob.medications || "none") + ". Neurodiversity: " + (ob.neurodiversity || "none") + ". Activity: " + (ob.activity || "unknown") + ". Goals: " + (ob.goals || "general health") + ". " + (p.bodyAnalysis ? "Photo analysis: " + JSON.stringify(p.bodyAnalysis) : "") + ". Return ONLY JSON: {\"bodyType\":\"e.g. Compact meso-endomorph\",\"fibreType\":\"e.g. Fast-twitch dominant\",\"idealWeight\":\"e.g. 13st 6lb\",\"notes\":\"key notes about this person\",\"assessment\":\"3-4 sentence assessment of current position and realistic expectations over 6-12 months\",\"priorities\":[\"priority 1\",\"priority 2\",\"priority 3\"]}";
+                  var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: prompt }] }) });
+                  var result = await resp.json(); var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
+                  if (txt) {
+                    var gen = JSON.parse(txt.replace(/```json|```/g, "").trim());
+                    var nd = JSON.parse(JSON.stringify(data));
+                    if (!nd[activeTab].profile) nd[activeTab].profile = {};
+                    if (gen.bodyType) nd[activeTab].profile.bodyType = gen.bodyType;
+                    if (gen.fibreType) nd[activeTab].profile.fibreType = gen.fibreType;
+                    if (gen.idealWeight) nd[activeTab].profile.idealWeight = gen.idealWeight;
+                    if (gen.notes) nd[activeTab].profile.notes = gen.notes;
+                    nd[activeTab].profileAssessment = gen;
+                    await saveData(nd); setAssessment(gen);
+                    setFormMsg("✓ Body profile generated"); setTimeout(function() { setFormMsg(""); }, 3000);
+                  }
+                } catch(e) { setFormMsg("✗ Could not generate — check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
+                setGenPlanLoading(false);
+              }} disabled={genPlanLoading} style={{ ...btnP(!genPlanLoading), marginTop: 12, background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" }}>{genPlanLoading ? "Generating..." : "🧬 Generate Body Profile"}</button>
+              <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Uses your answers, photos, and body comp data to determine body type, fibre dominance, ideal weight, and personalised assessment.</div>
+
+              {/* Generated/editable fields */}
+              <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {[["bodyType","Body Type"],["fibreType","Fibre Type"],["idealWeight","Ideal Weight"]].map(function(pair) { return (<div key={pair[0]} style={pair[0] === "bodyType" ? { gridColumn: "1 / -1" } : {}}><label style={labelStyle}>{pair[1]}</label><input value={profileInputs[pair[0]] || prof[pair[0]] || ""} onChange={function(e) { setProfileInputs(function(q) { var n = Object.assign({}, q); n[pair[0]] = e.target.value; return n; }); }} style={inputStyle} /></div>); })}
+              </div>
+              <div style={{ marginTop: 8 }}><label style={labelStyle}>Notes</label><textarea value={profileInputs.notes || prof.notes || ""} onChange={function(e) { setProfileInputs(function(q) { return Object.assign({}, q, { notes: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
+              <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].profile = Object.assign({}, nd[activeTab].profile, profileInputs); await saveData(nd); setFormMsg("✓ Profile updated"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(), marginTop: 8 }}>Save Profile</button>
+
+              {/* Assessment */}
+              {(assessment || p.profileAssessment) && (() => { var a = assessment || p.profileAssessment; return (<div style={{ marginTop: 12, background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 12, padding: 14, color: "#fff" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", opacity: 0.7, marginBottom: 8 }}>Your Assessment</div>
+                {a.assessment && <div style={{ fontSize: 12, lineHeight: 1.6, marginBottom: 10 }}>{a.assessment}</div>}
+                {a.priorities && a.priorities.length > 0 && (<div>{a.priorities.map(function(pr, i) { return <div key={i} style={{ fontSize: 12, fontWeight: 600, marginBottom: 3 }}>{i + 1}. {pr}</div>; })}</div>)}
+              </div>); })()}
+            </div>)}
+
+            {/* EDIT PROFILE (simple mode) */}
+            {showProfile && !showOnboarding && (<div style={{ marginTop: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {[["name","Name"],["age","Age"],["sex","Sex"],["height","Height"],["bodyType","Body Type"],["fibreType","Fibre Type"],["idealWeight","Ideal Weight"]].map(function(pair) { return (<div key={pair[0]}><label style={labelStyle}>{pair[1]}</label><input value={profileInputs[pair[0]] || ""} onChange={function(e) { setProfileInputs(function(q) { var n = Object.assign({}, q); n[pair[0]] = e.target.value; return n; }); }} style={inputStyle} /></div>); })}
+              </div>
+              <div style={{ marginTop: 8 }}><label style={labelStyle}>Notes</label><textarea value={profileInputs.notes || ""} onChange={function(e) { setProfileInputs(function(q) { return Object.assign({}, q, { notes: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
+              <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].profile = profileInputs; await saveData(nd); setShowProfile(false); setFormMsg("✓ Profile updated"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(), marginTop: 8 }}>Save Profile</button>
+            </div>)}
+            {p.bodyAnalysis && !showOnboarding && !showProfile && (<div style={{ marginTop: 8, padding: 8, background: "#f0fdf4", borderRadius: 6, fontSize: 11, color: "#475569" }}>
+              <div style={{ fontWeight: 600, marginBottom: 2 }}>AI Assessment</div>
+              {p.bodyAnalysis.bodyType && <div>Type: <strong>{p.bodyAnalysis.bodyType}</strong></div>}
+              {p.bodyAnalysis.fibreType && <div>Fibre: <strong>{p.bodyAnalysis.fibreType}</strong></div>}
+              {p.bodyAnalysis.strengths && <div>Strengths: <strong>{p.bodyAnalysis.strengths}</strong></div>}
             </div>)}
           </div>); })()}
 
@@ -1435,6 +1468,18 @@ function Dashboard() {
             </div>);
           })}
           <div style={{ background: "#f1f5f9", borderRadius: 10, padding: 12, fontSize: 12, color: "#475569", lineHeight: 1.5 }}>Double progression. Build 12→15 reps then move up one pin (~7kg). 10×3 after move up, build to 12×3, then 15×3 before next progression.</div>
+          <button onClick={async function() {
+            setGenPlanLoading(true); setFormMsg("Generating exercise plan...");
+            try {
+              var prof = p.profile || {}; var ob = p.onboarding || {};
+              var prompt = "Create a personalised exercise plan for " + (prof.name || "this person") + " (" + (prof.sex || ob.sex || "") + ", " + (prof.age || ob.age || "") + ", " + (prof.height || ob.height || "") + ", " + (prof.bodyType || "") + ", " + (prof.fibreType || "") + "). Conditions: " + (ob.conditions || prof.notes || "none") + ". Equipment: " + (ob.equipment || "cable machine") + ". Goals: " + (ob.goals || "general fitness") + ". Activity: " + (ob.activity || "beginner") + ". Design 3 sessions/week 25-30 min. Return ONLY JSON: {\"sessions\":[{\"day\":\"sunday\",\"focus\":\"Legs/Calves/Core\",\"exercises\":[{\"name\":\"...\",\"sets\":3,\"reps\":12,\"weight\":\"22kg\",\"notes\":\"form cue\"}]}]}";
+              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }) });
+              var result = await resp.json(); var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
+              if (txt) { var plan = JSON.parse(txt.replace(/```json|```/g, "").trim()); var nd = JSON.parse(JSON.stringify(data)); if (plan.sessions) { for (var si = 0; si < plan.sessions.length; si++) { var sess = plan.sessions[si]; var dk = sess.day.toLowerCase(); if (!nd[activeTab].exercises) nd[activeTab].exercises = {}; nd[activeTab].exercises[dk] = sess.exercises.map(function(ex) { return { name: ex.name, current: ex.weight || "0kg", reps: ex.reps + "\u00d7" + (ex.sets || 3), status: "building", prog: [], notes: ex.notes || "" }; }); } } await saveData(nd); setFormMsg("\u2713 Exercise plan created"); }
+            } catch(e) { setFormMsg("\u2717 Could not generate"); }
+            setTimeout(function() { setFormMsg(""); }, 4000); setGenPlanLoading(false);
+          }} disabled={genPlanLoading} style={{ ...btnP(!genPlanLoading), marginTop: 10, background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{genPlanLoading ? "Generating..." : "\ud83c\udfcb\ufe0f Generate Exercise Plan"}</button>
+          <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4, lineHeight: 1.4 }}>Creates a personalised exercise plan based on your profile, body type, equipment, goals, and medical conditions. Populates the sections above.</div>
           <button onClick={async () => {
             setExNotesLoading(true);
             try {
@@ -1642,6 +1687,34 @@ function Dashboard() {
           return (<div>
           {/* Defaults & Generator */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
+            {/* Build Recommended Meals */}
+            {allDinners.length <= 1 && (<div style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginBottom: 12, border: "1px solid #fde68a" }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#854d0e", marginBottom: 6 }}>No meals configured yet — generate a personalised meal database to get started.</div>
+              <button onClick={async function() {
+                setGenMealsLoading(true); setFormMsg("Building meal recommendations...");
+                try {
+                  var prof = p.profile || {}; var ob = p.onboarding || {};
+                  var prompt = "Create a personalised meal database for " + (prof.name || "this person") + " (" + (prof.sex || "") + ", " + (prof.age || "") + ", " + (prof.height || "") + "). Conditions: " + (ob.conditions || prof.notes || "none") + ". Dietary: " + (ob.dietary || "no restrictions") + ". Goals: " + (ob.goals || "general health") + ". Generate 15 dinner options, 5 breakfast options, 5 lunch options, and 8 snack options appropriate for their needs. Return ONLY JSON: {\"dinners\":[{\"name\":\"...\",\"kcal\":450,\"protein\":35,\"fat\":12,\"rating\":\"GREAT\",\"freq\":\"Weekly\",\"time\":25,\"shop\":[\"item1\",\"item2\"]}],\"breakfasts\":[{\"name\":\"...\",\"kcal\":350,\"rating\":\"GREAT\"}],\"lunches\":[{\"name\":\"...\",\"kcal\":400,\"rating\":\"GREAT\"}],\"snacks\":[{\"name\":\"...\",\"kcal\":100,\"rating\":\"GREAT\"}]}";
+                  var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
+                  var result = await resp.json(); var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
+                  if (txt) {
+                    var meals = JSON.parse(txt.replace(/```json|```/g, "").trim());
+                    var newDinners = (meals.dinners || []).map(function(d, i) { return { id: "gen_dinner_" + i, name: d.name, rating: d.rating || "GREAT", jcKcal: d.kcal, beckKcal: Math.round(d.kcal * 0.85), jcProt: d.protein || 0, beckProt: Math.round((d.protein || 0) * 0.85), jcFat: d.fat || 0, beckFat: Math.round((d.fat || 0) * 0.85), freq: d.freq || "Weekly", time: d.time || 30, shop: d.shop || [] }; });
+                    var newBfasts = (meals.breakfasts || []).map(function(b, i) { return { id: "gen_bfast_" + i, name: b.name, jcKcal: b.kcal, beckKcal: Math.round(b.kcal * 0.85), rating: b.rating || "GREAT" }; });
+                    var newLunches = (meals.lunches || []).map(function(l, i) { return { id: "gen_lunch_" + i, name: l.name, jcKcal: l.kcal, beckKcal: Math.round(l.kcal * 0.85), rating: l.rating || "GREAT" }; });
+                    var newSnacks = (meals.snacks || []).map(function(s, i) { return { id: "gen_snack_" + i, name: s.name, jcKcal: s.kcal, beckKcal: s.kcal, rating: s.rating || "GREAT", freq: "Daily" }; });
+                    var cm = [].concat(customMeals, newDinners); setCustomMeals(cm); await sSet("custom_meals", JSON.stringify(cm));
+                    var cbf = [].concat(customBreakfasts, newBfasts); setCustomBreakfasts(cbf); await sSet("custom_breakfasts", JSON.stringify(cbf));
+                    var clu = [].concat(customLunches, newLunches); setCustomLunches(clu); await sSet("custom_lunches", JSON.stringify(clu));
+                    var csn = [].concat(customSnacks, newSnacks); setCustomSnacks(csn); await sSet("custom_snacks", JSON.stringify(csn));
+                    setFormMsg("\u2713 " + newDinners.length + " dinners, " + newBfasts.length + " breakfasts, " + newLunches.length + " lunches, " + newSnacks.length + " snacks added");
+                  }
+                } catch(e) { setFormMsg("\u2717 Could not generate — check API key"); }
+                setTimeout(function() { setFormMsg(""); }, 5000); setGenMealsLoading(false);
+              }} disabled={genMealsLoading} style={{ ...btnP(!genMealsLoading), background: genMealsLoading ? "#94a3b8" : "linear-gradient(135deg, #d97706 0%, #f59e0b 100%)" }}>{genMealsLoading ? "Building..." : "🍽️ Build Recommended Meal Options"}</button>
+              <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Generates personalised breakfast, lunch, dinner, and snack options colour-coded to your dietary needs. You can add more manually afterwards.</div>
+            </div>)}
+
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 10 }}>Weekly Meal Generator</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, padding: 8, background: "#f0fdf4", borderRadius: 8 }}>
               <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#166534", cursor: "pointer" }}>
