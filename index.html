@@ -1002,10 +1002,10 @@ function Dashboard() {
       var photoCtx2 = "";
       if (p.bodyAnalysis) photoCtx2 += " Body assessment: " + JSON.stringify(p.bodyAnalysis);
       if (p.progressPhotos && p.progressPhotos.length > 0) { var rp = p.progressPhotos.slice(-3); var rpd = []; for (var rpi = 0; rpi < rp.length; rpi++) { if (rp[rpi].analysis) rpd.push("Wk" + rp[rpi].week + ": " + rp[rpi].analysis); } if (rpd.length > 0) photoCtx2 += " Progress: " + rpd.join("; "); }
-      var prompt = "You are a health coach for " + who + ". Exercises: " + JSON.stringify(p.exercises) + ". Body: " + JSON.stringify(p.body) + ". Measurements: " + JSON.stringify(p.measurements) + mealCtx + healthCtx + bloodCtx + medsCtx + attCtx + photoCtx2 + ". Question: " + question + ". Answer in 2-3 sentences.";
+      var prompt = "You are a health coach for " + who + ". Current exercises: " + JSON.stringify(Object.keys(p.exercises).map(function(d) { return d + ": " + p.exercises[d].map(function(e) { return e.name + " " + e.current + " " + e.reps + " (" + e.status + ")"; }).join(", "); })) + ". Body: " + JSON.stringify(p.body) + ". Measurements: " + JSON.stringify(p.measurements) + mealCtx + healthCtx + bloodCtx + medsCtx + attCtx + photoCtx2 + ". Question: " + question + ". Answer in 2-4 clear sentences. Be specific with numbers.";
       var response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
         body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] })
       });
       if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Ask API", status: response.status, statusText: response.statusText }].concat(prev).slice(0, 20); });
