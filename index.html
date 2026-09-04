@@ -762,7 +762,7 @@ function Dashboard() {
 
   // Google Health Connect - OAuth + Fitness API
   const GOOGLE_CLIENT_ID = "464885753789-a8flgh64f1u9qeocktt6uljvjvsd0sf2.apps.googleusercontent.com";
-  const GOOGLE_SCOPES = "https://www.googleapis.com/auth/health";
+  const GOOGLE_SCOPES = "https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly";
 
   const connectGoogle = function() {
     var clientId = "";
@@ -797,7 +797,7 @@ function Dashboard() {
 
     try {
       // Fetch body weight
-      var weightResp = await fetch("https://health.googleapis.com/v4/users/me/dataTypes/weight/dataPoints?pageSize=30", {
+      var weightResp = await fetch("https://health.googleapis.com/v4/users/me/dataTypes/weight/dataPoints?pageSize=30&filter=weight.update_time.physical_time%20%3E%3D%20%222026-07-01T00:00:00Z%22", {
         method: "GET", headers: headers
       });
       var weightData = await weightResp.json();
@@ -816,7 +816,7 @@ function Dashboard() {
       }
 
       // Fetch body fat
-      var fatResp = await fetch("https://health.googleapis.com/v4/users/me/dataTypes/bodyFat/dataPoints?pageSize=30", {
+      var fatResp = await fetch("https://health.googleapis.com/v4/users/me/dataTypes/body-fat/dataPoints?pageSize=30", {
         method: "GET", headers: headers
       });
       var fatData = await fatResp.json();
