@@ -12,6 +12,14 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; }
     #root { max-width: 480px; margin: 0 auto; min-height: 100vh; }
+    @keyframes dotPulse {
+      0%, 20% { opacity: 0.3; }
+      50% { opacity: 1; }
+      80%, 100% { opacity: 0.3; }
+    }
+    .loading-dots span { animation: dotPulse 1.4s infinite; font-size: 18px; }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
   </style>
 </head>
 <body>
@@ -25,6 +33,9 @@
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <script>
     // Firebase Config
@@ -644,6 +655,44 @@ async function sSet(key, val) {
 // ═══════════════════════════════════════════════════
 // MAIN
 // ═══════════════════════════════════════════════════
+// Loading button with animated dots
+function LoadingBtn(props) {
+  var loading = props.loading;
+  var label = props.label || "Generate";
+  var loadLabel = props.loadLabel || "Generating";
+  return React.createElement("button", {
+    onClick: props.onClick,
+    disabled: loading || props.disabled,
+    style: Object.assign({}, {
+      width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8,
+      fontSize: 13, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
+      opacity: loading ? 0.7 : 1, background: loading ? "#94a3b8" : (props.bg || "#2563eb"),
+      marginTop: props.mt || 10, position: "relative"
+    }, props.style || {})
+  }, loading ? React.createElement("span", null,
+    loadLabel + " ",
+    React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })
+  ) : label);
+}
+
+// Handle API errors - detect credit exhaustion
+function handleApiError(result) {
+  if (result && result.error) {
+    var msg = result.error.message || JSON.stringify(result.error);
+    if (msg.indexOf("credit") >= 0 || msg.indexOf("billing") >= 0 || msg.indexOf("payment") >= 0 || msg.indexOf("insufficient") >= 0) {
+      return "Out of Credits — please add more credits at console.anthropic.com";
+    }
+    if (msg.indexOf("rate") >= 0 || msg.indexOf("limit") >= 0) {
+      return "Rate limit reached — wait a moment and try again";
+    }
+    if (msg.indexOf("authentication") >= 0 || msg.indexOf("api_key") >= 0 || msg.indexOf("invalid") >= 0) {
+      return "Invalid API key — check your key in Admin settings";
+    }
+    return "Error: " + msg.substring(0, 150);
+  }
+  return null;
+}
+
 function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -707,6 +756,135 @@ function Dashboard() {
   const [genPlanLoading, setGenPlanLoading] = useState(false);
   const [genMealsLoading, setGenMealsLoading] = useState(false);
   const [assessment, setAssessment] = useState(null);
+  const [googleToken, setGoogleToken] = useState(null);
+  const [googleConnected, setGoogleConnected] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
+
+  // Google Health Connect - OAuth + Fitness API
+  const GOOGLE_CLIENT_ID = "464885753789-a8flgh64f1u9qeocktt6uljvjvsd0sf2.apps.googleusercontent.com";
+  const GOOGLE_SCOPES = "https://www.googleapis.com/auth/health";
+
+  const connectGoogle = function() {
+    var clientId = "";
+    sGet("google_client_id").then(function(id) {
+      clientId = id || GOOGLE_CLIENT_ID;
+      if (!clientId) { setFormMsg("Set Google Client ID in Admin first"); setTimeout(function() { setFormMsg(""); }, 3000); return; }
+      var client = google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: GOOGLE_SCOPES,
+        callback: function(response) {
+          if (response.access_token) {
+            setGoogleToken(response.access_token);
+            setGoogleConnected(true);
+            sSet("google_token_" + activeTab, response.access_token);
+            setFormMsg("✓ Google Health connected"); setTimeout(function() { setFormMsg(""); }, 3000);
+          }
+        }
+      });
+      client.requestAccessToken();
+    });
+  };
+
+  const syncGoogleHealth = async function() {
+    var token = googleToken;
+    if (!token) { try { token = await sGet("google_token_" + activeTab); } catch(e) {} }
+    if (!token) { setFormMsg("Connect Google Health first"); setTimeout(function() { setFormMsg(""); }, 3000); return; }
+    setSyncLoading(true); setFormMsg("Syncing health data...");
+    var nd = JSON.parse(JSON.stringify(data));
+    var now = Date.now();
+    var thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
+    var headers = { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
+
+    try {
+      // Fetch body weight
+      var weightResp = await fetch("https://health.googleapis.com/v4/users/me/dataTypes/weight/dataPoints?pageSize=30", {
+        method: "GET", headers: headers
+      });
+      var weightData = await weightResp.json();
+      if (weightData.dataPoint) {
+        for (var bi = 0; bi < weightData.dataPoint.length; bi++) {
+          var pt = weightData.dataPoint[bi];
+          var kg = pt.value && pt.value.floatValue ? pt.value.floatValue : (pt.value && pt.value.intValue ? pt.value.intValue : 0);
+          if (!kg && pt.value) { for (var vk in pt.value) { if (typeof pt.value[vk] === "number" && pt.value[vk] > 20) { kg = pt.value[vk]; break; } } }
+          if (kg > 0) {
+            var stone = (kg * 0.157473).toFixed(2);
+            var dt = pt.startTime ? new Date(pt.startTime) : new Date();
+            var existing = (nd[activeTab].body.weight || []).find(function(w) { return w.v === parseFloat(stone); });
+            if (!existing) { nd[activeTab].body.weight.push({ wk: nd.config.week || 8, v: parseFloat(stone), date: dt.toLocaleDateString("en-GB"), source: "Google" }); }
+          }
+        }
+      }
+
+      // Fetch body fat
+      var fatResp = await fetch("https://health.googleapis.com/v4/users/me/dataTypes/bodyFat/dataPoints?pageSize=30", {
+        method: "GET", headers: headers
+      });
+      var fatData = await fatResp.json();
+      if (fatData.dataPoint) {
+        for (var fi = 0; fi < fatData.dataPoint.length; fi++) {
+          var fp = fatData.dataPoint[fi];
+          var fatPct = fp.value && fp.value.floatValue ? fp.value.floatValue : 0;
+          if (!fatPct && fp.value) { for (var fk in fp.value) { if (typeof fp.value[fk] === "number" && fp.value[fk] > 0 && fp.value[fk] < 100) { fatPct = fp.value[fk]; break; } } }
+          if (fatPct > 0) {
+            var existing2 = (nd[activeTab].body.bodyFat || []).find(function(f) { return f.v === parseFloat(fatPct.toFixed(1)); });
+            if (!existing2) { nd[activeTab].body.bodyFat.push({ wk: nd.config.week || 8, v: parseFloat(fatPct.toFixed(1)), source: "Google" }); }
+          }
+        }
+      }
+
+      // Fetch steps (last 7 days)
+      var sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
+      var stepsResp = await fetch("https://health.googleapis.com/v4/users/me/dataTypes/steps/dataPoints?pageSize=7", {
+        method: "GET", headers: headers
+      });
+      var stepsData = await stepsResp.json();
+      if (!nd[activeTab].activity) nd[activeTab].activity = [];
+      if (stepsData.dataPoint) {
+        for (var si = 0; si < stepsData.dataPoint.length; si++) {
+          var sp = stepsData.dataPoint[si];
+          var steps = sp.value && sp.value.intValue ? sp.value.intValue : 0;
+          if (!steps && sp.value) { for (var sk in sp.value) { if (typeof sp.value[sk] === "number") { steps = sp.value[sk]; break; } } }
+          var dayDate = sp.startTime ? new Date(sp.startTime).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB");
+          if (steps > 0) {
+            var existingAct = nd[activeTab].activity.find(function(a) { return a.date === dayDate; });
+            if (existingAct) { existingAct.steps = steps; existingAct.source = "Google"; }
+            else { nd[activeTab].activity.push({ date: dayDate, steps: steps, type: "daily", source: "Google" }); }
+          }
+        }
+      }
+
+      // Fetch exercise sessions
+      var sessResp = await fetch("https://health.googleapis.com/v4/users/me/dataTypes/exercise/dataPoints?pageSize=10", {
+        method: "GET", headers: headers
+      });
+      var sessData = await sessResp.json();
+      if (sessData.dataPoint) {
+        for (var sei = 0; sei < sessData.dataPoint.length; sei++) {
+          var sess = sessData.dataPoint[sei];
+          var sessDate = sess.startTime ? new Date(sess.startTime).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB");
+          var durMin = (sess.startTime && sess.endTime) ? Math.round((new Date(sess.endTime) - new Date(sess.startTime)) / 60000) : 0;
+          var actName = (sess.value && sess.value.stringValue) || "Exercise";
+          var existingSess = nd[activeTab].activity.find(function(a) { return a.date === sessDate && a.activity === actName; });
+          if (!existingSess) {
+            nd[activeTab].activity.push({ date: sessDate, activity: actName, duration: durMin, type: "session", source: "Google" });
+          }
+        }
+      }
+
+      if (nd[activeTab].activity.length > 90) nd[activeTab].activity = nd[activeTab].activity.slice(-90);
+      await saveData(nd);
+      setFormMsg("✓ Synced — weight, body fat, steps, and activities updated");
+    } catch(err) {
+      if (String(err).indexOf("401") >= 0 || String(err).indexOf("403") >= 0) {
+        setGoogleConnected(false); setGoogleToken(null);
+        setFormMsg("Google session expired — reconnect in profile");
+      } else {
+        setFormMsg("Sync error: " + String(err).substring(0, 100));
+      }
+    }
+    setTimeout(function() { setFormMsg(""); }, 5000);
+    setSyncLoading(false);
+  };
   const [showNewSection, setShowNewSection] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
   const [editExercise, setEditExercise] = useState(null);
@@ -770,6 +948,7 @@ function Dashboard() {
     const cbt = await sGet("custom_blood_tests"); if (cbt) setCustomBloodTests(JSON.parse(cbt));
     const sm = await sGet("supermarket_pref"); if (sm) setSupermarket(sm);
     const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
+    const gt = await sGet("google_token_" + activeTab); if (gt) { setGoogleToken(gt); setGoogleConnected(true); }
     const qa = await sGet("qa_history"); if (qa) setQaHistory(JSON.parse(qa));
   })(); }, []);
 
@@ -921,6 +1100,14 @@ function Dashboard() {
         for (var pi = 0; pi < recent.length; pi++) { if (recent[pi].analysis) pDescs.push("Wk" + recent[pi].week + " " + recent[pi].date + ": " + recent[pi].analysis); }
         if (pDescs.length > 0) photoCtx += "\nProgress photo observations: " + pDescs.join("; ");
       }
+      // Activity data (steps, walks, swims)
+      let activityCtx = "";
+      if (p.activity && p.activity.length > 0) {
+        var recentAct = p.activity.slice(-7);
+        var actParts = [];
+        for (var aci = 0; aci < recentAct.length; aci++) { var a = recentAct[aci]; actParts.push(a.date + ": " + (a.steps ? a.steps + " steps" : "") + (a.activity ? " " + a.activity + " " + (a.duration || "") + "min" : "")); }
+        activityCtx = "\nRecent activity (7 days): " + actParts.join(", ");
+      }
       // Gather meal plan
       let mealSummary = "";
       try { const mr = await sGet(sk); if (mr) { const mp = JSON.parse(mr); const dayInfo = MEAL_DAYS.map(d => { const entry = mp[d.key]; const isO = entry && typeof entry === "object"; const din = isO ? entry.d : entry; const ml = allDinners.find(m => m.id === din); const note = isO ? entry._note : ""; return d.label + ": " + (ml ? ml.name : "unplanned") + (note ? " (" + note + ")" : ""); }).join(", "); mealSummary = "\nThis week's meals: " + dayInfo + "."; } } catch {}
@@ -951,11 +1138,13 @@ function Dashboard() {
           return { name: ex.name, current: ex.current, reps: ex.reps, status: ex.status, target: ex.target || "", notes: ex.notes || "", prev: prev ? prev.w + " " + prev.r + " Wk" + prev.wk : "", weeksTracked: ex.prog ? ex.prog.length : 0 };
         });
       }
-      const prompt = "You are a health coach analysing Week " + data.config.week + " for " + who + ". Give integrated analysis across all data.\n\nExercises: " + JSON.stringify(exSummary) + "\nBody: " + JSON.stringify(p.body) + "\nMeasurements: " + JSON.stringify(p.measurements) + mealSummary + exComments + healthContext + bloodContext + medsContext + attachCtx + photoCtx + prevContext + "\n\nRules: EACH point must be ONE short sentence (max 20 words). Reference specific numbers. Return ONLY JSON:\n{\"good\":[\"short point\",\"short point\",\"short point\"],\"opportunities\":[\"short point\",\"short point\"],\"focus\":[\"one sentence focus for next 2 weeks\"]}";
+      const prompt = "You are a health coach analysing Week " + data.config.week + " for " + who + ". Give integrated analysis across all data.\n\nExercises: " + JSON.stringify(exSummary) + "\nBody: " + JSON.stringify(p.body) + "\nMeasurements: " + JSON.stringify(p.measurements) + mealSummary + exComments + healthContext + bloodContext + medsContext + attachCtx + photoCtx + activityCtx + prevContext + "\n\nRules: EACH point must be ONE short sentence (max 20 words). Reference specific numbers. Return ONLY JSON:\n{\"good\":[\"short point\",\"short point\",\"short point\"],\"opportunities\":[\"short point\",\"short point\"],\"focus\":[\"one sentence focus for next 2 weeks\"]}";
       const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
       if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Feedback API", status: response.status, statusText: response.statusText }].concat(prev).slice(0, 20); });
       const result = await response.json();
       if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Feedback Response", data: JSON.stringify(result).substring(0, 500) }].concat(prev).slice(0, 20); });
+      var apiErr = handleApiError(result);
+      if (apiErr) throw new Error(apiErr);
       const text = result.content?.map(c => c.text || "").join("") || "";
       if (!text && result.error) throw new Error(result.error.message || JSON.stringify(result.error));
       const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
@@ -1011,6 +1200,8 @@ function Dashboard() {
       if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Ask API", status: response.status, statusText: response.statusText }].concat(prev).slice(0, 20); });
       var result = await response.json();
       if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Ask Response", data: JSON.stringify(result).substring(0, 500) }].concat(prev).slice(0, 20); });
+      var apiErr2 = handleApiError(result);
+      if (apiErr2) { setQaMsg(apiErr2); setQaLoading(false); return; }
       var answer = "";
       if (result.content) {
         for (var i = 0; i < result.content.length; i++) {
@@ -1112,7 +1303,7 @@ function Dashboard() {
             <BodyCard label="Visceral Fat" value={p.body.visceralFat?.[p.body.visceralFat.length-1]?.v} rating={isJC ? "Standard" : "High"} />
             <BodyCard label="BMR (kcal)" value={p.body.bmr?.[p.body.bmr.length-1]?.v} rating={isJC ? "Excellent" : ""} />
           </div>
-          <button onClick={generateFeedback} disabled={feedbackLoading} style={{ ...btnP(!feedbackLoading), background: feedbackLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)", marginBottom: 14 }}>{feedbackLoading ? "Analysing..." : "Generate Feedback"}</button>
+          <button onClick={generateFeedback} disabled={feedbackLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: feedbackLoading ? "not-allowed" : "pointer", opacity: feedbackLoading ? 0.7 : 1, background: feedbackLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)", marginBottom: 14 }}>{feedbackLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Feedback"}</button>
           {feedbackResults[activeTab] && (() => { const fb = feedbackResults[activeTab]; return (<div style={{ marginBottom: 14 }}><div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" }}>
             {fb._when && <div style={{ padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" }}>Generated {fb._when} for {isJC ? "JC" : "Becks"}</div>}
             <div style={{ padding: "12px 14px", background: "#dcfce7", borderBottom: "1px solid #bbf7d0" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#166534" }}>What's going well</div>{fb.good?.map((g, i) => <div key={i} style={{ fontSize: 12, color: "#166534", marginTop: 4 }}>✓ {g}</div>)}</div>
@@ -1144,7 +1335,7 @@ function Dashboard() {
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Ask a Question</div>
             <div style={{ fontSize: 11, color: "#64748b", marginBottom: 8 }}>Ask anything about your health, training, nutrition, or progress. Your full data history is used to answer.</div>
             <textarea id={"qa-input-" + activeTab} placeholder="e.g. Why did my bicep curl reps drop? Am I eating enough protein? What should I focus on next?" style={{ ...inputStyle, minHeight: 50, resize: "vertical", fontSize: 12, marginBottom: 8 }} />
-            <button onClick={askQuestion} disabled={qaLoading} style={{ width: "100%", padding: 12, background: qaLoading ? "#94a3b8" : accent, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: qaLoading ? "not-allowed" : "pointer", opacity: qaLoading ? 0.6 : 1 }}>{qaLoading ? "⏳ Thinking..." : "Ask"}</button>
+            <button onClick={askQuestion} disabled={qaLoading} style={{ width: "100%", padding: 12, background: qaLoading ? "#94a3b8" : accent, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: qaLoading ? "not-allowed" : "pointer", opacity: qaLoading ? 0.7 : 1 }}>{qaLoading ? <span>Thinking, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Ask"}</button>
             {qaMsg && <div style={{ marginTop: 6, padding: 8, borderRadius: 6, background: qaMsg.startsWith("Error") ? "#fee2e2" : "#dbeafe", color: qaMsg.startsWith("Error") ? "#991b1b" : "#1e40af", fontSize: 11, fontWeight: 600 }}>{qaMsg}</div>}
             {qaHistory[activeTab] && qaHistory[activeTab].length > 0 && (<div style={{ marginTop: 12 }}>
               {qaHistory[activeTab].slice(-3).reverse().map((qa, i) => (<div key={i} style={{ padding: 10, background: i === 0 ? "#f0fdf4" : "#f8fafc", borderRadius: 8, marginBottom: 6, border: i === 0 ? "1px solid #bbf7d0" : "1px solid #e2e8f0" }}>
@@ -1213,6 +1404,24 @@ function Dashboard() {
                 <div style={{ fontSize: 11, fontWeight: 600, color: hasBaseline ? "#64748b" : "#854d0e" }}>{hasBaseline ? "✓ Baseline body composition recorded" : "📊 Upload baseline body composition from your scales app (weight, body fat %, muscle mass etc)"}</div>
               </div>
 
+              {/* Google Health Connect */}
+              <div style={{ marginTop: 10, padding: 12, background: "#fff", borderRadius: 8, border: "1px solid " + (googleConnected ? "#86efac" : "#e2e8f0") }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📱 Google Health Connect</div>
+                <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.5, marginBottom: 8 }}>
+                  <strong>Android Only</strong> — Syncs body composition and activity data from your phone via Google Health Connect.<br/>
+                  <strong>Setup:</strong> 1) Download <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata" target="_blank" style={{ color: "#2563eb" }}>Google Health Connect</a> from Play Store. 2) Open it and connect your Fitdays / health apps. 3) Tap Connect below.
+                </div>
+                {googleConnected ? (
+                  <div>
+                    <div style={{ padding: 8, background: "#dcfce7", borderRadius: 6, fontSize: 11, color: "#166534", fontWeight: 600, marginBottom: 8 }}>✓ Connected to Google Health</div>
+                    <button onClick={syncGoogleHealth} disabled={syncLoading} style={{ width: "100%", padding: 10, background: syncLoading ? "#94a3b8" : "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: syncLoading ? "not-allowed" : "pointer" }}>{syncLoading ? <span>Syncing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🔄 Sync Google Health Data"}</button>
+                    <button onClick={function() { setGoogleConnected(false); setGoogleToken(null); sSet("google_token_" + activeTab, ""); }} style={{ width: "100%", padding: 6, background: "none", border: "none", fontSize: 10, color: "#dc2626", cursor: "pointer", marginTop: 4 }}>Disconnect</button>
+                  </div>
+                ) : (
+                  <button onClick={connectGoogle} style={{ width: "100%", padding: 10, background: "#4285f4", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>🔗 Connect Google Health</button>
+                )}
+              </div>
+
               {/* Generate Body Profile */}
               <button onClick={async function() {
                 setGenPlanLoading(true); setFormMsg("Generating body profile...");
@@ -1235,7 +1444,7 @@ function Dashboard() {
                   }
                 } catch(e) { setFormMsg("✗ Could not generate — check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
                 setGenPlanLoading(false);
-              }} disabled={genPlanLoading} style={{ ...btnP(!genPlanLoading), marginTop: 12, background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" }}>{genPlanLoading ? "Generating..." : "🧬 Generate Body Profile"}</button>
+              }} disabled={genPlanLoading} style={{ ...btnP(!genPlanLoading), marginTop: 12, background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" }}>{genPlanLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🧬 Generate Body Profile"}</button>
               <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Uses your answers, photos, and body comp data to determine body type, fibre dominance, ideal weight, and personalised assessment.</div>
 
               {/* Generated/editable fields */}
@@ -1271,7 +1480,7 @@ function Dashboard() {
 
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10, color: "#0f172a" }}>Body Weight Composition</div>
           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-            <button onClick={() => { setShowBodyForm(true); setBodyInputs({ weight: "", bodyFat: "", muscleMass: "", muscleRate: "", skeletalMuscle: "", visceralFat: "", subcutFat: "", bmr: "", bodyWater: "", boneMass: "", bodyAge: "", bmi: "", week: String((data.config.week || 6) + 1) }); }} style={{ ...btnP(), flex: 1 }}>Record Body Comp</button>
+            <button onClick={() => { setShowBodyForm(true); setBodyInputs({ weight: "", bodyFat: "", muscleMass: "", muscleRate: "", skeletalMuscle: "", visceralFat: "", subcutFat: "", bmr: "", bodyWater: "", boneMass: "", bodyAge: "", bmi: "", week: String((data.config.week || 8) + 1) }); }} style={{ ...btnP(), flex: 1 }}>Record Body Comp</button>
             <label style={{ display: "inline-flex", alignItems: "center", padding: "8px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11, color: "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>
               📷 Image Upload
               <input type="file" accept="image/*" onChange={async function(e) {
@@ -1416,7 +1625,16 @@ function Dashboard() {
             <button onClick={() => setShowHist(h => !h)} style={{ padding: "6px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer" }}>{showHist ? "Hide" : "Show"} History</button>
             <button onClick={() => setShowNewSection(true)} style={{ padding: "6px 12px", background: "#dbeafe", border: "1px solid #93c5fd", borderRadius: 6, fontSize: 11, color: "#1e40af", cursor: "pointer" }}>+ Section</button>
             <button onClick={() => setShowNewExForm(true)} style={{ padding: "6px 12px", background: "#dcfce7", border: "1px solid #86efac", borderRadius: 6, fontSize: 11, color: "#166534", cursor: "pointer" }}>+ Exercise</button>
+            <button onClick={syncGoogleHealth} disabled={syncLoading || !googleConnected} style={{ padding: "6px 12px", background: googleConnected ? "#e0f2fe" : "#f1f5f9", border: "1px solid " + (googleConnected ? "#7dd3fc" : "#e2e8f0"), borderRadius: 6, fontSize: 11, color: googleConnected ? "#0369a1" : "#94a3b8", cursor: googleConnected ? "pointer" : "not-allowed" }}>{syncLoading ? "Syncing..." : "🔄 Sync"}</button>
           </div>
+          {/* Activity Log from Google Health */}
+          {p.activity && p.activity.length > 0 && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginBottom: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 8 }}>Recent Activity</div>
+            {p.activity.slice(-7).reverse().map(function(act, ai) { return (<div key={ai} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid #f8fafc", fontSize: 11 }}>
+              <span style={{ color: "#334155" }}>{act.date} {act.activity ? <strong>{act.activity}</strong> : ""}</span>
+              <span style={{ color: "#64748b" }}>{act.steps ? act.steps.toLocaleString() + " steps" : ""}{act.duration ? (act.steps ? " · " : "") + act.duration + " min" : ""}{act.source === "Google" ? " 📱" : ""}</span>
+            </div>); })}
+          </div>)}
           {showNewSection && (<div style={{ background: "#fff", borderRadius: 10, border: "2px solid " + accent, padding: 12, marginBottom: 12 }}>
             <label style={labelStyle}>New Section Name</label>
             <div style={{ display: "flex", gap: 8 }}><input value={newSectionName} onChange={e => setNewSectionName(e.target.value)} style={{ ...inputStyle, flex: 1 }} placeholder="e.g. Saturday — Accessory" /><button onClick={() => addSection(newSectionName)} disabled={!newSectionName.trim()} style={{ ...btnP(!!newSectionName.trim()), width: "auto", padding: "8px 16px" }}>Add</button><button onClick={() => setShowNewSection(false)} style={btnS}>Cancel</button></div>
@@ -1489,7 +1707,7 @@ function Dashboard() {
               if (txt) { var plan = JSON.parse(txt.replace(/```json|```/g, "").trim()); var nd = JSON.parse(JSON.stringify(data)); if (plan.sessions) { for (var si = 0; si < plan.sessions.length; si++) { var sess = plan.sessions[si]; var dk = sess.day.toLowerCase(); if (!nd[activeTab].exercises) nd[activeTab].exercises = {}; nd[activeTab].exercises[dk] = sess.exercises.map(function(ex) { return { name: ex.name, current: ex.weight || "0kg", reps: ex.reps + "\u00d7" + (ex.sets || 3), status: "building", prog: [], notes: ex.notes || "" }; }); } } await saveData(nd); setFormMsg("\u2713 Exercise plan created"); }
             } catch(e) { setFormMsg("\u2717 Could not generate"); }
             setTimeout(function() { setFormMsg(""); }, 4000); setGenPlanLoading(false);
-          }} disabled={genPlanLoading} style={{ ...btnP(!genPlanLoading), marginTop: 10, background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{genPlanLoading ? "Generating..." : "\ud83c\udfcb\ufe0f Generate Exercise Plan"}</button>
+          }} disabled={genPlanLoading} style={{ ...btnP(!genPlanLoading), marginTop: 10, background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{genPlanLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🏋️ Generate Exercise Plan"}</button>
           <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4, lineHeight: 1.4 }}>Creates a personalised exercise plan based on your profile, body type, equipment, goals, and medical conditions. Populates the sections above.</div>
           <button onClick={async () => {
             setExNotesLoading(true);
@@ -1504,7 +1722,7 @@ function Dashboard() {
               await sSet("exercise_notes_" + activeTab, text.replace(/```json|```/g, "").trim());
             } catch { setExNotes({ exercises: [{ name: "Error", setup: "Could not generate — try again", grip: "", tempo: "", mistakes: "", tip: "" }] }); }
             setExNotesLoading(false);
-          }} disabled={exNotesLoading} style={{ ...btnP(!exNotesLoading), marginTop: 10, background: exNotesLoading ? "#94a3b8" : "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" }}>{exNotesLoading ? "Generating..." : "📋 Generate Exercise Form Guide"}</button>
+          }} disabled={exNotesLoading} style={{ ...btnP(!exNotesLoading), marginTop: 10, background: exNotesLoading ? "#94a3b8" : "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" }}>{exNotesLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "📋 Generate Exercise Form Guide"}</button>
           <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4, lineHeight: 1.4 }}>Generates personalised setup cues, grip positions, tempo guidance, common mistakes, and tips for every exercise loaded above — tailored to your body type and any constraints (RSI, back issues etc).</div>
           {exNotes && exNotes.exercises && (<div style={{ marginTop: 12 }}>
             {exNotes.exercises.map((ex, i) => (<div key={i} style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginBottom: 8 }}>
@@ -1531,6 +1749,9 @@ function Dashboard() {
           <FullChart title="Visceral Fat" series={[{ label: "Visceral", color: "#f97316", data: p.body.visceralFat || [] }]} />
           <FullChart title="Muscle Rate %" series={[{ label: "Muscle Rate", color: "#22c55e", data: p.body.muscleRate || [] }]} />
           <FullChart title="BMR (kcal)" series={[{ label: "BMR", color: "#3b82f6", data: p.body.bmr || [] }]} />
+          {p.activity && p.activity.filter(function(a) { return a.steps; }).length > 1 && (
+            <FullChart title="Daily Steps" series={[{ label: "Steps", color: "#059669", data: p.activity.filter(function(a) { return a.steps; }).map(function(a, i) { return { wk: i + 1, v: a.steps }; }) }]} />
+          )}
           {Object.entries(p.measurements).some(([, d]) => d.length > 0) && (<>
             <div style={{ fontSize: 13, fontWeight: 700, marginTop: 8, marginBottom: 8 }}>Tape Measurements (cm)</div>
             <FullChart title="Measurements" series={Object.entries(p.measurements).filter(([, d]) => d.some(e => typeof e.v === "number")).map(([k, d], i) => ({ label: k.charAt(0).toUpperCase() + k.slice(1), color: ["#2563eb","#7c3aed","#059669","#d97706","#dc2626","#0891b2"][i % 6], data: d }))} />
@@ -1722,7 +1943,7 @@ function Dashboard() {
                   }
                 } catch(e) { setFormMsg("\u2717 Could not generate — check API key"); }
                 setTimeout(function() { setFormMsg(""); }, 5000); setGenMealsLoading(false);
-              }} disabled={genMealsLoading} style={{ ...btnP(!genMealsLoading), background: genMealsLoading ? "#94a3b8" : "linear-gradient(135deg, #d97706 0%, #f59e0b 100%)" }}>{genMealsLoading ? "Building..." : "🍽️ Build Recommended Meal Options"}</button>
+              }} disabled={genMealsLoading} style={{ ...btnP(!genMealsLoading), background: genMealsLoading ? "#94a3b8" : "linear-gradient(135deg, #d97706 0%, #f59e0b 100%)" }}>{genMealsLoading ? <span>Building meals, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🍽️ Build Recommended Meal Options"}</button>
               <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Generates personalised breakfast, lunch, dinner, and snack options colour-coded to your dietary needs. You can add more manually afterwards.</div>
             </div>)}
 
@@ -1768,7 +1989,7 @@ function Dashboard() {
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={applyDefaults} style={{ flex: 1, padding: 10, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>Apply Defaults</button>
-              <button onClick={generateWeekMeals} disabled={generating} style={{ flex: 1, padding: 10, background: generating ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: generating ? "default" : "pointer" }}>{generating ? "Generating..." : "🤖 Generate Dinners"}</button>
+              <button onClick={generateWeekMeals} disabled={generating} style={{ flex: 1, padding: 10, background: generating ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: generating ? "default" : "pointer" }}>{generating ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🤖 Generate Dinners"}</button>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
@@ -2045,7 +2266,7 @@ function Dashboard() {
               setGeneratedShop(JSON.parse(text.replace(/```json|```/g, "").trim()));
             } catch { setFormMsg("✗ Could not generate — try again"); setTimeout(() => setFormMsg(""), 3000); }
             setShopLoading(false);
-          }} disabled={shopLoading} style={{ ...btnP(!shopLoading), marginBottom: 14, background: shopLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{shopLoading ? "Generating..." : "🛒 Generate " + supermarket + " Shop"}</button>
+          }} disabled={shopLoading} style={{ ...btnP(!shopLoading), marginBottom: 14, background: shopLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{shopLoading ? <span>Generating shop, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🛒 Generate " + supermarket + " Shop"}</button>
           {generatedShop && generatedShop.aisles && (<div style={{ marginBottom: 14 }}>
             {generatedShop.aisles.map((aisle, ai) => (<div key={ai} style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 8, overflow: "hidden" }}>
               <div style={{ padding: "8px 12px", background: "#f8fafc", fontWeight: 700, fontSize: 12, color: "#475569", borderBottom: "1px solid #e2e8f0" }}>{aisle.name}</div>
@@ -2105,7 +2326,7 @@ function Dashboard() {
               await sSet("generated_targets_" + activeTab, text.replace(/```json|```/g, "").trim());
             } catch { setGeneratedTargets({ priorities: ["Could not generate — try again"] }); }
             setTargetsLoading(false);
-          }} disabled={targetsLoading} style={{ ...btnP(!targetsLoading), marginTop: 14, background: targetsLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{targetsLoading ? "Analysing..." : "🎯 Generate Personalised Targets"}</button>
+          }} disabled={targetsLoading} style={{ ...btnP(!targetsLoading), marginTop: 14, background: targetsLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{targetsLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🎯 Generate Personalised Targets"}</button>
           {generatedTargets && (<div style={{ marginTop: 12 }}>
             {generatedTargets.priorities && generatedTargets.priorities.length > 0 && (<div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 12, padding: 14, marginBottom: 10, color: "#fff" }}>
               <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", opacity: 0.7, marginBottom: 8 }}>Priorities</div>
@@ -2192,10 +2413,15 @@ function Dashboard() {
 
           {/* API Key */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🔑 Claude API Key</div>
-            <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.5, marginBottom: 8 }}>Required for AI features (Generate Feedback, Ask a Question, Generate Plans). Get your key from <strong>console.anthropic.com</strong> → API Keys → Create Key. Pay-as-you-go, typically under £1/month for normal use.</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🔑 API Keys</div>
+            <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.5, marginBottom: 8 }}>Required for AI features. Get your Claude key from <strong>console.anthropic.com</strong> → API Keys.</div>
+            <label style={labelStyle}>Claude API Key</label>
             <input type="password" id="api-key-input" defaultValue="" placeholder="sk-ant-api03-..." style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, fontFamily: "monospace", boxSizing: "border-box", marginBottom: 6 }} />
-            <button onClick={async function() { var key = document.getElementById("api-key-input").value.trim(); if (!key) return; await sSet("anthropic_api_key", key); window._anthropicKey = key; setFormMsg("✓ API key saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(), width: "100%" }}>Save API Key</button>
+            <button onClick={async function() { var key = document.getElementById("api-key-input").value.trim(); if (!key) return; await sSet("anthropic_api_key", key); window._anthropicKey = key; setFormMsg("✓ Claude API key saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(), width: "100%", marginBottom: 10 }}>Save Claude Key</button>
+            <label style={labelStyle}>Google OAuth Client ID (for Health Connect)</label>
+            <div style={{ fontSize: 10, color: "#64748b", marginBottom: 4 }}>From Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client ID</div>
+            <input type="text" id="google-client-id-input" defaultValue="" placeholder="xxxx.apps.googleusercontent.com" style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, fontFamily: "monospace", boxSizing: "border-box", marginBottom: 6 }} />
+            <button onClick={async function() { var gid = document.getElementById("google-client-id-input").value.trim(); if (!gid) return; await sSet("google_client_id", gid); setFormMsg("✓ Google Client ID saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(), width: "100%" }}>Save Google Client ID</button>
           </div>
 
           {/* JSON Data Import */}
