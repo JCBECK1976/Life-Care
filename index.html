@@ -762,6 +762,19 @@ function calcWeek(startDate) {
   return Math.floor((now - start) / (7 * 24 * 60 * 60 * 1000)) + 1;
 }
 
+// Map feedback icon text to actual symbols
+function fbIcon(icon) {
+  if (!icon) return "\u25CF";
+  var i = icon.toLowerCase().trim();
+  if (i === "check" || i.indexOf("check") >= 0 || i === "good") return "\u2705";
+  if (i === "arrow" || i.indexOf("arrow") >= 0 || i.indexOf("build") >= 0) return "\u2197\uFE0F";
+  if (i === "triangle" || i.indexOf("triangle") >= 0 || i.indexOf("up") >= 0 || i.indexOf("moved") >= 0) return "\u25B2";
+  if (i === "warning" || i.indexOf("warning") >= 0 || i.indexOf("watch") >= 0) return "\u26A0\uFE0F";
+  if (i === "circle" || i.indexOf("circle") >= 0 || i.indexOf("hold") >= 0 || i.indexOf("maintain") >= 0) return "\u23F8\uFE0F";
+  if (i === "star" || i.indexOf("star") >= 0 || i.indexOf("ready") >= 0) return "\u2B50";
+  return icon;
+}
+
 function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1676,8 +1689,8 @@ function Dashboard() {
                   setBodyFbLoading(false);
                 }} disabled={bodyFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: bodyFbLoading ? "not-allowed" : "pointer", background: bodyFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{bodyFbLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Weigh In Feedback"}</button>
                 {bodyFeedback && (<div style={{ marginTop: 10 }}>
-                  {bodyFeedback.good && bodyFeedback.good.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#166534" }}>\u2713 {pt}</div>; })}
-                  {bodyFeedback.watch && bodyFeedback.watch.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#d97706" }}>\u26a0 {pt}</div>; })}
+                  {bodyFeedback.good && bodyFeedback.good.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#166534" }}>✅ {pt}</div>; })}
+                  {bodyFeedback.watch && bodyFeedback.watch.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#d97706" }}>⚠️ {pt}</div>; })}
                   {bodyFeedback.outlook && <div style={{ marginTop: 8, padding: 10, background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, color: "#fff", fontSize: 12 }}>{bodyFeedback.outlook}</div>}
                 </div>)}
               </div>)}
@@ -1692,7 +1705,7 @@ function Dashboard() {
                       <input defaultValue={entry.wk} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[metric.k][ei].wk = parseInt(e.target.value) || entry.wk; await saveData(nd); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
                       <input defaultValue={entry.v} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[metric.k][ei].v = parseFloat(e.target.value) || entry.v; await saveData(nd); }} style={{ width: 60, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
                       <input defaultValue={entry.note || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[metric.k][ei].note = e.target.value; await saveData(nd); }} placeholder="..." style={{ flex: 1, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
-                      <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[metric.k].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", width: 20 }}>\u2715</button>
+                      <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[metric.k].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", width: 20 }}>✕</button>
                     </div>); })}
                   </div>);
                 })}
@@ -1747,8 +1760,8 @@ function Dashboard() {
                   setMeasFbLoading(false);
                 }} disabled={measFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: measFbLoading ? "not-allowed" : "pointer", background: measFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{measFbLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Measurement Feedback"}</button>
                 {measFeedback && (<div style={{ marginTop: 10 }}>
-                  {measFeedback.good && measFeedback.good.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#166534" }}>\u2713 {pt}</div>; })}
-                  {measFeedback.watch && measFeedback.watch.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#d97706" }}>\u26a0 {pt}</div>; })}
+                  {measFeedback.good && measFeedback.good.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#166534" }}>✅ {pt}</div>; })}
+                  {measFeedback.watch && measFeedback.watch.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#d97706" }}>⚠️ {pt}</div>; })}
                   {measFeedback.outlook && <div style={{ marginTop: 8, padding: 10, background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, color: "#fff", fontSize: 12 }}>{measFeedback.outlook}</div>}
                 </div>)}
               </div>)}
@@ -1763,7 +1776,7 @@ function Dashboard() {
                       <input defaultValue={entry.wk} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].wk = parseInt(e.target.value) || entry.wk; await saveData(nd); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
                       <input defaultValue={entry.v} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].v = parseFloat(e.target.value) || entry.v; await saveData(nd); }} style={{ width: 60, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
                       <input defaultValue={entry.note || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].note = e.target.value; await saveData(nd); }} placeholder="..." style={{ flex: 1, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
-                      <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", width: 20 }}>\u2715</button>
+                      <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", width: 20 }}>✕</button>
                     </div>); })}
                   </div>);
                 })}
@@ -1904,17 +1917,43 @@ function Dashboard() {
                     try {
                       var prof = p.profile || {};
                       var daySummary = exList.map(function(ex) { var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null; var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null; return ex.name + ": " + ex.current + " " + ex.reps + " (" + ex.status + ")" + (prev ? " prev: " + prev.w + " " + prev.r : "") + (ex.notes ? " [" + ex.notes + "]" : ""); }).join("; ");
-                      var jsonFormat = '{"exercises":[{"name":"...","verdict":"...","icon":"..."}],"summary":"one sentence","nextSession":"one focus"}';
-                      var prompt = "Session feedback for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Week " + currentWeek + " " + day + " session. Exercises: " + daySummary + ". Per exercise: verdict + icon (good=check moved=triangle building=arrow watch=warning holding=circle). Max 15 words each. Return ONLY JSON: " + jsonFormat;
+                      var jsonFormat = '{"exercises":[{"name":"...","verdict":"...","icon":"check|triangle|arrow|warning|circle|star","newStatus":"building|moved up|consolidating|ready to move|maintaining|reduce"}],"summary":"one sentence","nextSession":"one focus"}';
+                      var prompt = "Session feedback for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Week " + currentWeek + " " + day + " session. Exercises: " + daySummary + ". RULES you MUST follow: 1) If exercise hit 15x3 for first time = consolidating (icon=arrow). 2) If 15x3 for TWO consecutive sessions = ready to move, specify next weight +7kg (icon=star). 3) If just increased weight = moved up (icon=triangle). 4) If building reps at current weight = building (icon=arrow). 5) If deliberately holding = maintaining (icon=circle). 6) If dropped weight = reduce (icon=warning). For each exercise return newStatus based on these rules. Max 20 words verdict. Return ONLY JSON: " + jsonFormat;
                       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                       var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                      if (txt) { var fb = JSON.parse(txt.replace(/```json|```/g, "").trim()); setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: fb })); await sSet("session_fb_" + activeTab + "_" + day + "_wk" + currentWeek, JSON.stringify(fb)); }
+                      if (txt) {
+                        var fb = JSON.parse(txt.replace(/```json|```/g, "").trim());
+                        setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: fb }));
+                        await sSet("session_fb_" + activeTab + "_" + day + "_wk" + currentWeek, JSON.stringify(fb));
+                        // Apply status updates to exercise data
+                        if (fb.exercises) {
+                          var nd = JSON.parse(JSON.stringify(data));
+                          var updated = false;
+                          for (var fbi = 0; fbi < fb.exercises.length; fbi++) {
+                            var fbEx = fb.exercises[fbi];
+                            if (fbEx.newStatus) {
+                              var dayExs = nd[activeTab].exercises[day] || [];
+                              for (var dei = 0; dei < dayExs.length; dei++) {
+                                if (dayExs[dei].name === fbEx.name && dayExs[dei].status !== fbEx.newStatus) {
+                                  dayExs[dei].status = fbEx.newStatus;
+                                  if (fbEx.newStatus === "ready to move") {
+                                    var curKg = parseInt(dayExs[dei].current) || 0;
+                                    dayExs[dei].target = (curKg + 7) + "kg x 10x3";
+                                  }
+                                  updated = true;
+                                }
+                              }
+                            }
+                          }
+                          if (updated) { await saveData(nd); }
+                        }
+                      }
                     } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: { exercises: [], summary: "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
                     setSessionFbLoading(false);
                   }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{sessionFbLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "📊 Generate Session Feedback"}</button>
                   {sessionFeedback && sessionFeedback[day] && (<div style={{ marginTop: 10 }}>
-                    {sessionFeedback[day].exercises && sessionFeedback[day].exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc", alignItems: "center" }}><span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{ex.icon || "●"}</span><div><div style={{ fontSize: 12, fontWeight: 700 }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div></div></div>); })}
+                    {sessionFeedback[day].exercises && sessionFeedback[day].exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc", alignItems: "center" }}><span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{fbIcon(ex.icon)}</span><div><div style={{ fontSize: 12, fontWeight: 700 }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div></div></div>); })}
                     {sessionFeedback[day].summary && (<div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, padding: 10, marginTop: 8 }}><div style={{ fontSize: 12, color: "#fff" }}>{sessionFeedback[day].summary}</div>{sessionFeedback[day].nextSession && <div style={{ fontSize: 12, color: "#fbbf24", fontWeight: 600, marginTop: 4 }}>Next: {sessionFeedback[day].nextSession}</div>}</div>)}
                   </div>)}
                 </div>)}
