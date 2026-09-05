@@ -61,7 +61,7 @@ const { useState, useEffect, useCallback, useRef } = React;
 // ═══════════════════════════════════════════════════
 
 const DEFAULT_DATA = {
-  config: { week: 7, session: 15, trainingStart: "2026-07-20", lastUpdate: "4 Sep 2026" },
+  config: { week: 7, session: 15, trainingStart: "2026-07-19", lastUpdate: "4 Sep 2026" },
   jc: {
     profile: { name: "JC", age: 49, sex: "Male", height: "5ft 11", bodyType: "Upper-body dominant meso-endomorph", fibreType: "Fast-twitch dominant", idealWeight: "13st 6lb", notes: "ADHD diagnosed. Yellow/Red Insights. Trains shirtless — heat sensitivity (thyroid). 90min pre-session fast." },
     meds: [
@@ -697,7 +697,7 @@ function handleApiError(result) {
 
 // Calculate current training week from start date
 function calcWeek(startDate) {
-  var start = new Date(startDate || "2026-07-20");
+  var start = new Date(startDate || "2026-07-19");
   var now = new Date();
   return Math.floor((now - start) / (7 * 24 * 60 * 60 * 1000)) + 1;
 }
