@@ -389,6 +389,19 @@ const DINNERS = [
   { id: "mayflower_curry", name: "Mayflower Chicken Curry + Rice", rating: "GREAT", jcKcal: 588, beckKcal: 480, jcProt: 45, beckProt: 38, jcFat: 11, beckFat: 9, freq: "Weekly", time: 25, shop: ["Chicken breast", "Mayflower curry powder", "Microwave rice"] },
   { id: "sw_tikka", name: "SW Tikka Chicken + Rice", rating: "GREAT", jcKcal: 520, beckKcal: 440, jcProt: 40, beckProt: 34, jcFat: 10, beckFat: 8, freq: "Weekly", time: 25, shop: ["Chicken breast", "SW Tikka sauce", "Microwave rice"] },
   { id: "chicken_kiev", name: "Chicken Kiev + Mash", rating: "RED", jcKcal: 630, beckKcal: 630, jcProt: 32, beckProt: 28, jcFat: 32, beckFat: 30, freq: "Monthly", time: 25, shop: ["Aldi Chicken Kiev", "Baby potatoes", "Carrots"] },
+  { id: "garlic_curry", name: "Garlic Chicken Curry (Quark)", rating: "GREAT", jcKcal: 720, beckKcal: 580, jcProt: 44, beckProt: 36, jcFat: 12, beckFat: 10, freq: "Fortnightly", time: 40, shop: ["Chicken breast", "Quark", "RF soft cheese", "Brown rice", "Spices"] },
+  { id: "butter_chicken", name: "Butter Chicken (MAGGI) + Rice", rating: "GREAT", jcKcal: 720, beckKcal: 594, jcProt: 44, beckProt: 36, jcFat: 14, beckFat: 12, freq: "Fortnightly", time: 25, shop: ["Chicken breast", "MAGGI mix", "Rice"] },
+  { id: "home_roast", name: "Home Roast Lite (Bag Roast)", rating: "GREAT", jcKcal: 545, beckKcal: 545, jcProt: 38, beckProt: 34, jcFat: 12, beckFat: 11, freq: "Fortnightly", time: 60, shop: ["Whole chicken", "Mash potatoes", "Broccoli", "Cauliflower"] },
+  { id: "sausage_casserole", name: "Sausage Casserole (Heck + Colmans)", rating: "GREAT", jcKcal: 380, beckKcal: 340, jcProt: 30, beckProt: 26, jcFat: 10, beckFat: 9, freq: "Fortnightly", time: 35, shop: ["Heck chicken sausages", "Colmans casserole mix", "Broccoli", "Mash"] },
+  { id: "thai_curry", name: "Thai Green/Red Curry + Rice", rating: "AMBER", jcKcal: 520, beckKcal: 480, jcProt: 34, beckProt: 28, jcFat: 16, beckFat: 14, freq: "Monthly", time: 30, shop: ["Chicken", "Thai paste", "RF coconut milk", "Rice"] },
+  { id: "red_pesto", name: "Red Pesto Pasta + Chicken", rating: "AMBER", jcKcal: 560, beckKcal: 460, jcProt: 30, beckProt: 26, jcFat: 15, beckFat: 13, freq: "Monthly", time: 20, shop: ["Pasta", "Red pesto", "Chicken"] },
+  { id: "mac_cheese", name: "Macaroni Cheese + Turkey", rating: "RED", jcKcal: 520, beckKcal: 460, jcProt: 30, beckProt: 24, jcFat: 20, beckFat: 16, freq: "Monthly", time: 30, shop: ["Macaroni", "Half-fat cheddar", "Fromage frais", "Turkey mince"] },
+  { id: "indian_takeaway", name: "Indian Takeaway (Chicken Tikka)", rating: "RED", jcKcal: 1340, beckKcal: 900, jcProt: 44, beckProt: 36, jcFat: 55, beckFat: 30, freq: "Monthly", time: 0, shop: [] },
+  { id: "chinese_takeaway", name: "Chinese Takeaway", rating: "RED", jcKcal: 650, beckKcal: 650, jcProt: 28, beckProt: 28, jcFat: 18, beckFat: 18, freq: "Monthly", time: 0, shop: [] },
+  { id: "pub_grilled", name: "Pub Grilled Chicken/Fish", rating: "GREAT", jcKcal: 480, beckKcal: 480, jcProt: 42, beckProt: 42, jcFat: 10, beckFat: 10, freq: "Monthly", time: 0, shop: [] },
+  { id: "pub_fish_chips", name: "Pub Fish & Chips", rating: "AMBER", jcKcal: 750, beckKcal: 750, jcProt: 22, beckProt: 22, jcFat: 28, beckFat: 28, freq: "Monthly", time: 0, shop: [] },
+  { id: "italian_pasta", name: "Italian Restaurant (Tomato Pasta)", rating: "AMBER", jcKcal: 550, beckKcal: 550, jcProt: 18, beckProt: 18, jcFat: 8, beckFat: 8, freq: "Monthly", time: 0, shop: [] },
+  { id: "italian_pizza", name: "Italian Restaurant (Thin Base Pizza)", rating: "AMBER", jcKcal: 600, beckKcal: 600, jcProt: 28, beckProt: 28, jcFat: 14, beckFat: 14, freq: "Monthly", time: 0, shop: [] },
   { id: "none", name: "— No dinner (eating out / other)", rating: "INFO", jcKcal: 0, beckKcal: 0, jcProt: 0, beckProt: 0, jcFat: 0, beckFat: 0, freq: "", time: 0, shop: [] },
 ];
 
@@ -410,6 +423,13 @@ const BREAKFASTS = [
   { id: "toast_eggs", name: "Toast + Eggs", jcKcal: 450, beckKcal: 380, note: "Super Seeded 138kcal/slice" },
   { id: "cornflakes", name: "Cornflakes", jcKcal: 360, beckKcal: 320, note: "Max 1×/week (high GI)" },
   { id: "office_oats", name: "Office Porridge Pot", jcKcal: 360, beckKcal: 0, note: "JC London days only" },
+  { id: "porridge_seeds", name: "Porridge + Seeds", jcKcal: 430, beckKcal: 335, rating: "GREAT" },
+  { id: "porridge_apple", name: "Porridge + Stewed Apple + Cinnamon", jcKcal: 420, beckKcal: 325, rating: "GREAT" },
+  { id: "porridge_toast", name: "Porridge + 2 Toast + ProActiv", jcKcal: 696, beckKcal: 0, rating: "GREAT" },
+  { id: "oats_sisters", name: "Sisters Overnight Oats (Full)", jcKcal: 476, beckKcal: 476, rating: "GREAT" },
+  { id: "porridge_almond", name: "Porridge — Almond Milk + Honey", jcKcal: 360, beckKcal: 0, rating: "GREAT" },
+  { id: "bacon_egg_beans", name: "Bacon + Egg + Beans on Toast", jcKcal: 520, beckKcal: 480, rating: "AMBER" },
+  { id: "full_cooked", name: "Eggs + Sausages + Hash Browns + Toast", jcKcal: 720, beckKcal: 650, rating: "RED" },
 ];
 const LUNCHES = [
   { id: "jacket_tuna", name: "Jacket Potato + Tuna + Cheese + Eggs", jcKcal: 580, beckKcal: 400, note: "JC office template 1" },
@@ -420,6 +440,19 @@ const LUNCHES = [
   { id: "salad_protein", name: "Salad + Protein", jcKcal: 380, beckKcal: 340, note: "" },
   { id: "leftovers", name: "Leftovers", jcKcal: 450, beckKcal: 400, note: "" },
   { id: "pitta_hummus", name: "Pitta + Hummus + Chicken", jcKcal: 420, beckKcal: 370, note: "" },
+  { id: "pulled_chicken", name: "Roosters Pulled Chicken Sandwich", jcKcal: 650, beckKcal: 650, rating: "GREAT" },
+  { id: "flame_grilled", name: "Roosters Flame Grilled Sandwich", jcKcal: 648, beckKcal: 648, rating: "GREAT" },
+  { id: "tuna_sandwich", name: "Tuna Sandwich (Super Seeded)", jcKcal: 636, beckKcal: 636, rating: "GREAT" },
+  { id: "egg_sandwich", name: "Egg Sandwich (Super Seeded)", jcKcal: 656, beckKcal: 645, rating: "GREAT" },
+  { id: "tuna_pasta_salad", name: "Tuna Pasta Salad (Prep Ahead)", jcKcal: 380, beckKcal: 380, rating: "GREAT" },
+  { id: "soup_cheese_toast", name: "Tinned Soup + Cheese Toast", jcKcal: 340, beckKcal: 340, rating: "GREAT" },
+  { id: "sat_jacket", name: "Saturday Jacket Potato (Treat)", jcKcal: 520, beckKcal: 0, rating: "GREAT" },
+  { id: "work_teriyaki", name: "Work — Teriyaki Chicken Stir Fry", jcKcal: 568, beckKcal: 0, rating: "GREAT" },
+  { id: "work_shawarma", name: "Work — Chicken Shawarma", jcKcal: 606, beckKcal: 0, rating: "GREAT" },
+  { id: "work_curry", name: "Work — Chicken Curry (Mayflower)", jcKcal: 588, beckKcal: 0, rating: "GREAT" },
+  { id: "work_jacket", name: "Work — Baked Potato + Eggs + Seeds", jcKcal: 650, beckKcal: 0, rating: "GREAT" },
+  { id: "work_thai", name: "Work — Thai Chicken (Pad Thai)", jcKcal: 550, beckKcal: 0, rating: "AMBER" },
+  { id: "work_fajita", name: "Work — Chicken Fajita", jcKcal: 480, beckKcal: 0, rating: "AMBER" },
 ];
 const SNACK_TEMPLATES = {
   home: { label: "Home Day", jcKcal: 565, beckKcal: 340, items: "Snack bar after lunch · Porridge pot ~4pm · Protein dessert · Snack bar before bed" },
@@ -444,6 +477,33 @@ const SNACKS = [
   { id: "banana", name: "Banana", jcKcal: 90, beckKcal: 90, rating: "GREAT", freq: "Daily" },
   { id: "fruit", name: "Fruit Portion", jcKcal: 60, beckKcal: 60, rating: "GREAT", freq: "Daily" },
   { id: "none_snack", name: "— None", jcKcal: 0, beckKcal: 0, rating: "INFO", freq: "" },
+  { id: "brooklea_choc_pud", name: "Brooklea Choc Protein Pudding", jcKcal: 150, beckKcal: 150, rating: "GREAT", freq: "Daily" },
+  { id: "brooklea_caramel", name: "Brooklea Caramel Protein Pudding", jcKcal: 150, beckKcal: 150, rating: "GREAT", freq: "Daily" },
+  { id: "brooklea_sc_cheese", name: "Brooklea SC Protein Soft Cheese", jcKcal: 160, beckKcal: 160, rating: "GREAT", freq: "Daily" },
+  { id: "brooklea_light_pots", name: "Brooklea Light Choc Pots", jcKcal: 80, beckKcal: 80, rating: "GREAT", freq: "Daily" },
+  { id: "brooklea_light_yogurt", name: "Brooklea Light Vanilla Yogurt", jcKcal: 80, beckKcal: 80, rating: "GREAT", freq: "Daily" },
+  { id: "muller_light", name: "Muller Light (All Flavours)", jcKcal: 95, beckKcal: 95, rating: "GREAT", freq: "Daily" },
+  { id: "lindahls_pro", name: "Lindahls Pro+ Banoffee", jcKcal: 130, beckKcal: 130, rating: "GREAT", freq: "Daily" },
+  { id: "strawberries_ic", name: "Strawberries + Vanilla Ice Cream", jcKcal: 195, beckKcal: 195, rating: "GREAT", freq: "Weekly" },
+  { id: "boiled_egg_snack", name: "Boiled Egg (Snack)", jcKcal: 75, beckKcal: 75, rating: "GREAT", freq: "Daily" },
+  { id: "bbq_lentil", name: "Aldi BBQ Lentil Crisps", jcKcal: 71, beckKcal: 71, rating: "GREAT", freq: "Daily" },
+  { id: "watsits", name: "Watsits Cheese Puffs", jcKcal: 90, beckKcal: 90, rating: "AMBER", freq: "2-3x/wk" },
+  { id: "rich_tea", name: "Rich Tea Biscuits", jcKcal: 95, beckKcal: 95, rating: "GREAT", freq: "Daily" },
+  { id: "oaties", name: "Oaties (McVities)", jcKcal: 115, beckKcal: 115, rating: "GREAT", freq: "Daily" },
+  { id: "bourbon", name: "Bourbon Creams", jcKcal: 125, beckKcal: 125, rating: "AMBER", freq: "1-2 daily" },
+  { id: "starbar_light", name: "Starbar Light / Choc Orange", jcKcal: 85, beckKcal: 85, rating: "GREAT", freq: "Daily" },
+  { id: "kitkat", name: "Kitkat 2-Finger", jcKcal: 107, beckKcal: 107, rating: "AMBER", freq: "2-3x/wk" },
+  { id: "kinder_bueno", name: "Kinder Bueno (1 Bar)", jcKcal: 230, beckKcal: 230, rating: "AMBER", freq: "Weekly" },
+  { id: "twirl", name: "Twirl", jcKcal: 230, beckKcal: 230, rating: "AMBER", freq: "Weekly" },
+  { id: "crunchie", name: "Crunchie Bar", jcKcal: 185, beckKcal: 185, rating: "AMBER", freq: "Weekly" },
+  { id: "galaxy", name: "Galaxy Chocolate", jcKcal: 215, beckKcal: 215, rating: "RED", freq: "Monthly" },
+  { id: "dairy_milk", name: "Dairy Milk (Shared)", jcKcal: 260, beckKcal: 260, rating: "RED", freq: "Monthly" },
+  { id: "almond_croissant", name: "Almond Croissant (Nero)", jcKcal: 420, beckKcal: 0, rating: "AMBER", freq: "Weekly" },
+  { id: "rocky_road", name: "Rocky Road (Costa Sat)", jcKcal: 380, beckKcal: 0, rating: "AMBER", freq: "Weekly" },
+  { id: "oat_banana_bread", name: "Becks Oat & Banana Bread", jcKcal: 130, beckKcal: 130, rating: "GREAT", freq: "Daily" },
+  { id: "protein_ball_co", name: "Protein Ball Co Whey PB Ball", jcKcal: 160, beckKcal: 160, rating: "AMBER", freq: "Occasional" },
+  { id: "harvest_morn_choc", name: "Harvest Morn Choc Protein Pot", jcKcal: 200, beckKcal: 200, rating: "GREAT", freq: "Daily" },
+  { id: "harvest_morn_syrup", name: "Harvest Morn Golden Syrup Pot", jcKcal: 200, beckKcal: 200, rating: "GREAT", freq: "Daily" },
 ];
 
 const DEFAULT_EXERCISES = [
@@ -2026,11 +2086,12 @@ function Dashboard() {
           const generateWeekMeals = async () => {
             setGenerating(true);
             try {
-              var qpEl = document.getElementById("quickprep-" + activeTab);
               var qpTimeEl = document.getElementById("quickprep-time-" + activeTab);
-              var quickOnly = qpEl ? qpEl.checked : false;
               var quickMins = qpTimeEl ? parseInt(qpTimeEl.value) || 20 : 20;
-              var filteredDinners = quickOnly ? allDinners.filter(function(d) { return d.id !== "none" && d.time && d.time <= quickMins; }) : allDinners.filter(function(d) { return d.id !== "none"; });
+              var qpDays = {};
+              ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].forEach(function(d) { var el = document.getElementById("qp-" + d + "-" + activeTab); qpDays[d] = el ? el.checked : false; });
+              var filteredDinners = allDinners.filter(function(d) { return d.id !== "none"; });
+              var quickDinners = allDinners.filter(function(d) { return d.id !== "none" && d.time && d.time <= quickMins && d.time > 0; });
               const dinnerList = filteredDinners.map(d => d.id + ": " + d.name + " (" + d.rating + ", " + (isJC ? d.jcKcal : d.beckKcal) + "kcal, " + d.freq + ", " + d.time + "min)").join("\n");
               const dayContexts = MEAL_DAYS.map(d => d.label + " — " + d.context).join(", ");
               const prompt = "You are a meal planner for " + (isJC ? "JC (2000-2200kcal target, <20g sat fat)" : "Beck (1700-1900kcal target, <20g sat fat critical, LDL 7.2)") + ". Pick 7 dinners for the week from this database:\n" + dinnerList + "\n\nDay contexts: " + dayContexts + "\n\nRules: mostly GREAT rated, max 1 AMBER per week, no RED. Respect frequency (Weekly=ok every week, Fortnightly=every other week, Monthly=max once). Match cook times to day context (quick meals on busy days like Thu 15min). Good variety — don't repeat meals. Prioritise quick prep (≤20min) on weekdays.\n\nReturn ONLY valid JSON, no markdown: {\"sun\":\"meal_id\",\"mon\":\"meal_id\",\"tue\":\"meal_id\",\"wed\":\"meal_id\",\"thu\":\"meal_id\",\"fri\":\"meal_id\",\"sat\":\"meal_id\"}";
@@ -2088,16 +2149,24 @@ function Dashboard() {
             </div>)}
 
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 10 }}>Weekly Meal Generator</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, padding: 8, background: "#f0fdf4", borderRadius: 8 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#166534", cursor: "pointer" }}>
-                <input type="checkbox" id={"quickprep-" + activeTab} defaultChecked={false} style={{ width: 16, height: 16 }} />
-                ⚡ Quick Prep Only
-              </label>
-              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <span style={{ fontSize: 10, color: "#64748b" }}>Max</span>
-                <input type="number" id={"quickprep-time-" + activeTab} defaultValue="20" style={{ width: 45, padding: "3px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
-                <span style={{ fontSize: 10, color: "#64748b" }}>mins</span>
+            <div style={{ padding: 10, background: "#f0fdf4", borderRadius: 8, marginBottom: 10, border: "1px solid #bbf7d0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#166534" }}>Quick Prep Days</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ fontSize: 10, color: "#64748b" }}>Max</span>
+                  <input type="number" id={"quickprep-time-" + activeTab} defaultValue="20" style={{ width: 45, padding: "3px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
+                  <span style={{ fontSize: 10, color: "#64748b" }}>mins</span>
+                </div>
               </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(function(d) {
+                  return (<label key={d} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "#166534", cursor: "pointer" }}>
+                    <input type="checkbox" id={"qp-" + d + "-" + activeTab} style={{ width: 14, height: 14 }} />
+                    {d}
+                  </label>);
+                })}
+              </div>
+              <div style={{ fontSize: 9, color: "#64748b", marginTop: 4 }}>Ticked days will only get meals within the prep time limit when generating</div>
             </div>
             <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Set Defaults (auto-fill empty days)</div>
             <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 8px", alignItems: "center", marginBottom: 10 }}>
