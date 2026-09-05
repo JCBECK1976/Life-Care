@@ -1747,25 +1747,27 @@ function Dashboard() {
                     </div>
                     {ex.notes && <div style={{ fontSize: 10, color: "#854d0e", background: "#fef9c3", padding: "4px 8px", borderRadius: 4, marginBottom: 6 }}>{ex.notes}</div>}
                     <div style={{ display: "flex", gap: 6, padding: "3px 0", marginBottom: 2, fontSize: 9, color: "#94a3b8", fontWeight: 600 }}>
-                      <span style={{ width: 40 }}>WEEK</span><span style={{ width: 55 }}>WEIGHT</span><span style={{ width: 65 }}>REPS</span><span style={{ width: 20 }}></span>
+                      <span style={{ width: 40 }}>WEEK</span><span style={{ width: 55 }}>WEIGHT</span><span style={{ width: 65 }}>REPS</span><span style={{ flex: 1 }}>NOTES</span><span style={{ width: 20 }}></span>
                     </div>
                     {ex.prog && ex.prog.map(function(pr, pi) { return (<div key={pi} style={{ display: "flex", gap: 6, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11 }}>
                       <input defaultValue={pr.wk} onBlur={function(e) { updateProg(day, exIdx, pi, "wk", parseInt(e.target.value) || pr.wk); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
                       <input defaultValue={pr.w} onBlur={function(e) { updateProg(day, exIdx, pi, "w", e.target.value); }} style={{ width: 55, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
                       <input defaultValue={pr.r} onBlur={function(e) { updateProg(day, exIdx, pi, "r", e.target.value); }} style={{ width: 65, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
+                      <input defaultValue={pr.note || ""} onBlur={function(e) { updateProg(day, exIdx, pi, "note", e.target.value); }} placeholder="..." style={{ flex: 1, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
                       <button onClick={function() { deleteProg(day, exIdx, pi); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 4px", width: 20 }}>✕</button>
                     </div>); })}
                     {(!ex.prog || ex.prog.length === 0) && <div style={{ fontSize: 10, color: "#94a3b8" }}>No progression data yet</div>}
-                    <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var wk = calcWeek(nd.config.trainingStart); nd[activeTab].exercises[day][exIdx].prog.push({ wk: wk, w: ex.current || "0kg", r: ex.reps || "0" }); await saveData(nd); setFormMsg("\u2713 Week " + wk + " added"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ marginTop: 4, padding: "4px 10px", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 6, fontSize: 10, color: "#166534", cursor: "pointer" }}>+ Add Week</button>
+                    <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var wk = calcWeek(nd.config.trainingStart); nd[activeTab].exercises[day][exIdx].prog.push({ wk: wk, w: ex.current || "0kg", r: ex.reps || "0", note: "" }); await saveData(nd); setFormMsg("\u2713 Week " + wk + " added"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ marginTop: 4, padding: "4px 10px", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 6, fontSize: 10, color: "#166534", cursor: "pointer" }}>+ Add Week</button>
                   </div>); })}
                 </div>)}
                 {/* CHARTS TAB */}
                 {dv === "history" && (<div style={{ padding: 12 }}>
                   {exList.map(function(ex, exIdx) {
                     if (!ex.prog || ex.prog.length < 2) return null;
-                    var chartData = ex.prog.map(function(pr) { var w = parseFloat(pr.w) || 0; return { wk: pr.wk, v: w }; });
+                    var repData = ex.prog.map(function(pr) { var w = parseFloat(pr.w) || 0; return { wk: pr.wk, v: w }; });
+                    var setData = ex.prog.map(function(pr) { var w = parseFloat(pr.w) || 0; var rStr = pr.r || "0"; var sets = 3; return { wk: pr.wk, v: w * sets }; });
                     return (<div key={exIdx} style={{ marginBottom: 12 }}>
-                      <FullChart title={ex.name + " (kg)"} series={[{ label: ex.name, color: accent, data: chartData }]} height={100} />
+                      <FullChart title={ex.name} series={[{ label: "Rep Weight (kg)", color: accent, data: repData }, { label: "Set Total (kg)", color: "#f59e0b", data: setData }]} height={120} />
                     </div>);
                   })}
                   {exList.filter(function(ex) { return ex.prog && ex.prog.length >= 2; }).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 20 }}>Need 2+ weeks of data to show charts</div>}
