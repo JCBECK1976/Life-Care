@@ -7,7 +7,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0f172a">
   <title>Life Care Dashboard</title>
-  <!-- build: 1788635553 -->
   <link rel="manifest" href="data:application/json,{%22name%22:%22Life%20Care%22,%22short_name%22:%22LifeCare%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%230f172a%22,%22theme_color%22:%22%230f172a%22}">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -763,25 +762,12 @@ function calcWeek(startDate) {
   return Math.floor((now - start) / (7 * 24 * 60 * 60 * 1000)) + 1;
 }
 
-// Map feedback icon text to actual symbols
-function fbIcon(icon) {
-  if (!icon) return "\u25CF";
-  var i = icon.toLowerCase().trim();
-  if (i === "check" || i.indexOf("check") >= 0 || i === "good") return "\u2705";
-  if (i === "arrow" || i.indexOf("arrow") >= 0 || i.indexOf("build") >= 0) return "\u2197\uFE0F";
-  if (i === "triangle" || i.indexOf("triangle") >= 0 || i.indexOf("up") >= 0 || i.indexOf("moved") >= 0) return "\u25B2";
-  if (i === "warning" || i.indexOf("warning") >= 0 || i.indexOf("watch") >= 0) return "\u26A0\uFE0F";
-  if (i === "circle" || i.indexOf("circle") >= 0 || i.indexOf("hold") >= 0 || i.indexOf("maintain") >= 0) return "\u23F8\uFE0F";
-  if (i === "star" || i.indexOf("star") >= 0 || i.indexOf("ready") >= 0) return "\u2B50";
-  return icon;
-}
-
 function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("jc");
   const [section, setSection] = useState("overview"); // always starts on Home
-  const [weekOff, setWeekOff] = useState(() => Math.floor((new Date() - new Date(2026, 6, 19)) / (7 * 24 * 60 * 60 * 1000)));
+  const [weekOff, setWeekOff] = useState(0);
   const [meals, setMeals] = useState({});
   const [mealLoading, setMealLoading] = useState(true);
   const [editDay, setEditDay] = useState(null);
@@ -1046,12 +1032,10 @@ function Dashboard() {
   })(); }, []);
 
   // Meal data
-  // Auto-calculate current week offset
-  const baseStart = new Date(2026, 6, 19); // Training start (Jul 19)
-  const autoWeekOff = Math.floor((new Date() - baseStart) / (7 * 24 * 60 * 60 * 1000));
+  const baseStart = new Date(2026, 7, 23);
   const weekStart = new Date(baseStart); weekStart.setDate(weekStart.getDate() + (weekOff * 7));
   const weekDates = getWeekDates(weekStart);
-  const sk = mealKey(weekStart) + ":" + activeTab;
+  const sk = mealKey(weekStart);
   const weekLabel = fmtDate(weekDates[0]) + " – " + fmtDate(weekDates[6]);
   const FIRST_KEY = "mealplan:2026-08-23";
   const FIRST_DEF = { sun: "spag_bol", mon: "sweet_chilli_mash", tue: "chicken_risotto", wed: "fish_chips", thu: "pesto_pasta", _notes: { wed: "JC at parents — Fish & Chips for Beck + boys", thu: "JC: work lunch + McFlurry with Evan. Session 3 moved to Thu." } };
@@ -1205,7 +1189,7 @@ function Dashboard() {
       }
       // Gather meal plan
       let mealSummary = "";
-      try { const mr = await sGet(mealKey(weekStart) + ":" + activeTab); if (mr) { const mp = JSON.parse(mr); const dayInfo = MEAL_DAYS.map(d => { const entry = mp[d.key]; const isO = entry && typeof entry === "object"; const din = isO ? entry.d : entry; const ml = allDinners.find(m => m.id === din); const note = isO ? entry._note : ""; return d.label + ": " + (ml ? ml.name : "unplanned") + (note ? " (" + note + ")" : ""); }).join(", "); mealSummary = "\nThis week's meals: " + dayInfo + "."; } } catch {}
+      try { const mr = await sGet(sk); if (mr) { const mp = JSON.parse(mr); const dayInfo = MEAL_DAYS.map(d => { const entry = mp[d.key]; const isO = entry && typeof entry === "object"; const din = isO ? entry.d : entry; const ml = allDinners.find(m => m.id === din); const note = isO ? entry._note : ""; return d.label + ": " + (ml ? ml.name : "unplanned") + (note ? " (" + note + ")" : ""); }).join(", "); mealSummary = "\nThis week's meals: " + dayInfo + "."; } } catch {}
       // Gather exercise comments
       let exComments = "";
       try {
@@ -1692,8 +1676,8 @@ function Dashboard() {
                   setBodyFbLoading(false);
                 }} disabled={bodyFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: bodyFbLoading ? "not-allowed" : "pointer", background: bodyFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{bodyFbLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Weigh In Feedback"}</button>
                 {bodyFeedback && (<div style={{ marginTop: 10 }}>
-                  {bodyFeedback.good && bodyFeedback.good.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#166534" }}>✅ {pt}</div>; })}
-                  {bodyFeedback.watch && bodyFeedback.watch.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#d97706" }}>⚠️ {pt}</div>; })}
+                  {bodyFeedback.good && bodyFeedback.good.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#166534" }}>\u2713 {pt}</div>; })}
+                  {bodyFeedback.watch && bodyFeedback.watch.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#d97706" }}>\u26a0 {pt}</div>; })}
                   {bodyFeedback.outlook && <div style={{ marginTop: 8, padding: 10, background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, color: "#fff", fontSize: 12 }}>{bodyFeedback.outlook}</div>}
                 </div>)}
               </div>)}
@@ -1708,7 +1692,7 @@ function Dashboard() {
                       <input defaultValue={entry.wk} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[metric.k][ei].wk = parseInt(e.target.value) || entry.wk; await saveData(nd); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
                       <input defaultValue={entry.v} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[metric.k][ei].v = parseFloat(e.target.value) || entry.v; await saveData(nd); }} style={{ width: 60, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
                       <input defaultValue={entry.note || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[metric.k][ei].note = e.target.value; await saveData(nd); }} placeholder="..." style={{ flex: 1, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
-                      <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[metric.k].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", width: 20 }}>✕</button>
+                      <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[metric.k].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", width: 20 }}>\u2715</button>
                     </div>); })}
                   </div>);
                 })}
@@ -1763,8 +1747,8 @@ function Dashboard() {
                   setMeasFbLoading(false);
                 }} disabled={measFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: measFbLoading ? "not-allowed" : "pointer", background: measFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{measFbLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Measurement Feedback"}</button>
                 {measFeedback && (<div style={{ marginTop: 10 }}>
-                  {measFeedback.good && measFeedback.good.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#166534" }}>✅ {pt}</div>; })}
-                  {measFeedback.watch && measFeedback.watch.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#d97706" }}>⚠️ {pt}</div>; })}
+                  {measFeedback.good && measFeedback.good.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#166534" }}>\u2713 {pt}</div>; })}
+                  {measFeedback.watch && measFeedback.watch.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#d97706" }}>\u26a0 {pt}</div>; })}
                   {measFeedback.outlook && <div style={{ marginTop: 8, padding: 10, background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, color: "#fff", fontSize: 12 }}>{measFeedback.outlook}</div>}
                 </div>)}
               </div>)}
@@ -1779,7 +1763,7 @@ function Dashboard() {
                       <input defaultValue={entry.wk} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].wk = parseInt(e.target.value) || entry.wk; await saveData(nd); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
                       <input defaultValue={entry.v} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].v = parseFloat(e.target.value) || entry.v; await saveData(nd); }} style={{ width: 60, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
                       <input defaultValue={entry.note || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].note = e.target.value; await saveData(nd); }} placeholder="..." style={{ flex: 1, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
-                      <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", width: 20 }}>✕</button>
+                      <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", width: 20 }}>\u2715</button>
                     </div>); })}
                   </div>);
                 })}
@@ -1920,43 +1904,17 @@ function Dashboard() {
                     try {
                       var prof = p.profile || {};
                       var daySummary = exList.map(function(ex) { var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null; var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null; return ex.name + ": " + ex.current + " " + ex.reps + " (" + ex.status + ")" + (prev ? " prev: " + prev.w + " " + prev.r : "") + (ex.notes ? " [" + ex.notes + "]" : ""); }).join("; ");
-                      var jsonFormat = '{"exercises":[{"name":"...","verdict":"...","icon":"check|triangle|arrow|warning|circle|star","newStatus":"building|moved up|consolidating|ready to move|maintaining|reduce"}],"summary":"one sentence","nextSession":"one focus"}';
-                      var prompt = "Session feedback for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Week " + currentWeek + " " + day + " session. Exercises: " + daySummary + ". RULES you MUST follow: 1) If exercise hit 15x3 for first time = consolidating (icon=arrow). 2) If 15x3 for TWO consecutive sessions = ready to move, specify next weight +7kg (icon=star). 3) If just increased weight = moved up (icon=triangle). 4) If building reps at current weight = building (icon=arrow). 5) If deliberately holding = maintaining (icon=circle). 6) If dropped weight = reduce (icon=warning). For each exercise return newStatus based on these rules. Max 20 words verdict. Return ONLY JSON: " + jsonFormat;
+                      var jsonFormat = '{"exercises":[{"name":"...","verdict":"...","icon":"..."}],"summary":"one sentence","nextSession":"one focus"}';
+                      var prompt = "Session feedback for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Week " + currentWeek + " " + day + " session. Exercises: " + daySummary + ". Per exercise: verdict + icon (good=check moved=triangle building=arrow watch=warning holding=circle). Max 15 words each. Return ONLY JSON: " + jsonFormat;
                       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                       var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                      if (txt) {
-                        var fb = JSON.parse(txt.replace(/```json|```/g, "").trim());
-                        setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: fb }));
-                        await sSet("session_fb_" + activeTab + "_" + day + "_wk" + currentWeek, JSON.stringify(fb));
-                        // Apply status updates to exercise data
-                        if (fb.exercises) {
-                          var nd = JSON.parse(JSON.stringify(data));
-                          var updated = false;
-                          for (var fbi = 0; fbi < fb.exercises.length; fbi++) {
-                            var fbEx = fb.exercises[fbi];
-                            if (fbEx.newStatus) {
-                              var dayExs = nd[activeTab].exercises[day] || [];
-                              for (var dei = 0; dei < dayExs.length; dei++) {
-                                if (dayExs[dei].name === fbEx.name && dayExs[dei].status !== fbEx.newStatus) {
-                                  dayExs[dei].status = fbEx.newStatus;
-                                  if (fbEx.newStatus === "ready to move") {
-                                    var curKg = parseInt(dayExs[dei].current) || 0;
-                                    dayExs[dei].target = (curKg + 7) + "kg x 10x3";
-                                  }
-                                  updated = true;
-                                }
-                              }
-                            }
-                          }
-                          if (updated) { await saveData(nd); }
-                        }
-                      }
+                      if (txt) { var fb = JSON.parse(txt.replace(/```json|```/g, "").trim()); setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: fb })); await sSet("session_fb_" + activeTab + "_" + day + "_wk" + currentWeek, JSON.stringify(fb)); }
                     } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: { exercises: [], summary: "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
                     setSessionFbLoading(false);
                   }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{sessionFbLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "📊 Generate Session Feedback"}</button>
                   {sessionFeedback && sessionFeedback[day] && (<div style={{ marginTop: 10 }}>
-                    {sessionFeedback[day].exercises && sessionFeedback[day].exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc", alignItems: "center" }}><span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{fbIcon(ex.icon)}</span><div><div style={{ fontSize: 12, fontWeight: 700 }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div></div></div>); })}
+                    {sessionFeedback[day].exercises && sessionFeedback[day].exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc", alignItems: "center" }}><span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{ex.icon || "●"}</span><div><div style={{ fontSize: 12, fontWeight: 700 }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div></div></div>); })}
                     {sessionFeedback[day].summary && (<div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, padding: 10, marginTop: 8 }}><div style={{ fontSize: 12, color: "#fff" }}>{sessionFeedback[day].summary}</div>{sessionFeedback[day].nextSession && <div style={{ fontSize: 12, color: "#fbbf24", fontWeight: 600, marginTop: 4 }}>Next: {sessionFeedback[day].nextSession}</div>}</div>)}
                   </div>)}
                 </div>)}
@@ -2120,14 +2078,6 @@ function Dashboard() {
               if (defs.s1 && !cur.s1) cur.s1 = defs.s1;
               if (defs.s2 && !cur.s2) cur.s2 = defs.s2;
               if (defs.s3 && !cur.s3) cur.s3 = defs.s3;
-              if (defs.s4 && !cur.s4) cur.s4 = defs.s4;
-              if (defs.s5 && !cur.s5) cur.s5 = defs.s5;
-              if (defs.s6 && !cur.s6) cur.s6 = defs.s6;
-              if (defs.s7 && !cur.s7) cur.s7 = defs.s7;
-              if (defs.s4 && !cur.s4) cur.s4 = defs.s4;
-              if (defs.s5 && !cur.s5) cur.s5 = defs.s5;
-              if (defs.s6 && !cur.s6) cur.s6 = defs.s6;
-              if (defs.s7 && !cur.s7) cur.s7 = defs.s7;
               nd[d.key] = cur;
             });
             setMeals(nd); await saveMeals(nd);
@@ -2158,14 +2108,6 @@ function Dashboard() {
                 if (defs.s1 && !cur.s1) cur.s1 = defs.s1;
                 if (defs.s2 && !cur.s2) cur.s2 = defs.s2;
                 if (defs.s3 && !cur.s3) cur.s3 = defs.s3;
-              if (defs.s4 && !cur.s4) cur.s4 = defs.s4;
-              if (defs.s5 && !cur.s5) cur.s5 = defs.s5;
-              if (defs.s6 && !cur.s6) cur.s6 = defs.s6;
-              if (defs.s7 && !cur.s7) cur.s7 = defs.s7;
-              if (defs.s4 && !cur.s4) cur.s4 = defs.s4;
-              if (defs.s5 && !cur.s5) cur.s5 = defs.s5;
-              if (defs.s6 && !cur.s6) cur.s6 = defs.s6;
-              if (defs.s7 && !cur.s7) cur.s7 = defs.s7;
                 nd[dk] = cur;
               });
               setMeals(nd); await saveMeals(nd);
@@ -2207,12 +2149,6 @@ function Dashboard() {
             </div>)}
 
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 10 }}>Weekly Meal Generator</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
-              <button onClick={function() { var name = prompt("New breakfast name:"); if (name) { var nb = { id: "custom_b_" + Date.now(), name: name, jcKcal: parseInt(prompt("Kcal:") || "0"), beckKcal: parseInt(prompt("Beck kcal (or same):") || "0"), rating: "GREAT" }; if (!nb.beckKcal) nb.beckKcal = nb.jcKcal; var u = [].concat(customBreakfasts, [nb]); setCustomBreakfasts(u); sSet("custom_breakfasts", JSON.stringify(u)); setFormMsg("Added " + name); setTimeout(function(){setFormMsg("");},2000); } }} style={{ padding: "4px 8px", background: "#dbeafe", border: "1px solid #93c5fd", borderRadius: 6, fontSize: 10, color: "#1e40af", cursor: "pointer" }}>+ Breakfast</button>
-              <button onClick={function() { var name = prompt("New lunch name:"); if (name) { var nl = { id: "custom_l_" + Date.now(), name: name, jcKcal: parseInt(prompt("Kcal:") || "0"), beckKcal: parseInt(prompt("Beck kcal (or same):") || "0"), rating: "GREAT" }; if (!nl.beckKcal) nl.beckKcal = nl.jcKcal; var u = [].concat(customLunches, [nl]); setCustomLunches(u); sSet("custom_lunches", JSON.stringify(u)); setFormMsg("Added " + name); setTimeout(function(){setFormMsg("");},2000); } }} style={{ padding: "4px 8px", background: "#dcfce7", border: "1px solid #86efac", borderRadius: 6, fontSize: 10, color: "#166534", cursor: "pointer" }}>+ Lunch</button>
-              <button onClick={function() { var name = prompt("New dinner name:"); if (name) { var nd2 = { id: "custom_d_" + Date.now(), name: name, rating: prompt("Rating (GREAT/AMBER/RED):") || "GREAT", jcKcal: parseInt(prompt("JC Kcal:") || "0"), beckKcal: parseInt(prompt("Beck Kcal:") || "0"), jcProt: parseInt(prompt("Protein (g):") || "0"), beckProt: 0, jcFat: parseInt(prompt("Sat fat (g):") || "0"), beckFat: 0, freq: "Weekly", time: parseInt(prompt("Prep time (mins):") || "30"), shop: [] }; nd2.beckProt = nd2.jcProt; nd2.beckFat = nd2.jcFat; var u = [].concat(customMeals, [nd2]); setCustomMeals(u); sSet("custom_meals", JSON.stringify(u)); setFormMsg("Added " + name); setTimeout(function(){setFormMsg("");},2000); } }} style={{ padding: "4px 8px", background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 6, fontSize: 10, color: "#854d0e", cursor: "pointer" }}>+ Dinner</button>
-              <button onClick={function() { var name = prompt("New other item (snack/drink/dessert):"); if (name) { var ns = { id: "custom_s_" + Date.now(), name: name, jcKcal: parseInt(prompt("Kcal:") || "0"), beckKcal: 0, rating: "GREAT", freq: "Daily" }; ns.beckKcal = ns.jcKcal; var u = [].concat(customSnacks, [ns]); setCustomSnacks(u); sSet("custom_snacks", JSON.stringify(u)); setFormMsg("Added " + name); setTimeout(function(){setFormMsg("");},2000); } }} style={{ padding: "4px 8px", background: "#f3e8ff", border: "1px solid #c4b5fd", borderRadius: 6, fontSize: 10, color: "#6b21a8", cursor: "pointer" }}>+ Other</button>
-            </div>
             <div style={{ padding: 10, background: "#f0fdf4", borderRadius: 8, marginBottom: 10, border: "1px solid #bbf7d0" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: "#166534" }}>Quick Prep Days</span>
@@ -2244,17 +2180,17 @@ function Dashboard() {
                 <option value="">None</option>
                 {allLnch.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
-              <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8" }}>Other 1</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8" }}>Snack 1</span>
               <select value={defs.s1 || ""} onChange={e => saveDef("s1", e.target.value)} style={{ padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, background: "#f8fafc" }}>
                 <option value="">None</option>
                 {allSnk.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
-              <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8" }}>Other 2</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8" }}>Snack 2</span>
               <select value={defs.s2 || ""} onChange={e => saveDef("s2", e.target.value)} style={{ padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, background: "#f8fafc" }}>
                 <option value="">None</option>
                 {allSnk.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
-              <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8" }}>Other 3</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8" }}>Snack 3</span>
               <select value={defs.s3 || ""} onChange={e => saveDef("s3", e.target.value)} style={{ padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, background: "#f8fafc" }}>
                 <option value="">None</option>
                 {allSnk.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -2291,14 +2227,6 @@ function Dashboard() {
             const s1Kcal = isObj && mealEntry.s1 ? (allSnacks.find(s => s.id === mealEntry.s1) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
             const s2Kcal = isObj && mealEntry.s2 ? (allSnacks.find(s => s.id === mealEntry.s2) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
             const s3Kcal = isObj && mealEntry.s3 ? (allSnacks.find(s => s.id === mealEntry.s3) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
-            const s4Kcal = isObj && mealEntry.s4 ? (allSnacks.find(s => s.id === mealEntry.s4) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
-            const s5Kcal = isObj && mealEntry.s5 ? (allSnacks.find(s => s.id === mealEntry.s5) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
-            const s6Kcal = isObj && mealEntry.s6 ? (allSnacks.find(s => s.id === mealEntry.s6) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
-            const s7Kcal = isObj && mealEntry.s7 ? (allSnacks.find(s => s.id === mealEntry.s7) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
-            const s4Kcal = isObj && mealEntry.s4 ? (allSnacks.find(s => s.id === mealEntry.s4) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
-            const s5Kcal = isObj && mealEntry.s5 ? (allSnacks.find(s => s.id === mealEntry.s5) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
-            const s6Kcal = isObj && mealEntry.s6 ? (allSnacks.find(s => s.id === mealEntry.s6) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
-            const s7Kcal = isObj && mealEntry.s7 ? (allSnacks.find(s => s.id === mealEntry.s7) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
             const sKcal = (s1Kcal + s2Kcal + s3Kcal) || (isJC ? JC_BASE[d.key].snacks : BECK_BASE[d.key].snacks);
             const dKcal = ml ? (isJC ? ml.jcKcal : ml.beckKcal) : 0;
             const dayTotal = bKcal + lKcal + sKcal + dKcal;
@@ -2340,22 +2268,22 @@ function Dashboard() {
                 </div>
                 </>); })()}
                 {/* Snacks */}
-                {[1,2,3,4,5,6,7].map(sn => {
+                {[1,2,3].map(sn => {
                   const snKey = "s" + sn;
                   const snVal = isObj ? mealEntry[snKey] : undefined;
                   const allSnacks = [...SNACKS, ...customSnacks];
                   const snObj = allSnacks.find(s => s.id === snVal);
                   return (<div key={sn} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 50 }}>Other {sn}</span>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 24 }}>S{sn}</span>
                     <select value={snVal || ""} onChange={e => pickSlot(snKey, e.target.value)} style={{ flex: 1, padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, background: "#f8fafc", color: snVal ? "#0f172a" : "#94a3b8" }}>
-                      <option value="">Select item...</option>
+                      <option value="">Select snack...</option>
                       {allSnacks.map(s => <option key={s.id} value={s.id}>{s.name} ({isJC ? s.jcKcal : s.beckKcal})</option>)}
                     </select>
                   </div>);
                 })}
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                   <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 24 }}></span>
-                  <button onClick={() => setShowAddSnack(true)} style={{ fontSize: 10, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: 0 }}>+ Add new item</button>
+                  <button onClick={() => setShowAddSnack(true)} style={{ fontSize: 10, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: 0 }}>+ Add new snack to database</button>
                 </div>
               </div>
               {/* Dinner */}
@@ -2380,22 +2308,14 @@ function Dashboard() {
           })}
           {/* Add snack form */}
           {showAddSnack && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Add New Item (Snack / Drink / Dessert)</div>
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Add New Snack</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <div style={{ gridColumn: "1 / -1" }}><label style={labelStyle}>Item Name</label><input value={newSnackInputs.name} onChange={e => setNewSnackInputs(q => ({ ...q, name: e.target.value }))} style={inputStyle} placeholder="e.g. Rice Cakes" /></div>
+              <div style={{ gridColumn: "1 / -1" }}><label style={labelStyle}>Snack Name</label><input value={newSnackInputs.name} onChange={e => setNewSnackInputs(q => ({ ...q, name: e.target.value }))} style={inputStyle} placeholder="e.g. Rice Cakes" /></div>
               <div><label style={labelStyle}>Calories (kcal)</label><input type="number" value={newSnackInputs.kcal} onChange={e => setNewSnackInputs(q => ({ ...q, kcal: e.target.value }))} style={inputStyle} /></div>
               <div><label style={labelStyle}>Rating</label><select value={newSnackInputs.rating} onChange={e => setNewSnackInputs(q => ({ ...q, rating: e.target.value }))} style={inputStyle}><option>GREAT</option><option>AMBER</option><option>RED</option></select></div>
-              <div><span style={{ fontSize: 10, color: "#94a3b8" }}>Other 4</span>
-              <select value={defs.s4 || ""} onChange={e => saveDef("s4", e.target.value)} style={inputStyle}><option value="">—</option>{allSnk.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-              <div><span style={{ fontSize: 10, color: "#94a3b8" }}>Other 5</span>
-              <select value={defs.s5 || ""} onChange={e => saveDef("s5", e.target.value)} style={inputStyle}><option value="">—</option>{allSnk.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-              <div><span style={{ fontSize: 10, color: "#94a3b8" }}>Other 6</span>
-              <select value={defs.s6 || ""} onChange={e => saveDef("s6", e.target.value)} style={inputStyle}><option value="">—</option>{allSnk.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-              <div><span style={{ fontSize: 10, color: "#94a3b8" }}>Other 7</span>
-              <select value={defs.s7 || ""} onChange={e => saveDef("s7", e.target.value)} style={inputStyle}><option value="">—</option>{allSnk.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-              <button onClick={async () => { if (!newSnackInputs.name.trim()) return; const id = "snack_" + Date.now(); const kcal = parseInt(newSnackInputs.kcal) || 0; const snack = { id, name: newSnackInputs.name.trim(), jcKcal: kcal, beckKcal: kcal, rating: newSnackInputs.rating, freq: "Weekly" }; const updated = [...customSnacks, snack]; setCustomSnacks(updated); await sSet("custom_snacks", JSON.stringify(updated)); setShowAddSnack(false); setNewSnackInputs({ name: "", kcal: "", rating: "GREAT", freq: "Weekly" }); setFormMsg("✓ " + snack.name + " added"); setTimeout(() => setFormMsg(""), 3000); }} disabled={!newSnackInputs.name.trim()} style={{ ...btnP(!!newSnackInputs.name.trim()), flex: 1 }}>Add Item</button>
+              <button onClick={async () => { if (!newSnackInputs.name.trim()) return; const id = "snack_" + Date.now(); const kcal = parseInt(newSnackInputs.kcal) || 0; const snack = { id, name: newSnackInputs.name.trim(), jcKcal: kcal, beckKcal: kcal, rating: newSnackInputs.rating, freq: "Weekly" }; const updated = [...customSnacks, snack]; setCustomSnacks(updated); await sSet("custom_snacks", JSON.stringify(updated)); setShowAddSnack(false); setNewSnackInputs({ name: "", kcal: "", rating: "GREAT", freq: "Weekly" }); setFormMsg("✓ " + snack.name + " added"); setTimeout(() => setFormMsg(""), 3000); }} disabled={!newSnackInputs.name.trim()} style={{ ...btnP(!!newSnackInputs.name.trim()), flex: 1 }}>Add Snack</button>
               <button onClick={() => setShowAddSnack(false)} style={btnS}>Cancel</button>
             </div>
           </div>)}
@@ -2538,11 +2458,7 @@ function Dashboard() {
         {/* SHOP */}
         {section === "shop" && (<div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <button onClick={() => setWeekOff(o => o - 1)} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>&lsaquo;</button>
-              <div style={{ textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 700 }}>Shopping — {weekLabel}</div><div style={{ fontSize: 11, color: "#64748b" }}>{planned}/7 dinners · {shopList.length} items</div></div>
-              <button onClick={() => setWeekOff(o => o + 1)} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>&rsaquo;</button>
-            </div>
+            <div><div style={{ fontSize: 14, fontWeight: 700 }}>Shopping — {weekLabel}</div><div style={{ fontSize: 11, color: "#64748b" }}>{planned}/7 dinners · {shopList.length} items</div></div>
             <select value={supermarket} onChange={async (e) => { setSupermarket(e.target.value); await sSet("supermarket_pref", e.target.value); }} style={{ padding: "6px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11, background: "#fff" }}>
               {["Aldi", "Tesco", "Asda", "Sainsbury's", "Morrisons", "Lidl", "Waitrose", "M&S", "Co-op", "Iceland", "Any"].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
