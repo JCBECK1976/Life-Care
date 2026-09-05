@@ -2327,25 +2327,6 @@ function Dashboard() {
                   <button onClick={() => { setShowAddMealType("lunch"); setNewMealTypeInputs({ name: "", jcKcal: "", beckKcal: "", rating: "GREAT" }); }} style={{ fontSize: 10, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: 0 }}>+ Add new lunch</button>
                 </div>
                 </>); })()}
-                {/* Other */}
-                {[1,2,3,4,5,6,7].map(sn => {
-                  const snKey = "s" + sn;
-                  const snVal = isObj ? mealEntry[snKey] : undefined;
-                  const allSnacks = [...SNACKS, ...customSnacks];
-                  const snObj = allSnacks.find(s => s.id === snVal);
-                  return (<div key={sn} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 24 }}>S{sn}</span>
-                    <select value={snVal || ""} onChange={e => pickSlot(snKey, e.target.value)} style={{ flex: 1, padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, background: "#f8fafc", color: snVal ? "#0f172a" : "#94a3b8" }}>
-                      <option value="">Select item...</option>
-                      {allSnacks.map(s => <option key={s.id} value={s.id}>{s.name} ({isJC ? s.jcKcal : s.beckKcal})</option>)}
-                    </select>
-                  </div>);
-                })}
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 24 }}></span>
-                  <button onClick={() => setShowAddSnack(true)} style={{ fontSize: 10, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: 0 }}>+ Add new item</button>
-                </div>
-              </div>
               {/* Dinner */}
               {!ed && ml ? (<div style={{ padding: "4px 12px 10px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
@@ -2360,6 +2341,25 @@ function Dashboard() {
                 <button onClick={() => { setShowAddMealType("dinner"); setNewMealTypeInputs({ name: "", jcKcal: "", beckKcal: "", rating: "GREAT" }); setEditDay(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", marginBottom: 3, background: "#f1f5f9", border: "2px dashed #cbd5e1", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#475569" }}>+ Add New Dinner</button>
                 <button onClick={() => setEditDay(null)} style={{ width: "100%", padding: 8, marginTop: 4, background: "#f1f5f9", border: "none", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer" }}>Cancel</button>
               </div>)}
+
+                {/* Other */}
+                {[1,2,3,4,5,6,7].map(sn => {
+                  const snKey = "s" + sn;
+                  const snVal = isObj ? mealEntry[snKey] : undefined;
+                  const allSnacks = [...SNACKS, ...customSnacks];
+                  const snObj = allSnacks.find(s => s.id === snVal);
+                  return (<div key={sn} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 50 }}>Other {sn}</span>
+                    <select value={snVal || ""} onChange={e => pickSlot(snKey, e.target.value)} style={{ flex: 1, padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, background: "#f8fafc", color: snVal ? "#0f172a" : "#94a3b8" }}>
+                      <option value="">Select item...</option>
+                      {allSnacks.map(s => <option key={s.id} value={s.id}>{s.name} ({isJC ? s.jcKcal : s.beckKcal})</option>)}
+                    </select>
+                  </div>);
+                })}
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 24 }}></span>
+                  <button onClick={() => setShowAddSnack(true)} style={{ fontSize: 10, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: 0 }}>+ Add new item</button>
+                </div>
               {/* Day comment */}
               <div style={{ padding: "4px 12px 8px" }}>
                 <textarea id={"meal-note-" + d.key} defaultValue={(isObj ? mealEntry._note : "") || ""} placeholder="Day notes (e.g. holiday, eating out, special occasion)..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, resize: "none", minHeight: 28, boxSizing: "border-box", fontFamily: "inherit", color: "#475569" }} onBlur={e => { const txt = e.target.value.trim(); const cur = isObj ? Object.assign({}, mealEntry) : { d: mealEntry }; cur._note = txt; const n = Object.assign({}, meals); n[d.key] = cur; setMeals(n); saveMeals(n); }} />
