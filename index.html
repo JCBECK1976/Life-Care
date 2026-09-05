@@ -768,6 +768,12 @@ function Dashboard() {
   const [sessionFbLoading, setSessionFbLoading] = useState(false);
   const [exView, setExView] = useState("exercises");
   const [dayView, setDayView] = useState({});
+  const [bodyView, setBodyView] = useState("data");
+  const [measView, setMeasView] = useState("data");
+  const [bodyFbLoading, setBodyFbLoading] = useState(false);
+  const [bodyFeedback, setBodyFeedback] = useState(null);
+  const [measFbLoading, setMeasFbLoading] = useState(false);
+  const [measFeedback, setMeasFeedback] = useState(null);
   const [assessment, setAssessment] = useState(null);
   const [googleToken, setGoogleToken] = useState(null);
   const [googleConnected, setGoogleConnected] = useState(false);
@@ -1257,7 +1263,7 @@ function Dashboard() {
   const shopItems = {}; MEAL_DAYS.forEach(d => { const m = allDinners.find(x => x.id === meals[d.key]); if (m) m.shop?.forEach(it => { shopItems[it] = (shopItems[it] || 0) + 1; }); });
   const shopList = Object.entries(shopItems).sort((a, b) => a[0].localeCompare(b[0]));
   const planned = MEAL_DAYS.filter(d => meals[d.key]).length;
-  const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "Body Comp" }, { id: "weights", l: "Exercise" }, { id: "meals", l: "Dietary" }, { id: "meds", l: "Meds" }, { id: "bloods", l: "Health" }, { id: "shop", l: "Shop" }, { id: "history", l: "History" }, { id: "targets", l: "Targets" }, { id: "admin", l: "⚙" }];
+  const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "Body Comp" }, { id: "weights", l: "Exercise" }, { id: "meals", l: "Dietary" }, { id: "meds", l: "Meds" }, { id: "bloods", l: "Health" }, { id: "shop", l: "Shop" }, { id: "targets", l: "Targets" }, { id: "admin", l: "⚙" }];
   const wt = p.body.weight || [];
   const latestWt = wt.length > 0 ? wt[wt.length - 1] : null;
   const idealSt = isJC ? IDEALS.jc : IDEALS.becks;
@@ -1491,9 +1497,18 @@ function Dashboard() {
 
         {/* BODY */}
         {section === "body" && (<div>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10, color: "#0f172a" }}>Body Weight Composition</div>
+          {/* BODY COMPOSITION CARD */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>Body Composition - Week {calcWeek(data.config.trainingStart)}</div>
+            <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2 }}>
+              {[{ k: "data", l: "Weigh In" }, { k: "feedback", l: "Feedback" }, { k: "progress", l: "Progress" }, { k: "charts", l: "Charts" }].map(function(tab) {
+                return (<button key={tab.k} onClick={function() { setBodyView(tab.k); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: bodyView === tab.k ? (tab.k === "feedback" ? "#ea580c" : "#fff") : "transparent", color: bodyView === tab.k ? (tab.k === "feedback" ? "#fff" : "#0f172a") : "#94a3b8" }}>{tab.l}</button>);
+              })}
+            </div>
+            <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
+              {bodyView === "data" && (<div>
           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-            <button onClick={() => { setShowBodyForm(true); setBodyInputs({ weight: "", bodyFat: "", muscleMass: "", muscleRate: "", skeletalMuscle: "", visceralFat: "", subcutFat: "", bmr: "", bodyWater: "", boneMass: "", bodyAge: "", bmi: "", week: String((data.config.week || 8) + 1) }); }} style={{ ...btnP(), flex: 1 }}>Record Body Comp</button>
+            <button onClick={() => { setShowBodyForm(true); setBodyInputs({ weight: "", bodyFat: "", muscleMass: "", muscleRate: "", skeletalMuscle: "", visceralFat: "", subcutFat: "", bmr: "", bodyWater: "", boneMass: "", bodyAge: "", bmi: "", week: String(calcWeek(data.config.trainingStart)) }); }} style={{ ...btnP(), flex: 1 }}>Record Body Comp</button>
             <label style={{ display: "inline-flex", alignItems: "center", padding: "8px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11, color: "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>
               📷 Image Upload
               <input type="file" accept="image/*" onChange={async function(e) {
@@ -1583,7 +1598,66 @@ function Dashboard() {
               {ph.analysis && <div style={{ fontSize: 10, color: "#64748b", marginTop: 2, lineHeight: 1.4 }}>{ph.analysis}</div>}
             </div>); })}
           </div>)}
-          {showMeasForm && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
+              </div>)}
+              {bodyView === "feedback" && (<div>
+                <button onClick={async function() {
+                  setBodyFbLoading(true);
+                  try {
+                    var prof = p.profile || {};
+                    var bodySum = "Weight: " + (wt.length > 0 ? wt[wt.length-1].v + "st" : "none") + ", Body Fat: " + ((p.body.bodyFat||[]).length > 0 ? p.body.bodyFat[p.body.bodyFat.length-1].v + "pct" : "none") + ", Muscle Rate: " + ((p.body.muscleRate||[]).length > 0 ? p.body.muscleRate[p.body.muscleRate.length-1].v + "pct" : "none") + ", Visceral: " + ((p.body.visceralFat||[]).length > 0 ? p.body.visceralFat[p.body.visceralFat.length-1].v : "none") + ", BMR: " + ((p.body.bmr||[]).length > 0 ? p.body.bmr[p.body.bmr.length-1].v : "none") + ", Ideal: " + (prof.idealWeight || "unknown");
+                    var prevW = wt.length > 1 ? "Previous: " + wt[wt.length-2].v + "st Wk" + wt[wt.length-2].wk : "";
+                    var jsonFmt = '{"good":["point"],"watch":["point"],"outlook":"one sentence"}';
+                    var prompt = "Body composition feedback for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Week " + calcWeek(data.config.trainingStart) + ". Current: " + bodySum + ". " + prevW + ". Max 15 words per point. Return ONLY JSON: " + jsonFmt;
+                    var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
+                    var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+                    var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
+                    if (txt) { setBodyFeedback(JSON.parse(txt.replace(/```json|```/g, "").trim())); }
+                  } catch(e) { setBodyFeedback({ good: [], watch: ["Error: " + String(e).substring(0, 80)], outlook: "" }); }
+                  setBodyFbLoading(false);
+                }} disabled={bodyFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: bodyFbLoading ? "not-allowed" : "pointer", background: bodyFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{bodyFbLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Weigh In Feedback"}</button>
+                {bodyFeedback && (<div style={{ marginTop: 10 }}>
+                  {bodyFeedback.good && bodyFeedback.good.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#166534" }}>\u2713 {pt}</div>; })}
+                  {bodyFeedback.watch && bodyFeedback.watch.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#d97706" }}>\u26a0 {pt}</div>; })}
+                  {bodyFeedback.outlook && <div style={{ marginTop: 8, padding: 10, background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, color: "#fff", fontSize: 12 }}>{bodyFeedback.outlook}</div>}
+                </div>)}
+              </div>)}
+              {bodyView === "progress" && (<div>
+                {[{ k: "weight", l: "Weight (st)" }, { k: "bodyFat", l: "Body Fat %" }, { k: "muscleRate", l: "Muscle Rate %" }, { k: "visceralFat", l: "Visceral Fat" }, { k: "bmr", l: "BMR" }, { k: "skeletalMuscle", l: "Skeletal Muscle %" }, { k: "subcutFat", l: "Subcut Fat %" }, { k: "bodyWater", l: "Body Water %" }, { k: "boneMass", l: "Bone Mass" }, { k: "bodyAge", l: "Body Age" }].map(function(metric) {
+                  var arr = p.body[metric.k] || [];
+                  if (arr.length === 0) return null;
+                  return (<div key={metric.k} style={{ marginBottom: 12, paddingBottom: 8, borderBottom: "1px solid #e2e8f0" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{metric.l}</div>
+                    <div style={{ display: "flex", gap: 6, padding: "2px 0", fontSize: 9, color: "#94a3b8", fontWeight: 600 }}><span style={{ width: 40 }}>WK</span><span style={{ width: 60 }}>VALUE</span><span style={{ flex: 1 }}>NOTES</span><span style={{ width: 20 }}></span></div>
+                    {arr.map(function(entry, ei) { return (<div key={ei} style={{ display: "flex", gap: 6, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11 }}>
+                      <input defaultValue={entry.wk} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[metric.k][ei].wk = parseInt(e.target.value) || entry.wk; await saveData(nd); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
+                      <input defaultValue={entry.v} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[metric.k][ei].v = parseFloat(e.target.value) || entry.v; await saveData(nd); }} style={{ width: 60, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
+                      <input defaultValue={entry.note || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[metric.k][ei].note = e.target.value; await saveData(nd); }} placeholder="..." style={{ flex: 1, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
+                      <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[metric.k].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", width: 20 }}>\u2715</button>
+                    </div>); })}
+                  </div>);
+                })}
+              </div>)}
+              {bodyView === "charts" && (<div>
+                <FullChart title="Weight (stone)" series={[{ label: isJC ? "JC" : "Beck", color: accent, data: wt }]} refLine={idealSt} />
+                <FullChart title="Body Fat %" series={[{ label: "Body Fat", color: "#ef4444", data: p.body.bodyFat || [] }]} refLine={isJC ? 18 : 28} />
+                <FullChart title="Visceral Fat" series={[{ label: "Visceral", color: "#f97316", data: p.body.visceralFat || [] }]} />
+                <FullChart title="Muscle Rate %" series={[{ label: "Muscle Rate", color: "#22c55e", data: p.body.muscleRate || [] }]} />
+                <FullChart title="BMR (kcal)" series={[{ label: "BMR", color: "#3b82f6", data: p.body.bmr || [] }]} />
+              </div>)}
+            </div>
+          </div>
+
+          {/* TAPE MEASUREMENTS CARD */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>Tape Measurements</div>
+            <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2 }}>
+              {[{ k: "data", l: "Measure" }, { k: "feedback", l: "Feedback" }, { k: "progress", l: "Progress" }, { k: "charts", l: "Charts" }].map(function(tab) {
+                return (<button key={tab.k} onClick={function() { setMeasView(tab.k); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: measView === tab.k ? (tab.k === "feedback" ? "#ea580c" : "#fff") : "transparent", color: measView === tab.k ? (tab.k === "feedback" ? "#fff" : "#0f172a") : "#94a3b8" }}>{tab.l}</button>);
+              })}
+            </div>
+            <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
+              {measView === "data" && (<div>
+{showMeasForm && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Tape Measurements (cm)</div>
             <div style={{ marginBottom: 8 }}><label style={labelStyle}>Week</label><input type="number" value={measInputs.week} onChange={e => setMeasInputs(q => ({ ...q, week: e.target.value }))} style={{ ...inputStyle, width: 80 }} /></div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -1595,7 +1669,53 @@ function Dashboard() {
           <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0" }}>
             {Object.entries(p.measurements).map(([k, d]) => { const latest = d.length > 0 ? d[d.length - 1] : null; const prev = d.length > 1 ? d[d.length - 2] : null; const delta = (latest && prev && typeof latest.v === "number" && typeof prev.v === "number") ? (latest.v - prev.v).toFixed(1) : null; return (<div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f1f5f9", fontSize: 13 }}><span style={{ fontWeight: 500, color: "#334155" }}>{k.charAt(0).toUpperCase() + k.slice(1)}</span><div style={{ textAlign: "right" }}>{latest ? <><span style={{ fontWeight: 600, color: "#0f172a" }}>{latest.v}{typeof latest.v === "number" ? "cm" : ""}</span>{delta && <span style={{ fontSize: 10, color: parseFloat(delta) > 0 ? "#16a34a" : parseFloat(delta) < 0 ? "#dc2626" : "#64748b", marginLeft: 6 }}>{parseFloat(delta) > 0 ? "+" : ""}{delta}</span>}<span style={{ fontSize: 10, color: "#94a3b8", marginLeft: 4 }}>Wk{latest.wk}</span></> : <span style={{ fontSize: 11, color: "#94a3b8" }}>—</span>}</div></div>); })}
           </div>
-          <div style={{ background: accentLight, borderRadius: 10, padding: 12, marginTop: 12, fontSize: 12, color: "#334155", lineHeight: 1.5 }}>Recheck tape every 4 weeks. Chest at nipple level. Waist at midpoint between lowest rib and hip bone.</div>
+                <div style={{ background: accentLight, borderRadius: 10, padding: 12, marginTop: 12, fontSize: 12, color: "#334155", lineHeight: 1.5 }}>Recheck tape every 4 weeks. Chest at nipple level. Waist at midpoint between lowest rib and hip bone.</div>
+              </div>)}
+              {measView === "feedback" && (<div>
+                <button onClick={async function() {
+                  setMeasFbLoading(true);
+                  try {
+                    var prof = p.profile || {};
+                    var measSum = Object.entries(p.measurements).map(function(pair) { var latest = pair[1].length > 0 ? pair[1][pair[1].length-1] : null; return latest ? pair[0] + ": " + latest.v + "cm Wk" + latest.wk : ""; }).filter(Boolean).join(", ");
+                    var jsonFmt2 = '{"good":["point"],"watch":["point"],"outlook":"one sentence"}';
+                    var prompt = "Tape measurement feedback for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Week " + calcWeek(data.config.trainingStart) + ". Measurements: " + measSum + ". Max 15 words per point. Return ONLY JSON: " + jsonFmt2;
+                    var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
+                    var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+                    var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
+                    if (txt) { setMeasFeedback(JSON.parse(txt.replace(/```json|```/g, "").trim())); }
+                  } catch(e) { setMeasFeedback({ good: [], watch: ["Error: " + String(e).substring(0, 80)], outlook: "" }); }
+                  setMeasFbLoading(false);
+                }} disabled={measFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: measFbLoading ? "not-allowed" : "pointer", background: measFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{measFbLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Measurement Feedback"}</button>
+                {measFeedback && (<div style={{ marginTop: 10 }}>
+                  {measFeedback.good && measFeedback.good.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#166534" }}>\u2713 {pt}</div>; })}
+                  {measFeedback.watch && measFeedback.watch.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#d97706" }}>\u26a0 {pt}</div>; })}
+                  {measFeedback.outlook && <div style={{ marginTop: 8, padding: 10, background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, color: "#fff", fontSize: 12 }}>{measFeedback.outlook}</div>}
+                </div>)}
+              </div>)}
+              {measView === "progress" && (<div>
+                {Object.entries(p.measurements).map(function(pair) {
+                  var k = pair[0]; var arr = pair[1];
+                  if (arr.length === 0) return null;
+                  return (<div key={k} style={{ marginBottom: 12, paddingBottom: 8, borderBottom: "1px solid #e2e8f0" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{k.charAt(0).toUpperCase() + k.slice(1)}</div>
+                    <div style={{ display: "flex", gap: 6, padding: "2px 0", fontSize: 9, color: "#94a3b8", fontWeight: 600 }}><span style={{ width: 40 }}>WK</span><span style={{ width: 60 }}>CM</span><span style={{ flex: 1 }}>NOTES</span><span style={{ width: 20 }}></span></div>
+                    {arr.map(function(entry, ei) { return (<div key={ei} style={{ display: "flex", gap: 6, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11 }}>
+                      <input defaultValue={entry.wk} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].wk = parseInt(e.target.value) || entry.wk; await saveData(nd); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
+                      <input defaultValue={entry.v} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].v = parseFloat(e.target.value) || entry.v; await saveData(nd); }} style={{ width: 60, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
+                      <input defaultValue={entry.note || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].note = e.target.value; await saveData(nd); }} placeholder="..." style={{ flex: 1, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
+                      <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", width: 20 }}>\u2715</button>
+                    </div>); })}
+                  </div>);
+                })}
+              </div>)}
+              {measView === "charts" && (<div>
+                {Object.entries(p.measurements).filter(function(pair) { return pair[1].length >= 2; }).map(function(pair, mi) {
+                  return <FullChart key={pair[0]} title={pair[0].charAt(0).toUpperCase() + pair[0].slice(1) + " (cm)"} series={[{ label: pair[0], color: ["#2563eb","#7c3aed","#059669","#d97706","#dc2626","#0891b2","#ec4899"][mi % 7], data: pair[1] }]} height={100} />;
+                })}
+                {Object.entries(p.measurements).filter(function(pair) { return pair[1].length >= 2; }).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 20 }}>Need 2+ weeks of data</div>}
+              </div>)}
+            </div>
+          </div>
         </div>)}
 
         {/* WEIGHTS */}
@@ -1782,28 +1902,6 @@ function Dashboard() {
             {[{ s: "moved up", d: "Just increased weight. Reps drop to ~10×3. Fresh start at new load." }, { s: "building", d: "At current weight, pushing reps upward (10→12→13→14→15). Not there yet." }, { s: "consolidating", d: "Hit 15×3 for the first time. Needs one more session to confirm." }, { s: "ready to move", d: "Hit 15×3 two consecutive sessions. Green light to increase weight." }, { s: "maintaining", d: "Deliberately holding. No progression intended (e.g. isolation exercises)." }, { s: "reduce", d: "Dropped weight due to form issues, pain, or overreach. Rebuilding." }].map(function(k) { return (<div key={k.s} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "4px 0", borderBottom: "1px solid #f8fafc" }}><span style={{ background: sBg(k.s), color: sColor(k.s), fontWeight: 600, padding: "2px 8px", borderRadius: 20, fontSize: 10, whiteSpace: "nowrap", minWidth: 90, textAlign: "center" }}>{sLabel(k.s)}</span><span style={{ fontSize: 10, color: "#64748b", lineHeight: 1.4 }}>{k.d}</span></div>); })}
           </div>
         </div>); })()}
-
-        {/* HISTORY */}
-        {section === "history" && (<div>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Progress Charts</div>
-          <FullChart title="Weight (stone)" series={[{ label: isJC ? "JC" : "Beck", color: accent, data: wt }]} refLine={idealSt} />
-          <FullChart title="Body Fat %" series={[{ label: "Body Fat", color: "#ef4444", data: p.body.bodyFat || [] }]} refLine={isJC ? 18 : 28} />
-          <FullChart title="Visceral Fat" series={[{ label: "Visceral", color: "#f97316", data: p.body.visceralFat || [] }]} />
-          <FullChart title="Muscle Rate %" series={[{ label: "Muscle Rate", color: "#22c55e", data: p.body.muscleRate || [] }]} />
-          <FullChart title="BMR (kcal)" series={[{ label: "BMR", color: "#3b82f6", data: p.body.bmr || [] }]} />
-          {p.activity && p.activity.filter(function(a) { return a.steps; }).length > 1 && (
-            <FullChart title="Daily Steps" series={[{ label: "Steps", color: "#059669", data: p.activity.filter(function(a) { return a.steps; }).map(function(a, i) { return { wk: i + 1, v: a.steps }; }) }]} />
-          )}
-          {Object.entries(p.measurements).some(([, d]) => d.length > 0) && (<>
-            <div style={{ fontSize: 13, fontWeight: 700, marginTop: 8, marginBottom: 8 }}>Tape Measurements (cm)</div>
-            <FullChart title="Measurements" series={Object.entries(p.measurements).filter(([, d]) => d.some(e => typeof e.v === "number")).map(([k, d], i) => ({ label: k.charAt(0).toUpperCase() + k.slice(1), color: ["#2563eb","#7c3aed","#059669","#d97706","#dc2626","#0891b2"][i % 6], data: d }))} />
-          </>)}
-          {(() => { const cols = ["#2563eb","#7c3aed","#059669","#d97706","#dc2626"]; const mkSeries = (exs) => exs.map((e, i) => ({ label: e.name, color: cols[i % cols.length], data: (e.prog || []).filter(pp => pp.w !== "BW").map(pp => ({ wk: pp.wk, v: parseInt(pp.w) || 0 })) })); return (<>
-            <FullChart title="Sunday — Legs / Calves / Core (kg)" series={mkSeries(p.exercises.sunday || [])} height={180} />
-            <FullChart title="Monday — Back / Chest / Shoulders (kg)" series={mkSeries(p.exercises.monday || [])} height={180} />
-            <FullChart title="Friday — Arms / Core (kg)" series={mkSeries(p.exercises.friday || [])} height={180} />
-          </>); })()}
-        </div>)}
 
         {/* MEDS */}
         {section === "meds" && (() => {
