@@ -61,7 +61,7 @@ const { useState, useEffect, useCallback, useRef } = React;
 // ═══════════════════════════════════════════════════
 
 const DEFAULT_DATA = {
-  config: { week: 8, session: 15, trainingStart: "20 Jul 2026", lastUpdate: "24 Aug 2026" },
+  config: { week: 7, session: 15, trainingStart: "2026-07-20", lastUpdate: "4 Sep 2026" },
   jc: {
     profile: { name: "JC", age: 49, sex: "Male", height: "5ft 11", bodyType: "Upper-body dominant meso-endomorph", fibreType: "Fast-twitch dominant", idealWeight: "13st 6lb", notes: "ADHD diagnosed. Yellow/Red Insights. Trains shirtless — heat sensitivity (thyroid). 90min pre-session fast." },
     meds: [
@@ -158,7 +158,7 @@ const DEFAULT_DATA = {
             current: "36kg",
             reps: "12×3",
             status: "building",
-            prog: [{ wk: 1, w: "22kg", r: "12×3" }, { wk: 2, w: "22kg", r: "12×3" }, { wk: 3, w: "22kg", r: "15×3" }, { wk: 4, w: "29kg", r: "15×3" }, { wk: 5, w: "36kg", r: "12×3" }, { wk: 6, w: "36kg", r: "12×3" }, { wk: 8, w: "36kg", r: "12×3" }]
+            prog: [{ wk: 1, w: "22kg", r: "12×3" }, { wk: 2, w: "22kg", r: "12×3" }, { wk: 3, w: "22kg", r: "15×3" }, { wk: 4, w: "29kg", r: "15×3" }, { wk: 5, w: "36kg", r: "12×3" }, { wk: 6, w: "36kg", r: "12×3" }, { wk: 7, w: "36kg", r: "12×3" }]
           },
           {
             name: "Butterfly",
@@ -172,31 +172,31 @@ const DEFAULT_DATA = {
           {
             name: "Lateral Raise",
             current: "5kg",
-            reps: "12×3",
-            status: "maintaining",
-            prog: [{ wk: 2, w: "5kg", r: "12×3" }, { wk: 3, w: "5kg", r: "12×3" }, { wk: 4, w: "5kg", r: "12×3" }, { wk: 5, w: "5kg", r: "12×3" }, { wk: 7, w: "5kg", r: "12×3" }]
+            reps: "15/12/12",
+            status: "building",
+            prog: [{ wk: 2, w: "5kg", r: "12×3" }, { wk: 3, w: "5kg", r: "12×3" }, { wk: 4, w: "5kg", r: "12×3" }, { wk: 5, w: "5kg", r: "12×3" }, { wk: 7, w: "5kg", r: "15/12/12" }]
           },
           {
             name: "Bicep Curl",
             current: "22kg",
-            reps: "12×3",
+            reps: "12/12/10",
             status: "building",
             notes: "Wk1-4 partial ROM (to waist). Wk5+ full range — rep drop is ROM change not regression.",
-            prog: [{ wk: 1, w: "22kg", r: "12×3" }, { wk: 2, w: "22kg", r: "12×3" }, { wk: 3, w: "22kg", r: "12×3" }, { wk: 4, w: "22kg", r: "15/15/12" }, { wk: 5, w: "22kg", r: "12/12/8" }, { wk: 7, w: "22kg", r: "12×3" }]
+            prog: [{ wk: 1, w: "22kg", r: "12×3" }, { wk: 2, w: "22kg", r: "12×3" }, { wk: 3, w: "22kg", r: "12×3" }, { wk: 4, w: "22kg", r: "15/15/12" }, { wk: 5, w: "22kg", r: "12/12/8" }, { wk: 7, w: "22kg", r: "12/12/10" }]
           },
           {
             name: "Tricep Pushdown",
             current: "29kg",
-            reps: "10×3",
-            status: "moved up",
-            prog: [{ wk: 1, w: "22kg", r: "12×3" }, { wk: 2, w: "22kg", r: "12/12/10" }, { wk: 3, w: "22kg", r: "12×3" }, { wk: 4, w: "22kg", r: "15×3" }, { wk: 5, w: "22kg", r: "15×3" }, { wk: 7, w: "29kg", r: "10×3" }]
+            reps: "12×3",
+            status: "building",
+            prog: [{ wk: 1, w: "22kg", r: "12×3" }, { wk: 2, w: "22kg", r: "12/12/10" }, { wk: 3, w: "22kg", r: "12×3" }, { wk: 4, w: "22kg", r: "15×3" }, { wk: 5, w: "22kg", r: "15×3" }, { wk: 7, w: "29kg", r: "10×3" }, { wk: 7, w: "29kg", r: "12×3" }]
           },
           {
             name: "Face Pull",
             current: "36kg",
-            reps: "10×3",
-            status: "moved up",
-            prog: [{ wk: 1, w: "22kg", r: "12×3" }, { wk: 2, w: "22kg", r: "12×3" }, { wk: 3, w: "29kg", r: "12×3" }, { wk: 4, w: "29kg", r: "15×3" }, { wk: 5, w: "29kg", r: "15×3" }, { wk: 7, w: "36kg", r: "10×3" }]
+            reps: "12×3",
+            status: "building",
+            prog: [{ wk: 1, w: "22kg", r: "12×3" }, { wk: 2, w: "22kg", r: "12×3" }, { wk: 3, w: "29kg", r: "12×3" }, { wk: 4, w: "29kg", r: "15×3" }, { wk: 5, w: "29kg", r: "15×3" }, { wk: 7, w: "36kg", r: "10×3" }, { wk: 7, w: "36kg", r: "12×3" }]
           },
           {
             name: "Cable Crunch",
@@ -299,10 +299,10 @@ const DEFAULT_DATA = {
           },
           {
             name: "Cable Crunch",
-            current: "22kg",
+            current: "29kg",
             reps: "12×3",
-            status: "building",
-            prog: [{ wk: 1, w: "16kg", r: "12×3" }, { wk: 2, w: "16kg", r: "13/12/12" }, { wk: 3, w: "16kg", r: "15×3" }, { wk: 4, w: "22kg", r: "12×3" }, { wk: 5, w: "29kg", r: "10×3" }, { wk: 6, w: "22kg", r: "12/10/12" }, { wk: 7, w: "22kg", r: "12×3" }, { wk: 8, w: "22kg", r: "12×3" }]
+            status: "moved up",
+            prog: [{ wk: 1, w: "16kg", r: "12×3" }, { wk: 2, w: "16kg", r: "13/12/12" }, { wk: 3, w: "16kg", r: "15×3" }, { wk: 4, w: "22kg", r: "12×3" }, { wk: 5, w: "29kg", r: "10×3" }, { wk: 6, w: "22kg", r: "12/10/12" }, { wk: 7, w: "22kg", r: "12×3" }, { wk: 7, w: "29kg", r: "12×3" }]
           },
           {
             name: "Butterfly",
@@ -317,9 +317,10 @@ const DEFAULT_DATA = {
           {
             name: "Lateral Raise",
             current: "3kg",
-            reps: "12×3",
-            status: "maintaining",
-            prog: [{ wk: 1, w: "3kg", r: "10×3" }, { wk: 2, w: "3kg", r: "10×3" }, { wk: 3, w: "3kg", r: "11/10/10" }, { wk: 4, w: "3kg", r: "12/11/10" }, { wk: 5, w: "3kg", r: "12×3" }, { wk: 7, w: "3kg", r: "12×3" }]
+            reps: "15×3",
+            status: "consolidating",
+            notes: "Not quite horizontal to protect RSI.",
+            prog: [{ wk: 1, w: "3kg", r: "10×3" }, { wk: 2, w: "3kg", r: "10×3" }, { wk: 3, w: "3kg", r: "11/10/10" }, { wk: 4, w: "3kg", r: "12/11/10" }, { wk: 5, w: "3kg", r: "12×3" }, { wk: 7, w: "3kg", r: "15×3" }]
           },
           {
             name: "Bicep Curl",
@@ -338,10 +339,10 @@ const DEFAULT_DATA = {
           },
           {
             name: "Face Pull",
-            current: "22kg",
-            reps: "15×3",
-            status: "consolidating",
-            prog: [{ wk: 1, w: "22kg", r: "8×3" }, { wk: 2, w: "22kg", r: "9/8/8" }, { wk: 3, w: "22kg", r: "10/9/9" }, { wk: 4, w: "22kg", r: "10×3" }, { wk: 5, w: "22kg", r: "12×3" }, { wk: 7, w: "22kg", r: "15×3" }]
+            current: "29kg",
+            reps: "10×3",
+            status: "moved up",
+            prog: [{ wk: 1, w: "22kg", r: "8×3" }, { wk: 2, w: "22kg", r: "9/8/8" }, { wk: 3, w: "22kg", r: "10/9/9" }, { wk: 4, w: "22kg", r: "10×3" }, { wk: 5, w: "22kg", r: "12×3" }, { wk: 7, w: "22kg", r: "15×3" }, { wk: 7, w: "29kg", r: "10×3" }]
           },
           {
             name: "Cable Crunch",
@@ -693,6 +694,14 @@ function handleApiError(result) {
   return null;
 }
 
+
+// Calculate current training week from start date
+function calcWeek(startDate) {
+  var start = new Date(startDate || "2026-07-20");
+  var now = new Date();
+  return Math.floor((now - start) / (7 * 24 * 60 * 60 * 1000)) + 1;
+}
+
 function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -755,6 +764,9 @@ function Dashboard() {
   const [onboardInputs, setOnboardInputs] = useState({ conditions: "", medications: "", neurodiversity: "", bloods: "", goals: "", activity: "", equipment: "", dietary: "", allergies: "" });
   const [genPlanLoading, setGenPlanLoading] = useState(false);
   const [genMealsLoading, setGenMealsLoading] = useState(false);
+  const [sessionFeedback, setSessionFeedback] = useState(null);
+  const [sessionFbLoading, setSessionFbLoading] = useState(false);
+  const [exView, setExView] = useState("exercises");
   const [assessment, setAssessment] = useState(null);
   const [googleToken, setGoogleToken] = useState(null);
   const [googleConnected, setGoogleConnected] = useState(false);
@@ -984,7 +996,7 @@ function Dashboard() {
     const last = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
     setLogEx({ day, idx });
     setLogSets([{ w: last ? last.w.replace("kg", "") : "", r: "" }, { w: last ? last.w.replace("kg", "") : "", r: "" }, { w: last ? last.w.replace("kg", "") : "", r: "" }]);
-    setLogWeek(String((data.config.week || 7) + 1));
+    setLogWeek(String(calcWeek(data.config.trainingStart)));
     setLogComment(""); setLogStatus(""); setEditPrev(false);
     setPrevComment("");
     // Load previous week's comment
@@ -1030,7 +1042,7 @@ function Dashboard() {
         if (oi >= 0) { const oe = nd[activeTab].exercises[od][oi]; oe.current = ex.current; oe.reps = ex.reps; oe.status = ex.status; oe.prog = JSON.parse(JSON.stringify(ex.prog)); if (ex.target) oe.target = ex.target; else delete oe.target; }
       });
     }
-    nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    nd.config.week = calcWeek(nd.config.trainingStart); nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
     if (logComment.trim()) await sSet("comment:" + activeTab + ":" + ex.name + ":" + logWeek, logComment.trim());
     const target = "ex-" + day + "-" + idx;
     setLogEx(null);
@@ -1040,10 +1052,10 @@ function Dashboard() {
   };
 
   // ─── MEASUREMENT FORM ───
-  const saveMeasurements = async () => { if (!data) return; const wk = parseInt(measInputs.week); if (!wk) return; const nd = JSON.parse(JSON.stringify(data)); const p = nd[activeTab]; ["bicep","forearm","calf","quad","chest","waist","shoulders"].forEach(f => { const v = parseFloat(measInputs[f]); if (!isNaN(v)) { if (!p.measurements[f]) p.measurements[f] = []; const ei = p.measurements[f].findIndex(e => e.wk === wk); if (ei >= 0) p.measurements[f][ei].v = v; else p.measurements[f].push({ wk, v }); p.measurements[f].sort((a, b) => a.wk - b.wk); } }); nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); if (measInputs.comment.trim()) await sSet("meas_comment:" + activeTab + ":" + wk, measInputs.comment.trim()); await saveData(nd); setShowMeasForm(false); setFormMsg("✓ Measurements saved"); setTimeout(() => setFormMsg(""), 3000); };
+  const saveMeasurements = async () => { if (!data) return; const wk = parseInt(measInputs.week); if (!wk) return; const nd = JSON.parse(JSON.stringify(data)); const p = nd[activeTab]; ["bicep","forearm","calf","quad","chest","waist","shoulders"].forEach(f => { const v = parseFloat(measInputs[f]); if (!isNaN(v)) { if (!p.measurements[f]) p.measurements[f] = []; const ei = p.measurements[f].findIndex(e => e.wk === wk); if (ei >= 0) p.measurements[f][ei].v = v; else p.measurements[f].push({ wk, v }); p.measurements[f].sort((a, b) => a.wk - b.wk); } }); nd.config.week = calcWeek(nd.config.trainingStart); nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); if (measInputs.comment.trim()) await sSet("meas_comment:" + activeTab + ":" + wk, measInputs.comment.trim()); await saveData(nd); setShowMeasForm(false); setFormMsg("✓ Measurements saved"); setTimeout(() => setFormMsg(""), 3000); };
 
   // ─── BODY COMP FORM ───
-  const saveBodyComp = async () => { if (!data) return; const wk = parseInt(bodyInputs.week); if (!wk) return; const nd = JSON.parse(JSON.stringify(data)); const p = nd[activeTab]; ["bodyFat","muscleRate","skeletalMuscle","visceralFat","subcutFat","bmr","bodyWater","bodyAge","bmi"].forEach(f => { const v = parseFloat(bodyInputs[f]); if (!isNaN(v)) { if (!p.body[f]) p.body[f] = []; const ei = p.body[f].findIndex(e => e.wk === wk); if (ei >= 0) p.body[f][ei].v = v; else p.body[f].push({ wk, v }); p.body[f].sort((a, b) => a.wk - b.wk); } }); ["muscleMass","boneMass"].forEach(f => { if (bodyInputs[f]?.trim()) { if (!p.body[f]) p.body[f] = []; const ei = p.body[f].findIndex(e => e.wk === wk); if (ei >= 0) p.body[f][ei].v = bodyInputs[f].trim(); else p.body[f].push({ wk, v: bodyInputs[f].trim() }); p.body[f].sort((a, b) => a.wk - b.wk); } }); if (bodyInputs.weight?.trim()) { const wv = parseFloat(bodyInputs.weight); if (!isNaN(wv)) { if (!p.body.weight) p.body.weight = []; const ei = p.body.weight.findIndex(e => e.wk === wk); if (ei >= 0) p.body.weight[ei].v = wv; else p.body.weight.push({ wk, v: wv }); p.body.weight.sort((a, b) => a.wk - b.wk); } } nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); await saveData(nd); setShowBodyForm(false); setFormMsg("✓ Body comp saved"); setTimeout(() => setFormMsg(""), 3000); };
+  const saveBodyComp = async () => { if (!data) return; const wk = parseInt(bodyInputs.week); if (!wk) return; const nd = JSON.parse(JSON.stringify(data)); const p = nd[activeTab]; ["bodyFat","muscleRate","skeletalMuscle","visceralFat","subcutFat","bmr","bodyWater","bodyAge","bmi"].forEach(f => { const v = parseFloat(bodyInputs[f]); if (!isNaN(v)) { if (!p.body[f]) p.body[f] = []; const ei = p.body[f].findIndex(e => e.wk === wk); if (ei >= 0) p.body[f][ei].v = v; else p.body[f].push({ wk, v }); p.body[f].sort((a, b) => a.wk - b.wk); } }); ["muscleMass","boneMass"].forEach(f => { if (bodyInputs[f]?.trim()) { if (!p.body[f]) p.body[f] = []; const ei = p.body[f].findIndex(e => e.wk === wk); if (ei >= 0) p.body[f][ei].v = bodyInputs[f].trim(); else p.body[f].push({ wk, v: bodyInputs[f].trim() }); p.body[f].sort((a, b) => a.wk - b.wk); } }); if (bodyInputs.weight?.trim()) { const wv = parseFloat(bodyInputs.weight); if (!isNaN(wv)) { if (!p.body.weight) p.body.weight = []; const ei = p.body.weight.findIndex(e => e.wk === wk); if (ei >= 0) p.body.weight[ei].v = wv; else p.body.weight.push({ wk, v: wv }); p.body.weight.sort((a, b) => a.wk - b.wk); } } nd.config.week = calcWeek(nd.config.trainingStart); nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); await saveData(nd); setShowBodyForm(false); setFormMsg("✓ Body comp saved"); setTimeout(() => setFormMsg(""), 3000); };
 
   // ─── CUSTOM MEAL ───
   const saveCustomMeal = async () => { if (!customInputs.name.trim()) return; const id = "custom_" + Date.now(); const jf = parseFloat(customInputs.jcFat) || 0; const bf = parseFloat(customInputs.beckFat) || 0; const rating = (jf > 20 || bf > 20) ? "RED" : (jf > 14 || bf > 14) ? "AMBER" : "GREAT"; const meal = { id, name: customInputs.name.trim(), rating, jcKcal: parseInt(customInputs.jcKcal) || 0, beckKcal: parseInt(customInputs.beckKcal) || 0, jcProt: parseInt(customInputs.jcProt) || 0, beckProt: parseInt(customInputs.beckProt) || 0, jcFat: jf, beckFat: bf, freq: customInputs.freq, time: parseInt(customInputs.time) || 20, shop: [] }; const updated = [...customMeals, meal]; setCustomMeals(updated); await sSet("custom_meals", JSON.stringify(updated)); setShowCustomForm(false); setCustomInputs({ name: "", jcKcal: "", beckKcal: "", jcProt: "", beckProt: "", jcFat: "", beckFat: "", freq: "Weekly", time: "20" }); setFormMsg("✓ " + meal.name + " added"); setTimeout(() => setFormMsg(""), 3000); };
@@ -1285,74 +1297,6 @@ function Dashboard() {
       <div style={{ padding: 16 }}>
         {/* HOME */}
         {section === "overview" && (<div>
-          <StrengthBanner exercises={p.exercises} isJC={isJC} />
-          <div style={{ background: "#fff", borderRadius: 12, padding: 16, border: "1px solid #e2e8f0", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div><div style={{ fontSize: 11, color: "#64748b", marginBottom: 2 }}>WEIGHT</div><div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1 }}>{wtStr}</div>
-              {toIdeal && <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>{toIdeal}lb to ideal ({isJC ? "13st 6lb" : "11st 2lb"})</div>}
-              {wtDelta && <div style={{ fontSize: 13, color: wtSign === "-" ? "#16a34a" : "#dc2626", fontWeight: 600, marginTop: 2 }}>{wtSign === "-" ? "" : "+"}{wtDelta}</div>}
-            </div>
-            <MiniChart data={wt} color={accent} />
-          </div>
-          <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", marginBottom: 10 }}>Exercise Status — {stats.total} exercises</div>
-            {[{ l: "Moved Up", c: stats.movedUp, co: "#16a34a" }, { l: "Ready to Move", c: stats.ready, co: "#2563eb" }, { l: "Building", c: stats.building, co: "#7c3aed" }, { l: "Consolidating", c: stats.consolidating, co: "#d97706" }, { l: "Maintaining", c: stats.maintaining, co: "#0891b2" }, { l: "Reduce", c: stats.reduce, co: "#dc2626" }].filter(r => r.c > 0).map(r => (<div key={r.l} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: r.co, fontWeight: 500, marginBottom: 4 }}><span>{r.l}</span><PBar count={r.c} total={stats.total} color={r.co} /></div>))}
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-            <BodyCard label="Body Fat %" value={p.body.bodyFat?.[p.body.bodyFat.length-1]?.v} rating={isJC ? "Acceptable" : "Too High"} />
-            <BodyCard label="Muscle Rate %" value={p.body.muscleRate?.[p.body.muscleRate.length-1]?.v} rating="Excellent" />
-            <BodyCard label="Visceral Fat" value={p.body.visceralFat?.[p.body.visceralFat.length-1]?.v} rating={isJC ? "Standard" : "High"} />
-            <BodyCard label="BMR (kcal)" value={p.body.bmr?.[p.body.bmr.length-1]?.v} rating={isJC ? "Excellent" : ""} />
-          </div>
-          <button onClick={generateFeedback} disabled={feedbackLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: feedbackLoading ? "not-allowed" : "pointer", opacity: feedbackLoading ? 0.7 : 1, background: feedbackLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)", marginBottom: 14 }}>{feedbackLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Feedback"}</button>
-          {feedbackResults[activeTab] && (() => { const fb = feedbackResults[activeTab]; return (<div style={{ marginBottom: 14 }}><div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" }}>
-            {fb._when && <div style={{ padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" }}>Generated {fb._when} for {isJC ? "JC" : "Becks"}</div>}
-            <div style={{ padding: "12px 14px", background: "#dcfce7", borderBottom: "1px solid #bbf7d0" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#166534" }}>What's going well</div>{fb.good?.map((g, i) => <div key={i} style={{ fontSize: 12, color: "#166534", marginTop: 4 }}>✓ {g}</div>)}</div>
-            <div style={{ padding: "12px 14px", background: "#fef9c3", borderBottom: "1px solid #fde68a" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#854d0e" }}>Opportunities</div>{fb.opportunities?.map((o, i) => <div key={i} style={{ fontSize: 12, color: "#854d0e", marginTop: 4 }}>→ {o}</div>)}</div>
-            <div style={{ padding: "12px 14px", background: "#dbeafe" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#1e40af" }}>Focus next 2 weeks</div>{(Array.isArray(fb.focus) ? fb.focus : [fb.focus]).map((f, i) => <div key={i} style={{ fontSize: 12, color: "#1e40af", marginTop: 4 }}>★ {f}</div>)}</div>
-            {fb._comment && <div style={{ padding: "10px 14px", background: "#f8fafc", borderTop: "1px solid #e2e8f0" }}><div style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", marginBottom: 4 }}>YOUR RESPONSE {fb._commentWhen ? "· " + fb._commentWhen : ""}</div><div style={{ fontSize: 12, color: "#334155", lineHeight: 1.5 }}>{fb._comment}</div></div>}
-          </div>
-          <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
-            <textarea id={"fb-comment-" + activeTab} placeholder="Add your response to this feedback..." defaultValue="" style={{ flex: 1, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, resize: "vertical", minHeight: 40, boxSizing: "border-box", fontFamily: "inherit" }} />
-            <button onClick={async () => { const el = document.getElementById("fb-comment-" + activeTab); const txt = el ? el.value.trim() : ""; if (!txt) return; const updated = Object.assign({}, feedbackResults); updated[activeTab] = Object.assign({}, fb, { _comment: txt, _commentWhen: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) }); setFeedbackResults(updated); await sSet("feedback_results", JSON.stringify(updated)); el.value = ""; setFormMsg("✓ Response saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ padding: "8px 14px", background: "#2563eb", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", alignSelf: "flex-end" }}>Save</button>
-          </div></div>); })()}
-          {feedbackHistory[activeTab] && feedbackHistory[activeTab].length > 0 && (<div style={{ marginBottom: 14 }}>
-            <button onClick={() => setShowFbHistory(!showFbHistory)} style={{ fontSize: 11, color: "#64748b", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 12px", cursor: "pointer", marginBottom: 8 }}>{showFbHistory ? "Hide" : "Show"} Feedback History ({feedbackHistory[activeTab].length})</button>
-            {showFbHistory && feedbackHistory[activeTab].map((hb, hi) => (
-              <div key={hi} style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 8, overflow: "hidden", opacity: 0.8 }}>
-                <div style={{ padding: "6px 12px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" }}>Generated {hb._when}</div>
-                <div style={{ padding: "8px 12px", fontSize: 11 }}>
-                  <div style={{ color: "#166534", marginBottom: 4 }}>{(hb.good || []).map((g, gi) => <span key={gi}>✓ {g} </span>)}</div>
-                  <div style={{ color: "#854d0e", marginBottom: 4 }}>{(hb.opportunities || []).map((o, oi) => <span key={oi}>→ {o} </span>)}</div>
-                  <div style={{ color: "#1e40af" }}>★ {Array.isArray(hb.focus) ? hb.focus.join("; ") : hb.focus}</div>
-                </div>
-                {hb._comment && <div style={{ padding: "6px 12px", background: "#f8fafc", borderTop: "1px solid #e2e8f0", fontSize: 11, color: "#334155" }}>Response: {hb._comment} {hb._commentWhen ? "· " + hb._commentWhen : ""}</div>}
-              </div>
-            ))}
-          </div>)}
-
-          {/* Ask a Question */}
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Ask a Question</div>
-            <div style={{ fontSize: 11, color: "#64748b", marginBottom: 8 }}>Ask anything about your health, training, nutrition, or progress. Your full data history is used to answer.</div>
-            <textarea id={"qa-input-" + activeTab} placeholder="e.g. Why did my bicep curl reps drop? Am I eating enough protein? What should I focus on next?" style={{ ...inputStyle, minHeight: 50, resize: "vertical", fontSize: 12, marginBottom: 8 }} />
-            <button onClick={askQuestion} disabled={qaLoading} style={{ width: "100%", padding: 12, background: qaLoading ? "#94a3b8" : accent, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: qaLoading ? "not-allowed" : "pointer", opacity: qaLoading ? 0.7 : 1 }}>{qaLoading ? <span>Thinking, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Ask"}</button>
-            {qaMsg && <div style={{ marginTop: 6, padding: 8, borderRadius: 6, background: qaMsg.startsWith("Error") ? "#fee2e2" : "#dbeafe", color: qaMsg.startsWith("Error") ? "#991b1b" : "#1e40af", fontSize: 11, fontWeight: 600 }}>{qaMsg}</div>}
-            {qaHistory[activeTab] && qaHistory[activeTab].length > 0 && (<div style={{ marginTop: 12 }}>
-              {qaHistory[activeTab].slice(-3).reverse().map((qa, i) => (<div key={i} style={{ padding: 10, background: i === 0 ? "#f0fdf4" : "#f8fafc", borderRadius: 8, marginBottom: 6, border: i === 0 ? "1px solid #bbf7d0" : "1px solid #e2e8f0" }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Q: {qa.q} <span style={{ fontWeight: 400, color: "#94a3b8" }}>· {qa.when}</span></div>
-                <div style={{ fontSize: 12, color: "#0f172a", lineHeight: 1.5 }}>{qa.a}</div>
-              </div>))}
-              {qaHistory[activeTab].length > 3 && <button onClick={() => setShowQaHistory(!showQaHistory)} style={{ fontSize: 11, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: 0 }}>{showQaHistory ? "Hide" : "Show"} older questions ({qaHistory[activeTab].length - 3})</button>}
-              {showQaHistory && qaHistory[activeTab].slice(0, -3).reverse().map((qa, i) => (<div key={i} style={{ padding: 8, background: "#f8fafc", borderRadius: 8, marginBottom: 4, marginTop: 4, opacity: 0.7 }}>
-                <div style={{ fontSize: 10, color: "#64748b" }}>Q: {qa.q} · {qa.when}</div>
-                <div style={{ fontSize: 11, color: "#475569" }}>{qa.a}</div>
-              </div>))}
-            </div>)}
-          </div>
-        </div>)}
-
-        {/* BODY */}
-        {section === "body" && (<div>
           {/* Profile */}
           {(() => { const prof = p.profile || {}; const hasBaseline = p.body && p.body.weight && p.body.weight.length > 0; return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -1478,8 +1422,76 @@ function Dashboard() {
             </div>)}
           </div>); })()}
 
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10, color: "#0f172a" }}>Body Weight Composition</div>
-          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <StrengthBanner exercises={p.exercises} isJC={isJC} />
+          <div style={{ background: "#fff", borderRadius: 12, padding: 16, border: "1px solid #e2e8f0", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div><div style={{ fontSize: 11, color: "#64748b", marginBottom: 2 }}>WEIGHT</div><div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1 }}>{wtStr}</div>
+              {toIdeal && <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>{toIdeal}lb to ideal ({isJC ? "13st 6lb" : "11st 2lb"})</div>}
+              {wtDelta && <div style={{ fontSize: 13, color: wtSign === "-" ? "#16a34a" : "#dc2626", fontWeight: 600, marginTop: 2 }}>{wtSign === "-" ? "" : "+"}{wtDelta}</div>}
+            </div>
+            <MiniChart data={wt} color={accent} />
+          </div>
+          <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", marginBottom: 10 }}>Exercise Status — {stats.total} exercises</div>
+            {[{ l: "Moved Up", c: stats.movedUp, co: "#16a34a" }, { l: "Ready to Move", c: stats.ready, co: "#2563eb" }, { l: "Building", c: stats.building, co: "#7c3aed" }, { l: "Consolidating", c: stats.consolidating, co: "#d97706" }, { l: "Maintaining", c: stats.maintaining, co: "#0891b2" }, { l: "Reduce", c: stats.reduce, co: "#dc2626" }].filter(r => r.c > 0).map(r => (<div key={r.l} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: r.co, fontWeight: 500, marginBottom: 4 }}><span>{r.l}</span><PBar count={r.c} total={stats.total} color={r.co} /></div>))}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+            <BodyCard label="Body Fat %" value={p.body.bodyFat?.[p.body.bodyFat.length-1]?.v} rating={isJC ? "Acceptable" : "Too High"} />
+            <BodyCard label="Muscle Rate %" value={p.body.muscleRate?.[p.body.muscleRate.length-1]?.v} rating="Excellent" />
+            <BodyCard label="Visceral Fat" value={p.body.visceralFat?.[p.body.visceralFat.length-1]?.v} rating={isJC ? "Standard" : "High"} />
+            <BodyCard label="BMR (kcal)" value={p.body.bmr?.[p.body.bmr.length-1]?.v} rating={isJC ? "Excellent" : ""} />
+          </div>
+          <button onClick={generateFeedback} disabled={feedbackLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: feedbackLoading ? "not-allowed" : "pointer", opacity: feedbackLoading ? 0.7 : 1, background: feedbackLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)", marginBottom: 14 }}>{feedbackLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Feedback"}</button>
+          {feedbackResults[activeTab] && (() => { const fb = feedbackResults[activeTab]; return (<div style={{ marginBottom: 14 }}><div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" }}>
+            {fb._when && <div style={{ padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" }}>Generated {fb._when} for {isJC ? "JC" : "Becks"}</div>}
+            <div style={{ padding: "12px 14px", background: "#dcfce7", borderBottom: "1px solid #bbf7d0" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#166534" }}>What's going well</div>{fb.good?.map((g, i) => <div key={i} style={{ fontSize: 12, color: "#166534", marginTop: 4 }}>✓ {g}</div>)}</div>
+            <div style={{ padding: "12px 14px", background: "#fef9c3", borderBottom: "1px solid #fde68a" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#854d0e" }}>Opportunities</div>{fb.opportunities?.map((o, i) => <div key={i} style={{ fontSize: 12, color: "#854d0e", marginTop: 4 }}>→ {o}</div>)}</div>
+            <div style={{ padding: "12px 14px", background: "#dbeafe" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#1e40af" }}>Focus next 2 weeks</div>{(Array.isArray(fb.focus) ? fb.focus : [fb.focus]).map((f, i) => <div key={i} style={{ fontSize: 12, color: "#1e40af", marginTop: 4 }}>★ {f}</div>)}</div>
+            {fb._comment && <div style={{ padding: "10px 14px", background: "#f8fafc", borderTop: "1px solid #e2e8f0" }}><div style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", marginBottom: 4 }}>YOUR RESPONSE {fb._commentWhen ? "· " + fb._commentWhen : ""}</div><div style={{ fontSize: 12, color: "#334155", lineHeight: 1.5 }}>{fb._comment}</div></div>}
+          </div>
+          <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
+            <textarea id={"fb-comment-" + activeTab} placeholder="Add your response to this feedback..." defaultValue="" style={{ flex: 1, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, resize: "vertical", minHeight: 40, boxSizing: "border-box", fontFamily: "inherit" }} />
+            <button onClick={async () => { const el = document.getElementById("fb-comment-" + activeTab); const txt = el ? el.value.trim() : ""; if (!txt) return; const updated = Object.assign({}, feedbackResults); updated[activeTab] = Object.assign({}, fb, { _comment: txt, _commentWhen: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) }); setFeedbackResults(updated); await sSet("feedback_results", JSON.stringify(updated)); el.value = ""; setFormMsg("✓ Response saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ padding: "8px 14px", background: "#2563eb", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", alignSelf: "flex-end" }}>Save</button>
+          </div></div>); })()}
+          {feedbackHistory[activeTab] && feedbackHistory[activeTab].length > 0 && (<div style={{ marginBottom: 14 }}>
+            <button onClick={() => setShowFbHistory(!showFbHistory)} style={{ fontSize: 11, color: "#64748b", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 12px", cursor: "pointer", marginBottom: 8 }}>{showFbHistory ? "Hide" : "Show"} Feedback History ({feedbackHistory[activeTab].length})</button>
+            {showFbHistory && feedbackHistory[activeTab].map((hb, hi) => (
+              <div key={hi} style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 8, overflow: "hidden", opacity: 0.8 }}>
+                <div style={{ padding: "6px 12px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" }}>Generated {hb._when}</div>
+                <div style={{ padding: "8px 12px", fontSize: 11 }}>
+                  <div style={{ color: "#166534", marginBottom: 4 }}>{(hb.good || []).map((g, gi) => <span key={gi}>✓ {g} </span>)}</div>
+                  <div style={{ color: "#854d0e", marginBottom: 4 }}>{(hb.opportunities || []).map((o, oi) => <span key={oi}>→ {o} </span>)}</div>
+                  <div style={{ color: "#1e40af" }}>★ {Array.isArray(hb.focus) ? hb.focus.join("; ") : hb.focus}</div>
+                </div>
+                {hb._comment && <div style={{ padding: "6px 12px", background: "#f8fafc", borderTop: "1px solid #e2e8f0", fontSize: 11, color: "#334155" }}>Response: {hb._comment} {hb._commentWhen ? "· " + hb._commentWhen : ""}</div>}
+              </div>
+            ))}
+          </div>)}
+
+          {/* Ask a Question */}
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Ask a Question</div>
+            <div style={{ fontSize: 11, color: "#64748b", marginBottom: 8 }}>Ask anything about your health, training, nutrition, or progress. Your full data history is used to answer.</div>
+            <textarea id={"qa-input-" + activeTab} placeholder="e.g. Why did my bicep curl reps drop? Am I eating enough protein? What should I focus on next?" style={{ ...inputStyle, minHeight: 50, resize: "vertical", fontSize: 12, marginBottom: 8 }} />
+            <button onClick={askQuestion} disabled={qaLoading} style={{ width: "100%", padding: 12, background: qaLoading ? "#94a3b8" : accent, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: qaLoading ? "not-allowed" : "pointer", opacity: qaLoading ? 0.7 : 1 }}>{qaLoading ? <span>Thinking, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Ask"}</button>
+            {qaMsg && <div style={{ marginTop: 6, padding: 8, borderRadius: 6, background: qaMsg.startsWith("Error") ? "#fee2e2" : "#dbeafe", color: qaMsg.startsWith("Error") ? "#991b1b" : "#1e40af", fontSize: 11, fontWeight: 600 }}>{qaMsg}</div>}
+            {qaHistory[activeTab] && qaHistory[activeTab].length > 0 && (<div style={{ marginTop: 12 }}>
+              {qaHistory[activeTab].slice(-3).reverse().map((qa, i) => (<div key={i} style={{ padding: 10, background: i === 0 ? "#f0fdf4" : "#f8fafc", borderRadius: 8, marginBottom: 6, border: i === 0 ? "1px solid #bbf7d0" : "1px solid #e2e8f0" }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Q: {qa.q} <span style={{ fontWeight: 400, color: "#94a3b8" }}>· {qa.when}</span></div>
+                <div style={{ fontSize: 12, color: "#0f172a", lineHeight: 1.5 }}>{qa.a}</div>
+              </div>))}
+              {qaHistory[activeTab].length > 3 && <button onClick={() => setShowQaHistory(!showQaHistory)} style={{ fontSize: 11, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: 0 }}>{showQaHistory ? "Hide" : "Show"} older questions ({qaHistory[activeTab].length - 3})</button>}
+              {showQaHistory && qaHistory[activeTab].slice(0, -3).reverse().map((qa, i) => (<div key={i} style={{ padding: 8, background: "#f8fafc", borderRadius: 8, marginBottom: 4, marginTop: 4, opacity: 0.7 }}>
+                <div style={{ fontSize: 10, color: "#64748b" }}>Q: {qa.q} · {qa.when}</div>
+                <div style={{ fontSize: 11, color: "#475569" }}>{qa.a}</div>
+              </div>))}
+            </div>)}
+          </div>
+        </div>)}
+
+        {/* BODY */}
+        {section === "body" && (<div>
+
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10, color: "#0f172a" }}>Body Weight Composition</div>          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
             <button onClick={() => { setShowBodyForm(true); setBodyInputs({ weight: "", bodyFat: "", muscleMass: "", muscleRate: "", skeletalMuscle: "", visceralFat: "", subcutFat: "", bmr: "", bodyWater: "", boneMass: "", bodyAge: "", bmi: "", week: String((data.config.week || 8) + 1) }); }} style={{ ...btnP(), flex: 1 }}>Record Body Comp</button>
             <label style={{ display: "inline-flex", alignItems: "center", padding: "8px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11, color: "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>
               📷 Image Upload
@@ -1621,6 +1633,12 @@ function Dashboard() {
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10, fontSize: 10 }}>
             {[{ s: "moved up", l: "Moved Up" }, { s: "ready to move", l: "Ready to Move" }, { s: "building", l: "Building" }, { s: "consolidating", l: "Consolidating" }, { s: "maintaining", l: "Maintaining" }, { s: "reduce", l: "Reduce" }].map(k => (<span key={k.s} style={{ background: sBg(k.s), color: sColor(k.s), fontWeight: 600, padding: "2px 8px", borderRadius: 20 }}>{k.l}</span>))}
           </div>
+          {/* Sub-tabs */}
+          <div style={{ display: "flex", gap: 0, marginBottom: 12, background: "#f1f5f9", borderRadius: 8, padding: 2 }}>
+            <button onClick={function() { setExView("exercises"); }} style={{ flex: 1, padding: "8px 0", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: exView === "exercises" ? accent : "transparent", color: exView === "exercises" ? "#fff" : "#64748b" }}>Exercises</button>
+            <button onClick={function() { setExView("feedback"); }} style={{ flex: 1, padding: "8px 0", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: exView === "feedback" ? "#ea580c" : "transparent", color: exView === "feedback" ? "#fff" : "#64748b" }}>Session Feedback</button>
+          </div>
+          {exView === "exercises" && (<div>
           <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
             <button onClick={() => setShowHist(h => !h)} style={{ padding: "6px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer" }}>{showHist ? "Hide" : "Show"} History</button>
             <button onClick={() => setShowNewSection(true)} style={{ padding: "6px 12px", background: "#dbeafe", border: "1px solid #93c5fd", borderRadius: 6, fontSize: 11, color: "#1e40af", cursor: "pointer" }}>+ Section</button>
@@ -1653,7 +1671,7 @@ function Dashboard() {
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#854d0e", marginBottom: 3 }}>📋 NOTES FROM LAST SESSION</div>
                 <div style={{ fontSize: 11, color: "#854d0e", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{prevComment}</div>
               </div>)}
-              {prev && <button onClick={() => { setEditPrev(!editPrev); if (!editPrev) { setLogSets([{ w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[0]||"") }, { w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[1]||"") }, { w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[2]||"") }]); setLogWeek(String(prev.wk)); } else { setLogSets([{ w: prev.w.replace("kg",""), r: "" }, { w: prev.w.replace("kg",""), r: "" }, { w: prev.w.replace("kg",""), r: "" }]); setLogWeek(String((data.config.week || 7) + 1)); } }} style={{ ...btnS, marginBottom: 8, fontSize: 11, background: editPrev ? "#fef3c7" : "#f1f5f9" }}>{editPrev ? "Cancel Edit Previous — Log New Instead" : "Edit Previous Entry"}</button>}
+              {prev && <button onClick={() => { setEditPrev(!editPrev); if (!editPrev) { setLogSets([{ w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[0]||"") }, { w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[1]||"") }, { w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[2]||"") }]); setLogWeek(String(prev.wk)); } else { setLogSets([{ w: prev.w.replace("kg",""), r: "" }, { w: prev.w.replace("kg",""), r: "" }, { w: prev.w.replace("kg",""), r: "" }]); setLogWeek(String(calcWeek(data.config.trainingStart))); } }} style={{ ...btnS, marginBottom: 8, fontSize: 11, background: editPrev ? "#fef3c7" : "#f1f5f9" }}>{editPrev ? "Cancel Edit Previous — Log New Instead" : "Edit Previous Entry"}</button>}
               <div style={{ marginBottom: 8 }}><label style={labelStyle}>Week</label><input type="number" value={logWeek} onChange={e => setLogWeek(e.target.value)} style={{ ...inputStyle, width: 80 }} /></div>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Sets (weight kg × reps)</div>
               {logSets.map((s, i) => (<div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}><span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", width: 20 }}>S{i + 1}</span><input type="number" placeholder="kg" value={s.w} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], w: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} /><span style={{ color: "#94a3b8" }}>×</span><input type="number" placeholder="reps" value={s.r} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], r: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} /></div>))}
@@ -1697,6 +1715,52 @@ function Dashboard() {
             </div>);
           })}
           <div style={{ background: "#f1f5f9", borderRadius: 10, padding: 12, fontSize: 12, color: "#475569", lineHeight: 1.5 }}>Double progression. Build 12→15 reps then move up one pin (~7kg). 10×3 after move up, build to 12×3, then 15×3 before next progression.</div>
+
+          {/* Session Feedback */}
+          </div>)}
+          {exView === "feedback" && (<div>
+          <button onClick={async function() {
+            setSessionFbLoading(true);
+            try {
+              var prof = p.profile || {};
+              var exSummary = {};
+              var dayKeys = Object.keys(p.exercises);
+              for (var di = 0; di < dayKeys.length; di++) {
+                var dayExs = p.exercises[dayKeys[di]];
+                exSummary[dayKeys[di]] = dayExs.map(function(ex) {
+                  var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
+                  var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null;
+                  return { name: ex.name, current: ex.current, reps: ex.reps, status: ex.status, notes: ex.notes || "", prev: prev ? prev.w + " " + prev.r : "", target: ex.target || "" };
+                });
+              }
+              var prompt = "You are a training coach giving session feedback for " + (prof.name || "this person") + " (" + (prof.sex || "") + ", " + (prof.age || "") + ", " + (prof.bodyType || "") + "). Week " + calcWeek(data.config.trainingStart) + " session just completed.\n\nCurrent exercise data:\n" + JSON.stringify(exSummary) + "\n\nFor each exercise, analyse: what moved up, what's building well, what needs attention, any concerns. Then give 1 overall session summary and 1 key focus for next session.\n\nRules: Be specific with weights and reps. Reference previous performance. Max 15 words per point. Return ONLY JSON:\n{\"exercises\":[{\"name\":\"...\",\"verdict\":\"one line assessment\",\"icon\":\"✓ or ▲ or ⚠ or → or ●\"}],\"summary\":\"one sentence overall\",\"nextSession\":\"one sentence focus\"}";
+              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
+              var result = await resp.json();
+              var apiErr = handleApiError(result);
+              if (apiErr) throw new Error(apiErr);
+              var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
+              if (txt) {
+                var fb = JSON.parse(txt.replace(/```json|```/g, "").trim());
+                setSessionFeedback(fb);
+                await sSet("session_feedback_" + activeTab + "_wk" + calcWeek(data.config.trainingStart), JSON.stringify(fb));
+              }
+            } catch(e) { setSessionFeedback({ exercises: [], summary: "Error: " + String(e).substring(0, 100), nextSession: "Try again" }); }
+            setSessionFbLoading(false);
+          }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, marginTop: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{sessionFbLoading ? <span>Analysing session, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "📊 Generate Session Feedback"}</button>
+          <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Analyses what moved up, what's building, what needs attention — per exercise with overall summary and next session focus.</div>
+
+          {sessionFeedback && (<div style={{ marginTop: 10 }}>
+            {sessionFeedback.exercises && sessionFeedback.exercises.length > 0 && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 8 }}>
+              {sessionFeedback.exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 12px", borderBottom: ei < sessionFeedback.exercises.length - 1 ? "1px solid #f1f5f9" : "none", alignItems: "center" }}>
+                <span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{ex.icon || "●"}</span>
+                <div><div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div></div>
+              </div>); })}
+            </div>)}
+            {sessionFeedback.summary && (<div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 10, padding: 12, marginBottom: 8 }}>
+              <div style={{ fontSize: 12, color: "#fff", lineHeight: 1.5 }}><strong>Session:</strong> {sessionFeedback.summary}</div>
+              {sessionFeedback.nextSession && <div style={{ fontSize: 12, color: "#fbbf24", fontWeight: 600, marginTop: 6 }}>Next: {sessionFeedback.nextSession}</div>}
+            </div>)}
+          </div>)}
           <button onClick={async function() {
             setGenPlanLoading(true); setFormMsg("Generating exercise plan...");
             try {
@@ -1733,6 +1797,7 @@ function Dashboard() {
               {ex.mistakes && <div style={{ fontSize: 11, color: "#dc2626", marginBottom: 3 }}><strong>Avoid:</strong> {ex.mistakes}</div>}
               {ex.tip && <div style={{ fontSize: 11, color: "#16a34a" }}><strong>Tip:</strong> {ex.tip}</div>}
             </div>))}
+          </div>)}
           </div>)}
           {/* Status Key */}
           <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginTop: 12 }}>
@@ -2204,7 +2269,7 @@ function Dashboard() {
                 if (existing >= 0) pp.bloods[existing].tests = Object.assign(pp.bloods[existing].tests, tests);
                 else pp.bloods.push({ date: bloodInputs.date, tests });
                 pp.bloods.sort((a, b) => a.date.localeCompare(b.date));
-                nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+                nd.config.week = calcWeek(nd.config.trainingStart); nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
                 await saveData(nd);
                 setShowBloodForm(false);
                 setFormMsg("✓ Blood results saved");
