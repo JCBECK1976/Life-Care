@@ -2327,8 +2327,8 @@ function Dashboard() {
                   <button onClick={() => { setShowAddMealType("lunch"); setNewMealTypeInputs({ name: "", jcKcal: "", beckKcal: "", rating: "GREAT" }); }} style={{ fontSize: 10, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: 0 }}>+ Add new lunch</button>
                 </div>
                 </>); })()}
-                {/* Snacks */}
-                {[1,2,3].map(sn => {
+                {/* Other */}
+                {[1,2,3,4,5,6,7].map(sn => {
                   const snKey = "s" + sn;
                   const snVal = isObj ? mealEntry[snKey] : undefined;
                   const allSnacks = [...SNACKS, ...customSnacks];
@@ -2336,14 +2336,14 @@ function Dashboard() {
                   return (<div key={sn} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                     <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 24 }}>S{sn}</span>
                     <select value={snVal || ""} onChange={e => pickSlot(snKey, e.target.value)} style={{ flex: 1, padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, background: "#f8fafc", color: snVal ? "#0f172a" : "#94a3b8" }}>
-                      <option value="">Select snack...</option>
+                      <option value="">Select item...</option>
                       {allSnacks.map(s => <option key={s.id} value={s.id}>{s.name} ({isJC ? s.jcKcal : s.beckKcal})</option>)}
                     </select>
                   </div>);
                 })}
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                   <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 24 }}></span>
-                  <button onClick={() => setShowAddSnack(true)} style={{ fontSize: 10, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: 0 }}>+ Add new snack to database</button>
+                  <button onClick={() => setShowAddSnack(true)} style={{ fontSize: 10, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: 0 }}>+ Add new item</button>
                 </div>
               </div>
               {/* Dinner */}
@@ -2368,14 +2368,22 @@ function Dashboard() {
           })}
           {/* Add snack form */}
           {showAddSnack && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Add New Snack</div>
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Add New Item (Snack / Drink / Dessert)</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <div style={{ gridColumn: "1 / -1" }}><label style={labelStyle}>Snack Name</label><input value={newSnackInputs.name} onChange={e => setNewSnackInputs(q => ({ ...q, name: e.target.value }))} style={inputStyle} placeholder="e.g. Rice Cakes" /></div>
+              <div style={{ gridColumn: "1 / -1" }}><label style={labelStyle}>Item Name</label><input value={newSnackInputs.name} onChange={e => setNewSnackInputs(q => ({ ...q, name: e.target.value }))} style={inputStyle} placeholder="e.g. Rice Cakes" /></div>
               <div><label style={labelStyle}>Calories (kcal)</label><input type="number" value={newSnackInputs.kcal} onChange={e => setNewSnackInputs(q => ({ ...q, kcal: e.target.value }))} style={inputStyle} /></div>
               <div><label style={labelStyle}>Rating</label><select value={newSnackInputs.rating} onChange={e => setNewSnackInputs(q => ({ ...q, rating: e.target.value }))} style={inputStyle}><option>GREAT</option><option>AMBER</option><option>RED</option></select></div>
+              <div><span style={{ fontSize: 10, color: "#94a3b8" }}>Other 4</span>
+              <select value={defs.s4 || ""} onChange={e => saveDef("s4", e.target.value)} style={inputStyle}><option value="">—</option>{allSnk.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+              <div><span style={{ fontSize: 10, color: "#94a3b8" }}>Other 5</span>
+              <select value={defs.s5 || ""} onChange={e => saveDef("s5", e.target.value)} style={inputStyle}><option value="">—</option>{allSnk.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+              <div><span style={{ fontSize: 10, color: "#94a3b8" }}>Other 6</span>
+              <select value={defs.s6 || ""} onChange={e => saveDef("s6", e.target.value)} style={inputStyle}><option value="">—</option>{allSnk.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+              <div><span style={{ fontSize: 10, color: "#94a3b8" }}>Other 7</span>
+              <select value={defs.s7 || ""} onChange={e => saveDef("s7", e.target.value)} style={inputStyle}><option value="">—</option>{allSnk.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-              <button onClick={async () => { if (!newSnackInputs.name.trim()) return; const id = "snack_" + Date.now(); const kcal = parseInt(newSnackInputs.kcal) || 0; const snack = { id, name: newSnackInputs.name.trim(), jcKcal: kcal, beckKcal: kcal, rating: newSnackInputs.rating, freq: "Weekly" }; const updated = [...customSnacks, snack]; setCustomSnacks(updated); await sSet("custom_snacks", JSON.stringify(updated)); setShowAddSnack(false); setNewSnackInputs({ name: "", kcal: "", rating: "GREAT", freq: "Weekly" }); setFormMsg("✓ " + snack.name + " added"); setTimeout(() => setFormMsg(""), 3000); }} disabled={!newSnackInputs.name.trim()} style={{ ...btnP(!!newSnackInputs.name.trim()), flex: 1 }}>Add Snack</button>
+              <button onClick={async () => { if (!newSnackInputs.name.trim()) return; const id = "snack_" + Date.now(); const kcal = parseInt(newSnackInputs.kcal) || 0; const snack = { id, name: newSnackInputs.name.trim(), jcKcal: kcal, beckKcal: kcal, rating: newSnackInputs.rating, freq: "Weekly" }; const updated = [...customSnacks, snack]; setCustomSnacks(updated); await sSet("custom_snacks", JSON.stringify(updated)); setShowAddSnack(false); setNewSnackInputs({ name: "", kcal: "", rating: "GREAT", freq: "Weekly" }); setFormMsg("✓ " + snack.name + " added"); setTimeout(() => setFormMsg(""), 3000); }} disabled={!newSnackInputs.name.trim()} style={{ ...btnP(!!newSnackInputs.name.trim()), flex: 1 }}>Add Item</button>
               <button onClick={() => setShowAddSnack(false)} style={btnS}>Cancel</button>
             </div>
           </div>)}
