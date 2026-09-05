@@ -2518,7 +2518,11 @@ function Dashboard() {
         {/* SHOP */}
         {section === "shop" && (<div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <div><div style={{ fontSize: 14, fontWeight: 700 }}>Shopping — {weekLabel}</div><div style={{ fontSize: 11, color: "#64748b" }}>{planned}/7 dinners · {shopList.length} items</div></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button onClick={() => setWeekOff(o => o - 1)} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>&lsaquo;</button>
+              <div style={{ textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 700 }}>Shopping — {weekLabel}</div><div style={{ fontSize: 11, color: "#64748b" }}>{planned}/7 dinners · {shopList.length} items</div></div>
+              <button onClick={() => setWeekOff(o => o + 1)} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>&rsaquo;</button>
+            </div>
             <select value={supermarket} onChange={async (e) => { setSupermarket(e.target.value); await sSet("supermarket_pref", e.target.value); }} style={{ padding: "6px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11, background: "#fff" }}>
               {["Aldi", "Tesco", "Asda", "Sainsbury's", "Morrisons", "Lidl", "Waitrose", "M&S", "Co-op", "Iceland", "Any"].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
