@@ -2124,6 +2124,10 @@ function Dashboard() {
               if (defs.s5 && !cur.s5) cur.s5 = defs.s5;
               if (defs.s6 && !cur.s6) cur.s6 = defs.s6;
               if (defs.s7 && !cur.s7) cur.s7 = defs.s7;
+              if (defs.s4 && !cur.s4) cur.s4 = defs.s4;
+              if (defs.s5 && !cur.s5) cur.s5 = defs.s5;
+              if (defs.s6 && !cur.s6) cur.s6 = defs.s6;
+              if (defs.s7 && !cur.s7) cur.s7 = defs.s7;
               nd[d.key] = cur;
             });
             setMeals(nd); await saveMeals(nd);
@@ -2154,6 +2158,10 @@ function Dashboard() {
                 if (defs.s1 && !cur.s1) cur.s1 = defs.s1;
                 if (defs.s2 && !cur.s2) cur.s2 = defs.s2;
                 if (defs.s3 && !cur.s3) cur.s3 = defs.s3;
+              if (defs.s4 && !cur.s4) cur.s4 = defs.s4;
+              if (defs.s5 && !cur.s5) cur.s5 = defs.s5;
+              if (defs.s6 && !cur.s6) cur.s6 = defs.s6;
+              if (defs.s7 && !cur.s7) cur.s7 = defs.s7;
               if (defs.s4 && !cur.s4) cur.s4 = defs.s4;
               if (defs.s5 && !cur.s5) cur.s5 = defs.s5;
               if (defs.s6 && !cur.s6) cur.s6 = defs.s6;
@@ -2287,6 +2295,10 @@ function Dashboard() {
             const s5Kcal = isObj && mealEntry.s5 ? (allSnacks.find(s => s.id === mealEntry.s5) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
             const s6Kcal = isObj && mealEntry.s6 ? (allSnacks.find(s => s.id === mealEntry.s6) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
             const s7Kcal = isObj && mealEntry.s7 ? (allSnacks.find(s => s.id === mealEntry.s7) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
+            const s4Kcal = isObj && mealEntry.s4 ? (allSnacks.find(s => s.id === mealEntry.s4) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
+            const s5Kcal = isObj && mealEntry.s5 ? (allSnacks.find(s => s.id === mealEntry.s5) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
+            const s6Kcal = isObj && mealEntry.s6 ? (allSnacks.find(s => s.id === mealEntry.s6) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
+            const s7Kcal = isObj && mealEntry.s7 ? (allSnacks.find(s => s.id === mealEntry.s7) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
             const sKcal = (s1Kcal + s2Kcal + s3Kcal) || (isJC ? JC_BASE[d.key].snacks : BECK_BASE[d.key].snacks);
             const dKcal = ml ? (isJC ? ml.jcKcal : ml.beckKcal) : 0;
             const dayTotal = bKcal + lKcal + sKcal + dKcal;
@@ -2327,7 +2339,7 @@ function Dashboard() {
                   <button onClick={() => { setShowAddMealType("lunch"); setNewMealTypeInputs({ name: "", jcKcal: "", beckKcal: "", rating: "GREAT" }); }} style={{ fontSize: 10, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: 0 }}>+ Add new lunch</button>
                 </div>
                 </>); })()}
-                {/* Other */}
+                {/* Snacks */}
                 {[1,2,3,4,5,6,7].map(sn => {
                   const snKey = "s" + sn;
                   const snVal = isObj ? mealEntry[snKey] : undefined;
@@ -2345,6 +2357,7 @@ function Dashboard() {
                   <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 24 }}></span>
                   <button onClick={() => setShowAddSnack(true)} style={{ fontSize: 10, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: 0 }}>+ Add new item</button>
                 </div>
+              </div>
               {/* Dinner */}
               {!ed && ml ? (<div style={{ padding: "4px 12px 10px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
