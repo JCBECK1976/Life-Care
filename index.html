@@ -579,9 +579,20 @@ function autoStatus(newWeight, newReps, prevProg, notes) {
   var prevEntry = prevProg && prevProg.length > 0 ? prevProg[prevProg.length - 1] : null;
   var prevKg = prevEntry ? (parseInt(prevEntry.w) || 0) : 0;
   
-  // Check notes for hold/pain/reduce indicators
+  // Check notes for overrides
   var noteStr = (notes || "").toLowerCase();
-  if (noteStr.indexOf("hold") >= 0 || noteStr.indexOf("pain") >= 0 || noteStr.indexOf("protect") >= 0 || noteStr.indexOf("back") >= 0 || noteStr.indexOf("rsi") >= 0 || noteStr.indexOf("injury") >= 0) {
+  // Positive overrides
+  if (noteStr.indexOf("ready to move") >= 0 || noteStr.indexOf("move up") >= 0 || noteStr.indexOf("ready to progress") >= 0) {
+    return "ready to move";
+  }
+  if (noteStr.indexOf("consolidat") >= 0) {
+    return "consolidating";
+  }
+  if (noteStr.indexOf("reduce") >= 0 || noteStr.indexOf("drop weight") >= 0 || noteStr.indexOf("too heavy") >= 0) {
+    return "reduce";
+  }
+  // Negative overrides - hold at current
+  if (noteStr.indexOf("hold") >= 0 || noteStr.indexOf("pain") >= 0 || noteStr.indexOf("protect") >= 0 || noteStr.indexOf("back aware") >= 0 || noteStr.indexOf("rsi") >= 0 || noteStr.indexOf("injury") >= 0) {
     return "maintaining";
   }
   
