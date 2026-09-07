@@ -1838,11 +1838,25 @@ function Dashboard() {
           const updateProg = async (day, exIdx, progIdx, field, value) => {
             var nd = JSON.parse(JSON.stringify(data));
             nd[activeTab].exercises[day][exIdx].prog[progIdx][field] = value;
+            // Sync Activity from latest prog entry
+            var prog = nd[activeTab].exercises[day][exIdx].prog;
+            if (prog.length > 0) {
+              var latest = prog[prog.length - 1];
+              nd[activeTab].exercises[day][exIdx].current = latest.w;
+              nd[activeTab].exercises[day][exIdx].reps = latest.r;
+            }
             await saveData(nd);
           };
           const deleteProg = async (day, exIdx, progIdx) => {
             var nd = JSON.parse(JSON.stringify(data));
             nd[activeTab].exercises[day][exIdx].prog.splice(progIdx, 1);
+            // Sync Activity from latest remaining entry
+            var prog = nd[activeTab].exercises[day][exIdx].prog;
+            if (prog.length > 0) {
+              var latest = prog[prog.length - 1];
+              nd[activeTab].exercises[day][exIdx].current = latest.w;
+              nd[activeTab].exercises[day][exIdx].reps = latest.r;
+            }
             await saveData(nd); setFormMsg("✓ Entry removed"); setTimeout(function() { setFormMsg(""); }, 2000);
           };
           return (<div>
