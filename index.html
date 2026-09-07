@@ -1105,7 +1105,7 @@ function Dashboard() {
   const baseStart = new Date(2026, 7, 23);
   const weekStart = new Date(baseStart); weekStart.setDate(weekStart.getDate() + (weekOff * 7));
   const weekDates = getWeekDates(weekStart);
-  const sk = mealKey(weekStart);
+  const sk = mealKey(weekStart) + ":" + activeTab;
   const weekLabel = fmtDate(weekDates[0]) + " – " + fmtDate(weekDates[6]);
   const FIRST_KEY = "mealplan:2026-08-23";
   const FIRST_DEF = { sun: "spag_bol", mon: "sweet_chilli_mash", tue: "chicken_risotto", wed: "fish_chips", thu: "pesto_pasta", _notes: { wed: "JC at parents — Fish & Chips for Beck + boys", thu: "JC: work lunch + McFlurry with Evan. Session 3 moved to Thu." } };
@@ -1658,7 +1658,19 @@ function Dashboard() {
                 if (!file) return;
                 setFormMsg("Reading image...");
                 try {
-                  var b64 = await new Promise(function(res, rej) { var r = new FileReader(); r.onload = function() { res(r.result.split(",")[1]); }; r.onerror = function() { rej("fail"); }; r.readAsDataURL(file); });
+                  var rawB64 = await new Promise(function(res, rej) { var r = new FileReader(); r.onload = function() { res(r.result); }; r.onerror = function() { rej("fail"); }; r.readAsDataURL(file); });
+                  // Resize to max 800px to prevent API overload
+                  var b64 = await new Promise(function(resolve) {
+                    var img = new Image();
+                    img.onload = function() {
+                      var maxD = 800, w = img.width, h = img.height;
+                      if (w > maxD || h > maxD) { if (w > h) { h = Math.round(h * maxD / w); w = maxD; } else { w = Math.round(w * maxD / h); h = maxD; } }
+                      var cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+                      cv.getContext("2d").drawImage(img, 0, 0, w, h);
+                      resolve(cv.toDataURL("image/jpeg", 0.7).split(",")[1]);
+                    };
+                    img.src = rawB64;
+                  });
                   var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: file.type || "image/jpeg", data: b64 } }, { type: "text", text: 'Extract body comp values from this Fitdays screenshot. Return ONLY JSON. For weight: convert st:lb to decimal stone (e.g. 14st 8.1lb = 14.579). All other values as numbers only: {"weight":"14.579","bodyFat":"25.8","muscleMass":"","muscleRate":"","skeletalMuscle":"","visceralFat":"","subcutFat":"","bmr":"","bodyWater":"","boneMass":"","bodyAge":"","bmi":""}' }] }] }) });
                   var result = await resp.json();
                   var txt = "";
