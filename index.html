@@ -814,6 +814,18 @@ function parseStLb(raw) {
   return parseFloat(s);
 }
 
+function fbIcon(icon) {
+  if (!icon) return "●";
+  var i = String(icon).toLowerCase().trim();
+  if (i === "check" || i.indexOf("check") >= 0 || i === "good" || i === "✓") return "✅";
+  if (i === "arrow" || i.indexOf("arrow") >= 0 || i.indexOf("build") >= 0 || i === "→") return "⬆️";
+  if (i === "triangle" || i.indexOf("triangle") >= 0 || i.indexOf("moved") >= 0 || i === "▲") return "🔺";
+  if (i === "warning" || i.indexOf("warning") >= 0 || i.indexOf("watch") >= 0 || i === "⚠") return "⚠️";
+  if (i === "circle" || i.indexOf("circle") >= 0 || i.indexOf("hold") >= 0 || i.indexOf("maintain") >= 0) return "⏸️";
+  if (i === "star" || i.indexOf("star") >= 0 || i.indexOf("ready") >= 0) return "⭐";
+  return icon;
+}
+
 function calcWeek(startDate) {
   var start = new Date(startDate || "2026-07-19");
   var now = new Date();
@@ -1990,18 +2002,40 @@ function Dashboard() {
                     try {
                       var prof = p.profile || {};
                       var daySummary = exList.map(function(ex) { var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null; var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null; return ex.name + ": " + ex.current + " " + ex.reps + " (" + ex.status + ")" + (prev ? " prev: " + prev.w + " " + prev.r : "") + (ex.notes ? " [" + ex.notes + "]" : ""); }).join("; ");
-                      var jsonFormat = '{"exercises":[{"name":"...","verdict":"...","icon":"..."}],"summary":"one sentence","nextSession":"one focus"}';
-                      var prompt = "Session feedback for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Week " + currentWeek + " " + day + " session. Exercises: " + daySummary + ". Per exercise: verdict + icon (good=check moved=triangle building=arrow watch=warning holding=circle). Max 15 words each. Return ONLY JSON: " + jsonFormat;
+                      var jsonFormat = '{"exercises":[{"name":"...","verdict":"...","icon":"check|triangle|arrow|warning|circle|star","newStatus":"building|moved up|consolidating|ready to move|maintaining|reduce"}],"summary":"one sentence","nextSession":"one focus"}';
+                      var prompt = "Session feedback for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Week " + currentWeek + " " + day + " session. Exercises: " + daySummary + ". Per exercise: verdict + icon (good=check moved=triangle building=arrow watch=warning holding=circle). RULES: 1) 15x3 two consecutive sessions at same weight = ready to move (icon=star, newStatus=ready to move). 2) 15x3 first time = consolidating (icon=arrow). 3) Just increased weight = moved up (icon=triangle). 4) Building reps = building (icon=arrow). 5) Notes say hold/pain = maintaining (icon=circle). Max 20 words verdict. Return ONLY JSON: " + jsonFormat;
                       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                       var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                      if (txt) { var fb = JSON.parse(txt.replace(/```json|```/g, "").trim()); setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: fb })); await sSet("session_fb_" + activeTab + "_" + day + "_wk" + currentWeek, JSON.stringify(fb)); }
+                      if (txt) { var fb = JSON.parse(txt.replace(/```json|```/g, "").trim()); setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb })); await sSet("session_fb_" + activeTab + "_" + day + "_wk" + currentWeek, JSON.stringify(fb));
+                        // Bug 8: Apply status updates to exercise data
+                        if (fb.exercises) {
+                          var nd2 = JSON.parse(JSON.stringify(data));
+                          var updated2 = false;
+                          for (var fbi = 0; fbi < fb.exercises.length; fbi++) {
+                            var fbEx = fb.exercises[fbi];
+                            if (fbEx.newStatus) {
+                              var dayExs2 = nd2[activeTab].exercises[day] || [];
+                              for (var dei2 = 0; dei2 < dayExs2.length; dei2++) {
+                                if (dayExs2[dei2].name === fbEx.name && dayExs2[dei2].status !== fbEx.newStatus) {
+                                  dayExs2[dei2].status = fbEx.newStatus;
+                                  if (fbEx.newStatus === "ready to move") {
+                                    var curKg2 = parseInt(dayExs2[dei2].current) || 0;
+                                    dayExs2[dei2].target = (curKg2 + 7) + "kg x 10x3";
+                                  }
+                                  updated2 = true;
+                                }
+                              }
+                            }
+                          }
+                          if (updated2) { await saveData(nd2); }
+                        } }
                     } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: { exercises: [], summary: "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
                     setSessionFbLoading(false);
                   }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{sessionFbLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "📊 Generate Session Feedback"}</button>
-                  {sessionFeedback && sessionFeedback[day] && (<div style={{ marginTop: 10 }}>
-                    {sessionFeedback[day].exercises && sessionFeedback[day].exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc", alignItems: "center" }}><span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{ex.icon || "●"}</span><div><div style={{ fontSize: 12, fontWeight: 700 }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div></div></div>); })}
-                    {sessionFeedback[day].summary && (<div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, padding: 10, marginTop: 8 }}><div style={{ fontSize: 12, color: "#fff" }}>{sessionFeedback[day].summary}</div>{sessionFeedback[day].nextSession && <div style={{ fontSize: 12, color: "#fbbf24", fontWeight: 600, marginTop: 4 }}>Next: {sessionFeedback[day].nextSession}</div>}</div>)}
+                  {sessionFeedback && sessionFeedback[activeTab + "_" + day] && (<div style={{ marginTop: 10 }}>
+                    {sessionFeedback[activeTab + "_" + day].exercises && sessionFeedback[activeTab + "_" + day].exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc", alignItems: "center" }}><span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{fbIcon(ex.icon)}</span><div><div style={{ fontSize: 12, fontWeight: 700 }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div></div></div>); })}
+                    {sessionFeedback[activeTab + "_" + day].summary && (<div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, padding: 10, marginTop: 8 }}><div style={{ fontSize: 12, color: "#fff" }}>{sessionFeedback[activeTab + "_" + day].summary}</div>{sessionFeedback[activeTab + "_" + day].nextSession && <div style={{ fontSize: 12, color: "#fbbf24", fontWeight: 600, marginTop: 4 }}>Next: {sessionFeedback[activeTab + "_" + day].nextSession}</div>}</div>)}
                   </div>)}
                 </div>)}
                 {/* PROGRESSION TAB */}
