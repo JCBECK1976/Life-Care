@@ -573,14 +573,51 @@ const sBg = s => s === "moved up" ? "#dcfce7" : s === "ready to move" ? "#dbeafe
 const sLabel = s => s === "moved up" ? "Moved Up" : s === "ready to move" ? "Ready to Move" : s === "building" ? "Building" : s === "consolidating" ? "Consolidating" : s === "maintaining" ? "Maintaining" : s === "reduce" ? "Reduce" : s;
 function parseReps(str) { if (!str) return []; const s = String(str); if (s.includes("×")) { const p = s.split("×"); return Array(parseInt(p[1])||3).fill(parseInt(p[0])||0); } return s.split("/").map(n => parseInt(n)||0); }
 function fmtReps(arr) { if (!arr || arr.length === 0) return ""; if (arr.every(r => r === arr[0])) return arr[0] + "×" + arr.length; return arr.join("/"); }
-function autoStatus(newWeight, newReps, prevProg) {
-  const kg = parseInt(newWeight) || 0;
-  const prevEntry = prevProg && prevProg.length > 0 ? prevProg[prevProg.length - 1] : null;
-  const prevKg = prevEntry ? (parseInt(prevEntry.w) || 0) : 0;
-  if (kg > prevKg) return "moved up";
-  const reps = parseReps(newReps);
+function autoStatus(newWeight, newReps, prevProg, notes) {
+  var kg = parseInt(newWeight) || 0;
+  var reps = parseReps(newReps);
+  var prevEntry = prevProg && prevProg.length > 0 ? prevProg[prevProg.length - 1] : null;
+  var prevKg = prevEntry ? (parseInt(prevEntry.w) || 0) : 0;
+  
+  // Check notes for hold/pain/reduce indicators
+  var noteStr = (notes || "").toLowerCase();
+  if (noteStr.indexOf("hold") >= 0 || noteStr.indexOf("pain") >= 0 || noteStr.indexOf("protect") >= 0 || noteStr.indexOf("back") >= 0 || noteStr.indexOf("rsi") >= 0 || noteStr.indexOf("injury") >= 0) {
+    return "maintaining";
+  }
+  
+  // Weight increased from previous
+  if (kg > prevKg && prevEntry) return "moved up";
+  
+  // Weight decreased from previous
+  if (kg < prevKg && prevEntry && kg > 0 && prevKg > 0) return "reduce";
+  
   if (reps.length === 0) return "building";
-  if (reps.every(r => r >= 15)) { const pr = prevEntry ? parseReps(prevEntry.r) : []; return (pr.length > 0 && pr.every(r => r >= 15)) ? "ready to move" : "consolidating"; }
+  
+  // Check all entries at this weight to find consecutive 15x3 sessions
+  var sameWeightEntries = (prevProg || []).filter(function(p) { return (parseInt(p.w) || 0) === kg; });
+  // Include current entry
+  var allAtWeight = sameWeightEntries.concat([{ w: newWeight, r: newReps }]);
+  
+  // Count consecutive 15x3 from the end
+  var consecutive15 = 0;
+  for (var i = allAtWeight.length - 1; i >= 0; i--) {
+    var pr = parseReps(allAtWeight[i].r);
+    if (pr.length >= 3 && pr.every(function(r) { return r >= 15; })) {
+      consecutive15++;
+    } else {
+      break;
+    }
+  }
+  
+  if (consecutive15 >= 2) return "ready to move";
+  if (consecutive15 === 1) return "consolidating";
+  
+  // At same weight, not yet at 15x3 — check if reps are progressing
+  if (reps.every(function(r) { return r >= 12; })) return "building";
+  
+  // Just moved up and struggling with reps (e.g. 10/10/7)
+  if (sameWeightEntries.length <= 2 && reps.some(function(r) { return r < 12; })) return "consolidating";
+  
   return "building";
 }
 
@@ -1097,7 +1134,7 @@ function Dashboard() {
       prev.r = fmtReps(logSets.map(s => parseInt(s.r) || 0));
       prev.wk = parseInt(logWeek) || prev.wk;
       ex.current = prev.w; ex.reps = prev.r;
-      const suggested = autoStatus(prev.w, prev.r, ex.prog.slice(0, -1));
+      const suggested = autoStatus(prev.w, prev.r, ex.prog.slice(0, -1), logComment || ex.notes || "");
       ex.status = logStatus || suggested;
     } else {
       // New entry
@@ -1107,7 +1144,7 @@ function Dashboard() {
       const wk = parseInt(logWeek) || (data.config.week || 6) + 1;
       ex.prog.push({ wk, w: wStr, r: repsStr });
       ex.current = wStr; ex.reps = repsStr;
-      const suggested = autoStatus(wStr, repsStr, ex.prog.slice(0, -1));
+      const suggested = autoStatus(wStr, repsStr, ex.prog.slice(0, -1), logComment || ex.notes || "");
       ex.status = logStatus || suggested;
       if (ex.status === "ready to move") ex.target = nextPin(parseInt(w)) + "kg × 10×3"; else delete ex.target;
       nd.config.week = Math.max(nd.config.week, wk);
@@ -1889,7 +1926,7 @@ function Dashboard() {
               <div style={{ marginBottom: 8 }}><label style={labelStyle}>Week</label><input type="number" value={logWeek} onChange={e => setLogWeek(e.target.value)} style={{ ...inputStyle, width: 80 }} /></div>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Sets (weight kg x reps)</div>
               {logSets.map((s, i) => (<div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}><span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", width: 20 }}>S{i + 1}</span><input type="number" placeholder="kg" value={s.w} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], w: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} /><span style={{ color: "#94a3b8" }}>×</span><input type="number" placeholder="reps" value={s.r} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], r: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} /></div>))}
-              {logSets[0].w && logSets[0].r && (() => { const rs = fmtReps(logSets.map(s => parseInt(s.r) || 0)); const sg = autoStatus(logSets[0].w + "kg", rs, editPrev ? ex.prog.slice(0,-1) : ex.prog); return (<div style={{ margin: "8px 0", padding: 8, background: sBg(sg), borderRadius: 8 }}><div style={{ fontSize: 11, color: sColor(sg), fontWeight: 600 }}>Auto-status: {sLabel(sg)}</div><div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>{["moved up","building","consolidating","ready to move","maintaining","reduce"].map(st => (<button key={st} onClick={() => setLogStatus(st === sg && !logStatus ? "" : st)} style={{ fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 12, border: logStatus === st ? "2px solid " + sColor(st) : "1px solid #e2e8f0", background: logStatus === st ? sBg(st) : "#fff", color: sColor(st), cursor: "pointer" }}>{sLabel(st)}</button>))}</div></div>); })()}
+              {logSets[0].w && logSets[0].r && (() => { const rs = fmtReps(logSets.map(s => parseInt(s.r) || 0)); const sg = autoStatus(logSets[0].w + "kg", rs, editPrev ? ex.prog.slice(0,-1) : ex.prog, logComment || (ex.notes || "")); return (<div style={{ margin: "8px 0", padding: 8, background: sBg(sg), borderRadius: 8 }}><div style={{ fontSize: 11, color: sColor(sg), fontWeight: 600 }}>Auto-status: {sLabel(sg)}</div><div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>{["moved up","building","consolidating","ready to move","maintaining","reduce"].map(st => (<button key={st} onClick={() => setLogStatus(st === sg && !logStatus ? "" : st)} style={{ fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 12, border: logStatus === st ? "2px solid " + sColor(st) : "1px solid #e2e8f0", background: logStatus === st ? sBg(st) : "#fff", color: sColor(st), cursor: "pointer" }}>{sLabel(st)}</button>))}</div></div>); })()}
               <div style={{ marginTop: 8 }}><label style={labelStyle}>Commentary</label><textarea value={logComment} onChange={e => setLogComment(e.target.value)} placeholder="Notes for next session..." style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}><button onClick={saveLog} disabled={!logSets[0].r} style={{ ...btnP(!!logSets[0].r), flex: 1 }}>{editPrev ? "Update" : "Save"}</button><button onClick={() => setLogEx(null)} style={btnS}>Cancel</button></div>
             </div>);
