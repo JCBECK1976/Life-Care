@@ -579,22 +579,7 @@ function autoStatus(newWeight, newReps, prevProg, notes) {
   var prevEntry = prevProg && prevProg.length > 0 ? prevProg[prevProg.length - 1] : null;
   var prevKg = prevEntry ? (parseInt(prevEntry.w) || 0) : 0;
   
-  // Check notes for overrides
-  var noteStr = (notes || "").toLowerCase();
-  // Positive overrides
-  if (noteStr.indexOf("ready to move") >= 0 || noteStr.indexOf("move up") >= 0 || noteStr.indexOf("ready to progress") >= 0) {
-    return "ready to move";
-  }
-  if (noteStr.indexOf("consolidat") >= 0) {
-    return "consolidating";
-  }
-  if (noteStr.indexOf("reduce") >= 0 || noteStr.indexOf("drop weight") >= 0 || noteStr.indexOf("too heavy") >= 0) {
-    return "reduce";
-  }
-  // Negative overrides - hold at current
-  if (noteStr.indexOf("hold") >= 0 || noteStr.indexOf("pain") >= 0 || noteStr.indexOf("protect") >= 0 || noteStr.indexOf("back aware") >= 0 || noteStr.indexOf("rsi") >= 0 || noteStr.indexOf("injury") >= 0) {
-    return "maintaining";
-  }
+  // Notes no longer override - use Progression dropdown instead
   
   // Weight increased from previous
   if (kg > prevKg && prevEntry) return "moved up";
@@ -848,6 +833,7 @@ function Dashboard() {
   const [logEx, setLogEx] = useState(null);
   const [logSets, setLogSets] = useState([{ w: "", r: "" }, { w: "", r: "" }, { w: "", r: "" }]);
   const [logComment, setLogComment] = useState("");
+  const [logOverride, setLogOverride] = useState("standard");
   const [logWeek, setLogWeek] = useState("");
   const [logStatus, setLogStatus] = useState("");
   const [editPrev, setEditPrev] = useState(false);
@@ -1160,7 +1146,7 @@ function Dashboard() {
       prev.wk = parseInt(logWeek) || prev.wk;
       ex.current = prev.w; ex.reps = prev.r;
       const suggested = autoStatus(prev.w, prev.r, ex.prog.slice(0, -1), ((logComment || "") + " " + (ex.notes || "")).trim());
-      ex.status = logStatus || suggested;
+      ex.status = logOverride === "move_up" ? "ready to move" : logOverride === "hold" ? "maintaining" : logOverride === "reduce" ? "reduce" : (logStatus || suggested);
       if (ex.status === "ready to move") { ex.target = nextPin(parseInt(ex.current)) + "kg \u00d7 10\u00d73"; } else if (ex.status !== "maintaining") { delete ex.target; }
     } else {
       // New entry
@@ -1171,7 +1157,7 @@ function Dashboard() {
       ex.prog.push({ wk, w: wStr, r: repsStr });
       ex.current = wStr; ex.reps = repsStr;
       const suggested = autoStatus(wStr, repsStr, ex.prog.slice(0, -1), ((logComment || "") + " " + (ex.notes || "")).trim());
-      ex.status = logStatus || suggested;
+      ex.status = logOverride === "move_up" ? "ready to move" : logOverride === "hold" ? "maintaining" : logOverride === "reduce" ? "reduce" : (logStatus || suggested);
       if (ex.status === "ready to move") ex.target = nextPin(parseInt(w)) + "kg × 10×3"; else delete ex.target;
       nd.config.week = Math.max(nd.config.week, wk);
     }
@@ -1183,6 +1169,7 @@ function Dashboard() {
       });
     }
     nd.config.week = calcWeek(nd.config.trainingStart); nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    ex.notes = logComment.trim() || ""; // Carry forward to next session
     if (logComment.trim()) await sSet("comment:" + activeTab + ":" + ex.name + ":" + logWeek, logComment.trim());
     const target = "ex-" + day + "-" + idx;
     setLogEx(null);
@@ -1964,8 +1951,17 @@ function Dashboard() {
               <div style={{ marginBottom: 8 }}><label style={labelStyle}>Week</label><input type="number" value={logWeek} onChange={e => setLogWeek(e.target.value)} style={{ ...inputStyle, width: 80 }} /></div>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Sets (weight kg x reps)</div>
               {logSets.map((s, i) => (<div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}><span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", width: 20 }}>S{i + 1}</span><input type="number" placeholder="kg" value={s.w} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], w: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} /><span style={{ color: "#94a3b8" }}>×</span><input type="number" placeholder="reps" value={s.r} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], r: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} /></div>))}
-              {logSets[0].w && logSets[0].r && (() => { const rs = fmtReps(logSets.map(s => parseInt(s.r) || 0)); const sg = autoStatus(logSets[0].w + "kg", rs, editPrev ? ex.prog.slice(0,-1) : ex.prog, ((logComment || "") + " " + (ex.notes || "")).trim()); return (<div style={{ margin: "8px 0", padding: 8, background: sBg(sg), borderRadius: 8 }}><div style={{ fontSize: 11, color: sColor(sg), fontWeight: 600 }}>Auto-status: {sLabel(sg)}</div><div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>{["moved up","building","consolidating","ready to move","maintaining","reduce"].map(st => (<button key={st} onClick={() => setLogStatus(st === sg && !logStatus ? "" : st)} style={{ fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 12, border: logStatus === st ? "2px solid " + sColor(st) : "1px solid #e2e8f0", background: logStatus === st ? sBg(st) : "#fff", color: sColor(st), cursor: "pointer" }}>{sLabel(st)}</button>))}</div></div>); })()}
-              <div style={{ marginTop: 8 }}><label style={labelStyle}>Commentary</label><textarea value={logComment} onChange={e => setLogComment(e.target.value)} placeholder="Notes for next session..." style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
+              {logSets[0].w && logSets[0].r && (() => { const rs = fmtReps(logSets.map(s => parseInt(s.r) || 0)); const sg = autoStatus(logSets[0].w + "kg", rs, editPrev ? ex.prog.slice(0,-1) : ex.prog, ((logComment || "") + " " + (ex.notes || "")).trim()); return (<div style={{ margin: "8px 0", padding: 8, background: sBg(sg), borderRadius: 8 }}><div style={{ fontSize: 11, color: sColor(sg), fontWeight: 600 }}>Auto-status: {sLabel(sg)}</div><div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>/* Status pills removed - use Progression dropdown instead */</div></div>); })()}
+              <div style={{ marginTop: 8 }}>
+                <label style={labelStyle}>Progression</label>
+                <select value={logOverride} onChange={function(e) { setLogOverride(e.target.value); }} style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, marginBottom: 8, background: logOverride === "move_up" ? "#dcfce7" : logOverride === "hold" ? "#fef3c7" : logOverride === "reduce" ? "#fee2e2" : "#fff" }}>
+                  <option value="standard">Standard (follow progression rules)</option>
+                  <option value="move_up">Move Up (override — ready to increase weight)</option>
+                  <option value="hold">Hold (override — maintain current weight)</option>
+                  <option value="reduce">Reduce (override — drop weight)</option>
+                </select>
+              </div>
+              <div style={{ marginTop: 4 }}><label style={labelStyle}>Notes (carried to next session)</label><textarea value={logComment} onChange={e => setLogComment(e.target.value)} placeholder="Notes for next session..." style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}><button onClick={saveLog} disabled={!logSets[0].r} style={{ ...btnP(!!logSets[0].r), flex: 1 }}>{editPrev ? "Update" : "Save"}</button><button onClick={() => setLogEx(null)} style={btnS}>Cancel</button></div>
             </div>);
           })()}
@@ -2110,7 +2106,7 @@ function Dashboard() {
                       </div>
                       <div style={{ marginBottom: 6 }}>
                         <label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 2 }}>Weight Increments (comma separated, kg)</label>
-                        <input defaultValue={settings.increments || ""} placeholder="e.g. 16, 22, 29, 36, 42, 49" onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].exercises[day][exIdx].settings) nd[activeTab].exercises[day][exIdx].settings = {}; nd[activeTab].exercises[day][exIdx].settings.increments = e.target.value; await saveData(nd); }} style={{ width: "100%", padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, boxSizing: "border-box" }} />
+                        <input defaultValue={settings.increments || ""} placeholder="e.g. 16,22,29,36,42,49 (no spaces)" onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].exercises[day][exIdx].settings) nd[activeTab].exercises[day][exIdx].settings = {}; nd[activeTab].exercises[day][exIdx].settings.increments = e.target.value; await saveData(nd); }} style={{ width: "100%", padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, boxSizing: "border-box" }} />
                       </div>
                       <div style={{ marginBottom: 6 }}>
                         <label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 2 }}>Description / Notes</label>
