@@ -900,6 +900,7 @@ function Dashboard() {
   const [dayView, setDayView] = useState({});
   const [bodyView, setBodyView] = useState("data");
   const [measView, setMeasView] = useState("data");
+  const [customMeasTypes, setCustomMeasTypes] = useState([]);
   const [bodyFbLoading, setBodyFbLoading] = useState(false);
   const [bodyFeedback, setBodyFeedback] = useState(null);
   const [measFbLoading, setMeasFbLoading] = useState(false);
@@ -1096,6 +1097,7 @@ function Dashboard() {
     const cmn = await sGet("custom_med_names"); if (cmn) setCustomMedNames(JSON.parse(cmn));
     const cbt = await sGet("custom_blood_tests"); if (cbt) setCustomBloodTests(JSON.parse(cbt));
     const sm = await sGet("supermarket_pref"); if (sm) setSupermarket(sm);
+    const cmt = await sGet("custom_meas_types"); if (cmt) setCustomMeasTypes(JSON.parse(cmt));
     const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     const gt = await sGet("google_token_" + activeTab); if (gt) { setGoogleToken(gt); setGoogleConnected(true); }
     const qa = await sGet("qa_history"); if (qa) setQaHistory(JSON.parse(qa));
@@ -1976,7 +1978,7 @@ function Dashboard() {
               <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6, paddingLeft: 2 }}>{label}</div>
               {/* Day Sub-tabs */}
               <div style={{ display: "flex", gap: 0, marginBottom: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2 }}>
-                {[{ k: "activity", l: "Activity" }, { k: "feedback", l: "Feedback" }, { k: "progression", l: "Progress" }, { k: "history", l: "Charts" }].map(function(tab) {
+                {[{ k: "activity", l: "Activity" }, { k: "feedback", l: "Feedback" }, { k: "progression", l: "Progress" }, { k: "history", l: "Charts" }, { k: "settings", l: "Settings" }].map(function(tab) {
                   return (<button key={tab.k} onClick={function() { setDv(tab.k); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: dv === tab.k ? (tab.k === "feedback" ? "#ea580c" : "#fff") : "transparent", color: dv === tab.k ? (tab.k === "feedback" ? "#fff" : "#0f172a") : "#94a3b8" }}>{tab.l}</button>);
                 })}
               </div>
@@ -2083,6 +2085,70 @@ function Dashboard() {
                     </div>);
                   })}
                   {exList.filter(function(ex) { return ex.prog && ex.prog.length >= 2; }).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 20 }}>Need 2+ weeks of data to show charts</div>}
+                </div>)}
+                {/* SETTINGS TAB */}
+                {dv === "settings" && (<div style={{ padding: 12 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Exercise Settings — {label}</div>
+                  {exList.map(function(ex, exIdx) {
+                    var settings = ex.settings || {};
+                    return (<div key={exIdx} style={{ marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid #e2e8f0" }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{ex.name}</div>
+                      <div style={{ marginBottom: 6 }}>
+                        <label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 2 }}>Equipment</label>
+                        <input defaultValue={settings.equipment || ""} placeholder="e.g. Marcy HG5000 cable, 5kg dumbbells, bodyweight" onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].exercises[day][exIdx].settings) nd[activeTab].exercises[day][exIdx].settings = {}; nd[activeTab].exercises[day][exIdx].settings.equipment = e.target.value; await saveData(nd); }} style={{ width: "100%", padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, boxSizing: "border-box" }} />
+                      </div>
+                      <div style={{ marginBottom: 6 }}>
+                        <label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 2 }}>Type</label>
+                        <select defaultValue={settings.type || "cable"} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].exercises[day][exIdx].settings) nd[activeTab].exercises[day][exIdx].settings = {}; nd[activeTab].exercises[day][exIdx].settings.type = e.target.value; await saveData(nd); }} style={{ width: "100%", padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }}>
+                          <option value="cable">Cable Machine</option>
+                          <option value="freeweight">Free Weights / Dumbbells</option>
+                          <option value="bodyweight">Bodyweight</option>
+                          <option value="cardio">Cardio</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      <div style={{ marginBottom: 6 }}>
+                        <label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 2 }}>Weight Increments (comma separated, kg)</label>
+                        <input defaultValue={settings.increments || ""} placeholder="e.g. 16, 22, 29, 36, 42, 49" onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].exercises[day][exIdx].settings) nd[activeTab].exercises[day][exIdx].settings = {}; nd[activeTab].exercises[day][exIdx].settings.increments = e.target.value; await saveData(nd); }} style={{ width: "100%", padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, boxSizing: "border-box" }} />
+                      </div>
+                      <div style={{ marginBottom: 6 }}>
+                        <label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 2 }}>Description / Notes</label>
+                        <textarea defaultValue={settings.description || ""} placeholder="e.g. Neutral grip, use Bear Grip straps" onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].exercises[day][exIdx].settings) nd[activeTab].exercises[day][exIdx].settings = {}; nd[activeTab].exercises[day][exIdx].settings.description = e.target.value; await saveData(nd); }} style={{ width: "100%", padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, minHeight: 40, resize: "vertical", boxSizing: "border-box" }} />
+                      </div>
+                    </div>);
+                  })}
+                  <button onClick={async function() {
+                    setSessionFbLoading(true);
+                    try {
+                      var prof = p.profile || {};
+                      var exDetails = exList.map(function(ex) { var s = ex.settings || {}; return ex.name + " (" + (s.type || "cable") + ", " + (s.equipment || "cable machine") + ", increments: " + (s.increments || "7kg pins") + ")"; }).join("; ");
+                      var prompt = "Generate weight progression plan for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Exercises: " + exDetails + ". For each exercise, suggest the weight increment steps from starter to advanced based on the equipment. Return ONLY JSON: " + '{"exercises":[{"name":"...","increments":"16, 22, 29, 36, 42, 49","description":"setup notes"}]}';
+                      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
+                      var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+                      var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
+                      if (txt) {
+                        var plan = JSON.parse(txt.replace(/```json|```/g, "").trim());
+                        if (plan.exercises) {
+                          var nd = JSON.parse(JSON.stringify(data));
+                          plan.exercises.forEach(function(pe) {
+                            var dayExs = nd[activeTab].exercises[day] || [];
+                            for (var i = 0; i < dayExs.length; i++) {
+                              if (dayExs[i].name === pe.name) {
+                                if (!dayExs[i].settings) dayExs[i].settings = {};
+                                if (pe.increments) dayExs[i].settings.increments = pe.increments;
+                                if (pe.description) dayExs[i].settings.description = pe.description;
+                              }
+                            }
+                          });
+                          await saveData(nd);
+                          setFormMsg("Progression plan generated");
+                          setTimeout(function() { setFormMsg(""); }, 3000);
+                        }
+                      }
+                    } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); setTimeout(function() { setFormMsg(""); }, 4000); }
+                    setSessionFbLoading(false);
+                  }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" }}>{sessionFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Progression Plan"}</button>
+                  <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>AI suggests weight increments and setup notes based on your equipment type.</div>
                 </div>)}
               </div>
             </div>);
@@ -2590,7 +2656,7 @@ function Dashboard() {
         {/* SHOP */}
         {section === "shop" && (<div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <div><div style={{ fontSize: 14, fontWeight: 700 }}>Shopping — {weekLabel}</div><div style={{ fontSize: 11, color: "#64748b" }}>{planned}/7 dinners · {shopList.length} items</div></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}><button onClick={function() { setWeekOff(function(o) { return o - 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&lsaquo;</button><div style={{ flex: 1, textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 700 }}>Shopping — {weekLabel}</div><div style={{ fontSize: 11, color: "#64748b" }}>{planned}/7 dinners · {shopList.length} items</div></div><button onClick={function() { setWeekOff(function(o) { return o + 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&rsaquo;</button></div>
             <select value={supermarket} onChange={async (e) => { setSupermarket(e.target.value); await sSet("supermarket_pref", e.target.value); }} style={{ padding: "6px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11, background: "#fff" }}>
               {["Aldi", "Tesco", "Asda", "Sainsbury's", "Morrisons", "Lidl", "Waitrose", "M&S", "Co-op", "Iceland", "Any"].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
@@ -2786,6 +2852,11 @@ function Dashboard() {
                 {log.status !== undefined && <div>HTTP: <strong>{log.status} {log.statusText}</strong></div>}
                 {log.data && <div style={{ color: "#475569", marginTop: 2 }}>{log.data}</div>}
               </div>); })}
+              {customMeasTypes.map(function(mt) { return (
+                <div key={mt} style={{ marginBottom: 6 }}><label style={labelStyle}>{mt} (cm)</label><input type="number" step="0.1" value={measInputs[mt] || ""} onChange={function(e) { setMeasInputs(function(q) { var n = Object.assign({}, q); n[mt] = e.target.value; return n; }); }} style={inputStyle} /></div>
+              ); })}
+              <button onClick={function() { var name = prompt("New measurement name (e.g. Forearm, Neck, Shoulders):"); if (name && name.trim()) { var updated = [].concat(customMeasTypes, [name.trim()]); setCustomMeasTypes(updated); sSet("custom_meas_types", JSON.stringify(updated)); } }} type="button" style={{ padding: "6px 12px", background: "#dbeafe", border: "1px solid #93c5fd", borderRadius: 6, fontSize: 10, color: "#1e40af", cursor: "pointer", marginBottom: 8 }}>+ Add Measurement Type</button>
+
               {debugLog.length > 0 && <button onClick={function() { setDebugLog([]); }} style={{ fontSize: 10, color: "#64748b", background: "#f1f5f9", border: "none", borderRadius: 4, padding: "4px 8px", cursor: "pointer", marginTop: 4 }}>Clear Log</button>}
             </div>)}
           </div>
