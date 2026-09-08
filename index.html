@@ -1130,8 +1130,9 @@ function Dashboard() {
         if (val) setPrevComment(val);
       });
     }
-    // Also check for exercise notes
+    // Also check for exercise notes and latest prog entry note
     if (ex.notes) setPrevComment(function(prev) { return prev ? prev + "\n" + ex.notes : ex.notes; });
+    if (last && last.note) setPrevComment(function(prev) { return prev ? prev + "\nPrev session: " + last.note : last.note; });
   };
   const saveLog = async () => {
     if (!logEx || !data) return;
@@ -1144,6 +1145,7 @@ function Dashboard() {
       prev.w = (logSets[0].w || prev.w.replace("kg", "")) + "kg";
       prev.r = fmtReps(logSets.map(s => parseInt(s.r) || 0));
       prev.wk = parseInt(logWeek) || prev.wk;
+      prev.note = logComment.trim() || prev.note || "";
       ex.current = prev.w; ex.reps = prev.r;
       const suggested = autoStatus(prev.w, prev.r, ex.prog.slice(0, -1), ((logComment || "") + " " + (ex.notes || "")).trim());
       ex.status = logOverride === "move_up" ? "ready to move" : logOverride === "hold" ? "maintaining" : logOverride === "reduce" ? "reduce" : (logStatus || suggested);
@@ -1154,7 +1156,7 @@ function Dashboard() {
       const repsStr = fmtReps(logSets.map(s => parseInt(s.r) || 0));
       const wStr = w + "kg";
       const wk = parseInt(logWeek) || (data.config.week || 6) + 1;
-      ex.prog.push({ wk, w: wStr, r: repsStr });
+      ex.prog.push({ wk, w: wStr, r: repsStr, note: logComment.trim() || "" });
       ex.current = wStr; ex.reps = repsStr;
       const suggested = autoStatus(wStr, repsStr, ex.prog.slice(0, -1), ((logComment || "") + " " + (ex.notes || "")).trim());
       ex.status = logOverride === "move_up" ? "ready to move" : logOverride === "hold" ? "maintaining" : logOverride === "reduce" ? "reduce" : (logStatus || suggested);
