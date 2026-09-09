@@ -2087,42 +2087,21 @@ function Dashboard() {
                 </div>)}
                 {/* SETTINGS TAB */}
                 {dv === "settings" && (<div style={{ padding: 12 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Exercise Settings — {label}</div>
-                  {exList.map(function(ex, exIdx) {
-                    var settings = ex.settings || {};
-                    return (<div key={exIdx} style={{ marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid #e2e8f0" }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{ex.name}</div>
-                      <div style={{ marginBottom: 6 }}>
-                        <label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 2 }}>Equipment</label>
-                        <input defaultValue={settings.equipment || ""} placeholder="e.g. Marcy HG5000 cable, 5kg dumbbells, bodyweight" onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].exercises[day][exIdx].settings) nd[activeTab].exercises[day][exIdx].settings = {}; nd[activeTab].exercises[day][exIdx].settings.equipment = e.target.value; await saveData(nd); }} style={{ width: "100%", padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, boxSizing: "border-box" }} />
-                      </div>
-                      <div style={{ marginBottom: 6 }}>
-                        <label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 2 }}>Type</label>
-                        <select defaultValue={settings.type || "cable"} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].exercises[day][exIdx].settings) nd[activeTab].exercises[day][exIdx].settings = {}; nd[activeTab].exercises[day][exIdx].settings.type = e.target.value; await saveData(nd); }} style={{ width: "100%", padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }}>
-                          <option value="cable">Cable Machine</option>
-                          <option value="freeweight">Free Weights / Dumbbells</option>
-                          <option value="bodyweight">Bodyweight</option>
-                          <option value="cardio">Cardio</option>
-                          <option value="other">Other</option>
-                        </select>
-                      </div>
-                      <div style={{ marginBottom: 6 }}>
-                        <label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 2 }}>Weight Increments (comma separated, kg)</label>
-                        <input defaultValue={settings.increments || ""} placeholder="e.g. 16,22,29,36,42,49 (no spaces)" onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].exercises[day][exIdx].settings) nd[activeTab].exercises[day][exIdx].settings = {}; nd[activeTab].exercises[day][exIdx].settings.increments = e.target.value; await saveData(nd); }} style={{ width: "100%", padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, boxSizing: "border-box" }} />
-                      </div>
-                      <div style={{ marginBottom: 6 }}>
-                        <label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 2 }}>Description / Notes</label>
-                        <textarea defaultValue={settings.description || ""} placeholder="e.g. Neutral grip, use Bear Grip straps" onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].exercises[day][exIdx].settings) nd[activeTab].exercises[day][exIdx].settings = {}; nd[activeTab].exercises[day][exIdx].settings.description = e.target.value; await saveData(nd); }} style={{ width: "100%", padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, minHeight: 40, resize: "vertical", boxSizing: "border-box" }} />
-                      </div>
-                    </div>);
-                  })}
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Equipment & Progression Settings</div>
+                  <div style={{ marginBottom: 10 }}>
+                    <label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 4 }}>Describe your equipment (include make/model, link to specs if available)</label>
+                    <textarea id={"equip-desc-" + day} defaultValue={(p.equipmentDesc && p.equipmentDesc[day]) || ""} placeholder="e.g. Marcy HG5000 Deluxe Home Multi Gym. Pin-loaded cable stack: 9,16,22,29,36,42,49,55,62,68,75,81,87,90kg. Dumbbells: 1-10kg pairs." style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 60, resize: "vertical", boxSizing: "border-box" }} />
+                    <button onClick={async function() { var desc = document.getElementById("equip-desc-" + day).value; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].equipmentDesc) nd[activeTab].equipmentDesc = {}; nd[activeTab].equipmentDesc[day] = desc; await saveData(nd); setFormMsg("Equipment saved"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ marginTop: 6, padding: "6px 14px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Save Equipment Info</button>
+                  </div>
                   <button onClick={async function() {
-                    setSessionFbLoading(true);
+                    setSessionFbLoading(true); setFormMsg("Generating settings for all exercises...");
                     try {
                       var prof = p.profile || {};
-                      var exDetails = exList.map(function(ex) { var s = ex.settings || {}; return ex.name + " (" + (s.type || "cable") + ", " + (s.equipment || "cable machine") + ", increments: " + (s.increments || "7kg pins") + ")"; }).join("; ");
-                      var prompt = "Generate weight progression plan for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Exercises: " + exDetails + ". For each exercise, suggest the weight increment steps from starter to advanced based on the equipment. Return ONLY JSON: " + '{"exercises":[{"name":"...","increments":"16, 22, 29, 36, 42, 49","description":"setup notes"}]}';
-                      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
+                      var equipDesc = (p.equipmentDesc && p.equipmentDesc[day]) || document.getElementById("equip-desc-" + day).value || "cable machine";
+                      var exNames = exList.map(function(ex) { return ex.name + " (current: " + ex.current + " " + ex.reps + ")"; }).join(", ");
+                      var fmt = '{"exercises":[{"name":"...","type":"cable|freeweight|bodyweight","increments":"9,16,22,29,36,42,49","description":"setup and form notes"}]}';
+                      var prompt = "Generate exercise settings for " + (prof.name || "user") + ". Equipment: " + equipDesc + ". Exercises: " + exNames + ". For each exercise determine: 1) type (cable/freeweight/bodyweight), 2) realistic weight increments based on the equipment described (use exact pin/dumbbell weights), 3) brief setup/form description. For bodyweight exercises use BW,BW+2,BW+4 etc for dumbbell-held progression. Return ONLY JSON: " + fmt;
+                      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                       var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
                       if (txt) {
@@ -2134,20 +2113,35 @@ function Dashboard() {
                             for (var i = 0; i < dayExs.length; i++) {
                               if (dayExs[i].name === pe.name) {
                                 if (!dayExs[i].settings) dayExs[i].settings = {};
-                                if (pe.increments) dayExs[i].settings.increments = pe.increments;
-                                if (pe.description) dayExs[i].settings.description = pe.description;
+                                dayExs[i].settings.type = pe.type || "cable";
+                                dayExs[i].settings.increments = pe.increments || "";
+                                dayExs[i].settings.description = pe.description || "";
+                                dayExs[i].settings.equipment = equipDesc;
                               }
                             }
                           });
                           await saveData(nd);
-                          setFormMsg("Progression plan generated");
-                          setTimeout(function() { setFormMsg(""); }, 3000);
+                          setFormMsg("Settings generated for " + plan.exercises.length + " exercises");
                         }
                       }
-                    } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); setTimeout(function() { setFormMsg(""); }, 4000); }
-                    setSessionFbLoading(false);
-                  }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" }}>{sessionFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Progression Plan"}</button>
-                  <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>AI suggests weight increments and setup notes based on your equipment type.</div>
+                    } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); }
+                    setTimeout(function() { setFormMsg(""); }, 4000); setSessionFbLoading(false);
+                  }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" }}>{sessionFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate All Settings"}</button>
+                  <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4, marginBottom: 12 }}>AI reads your equipment description and sets type, weight increments, and form notes for every exercise. You can edit below.</div>
+                  {/* Per-exercise generated settings - editable */}
+                  {exList.map(function(ex, exIdx) {
+                    var s = ex.settings || {};
+                    if (!s.type && !s.increments) return null;
+                    return (<div key={exIdx} style={{ marginBottom: 10, padding: 8, background: "#f8fafc", borderRadius: 6, border: "1px solid #e2e8f0" }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{ex.name}</div>
+                      <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+                        <div style={{ flex: 1 }}><span style={{ fontSize: 9, color: "#94a3b8" }}>Type</span><input defaultValue={s.type || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].exercises[day][exIdx].settings) nd[activeTab].exercises[day][exIdx].settings = {}; nd[activeTab].exercises[day][exIdx].settings.type = e.target.value; await saveData(nd); }} style={{ width: "100%", padding: "3px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10 }} /></div>
+                        <div style={{ flex: 2 }}><span style={{ fontSize: 9, color: "#94a3b8" }}>Increments (kg)</span><input defaultValue={s.increments || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].exercises[day][exIdx].settings) nd[activeTab].exercises[day][exIdx].settings = {}; nd[activeTab].exercises[day][exIdx].settings.increments = e.target.value; await saveData(nd); }} style={{ width: "100%", padding: "3px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10 }} /></div>
+                      </div>
+                      {s.description && <div style={{ fontSize: 10, color: "#475569" }}>{s.description}</div>}
+                    </div>);
+                  })}
+                  {exList.filter(function(ex) { return ex.settings && (ex.settings.type || ex.settings.increments); }).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 10 }}>No settings yet — describe your equipment above and tap Generate</div>}
                 </div>)}
               </div>
             </div>);
