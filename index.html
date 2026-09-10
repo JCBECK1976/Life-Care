@@ -886,6 +886,13 @@ function Dashboard() {
   const [dayView, setDayView] = useState({});
   const [bodyView, setBodyView] = useState("data");
   const [measView, setMeasView] = useState("data");
+  const [eatDay, setEatDay] = useState("monday");
+  const [eatList, setEatList] = useState("own");
+  const [quickPrepMins, setQuickPrepMins] = useState(20);
+  const [showDefaults, setShowDefaults] = useState(false);
+  const [addingNew, setAddingNew] = useState(false);
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemLoading, setNewItemLoading] = useState(false);
   const [customMeasTypes, setCustomMeasTypes] = useState([]);
   const [bodyFbLoading, setBodyFbLoading] = useState(false);
   const [bodyFeedback, setBodyFeedback] = useState(null);
@@ -2258,13 +2265,7 @@ function Dashboard() {
           const currentWeek = calcWeek(data.config.trainingStart);
           const DAYS = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
           const DAY_LABELS = { monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu", friday: "Fri", saturday: "Sat", sunday: "Sun" };
-          const [eatDay, setEatDay] = React.useState("monday");
-          const [eatList, setEatList] = React.useState("own");
-          const [quickPrepMins, setQuickPrepMins] = React.useState(20);
-          const [showDefaults, setShowDefaults] = React.useState(false);
-          const [addingNew, setAddingNew] = React.useState(false);
-          const [newItemName, setNewItemName] = React.useState("");
-          const [newItemLoading, setNewItemLoading] = React.useState(false);
+          // States moved to component top level
           const sk = mealKey(weekStart) + ":" + activeTab;
 
           const getMeal = function(dayKey, slot) { var m = meals[dayKey]; if (!m) return ""; return m[slot] || ""; };
