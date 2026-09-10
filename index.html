@@ -2297,7 +2297,30 @@ function Dashboard() {
           };
 
           const applyDefaults = function() {
-            var defs = mealDefaults[activeTab] || {};
+            const generateWeekMeals = async function() {
+            setGenerating(true); setFormMsg("Generating meals...");
+            try {
+              var prof = p.profile || {};
+              var dinnerList = allDinners.filter(function(d2) { return d2.id !== "none"; }).map(function(d2) { return d2.id + ":" + d2.name + "(" + (isJC ? d2.jcKcal : d2.beckKcal) + "kcal," + d2.time + "min)"; }).join(";");
+              var bfastList = allBfast.map(function(b) { return b.id + ":" + b.name; }).join(";");
+              var lunchList = allLunch.map(function(l) { return l.id + ":" + l.name; }).join(";");
+              var fmt = '{"monday":{"b":"id","l":"id","d":"id"},"tuesday":{"b":"id","l":"id","d":"id"},"wednesday":{"b":"id","l":"id","d":"id"},"thursday":{"b":"id","l":"id","d":"id"},"friday":{"b":"id","l":"id","d":"id"},"saturday":{"b":"id","l":"id","d":"id"},"sunday":{"b":"id","l":"id","d":"id"}}';
+              var prompt = "Generate a week of meals for " + (prof.name || "user") + " (" + (isJC ? "2000-2200 kcal" : "1700-1900 kcal") + " target). Only fill EMPTY slots - keep existing selections. Current: " + JSON.stringify(meals) + ". Breakfasts: " + bfastList + ". Lunches: " + lunchList + ". Dinners: " + dinnerList + ". Vary daily. Return ONLY JSON: " + fmt;
+              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }) });
+              var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+              var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
+              if (txt) {
+                var gen = JSON.parse(txt.replace(/```json|```/g, "").trim());
+                var n = Object.assign({}, meals);
+                DAYS.forEach(function(d2) { if (gen[d2]) { if (!n[d2]) n[d2] = {}; if (gen[d2].b && !n[d2].b) n[d2].b = gen[d2].b; if (gen[d2].l && !n[d2].l) n[d2].l = gen[d2].l; if (gen[d2].d && !n[d2].d) n[d2].d = gen[d2].d; } });
+                setMeals(n); saveMeals(n);
+                setFormMsg("Week meals generated");
+              }
+            } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); }
+            setTimeout(function() { setFormMsg(""); }, 4000); setGenerating(false);
+          };
+
+          var defs = mealDefaults[activeTab] || {};
             var n = Object.assign({}, meals);
             DAYS.forEach(function(d) {
               if (!n[d]) n[d] = {};
