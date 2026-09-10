@@ -1397,7 +1397,7 @@ function Dashboard() {
   const shopItems = {}; MEAL_DAYS.forEach(d => { const m = allDinners.find(x => x.id === meals[d.key]); if (m) m.shop?.forEach(it => { shopItems[it] = (shopItems[it] || 0) + 1; }); });
   const shopList = Object.entries(shopItems).sort((a, b) => a[0].localeCompare(b[0]));
   const planned = MEAL_DAYS.filter(d => meals[d.key]).length;
-  const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "Body Comp" }, { id: "weights", l: "Exercise" }, { id: "meals", l: "Dietary" }, { id: "meds", l: "Meds" }, { id: "bloods", l: "Health" }, { id: "shop", l: "Shop" }, { id: "targets", l: "Targets" }, { id: "admin", l: "⚙" }];
+  const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "Body Comp" }, { id: "weights", l: "Exercise" }, { id: "meals", l: "Eating" }, { id: "meds", l: "Meds" }, { id: "bloods", l: "Health" }, { id: "shop", l: "Shop" }, { id: "targets", l: "Targets" }, { id: "admin", l: "⚙" }];
   const wt = p.body.weight || [];
   const latestWt = wt.length > 0 ? wt[wt.length - 1] : null;
   const idealSt = isJC ? IDEALS.jc : IDEALS.becks;
@@ -2251,402 +2251,234 @@ function Dashboard() {
         {/* MEALS */}
         {section === "meals" && (() => {
           const allBfast = [...BREAKFASTS, ...customBreakfasts];
-          const allLnch = [...LUNCHES, ...customLunches];
-          const allSnk = [...SNACKS, ...customSnacks];
-          const defs = mealDefaults[activeTab] || {};
-          const saveDef = async (key, val) => {
-            const nd = Object.assign({}, mealDefaults);
-            nd[activeTab] = Object.assign({}, nd[activeTab] || {}, { [key]: val });
-            setMealDefaults(nd);
-            await sSet("meal_defaults", JSON.stringify(nd));
-          };
-          const applyDefaults = async () => {
-            const nd = Object.assign({}, meals);
-            MEAL_DAYS.forEach(d => {
-              const cur = nd[d.key] && typeof nd[d.key] === "object" ? Object.assign({}, nd[d.key]) : { d: nd[d.key] };
-              if (defs.b && !cur.b) cur.b = defs.b;
-              if (defs.l && !cur.l) cur.l = defs.l;
-              if (defs.s1 && !cur.s1) cur.s1 = defs.s1;
-              if (defs.s2 && !cur.s2) cur.s2 = defs.s2;
-              if (defs.s3 && !cur.s3) cur.s3 = defs.s3;
-              nd[d.key] = cur;
-            });
-            setMeals(nd); await saveMeals(nd);
-            setFormMsg("✓ Defaults applied to empty slots"); setTimeout(() => setFormMsg(""), 3000);
-          };
-          const generateWeekMeals = async () => {
-            setGenerating(true);
+          const allLunch = [...LUNCHES, ...customLunches];
+          const allDinners = [...DINNERS, ...customMeals];
+          const allOther = [...SNACKS, ...customSnacks];
+          const allItems = [].concat(allBfast, allLunch, allDinners, allOther);
+          const currentWeek = calcWeek(data.config.trainingStart);
+          const DAYS = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+          const DAY_LABELS = { monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu", friday: "Fri", saturday: "Sat", sunday: "Sun" };
+          const [eatDay, setEatDay] = React.useState("monday");
+          const [eatList, setEatList] = React.useState("own");
+          const [quickPrepMins, setQuickPrepMins] = React.useState(20);
+          const [showDefaults, setShowDefaults] = React.useState(false);
+          const [addingNew, setAddingNew] = React.useState(false);
+          const [newItemName, setNewItemName] = React.useState("");
+          const [newItemLoading, setNewItemLoading] = React.useState(false);
+          const sk = mealKey(weekStart) + ":" + activeTab;
+
+          const getMeal = function(dayKey, slot) { var m = meals[dayKey]; if (!m) return ""; return m[slot] || ""; };
+          const setMeal = function(dayKey, slot, val) { var n = Object.assign({}, meals); if (!n[dayKey]) n[dayKey] = {}; n[dayKey][slot] = val; setMeals(n); saveMeals(n); };
+          const getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; var count = 0; for (var i = 1; i <= 20; i++) { if (m["o" + i]) count++; } return count; };
+          const addOtherSlot = function(dayKey) { var m = meals[dayKey] || {}; var next = 1; while (m["o" + next]) next++; setMeal(dayKey, "o" + next, ""); };
+          const removeOtherSlot = function(dayKey, idx) { var n = Object.assign({}, meals); if (n[dayKey]) { delete n[dayKey]["o" + idx]; } setMeals(n); saveMeals(n); };
+          const getDayKcal = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; var total = 0; var kf = isJC ? "jcKcal" : "beckKcal"; ["b","l","d"].forEach(function(s) { if (m[s]) { var item = allItems.find(function(x) { return x.id === m[s]; }); if (item) total += item[kf] || 0; } }); for (var i = 1; i <= 20; i++) { if (m["o" + i]) { var oi = allOther.find(function(x) { return x.id === m["o" + i]; }); if (oi) total += oi[kf] || 0; } } return total; };
+
+          const clearWeek = function() { if (!confirm("Clear ALL meals for this week? This cannot be undone.")) return; var n = {}; setMeals(n); saveMeals(n); setFormMsg("Week cleared"); setTimeout(function() { setFormMsg(""); }, 3000); };
+
+          const addNewItem = async function() {
+            if (!newItemName.trim()) return;
+            setNewItemLoading(true);
             try {
-              var qpTimeEl = document.getElementById("quickprep-time-" + activeTab);
-              var quickMins = qpTimeEl ? parseInt(qpTimeEl.value) || 20 : 20;
-              var qpDays = {};
-              ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].forEach(function(d) { var el = document.getElementById("qp-" + d + "-" + activeTab); qpDays[d] = el ? el.checked : false; });
-              var filteredDinners = allDinners.filter(function(d) { return d.id !== "none"; });
-              var quickDinners = allDinners.filter(function(d) { return d.id !== "none" && d.time && d.time <= quickMins && d.time > 0; });
-              const dinnerList = filteredDinners.map(d => d.id + ": " + d.name + " (" + d.rating + ", " + (isJC ? d.jcKcal : d.beckKcal) + "kcal, " + d.freq + ", " + d.time + "min)").join("\n");
-              const dayContexts = MEAL_DAYS.map(d => d.label + " — " + d.context).join(", ");
-              const prompt = "You are a meal planner for " + (isJC ? "JC (2000-2200kcal target, <20g sat fat)" : "Beck (1700-1900kcal target, <20g sat fat critical, LDL 7.2)") + ". Pick 7 dinners for the week from this database:\n" + dinnerList + "\n\nDay contexts: " + dayContexts + "\n\nRules: mostly GREAT rated, max 1 AMBER per week, no RED. Respect frequency (Weekly=ok every week, Fortnightly=every other week, Monthly=max once). Match cook times to day context (quick meals on busy days like Thu 15min). Good variety — don't repeat meals. Prioritise quick prep (≤20min) on weekdays.\n\nReturn ONLY valid JSON, no markdown: {\"sun\":\"meal_id\",\"mon\":\"meal_id\",\"tue\":\"meal_id\",\"wed\":\"meal_id\",\"thu\":\"meal_id\",\"fri\":\"meal_id\",\"sat\":\"meal_id\"}";
-              const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
-              const result = await response.json();
-              const text = result.content?.map(c => c.text || "").join("") || "";
-              const plan = JSON.parse(text.replace(/```json|```/g, "").trim());
-              const nd = Object.assign({}, meals);
-              Object.entries(plan).forEach(function([dk, mid]) {
-                const cur = nd[dk] && typeof nd[dk] === "object" ? Object.assign({}, nd[dk]) : {};
-                cur.d = mid;
-                if (defs.b && !cur.b) cur.b = defs.b;
-                if (defs.l && !cur.l) cur.l = defs.l;
-                if (defs.s1 && !cur.s1) cur.s1 = defs.s1;
-                if (defs.s2 && !cur.s2) cur.s2 = defs.s2;
-                if (defs.s3 && !cur.s3) cur.s3 = defs.s3;
-                nd[dk] = cur;
-              });
-              setMeals(nd); await saveMeals(nd);
-              setFormMsg("✓ Meal plan generated — review and adjust"); setTimeout(() => setFormMsg(""), 4000);
-            } catch {
-              setFormMsg("✗ Could not generate — try again"); setTimeout(() => setFormMsg(""), 3000);
-            }
-            setGenerating(false);
+              var prompt = "Find nutritional info for: " + newItemName + ". Return ONLY JSON: " + '{"name":"...","kcal":0,"protein":0,"fat":0,"rating":"GREAT"}';
+              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: prompt }] }) });
+              var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+              var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
+              if (txt) {
+                var info = JSON.parse(txt.replace(/```json|```/g, "").trim());
+                var newItem = { id: "custom_" + Date.now(), name: info.name || newItemName, jcKcal: info.kcal || 0, beckKcal: info.kcal || 0, rating: info.rating || "GREAT", freq: "Daily" };
+                var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u));
+                setFormMsg("Added: " + newItem.name + " (" + newItem.jcKcal + " kcal)");
+              }
+            } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); }
+            setNewItemName(""); setAddingNew(false); setNewItemLoading(false);
+            setTimeout(function() { setFormMsg(""); }, 4000);
           };
+
+          const applyDefaults = function() {
+            var defs = mealDefaults[activeTab] || {};
+            var n = Object.assign({}, meals);
+            DAYS.forEach(function(d) {
+              if (!n[d]) n[d] = {};
+              if (defs.b && !n[d].b) n[d].b = defs.b;
+              if (defs.l && !n[d].l) n[d].l = defs.l;
+              if (defs.d && !n[d].d) n[d].d = defs.d;
+              for (var i = 1; i <= 7; i++) { if (defs["o" + i] && !n[d]["o" + i]) n[d]["o" + i] = defs["o" + i]; }
+            });
+            setMeals(n); saveMeals(n); setFormMsg("Defaults applied"); setTimeout(function() { setFormMsg(""); }, 2000);
+          };
+
+          const saveDef = function(key, val, scope) {
+            var nd = Object.assign({}, mealDefaults);
+            if (scope === "all") {
+              Object.keys(data).forEach(function(tab) { if (tab !== "config") { if (!nd[tab]) nd[tab] = {}; nd[tab][key] = val; } });
+            } else {
+              if (!nd[activeTab]) nd[activeTab] = {};
+              nd[activeTab][key] = val;
+            }
+            setMealDefaults(nd); sSet("meal_defaults", JSON.stringify(nd));
+          };
+
+          var defs = mealDefaults[activeTab] || {};
+          var dayMeals = meals[eatDay] || {};
+          var otherSlots = [];
+          for (var oi = 1; oi <= 20; oi++) { if (dayMeals["o" + oi] || oi <= Math.max(getOtherCount(eatDay), 1)) otherSlots.push(oi); }
+
+          const MealSelect = function(props) {
+            var items = props.items; var value = props.value; var onChange = props.onChange; var placeholder = props.placeholder || "Select...";
+            return (<select value={value} onChange={onChange} style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, background: "#fff" }}>
+              <option value="">{placeholder}</option>
+              {items.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#166534"; return (<option key={item.id} value={item.id} style={{ color: color }}>{item.name} ({kcal} kcal)</option>); })}
+              <option value="__add_new__">+ Add new item...</option>
+            </select>);
+          };
+
           return (<div>
-          {/* Defaults & Generator */}
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
-            {/* Build Recommended Meals */}
-            {allDinners.length <= 1 && (<div style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginBottom: 12, border: "1px solid #fde68a" }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#854d0e", marginBottom: 6 }}>No meals configured yet — generate a personalised meal database to get started.</div>
+          {/* Week header */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <button onClick={function() { setWeekOff(function(o) { return o - 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&lsaquo;</button>
+            <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800 }}>Week {currentWeek + weekOff - Math.floor((new Date() - new Date(2026, 6, 19)) / (7*24*60*60*1000))}</div><div style={{ fontSize: 10, color: "#64748b" }}>{weekLabel}</div></div>
+            <button onClick={function() { setWeekOff(function(o) { return o + 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&rsaquo;</button>
+          </div>
+
+          {/* Controls row */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+            <button onClick={function() { setShowDefaults(!showDefaults); }} style={{ padding: "6px 10px", background: showDefaults ? accent : "#f1f5f9", color: showDefaults ? "#fff" : "#475569", border: "1px solid " + (showDefaults ? accent : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Set Defaults</button>
+            <button onClick={applyDefaults} style={{ padding: "6px 10px", background: "#dcfce7", border: "1px solid #86efac", borderRadius: 6, fontSize: 10, color: "#166534", cursor: "pointer" }}>Apply Defaults</button>
+            <button onClick={clearWeek} style={{ padding: "6px 10px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 6, fontSize: 10, color: "#991b1b", cursor: "pointer" }}>Clear Week</button>
+          </div>
+
+          {/* Defaults panel */}
+          {showDefaults && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginBottom: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Set Defaults</div>
+            <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8 }}>Set default meals. Use "All" to apply to all people or "Individual" for just {activeTab === "jc" ? "JC" : "Becks"}.</div>
+            {[{ k: "b", l: "Breakfast", items: allBfast }, { k: "l", l: "Lunch", items: allLunch }, { k: "d", l: "Dinner", items: allDinners }].map(function(def) {
+              return (<div key={def.k} style={{ marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>{def.l}</span>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={function() { saveDef(def.k, defs[def.k], "all"); setFormMsg("Applied to all"); setTimeout(function() { setFormMsg(""); }, 1500); }} style={{ fontSize: 9, padding: "2px 6px", background: "#dbeafe", border: "1px solid #93c5fd", borderRadius: 4, color: "#1e40af", cursor: "pointer" }}>All</button>
+                    <button onClick={function() { saveDef(def.k, defs[def.k], "individual"); setFormMsg("Applied individually"); setTimeout(function() { setFormMsg(""); }, 1500); }} style={{ fontSize: 9, padding: "2px 6px", background: "#f3e8ff", border: "1px solid #c4b5fd", borderRadius: 4, color: "#6b21a8", cursor: "pointer" }}>Individual</button>
+                  </div>
+                </div>
+                <select value={defs[def.k] || ""} onChange={function(e) { saveDef(def.k, e.target.value, "individual"); }} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }}>
+                  <option value="">—</option>
+                  {def.items.map(function(item) { return <option key={item.id} value={item.id}>{item.name}</option>; })}
+                </select>
+              </div>);
+            })}
+            <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", marginTop: 4, marginBottom: 4 }}>Other defaults</div>
+            {[1,2,3,4,5,6,7].map(function(n) {
+              return (<div key={n} style={{ marginBottom: 4 }}>
+                <span style={{ fontSize: 9, color: "#94a3b8" }}>Other {n}</span>
+                <select value={defs["o" + n] || ""} onChange={function(e) { saveDef("o" + n, e.target.value, "individual"); }} style={{ width: "100%", padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10 }}>
+                  <option value="">—</option>
+                  {allOther.map(function(item) { return <option key={item.id} value={item.id}>{item.name}</option>; })}
+                </select>
+              </div>);
+            })}
+          </div>)}
+
+          {/* Day tabs */}
+          <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2, marginBottom: 0 }}>
+            {DAYS.map(function(d) {
+              var dk = getDayKcal(d);
+              return (<button key={d} onClick={function() { setEatDay(d); }} style={{ flex: 1, padding: "6px 2px", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: eatDay === d ? "#fff" : "transparent", color: eatDay === d ? "#0f172a" : "#94a3b8", lineHeight: 1.2 }}><div>{DAY_LABELS[d]}</div>{dk > 0 && <div style={{ fontSize: 8, color: dk > (isJC ? 2200 : 1900) ? "#dc2626" : "#16a34a" }}>{dk}</div>}</button>);
+            })}
+          </div>
+
+          {/* Day content */}
+          <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</div>
+
+            {/* Breakfast */}
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Breakfast</span>
+              <MealSelect items={allBfast} value={getMeal(eatDay, "b")} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); } else { setMeal(eatDay, "b", e.target.value); } }} placeholder="Select breakfast..." />
+            </div>
+
+            {/* Lunch */}
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Lunch</span>
+              <MealSelect items={allLunch} value={getMeal(eatDay, "l")} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); } else { setMeal(eatDay, "l", e.target.value); } }} placeholder="Select lunch..." />
+            </div>
+
+            {/* Dinner */}
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Dinner</span>
+              <MealSelect items={allDinners} value={getMeal(eatDay, "d")} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); } else { setMeal(eatDay, "d", e.target.value); } }} placeholder="Select dinner..." />
+            </div>
+
+            {/* Other items */}
+            {otherSlots.map(function(idx) {
+              return (<div key={idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: 9, color: "#94a3b8" }}>Other {idx}</span>
+                  <MealSelect items={allOther} value={getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Snack / drink / other..." />
+                </div>
+                <button onClick={function() { removeOtherSlot(eatDay, idx); }} style={{ fontSize: 12, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", marginTop: 14 }}>✕</button>
+              </div>);
+            })}
+            <button onClick={function() { addOtherSlot(eatDay); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginBottom: 8 }}>+ Add Other</button>
+
+            {/* Add new item */}
+            {addingNew && (<div style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #fde68a" }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#854d0e", marginBottom: 4 }}>Add New Item</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. Costa Rocky Road, Protein shake, Glass of wine..." style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ padding: "6px 12px", background: newItemLoading ? "#94a3b8" : "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button>
+                <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: "6px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+              </div>
+              <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
+            </div>)}
+
+            {/* Day notes */}
+            <div style={{ marginTop: 8 }}>
+              <span style={{ fontSize: 10, color: "#94a3b8" }}>Day notes</span>
+              <textarea defaultValue={dayMeals._note || ""} onBlur={function(e) { setMeal(eatDay, "_note", e.target.value); }} placeholder="e.g. Ate out, exam stress, birthday..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 30, resize: "vertical", boxSizing: "border-box" }} />
+            </div>
+
+            {/* Quick text input */}
+            <div style={{ marginTop: 8, padding: 10, background: "#f0f9ff", borderRadius: 8, border: "1px solid #bae6fd" }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: "#0369a1", marginBottom: 4 }}>Quick Entry — type or paste what you ate</div>
+              <textarea id={"quick-entry-" + eatDay} placeholder="e.g. Had porridge for breakfast, chicken sandwich for lunch, spag bol for dinner, 2 biscuits and a protein mousse..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 40, resize: "vertical", boxSizing: "border-box", marginBottom: 6 }} />
               <button onClick={async function() {
-                setGenMealsLoading(true); setFormMsg("Building meal recommendations...");
+                var text = document.getElementById("quick-entry-" + eatDay).value;
+                if (!text.trim()) return;
+                setFormMsg("Reading your meals...");
                 try {
-                  var prof = p.profile || {}; var ob = p.onboarding || {};
-                  var prompt = "Create a personalised meal database for " + (prof.name || "this person") + " (" + (prof.sex || "") + ", " + (prof.age || "") + ", " + (prof.height || "") + "). Conditions: " + (ob.conditions || prof.notes || "none") + ". Dietary: " + (ob.dietary || "no restrictions") + ". Goals: " + (ob.goals || "general health") + ". Generate 15 dinner options, 5 breakfast options, 5 lunch options, and 8 snack options appropriate for their needs. Return ONLY JSON: {\"dinners\":[{\"name\":\"...\",\"kcal\":450,\"protein\":35,\"fat\":12,\"rating\":\"GREAT\",\"freq\":\"Weekly\",\"time\":25,\"shop\":[\"item1\",\"item2\"]}],\"breakfasts\":[{\"name\":\"...\",\"kcal\":350,\"rating\":\"GREAT\"}],\"lunches\":[{\"name\":\"...\",\"kcal\":400,\"rating\":\"GREAT\"}],\"snacks\":[{\"name\":\"...\",\"kcal\":100,\"rating\":\"GREAT\"}]}";
-                  var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
-                  var result = await resp.json(); var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                  if (txt) {
-                    var meals = JSON.parse(txt.replace(/```json|```/g, "").trim());
-                    var newDinners = (meals.dinners || []).map(function(d, i) { return { id: "gen_dinner_" + i, name: d.name, rating: d.rating || "GREAT", jcKcal: d.kcal, beckKcal: Math.round(d.kcal * 0.85), jcProt: d.protein || 0, beckProt: Math.round((d.protein || 0) * 0.85), jcFat: d.fat || 0, beckFat: Math.round((d.fat || 0) * 0.85), freq: d.freq || "Weekly", time: d.time || 30, shop: d.shop || [] }; });
-                    var newBfasts = (meals.breakfasts || []).map(function(b, i) { return { id: "gen_bfast_" + i, name: b.name, jcKcal: b.kcal, beckKcal: Math.round(b.kcal * 0.85), rating: b.rating || "GREAT" }; });
-                    var newLunches = (meals.lunches || []).map(function(l, i) { return { id: "gen_lunch_" + i, name: l.name, jcKcal: l.kcal, beckKcal: Math.round(l.kcal * 0.85), rating: l.rating || "GREAT" }; });
-                    var newSnacks = (meals.snacks || []).map(function(s, i) { return { id: "gen_snack_" + i, name: s.name, jcKcal: s.kcal, beckKcal: s.kcal, rating: s.rating || "GREAT", freq: "Daily" }; });
-                    var cm = [].concat(customMeals, newDinners); setCustomMeals(cm); await sSet("custom_meals", JSON.stringify(cm));
-                    var cbf = [].concat(customBreakfasts, newBfasts); setCustomBreakfasts(cbf); await sSet("custom_breakfasts", JSON.stringify(cbf));
-                    var clu = [].concat(customLunches, newLunches); setCustomLunches(clu); await sSet("custom_lunches", JSON.stringify(clu));
-                    var csn = [].concat(customSnacks, newSnacks); setCustomSnacks(csn); await sSet("custom_snacks", JSON.stringify(csn));
-                    setFormMsg("✓ " + newDinners.length + " dinners, " + newBfasts.length + " breakfasts, " + newLunches.length + " lunches, " + newSnacks.length + " snacks added");
+                  var bIds = allBfast.map(function(b) { return b.id + ":" + b.name; }).join(",");
+                  var lIds = allLunch.map(function(l) { return l.id + ":" + l.name; }).join(",");
+                  var dIds = allDinners.map(function(d2) { return d2.id + ":" + d2.name; }).join(",");
+                  var oIds = allOther.map(function(o) { return o.id + ":" + o.name; }).join(",");
+                  var fmt = '{"b":"meal_id or empty","l":"meal_id or empty","d":"meal_id or empty","others":["item_id","item_id"]}';
+                  var prompt = "Match these meals to the closest items in our database. User said: " + text + ". Breakfasts: " + bIds + ". Lunches: " + lIds + ". Dinners: " + dIds + ". Others: " + oIds + ". Return ONLY JSON: " + fmt;
+                  var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: prompt }] }) });
+                  var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+                  var txt2 = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt2 += result.content[ci].text; } }
+                  if (txt2) {
+                    var matched = JSON.parse(txt2.replace(/```json|```/g, "").trim());
+                    var n = Object.assign({}, meals); if (!n[eatDay]) n[eatDay] = {};
+                    if (matched.b) n[eatDay].b = matched.b;
+                    if (matched.l) n[eatDay].l = matched.l;
+                    if (matched.d) n[eatDay].d = matched.d;
+                    if (matched.others) { matched.others.forEach(function(oid, idx2) { n[eatDay]["o" + (idx2 + 1)] = oid; }); }
+                    setMeals(n); saveMeals(n);
+                    setFormMsg("Meals matched and saved");
+                    document.getElementById("quick-entry-" + eatDay).value = "";
                   }
-                } catch(e) { setFormMsg("\u2717 Could not generate — check API key"); }
-                setTimeout(function() { setFormMsg(""); }, 5000); setGenMealsLoading(false);
-              }} disabled={genMealsLoading} style={{ ...btnP(!genMealsLoading), background: genMealsLoading ? "#94a3b8" : "linear-gradient(135deg, #d97706 0%, #f59e0b 100%)" }}>{genMealsLoading ? <span>Building meals, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🍽️ Build Recommended Meal Options"}</button>
-              <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Generates personalised breakfast, lunch, dinner, and snack options colour-coded to your dietary needs. You can add more manually afterwards.</div>
-            </div>)}
+                } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); }
+                setTimeout(function() { setFormMsg(""); }, 4000);
+              }} style={{ width: "100%", padding: 8, background: "#0369a1", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Match My Meals</button>
+              <div style={{ fontSize: 9, color: "#64748b", marginTop: 3 }}>Type what you ate in plain English. AI matches to your meal database and fills the fields.</div>
+            </div>
+          </div>
 
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 10 }}>Weekly Meal Generator</div>
-            <div style={{ padding: 10, background: "#f0fdf4", borderRadius: 8, marginBottom: 10, border: "1px solid #bbf7d0" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#166534" }}>Quick Prep Days</span>
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <span style={{ fontSize: 10, color: "#64748b" }}>Max</span>
-                  <input type="number" id={"quickprep-time-" + activeTab} defaultValue="20" style={{ width: 45, padding: "3px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
-                  <span style={{ fontSize: 10, color: "#64748b" }}>mins</span>
-                </div>
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(function(d) {
-                  return (<label key={d} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "#166534", cursor: "pointer" }}>
-                    <input type="checkbox" id={"qp-" + d + "-" + activeTab} style={{ width: 14, height: 14 }} />
-                    {d}
-                  </label>);
-                })}
-              </div>
-              <div style={{ fontSize: 9, color: "#64748b", marginTop: 4 }}>Ticked days will only get meals within the prep time limit when generating</div>
-            </div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Set Defaults (auto-fill empty days)</div>
-            <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 8px", alignItems: "center", marginBottom: 10 }}>
-              <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8" }}>Breakfast</span>
-              <select value={defs.b || ""} onChange={e => saveDef("b", e.target.value)} style={{ padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, background: "#f8fafc" }}>
-                <option value="">None</option>
-                {allBfast.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
-              <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8" }}>Lunch</span>
-              <select value={defs.l || ""} onChange={e => saveDef("l", e.target.value)} style={{ padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, background: "#f8fafc" }}>
-                <option value="">None</option>
-                {allLnch.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-              </select>
-              <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8" }}>Snack 1</span>
-              <select value={defs.s1 || ""} onChange={e => saveDef("s1", e.target.value)} style={{ padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, background: "#f8fafc" }}>
-                <option value="">None</option>
-                {allSnk.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-              <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8" }}>Snack 2</span>
-              <select value={defs.s2 || ""} onChange={e => saveDef("s2", e.target.value)} style={{ padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, background: "#f8fafc" }}>
-                <option value="">None</option>
-                {allSnk.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-              <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8" }}>Snack 3</span>
-              <select value={defs.s3 || ""} onChange={e => saveDef("s3", e.target.value)} style={{ padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, background: "#f8fafc" }}>
-                <option value="">None</option>
-                {allSnk.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={applyDefaults} style={{ flex: 1, padding: 10, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>Apply Defaults</button>
-              <button onClick={generateWeekMeals} disabled={generating} style={{ flex: 1, padding: 10, background: generating ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: generating ? "default" : "pointer" }}>{generating ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🤖 Generate Dinners"}</button>
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <button onClick={() => setWeekOff(o => o - 1)} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>‹</button>
-            <div style={{ textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 700 }}>{weekLabel}</div><div style={{ fontSize: 11, color: "#64748b" }}>{planned}/7 dinners</div></div>
-            <button onClick={() => setWeekOff(o => o + 1)} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>›</button>
-          </div>
-          {showCustomForm && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Add Custom Meal</div>
-            <div style={{ marginBottom: 8 }}><label style={labelStyle}>Name</label><input value={customInputs.name} onChange={e => setCustomInputs(q => ({ ...q, name: e.target.value }))} style={inputStyle} /></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {[["jcKcal","JC Kcal"],["beckKcal","Beck Kcal"],["jcProt","JC Protein"],["beckProt","Beck Protein"],["jcFat","JC Sat Fat"],["beckFat","Beck Sat Fat"]].map(([k,l]) => (<div key={k}><label style={labelStyle}>{l}</label><input type="number" value={customInputs[k]} onChange={e => setCustomInputs(q => ({ ...q, [k]: e.target.value }))} style={inputStyle} /></div>))}
-            </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}><button onClick={saveCustomMeal} disabled={!customInputs.name.trim()} style={{ ...btnP(!!customInputs.name.trim()), flex: 1 }}>Add</button><button onClick={() => setShowCustomForm(false)} style={btnS}>Cancel</button></div>
-          </div>)}
-          {mealLoading ? <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>Loading...</div> : MEAL_DAYS.map((d, idx) => {
-            const mealEntry = meals[d.key]; const isObj = mealEntry && typeof mealEntry === "object";
-            const mid = isObj ? mealEntry.d : mealEntry; const ml = typeof mid === "string" ? allDinners.find(m => m.id === mid) : null;
-            const mb = isObj ? mealEntry.b : undefined; const mlnch = isObj ? mealEntry.l : undefined;
-            const bObj = BREAKFASTS.find(b => b.id === mb); const lObj = LUNCHES.find(l => l.id === mlnch);
-            const nt = null;
-            const snkT = SNACK_TEMPLATES[DAY_TYPE[d.key]];
-            const bKcal = bObj ? (isJC ? bObj.jcKcal : bObj.beckKcal) : (isJC ? JC_BASE[d.key].bfast : BECK_BASE[d.key].bfast);
-            const lKcal = lObj ? (isJC ? lObj.jcKcal : lObj.beckKcal) : (isJC ? JC_BASE[d.key].lunch : BECK_BASE[d.key].lunch);
-            const allSnacks = [...SNACKS, ...customSnacks];
-            const s1Kcal = isObj && mealEntry.s1 ? (allSnacks.find(s => s.id === mealEntry.s1) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
-            const s2Kcal = isObj && mealEntry.s2 ? (allSnacks.find(s => s.id === mealEntry.s2) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
-            const s3Kcal = isObj && mealEntry.s3 ? (allSnacks.find(s => s.id === mealEntry.s3) || {})[isJC ? "jcKcal" : "beckKcal"] || 0 : 0;
-            const sKcal = (s1Kcal + s2Kcal + s3Kcal) || (isJC ? JC_BASE[d.key].snacks : BECK_BASE[d.key].snacks);
-            const dKcal = ml ? (isJC ? ml.jcKcal : ml.beckKcal) : 0;
-            const dayTotal = bKcal + lKcal + sKcal + dKcal;
-            const lo = isJC ? 2000 : 1700; const hi = isJC ? 2400 : 1900;
-            const ed = editDay === d.key;
-            const pickSlot = (slot, id) => { const cur = isObj ? Object.assign({}, mealEntry) : { d: mealEntry }; cur[slot] = id; const n = Object.assign({}, meals); n[d.key] = cur; setMeals(n); saveMeals(n); };
-            return (<div key={d.key} style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 8, overflow: "hidden" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px 6px" }}><div><span style={{ fontSize: 14, fontWeight: 700 }}>{d.full}</span><span style={{ fontSize: 12, color: "#94a3b8", marginLeft: 6 }}>{fmtDate(weekDates[idx])}</span></div>
-                <div style={{ fontSize: 10, fontWeight: 600, padding: "2px 6px", borderRadius: 4, background: dayTotal > hi ? "#fee2e2" : dayTotal < lo ? "#fef9c3" : "#dcfce7", color: dayTotal > hi ? "#991b1b" : dayTotal < lo ? "#854d0e" : "#166534" }}>{isJC ? "JC" : "Beck"} ~{dayTotal}</div>
-              </div>
-              {nt && <div style={{ padding: "4px 12px 6px", fontSize: 11, color: "#7c3aed", background: "#f5f3ff", fontStyle: "italic" }}>{nt}</div>}
-              <div style={{ padding: "4px 12px" }}>
-                {/* Breakfast */}
-                {(() => { const allBfast = [...BREAKFASTS, ...customBreakfasts]; return (<>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                  <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 24 }}>B</span>
-                  <select value={mb || ""} onChange={e => pickSlot("b", e.target.value)} style={{ flex: 1, padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, background: "#f8fafc", color: mb ? "#0f172a" : "#94a3b8" }}>
-                    <option value="">Select breakfast...</option>
-                    {allBfast.map(b => <option key={b.id} value={b.id}>{b.name} ({isJC ? b.jcKcal : b.beckKcal})</option>)}
-                  </select>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  <span style={{ width: 24 }}></span>
-                  <button onClick={() => { setShowAddMealType("breakfast"); setNewMealTypeInputs({ name: "", jcKcal: "", beckKcal: "", rating: "GREAT" }); }} style={{ fontSize: 10, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: 0 }}>+ Add new breakfast</button>
-                </div>
-                </>); })()}
-                {/* Lunch */}
-                {(() => { const allLunch = [...LUNCHES, ...customLunches]; return (<>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                  <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 24 }}>L</span>
-                  <select value={mlnch || ""} onChange={e => pickSlot("l", e.target.value)} style={{ flex: 1, padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, background: "#f8fafc", color: mlnch ? "#0f172a" : "#94a3b8" }}>
-                    <option value="">Select lunch...</option>
-                    {allLunch.map(l => <option key={l.id} value={l.id}>{l.name} ({isJC ? l.jcKcal : l.beckKcal})</option>)}
-                  </select>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  <span style={{ width: 24 }}></span>
-                  <button onClick={() => { setShowAddMealType("lunch"); setNewMealTypeInputs({ name: "", jcKcal: "", beckKcal: "", rating: "GREAT" }); }} style={{ fontSize: 10, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: 0 }}>+ Add new lunch</button>
-                </div>
-                </>); })()}
-                {/* Snacks */}
-                {[1,2,3].map(sn => {
-                  const snKey = "s" + sn;
-                  const snVal = isObj ? mealEntry[snKey] : undefined;
-                  const allSnacks = [...SNACKS, ...customSnacks];
-                  const snObj = allSnacks.find(s => s.id === snVal);
-                  return (<div key={sn} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 24 }}>S{sn}</span>
-                    <select value={snVal || ""} onChange={e => pickSlot(snKey, e.target.value)} style={{ flex: 1, padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, background: "#f8fafc", color: snVal ? "#0f172a" : "#94a3b8" }}>
-                      <option value="">Select snack...</option>
-                      {allSnacks.map(s => <option key={s.id} value={s.id}>{s.name} ({isJC ? s.jcKcal : s.beckKcal})</option>)}
-                    </select>
-                  </div>);
-                })}
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 24 }}></span>
-                  <button onClick={() => setShowAddSnack(true)} style={{ fontSize: 10, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: 0 }}>+ Add new snack to database</button>
-                </div>
-              </div>
-              {/* Dinner */}
-              {!ed && ml ? (<div style={{ padding: "4px 12px 10px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 24 }}>D</span>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: RC[ml.rating]?.dot, flexShrink: 0 }} /><span style={{ fontSize: 13, fontWeight: 600 }}>{ml.name}</span>
-                </div>
-                <div style={{ fontSize: 11, color: "#64748b", paddingLeft: 30 }}>JC: {ml.jcKcal} · Beck: {ml.beckKcal} kcal {ml.time && <span style={{ marginLeft: 4, fontSize: 10, padding: "1px 6px", borderRadius: 4, background: ml.time <= 20 ? "#dcfce7" : "#fef9c3", color: ml.time <= 20 ? "#166534" : "#854d0e" }}>{ml.time <= 20 ? "⚡" : "🕐"} {ml.time}min</span>}</div>
-                <div style={{ display: "flex", gap: 6, marginTop: 6, paddingLeft: 30 }}><button onClick={() => setEditDay(d.key)} style={{ fontSize: 11, color: "#3b82f6", background: "none", border: "none", cursor: "pointer", padding: 0 }}>Change</button><span style={{ color: "#e2e8f0" }}>|</span><button onClick={() => { const n = Object.assign({}, meals); if (isObj) { const cur = Object.assign({}, mealEntry); cur.d = undefined; n[d.key] = cur; } else { n[d.key] = undefined; } setMeals(n); saveMeals(n); }} style={{ fontSize: 11, color: "#ef4444", background: "none", border: "none", cursor: "pointer", padding: 0 }}>Clear</button></div>
-              </div>) : !ed ? (<div style={{ padding: "4px 12px 10px" }}><div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 24 }}>D</span><button onClick={() => setEditDay(d.key)} style={{ flex: 1, padding: 8, background: "#f8fafc", border: "2px dashed #cbd5e1", borderRadius: 8, fontSize: 11, color: "#64748b", cursor: "pointer" }}>+ Choose dinner</button></div></div>) : (<div style={{ padding: "4px 8px 10px", maxHeight: 300, overflowY: "auto" }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: "#64748b", marginBottom: 6, padding: "0 4px" }}>Pick dinner — {d.context}</div>
-                {allDinners.map(m => { const rc = RC[m.rating] || RC.INFO; return (<button key={m.id} onClick={() => { pickSlot("d", m.id); setEditDay(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", marginBottom: 3, background: rc.bg, border: "1px solid transparent", borderRadius: 6, cursor: "pointer", fontSize: 12 }}><div style={{ fontWeight: 600, color: rc.text, marginBottom: 2 }}><span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: rc.dot, marginRight: 6 }} />{m.name}</div><div style={{ fontSize: 10, color: "#64748b", paddingLeft: 13 }}>JC {m.jcKcal} / Beck {m.beckKcal} · {m.freq} · ~{m.time}min</div></button>); })}
-                <button onClick={() => { setShowAddMealType("dinner"); setNewMealTypeInputs({ name: "", jcKcal: "", beckKcal: "", rating: "GREAT" }); setEditDay(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", marginBottom: 3, background: "#f1f5f9", border: "2px dashed #cbd5e1", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#475569" }}>+ Add New Dinner</button>
-                <button onClick={() => setEditDay(null)} style={{ width: "100%", padding: 8, marginTop: 4, background: "#f1f5f9", border: "none", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer" }}>Cancel</button>
-              </div>)}
-              {/* Day comment */}
-              <div style={{ padding: "4px 12px 8px" }}>
-                <textarea id={"meal-note-" + d.key} defaultValue={(isObj ? mealEntry._note : "") || ""} placeholder="Day notes (e.g. holiday, eating out, special occasion)..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, resize: "none", minHeight: 28, boxSizing: "border-box", fontFamily: "inherit", color: "#475569" }} onBlur={e => { const txt = e.target.value.trim(); const cur = isObj ? Object.assign({}, mealEntry) : { d: mealEntry }; cur._note = txt; const n = Object.assign({}, meals); n[d.key] = cur; setMeals(n); saveMeals(n); }} />
-              </div>
-            </div>);
-          })}
-          {/* Add snack form */}
-          {showAddSnack && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Add New Snack</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <div style={{ gridColumn: "1 / -1" }}><label style={labelStyle}>Snack Name</label><input value={newSnackInputs.name} onChange={e => setNewSnackInputs(q => ({ ...q, name: e.target.value }))} style={inputStyle} placeholder="e.g. Rice Cakes" /></div>
-              <div><label style={labelStyle}>Calories (kcal)</label><input type="number" value={newSnackInputs.kcal} onChange={e => setNewSnackInputs(q => ({ ...q, kcal: e.target.value }))} style={inputStyle} /></div>
-              <div><label style={labelStyle}>Rating</label><select value={newSnackInputs.rating} onChange={e => setNewSnackInputs(q => ({ ...q, rating: e.target.value }))} style={inputStyle}><option>GREAT</option><option>AMBER</option><option>RED</option></select></div>
-            </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-              <button onClick={async () => { if (!newSnackInputs.name.trim()) return; const id = "snack_" + Date.now(); const kcal = parseInt(newSnackInputs.kcal) || 0; const snack = { id, name: newSnackInputs.name.trim(), jcKcal: kcal, beckKcal: kcal, rating: newSnackInputs.rating, freq: "Weekly" }; const updated = [...customSnacks, snack]; setCustomSnacks(updated); await sSet("custom_snacks", JSON.stringify(updated)); setShowAddSnack(false); setNewSnackInputs({ name: "", kcal: "", rating: "GREAT", freq: "Weekly" }); setFormMsg("✓ " + snack.name + " added"); setTimeout(() => setFormMsg(""), 3000); }} disabled={!newSnackInputs.name.trim()} style={{ ...btnP(!!newSnackInputs.name.trim()), flex: 1 }}>Add Snack</button>
-              <button onClick={() => setShowAddSnack(false)} style={btnS}>Cancel</button>
-            </div>
-          </div>)}
-          {/* Add meal type form (breakfast/lunch/dinner) */}
-          {showAddMealType && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Add New {showAddMealType.charAt(0).toUpperCase() + showAddMealType.slice(1)}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <div style={{ gridColumn: "1 / -1" }}><label style={labelStyle}>Name</label><input value={newMealTypeInputs.name} onChange={e => setNewMealTypeInputs(q => ({ ...q, name: e.target.value }))} style={inputStyle} placeholder={"e.g. " + (showAddMealType === "breakfast" ? "Granola + Yogurt" : showAddMealType === "lunch" ? "Chicken Caesar Wrap" : "Thai Green Curry")} /></div>
-              <div><label style={labelStyle}>JC Kcal</label><input type="number" value={newMealTypeInputs.jcKcal} onChange={e => setNewMealTypeInputs(q => ({ ...q, jcKcal: e.target.value }))} style={inputStyle} /></div>
-              <div><label style={labelStyle}>Beck Kcal</label><input type="number" value={newMealTypeInputs.beckKcal} onChange={e => setNewMealTypeInputs(q => ({ ...q, beckKcal: e.target.value }))} style={inputStyle} /></div>
-              <div><label style={labelStyle}>Rating</label><select value={newMealTypeInputs.rating} onChange={e => setNewMealTypeInputs(q => ({ ...q, rating: e.target.value }))} style={inputStyle}><option>GREAT</option><option>AMBER</option><option>RED</option></select></div>
-            </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-              <button onClick={async () => {
-                if (!newMealTypeInputs.name.trim()) return;
-                const id = showAddMealType + "_" + Date.now();
-                const item = { id, name: newMealTypeInputs.name.trim(), jcKcal: parseInt(newMealTypeInputs.jcKcal) || 0, beckKcal: parseInt(newMealTypeInputs.beckKcal) || 0, rating: newMealTypeInputs.rating };
-                if (showAddMealType === "breakfast") {
-                  const updated = [...customBreakfasts, Object.assign(item, { note: "" })];
-                  setCustomBreakfasts(updated); await sSet("custom_breakfasts", JSON.stringify(updated));
-                } else if (showAddMealType === "lunch") {
-                  const updated = [...customLunches, Object.assign(item, { note: "" })];
-                  setCustomLunches(updated); await sSet("custom_lunches", JSON.stringify(updated));
-                } else {
-                  const meal = Object.assign(item, { jcProt: 0, beckProt: 0, jcFat: 0, beckFat: 0, freq: "Weekly", time: 20, shop: [] });
-                  const updated = [...customMeals, meal];
-                  setCustomMeals(updated); await sSet("custom_meals", JSON.stringify(updated));
-                }
-                setShowAddMealType(null);
-                setNewMealTypeInputs({ name: "", jcKcal: "", beckKcal: "", rating: "GREAT" });
-                setFormMsg("✓ " + item.name + " added to " + showAddMealType + "s");
-                setTimeout(() => setFormMsg(""), 3000);
-              }} disabled={!newMealTypeInputs.name.trim()} style={{ ...btnP(!!newMealTypeInputs.name.trim()), flex: 1 }}>Add {showAddMealType.charAt(0).toUpperCase() + showAddMealType.slice(1)}</button>
-              <button onClick={() => setShowAddMealType(null)} style={btnS}>Cancel</button>
-            </div>
-          </div>)}
+          {/* Generate meals */}
+          <button onClick={generateWeekMeals} disabled={generating} style={{ width: "100%", padding: 12, marginTop: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: generating ? "not-allowed" : "pointer", background: generating ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{generating ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Week Meals"}</button>
+          <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Fills empty breakfast, lunch, and dinner slots for all days. Respects your defaults.</div>
         </div>); })()}
 
-        {/* HEALTH */}
-        {section === "bloods" && (() => {
-          const allBT = BLOOD_TESTS.map(g => ({ group: g.group, tests: [...g.tests] }));
-          customBloodTests.forEach(ct => { const grp = allBT.find(g => g.group === (ct.group || "Other")); if (grp) { if (!grp.tests.find(t => t.key === ct.key)) grp.tests.push(ct); } else { allBT.push({ group: ct.group || "Other", tests: [ct] }); } });
-          return (<div>
-          {/* General Health Updates */}
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10, color: "#0f172a" }}>General Health</div>
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>How are you feeling? (fatigue, stress, sleep, mood, illness — factored into feedback)</div>
-            <textarea id={"health-comment-" + activeTab} defaultValue="" placeholder="e.g. More tired than usual this week, stressed at work, sleeping badly, under the weather..." style={{ ...inputStyle, minHeight: 60, resize: "vertical", fontSize: 12 }} />
-            <button onClick={async () => { const el = document.getElementById("health-comment-" + activeTab); const txt = el ? el.value.trim() : ""; if (!txt) return; const nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].healthLog) nd[activeTab].healthLog = []; nd[activeTab].healthLog.push({ date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), note: txt }); if (nd[activeTab].healthLog.length > 20) nd[activeTab].healthLog = nd[activeTab].healthLog.slice(-20); await saveData(nd); el.value = ""; setFormMsg("✓ Health update saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(), marginTop: 8 }}>Save Health Update</button>
-            {p.healthLog && p.healthLog.length > 0 && (<div style={{ marginTop: 10, borderTop: "1px solid #f1f5f9", paddingTop: 8 }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", marginBottom: 4 }}>RECENT UPDATES</div>
-              {p.healthLog.slice(-5).reverse().map((h, i) => (<div key={i} style={{ fontSize: 11, color: "#475569", padding: "4px 0", borderBottom: "1px solid #f8fafc" }}><span style={{ fontSize: 10, color: "#94a3b8" }}>{h.date}</span> {h.note}</div>))}
-            </div>)}
-          </div>
-
-          {/* Blood Results */}
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10, color: "#0f172a" }}>Blood Results</div>
-          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-            <button onClick={() => { setShowBloodForm(true); setBloodInputs({ date: new Date().toISOString().slice(0, 7) }); }} style={{ ...btnP(), flex: 1 }}>Add Blood Results</button>
-            <button onClick={() => setShowAddBloodTest(true)} style={{ ...btnS, whiteSpace: "nowrap" }}>+ Test Type</button>
-          </div>
-          {showAddBloodTest && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Add New Blood Test Type</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <div style={{ gridColumn: "1 / -1" }}><label style={labelStyle}>Test Name</label><input value={newBloodTest.name} onChange={e => setNewBloodTest(q => ({ ...q, name: e.target.value, key: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "_") }))} style={inputStyle} placeholder="e.g. Vitamin D" /></div>
-              <div><label style={labelStyle}>Unit</label><input value={newBloodTest.unit} onChange={e => setNewBloodTest(q => ({ ...q, unit: e.target.value }))} style={inputStyle} placeholder="e.g. nmol/L" /></div>
-              <div><label style={labelStyle}>Group</label><select value={newBloodTest.group || "Other"} onChange={e => setNewBloodTest(q => ({ ...q, group: e.target.value }))} style={inputStyle}><option>Thyroid Function</option><option>Lipid Profile</option><option>Metabolic</option><option>Other</option></select></div>
-              <div><label style={labelStyle}>Range Low</label><input type="number" step="0.01" value={newBloodTest.lo} onChange={e => setNewBloodTest(q => ({ ...q, lo: e.target.value }))} style={inputStyle} placeholder="Optional" /></div>
-              <div><label style={labelStyle}>Range High</label><input type="number" step="0.01" value={newBloodTest.hi} onChange={e => setNewBloodTest(q => ({ ...q, hi: e.target.value }))} style={inputStyle} placeholder="Optional" /></div>
-            </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-              <button onClick={async () => { if (!newBloodTest.name.trim()) return; const test = { key: newBloodTest.key, name: newBloodTest.name.trim(), unit: newBloodTest.unit, group: newBloodTest.group || "Other" }; if (newBloodTest.lo) test.lo = parseFloat(newBloodTest.lo); if (newBloodTest.hi) test.hi = parseFloat(newBloodTest.hi); const updated = [...customBloodTests, test]; setCustomBloodTests(updated); await sSet("custom_blood_tests", JSON.stringify(updated)); setShowAddBloodTest(false); setNewBloodTest({ key: "", name: "", unit: "", lo: "", hi: "" }); setFormMsg("✓ " + test.name + " added to blood tests"); setTimeout(() => setFormMsg(""), 3000); }} disabled={!newBloodTest.name.trim()} style={{ ...btnP(!!newBloodTest.name.trim()), flex: 1 }}>Add Test Type</button>
-              <button onClick={() => setShowAddBloodTest(false)} style={btnS}>Cancel</button>
-            </div>
-          </div>)}
-          {showBloodForm && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Blood Test Results</div>
-            <div style={{ marginBottom: 10 }}><label style={labelStyle}>Date (YYYY-MM)</label><input value={bloodInputs.date} onChange={e => setBloodInputs(q => ({ ...q, date: e.target.value }))} style={{ ...inputStyle, width: 140 }} placeholder="2026-08" /></div>
-            {allBT.map(grp => (<div key={grp.group}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: accent, marginTop: 10, marginBottom: 6 }}>{grp.group}</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                {grp.tests.map(t => (<div key={t.key}><label style={labelStyle}>{t.name} {t.unit ? "(" + t.unit + ")" : ""}{t.lo != null ? " [" + t.lo + "–" + t.hi + "]" : ""}</label><input type="number" step="0.01" value={bloodInputs[t.key] || ""} onChange={e => setBloodInputs(q => ({ ...q, [t.key]: e.target.value }))} style={inputStyle} /></div>))}
-              </div>
-            </div>))}
-            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-              <button onClick={async () => {
-                if (!data || !bloodInputs.date) return;
-                const nd = JSON.parse(JSON.stringify(data));
-                const pp = nd[activeTab];
-                if (!pp.bloods) pp.bloods = [];
-                const tests = {};
-                allBT.forEach(g => g.tests.forEach(t => { const v = parseFloat(bloodInputs[t.key]); if (!isNaN(v)) tests[t.key] = v; }));
-                if (Object.keys(tests).length === 0) return;
-                const existing = pp.bloods.findIndex(b => b.date === bloodInputs.date);
-                if (existing >= 0) pp.bloods[existing].tests = Object.assign(pp.bloods[existing].tests, tests);
-                else pp.bloods.push({ date: bloodInputs.date, tests });
-                pp.bloods.sort((a, b) => a.date.localeCompare(b.date));
-                nd.config.week = calcWeek(nd.config.trainingStart); nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-                await saveData(nd);
-                setShowBloodForm(false);
-                setFormMsg("✓ Blood results saved");
-                setTimeout(function() { setFormMsg(""); }, 3000);
-              }} style={{ ...btnP(!!bloodInputs.date), flex: 1 }}>Save Results</button>
-              <button onClick={() => setShowBloodForm(false)} style={btnS}>Cancel</button>
-            </div>
-          </div>)}
-          {/* Display blood results by test group */}
-          {allBT.map(grp => {
-            const testsWithData = grp.tests.filter(t => p.bloods && p.bloods.some(b => b.tests[t.key] != null));
-            if (testsWithData.length === 0) return null;
-            return (<div key={grp.group} style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>{grp.group}</div>
-              {testsWithData.map(t => {
-                const entries = (p.bloods || []).filter(b => b.tests[t.key] != null).map(b => ({ date: b.date, v: b.tests[t.key] }));
-                const latest = entries.length > 0 ? entries[entries.length - 1] : null;
-                const prev = entries.length > 1 ? entries[entries.length - 2] : null;
-                const inRange = latest && t.lo != null ? (latest.v >= t.lo && latest.v <= t.hi) : null;
-                const delta = (latest && prev) ? (latest.v - prev.v).toFixed(2) : null;
-                return (<div key={t.key} style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginBottom: 8 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{t.name}</div>
-                    {inRange != null && <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 12, background: inRange ? "#dcfce7" : "#fee2e2", color: inRange ? "#166534" : "#991b1b" }}>{inRange ? "In Range" : "Out of Range"}</span>}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                    <span style={{ fontSize: 24, fontWeight: 800, color: "#0f172a" }}>{latest ? latest.v : "—"}</span>
-                    <span style={{ fontSize: 11, color: "#94a3b8" }}>{t.unit}</span>
-                    {t.lo != null && <span style={{ fontSize: 10, color: "#94a3b8" }}>[{t.lo}–{t.hi}]</span>}
-                  </div>
-                  {delta && <div style={{ fontSize: 11, marginTop: 2 }}><span style={{ color: parseFloat(delta) < 0 ? "#16a34a" : parseFloat(delta) > 0 ? "#dc2626" : "#64748b" }}>{parseFloat(delta) > 0 ? "▲ +" : parseFloat(delta) < 0 ? "▼ " : "● "}{delta}</span> <span style={{ color: "#94a3b8" }}>from {prev.date} ({prev.v})</span></div>}
-                  {latest && <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>{latest.date}</div>}
-                  {entries.length > 1 && <div style={{ marginTop: 8 }}><FullChart series={[{ label: t.name, color: accent, data: entries.map((e, i) => ({ wk: i + 1, v: e.v })) }]} height={100} refLine={t.hi || undefined} /></div>}
-                  {entries.length > 1 && <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>{entries.map((e, i) => <span key={i} style={{ fontSize: 9, color: "#64748b", background: "#f8fafc", padding: "2px 6px", borderRadius: 4 }}>{e.date}: {e.v}</span>)}</div>}
-                </div>);
-              })}
-            </div>);
-          })}
-          {(!p.bloods || p.bloods.length === 0) && <div style={{ textAlign: "center", padding: 40, color: "#94a3b8", fontSize: 12 }}>No blood results yet. Tap "Add Blood Results" to enter your data.</div>}
-        </div>); })()}
-
-        {/* SHOP */}
         {section === "shop" && (<div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}><button onClick={function() { setWeekOff(function(o) { return o - 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&lsaquo;</button><div style={{ flex: 1, textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 700 }}>Shopping — {weekLabel}</div><div style={{ fontSize: 11, color: "#64748b" }}>{planned}/7 dinners · {shopList.length} items</div></div><button onClick={function() { setWeekOff(function(o) { return o + 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&rsaquo;</button></div>
