@@ -2256,7 +2256,7 @@ function Dashboard() {
         </div>); })()}
 
         {/* MEALS */}
-        {section === "meals" && (() => {
+        {section === "meals" && (() => { try {
           const allBfast = [...BREAKFASTS, ...customBreakfasts];
           const allLunch = [...LUNCHES, ...customLunches];
           const allDinners = [...DINNERS, ...customMeals];
@@ -2501,7 +2501,7 @@ function Dashboard() {
           {/* Generate meals */}
           <button onClick={generateWeekMeals} disabled={generating} style={{ width: "100%", padding: 12, marginTop: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: generating ? "not-allowed" : "pointer", background: generating ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{generating ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Week Meals"}</button>
           <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Fills empty breakfast, lunch, and dinner slots for all days. Respects your defaults.</div>
-        </div>); })()}
+        </div>); } catch(eatErr) { return (<div style={{ padding: 20, color: "#dc2626" }}>Eating section error: {String(eatErr)}</div>); } })()}
 
         {section === "shop" && (<div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
