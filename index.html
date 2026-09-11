@@ -889,7 +889,7 @@ function Dashboard() {
   const [eatDay, setEatDay] = useState("monday");
   const [eatList, setEatList] = useState("own");
   const [quickPrepMins, setQuickPrepMins] = useState(20);
-  const [showDefaults, setShowDefaults] = useState(false);
+  const [showDefaults, setShowDefaults] = useState(true);
   const [addingNew, setAddingNew] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   const [newItemLoading, setNewItemLoading] = useState(false);
@@ -2339,15 +2339,28 @@ function Dashboard() {
           {/* Week header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
             <button onClick={function() { setWeekOff(function(o) { return o - 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&lsaquo;</button>
-            <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800 }}>Week {currentWeek + weekOff - Math.floor((new Date() - new Date(2026, 6, 19)) / (7*24*60*60*1000))}</div><div style={{ fontSize: 10, color: "#64748b" }}>{weekLabel}</div></div>
+            <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800 }}>Week {calcWeek(weekStart.toISOString().split("T")[0])}</div><div style={{ fontSize: 10, color: "#64748b" }}>{weekLabel}</div></div>
             <button onClick={function() { setWeekOff(function(o) { return o + 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&rsaquo;</button>
           </div>
 
           {/* Controls row */}
-          <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
             <button onClick={function() { setShowDefaults(!showDefaults); }} style={{ padding: "6px 10px", background: showDefaults ? accent : "#f1f5f9", color: showDefaults ? "#fff" : "#475569", border: "1px solid " + (showDefaults ? accent : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Set Defaults</button>
             <button onClick={applyDefaults} style={{ padding: "6px 10px", background: "#dcfce7", border: "1px solid #86efac", borderRadius: 6, fontSize: 10, color: "#166534", cursor: "pointer" }}>Apply Defaults</button>
             <button onClick={clearWeek} style={{ padding: "6px 10px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 6, fontSize: 10, color: "#991b1b", cursor: "pointer" }}>Clear Week</button>
+          </div>
+
+          {/* Quick Prep + List toggle */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ fontSize: 10, color: "#64748b" }}>Quick prep</span>
+              <input type="number" value={quickPrepMins} onChange={function(e) { setQuickPrepMins(parseInt(e.target.value) || 20); }} style={{ width: 40, padding: "3px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
+              <span style={{ fontSize: 10, color: "#64748b" }}>mins</span>
+            </div>
+            <div style={{ display: "flex", background: "#e2e8f0", borderRadius: 6, padding: 2 }}>
+              <button onClick={function() { setEatList("own"); }} style={{ padding: "4px 10px", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: eatList === "own" ? "#fff" : "transparent", color: eatList === "own" ? "#0f172a" : "#94a3b8" }}>My List</button>
+              <button onClick={function() { setEatList("default"); }} style={{ padding: "4px 10px", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: eatList === "default" ? "#fff" : "transparent", color: eatList === "default" ? "#0f172a" : "#94a3b8" }}>Default List</button>
+            </div>
           </div>
 
           {/* Defaults panel */}
@@ -2369,16 +2382,20 @@ function Dashboard() {
                 </select>
               </div>);
             })}
-            <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", marginTop: 4, marginBottom: 4 }}>Other defaults</div>
-            {[1,2,3,4,5,6,7].map(function(n) {
-              return (<div key={n} style={{ marginBottom: 4 }}>
-                <span style={{ fontSize: 9, color: "#94a3b8" }}>Other {n}</span>
-                <select value={defs["o" + n] || ""} onChange={function(e) { saveDef("o" + n, e.target.value, "individual"); }} style={{ width: "100%", padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10 }}>
-                  <option value="">—</option>
-                  {allOther.map(function(item) { return <option key={item.id} value={item.id}>{item.name}</option>; })}
-                </select>
+            <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", marginTop: 4, marginBottom: 4 }}>Other defaults (snacks, drinks, desserts)</div>
+            {(function() { var slots = []; for (var dn = 1; dn <= 20; dn++) { if (defs["o" + dn] || dn <= (function() { var cnt = 0; for (var k = 1; k <= 20; k++) { if (defs["o" + k]) cnt = k; } return Math.max(cnt, 0); })()) slots.push(dn); } return slots; })().map(function(n) {
+              return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: 9, color: "#94a3b8" }}>Other {n}</span>
+                  <select value={defs["o" + n] || ""} onChange={function(e) { saveDef("o" + n, e.target.value, "individual"); }} style={{ width: "100%", padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10 }}>
+                    <option value="">—</option>
+                    {allOther.map(function(item) { return <option key={item.id} value={item.id}>{item.name}</option>; })}
+                  </select>
+                </div>
+                <button onClick={function() { saveDef("o" + n, "", "individual"); }} style={{ fontSize: 10, color: "#dc2626", background: "none", border: "none", cursor: "pointer", marginTop: 12 }}>✕</button>
               </div>);
             })}
+            <button onClick={function() { var next = 1; while (defs["o" + next]) next++; saveDef("o" + next, "", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>+ Add Other Default</button>
           </div>)}
 
           {/* Day tabs */}
