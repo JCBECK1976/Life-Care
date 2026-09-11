@@ -1240,7 +1240,8 @@ function Dashboard() {
     const ex = data[activeTab].exercises[day][idx];
     const last = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
     setLogEx({ day, idx });
-    setLogSets([{ w: last ? last.w.replace("kg", "") : "", r: "" }, { w: last ? last.w.replace("kg", "") : "", r: "" }, { w: last ? last.w.replace("kg", "") : "", r: "" }]);
+    var lastReps = last && last.r ? parseReps(last.r) : [];
+    setLogSets([{ w: last ? last.w.replace("kg", "") : "", r: lastReps[0] ? String(lastReps[0]) : "" }, { w: last ? last.w.replace("kg", "") : "", r: lastReps[1] ? String(lastReps[1]) : "" }, { w: last ? last.w.replace("kg", "") : "", r: lastReps[2] ? String(lastReps[2]) : "" }]);
     setLogWeek(String(calcWeek(data.config.trainingStart)));
     setLogComment(""); setLogStatus(""); setEditPrev(false);
     setPrevComment("");
@@ -1296,6 +1297,29 @@ function Dashboard() {
     const target = "ex-" + day + "-" + idx;
     setLogEx(null);
     await saveData(nd);
+    // Dual-person logging
+    var dualEl = document.getElementById("dual-log");
+    if (dualEl && dualEl.checked) {
+      var otherTab = activeTab === "jc" ? "becks" : "jc";
+      if (nd[otherTab] && nd[otherTab].exercises && nd[otherTab].exercises[day]) {
+        var otherExList = nd[otherTab].exercises[day];
+        for (var oi2 = 0; oi2 < otherExList.length; oi2++) {
+          if (otherExList[oi2].name === ex.name) {
+            var oex = otherExList[oi2];
+            var ow = ex.prog[ex.prog.length - 1].w;
+            var or2 = ex.prog[ex.prog.length - 1].r;
+            var owk = ex.prog[ex.prog.length - 1].wk;
+            oex.prog.push({ wk: owk, w: ow, r: or2, note: logComment.trim() || "" });
+            oex.current = ow; oex.reps = or2;
+            oex.notes = logComment.trim() || "";
+            var oSuggested = autoStatus(ow, or2, oex.prog.slice(0, -1), ((logComment || "") + " " + (oex.notes || "")).trim());
+            oex.status = logOverride === "move_up" ? "ready to move" : logOverride === "hold" ? "maintaining" : logOverride === "reduce" ? "reduce" : oSuggested;
+            break;
+          }
+        }
+        await saveData(nd);
+      }
+    }
     setFormMsg("✓ Logged " + ex.name); setTimeout(() => setFormMsg(""), 3000);
     setScrollTarget(target);
   };
@@ -2073,7 +2097,7 @@ function Dashboard() {
               <div style={{ marginBottom: 8 }}><label style={labelStyle}>Week</label><input type="number" value={logWeek} onChange={e => setLogWeek(e.target.value)} style={{ ...inputStyle, width: 80 }} /></div>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Sets (weight kg x reps)</div>
               {logSets.map((s, i) => (<div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}><span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", width: 20 }}>S{i + 1}</span><input type="number" placeholder="kg" value={s.w} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], w: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} /><span style={{ color: "#94a3b8" }}>×</span><input type="number" placeholder="reps" value={s.r} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], r: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} /></div>))}
-              {logSets[0].w && logSets[0].r && (() => { const rs = fmtReps(logSets.map(s => parseInt(s.r) || 0)); const sg = autoStatus(logSets[0].w + "kg", rs, editPrev ? ex.prog.slice(0,-1) : ex.prog, ((logComment || "") + " " + (ex.notes || "")).trim()); return (<div style={{ margin: "8px 0", padding: 8, background: sBg(sg), borderRadius: 8 }}><div style={{ fontSize: 11, color: sColor(sg), fontWeight: 600 }}>Auto-status: {sLabel(sg)}</div><div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>/* Status pills removed - use Progression dropdown instead */</div></div>); })()}
+              {logSets[0].w && logSets[0].r && (() => { const rs = fmtReps(logSets.map(s => parseInt(s.r) || 0)); const sg = autoStatus(logSets[0].w + "kg", rs, editPrev ? ex.prog.slice(0,-1) : ex.prog, ((logComment || "") + " " + (ex.notes || "")).trim()); return (<div style={{ margin: "8px 0", padding: 8, background: sBg(sg), borderRadius: 8 }}><div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}></div></div>); })()}
               <div style={{ marginTop: 8 }}>
                 <label style={labelStyle}>Progression</label>
                 <select value={logOverride} onChange={function(e) { setLogOverride(e.target.value); }} style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, marginBottom: 8, background: logOverride === "move_up" ? "#dcfce7" : logOverride === "hold" ? "#fef3c7" : logOverride === "reduce" ? "#fee2e2" : "#fff" }}>
@@ -2190,7 +2214,7 @@ function Dashboard() {
                       <button onClick={function() { deleteProg(day, exIdx, pi); }} style={{ fontSize: 12, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", minWidth: 24, flexShrink: 0 }}>✕</button>
                     </div>); })}
                     {(!ex.prog || ex.prog.length === 0) && <div style={{ fontSize: 10, color: "#94a3b8" }}>No progression data yet</div>}
-                    <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var wk = calcWeek(nd.config.trainingStart); nd[activeTab].exercises[day][exIdx].prog.push({ wk: wk, w: ex.current || "0kg", r: ex.reps || "0", note: "" }); await saveData(nd); setFormMsg("✓ Week " + wk + " added"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ marginTop: 4, padding: "4px 10px", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 6, fontSize: 10, color: "#166534", cursor: "pointer" }}>+ Add Week</button>
+                    <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var wk = calcWeek(nd.config.trainingStart); nd[activeTab].exercises[day][exIdx].prog.push({ wk: wk, w: ex.current || "0kg", r: ex.reps || "0", note: "" }); var latestNote = nd[activeTab].exercises[day][exIdx].prog[nd[activeTab].exercises[day][exIdx].prog.length-1].note || ""; nd[activeTab].exercises[day][exIdx].notes = latestNote; await saveData(nd); setFormMsg("✓ Week " + wk + " added"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ marginTop: 4, padding: "4px 10px", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 6, fontSize: 10, color: "#166534", cursor: "pointer" }}>+ Add Week</button>
                   </div>); })}
                 </div>)}
                 {/* CHARTS TAB */}
@@ -2619,7 +2643,13 @@ function Dashboard() {
             </div>)}
 
             {/* Day notes */}
-            <div style={{ marginTop: 8 }}>
+            <div style={{ marginTop: 8, padding: 8, background: "#f0f9ff", borderRadius: 6, border: "1px solid #bae6fd", marginBottom: 4 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#0369a1", cursor: "pointer" }}>
+                  <input type="checkbox" id="dual-log" style={{ width: 16, height: 16 }} />
+                  Also log for {activeTab === "jc" ? "Becks" : "JC"} (same exercise, same weight + reps)
+                </label>
+              </div>
+              <div style={{ marginTop: 8 }}>
               <span style={{ fontSize: 10, color: "#94a3b8" }}>Day notes</span>
               <textarea defaultValue={dayMeals._note || ""} onBlur={function(e) { setMeal(eatDay, "_note", e.target.value); }} placeholder="e.g. Ate out, exam stress, birthday..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 30, resize: "vertical", boxSizing: "border-box" }} />
             </div>
