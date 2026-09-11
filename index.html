@@ -530,7 +530,18 @@ const JC_BASE = { sun: { bfast: 696, lunch: 500, snacks: 565 }, mon: { bfast: 69
 const BECK_BASE = { sun: { bfast: 440, lunch: 400, snacks: 340 }, mon: { bfast: 380, lunch: 360, snacks: 340 }, tue: { bfast: 380, lunch: 360, snacks: 340 }, wed: { bfast: 380, lunch: 340, snacks: 340 }, thu: { bfast: 380, lunch: 340, snacks: 290 }, fri: { bfast: 380, lunch: 360, snacks: 340 }, sat: { bfast: 360, lunch: 320, snacks: 340 } };
 const RC = { GREAT: { bg: "#dcfce7", text: "#166534", dot: "#22c55e" }, AMBER: { bg: "#fef9c3", text: "#854d0e", dot: "#eab308" }, RED: { bg: "#fee2e2", text: "#991b1b", dot: "#ef4444" }, INFO: { bg: "#f1f5f9", text: "#475569", dot: "#94a3b8" } };
 const PIN_WEIGHTS = [9, 16, 22, 29, 36, 42, 49, 55, 62, 68, 75, 81, 87, 90];
-function nextPin(w) { const kg = parseInt(w) || 0; for (const p of PIN_WEIGHTS) { if (p > kg) return p; } return kg + 7; }
+function nextPin(w, customIncrements) {
+  var kg = parseInt(w) || 0;
+  if (customIncrements) {
+    var steps = String(customIncrements).split(",").map(function(s) { return parseFloat(s.trim()); }).filter(function(n) { return !isNaN(n) && n > 0; }).sort(function(a,b) { return a - b; });
+    if (steps.length > 0) {
+      for (var i = 0; i < steps.length; i++) { if (steps[i] > kg) return steps[i]; }
+      return kg + (steps[steps.length-1] - (steps.length > 1 ? steps[steps.length-2] : 0));
+    }
+  }
+  for (var p = 0; p < PIN_WEIGHTS.length; p++) { if (PIN_WEIGHTS[p] > kg) return PIN_WEIGHTS[p]; }
+  return kg + 7;
+}
 const IDEALS = { jc: 13.43, becks: 11.14 };
 
 const BLOOD_TESTS = [
@@ -1283,7 +1294,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       ex.current = prev.w; ex.reps = prev.r;
       const suggested = autoStatus(prev.w, prev.r, ex.prog.slice(0, -1), ((logComment || "") + " " + (ex.notes || "")).trim());
       ex.status = logOverride === "move_up" ? "ready to move" : logOverride === "hold" ? "maintaining" : logOverride === "reduce" ? "reduce" : (logStatus || suggested);
-      if (ex.status === "ready to move") { ex.target = nextPin(parseInt(ex.current)) + "kg \u00d7 10\u00d73"; } else if (ex.status !== "maintaining") { delete ex.target; }
+      if (ex.status === "ready to move") { ex.target = nextPin(parseInt(ex.current), ex.settings && ex.settings.increments) + "kg \u00d7 10\u00d73"; } else if (ex.status !== "maintaining") { delete ex.target; }
     } else {
       // New entry - check for duplicates
       var logWk = parseInt(logWeek) || calcWeek(data.config.trainingStart);
@@ -1303,7 +1314,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         ex.notes = logComment.trim() || "";
         var suggestedUpd = autoStatus(ex.prog[existingIdx].w, ex.prog[existingIdx].r, ex.prog.slice(0, existingIdx), ((logComment || "") + " " + (ex.notes || "")).trim());
         ex.status = logOverride === "move_up" ? "ready to move" : logOverride === "hold" ? "maintaining" : logOverride === "reduce" ? "reduce" : (logStatus || suggestedUpd);
-        if (ex.status === "ready to move") ex.target = nextPin(parseInt(ex.current)) + "kg \u00d7 10\u00d73"; else if (ex.status !== "maintaining") delete ex.target;
+        if (ex.status === "ready to move") ex.target = nextPin(parseInt(ex.current), ex.settings && ex.settings.increments) + "kg \u00d7 10\u00d73"; else if (ex.status !== "maintaining") delete ex.target;
         nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
         if (logComment.trim()) await sSet("comment:" + activeTab + ":" + ex.name + ":" + logWk, logComment.trim());
         await saveData(nd);
@@ -1318,7 +1329,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       ex.current = wStr; ex.reps = repsStr;
       const suggested = autoStatus(wStr, repsStr, ex.prog.slice(0, -1), ((logComment || "") + " " + (ex.notes || "")).trim());
       ex.status = logOverride === "move_up" ? "ready to move" : logOverride === "hold" ? "maintaining" : logOverride === "reduce" ? "reduce" : (logStatus || suggested);
-      if (ex.status === "ready to move") ex.target = nextPin(parseInt(w)) + "kg × 10×3"; else delete ex.target;
+      if (ex.status === "ready to move") ex.target = nextPin(parseInt(w), ex.settings && ex.settings.increments) + "kg × 10×3"; else delete ex.target;
       nd.config.week = Math.max(nd.config.week, wk);
     }
     // Sync Cable Crunch
@@ -1360,7 +1371,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             var otOverride = otState.override || "standard";
             var otSuggested = autoStatus(otW, otReps, otEx.prog.slice(0, -1), ((otState.comment || "") + " " + (otEx.notes || "")).trim());
             otEx.status = otOverride === "move_up" ? "ready to move" : otOverride === "hold" ? "maintaining" : otOverride === "reduce" ? "reduce" : otSuggested;
-            if (otEx.status === "ready to move") { otEx.target = nextPin(parseInt(otW)) + "kg x 10x3"; }
+            if (otEx.status === "ready to move") { otEx.target = nextPin(parseInt(otW), otEx.settings && otEx.settings.increments) + "kg x 10x3"; }
             else if (otEx.status !== "maintaining") { delete otEx.target; }
           }
         }
@@ -2263,7 +2274,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                           for (var di3 = 0; di3 < dayExs3.length; di3++) {
                             if (dayExs3[di3].name === ex.name) {
                               dayExs3[di3].status = ex.newStatus;
-                              if (ex.newStatus === "ready to move") { dayExs3[di3].target = nextPin(parseInt(dayExs3[di3].current)) + "kg x 10x3"; }
+                              if (ex.newStatus === "ready to move") { dayExs3[di3].target = nextPin(parseInt(dayExs3[di3].current), dayExs3[di3].settings && dayExs3[di3].settings.increments) + "kg x 10x3"; }
                               else if (ex.newStatus === "reduce") {
                                 var curW = parseInt(dayExs3[di3].current) || 0;
                                 var prevPin = 0;
@@ -2331,7 +2342,18 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   <div style={{ marginBottom: 10 }}>
                     <label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 4 }}>Describe your equipment (include make/model, link to specs if available)</label>
                     <textarea id={"equip-desc-" + day} defaultValue={(p.equipmentDesc && p.equipmentDesc[day]) || ""} placeholder="e.g. Marcy HG5000 Deluxe Home Multi Gym. Pin-loaded cable stack: 9,16,22,29,36,42,49,55,62,68,75,81,87,90kg. Dumbbells: 1-10kg pairs." style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 60, resize: "vertical", boxSizing: "border-box" }} />
-                    <button onClick={async function() { var desc = document.getElementById("equip-desc-" + day).value; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].equipmentDesc) nd[activeTab].equipmentDesc = {}; nd[activeTab].equipmentDesc[day] = desc; await saveData(nd); setFormMsg("Equipment saved"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ marginTop: 6, padding: "6px 14px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Save Equipment Info</button>
+                    <button onClick={async function() { var desc = document.getElementById("equip-desc-" + day).value; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].equipmentDesc) nd[activeTab].equipmentDesc = {}; nd[activeTab].equipmentDesc[day] = desc; await saveData(nd); 
+                    // Recalculate targets using new increments
+                    var recalcNd = JSON.parse(JSON.stringify(data));
+                    var recalcExs = recalcNd[activeTab].exercises[day] || [];
+                    for (var ri = 0; ri < recalcExs.length; ri++) {
+                      if (recalcExs[ri].status === "ready to move") {
+                        var rInc = recalcExs[ri].settings && recalcExs[ri].settings.increments;
+                        recalcExs[ri].target = nextPin(parseInt(recalcExs[ri].current), rInc) + "kg x 10x3";
+                      }
+                    }
+                    await saveData(recalcNd);
+                    setFormMsg("Equipment saved"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ marginTop: 6, padding: "6px 14px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Save Equipment Info</button>
                   </div>
                   <button onClick={async function() {
                     setSessionFbLoading(true); setFormMsg("Generating settings for all exercises...");
