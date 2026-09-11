@@ -2297,29 +2297,7 @@ function Dashboard() {
           };
 
           var applyDefaults = function() {
-            var generateWeekMeals = async function() {
-            setGenerating(true); setFormMsg("Generating meals...");
-            try {
-              var prof = p.profile || {};
-              var dinnerList = allDinners.filter(function(d2) { return d2.id !== "none"; }).map(function(d2) { return d2.id + ":" + d2.name + "(" + (isJC ? d2.jcKcal : d2.beckKcal) + "kcal," + d2.time + "min)"; }).join(";");
-              var bfastList = allBfast.map(function(b) { return b.id + ":" + b.name; }).join(";");
-              var lunchList = allLunch.map(function(l) { return l.id + ":" + l.name; }).join(";");
-              var fmt = '{"monday":{"b":"id","l":"id","d":"id"},"tuesday":{"b":"id","l":"id","d":"id"},"wednesday":{"b":"id","l":"id","d":"id"},"thursday":{"b":"id","l":"id","d":"id"},"friday":{"b":"id","l":"id","d":"id"},"saturday":{"b":"id","l":"id","d":"id"},"sunday":{"b":"id","l":"id","d":"id"}}';
-              var prompt = "Generate a week of meals for " + (prof.name || "user") + " (" + (isJC ? "2000-2200 kcal" : "1700-1900 kcal") + " target). Only fill EMPTY slots - keep existing selections. Current: " + JSON.stringify(meals) + ". Breakfasts: " + bfastList + ". Lunches: " + lunchList + ". Dinners: " + dinnerList + ". Vary daily. Return ONLY JSON: " + fmt;
-              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }) });
-              var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-              var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-              if (txt) {
-                var gen = JSON.parse(txt.replace(/```json|```/g, "").trim());
-                var n = Object.assign({}, meals);
-                DAYS.forEach(function(d2) { if (gen[d2]) { if (!n[d2]) n[d2] = {}; if (gen[d2].b && !n[d2].b) n[d2].b = gen[d2].b; if (gen[d2].l && !n[d2].l) n[d2].l = gen[d2].l; if (gen[d2].d && !n[d2].d) n[d2].d = gen[d2].d; } });
-                setMeals(n); saveMeals(n);
-                setFormMsg("Week meals generated");
-              }
-            } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); }
-            setTimeout(function() { setFormMsg(""); }, 4000); setGenerating(false);
-          };
-
+            
           var defs = mealDefaults[activeTab] || {};
             var n = Object.assign({}, meals);
             DAYS.forEach(function(d) {
@@ -2499,7 +2477,28 @@ function Dashboard() {
           </div>
 
           {/* Generate meals */}
-          <button onClick={generateWeekMeals} disabled={generating} style={{ width: "100%", padding: 12, marginTop: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: generating ? "not-allowed" : "pointer", background: generating ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{generating ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Week Meals"}</button>
+          <button onClick={async function() {
+            setGenerating(true); setFormMsg("Generating meals...");
+            try {
+              var prof = p.profile || {};
+              var dinnerList = allDinners.filter(function(d2) { return d2.id !== "none"; }).map(function(d2) { return d2.id + ":" + d2.name + "(" + (isJC ? d2.jcKcal : d2.beckKcal) + "kcal," + d2.time + "min)"; }).join(";");
+              var bfastList = allBfast.map(function(b) { return b.id + ":" + b.name; }).join(";");
+              var lunchList = allLunch.map(function(l) { return l.id + ":" + l.name; }).join(";");
+              var fmt = '{"monday":{"b":"id","l":"id","d":"id"},"tuesday":{"b":"id","l":"id","d":"id"},"wednesday":{"b":"id","l":"id","d":"id"},"thursday":{"b":"id","l":"id","d":"id"},"friday":{"b":"id","l":"id","d":"id"},"saturday":{"b":"id","l":"id","d":"id"},"sunday":{"b":"id","l":"id","d":"id"}}';
+              var prompt = "Generate a week of meals for " + (prof.name || "user") + " (" + (isJC ? "2000-2200 kcal" : "1700-1900 kcal") + " target). Only fill EMPTY slots - keep existing selections. Current: " + JSON.stringify(meals) + ". Breakfasts: " + bfastList + ". Lunches: " + lunchList + ". Dinners: " + dinnerList + ". Vary daily. Return ONLY JSON: " + fmt;
+              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }) });
+              var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+              var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
+              if (txt) {
+                var gen = JSON.parse(txt.replace(/```json|```/g, "").trim());
+                var n = Object.assign({}, meals);
+                DAYS.forEach(function(d2) { if (gen[d2]) { if (!n[d2]) n[d2] = {}; if (gen[d2].b && !n[d2].b) n[d2].b = gen[d2].b; if (gen[d2].l && !n[d2].l) n[d2].l = gen[d2].l; if (gen[d2].d && !n[d2].d) n[d2].d = gen[d2].d; } });
+                setMeals(n); saveMeals(n);
+                setFormMsg("Week meals generated");
+              }
+            } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); }
+            setTimeout(function() { setFormMsg(""); }, 4000); setGenerating(false);
+          }} disabled={generating} style={{ width: "100%", padding: 12, marginTop: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: generating ? "not-allowed" : "pointer", background: generating ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{generating ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Week Meals"}</button>
           <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Fills empty breakfast, lunch, and dinner slots for all days. Respects your defaults.</div>
         </div>); } catch(eatErr) { return (<div style={{ padding: 20, color: "#dc2626" }}>Eating section error: {String(eatErr)}</div>); } })()}
 
