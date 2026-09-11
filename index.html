@@ -1272,7 +1272,31 @@ function Dashboard() {
       ex.status = logOverride === "move_up" ? "ready to move" : logOverride === "hold" ? "maintaining" : logOverride === "reduce" ? "reduce" : (logStatus || suggested);
       if (ex.status === "ready to move") { ex.target = nextPin(parseInt(ex.current)) + "kg \u00d7 10\u00d73"; } else if (ex.status !== "maintaining") { delete ex.target; }
     } else {
-      // New entry
+      // New entry - check for duplicates
+      var logWk = parseInt(logWeek) || calcWeek(data.config.trainingStart);
+      var existingIdx = -1;
+      for (var di = 0; di < ex.prog.length; di++) {
+        if (ex.prog[di].wk === logWk) { existingIdx = di; break; }
+      }
+      if (existingIdx >= 0) {
+        var action = confirm("Week " + logWk + " already has an entry for " + ex.name + " (" + ex.prog[existingIdx].w + " " + ex.prog[existingIdx].r + ").\n\nOK = Update existing entry\nCancel = Go back");
+        if (!action) return;
+        // Update existing entry instead of adding new
+        ex.prog[existingIdx].w = (logSets[0].w || String(parseInt(ex.current) || 0)) + "kg";
+        ex.prog[existingIdx].r = fmtReps(logSets.map(s => parseInt(s.r) || 0));
+        ex.prog[existingIdx].note = logComment.trim() || ex.prog[existingIdx].note || "";
+        ex.current = ex.prog[existingIdx].w;
+        ex.reps = ex.prog[existingIdx].r;
+        ex.notes = logComment.trim() || "";
+        var suggestedUpd = autoStatus(ex.prog[existingIdx].w, ex.prog[existingIdx].r, ex.prog.slice(0, existingIdx), ((logComment || "") + " " + (ex.notes || "")).trim());
+        ex.status = logOverride === "move_up" ? "ready to move" : logOverride === "hold" ? "maintaining" : logOverride === "reduce" ? "reduce" : (logStatus || suggestedUpd);
+        if (ex.status === "ready to move") ex.target = nextPin(parseInt(ex.current)) + "kg \u00d7 10\u00d73"; else if (ex.status !== "maintaining") delete ex.target;
+        nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+        if (logComment.trim()) await sSet("comment:" + activeTab + ":" + ex.name + ":" + logWk, logComment.trim());
+        await saveData(nd);
+        setLogEx(null); setFormMsg("Updated week " + logWk); setTimeout(function() { setFormMsg(""); }, 3000);
+        return;
+      }
       const w = logSets[0].w || String(parseInt(ex.current) || 0);
       const repsStr = fmtReps(logSets.map(s => parseInt(s.r) || 0));
       const wStr = w + "kg";
@@ -2214,7 +2238,8 @@ function Dashboard() {
                       <button onClick={function() { deleteProg(day, exIdx, pi); }} style={{ fontSize: 12, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", minWidth: 24, flexShrink: 0 }}>✕</button>
                     </div>); })}
                     {(!ex.prog || ex.prog.length === 0) && <div style={{ fontSize: 10, color: "#94a3b8" }}>No progression data yet</div>}
-                    <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var wk = calcWeek(nd.config.trainingStart); nd[activeTab].exercises[day][exIdx].prog.push({ wk: wk, w: ex.current || "0kg", r: ex.reps || "0", note: "" }); var latestNote = nd[activeTab].exercises[day][exIdx].prog[nd[activeTab].exercises[day][exIdx].prog.length-1].note || ""; nd[activeTab].exercises[day][exIdx].notes = latestNote; await saveData(nd); setFormMsg("✓ Week " + wk + " added"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ marginTop: 4, padding: "4px 10px", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 6, fontSize: 10, color: "#166534", cursor: "pointer" }}>+ Add Week</button>
+                    <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var wk = calcWeek(nd.config.trainingStart); var existWk = -1; for (var awi = 0; awi < nd[activeTab].exercises[day][exIdx].prog.length; awi++) { if (nd[activeTab].exercises[day][exIdx].prog[awi].wk === wk) { existWk = awi; break; } }
+                      if (existWk >= 0) { if (!confirm("Week " + wk + " already exists. OK = Update, Cancel = Go back")) return; nd[activeTab].exercises[day][exIdx].prog[existWk].w = ex.current || "0kg"; nd[activeTab].exercises[day][exIdx].prog[existWk].r = ex.reps || "0"; } else { nd[activeTab].exercises[day][exIdx].prog.push({ wk: wk, w: ex.current || "0kg", r: ex.reps || "0", note: "" }); } var latestNote = nd[activeTab].exercises[day][exIdx].prog[nd[activeTab].exercises[day][exIdx].prog.length-1].note || ""; nd[activeTab].exercises[day][exIdx].notes = latestNote; await saveData(nd); setFormMsg("✓ Week " + wk + " added"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ marginTop: 4, padding: "4px 10px", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 6, fontSize: 10, color: "#166534", cursor: "pointer" }}>+ Add Week</button>
                   </div>); })}
                 </div>)}
                 {/* CHARTS TAB */}
