@@ -1294,7 +1294,7 @@ function Dashboard() {
         nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
         if (logComment.trim()) await sSet("comment:" + activeTab + ":" + ex.name + ":" + logWk, logComment.trim());
         await saveData(nd);
-        setLogEx(null); setFormMsg("Updated week " + logWk); setTimeout(function() { setFormMsg(""); }, 3000);
+        var scrollY = window.scrollY; setLogEx(null); requestAnimationFrame(function() { window.scrollTo(0, scrollY); }); setFormMsg("Updated week " + logWk); setTimeout(function() { setFormMsg(""); }, 3000);
         return;
       }
       const w = logSets[0].w || String(parseInt(ex.current) || 0);
@@ -1319,31 +1319,9 @@ function Dashboard() {
     ex.notes = logComment.trim() || ""; // Carry forward to next session
     if (logComment.trim()) await sSet("comment:" + activeTab + ":" + ex.name + ":" + logWeek, logComment.trim());
     const target = "ex-" + day + "-" + idx;
-    setLogEx(null);
+    var scrollY = window.scrollY; setLogEx(null); requestAnimationFrame(function() { window.scrollTo(0, scrollY); });
     await saveData(nd);
-    // Dual-person logging
-    var dualEl = document.getElementById("dual-log");
-    if (dualEl && dualEl.checked) {
-      var otherTab = activeTab === "jc" ? "becks" : "jc";
-      if (nd[otherTab] && nd[otherTab].exercises && nd[otherTab].exercises[day]) {
-        var otherExList = nd[otherTab].exercises[day];
-        for (var oi2 = 0; oi2 < otherExList.length; oi2++) {
-          if (otherExList[oi2].name === ex.name) {
-            var oex = otherExList[oi2];
-            var ow = ex.prog[ex.prog.length - 1].w;
-            var or2 = ex.prog[ex.prog.length - 1].r;
-            var owk = ex.prog[ex.prog.length - 1].wk;
-            oex.prog.push({ wk: owk, w: ow, r: or2, note: logComment.trim() || "" });
-            oex.current = ow; oex.reps = or2;
-            oex.notes = logComment.trim() || "";
-            var oSuggested = autoStatus(ow, or2, oex.prog.slice(0, -1), ((logComment || "") + " " + (oex.notes || "")).trim());
-            oex.status = logOverride === "move_up" ? "ready to move" : logOverride === "hold" ? "maintaining" : logOverride === "reduce" ? "reduce" : oSuggested;
-            break;
-          }
-        }
-        await saveData(nd);
-      }
-    }
+    // Dual logging handled via tab switching
     setFormMsg("✓ Logged " + ex.name); setTimeout(() => setFormMsg(""), 3000);
     setScrollTarget(target);
   };
@@ -2132,11 +2110,38 @@ function Dashboard() {
                 </select>
               </div>
               <div style={{ marginTop: 4 }}><label style={labelStyle}>Notes (carried to next session)</label><textarea value={logComment} onChange={e => setLogComment(e.target.value)} placeholder="Notes for next session..." style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
-              <div style={{ marginTop: 8, marginBottom: 4, padding: 8, background: "#f0f9ff", borderRadius: 6, border: "1px solid #bae6fd" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#0369a1", cursor: "pointer" }}>
-                  <input type="checkbox" id="dual-log" style={{ width: 16, height: 16 }} />
-                  Also log for {activeTab === "jc" ? "Becks" : "JC"} (same exercise, same weight + reps)
-                </label>
+              <div style={{ marginTop: 8, marginBottom: 4 }}>
+                <div style={{ display: "flex", background: "#e2e8f0", borderRadius: 6, padding: 2, marginBottom: 6 }}>
+                  {Object.keys(data).filter(function(k) { return k !== "config"; }).map(function(tab) {
+                    var tabName = tab === "jc" ? "JC" : "Becks";
+                    var isActive = tab === activeTab;
+                    return (<button key={tab} onClick={function() {
+                      // Save current form state before switching
+                      if (!window._dualLogState) window._dualLogState = {};
+                      window._dualLogState[activeTab] = { sets: logSets.map(function(s) { return { w: s.w, r: s.r }; }), comment: logComment, override: logOverride, week: logWeek };
+                      // Switch tab
+                      setActiveTab(tab);
+                      // Restore other tab state if exists
+                      if (window._dualLogState[tab]) {
+                        var st = window._dualLogState[tab];
+                        setLogSets(st.sets.map(function(s) { return { w: s.w, r: s.r }; }));
+                        setLogComment(st.comment || "");
+                        setLogOverride(st.override || "standard");
+                        setLogWeek(st.week || "");
+                      } else {
+                        // Load from other person's exercise data
+                        var otherEx = data[tab] && data[tab].exercises && data[tab].exercises[logEx.day] ? data[tab].exercises[logEx.day][logEx.idx] : null;
+                        if (otherEx) {
+                          var otherLast = otherEx.prog && otherEx.prog.length > 0 ? otherEx.prog[otherEx.prog.length - 1] : null;
+                          var oReps = otherLast && otherLast.r ? parseReps(otherLast.r) : [];
+                          setLogSets([{ w: otherLast ? otherLast.w.replace("kg","") : "", r: oReps[0] ? String(oReps[0]) : "" }, { w: otherLast ? otherLast.w.replace("kg","") : "", r: oReps[1] ? String(oReps[1]) : "" }, { w: otherLast ? otherLast.w.replace("kg","") : "", r: oReps[2] ? String(oReps[2]) : "" }]);
+                          setLogComment("");
+                          setLogOverride("standard");
+                        }
+                      }
+                    }} style={{ flex: 1, padding: "5px 0", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer", background: isActive ? "#fff" : "transparent", color: isActive ? "#0f172a" : "#94a3b8" }}>{tabName}</button>);
+                  })}
+                </div>
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}><button onClick={saveLog} disabled={!logSets[0].r} style={{ ...btnP(!!logSets[0].r), flex: 1 }}>{editPrev ? "Update" : "Save"}</button><button onClick={() => setLogEx(null)} style={btnS}>Cancel</button></div>
             </div>);
@@ -2194,14 +2199,14 @@ function Dashboard() {
                       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                       var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                      if (txt) { var fb = JSON.parse(txt.replace(/```json|```/g, "").trim()); setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb })); await sSet("session_fb_" + activeTab + "_" + day + "_wk" + currentWeek, JSON.stringify(fb));
+                      if (txt) { var fb = JSON.parse(txt.replace(/```json|```/g, "").trim()); fb._generatedAt = new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb })); await sSet("session_fb_" + activeTab + "_" + day + "_wk" + currentWeek, JSON.stringify(fb));
                         // Recommendations shown to user - they accept/decline individually
                         }
                     } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: { exercises: [], summary: "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
                     setSessionFbLoading(false);
                   }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{sessionFbLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "📊 Generate Session Feedback"}</button>
                   {sessionFeedback && sessionFeedback[activeTab + "_" + day] && (<div style={{ marginTop: 10 }}>
-                    {sessionFeedback[activeTab + "_" + day].exercises && sessionFeedback[activeTab + "_" + day].exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc", alignItems: "center" }}><span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{fbIcon(ex.icon)}</span><div><div style={{ fontSize: 12, fontWeight: 700 }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div>{ex.newStatus && ex.newStatus !== (exList.find(function(e2) { return e2.name === ex.name; }) || {}).status && (<div style={{ marginTop: 4, padding: 6, background: "#fff7ed", borderRadius: 6, border: "1px solid #fed7aa" }}>
+                    {sessionFeedback[activeTab + "_" + day].exercises && sessionFeedback[activeTab + "_" + day].exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc", alignItems: "center" }}><span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{fbIcon(ex.icon)}</span><div><div style={{ fontSize: 12, fontWeight: 700 }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div>{(ex.newStatus || ex.recommendation) && (<div style={{ marginTop: 4, padding: 6, background: "#fff7ed", borderRadius: 6, border: "1px solid #fed7aa" }}>
                       <div style={{ fontSize: 10, color: "#ea580c", fontWeight: 600 }}>{ex.recommendation || ("Recommends: " + ex.newStatus)}</div>
                       <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
                         <button onClick={async function() {
@@ -2230,6 +2235,7 @@ function Dashboard() {
                         <button onClick={function() { setFormMsg("Declined - no changes made"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ padding: "4px 12px", background: "#e2e8f0", color: "#475569", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Decline</button>
                       </div>
                     </div>)}</div></div>); })}
+                    {sessionFeedback[activeTab + "_" + day]._generatedAt && <div style={{ fontSize: 9, color: "#94a3b8", textAlign: "right", marginTop: 4 }}>Generated: {sessionFeedback[activeTab + "_" + day]._generatedAt}</div>}
                     {sessionFeedback[activeTab + "_" + day].summary && (<div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, padding: 10, marginTop: 8 }}><div style={{ fontSize: 12, color: "#fff" }}>{sessionFeedback[activeTab + "_" + day].summary}</div>{sessionFeedback[activeTab + "_" + day].nextSession && <div style={{ fontSize: 12, color: "#fbbf24", fontWeight: 600, marginTop: 4 }}>Next: {sessionFeedback[activeTab + "_" + day].nextSession}</div>}</div>)}
                   </div>)}
                 </div>)}
@@ -2948,4 +2954,15 @@ function Dashboard() {
     ReactDOM.createRoot(document.getElementById("root")).render(<Dashboard />);
   </script>
 </body>
-</html>
+</html<div>{(function() {
+                    if (!sessionFeedback || !sessionFeedback[activeTab + "_" + day]) {
+                      sGet("session_fb_" + activeTab + "_" + day + "_wk" + currentWeek).then(function(saved) {
+                        if (saved) {
+                          var parsed = JSON.parse(saved);
+                          setSessionFeedback(function(prev) { var n = Object.assign({}, prev); n[activeTab + "_" + day] = parsed; return n; });
+                        }
+                      });
+                    }
+                    return null;
+                  })()}</div>
+                  >
