@@ -1204,7 +1204,20 @@ function Dashboard() {
     const cbt = await sGet("custom_blood_tests"); if (cbt) setCustomBloodTests(JSON.parse(cbt));
     const sm = await sGet("supermarket_pref"); if (sm) setSupermarket(sm);
     const cmt = await sGet("custom_meas_types"); if (cmt) setCustomMeasTypes(JSON.parse(cmt));
-    const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
+    
+    // Load saved session feedback
+    var fbKeys = ["sunday","monday","friday"];
+    for (var fbi2 = 0; fbi2 < fbKeys.length; fbi2++) {
+      var fbDay = fbKeys[fbi2];
+      for (var fbTab of ["jc","becks"]) {
+        var fbWk = calcWeek("2026-07-19");
+        var fbSaved = await sGet("session_fb_" + fbTab + "_" + fbDay + "_wk" + fbWk);
+        if (fbSaved) {
+          setSessionFeedback(function(prev) { var n = Object.assign({}, prev || {}); n[fbTab + "_" + fbDay] = JSON.parse(fbSaved); return n; });
+        }
+      }
+    }
+const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     const gt = await sGet("google_token_" + activeTab); if (gt) { setGoogleToken(gt); setGoogleConnected(true); }
     const qa = await sGet("qa_history"); if (qa) setQaHistory(JSON.parse(qa));
   })(); }, []);
@@ -2085,7 +2098,49 @@ function Dashboard() {
             <label style={labelStyle}>New Exercise Name (adds to database)</label>
             <div style={{ display: "flex", gap: 8 }}><input value={newExName} onChange={e => setNewExName(e.target.value)} style={{ ...inputStyle, flex: 1 }} /><button onClick={addCustomEx} disabled={!newExName.trim()} style={{ ...btnP(!!newExName.trim()), width: "auto", padding: "8px 16px", background: "#16a34a" }}>Add</button><button onClick={() => setShowNewExForm(false)} style={btnS}>Cancel</button></div>
           </div>)}
-          {logEx && (() => {
+          
+          {/* Day Cards */}
+          {days.map(function(day) {
+            var label = dayLabels[day] || day.charAt(0).toUpperCase() + day.slice(1);
+            var exList = p.exercises[day] || [];
+            var dv = dayView[day] || "activity";
+            var setDv = function(v) { setDayView(function(prev) { var n = Object.assign({}, prev); n[day] = v; return n; }); };
+            return (<div key={day} style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6, paddingLeft: 2 }}>{label}</div>
+              {/* Day Sub-tabs */}
+              <div style={{ display: "flex", gap: 0, marginBottom: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2 }}>
+                {[{ k: "activity", l: "Activity" }, { k: "feedback", l: "Feedback" }, { k: "progression", l: "Progress" }, { k: "history", l: "Charts" }, { k: "settings", l: "Settings" }].map(function(tab) {
+                  return (<button key={tab.k} onClick={function() { setDv(tab.k); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: dv === tab.k ? (tab.k === "feedback" ? "#ea580c" : "#fff") : "transparent", color: dv === tab.k ? (tab.k === "feedback" ? "#fff" : "#0f172a") : "#94a3b8" }}>{tab.l}</button>);
+                })}
+              </div>
+              <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", overflow: "hidden" }}>
+                {/* ACTIVITY TAB */}
+                {dv === "activity" && (<div>
+                  {exList.map(function(ex, i) { return (<div key={i} id={"ex-" + day + "-" + i} style={{ padding: "10px 12px", borderBottom: i < exList.length - 1 ? "1px solid #f1f5f9" : "none" }}>
+                    {editExercise && editExercise.day === day && editExercise.idx === i ? (
+                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        <select value={ex.name} onChange={function(e) { renameExercise(day, i, e.target.value); }} style={{ ...inputStyle, flex: 1 }}>
+                          {allExNames.map(function(n) { return <option key={n} value={n}>{n}</option>; })}
+                        </select>
+                        <button onClick={function() { removeExercise(day, i); }} style={{ fontSize: 10, color: "#dc2626", background: "#fee2e2", border: "none", borderRadius: 6, padding: "4px 8px", cursor: "pointer" }}>Remove</button>
+                        <button onClick={function() { setEditExercise(null); }} style={btnS}>Cancel</button>
+                      </div>
+                    ) : (<>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                        <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer" }} onClick={function() { setEditExercise({ day: day, idx: i }); }}>{ex.name} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span></div>
+                        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                          <span style={{ fontSize: 10, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" }}>{sLabel(ex.status)}</span>
+                          <button onClick={function() { openLogForm(day, i); }} style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "#2563eb", border: "none", borderRadius: 6, padding: "3px 8px", cursor: "pointer" }}>Log</button>
+                        </div>
+                      </div>
+                      <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>{ex.current} · {ex.reps}</div>
+                      {ex.target && <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 600, marginTop: 3 }}>→ {ex.target}</div>}
+                      {ex.notes && <div style={{ fontSize: 10, color: "#854d0e", background: "#fef9c3", padding: "3px 6px", borderRadius: 4, marginTop: 3 }}>📋 {ex.notes}</div>}
+                    </>)}
+                  </div>); })}
+                  <button onClick={function() { addExerciseToDay(day, allExNames[0]); }} style={{ width: "100%", padding: 8, background: "#f8fafc", border: "none", borderTop: "1px solid #e2e8f0", fontSize: 11, color: "#64748b", cursor: "pointer" }}>+ Add Exercise</button>
+                
+                {logEx && logEx.day === day && (() => {
             const ex = p.exercises[logEx.day] && p.exercises[logEx.day][logEx.idx]; if (!ex) return null;
             const prev = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
             return (<div ref={logFormRef} style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
@@ -2146,46 +2201,6 @@ function Dashboard() {
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}><button onClick={saveLog} disabled={!logSets[0].r} style={{ ...btnP(!!logSets[0].r), flex: 1 }}>{editPrev ? "Update" : "Save"}</button><button onClick={() => setLogEx(null)} style={btnS}>Cancel</button></div>
             </div>);
           })()}
-          {/* Day Cards */}
-          {days.map(function(day) {
-            var label = dayLabels[day] || day.charAt(0).toUpperCase() + day.slice(1);
-            var exList = p.exercises[day] || [];
-            var dv = dayView[day] || "activity";
-            var setDv = function(v) { setDayView(function(prev) { var n = Object.assign({}, prev); n[day] = v; return n; }); };
-            return (<div key={day} style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6, paddingLeft: 2 }}>{label}</div>
-              {/* Day Sub-tabs */}
-              <div style={{ display: "flex", gap: 0, marginBottom: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2 }}>
-                {[{ k: "activity", l: "Activity" }, { k: "feedback", l: "Feedback" }, { k: "progression", l: "Progress" }, { k: "history", l: "Charts" }, { k: "settings", l: "Settings" }].map(function(tab) {
-                  return (<button key={tab.k} onClick={function() { setDv(tab.k); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: dv === tab.k ? (tab.k === "feedback" ? "#ea580c" : "#fff") : "transparent", color: dv === tab.k ? (tab.k === "feedback" ? "#fff" : "#0f172a") : "#94a3b8" }}>{tab.l}</button>);
-                })}
-              </div>
-              <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", overflow: "hidden" }}>
-                {/* ACTIVITY TAB */}
-                {dv === "activity" && (<div>
-                  {exList.map(function(ex, i) { return (<div key={i} id={"ex-" + day + "-" + i} style={{ padding: "10px 12px", borderBottom: i < exList.length - 1 ? "1px solid #f1f5f9" : "none" }}>
-                    {editExercise && editExercise.day === day && editExercise.idx === i ? (
-                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                        <select value={ex.name} onChange={function(e) { renameExercise(day, i, e.target.value); }} style={{ ...inputStyle, flex: 1 }}>
-                          {allExNames.map(function(n) { return <option key={n} value={n}>{n}</option>; })}
-                        </select>
-                        <button onClick={function() { removeExercise(day, i); }} style={{ fontSize: 10, color: "#dc2626", background: "#fee2e2", border: "none", borderRadius: 6, padding: "4px 8px", cursor: "pointer" }}>Remove</button>
-                        <button onClick={function() { setEditExercise(null); }} style={btnS}>Cancel</button>
-                      </div>
-                    ) : (<>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                        <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer" }} onClick={function() { setEditExercise({ day: day, idx: i }); }}>{ex.name} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span></div>
-                        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                          <span style={{ fontSize: 10, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" }}>{sLabel(ex.status)}</span>
-                          <button onClick={function() { openLogForm(day, i); }} style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "#2563eb", border: "none", borderRadius: 6, padding: "3px 8px", cursor: "pointer" }}>Log</button>
-                        </div>
-                      </div>
-                      <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>{ex.current} · {ex.reps}</div>
-                      {ex.target && <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 600, marginTop: 3 }}>→ {ex.target}</div>}
-                      {ex.notes && <div style={{ fontSize: 10, color: "#854d0e", background: "#fef9c3", padding: "3px 6px", borderRadius: 4, marginTop: 3 }}>📋 {ex.notes}</div>}
-                    </>)}
-                  </div>); })}
-                  <button onClick={function() { addExerciseToDay(day, allExNames[0]); }} style={{ width: "100%", padding: 8, background: "#f8fafc", border: "none", borderTop: "1px solid #e2e8f0", fontSize: 11, color: "#64748b", cursor: "pointer" }}>+ Add Exercise</button>
                 </div>)}
                 {/* FEEDBACK TAB */}
                 {dv === "feedback" && (<div style={{ padding: 12 }}>
@@ -2229,10 +2244,10 @@ function Dashboard() {
                             }
                           }
                           await saveData(nd3);
-                          setFormMsg("Updated " + ex.name + " to " + ex.newStatus);
+                          setFormMsg("✅ " + ex.name + " updated to " + ex.newStatus + " — changes applied to Activity");
                           setTimeout(function() { setFormMsg(""); }, 3000);
                         }} style={{ padding: "4px 12px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Accept</button>
-                        <button onClick={function() { setFormMsg("Declined - no changes made"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ padding: "4px 12px", background: "#e2e8f0", color: "#475569", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Decline</button>
+                        <button onClick={function() { setFormMsg("↩ Declined — no changes made, Activity unchanged"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ padding: "4px 12px", background: "#e2e8f0", color: "#475569", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Decline</button>
                       </div>
                     </div>)}</div></div>); })}
                     {sessionFeedback[activeTab + "_" + day]._generatedAt && <div style={{ fontSize: 9, color: "#94a3b8", textAlign: "right", marginTop: 4 }}>Generated: {sessionFeedback[activeTab + "_" + day]._generatedAt}</div>}
@@ -2954,15 +2969,4 @@ function Dashboard() {
     ReactDOM.createRoot(document.getElementById("root")).render(<Dashboard />);
   </script>
 </body>
-</html<div>{(function() {
-                    if (!sessionFeedback || !sessionFeedback[activeTab + "_" + day]) {
-                      sGet("session_fb_" + activeTab + "_" + day + "_wk" + currentWeek).then(function(saved) {
-                        if (saved) {
-                          var parsed = JSON.parse(saved);
-                          setSessionFeedback(function(prev) { var n = Object.assign({}, prev); n[activeTab + "_" + day] = parsed; return n; });
-                        }
-                      });
-                    }
-                    return null;
-                  })()}</div>
-                  >
+</html>
