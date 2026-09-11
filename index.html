@@ -822,7 +822,7 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("jc");
   const [section, setSection] = useState("overview"); // always starts on Home
-  const [weekOff, setWeekOff] = useState(0);
+  const [weekOff, setWeekOff] = useState(function() { var diff = Math.floor((new Date() - new Date(2026, 6, 19)) / (7*24*60*60*1000)); return diff; });
   const [meals, setMeals] = useState({});
   const [mealLoading, setMealLoading] = useState(true);
   const [editDay, setEditDay] = useState(null);
@@ -1097,7 +1097,7 @@ function Dashboard() {
   })(); }, []);
 
   // Meal data
-  const baseStart = new Date(2026, 7, 23);
+  const baseStart = new Date(2026, 6, 19); // Training start - Sun-Sat weeks
   const weekStart = new Date(baseStart); weekStart.setDate(weekStart.getDate() + (weekOff * 7));
   const weekDates = getWeekDates(weekStart);
   const sk = mealKey(weekStart) + ":" + activeTab;
@@ -2339,13 +2339,13 @@ function Dashboard() {
           {/* Week header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
             <button onClick={function() { setWeekOff(function(o) { return o - 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&lsaquo;</button>
-            <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800 }}>Week {calcWeek(weekStart.toISOString().split("T")[0])}</div><div style={{ fontSize: 10, color: "#64748b" }}>{weekLabel}</div></div>
+            <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800 }}>Week {Math.floor((weekStart - new Date(2026, 6, 19)) / (7*24*60*60*1000)) + 1}</div><div style={{ fontSize: 10, color: "#64748b" }}>{weekLabel}</div></div>
             <button onClick={function() { setWeekOff(function(o) { return o + 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&rsaquo;</button>
           </div>
 
           {/* Controls row */}
           <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
-            <button onClick={function() { setShowDefaults(!showDefaults); }} style={{ padding: "6px 10px", background: showDefaults ? accent : "#f1f5f9", color: showDefaults ? "#fff" : "#475569", border: "1px solid " + (showDefaults ? accent : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Set Defaults</button>
+            <button onClick={function() { setShowDefaults(!showDefaults); }} style={{ padding: "6px 10px", background: showDefaults ? accent : "#f1f5f9", color: showDefaults ? "#fff" : "#475569", border: "1px solid " + (showDefaults ? accent : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Week Settings</button>
             <button onClick={applyDefaults} style={{ padding: "6px 10px", background: "#dcfce7", border: "1px solid #86efac", borderRadius: 6, fontSize: 10, color: "#166534", cursor: "pointer" }}>Apply Defaults</button>
             <button onClick={clearWeek} style={{ padding: "6px 10px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 6, fontSize: 10, color: "#991b1b", cursor: "pointer" }}>Clear Week</button>
           </div>
@@ -2365,7 +2365,8 @@ function Dashboard() {
 
           {/* Defaults panel */}
           {showDefaults && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginBottom: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Set Defaults</div>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a" }}>Week Settings</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>Set Defaults</div>
             <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8 }}>Set default meals. Use "All" to apply to all people or "Individual" for just {activeTab === "jc" ? "JC" : "Becks"}.</div>
             {[{ k: "b", l: "Breakfast", items: allBfast }, { k: "l", l: "Lunch", items: allLunch }, { k: "d", l: "Dinner", items: allDinners }].map(function(def) {
               return (<div key={def.k} style={{ marginBottom: 8 }}>
@@ -2396,6 +2397,30 @@ function Dashboard() {
               </div>);
             })}
             <button onClick={function() { var next = 1; while (defs["o" + next]) next++; saveDef("o" + next, "", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>+ Add Other Default</button>
+          
+            <button onClick={async function() {
+            setGenerating(true); setFormMsg("Generating meals...");
+            try {
+              var prof = p.profile || {};
+              var dinnerList = allDinners.filter(function(d2) { return d2.id !== "none"; }).map(function(d2) { return d2.id + ":" + d2.name + "(" + (isJC ? d2.jcKcal : d2.beckKcal) + "kcal," + d2.time + "min)"; }).join(";");
+              var bfastList = allBfast.map(function(b) { return b.id + ":" + b.name; }).join(";");
+              var lunchList = allLunch.map(function(l) { return l.id + ":" + l.name; }).join(";");
+              var fmt = '{"monday":{"b":"id","l":"id","d":"id"},"tuesday":{"b":"id","l":"id","d":"id"},"wednesday":{"b":"id","l":"id","d":"id"},"thursday":{"b":"id","l":"id","d":"id"},"friday":{"b":"id","l":"id","d":"id"},"saturday":{"b":"id","l":"id","d":"id"},"sunday":{"b":"id","l":"id","d":"id"}}';
+              var prompt = "Generate a week of meals for " + (prof.name || "user") + " (" + (isJC ? "2000-2200 kcal" : "1700-1900 kcal") + " target). Only fill EMPTY slots - keep existing selections. Current: " + JSON.stringify(meals) + ". Breakfasts: " + bfastList + ". Lunches: " + lunchList + ". Dinners: " + dinnerList + ". Vary daily. Return ONLY JSON: " + fmt;
+              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }) });
+              var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+              var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
+              if (txt) {
+                var gen = JSON.parse(txt.replace(/```json|```/g, "").trim());
+                var n = Object.assign({}, meals);
+                DAYS.forEach(function(d2) { if (gen[d2]) { if (!n[d2]) n[d2] = {}; if (gen[d2].b && !n[d2].b) n[d2].b = gen[d2].b; if (gen[d2].l && !n[d2].l) n[d2].l = gen[d2].l; if (gen[d2].d && !n[d2].d) n[d2].d = gen[d2].d; } });
+                setMeals(n); saveMeals(n);
+                setFormMsg("Week meals generated");
+              }
+            } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); }
+            setTimeout(function() { setFormMsg(""); }, 4000); setGenerating(false);
+          }} disabled={generating} style={{ width: "100%", padding: 12, marginTop: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: generating ? "not-allowed" : "pointer", background: generating ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{generating ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Week Meals"}</button>
+          <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Fills empty breakfast, lunch, and dinner slots for all days. Respects your defaults.</div>
           </div>)}
 
           {/* Day tabs */}
@@ -2494,29 +2519,7 @@ function Dashboard() {
           </div>
 
           {/* Generate meals */}
-          <button onClick={async function() {
-            setGenerating(true); setFormMsg("Generating meals...");
-            try {
-              var prof = p.profile || {};
-              var dinnerList = allDinners.filter(function(d2) { return d2.id !== "none"; }).map(function(d2) { return d2.id + ":" + d2.name + "(" + (isJC ? d2.jcKcal : d2.beckKcal) + "kcal," + d2.time + "min)"; }).join(";");
-              var bfastList = allBfast.map(function(b) { return b.id + ":" + b.name; }).join(";");
-              var lunchList = allLunch.map(function(l) { return l.id + ":" + l.name; }).join(";");
-              var fmt = '{"monday":{"b":"id","l":"id","d":"id"},"tuesday":{"b":"id","l":"id","d":"id"},"wednesday":{"b":"id","l":"id","d":"id"},"thursday":{"b":"id","l":"id","d":"id"},"friday":{"b":"id","l":"id","d":"id"},"saturday":{"b":"id","l":"id","d":"id"},"sunday":{"b":"id","l":"id","d":"id"}}';
-              var prompt = "Generate a week of meals for " + (prof.name || "user") + " (" + (isJC ? "2000-2200 kcal" : "1700-1900 kcal") + " target). Only fill EMPTY slots - keep existing selections. Current: " + JSON.stringify(meals) + ". Breakfasts: " + bfastList + ". Lunches: " + lunchList + ". Dinners: " + dinnerList + ". Vary daily. Return ONLY JSON: " + fmt;
-              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }) });
-              var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-              var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-              if (txt) {
-                var gen = JSON.parse(txt.replace(/```json|```/g, "").trim());
-                var n = Object.assign({}, meals);
-                DAYS.forEach(function(d2) { if (gen[d2]) { if (!n[d2]) n[d2] = {}; if (gen[d2].b && !n[d2].b) n[d2].b = gen[d2].b; if (gen[d2].l && !n[d2].l) n[d2].l = gen[d2].l; if (gen[d2].d && !n[d2].d) n[d2].d = gen[d2].d; } });
-                setMeals(n); saveMeals(n);
-                setFormMsg("Week meals generated");
-              }
-            } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); }
-            setTimeout(function() { setFormMsg(""); }, 4000); setGenerating(false);
-          }} disabled={generating} style={{ width: "100%", padding: 12, marginTop: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: generating ? "not-allowed" : "pointer", background: generating ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{generating ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Week Meals"}</button>
-          <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Fills empty breakfast, lunch, and dinner slots for all days. Respects your defaults.</div>
+          
         </div>); } catch(eatErr) { return (<div style={{ padding: 20, color: "#dc2626" }}>Eating section error: {String(eatErr)}</div>); } })()}
 
         {section === "shop" && (<div>
