@@ -1334,7 +1334,40 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     const target = "ex-" + day + "-" + idx;
     var scrollY = window.scrollY; setLogEx(null); requestAnimationFrame(function() { window.scrollTo(0, scrollY); });
     await saveData(nd);
-    // Dual logging handled via tab switching
+    // Save other person's data if they were edited via dual tabs
+    if (window._dualLogState) {
+      var otherTabs = Object.keys(window._dualLogState).filter(function(t) { return t !== activeTab; });
+      for (var oti = 0; oti < otherTabs.length; oti++) {
+        var ot = otherTabs[oti];
+        var otState = window._dualLogState[ot];
+        if (otState && otState.sets && otState.sets[0] && otState.sets[0].w && otState.sets[0].r) {
+          var otEx = nd[ot] && nd[ot].exercises && nd[ot].exercises[day] ? nd[ot].exercises[day][idx] : null;
+          if (otEx) {
+            var otW = otState.sets[0].w + "kg";
+            var otReps = fmtReps(otState.sets.map(function(s) { return parseInt(s.r) || 0; }));
+            var otWk = parseInt(otState.week || logWeek) || calcWeek(data.config.trainingStart);
+            var otExistIdx = -1;
+            for (var oti2 = 0; oti2 < otEx.prog.length; oti2++) { if (otEx.prog[oti2].wk === otWk) { otExistIdx = oti2; break; } }
+            if (otExistIdx >= 0) {
+              otEx.prog[otExistIdx].w = otW;
+              otEx.prog[otExistIdx].r = otReps;
+              otEx.prog[otExistIdx].note = otState.comment || "";
+            } else {
+              otEx.prog.push({ wk: otWk, w: otW, r: otReps, note: otState.comment || "" });
+            }
+            otEx.current = otW; otEx.reps = otReps;
+            otEx.notes = otState.comment || "";
+            var otOverride = otState.override || "standard";
+            var otSuggested = autoStatus(otW, otReps, otEx.prog.slice(0, -1), ((otState.comment || "") + " " + (otEx.notes || "")).trim());
+            otEx.status = otOverride === "move_up" ? "ready to move" : otOverride === "hold" ? "maintaining" : otOverride === "reduce" ? "reduce" : otSuggested;
+            if (otEx.status === "ready to move") { otEx.target = nextPin(parseInt(otW)) + "kg x 10x3"; }
+            else if (otEx.status !== "maintaining") { delete otEx.target; }
+          }
+        }
+      }
+      window._dualLogState = {};
+      await saveData(nd);
+    }
     setFormMsg("✓ Logged " + ex.name); setTimeout(() => setFormMsg(""), 3000);
     setScrollTarget(target);
   };
