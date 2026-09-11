@@ -2330,7 +2330,7 @@ function Dashboard() {
             var items = props.items; var value = props.value; var onChange = props.onChange; var placeholder = props.placeholder || "Select...";
             return (<select value={value} onChange={onChange} style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, background: "#fff" }}>
               <option value="">{placeholder}</option>
-              {items.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#166534"; return (<option key={item.id} value={item.id} style={{ color: color }}>{item.name} ({kcal} kcal)</option>); })}
+              {items.slice().sort(function(a,b) { return a.name.localeCompare(b.name); }).map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#166534"; return (<option key={item.id} value={item.id} style={{ color: color }}>{item.name} ({kcal} kcal)</option>); })}
               <option value="__add_new__">+ Add new item...</option>
             </select>);
           };
@@ -2379,7 +2379,7 @@ function Dashboard() {
                 </div>
                 <select value={defs[def.k] || ""} onChange={function(e) { saveDef(def.k, e.target.value, "individual"); }} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }}>
                   <option value="">—</option>
-                  {def.items.map(function(item) { return <option key={item.id} value={item.id}>{item.name}</option>; })}
+                  {def.items.slice().sort(function(a,b) { return a.name.localeCompare(b.name); }).map(function(item) { return <option key={item.id} value={item.id}>{item.name}</option>; })}
                 </select>
               </div>);
             })}
@@ -2390,7 +2390,7 @@ function Dashboard() {
                   <span style={{ fontSize: 9, color: "#94a3b8" }}>Other {n}</span>
                   <select value={defs["o" + n] || ""} onChange={function(e) { saveDef("o" + n, e.target.value, "individual"); }} style={{ width: "100%", padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10 }}>
                     <option value="">—</option>
-                    {allOther.map(function(item) { return <option key={item.id} value={item.id}>{item.name}</option>; })}
+                    {allOther.slice().sort(function(a,b) { return a.name.localeCompare(b.name); }).map(function(item) { return <option key={item.id} value={item.id}>{item.name}</option>; })}
                   </select>
                 </div>
                 <button onClick={function() { saveDef("o" + n, "", "individual"); }} style={{ fontSize: 10, color: "#dc2626", background: "none", border: "none", cursor: "pointer", marginTop: 12 }}>✕</button>
