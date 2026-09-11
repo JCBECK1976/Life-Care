@@ -2221,9 +2221,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     setSessionFbLoading(false);
                   }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{sessionFbLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "📊 Generate Session Feedback"}</button>
                   {sessionFeedback && sessionFeedback[activeTab + "_" + day] && (<div style={{ marginTop: 10 }}>
-                    {sessionFeedback[activeTab + "_" + day].exercises && sessionFeedback[activeTab + "_" + day].exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc", alignItems: "center" }}><span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{fbIcon(ex.icon)}</span><div><div style={{ fontSize: 12, fontWeight: 700 }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div>{(ex.newStatus || ex.recommendation) && (<div style={{ marginTop: 4, padding: 6, background: "#fff7ed", borderRadius: 6, border: "1px solid #fed7aa" }}>
-                      <div style={{ fontSize: 10, color: "#ea580c", fontWeight: 600 }}>{ex.recommendation || ("Recommends: " + ex.newStatus)}</div>
-                      <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                    {sessionFeedback[activeTab + "_" + day].exercises && sessionFeedback[activeTab + "_" + day].exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc", alignItems: "center" }}><span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{fbIcon(ex.icon)}</span><div><div style={{ fontSize: 12, fontWeight: 700 }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div>{(ex.newStatus || ex.recommendation) && (<div id={"rec-" + ei + "-" + day} style={{ marginTop: 4, padding: 8, background: "#fff7ed", borderRadius: 6, border: "1px solid #fed7aa" }}>
+                      <div style={{ fontSize: 10, color: "#ea580c", fontWeight: 600, marginBottom: 4 }}>{ex.recommendation || ("Recommendation: " + ex.newStatus)}</div>
+                      <div style={{ display: "flex", gap: 6 }}>
                         <button onClick={async function() {
                           var nd3 = JSON.parse(JSON.stringify(data));
                           var dayExs3 = nd3[activeTab].exercises[day] || [];
@@ -2244,10 +2244,13 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                             }
                           }
                           await saveData(nd3);
-                          setFormMsg("✅ " + ex.name + " updated to " + ex.newStatus + " — changes applied to Activity");
-                          setTimeout(function() { setFormMsg(""); }, 3000);
-                        }} style={{ padding: "4px 12px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Accept</button>
-                        <button onClick={function() { setFormMsg("↩ Declined — no changes made, Activity unchanged"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ padding: "4px 12px", background: "#e2e8f0", color: "#475569", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Decline</button>
+                          var el = document.getElementById("rec-" + ei + "-" + day);
+                          if (el) { el.style.background = "#dcfce7"; el.style.borderColor = "#86efac"; el.innerHTML = "<div style=\"font-size:11px;color:#166534;font-weight:600;padding:4px\">\u2705 Accepted — " + ex.name + " updated to " + ex.newStatus + ". Activity updated.</div>"; }
+                        }} style={{ padding: "5px 14px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Accept</button>
+                        <button onClick={function() {
+                          var el = document.getElementById("rec-" + ei + "-" + day);
+                          if (el) { el.style.background = "#f1f5f9"; el.style.borderColor = "#e2e8f0"; el.innerHTML = "<div style=\"font-size:11px;color:#64748b;padding:4px\">\u21a9 Declined — no changes made to Activity.</div>"; }
+                        }} style={{ padding: "5px 14px", background: "#e2e8f0", color: "#475569", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Decline</button>
                       </div>
                     </div>)}</div></div>); })}
                     {sessionFeedback[activeTab + "_" + day]._generatedAt && <div style={{ fontSize: 9, color: "#94a3b8", textAlign: "right", marginTop: 4 }}>Generated: {sessionFeedback[activeTab + "_" + day]._generatedAt}</div>}
