@@ -2531,8 +2531,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
           var getMeal = function(dayKey, slot) { var m = meals[dayKey]; if (!m) return ""; return m[slot] || ""; };
           var setMeal = function(dayKey, slot, val) { var n = Object.assign({}, meals); if (!n[dayKey]) n[dayKey] = {}; n[dayKey][slot] = val; setMeals(n); saveMeals(n); };
-          var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; var count = 0; for (var i = 1; i <= 20; i++) { if (m["o" + i]) count++; } return count; };
-          var addOtherSlot = function(dayKey) { var m = meals[dayKey] || {}; var next = 1; while (m["o" + next]) next++; setMeal(dayKey, "o" + next, ""); };
+          var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; var count = 0; for (var i = 1; i <= 20; i++) { if (m["o" + i] && m["o" + i] !== "__empty__") count = i; } return count; };
+          var addOtherSlot = function(dayKey) { var m = meals[dayKey] || {}; var next = 1; while (m["o" + next]) next++; setMeal(dayKey, "o" + next, "__empty__"); };
           var removeOtherSlot = function(dayKey, idx) { var n = Object.assign({}, meals); if (n[dayKey]) { delete n[dayKey]["o" + idx]; } setMeals(n); saveMeals(n); };
           var getDayKcal = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; var total = 0; var kf = isJC ? "jcKcal" : "beckKcal"; ["b","l","d"].forEach(function(s) { if (m[s]) { var item = allItems.find(function(x) { return x.id === m[s]; }); if (item) total += item[kf] || 0; } }); for (var i = 1; i <= 20; i++) { if (m["o" + i]) { var oi = allOther.find(function(x) { return x.id === m["o" + i]; }); if (oi) total += oi[kf] || 0; } } return total; };
 
@@ -2569,7 +2569,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 else if (addingCategory === "lunch") { var u = [].concat(customLunches, [newItem]); setCustomLunches(u); await sSet("custom_lunches", JSON.stringify(u)); }
                 else if (addingCategory === "dinner") { newItem.jcProt = info.protein || 0; newItem.beckProt = info.protein || 0; newItem.jcFat = info.fat || 0; newItem.beckFat = info.fat || 0; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
                 else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
-                setFormMsg("Added to " + addingCategory + ": " + newItem.name + " (" + newItem.jcKcal + " kcal)");
+                setFormMsg("✅ Added to " + addingCategory + " list: " + newItem.name + " (" + newItem.jcKcal + " kcal) — reselect dropdown to see it");
               }
             } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); }
             setNewItemName(""); setAddingNew(false); setNewItemLoading(false);
@@ -2604,7 +2604,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           var defs = mealDefaults[activeTab] || {};
           var dayMeals = meals[eatDay] || {};
           var otherSlots = [];
-          for (var oi = 1; oi <= 20; oi++) { if (dayMeals["o" + oi] || oi <= Math.max(getOtherCount(eatDay), 1)) otherSlots.push(oi); }
+          for (var oi = 1; oi <= 20; oi++) { if (dayMeals["o" + oi] || oi <= Math.max(getOtherCount(eatDay), 1) || dayMeals["o" + oi] === "__empty__") otherSlots.push(oi); }
 
           var MealSelect = function(props) {
             var items = props.items; var value = props.value; var onChange = props.onChange; var placeholder = props.placeholder || "Select...";
@@ -2652,9 +2652,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               return (<div key={def.k} style={{ marginBottom: 8 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
                   <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>{def.l}</span>
-                  <div style={{ display: "flex", gap: 4 }}>
-                    <button onClick={function() { saveDef(def.k, defs[def.k], "all"); setFormMsg("Applied to all"); setTimeout(function() { setFormMsg(""); }, 1500); }} style={{ fontSize: 9, padding: "2px 6px", background: "#dbeafe", border: "1px solid #93c5fd", borderRadius: 4, color: "#1e40af", cursor: "pointer" }}>All</button>
-                    <button onClick={function() { saveDef(def.k, defs[def.k], "individual"); setFormMsg("Applied individually"); setTimeout(function() { setFormMsg(""); }, 1500); }} style={{ fontSize: 9, padding: "2px 6px", background: "#f3e8ff", border: "1px solid #c4b5fd", borderRadius: 4, color: "#6b21a8", cursor: "pointer" }}>Individual</button>
+                  <div style={{ display: "flex", background: "#e2e8f0", borderRadius: 4, padding: 1 }}>
+                    <button onClick={function() { saveDef(def.k, defs[def.k], "individual"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: "#fff", color: "#0f172a" }}>Individual</button>
+                    <button onClick={function() { saveDef(def.k, defs[def.k], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: "transparent", color: "#94a3b8" }}>All</button>
                   </div>
                 </div>
                 <select value={defs[def.k] || ""} onChange={function(e) { saveDef(def.k, e.target.value, "individual"); }} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }}>
@@ -2668,7 +2668,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                 <div style={{ flex: 1 }}>
                   <span style={{ fontSize: 9, color: "#94a3b8" }}>Other {n}</span>
-                  <select value={defs["o" + n] || ""} onChange={function(e) { saveDef("o" + n, e.target.value, "individual"); }} style={{ width: "100%", padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10 }}>
+                  <select value={defs["o" + n] === "__placeholder__" ? "" : (defs["o" + n] || "")} onChange={function(e) { saveDef("o" + n, e.target.value, "individual"); }} style={{ width: "100%", padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10 }}>
                     <option value="">—</option>
                     {allOther.slice().sort(function(a,b) { return a.name.localeCompare(b.name); }).map(function(item) { return <option key={item.id} value={item.id}>{item.name}</option>; })}
                   </select>
@@ -2676,7 +2676,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 <button onClick={function() { saveDef("o" + n, "", "individual"); }} style={{ fontSize: 10, color: "#dc2626", background: "none", border: "none", cursor: "pointer", marginTop: 12 }}>✕</button>
               </div>);
             })}
-            <button onClick={function() { var next = 1; while (defs["o" + next]) next++; saveDef("o" + next, "", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>+ Add Other Default</button>
+            <button onClick={function() { var next = 1; while (defs["o" + next]) next++; saveDef("o" + next, "__placeholder__", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>+ Add Other Default</button>
           
             <div style={{ marginTop: 10, marginBottom: 10, padding: 10, background: "#f5f3ff", borderRadius: 8, border: "1px solid #c4b5fd" }}>
               <div style={{ fontSize: 10, fontWeight: 600, color: "#6b21a8", marginBottom: 4 }}>AI — Add to My Lists</div>
@@ -2700,7 +2700,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     else if (cat === "dinner") { newItem.jcProt = info.protein || 0; newItem.beckProt = info.protein || 0; newItem.jcFat = info.fat || 0; newItem.beckFat = info.fat || 0; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
                     else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
                     document.getElementById("ai-add-settings").value = "";
-                    setFormMsg("Added to " + cat + ": " + info.name + " (" + info.kcal + " kcal, " + (info.protein || 0) + "g protein)");
+                    setFormMsg("✅ Added to " + cat + " list: " + info.name + " (" + info.kcal + " kcal) — reselect dropdown to see it");
                   }
                 } catch(e) { setFormMsg("Error: " + String(e).substring(0, 100)); }
                 setTimeout(function() { setFormMsg(""); }, 6000);
@@ -2779,7 +2779,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               return (<div key={idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                 <div style={{ flex: 1 }}>
                   <span style={{ fontSize: 9, color: "#94a3b8" }}>Other {idx}</span>
-                  <MealSelect items={allOther} value={getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory("other"); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Snack / drink / other..." />
+                  <MealSelect items={allOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory("other"); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Snack / drink / other..." />
                 </div>
                 <button onClick={function() { removeOtherSlot(eatDay, idx); }} style={{ fontSize: 12, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", marginTop: 14 }}>✕</button>
               </div>);
@@ -2821,7 +2821,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     else if (cat === "dinner") { newItem.jcProt = info.protein || 0; newItem.beckProt = info.protein || 0; newItem.jcFat = info.fat || 0; newItem.beckFat = info.fat || 0; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
                     else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
                     document.getElementById("ai-add-" + eatDay).value = "";
-                    setFormMsg("Added to " + cat + ": " + info.name + " (" + info.kcal + " kcal, " + (info.protein || 0) + "g protein, " + (info.fat || 0) + "g fat)");
+                    setFormMsg("✅ Added to " + cat + " list: " + info.name + " (" + info.kcal + " kcal) — reselect dropdown to see it");
                   }
                 } catch(e) { setFormMsg("Error: " + String(e).substring(0, 100)); }
                 setTimeout(function() { setFormMsg(""); }, 6000);
