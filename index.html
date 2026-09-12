@@ -1163,6 +1163,7 @@ function Dashboard() {
   const [showAddMealType, setShowAddMealType] = useState(null);
   const [newMealTypeInputs, setNewMealTypeInputs] = useState({ name: "", jcKcal: "", beckKcal: "", rating: "GREAT" });
   const [mealDefaults, setMealDefaults] = useState({ jc: {}, becks: {} });
+  const [defScopes, setDefScopes] = useState({});
   const [generating, setGenerating] = useState(false);
   const [formMsg, setFormMsg] = useState("");
   const [debugMode, setDebugMode] = useState(false);
@@ -2599,6 +2600,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               nd[activeTab][key] = val;
             }
             setMealDefaults(nd); sSet("meal_defaults", JSON.stringify(nd));
+            var ns = Object.assign({}, defScopes); ns[key] = scope; setDefScopes(ns);
           };
 
           var defs = mealDefaults[activeTab] || {};
@@ -2653,8 +2655,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
                   <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>{def.l}</span>
                   <div style={{ display: "flex", background: "#e2e8f0", borderRadius: 4, padding: 1 }}>
-                    <button onClick={function() { saveDef(def.k, defs[def.k], "individual"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: "#fff", color: "#0f172a" }}>Individual</button>
-                    <button onClick={function() { saveDef(def.k, defs[def.k], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: "transparent", color: "#94a3b8" }}>All</button>
+                    <button onClick={function() { saveDef(def.k, defs[def.k], "individual"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes[def.k] || "individual") === "individual" ? "#fff" : "transparent", color: (defScopes[def.k] || "individual") === "individual" ? "#0f172a" : "#94a3b8" }}>Individual</button>
+                    <button onClick={function() { saveDef(def.k, defs[def.k], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes[def.k] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes[def.k] || "individual") === "all" ? "#0f172a" : "#94a3b8" }}>All</button>
                   </div>
                 </div>
                 <select value={defs[def.k] || ""} onChange={function(e) { saveDef(def.k, e.target.value, "individual"); }} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }}>
