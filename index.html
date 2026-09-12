@@ -1868,16 +1868,20 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   });
                   var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: file.type || "image/jpeg", data: b64 } }, { type: "text", text: 'Extract body comp values from this Fitdays screenshot. Return ONLY JSON. For weight: convert st:lb to decimal stone (e.g. 14st 8.1lb = 14.579). All other values as numbers only: {"weight":"14.579","bodyFat":"25.8","muscleMass":"","muscleRate":"","skeletalMuscle":"","visceralFat":"","subcutFat":"","bmr":"","bodyWater":"","boneMass":"","bodyAge":"","bmi":""}' }] }] }) });
                   var result = await resp.json();
+                  var apiErr = handleApiError(result);
+                  if (apiErr) { setFormMsg("API: " + apiErr); setTimeout(function() { setFormMsg(""); }, 8000); return; }
                   var txt = "";
                   if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt = txt + result.content[ci].text; } }
                   if (txt) {
-                    var parsed = JSON.parse(txt.replace(/```json|```/g, "").trim());
-                    if (parsed.weight) parsed.weight = String(parseStLb(parsed.weight).toFixed(4));
-                    parsed.week = String(calcWeek(data.config.trainingStart));
-                    setBodyInputs(function(prev) { return Object.assign({}, prev, parsed); });
-                    setShowBodyForm(true);
-                    setFormMsg("✓ Values extracted — review and save");
-                  } else { setFormMsg("No data extracted — try clearer photo"); }
+                    try {
+                      var parsed = JSON.parse(txt.replace(/```json|```/g, "").trim());
+                      if (parsed.weight) parsed.weight = String(parseStLb(parsed.weight).toFixed(4));
+                      parsed.week = String(calcWeek(data.config.trainingStart));
+                      setBodyInputs(function(prev) { return Object.assign({}, prev, parsed); });
+                      setShowBodyForm(true);
+                      setFormMsg("✓ Values extracted — review and save");
+                    } catch(pe) { setFormMsg("Parse error: " + txt.substring(0, 80)); setTimeout(function() { setFormMsg(""); }, 8000); }
+                  } else { setFormMsg("No data in response: " + JSON.stringify(result).substring(0, 100)); setTimeout(function() { setFormMsg(""); }, 8000); }
                 } catch(err) { setFormMsg("Error: " + String(err).substring(0, 100)); setTimeout(function() { setFormMsg(""); }, 8000); }
                 setTimeout(function() { setFormMsg(""); }, 5000);
                 e.target.value = "";
