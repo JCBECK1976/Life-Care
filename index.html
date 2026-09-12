@@ -2353,7 +2353,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       }
                     }
                     await saveData(recalcNd);
-                    setFormMsg("Equipment saved"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ marginTop: 6, padding: "6px 14px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Save Equipment Info</button>
+                    var savedEl = document.getElementById("equip-saved-" + day); if (savedEl) { savedEl.style.display = "inline"; setTimeout(function() { savedEl.style.display = "none"; }, 3000); }; setTimeout(function() { setFormMsg(""); }, 2000); }} id={"equip-save-btn-" + day} style={{ marginTop: 6, padding: "6px 14px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Save Equipment Info</button>
+                    <span id={"equip-saved-" + day} style={{ fontSize: 11, color: "#16a34a", fontWeight: 600, marginLeft: 8, display: "none" }}>✅ Equipment Saved</span>
                   </div>
                   <button onClick={async function() {
                     setSessionFbLoading(true); setFormMsg("Generating settings for all exercises...");
