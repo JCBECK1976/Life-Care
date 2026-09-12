@@ -1607,7 +1607,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const latestStVal = latestWt ? latestWt.v : null;
   const toIdeal = latestStVal ? ((latestStVal - idealSt) * 14).toFixed(1) : null;
   const wtStone = latestStVal ? Math.floor(latestStVal) : "—";
-  const wtLbs = latestStVal ? ((latestStVal - Math.floor(latestStVal)) * 14).toFixed(1) : "";
+  const wtLbs = latestStVal ? ((latestStVal - Math.floor(latestStVal)) * 10).toFixed(1) : "";
   const wtStr = latestStVal ? wtStone + "st " + wtLbs + "lb" : "—";
   const firstWtVal = wt.length > 0 ? wt[0].v : null;
   const wtDelta = (firstWtVal && latestStVal) ? (((latestStVal - firstWtVal) * 14).toFixed(1) + "lb from baseline") : "";
@@ -1875,7 +1875,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   if (txt) {
                     try {
                       var parsed = JSON.parse(txt.replace(/```json|```/g, "").trim());
-                      if (parsed.weight) parsed.weight = String(parseStLb(parsed.weight).toFixed(4));
+                      // Store weight as-is from Fitdays (e.g. 14.87 = 14st 8.7lb)
                       parsed.week = String(calcWeek(data.config.trainingStart));
                       setBodyInputs(function(prev) { return Object.assign({}, prev, parsed); });
                       setShowBodyForm(true);
