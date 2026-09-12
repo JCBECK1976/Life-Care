@@ -2628,7 +2628,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           {/* Controls row */}
           <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
             <button onClick={function() { setShowDefaults(!showDefaults); }} style={{ padding: "6px 10px", background: showDefaults ? accent : "#f1f5f9", color: showDefaults ? "#fff" : "#475569", border: "1px solid " + (showDefaults ? accent : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Week Settings</button>
-            <button onClick={applyDefaults} style={{ padding: "6px 10px", background: "#dcfce7", border: "1px solid #86efac", borderRadius: 6, fontSize: 10, color: "#166534", cursor: "pointer" }}>Apply Defaults</button>
             <button onClick={clearWeek} style={{ padding: "6px 10px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 6, fontSize: 10, color: "#991b1b", cursor: "pointer" }}>Clear Week</button>
           </div>
 
@@ -2721,6 +2720,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               <div style={{ fontSize: 9, color: "#64748b" }}>Ticked days will only get dinners within the {quickPrepMins} min prep limit when generating</div>
             </div>
 
+            <button onClick={applyDefaults} style={{ width: "100%", padding: 10, marginTop: 10, background: "#dcfce7", border: "1px solid #86efac", borderRadius: 8, fontSize: 12, fontWeight: 700, color: "#166534", cursor: "pointer" }}>Apply Defaults</button>
             <button onClick={async function() {
             setGenerating(true); setFormMsg("Generating meals...");
             try {
