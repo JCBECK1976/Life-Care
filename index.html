@@ -1266,8 +1266,21 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     const ex = data[activeTab].exercises[day][idx];
     const last = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
     setLogEx({ day, idx });
+    var targetW = "";
+    var targetR = "";
+    if (ex.target) {
+      var tm = ex.target.match(/([\.\d]+)kg/);
+      var tr = ex.target.match(/(\d+)[x×](\d+)/);
+      if (tm) targetW = tm[1];
+      if (tr) targetR = tr[1];
+    }
+    var useW = targetW || (last ? last.w.replace("kg", "") : "");
+    var useR = targetR || "";
     var lastReps = last && last.r ? parseReps(last.r) : [];
-    setLogSets([{ w: last ? last.w.replace("kg", "") : "", r: lastReps[0] ? String(lastReps[0]) : "" }, { w: last ? last.w.replace("kg", "") : "", r: lastReps[1] ? String(lastReps[1]) : "" }, { w: last ? last.w.replace("kg", "") : "", r: lastReps[2] ? String(lastReps[2]) : "" }]);
+    var r1 = useR || (lastReps[0] ? String(lastReps[0]) : "");
+    var r2 = useR || (lastReps[1] ? String(lastReps[1]) : "");
+    var r3 = useR || (lastReps[2] ? String(lastReps[2]) : "");
+    setLogSets([{ w: useW, r: r1 }, { w: useW, r: r2 }, { w: useW, r: r3 }]);
     setLogWeek(String(calcWeek(data.config.trainingStart)));
     setLogComment(""); setLogStatus(""); setEditPrev(false);
     setPrevComment("");
@@ -1326,7 +1339,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       const w = logSets[0].w || String(parseInt(ex.current) || 0);
       const repsStr = fmtReps(logSets.map(s => parseInt(s.r) || 0));
       const wStr = w + "kg";
-      const wk = parseInt(logWeek) || (data.config.week || 6) + 1;
+      const wk = parseInt(logWeek) || calcWeek(data.config.trainingStart);
       ex.prog.push({ wk, w: wStr, r: repsStr, note: logComment.trim() || "" });
       ex.current = wStr; ex.reps = repsStr;
       const suggested = autoStatus(wStr, repsStr, ex.prog.slice(0, -1), ((logComment || "") + " " + (ex.notes || "")).trim());
@@ -1625,7 +1638,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           {Object.keys(data).filter(k => k !== "config").map((k, i) => {
             const cols = ["#2563eb", "#7c3aed", "#059669", "#d97706", "#dc2626", "#0891b2", "#e11d48"];
             const label = data[k].profile ? data[k].profile.name : k;
-            return (<button key={k} onClick={() => { setActiveTab(k); setSection("overview"); }} style={{ flex: 1, padding: "8px 0", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? cols[i % cols.length] : "transparent", color: activeTab === k ? "#fff" : "#64748b", minWidth: 50 }}>{label}</button>);
+            return (<button key={k} onClick={() => { setActiveTab(k); }} style={{ flex: 1, padding: "8px 0", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? cols[i % cols.length] : "transparent", color: activeTab === k ? "#fff" : "#64748b", minWidth: 50 }}>{label}</button>);
           })}
           <button onClick={() => setShowAddPerson(true)} style={{ padding: "8px 10px", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", background: "transparent", color: "#64748b" }}>+</button>
         </div>
