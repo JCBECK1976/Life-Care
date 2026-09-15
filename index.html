@@ -1395,9 +1395,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         if (otEx) {
           ["sunday", "monday", "friday"].filter(function(d) { return d !== day; }).forEach(function(od) {
             var osi = -1;
-            var osExs = nd[otTab].exercises[od] || [];
+            var osExs = nd[ot].exercises[od] || [];
             for (var sj = 0; sj < osExs.length; sj++) { if (osExs[sj].name === otEx.name) { osi = sj; break; } }
-            if (osi >= 0) { var ooe = nd[otTab].exercises[od][osi]; ooe.current = otEx.current; ooe.reps = otEx.reps; ooe.status = otEx.status; ooe.prog = JSON.parse(JSON.stringify(otEx.prog)); if (otEx.target) ooe.target = otEx.target; else delete ooe.target; }
+            if (osi >= 0) { var ooe = nd[ot].exercises[od][osi]; ooe.current = otEx.current; ooe.reps = otEx.reps; ooe.status = otEx.status; ooe.prog = JSON.parse(JSON.stringify(otEx.prog)); if (otEx.target) ooe.target = otEx.target; else delete ooe.target; }
           });
         }
       window._dualLogState = {};
