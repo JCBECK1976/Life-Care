@@ -1391,15 +1391,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           }
         }
       }
-      // Sync other person's same exercise across days
-        if (otEx) {
-          ["sunday", "monday", "friday"].filter(function(d) { return d !== day; }).forEach(function(od) {
-            var osi = -1;
-            var osExs = nd[ot].exercises[od] || [];
-            for (var sj = 0; sj < osExs.length; sj++) { if (osExs[sj].name === otEx.name) { osi = sj; break; } }
-            if (osi >= 0) { var ooe = nd[ot].exercises[od][osi]; ooe.current = otEx.current; ooe.reps = otEx.reps; ooe.status = otEx.status; ooe.prog = JSON.parse(JSON.stringify(otEx.prog)); if (otEx.target) ooe.target = otEx.target; else delete ooe.target; }
-          });
-        }
       window._dualLogState = {};
       await saveData(nd);
     }
@@ -1662,7 +1653,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       </div>
       {formMsg && <div style={{ margin: "8px 16px 0", padding: 10, borderRadius: 8, background: formMsg.startsWith("✓") ? "#dcfce7" : "#fee2e2", color: formMsg.startsWith("✓") ? "#166534" : "#991b1b", fontSize: 12, fontWeight: 600 }}>{formMsg}</div>}
 
-      <div key={activeTab} style={{ padding: 16 }}>
+      <div style={{ padding: 16 }}>
         {/* HOME */}
         {section === "overview" && (<div>
           {/* Profile */}
@@ -2600,8 +2591,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             setTimeout(function() { setFormMsg(""); }, 4000);
           };
 
-          var applyDefaults = async function() {
-            var defs = mealDefaults[activeTab] || {};
+          var applyDefaults = function() {
+            
+          var defs = mealDefaults[activeTab] || {};
             var n = Object.assign({}, meals);
             DAYS.forEach(function(d) {
               if (!n[d]) n[d] = {};
@@ -2610,25 +2602,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               if (defs.d && !n[d].d) n[d].d = defs.d;
               for (var i = 1; i <= 7; i++) { if (defs["o" + i] && !n[d]["o" + i]) n[d]["o" + i] = defs["o" + i]; }
             });
-            setMeals(n); saveMeals(n);
-            var otherTabs = Object.keys(data).filter(function(k) { return k !== "config" && k !== activeTab; });
-            for (var ti = 0; ti < otherTabs.length; ti++) {
-              var ot = otherTabs[ti];
-              var otDefs = mealDefaults[ot] || {};
-              if (Object.keys(otDefs).length === 0) continue;
-              var otSk = mealKey(weekStart) + ":" + ot;
-              var otRaw = await sGet(otSk);
-              var otMeals = otRaw ? JSON.parse(otRaw) : {};
-              DAYS.forEach(function(d) {
-                if (!otMeals[d]) otMeals[d] = {};
-                if (otDefs.b && !otMeals[d].b) otMeals[d].b = otDefs.b;
-                if (otDefs.l && !otMeals[d].l) otMeals[d].l = otDefs.l;
-                if (otDefs.d && !otMeals[d].d) otMeals[d].d = otDefs.d;
-                for (var i = 1; i <= 7; i++) { if (otDefs["o" + i] && !otMeals[d]["o" + i]) otMeals[d]["o" + i] = otDefs["o" + i]; }
-              });
-              await sSet(otSk, JSON.stringify(otMeals));
-            }
-            setFormMsg("Defaults applied" + (otherTabs.length > 0 ? " (all people)" : "")); setTimeout(function() { setFormMsg(""); }, 2000);
+            setMeals(n); saveMeals(n); setFormMsg("Defaults applied"); setTimeout(function() { setFormMsg(""); }, 2000);
           };
 
           var saveDef = function(key, val, scope) {
@@ -2778,16 +2752,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 var n = Object.assign({}, meals);
                 DAYS.forEach(function(d2) { if (gen[d2]) { if (!n[d2]) n[d2] = {}; if (gen[d2].b && !n[d2].b) n[d2].b = gen[d2].b; if (gen[d2].l && !n[d2].l) n[d2].l = gen[d2].l; if (gen[d2].d && !n[d2].d) n[d2].d = gen[d2].d; } });
                 setMeals(n); saveMeals(n);
-                var otherTabs2 = Object.keys(data).filter(function(k) { return k !== "config" && k !== activeTab; });
-                for (var ti2 = 0; ti2 < otherTabs2.length; ti2++) {
-                  var ot2 = otherTabs2[ti2];
-                  var otSk2 = mealKey(weekStart) + ":" + ot2;
-                  var otRaw2 = await sGet(otSk2);
-                  var otM2 = otRaw2 ? JSON.parse(otRaw2) : {};
-                  MEAL_DAYS.forEach(function(d3) { if (gen[d3]) { if (!otM2[d3]) otM2[d3] = {}; if (gen[d3].d && !otM2[d3].d) otM2[d3].d = gen[d3].d; } });
-                  await sSet(otSk2, JSON.stringify(otM2));
-                }
-                setFormMsg("Week meals generated" + (otherTabs2.length > 0 ? " (all people)" : ""));
+                setFormMsg("Week meals generated");
               }
             } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); }
             setTimeout(function() { setFormMsg(""); }, 4000); setGenerating(false);
