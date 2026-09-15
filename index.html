@@ -1326,7 +1326,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       const w = logSets[0].w || String(parseInt(ex.current) || 0);
       const repsStr = fmtReps(logSets.map(s => parseInt(s.r) || 0));
       const wStr = w + "kg";
-      const wk = parseInt(logWeek) || (data.config.week || 6) + 1;
+      const wk = parseInt(logWeek) || calcWeek(data.config.trainingStart);
       ex.prog.push({ wk, w: wStr, r: repsStr, note: logComment.trim() || "" });
       ex.current = wStr; ex.reps = repsStr;
       const suggested = autoStatus(wStr, repsStr, ex.prog.slice(0, -1), ((logComment || "") + " " + (ex.notes || "")).trim());
@@ -1625,7 +1625,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           {Object.keys(data).filter(k => k !== "config").map((k, i) => {
             const cols = ["#2563eb", "#7c3aed", "#059669", "#d97706", "#dc2626", "#0891b2", "#e11d48"];
             const label = data[k].profile ? data[k].profile.name : k;
-            return (<button key={k} onClick={() => { setActiveTab(k); setSection("overview"); }} style={{ flex: 1, padding: "8px 0", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? cols[i % cols.length] : "transparent", color: activeTab === k ? "#fff" : "#64748b", minWidth: 50 }}>{label}</button>);
+            return (<button key={k} onClick={() => { setActiveTab(k); }} style={{ flex: 1, padding: "8px 0", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? cols[i % cols.length] : "transparent", color: activeTab === k ? "#fff" : "#64748b", minWidth: 50 }}>{label}</button>);
           })}
           <button onClick={() => setShowAddPerson(true)} style={{ padding: "8px 10px", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", background: "transparent", color: "#64748b" }}>+</button>
         </div>
@@ -2194,6 +2194,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             const ex = p.exercises[logEx.day] && p.exercises[logEx.day][logEx.idx]; if (!ex) return null;
             const prev = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
             return (<div ref={logFormRef} style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: accent, marginBottom: 2 }}>{(p.profile && p.profile.name) || activeTab}</div>
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Log: {ex.name}</div>
               <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Previous: {prev ? prev.w + " " + prev.r + " (Wk " + prev.wk + ")" : "No data"}</div>
               {prevComment && (<div style={{ padding: 8, background: "#fef3c7", borderRadius: 8, marginBottom: 8, border: "1px solid #fde68a" }}>
