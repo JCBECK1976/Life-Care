@@ -980,6 +980,9 @@ function Dashboard() {
   const [showProfile, setShowProfile] = useState(false);
   const [profileInputs, setProfileInputs] = useState({});
   const [healthComment, setHealthComment] = useState("");
+  const [healthView, setHealthView] = useState("general");
+  const [healthFb, setHealthFb] = useState(null);
+  const [healthFbLoading, setHealthFbLoading] = useState(false);
   const [showMedForm, setShowMedForm] = useState(false);
   const [editMedIdx, setEditMedIdx] = useState(null);
   const [medInputs, setMedInputs] = useState({ name: "", type: "medication", dosage: "", timing: "", frequency: "Daily", notes: "" });
@@ -1214,6 +1217,8 @@ function Dashboard() {
     const cl = await sGet("custom_lunches"); if (cl) setCustomLunches(JSON.parse(cl));
     const md = await sGet("meal_defaults"); if (md) setMealDefaults(JSON.parse(md));
     const cmn = await sGet("custom_med_names"); if (cmn) setCustomMedNames(JSON.parse(cmn));
+    const hfbJ = await sGet("health_fb_jc"); if (hfbJ) setHealthFb(JSON.parse(hfbJ));
+    const hfbB = await sGet("health_fb_becks"); if (hfbB) setHealthFb(JSON.parse(hfbB));
     const cbt = await sGet("custom_blood_tests"); if (cbt) setCustomBloodTests(JSON.parse(cbt));
     const sm = await sGet("supermarket_pref"); if (sm) setSupermarket(sm);
     const cmt = await sGet("custom_meas_types"); if (cmt) setCustomMeasTypes(JSON.parse(cmt));
@@ -1429,7 +1434,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       const prof = p.profile || {};
       const who = prof.name + " (" + (prof.sex || "") + ", " + (prof.age || "") + ", " + (prof.height || "") + ", ideal " + (prof.idealWeight || "") + ", " + (prof.bodyType || "") + ". " + (prof.notes || "") + ")";
       // Health log
-      let healthContext = "";
+      let healthContext = ""; if (p.healthProfile) healthContext += "\nHealth profile: " + p.healthProfile;
       if (p.healthLog && p.healthLog.length > 0) {
         healthContext = "\nRecent health updates: " + p.healthLog.slice(-5).map(h => h.date + ": " + h.note).join("; ") + ".";
       }
@@ -1508,7 +1513,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           return { name: ex.name, current: ex.current, reps: ex.reps, status: ex.status, target: ex.target || "", notes: ex.notes || "", prev: prev ? prev.w + " " + prev.r + " Wk" + prev.wk : "", weeksTracked: ex.prog ? ex.prog.length : 0 };
         });
       }
-      const prompt = "You are a health coach analysing Week " + data.config.week + " for " + who + ". Give integrated analysis across all data.\n\nExercises: " + JSON.stringify(exSummary) + "\nBody: " + JSON.stringify(p.body) + "\nMeasurements: " + JSON.stringify(p.measurements) + mealSummary + exComments + healthContext + bloodContext + medsContext + attachCtx + photoCtx + activityCtx + prevContext + "\n\nRules: EACH point must be ONE short sentence (max 20 words). Reference specific numbers. Return ONLY JSON:\n{\"good\":[\"short point\",\"short point\",\"short point\"],\"opportunities\":[\"short point\",\"short point\"],\"focus\":[\"one sentence focus for next 2 weeks\"]}";
+      const prompt = "You are a health coach analysing Week " + data.config.week + " for " + who + ". Give integrated analysis across all data.\n\nExercises: " + JSON.stringify(exSummary) + "\nBody: " + JSON.stringify(p.body) + "\nMeasurements: " + JSON.stringify(p.measurements) + mealSummary + exComments + healthContext + bloodContext + medsContext + attachCtx + photoCtx + activityCtx + prevContext + "\n\nRules: EACH point must be ONE short sentence (max 20 words). Reference specific numbers. MEDICATION RULES: Check for drug interactions between all active medications and with diet/exercise. Differentiate [OFFICIAL] sources (NICE, BNF, NHS, drug manufacturers, peer-reviewed) from [ANECDOTAL] (patient forums, user reports). Never recommend stopping medication — advise GP discussion. Return ONLY JSON:\n{\"good\":[\"short point\",\"short point\",\"short point\"],\"opportunities\":[\"short point\",\"short point\"],\"focus\":[\"one sentence focus for next 2 weeks\"]}";
       const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
       if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Feedback API", status: response.status, statusText: response.statusText }].concat(prev).slice(0, 20); });
       const result = await response.json();
@@ -1614,7 +1619,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const shopItems = {}; MEAL_DAYS.forEach(d => { const m = allDinners.find(x => x.id === meals[d.key]); if (m) m.shop?.forEach(it => { shopItems[it] = (shopItems[it] || 0) + 1; }); });
   const shopList = Object.entries(shopItems).sort((a, b) => a[0].localeCompare(b[0]));
   const planned = MEAL_DAYS.filter(d => meals[d.key]).length;
-  const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "Body Comp" }, { id: "weights", l: "Exercise" }, { id: "meals", l: "Eating" }, { id: "meds", l: "Meds" }, { id: "bloods", l: "Health" }, { id: "shop", l: "Shop" }, { id: "targets", l: "Targets" }, { id: "admin", l: "⚙" }];
+  const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "Body Comp" }, { id: "weights", l: "Exercise" }, { id: "meals", l: "Eating" }, { id: "bloods", l: "Health" }, { id: "shop", l: "Shop" }, { id: "targets", l: "Targets" }, { id: "admin", l: "⚙" }];
   const wt = p.body.weight || [];
   const latestWt = wt.length > 0 ? wt[wt.length - 1] : null;
   const idealSt = isJC ? IDEALS.jc : IDEALS.becks;
@@ -2437,99 +2442,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         </div>); })()}
 
         {/* MEDS */}
-        {section === "meds" && (() => {
-          const allMedNames = [...DEFAULT_MEDS, ...DEFAULT_SUPPS, ...customMedNames].sort();
-          const meds = p.meds || [];
-          const activeMeds = meds.filter(m => m.active && m.type === "medication");
-          const activeSupps = meds.filter(m => m.active && m.type === "supplement");
-          const inactive = meds.filter(m => !m.active);
-          const saveMed = async (medsList) => {
-            const nd = JSON.parse(JSON.stringify(data));
-            nd[activeTab].meds = medsList;
-            if (!nd[activeTab].medsHistory) nd[activeTab].medsHistory = [];
-            nd[activeTab].medsHistory.push({ date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), action: "Updated", snapshot: medsList.filter(m => m.active).map(m => m.name + " " + m.dosage).join(", ") });
-            if (nd[activeTab].medsHistory.length > 20) nd[activeTab].medsHistory = nd[activeTab].medsHistory.slice(-20);
-            await saveData(nd);
-          };
-          const addMed = async () => {
-            if (!medInputs.name.trim()) return;
-            const newMed = { name: medInputs.name.trim(), type: medInputs.type, dosage: medInputs.dosage, timing: medInputs.timing, frequency: medInputs.frequency, notes: medInputs.notes, started: new Date().toISOString().slice(0, 7), active: true };
-            const updated = [...meds, newMed];
-            await saveMed(updated);
-            if (!allMedNames.includes(newMed.name)) { const cn = [...customMedNames, newMed.name]; setCustomMedNames(cn); await sSet("custom_med_names", JSON.stringify(cn)); }
-            setShowMedForm(false); setMedInputs({ name: "", type: "medication", dosage: "", timing: "", frequency: "Daily", notes: "" });
-            setFormMsg("✓ " + newMed.name + " added"); setTimeout(() => setFormMsg(""), 3000);
-          };
-          const updateMed = async () => {
-            if (editMedIdx === null) return;
-            const updated = [...meds];
-            updated[editMedIdx] = Object.assign({}, updated[editMedIdx], medInputs);
-            await saveMed(updated);
-            setEditMedIdx(null); setFormMsg("✓ Updated"); setTimeout(() => setFormMsg(""), 3000);
-          };
-          const toggleMed = async (idx) => {
-            const updated = [...meds]; updated[idx] = Object.assign({}, updated[idx], { active: !updated[idx].active });
-            await saveMed(updated);
-          };
-          const removeMed = async (idx) => {
-            const updated = meds.filter((_, i) => i !== idx);
-            await saveMed(updated);
-            setFormMsg("✓ Removed"); setTimeout(() => setFormMsg(""), 3000);
-          };
-          const renderMedCard = (m, idx) => (<div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f1f5f9", opacity: m.active ? 1 : 0.5 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, fontSize: 13 }}>{m.name} {m.dosage ? <span style={{ fontWeight: 400, color: "#64748b" }}>{m.dosage}</span> : ""}</div>
-              <div style={{ fontSize: 11, color: "#64748b" }}>{m.timing} · {m.frequency}{m.notes ? " · " + m.notes : ""}</div>
-            </div>
-            <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-              <button onClick={() => { setEditMedIdx(idx); setMedInputs(Object.assign({}, m)); }} style={{ fontSize: 9, color: "#3b82f6", background: "none", border: "none", cursor: "pointer" }}>Edit</button>
-              <button onClick={() => toggleMed(idx)} style={{ fontSize: 9, color: m.active ? "#d97706" : "#16a34a", background: "none", border: "none", cursor: "pointer" }}>{m.active ? "Stop" : "Restart"}</button>
-            </div>
-          </div>);
-          return (<div>
-          <button onClick={() => { setShowMedForm(true); setEditMedIdx(null); setMedInputs({ name: "", type: "medication", dosage: "", timing: "", frequency: "Daily", notes: "" }); }} style={{ ...btnP(), marginBottom: 14 }}>+ Add Medication / Supplement</button>
-          {(showMedForm || editMedIdx !== null) && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>{editMedIdx !== null ? "Edit" : "Add"} {medInputs.type === "supplement" ? "Supplement" : "Medication"}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <div style={{ gridColumn: "1 / -1" }}><label style={labelStyle}>Name</label>
-                <div style={{ display: "flex", gap: 4 }}>
-                  <select value={allMedNames.includes(medInputs.name) ? medInputs.name : "_custom"} onChange={e => { if (e.target.value !== "_custom") setMedInputs(q => ({ ...q, name: e.target.value })); }} style={{ ...inputStyle, flex: 1 }}>
-                    <option value="_custom">Custom / type below</option>
-                    {allMedNames.map(n => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                  <input value={medInputs.name} onChange={e => setMedInputs(q => ({ ...q, name: e.target.value }))} style={{ ...inputStyle, flex: 1 }} placeholder="Or type name" />
-                </div>
-              </div>
-              <div><label style={labelStyle}>Type</label><select value={medInputs.type} onChange={e => setMedInputs(q => ({ ...q, type: e.target.value }))} style={inputStyle}><option value="medication">Medication</option><option value="supplement">Supplement</option></select></div>
-              <div><label style={labelStyle}>Dosage</label><input value={medInputs.dosage} onChange={e => setMedInputs(q => ({ ...q, dosage: e.target.value }))} style={inputStyle} placeholder="e.g. 200mcg" /></div>
-              <div><label style={labelStyle}>When to take</label><input value={medInputs.timing} onChange={e => setMedInputs(q => ({ ...q, timing: e.target.value }))} style={inputStyle} placeholder="e.g. Lunchtime" /></div>
-              <div><label style={labelStyle}>Frequency</label><select value={medInputs.frequency} onChange={e => setMedInputs(q => ({ ...q, frequency: e.target.value }))} style={inputStyle}><option>Daily</option><option>Twice daily</option><option>Training days</option><option>Weekly</option><option>As needed</option></select></div>
-              <div style={{ gridColumn: "1 / -1" }}><label style={labelStyle}>Notes</label><input value={medInputs.notes} onChange={e => setMedInputs(q => ({ ...q, notes: e.target.value }))} style={inputStyle} placeholder="Any notes..." /></div>
-            </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-              <button onClick={editMedIdx !== null ? updateMed : addMed} disabled={!medInputs.name.trim()} style={{ ...btnP(!!medInputs.name.trim()), flex: 1 }}>{editMedIdx !== null ? "Update" : "Add"}</button>
-              {editMedIdx !== null && <button onClick={() => { removeMed(editMedIdx); setEditMedIdx(null); }} style={{ padding: "8px 16px", background: "#fee2e2", border: "none", borderRadius: 8, fontSize: 12, color: "#991b1b", cursor: "pointer" }}>Remove</button>}
-              <button onClick={() => { setShowMedForm(false); setEditMedIdx(null); }} style={btnS}>Cancel</button>
-            </div>
-          </div>)}
-          {activeMeds.length > 0 && (<div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#dc2626", textTransform: "uppercase", marginBottom: 10 }}>Medications</div>
-            {activeMeds.map((m) => renderMedCard(m, meds.indexOf(m)))}
-          </div>)}
-          {activeSupps.length > 0 && (<div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#16a34a", textTransform: "uppercase", marginBottom: 10 }}>Supplements</div>
-            {activeSupps.map((m) => renderMedCard(m, meds.indexOf(m)))}
-          </div>)}
-          {inactive.length > 0 && (<div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 14, opacity: 0.6 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", marginBottom: 10 }}>Stopped</div>
-            {inactive.map((m) => renderMedCard(m, meds.indexOf(m)))}
-          </div>)}
-          {p.medsHistory && p.medsHistory.length > 0 && (<div style={{ background: "#f8fafc", borderRadius: 10, padding: 12, marginBottom: 14 }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", marginBottom: 6 }}>CHANGE HISTORY</div>
-            {p.medsHistory.slice(-5).reverse().map((h, i) => (<div key={i} style={{ fontSize: 10, color: "#64748b", padding: "3px 0" }}>{h.date}: {h.snapshot}</div>))}
-          </div>)}
-        </div>); })()}
-
+        
         {/* MEALS */}
         {section === "meals" && (() => { try {
           var allBfast = [...BREAKFASTS, ...customBreakfasts];
@@ -2994,7 +2907,300 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         </div>); })()}
 
         {/* ADMIN */}
-        {section === "admin" && (<div>
+        
+        {/* HEALTH */}
+        {section === "bloods" && (() => {
+          const allMedNames = [...DEFAULT_MEDS, ...DEFAULT_SUPPS, ...customMedNames].sort();
+          const meds = p.meds || [];
+          const activeMeds = meds.filter(function(m) { return m.active; });
+          const allTests = [...BLOOD_TESTS.flatMap(function(g) { return g.tests; }), ...customBloodTests];
+          const tabs = [{ id: "general", l: "General" }, { id: "meds", l: "Medications" }, { id: "bloods", l: "Bloods" }];
+          return (<div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 10 }}>Health</div>
+
+          {/* Sub-tabs */}
+          <div style={{ display: "flex", gap: 0, marginBottom: 14, borderBottom: "2px solid #e2e8f0" }}>
+            {tabs.map(function(t) { return (<button key={t.id} onClick={function() { setHealthView(t.id); }} style={{ padding: "8px 14px", border: "none", borderBottom: healthView === t.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 12, fontWeight: healthView === t.id ? 700 : 500, color: healthView === t.id ? accent : "#64748b", cursor: "pointer" }}>{t.l}</button>); })}
+          </div>
+
+          {/* GENERAL HEALTH */}
+          {healthView === "general" && (<div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Personal Health Profile</div>
+            <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Lasting information about you — e.g. smoker/non-smoker, alcohol intake, allergies, neurodiversities (ADHD, autism, dyslexia), disabilities, learning difficulties, family health history, menopause status</div>
+            <textarea value={p.healthProfile || ""} onChange={async function(e) {
+              var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthProfile = e.target.value; await saveData(nd);
+            }} placeholder="e.g. Non-smoker. Social drinker 4-6 units/week. ADHD diagnosed. Hay fever. Family history of high cholesterol. Perimenopausal." rows={4} style={{ width: "100%", padding: 10, border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", marginBottom: 12 }} />
+
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>General Health Notes</div>
+            <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Current or temporary health matters — e.g. recovering from a cold, injury, fatigue, stress, sleep issues, pain, symptoms you want to track</div>
+            <textarea value={p.healthNotes || ""} onChange={async function(e) {
+              var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthNotes = e.target.value; await saveData(nd);
+            }} placeholder="e.g. Pulled hip flexor last Sunday — avoiding lower body stretches for 4 weeks. Sleeping poorly this week, may be statin related. Energy levels low Wed/Thu." rows={4} style={{ width: "100%", padding: 10, border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }} />
+
+            {/* Health Log */}
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginTop: 14, marginBottom: 6 }}>Health Log</div>
+            <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+              <input type="date" value={bloodInputs.healthDate || ""} onChange={function(e) { setBloodInputs(Object.assign({}, bloodInputs, { healthDate: e.target.value })); }} style={{ padding: 6, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+              <input value={healthComment} onChange={function(e) { setHealthComment(e.target.value); }} placeholder="Health note..." style={{ flex: 1, padding: 6, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+              <button onClick={async function() {
+                if (!healthComment.trim()) return;
+                var nd = JSON.parse(JSON.stringify(data));
+                if (!nd[activeTab].healthLog) nd[activeTab].healthLog = [];
+                nd[activeTab].healthLog.push({ date: bloodInputs.healthDate || new Date().toISOString().split("T")[0], note: healthComment.trim() });
+                await saveData(nd); setHealthComment("");
+                setFormMsg("Health note saved"); setTimeout(function() { setFormMsg(""); }, 2000);
+              }} style={{ padding: "6px 12px", background: accent, color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Add</button>
+            </div>
+            {(p.healthLog || []).slice().reverse().map(function(h, i) {
+              return (<div key={i} style={{ padding: "6px 10px", background: "#f8fafc", borderRadius: 6, marginBottom: 4, fontSize: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span><span style={{ fontWeight: 600, color: "#475569" }}>{h.date}</span> — {h.note}</span>
+                <button onClick={async function() {
+                  var nd = JSON.parse(JSON.stringify(data));
+                  nd[activeTab].healthLog.splice(nd[activeTab].healthLog.length - 1 - i, 1);
+                  await saveData(nd);
+                }} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 14 }}>✕</button>
+              </div>);
+            })}
+          </div>)}
+
+          {/* MEDICATIONS */}
+          {healthView === "meds" && (<div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Active Medications</div>
+            {activeMeds.length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 8 }}>No active medications</div>}
+            {activeMeds.map(function(med, mi) {
+              return (<div key={mi} style={{ padding: 10, background: "#f8fafc", borderRadius: 8, marginBottom: 6, border: "1px solid #e2e8f0" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div><span style={{ fontWeight: 700, fontSize: 12 }}>{med.name}</span> <span style={{ fontSize: 11, color: "#64748b" }}>{med.dose || ""} {med.freq || ""} {med.time || ""}</span></div>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={async function() {
+                      var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].meds[meds.indexOf(med)].active = false;
+                      if (!nd[activeTab].medsHistory) nd[activeTab].medsHistory = [];
+                      nd[activeTab].medsHistory.push({ date: new Date().toLocaleDateString("en-GB"), snapshot: "Stopped " + med.name });
+                      await saveData(nd);
+                    }} style={{ fontSize: 9, padding: "2px 6px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 4, color: "#dc2626", cursor: "pointer" }}>Stop</button>
+                  </div>
+                </div>
+                {med.notes && <div style={{ fontSize: 10, color: "#64748b", marginTop: 4 }}>{med.notes}</div>}
+              </div>);
+            })}
+
+            {/* Add Medication */}
+            <button onClick={function() { setShowMedForm(!showMedForm); }} style={{ marginTop: 6, padding: "6px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#475569", cursor: "pointer" }}>{showMedForm ? "Cancel" : "+ Add Medication"}</button>
+
+            
+
+            {/* Upload medication documents */}
+            <div style={{ marginTop: 8, marginBottom: 8 }}>
+              <label style={{ display: "inline-block", padding: "6px 12px", background: "#faf5ff", border: "1px solid #c4b5fd", borderRadius: 6, fontSize: 10, color: "#6b21a8", cursor: "pointer" }}>
+                📎 Upload Prescription / Medication Info (images/documents)
+                <input type="file" accept="image/*,.pdf,.jpg,.jpeg,.png,.heic" multiple style={{ display: "none" }} onChange={async function(e) {
+                  var files = Array.from(e.target.files); if (files.length === 0) return;
+                  setFormMsg("Reading " + files.length + " file(s)...");
+                  var images = [];
+                  for (var fi = 0; fi < files.length; fi++) {
+                    var file = files[fi];
+                    var reader = new FileReader();
+                    var b64 = await new Promise(function(res) { reader.onload = function() { res(reader.result.split(",")[1]); }; reader.readAsDataURL(file); });
+                    images.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } });
+                  }
+                  setFormMsg("AI extracting medication data...");
+                  try {
+                    var resp = await fetch("https://api.anthropic.com/v1/messages", {
+                      method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: [...images, { type: "text", text: "Extract medication information from these images. For each medication found, return ONLY JSON array: [{\"name\":\"drug name\",\"dose\":\"dosage\",\"freq\":\"frequency\",\"time\":\"when to take\",\"notes\":\"any notes\"}]. Only include medications you can clearly identify." }] }] })
+                    });
+                    var result = await resp.json();
+                    var text = result.content.map(function(c) { return c.text || ""; }).join("");
+                    var clean = text.replace(/```json|```/g, "").trim();
+                    var extracted = JSON.parse(clean);
+                    if (Array.isArray(extracted) && extracted.length > 0) {
+                      var nd = JSON.parse(JSON.stringify(data));
+                      extracted.forEach(function(med) {
+                        nd[activeTab].meds.push({ name: med.name, dose: med.dose || "", freq: med.freq || "", time: med.time || "", notes: med.notes || "", active: true, started: new Date().toLocaleDateString("en-GB"), source: "uploaded" });
+                      });
+                      if (!nd[activeTab].medsHistory) nd[activeTab].medsHistory = [];
+                      nd[activeTab].medsHistory.push({ date: new Date().toLocaleDateString("en-GB"), snapshot: "Uploaded " + extracted.length + " medication(s): " + extracted.map(function(m) { return m.name; }).join(", ") });
+                      await saveData(nd);
+                      setFormMsg("✅ Added " + extracted.length + " medication(s) from upload");
+                      setTimeout(function() { setFormMsg(""); }, 4000);
+                    } else { setFormMsg("No medications found in upload"); setTimeout(function() { setFormMsg(""); }, 3000); }
+                  } catch(err) { setFormMsg("Error reading: " + String(err).substring(0, 60)); setTimeout(function() { setFormMsg(""); }, 3000); }
+                  e.target.value = "";
+                }} />
+              </label>
+            </div>
+
+            {showMedForm && (<div style={{ marginTop: 8, padding: 12, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8 }}>
+              <select value={medInputs.name || ""} onChange={function(e) { setMedInputs(Object.assign({}, medInputs, { name: e.target.value })); }} style={{ width: "100%", padding: 8, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, marginBottom: 6 }}>
+                <option value="">Select medication...</option>
+                {allMedNames.map(function(n) { return (<option key={n} value={n}>{n}</option>); })}
+                <option value="__custom__">+ Add custom...</option>
+              </select>
+              {medInputs.name === "__custom__" && <input value={medInputs.customName || ""} onChange={function(e) { setMedInputs(Object.assign({}, medInputs, { customName: e.target.value })); }} placeholder="Medication name" style={{ width: "100%", padding: 8, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, marginBottom: 6, boxSizing: "border-box" }} />}
+              <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                <input value={medInputs.dose || ""} onChange={function(e) { setMedInputs(Object.assign({}, medInputs, { dose: e.target.value })); }} placeholder="Dose (e.g. 20mg)" style={{ flex: 1, padding: 6, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                <input value={medInputs.freq || ""} onChange={function(e) { setMedInputs(Object.assign({}, medInputs, { freq: e.target.value })); }} placeholder="Frequency" style={{ flex: 1, padding: 6, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                <input value={medInputs.time || ""} onChange={function(e) { setMedInputs(Object.assign({}, medInputs, { time: e.target.value })); }} placeholder="Time" style={{ flex: 1, padding: 6, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+              </div>
+              <input value={medInputs.notes || ""} onChange={function(e) { setMedInputs(Object.assign({}, medInputs, { notes: e.target.value })); }} placeholder="Notes" style={{ width: "100%", padding: 6, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, marginBottom: 6, boxSizing: "border-box" }} />
+              <button onClick={async function() {
+                var name = medInputs.name === "__custom__" ? medInputs.customName : medInputs.name;
+                if (!name) return;
+                var nd = JSON.parse(JSON.stringify(data));
+                nd[activeTab].meds.push({ name: name, dose: medInputs.dose || "", freq: medInputs.freq || "", time: medInputs.time || "", notes: medInputs.notes || "", active: true, started: new Date().toLocaleDateString("en-GB") });
+                if (!nd[activeTab].medsHistory) nd[activeTab].medsHistory = [];
+                nd[activeTab].medsHistory.push({ date: new Date().toLocaleDateString("en-GB"), snapshot: "Started " + name + " " + (medInputs.dose || "") });
+                if (medInputs.name === "__custom__" && medInputs.customName) {
+                  var cn = [...customMedNames, medInputs.customName]; setCustomMedNames(cn); await sSet("custom_med_names", JSON.stringify(cn));
+                }
+                await saveData(nd); setMedInputs({}); setShowMedForm(false);
+                setFormMsg("Medication added"); setTimeout(function() { setFormMsg(""); }, 2000);
+              }} style={{ padding: "8px 14px", background: accent, color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Save Medication</button>
+            </div>)}
+
+            {/* Medication History */}
+            {p.medsHistory && p.medsHistory.length > 0 && (<div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>History</div>
+              {p.medsHistory.slice(-10).reverse().map(function(h, i) { return (<div key={i} style={{ fontSize: 10, color: "#64748b", padding: "3px 0" }}>{h.date}: {h.snapshot}</div>); })}
+            </div>)}
+          </div>)}
+
+          {/* BLOODS */}
+          {healthView === "bloods" && (<div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Blood Results</div>
+              <button onClick={function() { setShowBloodForm(!showBloodForm); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>{showBloodForm ? "Cancel" : "+ Add Results"}</button>
+            </div>
+
+            {showBloodForm && (<div style={{ padding: 12, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, marginBottom: 10 }}>
+              <input type="month" value={bloodInputs.date || ""} onChange={function(e) { setBloodInputs(Object.assign({}, bloodInputs, { date: e.target.value })); }} style={{ width: "100%", padding: 8, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, marginBottom: 8, boxSizing: "border-box" }} />
+              {BLOOD_TESTS.map(function(group) {
+                return (<div key={group.group} style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4 }}>{group.group}</div>
+                  {group.tests.map(function(t) {
+                    return (<div key={t.key} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, width: 120, color: "#64748b" }}>{t.name}</span>
+                      <input type="number" step="0.01" value={bloodInputs[t.key] || ""} onChange={function(e) { var nb = Object.assign({}, bloodInputs); nb[t.key] = e.target.value; setBloodInputs(nb); }} placeholder={t.unit} style={{ width: 80, padding: 4, border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10 }} />
+                      <span style={{ fontSize: 9, color: "#94a3b8" }}>{t.unit}{t.lo !== undefined ? " (" + t.lo + "-" + t.hi + ")" : ""}</span>
+                    </div>);
+                  })}
+                </div>);
+              })}
+              {customBloodTests.length > 0 && (<div style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4 }}>Custom</div>
+                {customBloodTests.map(function(t) {
+                  return (<div key={t.key} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, width: 120, color: "#64748b" }}>{t.name}</span>
+                    <input type="number" step="0.01" value={bloodInputs[t.key] || ""} onChange={function(e) { var nb = Object.assign({}, bloodInputs); nb[t.key] = e.target.value; setBloodInputs(nb); }} placeholder={t.unit} style={{ width: 80, padding: 4, border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10 }} />
+                    <span style={{ fontSize: 9, color: "#94a3b8" }}>{t.unit}{t.lo !== undefined ? " (" + t.lo + "-" + t.hi + ")" : ""}</span>
+                  </div>);
+                })}
+              </div>)}
+              <button onClick={function() { setShowAddBloodTest(true); }} style={{ fontSize: 10, padding: "3px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 4, color: "#475569", cursor: "pointer", marginBottom: 8 }}>+ Add Custom Test</button>
+              {showAddBloodTest && (<div style={{ display: "flex", gap: 4, marginBottom: 8, flexWrap: "wrap" }}>
+                <input value={newBloodTest.name || ""} onChange={function(e) { setNewBloodTest(Object.assign({}, newBloodTest, { name: e.target.value, key: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "") })); }} placeholder="Test name" style={{ padding: 4, border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10 }} />
+                <input value={newBloodTest.unit || ""} onChange={function(e) { setNewBloodTest(Object.assign({}, newBloodTest, { unit: e.target.value })); }} placeholder="Unit" style={{ width: 60, padding: 4, border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10 }} />
+                <button onClick={async function() {
+                  if (!newBloodTest.name) return;
+                  var nc = [...customBloodTests, newBloodTest]; setCustomBloodTests(nc); await sSet("custom_blood_tests", JSON.stringify(nc));
+                  setNewBloodTest({ key: "", name: "", unit: "", lo: "", hi: "" }); setShowAddBloodTest(false);
+                }} style={{ padding: "4px 8px", background: accent, color: "#fff", border: "none", borderRadius: 4, fontSize: 10, cursor: "pointer" }}>Add</button>
+              </div>)}
+              <button onClick={async function() {
+                if (!bloodInputs.date) { setFormMsg("Enter date"); setTimeout(function() { setFormMsg(""); }, 2000); return; }
+                var tests = {}; allTests.forEach(function(t) { if (bloodInputs[t.key]) tests[t.key] = parseFloat(bloodInputs[t.key]); });
+                if (Object.keys(tests).length === 0) { setFormMsg("Enter at least one result"); setTimeout(function() { setFormMsg(""); }, 2000); return; }
+                var nd = JSON.parse(JSON.stringify(data));
+                nd[activeTab].bloods.push({ date: bloodInputs.date, tests: tests });
+                nd[activeTab].bloods.sort(function(a, b) { return a.date.localeCompare(b.date); });
+                await saveData(nd); setBloodInputs({ date: "" }); setShowBloodForm(false);
+                setFormMsg("Blood results saved"); setTimeout(function() { setFormMsg(""); }, 2000);
+              }} style={{ width: "100%", padding: 10, background: accent, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Save Blood Results</button>
+            </div>)}
+
+            {/* Display blood results */}
+            {(p.bloods || []).slice().reverse().map(function(b, bi) {
+              return (<div key={bi} style={{ padding: 10, background: "#f8fafc", borderRadius: 8, marginBottom: 6, border: "1px solid #e2e8f0" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{b.date}</div>
+                {Object.entries(b.tests).map(function(entry) {
+                  var k = entry[0]; var v = entry[1];
+                  var def = allTests.find(function(t) { return t.key === k; });
+                  var name = def ? def.name : k;
+                  var unit = def ? def.unit : "";
+                  var flag = "";
+                  var flagColor = "#16a34a";
+                  if (def && def.lo !== undefined) {
+                    if (v < def.lo) { flag = " ↓ Low"; flagColor = "#dc2626"; }
+                    else if (v > def.hi) { flag = " ↑ High"; flagColor = "#dc2626"; }
+                    else { flag = " ✓"; }
+                  }
+                  return (<div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "2px 0" }}>
+                    <span style={{ color: "#475569" }}>{name}</span>
+                    <span><span style={{ fontWeight: 600 }}>{v}</span> <span style={{ color: "#94a3b8" }}>{unit}</span><span style={{ color: flagColor, fontWeight: 600 }}>{flag}</span></span>
+                  </div>);
+                })}
+              </div>);
+            })}
+          </div>)}
+
+          {/* GENERATE HEALTH FEEDBACK */}
+          <button onClick={async function() {
+            setHealthFbLoading(true);
+            var who = (p.profile && p.profile.name) || activeTab;
+            var healthNotes = p.healthNotes || "None recorded";
+            var healthLog = (p.healthLog || []).slice(-10).map(function(h) { return h.date + ": " + h.note; }).join("; ") || "None";
+            var medsInfo = activeMeds.map(function(m) { return m.name + " " + (m.dose || "") + " " + (m.freq || "") + (m.notes ? " (" + m.notes + ")" : ""); }).join(", ") || "None";
+            var bloodsInfo = "";
+            if (p.bloods && p.bloods.length > 0) {
+              var latest = p.bloods[p.bloods.length - 1];
+              bloodsInfo = "Latest bloods (" + latest.date + "): " + Object.entries(latest.tests).map(function(e) { var def = allTests.find(function(t) { return t.key === e[0]; }); return (def ? def.name : e[0]) + "=" + e[1] + (def && def.unit ? def.unit : ""); }).join(", ");
+              if (p.bloods.length > 1) { var prev = p.bloods[p.bloods.length - 2]; bloodsInfo += ". Previous (" + prev.date + "): " + Object.entries(prev.tests).map(function(e) { var def = allTests.find(function(t) { return t.key === e[0]; }); return (def ? def.name : e[0]) + "=" + e[1]; }).join(", "); }
+            }
+            var bodyInfo = "";
+            if (p.body && p.body.weight && p.body.weight.length > 0) { bodyInfo = "Weight: " + p.body.weight[p.body.weight.length - 1].v + ", BF: " + (p.body.bodyFat.length > 0 ? p.body.bodyFat[p.body.bodyFat.length - 1].v + "%" : "N/A") + ", Visceral: " + (p.body.visceralFat.length > 0 ? p.body.visceralFat[p.body.visceralFat.length - 1].v : "N/A"); }
+            var healthProfile = p.healthProfile || "Not recorded";
+            var prompt = "You are a health advisor reviewing " + who + "'s health data. Give honest, practical feedback.\n\nPersonal health profile: " + healthProfile + "\nGeneral health notes: " + healthNotes + "\nRecent health log: " + healthLog + "\nActive medications: " + medsInfo + "\n" + bloodsInfo + "\nBody composition: " + bodyInfo + "\n\nCRITICAL RULES FOR MEDICATION FEEDBACK:\n1. ALWAYS check for drug interactions between all active medications listed. Also consider interactions with diet (e.g. grapefruit, calcium, iron affecting absorption) and exercise (e.g. statins and muscle fatigue, beta-blockers and heart rate).\n2. When discussing medication effects, CLEARLY DIFFERENTIATE between official sources (approved medical bodies like NICE/BNF/NHS, drug manufacturers, peer-reviewed studies) and anecdotal/unverified sources (patient forums, user reports). Both are valuable but users must understand the difference. Use labels like [OFFICIAL] and [ANECDOTAL] where relevant.\n3. Never recommend stopping or changing medication — advise discussing with GP.\n\nReturn ONLY JSON:\n{\"summary\":\"2-3 sentence overall assessment\",\"concerns\":[\"specific concern\"],\"positives\":[\"specific positive\"],\"actions\":[\"specific action to take\"],\"medication_notes\":\"drug interaction check and medication observations with source labels\"}";
+            try {
+              var resp = await fetch("https://api.anthropic.com/v1/messages", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] })
+              });
+              var result = await resp.json();
+              var text = result.content.map(function(c) { return c.text || ""; }).join("");
+              var clean = text.replace(/```json|```/g, "").trim();
+              var fb = JSON.parse(clean);
+              fb._generatedAt = new Date().toLocaleString("en-GB");
+              setHealthFb(fb);
+              await sSet("health_fb_" + activeTab, JSON.stringify(fb));
+            } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); setTimeout(function() { setFormMsg(""); }, 3000); }
+            setHealthFbLoading(false);
+          }} disabled={healthFbLoading} style={{ width: "100%", padding: 12, marginTop: 14, background: healthFbLoading ? "#94a3b8" : accent, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: healthFbLoading ? "default" : "pointer" }}>{healthFbLoading ? "Generating..." : "Generate Health Feedback"}</button>
+
+          {/* Display feedback */}
+          {healthFb && (<div style={{ marginTop: 10, padding: 12, background: "#f0fdf4", borderRadius: 8, border: "1px solid #86efac" }}>
+            <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Generated: {healthFb._generatedAt}</div>
+            <div style={{ fontSize: 12, color: "#0f172a", marginBottom: 8 }}>{healthFb.summary}</div>
+            {healthFb.concerns && healthFb.concerns.length > 0 && (<div style={{ marginBottom: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#dc2626", marginBottom: 3 }}>⚠ Concerns</div>
+              {healthFb.concerns.map(function(c, i) { return (<div key={i} style={{ fontSize: 11, color: "#475569", padding: "2px 0", paddingLeft: 8 }}>• {c}</div>); })}
+            </div>)}
+            {healthFb.positives && healthFb.positives.length > 0 && (<div style={{ marginBottom: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#16a34a", marginBottom: 3 }}>✅ Positives</div>
+              {healthFb.positives.map(function(c, i) { return (<div key={i} style={{ fontSize: 11, color: "#475569", padding: "2px 0", paddingLeft: 8 }}>• {c}</div>); })}
+            </div>)}
+            {healthFb.actions && healthFb.actions.length > 0 && (<div style={{ marginBottom: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#2563eb", marginBottom: 3 }}>📋 Actions</div>
+              {healthFb.actions.map(function(c, i) { return (<div key={i} style={{ fontSize: 11, color: "#475569", padding: "2px 0", paddingLeft: 8 }}>• {c}</div>); })}
+            </div>)}
+            {healthFb.medication_notes && (<div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#7c3aed", marginBottom: 3 }}>💊 Medication Notes</div>
+              <div style={{ fontSize: 11, color: "#475569", paddingLeft: 8 }}>{healthFb.medication_notes}</div>
+            </div>)}
+          </div>)}
+
+        </div>); })()}
+
+{section === "admin" && (<div>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Data Admin</div>
 
           {/* File Attachments */}
