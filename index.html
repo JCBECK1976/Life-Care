@@ -1217,8 +1217,7 @@ function Dashboard() {
     const cl = await sGet("custom_lunches"); if (cl) setCustomLunches(JSON.parse(cl));
     const md = await sGet("meal_defaults"); if (md) setMealDefaults(JSON.parse(md));
     const cmn = await sGet("custom_med_names"); if (cmn) setCustomMedNames(JSON.parse(cmn));
-    const hfbJ = await sGet("health_fb_jc"); if (hfbJ) setHealthFb(JSON.parse(hfbJ));
-    const hfbB = await sGet("health_fb_becks"); if (hfbB) setHealthFb(JSON.parse(hfbB));
+    try { const hfbRaw = await sGet("health_fb_" + activeTab); if (hfbRaw) setHealthFb(JSON.parse(hfbRaw)); } catch(hfe) {}
     const cbt = await sGet("custom_blood_tests"); if (cbt) setCustomBloodTests(JSON.parse(cbt));
     const sm = await sGet("supermarket_pref"); if (sm) setSupermarket(sm);
     const cmt = await sGet("custom_meas_types"); if (cmt) setCustomMeasTypes(JSON.parse(cmt));
