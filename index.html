@@ -1614,7 +1614,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const accentLight = isJC ? "#dbeafe" : "#ede9fe";
   const stats = countStatus(p.exercises);
   const allDinners = [...DINNERS, ...customMeals];
-  const var dayMap = { sun: "sunday", mon: "monday", tue: "tuesday", wed: "wednesday", thu: "thursday", fri: "friday", sat: "saturday" }; shopItems = {}; MEAL_DAYS.forEach(d => { var dk = dayMap[d.key] || d.key; var dayM = meals[dk] || {}; var dinId = typeof dayM === "object" ? dayM.d : dayM; const m = allDinners.find(x => x.id === dinId); if (m) m.shop?.forEach(it => { shopItems[it] = (shopItems[it] || 0) + 1; }); });
+  var dayMap = { sun: "sunday", mon: "monday", tue: "tuesday", wed: "wednesday", thu: "thursday", fri: "friday", sat: "saturday" }; shopItems = {}; MEAL_DAYS.forEach(d => { var dk = dayMap[d.key] || d.key; var dayM = meals[dk] || {}; var dinId = typeof dayM === "object" ? dayM.d : dayM; const m = allDinners.find(x => x.id === dinId); if (m) m.shop?.forEach(it => { shopItems[it] = (shopItems[it] || 0) + 1; }); });
   const shopList = Object.entries(shopItems).sort((a, b) => a[0].localeCompare(b[0]));
   const planned = MEAL_DAYS.filter(d => meals[dayMap[d.key] || d.key]).length;
   const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "Body Comp" }, { id: "weights", l: "Exercise" }, { id: "meals", l: "Eating" }, { id: "bloods", l: "Health" }, { id: "shop", l: "Shop" }, { id: "targets", l: "Targets" }, { id: "admin", l: "⚙" }];
