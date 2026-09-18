@@ -2924,7 +2924,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               setGeneratedShop(shopData);
             } catch(shopErr) { setFormMsg("Error: " + String(shopErr).substring(0, 100)); setTimeout(() => setFormMsg(""), 10000); }
             setShopLoading(false);
-          }} disabled={shopLoading} style={{ ...btnP(!shopLoading), marginBottom: 14, background: shopLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{shopLoading ? <span>Generating shop, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : shopLoading ? "Generating..." : "🛒 Generate " + supermarket + " Shop"}</button>
+          }} disabled={shopLoading} style={{ ...btnP(!shopLoading), marginBottom: 14, background: shopLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{shopLoading ? "Generating..." : "🛒 Generate " + supermarket + " Shop"}</button>
           {generatedShop && Array.isArray(generatedShop) && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 14, overflow: "hidden" }}>
             {generatedShop.map(function(item, ii) { return (<div key={ii} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderBottom: ii < generatedShop.length - 1 ? "1px solid #f1f5f9" : "none" }}>
               <span style={{ fontSize: 13 }}>{typeof item === "string" ? item : (item.item || item.name || JSON.stringify(item))}</span>
