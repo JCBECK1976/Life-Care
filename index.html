@@ -3076,7 +3076,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               if (result.error) throw new Error(result.error.message || "API error");
               var text = (result.content || []).map(function(blk) { return blk.text || ""; }).join("");
               if (!text) throw new Error("Empty response");
-              var fb = JSON.parse(text.replace(/```json|```/g, "").trim());
+              var cleanJson = text.replace(/```json|```/g, "").trim().replace(/[\r\n]+/g, " "); var fb = JSON.parse(cleanJson);
               fb._generatedAt = new Date().toLocaleString("en-GB");
               setHealthFb(fb);
               try { await sSet("health_fb_" + activeTab, JSON.stringify(fb)); } catch(se) {}
