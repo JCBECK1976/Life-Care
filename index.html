@@ -2907,7 +2907,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               var allItems = [].concat(BREAKFASTS, LUNCHES, DINNERS, SNACKS, customMeals);
               var lookupName = function(id) { var found = allItems.find(function(x) { return x.id === id; }); return found ? found.name : id; };
               var mealNames = MEAL_DAYS.map(function(d) { var dk = DAY_MAP[d.key] || d.key; var entry = meals[dk]; if (!entry || typeof entry !== "object") return d.label + ": unplanned"; var parts = []; if (entry.b) parts.push("B:" + lookupName(entry.b)); if (entry.l) parts.push("L:" + lookupName(entry.l)); if (entry.d) parts.push("D:" + lookupName(entry.d)); for (var oi = 1; oi <= 7; oi++) { if (entry["o" + oi] && entry["o" + oi] !== "__placeholder__" && entry["o" + oi] !== "__empty__") parts.push("S:" + lookupName(entry["o" + oi])); } return d.label + ": " + (parts.length > 0 ? parts.join(", ") : "unplanned"); }).join("; ");
-              const prompt = "Generate a shopping list for this week's meals at " + supermarket + " (UK supermarket). Meals: " + mealNames + ". Include ingredients for each meal PLUS weekly staples (oats, eggs, milk, bread, fruit, veg, protein items, snacks). Group by supermarket aisle. Return ONLY JSON: {\"aisles\":[{\"name\":\"Aisle Name\",\"items\":[{\"item\":\"Product name\",\"qty\":\"1\",\"note\":\"for which meal\"}]}]}";
+              const prompt = "Generate a shopping list for this week meals at " + supermarket + " (UK). Meals: " + mealNames + ". Include meal ingredients plus weekly staples. Return ONLY a JSON array of strings, each being one shopping item with quantity. Example: [\"2x chicken breast\",\"1x oats 1kg\",\"6x eggs\"]";
               const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
               if (!response.ok) throw new Error("HTTP " + response.status);
               const result = await response.json();
@@ -2925,14 +2925,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             } catch(shopErr) { setFormMsg("Error: " + String(shopErr).substring(0, 100)); setTimeout(() => setFormMsg(""), 10000); }
             setShopLoading(false);
           }} disabled={shopLoading} style={{ ...btnP(!shopLoading), marginBottom: 14, background: shopLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{shopLoading ? <span>Generating shop, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : shopLoading ? "Generating..." : "🛒 Generate " + supermarket + " Shop"}</button>
-          {generatedShop && generatedShop.aisles && (<div style={{ marginBottom: 14 }}>
-            {generatedShop.aisles.map((aisle, ai) => (<div key={ai} style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 8, overflow: "hidden" }}>
-              <div style={{ padding: "8px 12px", background: "#f8fafc", fontWeight: 700, fontSize: 12, color: "#475569", borderBottom: "1px solid #e2e8f0" }}>{aisle.name}</div>
-              {aisle.items.map((it, ii) => (<div key={ii} style={{ display: "flex", justifyContent: "space-between", padding: "6px 12px", borderBottom: ii < aisle.items.length - 1 ? "1px solid #f1f5f9" : "none", fontSize: 12 }}>
-                <span>{it.item} {it.qty && it.qty !== "1" ? <span style={{ color: "#3b82f6", fontWeight: 600 }}>×{it.qty}</span> : ""}</span>
-                {it.note && <span style={{ fontSize: 10, color: "#94a3b8" }}>{it.note}</span>}
-              </div>))}
-            </div>))}
+          {generatedShop && Array.isArray(generatedShop) && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 14, overflow: "hidden" }}>
+            {generatedShop.map(function(item, ii) { return (<div key={ii} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderBottom: ii < generatedShop.length - 1 ? "1px solid #f1f5f9" : "none" }}>
+              <span style={{ fontSize: 13 }}>{typeof item === "string" ? item : (item.item || item.name || JSON.stringify(item))}</span>
+            </div>); })}
           </div>)}
           {!generatedShop && shopList.length > 0 && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 14 }}>{shopList.map(([it, ct], i) => (<div key={it} style={{ display: "flex", justifyContent: "space-between", padding: "10px 12px", borderBottom: i < shopList.length - 1 ? "1px solid #f1f5f9" : "none" }}><span style={{ fontSize: 13 }}>{it}</span>{ct > 1 && <span style={{ fontSize: 11, fontWeight: 600, color: "#3b82f6", background: "#eff6ff", padding: "2px 8px", borderRadius: 10 }}>×{ct}</span>}</div>))}</div>)}
           {!generatedShop && shopList.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>Plan meals on the Eating tab first, then generate your shop.</div>}
