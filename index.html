@@ -3071,12 +3071,14 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             try {
               var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
               var result = await resp.json();
-              var text = result.content.map(function(c) { return c.text || ""; }).join("");
+              if (result.error) throw new Error(result.error.message || "API error");
+              var text = (result.content || []).map(function(blk) { return blk.text || ""; }).join("");
+              if (!text) throw new Error("Empty response");
               var fb = JSON.parse(text.replace(/```json|```/g, "").trim());
               fb._generatedAt = new Date().toLocaleString("en-GB");
               setHealthFb(fb);
               try { await sSet("health_fb_" + activeTab, JSON.stringify(fb)); } catch(se) {}
-            } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); setTimeout(function() { setFormMsg(""); }, 3000); }
+            } catch(e) { setFormMsg("Error: " + String(e).substring(0, 120)); setTimeout(function() { setFormMsg(""); }, 10000); }
             setHealthFbLoading(false);
           }} disabled={healthFbLoading} style={{ width: "100%", padding: 12, marginTop: 14, background: healthFbLoading ? "#94a3b8" : accent, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: healthFbLoading ? "default" : "pointer" }}>{healthFbLoading ? "Generating..." : "Generate Health Feedback"}</button>
 
