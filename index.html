@@ -3069,7 +3069,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             var bdi = ""; if (p.body && p.body.weight && p.body.weight.length > 0) { bdi = "Weight: " + p.body.weight[p.body.weight.length-1].v + (p.body.bodyFat && p.body.bodyFat.length > 0 ? ", BF: " + p.body.bodyFat[p.body.bodyFat.length-1].v + "%" : "") + (p.body.visceralFat && p.body.visceralFat.length > 0 ? ", Visceral: " + p.body.visceralFat[p.body.visceralFat.length-1].v : ""); }
             var prompt = "You are a health advisor reviewing " + who + ". Be direct and specific. Reference actual numbers.\n\nHealth profile: " + hp + "\nCurrent health: " + hn + "\nRecent log: " + hl + "\nMedications: " + mi + "\nBloods: " + bi + "\nBody: " + bdi + "\n\nMEDICATION RULES: 1) Check drug interactions between ALL active medications AND with diet/exercise. 2) Differentiate [OFFICIAL] sources (NICE, BNF, NHS, drug manufacturers, peer-reviewed) from [ANECDOTAL] (patient forums, user reports). 3) Never recommend stopping medication.\n\nReturn ONLY JSON: {\"summary\":\"2-3 sentences\",\"concerns\":[\"item\"],\"positives\":[\"item\"],\"actions\":[\"item\"],\"medication_notes\":\"interaction check and observations with source labels\"}";
             try {
-              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
+              var bodyStr = JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] });
+              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: bodyStr });
+              if (!resp.ok) throw new Error("HTTP " + resp.status + ": " + (await resp.text()).substring(0, 100));
               var result = await resp.json();
               if (result.error) throw new Error(result.error.message || "API error");
               var text = (result.content || []).map(function(blk) { return blk.text || ""; }).join("");
