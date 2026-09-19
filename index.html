@@ -1,6 +1,4 @@
-<!DOCTYPE htm
-  useEffect(function() { (async function() { try { var hfb = await sGet("health_fb_" + activeTab); setHealthFb(hfb ? JSON.parse(hfb) : null); } catch(e) {} try { var bfb = await sGet("body_fb_" + activeTab); setBodyFeedback(bfb ? JSON.parse(bfb) : null); } catch(e) {} })(); }, [activeTab]);
-l>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1626,6 +1624,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const shopList = Object.entries(shopItems).sort((a, b) => a[0].localeCompare(b[0]));
   const planned = MEAL_DAYS.filter(d => meals[DAY_MAP[d.key] || d.key]).length;
   useEffect(function() { (async function() { try { var ss = await sGet("shop_" + mealKey(weekStart)); setGeneratedShop(ss ? JSON.parse(ss) : null); } catch(e) { setGeneratedShop(null); } })(); }, [weekOff]);
+  useEffect(function() { (async function() { try { var hfb = await sGet("health_fb_" + activeTab); setHealthFb(hfb ? JSON.parse(hfb) : null); } catch(e) {} try { var bfb = await sGet("body_fb_" + activeTab); setBodyFeedback(bfb ? JSON.parse(bfb) : null); } catch(e) {} })(); }, [activeTab]);
   const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "Body Comp" }, { id: "weights", l: "Exercise" }, { id: "meals", l: "Eating" }, { id: "bloods", l: "Health" }, { id: "shop", l: "Shop" }, { id: "targets", l: "Targets" }, { id: "admin", l: "⚙" }];
   const wt = p.body.weight || [];
   const latestWt = wt.length > 0 ? wt[wt.length - 1] : null;
