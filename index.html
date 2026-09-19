@@ -980,6 +980,7 @@ function Dashboard() {
   const [showProfile, setShowProfile] = useState(false);
   const [profileInputs, setProfileInputs] = useState({});
   const [healthComment, setHealthComment] = useState("");
+  const [healthView, setHealthView] = useState("general");
   const [showMedForm, setShowMedForm] = useState(false);
   const [editMedIdx, setEditMedIdx] = useState(null);
   const [medInputs, setMedInputs] = useState({ name: "", type: "medication", dosage: "", timing: "", frequency: "Daily", notes: "" });
@@ -1614,7 +1615,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const shopItems = {}; MEAL_DAYS.forEach(d => { const m = allDinners.find(x => x.id === meals[d.key]); if (m) m.shop?.forEach(it => { shopItems[it] = (shopItems[it] || 0) + 1; }); });
   const shopList = Object.entries(shopItems).sort((a, b) => a[0].localeCompare(b[0]));
   const planned = MEAL_DAYS.filter(d => meals[d.key]).length;
-  const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "Body Comp" }, { id: "weights", l: "Exercise" }, { id: "meals", l: "Eating" }, { id: "meds", l: "Meds" }, { id: "bloods", l: "Health" }, { id: "shop", l: "Shop" }, { id: "targets", l: "Targets" }, { id: "admin", l: "⚙" }];
+  const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "Body Comp" }, { id: "weights", l: "Exercise" }, { id: "meals", l: "Eating" }, { id: "bloods", l: "Health" }, { id: "shop", l: "Shop" }, { id: "targets", l: "Targets" }, { id: "admin", l: "⚙" }];
   const wt = p.body.weight || [];
   const latestWt = wt.length > 0 ? wt[wt.length - 1] : null;
   const idealSt = isJC ? IDEALS.jc : IDEALS.becks;
@@ -2437,7 +2438,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         </div>); })()}
 
         {/* MEDS */}
-        {section === "meds" && (() => {
+        {section === "__hidden_meds__" && (() => {
           const allMedNames = [...DEFAULT_MEDS, ...DEFAULT_SUPPS, ...customMedNames].sort();
           const meds = p.meds || [];
           const activeMeds = meds.filter(m => m.active && m.type === "medication");
@@ -2994,7 +2995,64 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         </div>); })()}
 
         {/* ADMIN */}
-        {section === "admin" && (<div>
+        
+        {/* HEALTH */}
+        {section === "bloods" && (() => {
+          var allMedNames = [...DEFAULT_MEDS, ...DEFAULT_SUPPS, ...customMedNames].sort();
+          var medsList = p.meds || [];
+          var activeMeds = medsList.filter(function(m) { return m.active; });
+          var allTests = BLOOD_TESTS.flatMap(function(g) { return g.tests; }).concat(customBloodTests);
+          var tabs = [{ id: "general", l: "General" }, { id: "meds", l: "Medications" }, { id: "bloods", l: "Bloods" }];
+          return (<div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 10 }}>Health</div>
+          <div style={{ display: "flex", gap: 0, marginBottom: 14, borderBottom: "2px solid #e2e8f0" }}>
+            {tabs.map(function(t) { return (<button key={t.id} onClick={function() { setHealthView(t.id); }} style={{ padding: "8px 14px", border: "none", borderBottom: healthView === t.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 12, fontWeight: healthView === t.id ? 700 : 500, color: healthView === t.id ? accent : "#64748b", cursor: "pointer" }}>{t.l}</button>); })}
+          </div>
+
+          {healthView === "general" && (<div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Personal Health Profile</div>
+            <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Lasting information — smoker/non-smoker, alcohol intake, allergies, neurodiversities (ADHD, autism, dyslexia), disabilities, learning difficulties, family health history, menopause status</div>
+            <textarea value={p.healthProfile || ""} onChange={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthProfile = e.target.value; await saveData(nd); }} placeholder={"e.g. Non-smoker. Social drinker 4-6 units/week. ADHD diagnosed. Hay fever. Family history of high cholesterol."} rows={4} style={{ width: "100%", padding: 10, border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", marginBottom: 12 }} />
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>General Health Notes</div>
+            <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Current or temporary health matters — recovering from a cold, injury, fatigue, stress, sleep issues, pain, symptoms to track</div>
+            <textarea value={p.healthNotes || ""} onChange={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthNotes = e.target.value; await saveData(nd); }} placeholder={"e.g. Pulled hip flexor last Sunday. Sleeping poorly this week. Energy levels low Wed/Thu."} rows={4} style={{ width: "100%", padding: 10, border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", marginBottom: 12 }} />
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>Health Log</div>
+            <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+              <input type="date" value={bloodInputs.healthDate || ""} onChange={function(e) { setBloodInputs(Object.assign({}, bloodInputs, { healthDate: e.target.value })); }} style={{ padding: 6, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+              <input value={healthComment} onChange={function(e) { setHealthComment(e.target.value); }} placeholder="Health note..." style={{ flex: 1, padding: 6, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+              <button onClick={async function() { if (!healthComment.trim()) return; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].healthLog) nd[activeTab].healthLog = []; nd[activeTab].healthLog.push({ date: bloodInputs.healthDate || new Date().toISOString().split("T")[0], note: healthComment.trim() }); await saveData(nd); setHealthComment(""); }} style={{ padding: "6px 12px", background: accent, color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Add</button>
+            </div>
+            {(p.healthLog || []).slice().reverse().map(function(h, i) { return (<div key={i} style={{ padding: "6px 10px", background: "#f8fafc", borderRadius: 6, marginBottom: 4, fontSize: 11, display: "flex", justifyContent: "space-between" }}><span><span style={{ fontWeight: 600, color: "#475569" }}>{h.date}</span> {h.note}</span><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthLog.splice(nd[activeTab].healthLog.length - 1 - i, 1); await saveData(nd); }} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 14, flexShrink: 0 }}>x</button></div>); })}
+          </div>)}
+
+          {healthView === "meds" && (<div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Active Medications</div>
+            {activeMeds.length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 8 }}>No active medications</div>}
+            {activeMeds.map(function(med, mi) { return (<div key={mi} style={{ padding: 10, background: "#f8fafc", borderRadius: 8, marginBottom: 6, border: "1px solid #e2e8f0" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div><span style={{ fontWeight: 700, fontSize: 12 }}>{med.name}</span> <span style={{ fontSize: 11, color: "#64748b" }}>{med.dose || ""} {med.freq || ""} {med.time || ""}</span></div><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var idx = nd[activeTab].meds.indexOf(nd[activeTab].meds.filter(function(m){return m.active;})[mi]); if(idx>=0) nd[activeTab].meds[idx].active = false; if (!nd[activeTab].medsHistory) nd[activeTab].medsHistory = []; nd[activeTab].medsHistory.push({ date: new Date().toLocaleDateString("en-GB"), snapshot: "Stopped " + med.name }); await saveData(nd); }} style={{ fontSize: 9, padding: "2px 6px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 4, color: "#dc2626", cursor: "pointer" }}>Stop</button></div>{med.notes && <div style={{ fontSize: 10, color: "#64748b", marginTop: 4 }}>{med.notes}</div>}</div>); })}
+            <button onClick={function() { setShowMedForm(!showMedForm); }} style={{ marginTop: 6, padding: "6px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#475569", cursor: "pointer" }}>{showMedForm ? "Cancel" : "+ Add Medication"}</button>
+            {showMedForm && (<div style={{ marginTop: 8, padding: 12, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8 }}>
+              <select value={medInputs.name || ""} onChange={function(e) { setMedInputs(Object.assign({}, medInputs, { name: e.target.value })); }} style={{ width: "100%", padding: 8, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, marginBottom: 6 }}><option value="">Select medication...</option>{allMedNames.map(function(n) { return (<option key={n} value={n}>{n}</option>); })}<option value="__custom__">+ Add custom...</option></select>
+              {medInputs.name === "__custom__" && <input value={medInputs.customName || ""} onChange={function(e) { setMedInputs(Object.assign({}, medInputs, { customName: e.target.value })); }} placeholder="Medication name" style={{ width: "100%", padding: 8, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, marginBottom: 6, boxSizing: "border-box" }} />}
+              <div style={{ display: "flex", gap: 6, marginBottom: 6 }}><input value={medInputs.dose || ""} onChange={function(e) { setMedInputs(Object.assign({}, medInputs, { dose: e.target.value })); }} placeholder="Dose" style={{ flex: 1, padding: 6, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} /><input value={medInputs.freq || ""} onChange={function(e) { setMedInputs(Object.assign({}, medInputs, { freq: e.target.value })); }} placeholder="Frequency" style={{ flex: 1, padding: 6, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} /><input value={medInputs.time || ""} onChange={function(e) { setMedInputs(Object.assign({}, medInputs, { time: e.target.value })); }} placeholder="Time" style={{ flex: 1, padding: 6, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} /></div>
+              <input value={medInputs.notes || ""} onChange={function(e) { setMedInputs(Object.assign({}, medInputs, { notes: e.target.value })); }} placeholder="Notes" style={{ width: "100%", padding: 6, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, marginBottom: 6, boxSizing: "border-box" }} />
+              <button onClick={async function() { var name = medInputs.name === "__custom__" ? medInputs.customName : medInputs.name; if (!name) return; var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].meds.push({ name: name, dose: medInputs.dose || "", freq: medInputs.freq || "", time: medInputs.time || "", notes: medInputs.notes || "", active: true, started: new Date().toLocaleDateString("en-GB") }); if (!nd[activeTab].medsHistory) nd[activeTab].medsHistory = []; nd[activeTab].medsHistory.push({ date: new Date().toLocaleDateString("en-GB"), snapshot: "Started " + name + " " + (medInputs.dose || "") }); if (medInputs.name === "__custom__" && medInputs.customName) { var cn = [...customMedNames, medInputs.customName]; setCustomMedNames(cn); await sSet("custom_med_names", JSON.stringify(cn)); } await saveData(nd); setMedInputs({}); setShowMedForm(false); }} style={{ padding: "8px 14px", background: accent, color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Save Medication</button>
+            </div>)}
+            {p.medsHistory && p.medsHistory.length > 0 && (<div style={{ marginTop: 10 }}><div style={{ fontSize: 11, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>History</div>{p.medsHistory.slice(-10).reverse().map(function(h, i) { return (<div key={i} style={{ fontSize: 10, color: "#64748b", padding: "3px 0" }}>{h.date}: {h.snapshot}</div>); })}</div>)}
+          </div>)}
+
+          {healthView === "bloods" && (<div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}><div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Blood Results</div><button onClick={function() { setShowBloodForm(!showBloodForm); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>{showBloodForm ? "Cancel" : "+ Add Results"}</button></div>
+            {showBloodForm && (<div style={{ padding: 12, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, marginBottom: 10 }}>
+              <input type="month" value={bloodInputs.date || ""} onChange={function(e) { setBloodInputs(Object.assign({}, bloodInputs, { date: e.target.value })); }} style={{ width: "100%", padding: 8, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, marginBottom: 8, boxSizing: "border-box" }} />
+              {BLOOD_TESTS.map(function(group) { return (<div key={group.group} style={{ marginBottom: 8 }}><div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4 }}>{group.group}</div>{group.tests.map(function(t) { return (<div key={t.key} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}><span style={{ fontSize: 10, width: 120, color: "#64748b" }}>{t.name}</span><input type="number" step="0.01" value={bloodInputs[t.key] || ""} onChange={function(e) { var nb = Object.assign({}, bloodInputs); nb[t.key] = e.target.value; setBloodInputs(nb); }} placeholder={t.unit} style={{ width: 80, padding: 4, border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10 }} /><span style={{ fontSize: 9, color: "#94a3b8" }}>{t.unit}{t.lo !== undefined ? " (" + t.lo + "-" + t.hi + ")" : ""}</span></div>); })}</div>); })}
+              <button onClick={async function() { if (!bloodInputs.date) return; var tests = {}; allTests.forEach(function(t) { if (bloodInputs[t.key]) tests[t.key] = parseFloat(bloodInputs[t.key]); }); if (Object.keys(tests).length === 0) return; var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].bloods.push({ date: bloodInputs.date, tests: tests }); nd[activeTab].bloods.sort(function(a, b) { return a.date.localeCompare(b.date); }); await saveData(nd); setBloodInputs({ date: "" }); setShowBloodForm(false); }} style={{ width: "100%", padding: 10, background: accent, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Save Blood Results</button>
+            </div>)}
+            {(p.bloods || []).slice().reverse().map(function(b, bi) { return (<div key={bi} style={{ padding: 10, background: "#f8fafc", borderRadius: 8, marginBottom: 6, border: "1px solid #e2e8f0" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{b.date}</div>{Object.entries(b.tests).map(function(entry) { var k = entry[0]; var v = entry[1]; var def = allTests.find(function(t) { return t.key === k; }); var name = def ? def.name : k; var unit = def ? def.unit : ""; var flag = ""; var flagColor = "#16a34a"; if (def && def.lo !== undefined) { if (v < def.lo) { flag = " Low"; flagColor = "#dc2626"; } else if (v > def.hi) { flag = " High"; flagColor = "#dc2626"; } else { flag = " OK"; } } return (<div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "2px 0" }}><span style={{ color: "#475569" }}>{name}</span><span><span style={{ fontWeight: 600 }}>{v}</span> <span style={{ color: "#94a3b8" }}>{unit}</span><span style={{ color: flagColor, fontWeight: 600 }}>{flag}</span></span></div>); })}</div>); })}
+          </div>)}
+
+        </div>); })()}
+
+{section === "admin" && (<div>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Data Admin</div>
 
           {/* File Attachments */}
