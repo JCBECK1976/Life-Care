@@ -23,7 +23,7 @@
   </style>
 </head>
 <body>
-  <div id="root"><div style="padding:40px;text-align:center;font-family:sans-serif;color:#94a3b8">Loading Life Care...</div></div>
+  <div id="root"></div>
 
   <!-- React -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -53,21 +53,8 @@
     window._anthropicKey = "";
   </script>
 
-  <script>
-window.onerror = function(msg, url, line, col, err) {
-  console.error('APP ERROR:', msg, url, line, col, err);
-  var d = document.getElementById("root");
-  if (d) d.innerHTML = '<div style="padding:20px;font-family:sans-serif"><h2 style="color:#dc2626">App Error</h2><p style="font-size:14px;color:#475569">' + msg + '</p><p style="font-size:12px;color:#94a3b8">Line ' + line + ' Col ' + col + '</p><p style="font-size:12px;color:#94a3b8">' + (err ? err.stack : '').substring(0,500).replace(/</g,'&lt;') + '</p><button onclick="location.reload()" style="padding:10px 20px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;margin-top:10px">Retry</button></div>';
-  return true;
-};
-window.addEventListener("unhandledrejection", function(e) {
-  var d = document.getElementById("root");
-  if (d) d.innerHTML = '<div style="padding:20px;font-family:sans-serif"><h2 style="color:#dc2626">App Error</h2><p style="font-size:14px;color:#475569">' + (e.reason ? String(e.reason).substring(0,200) : 'Unknown error') + '</p><button onclick="location.reload()" style="padding:10px 20px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;margin-top:10px">Retry</button></div>';
-});
-</script>
-<script type="text/babel">
+  <script type="text/babel">
 const { useState, useEffect, useCallback, useRef } = React;
-console.log("Life Care v" + new Date().toISOString());
 
 // ═══════════════════════════════════════════════════
 // DEFAULT DATA  -  complete Week 1-6 safety net
