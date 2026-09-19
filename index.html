@@ -1228,7 +1228,7 @@ function Dashboard() {
       var fbDay = fbKeys[fbi2];
       var fbTabs = ["jc","becks"]; for (var fbi3 = 0; fbi3 < fbTabs.length; fbi3++) { var fbTab = fbTabs[fbi3];
         var fbWk = calcWeek("2026-07-19");
-        var fbSaved = await sGet("session_fb_" + fbTab + "_" + fbDay + "_wk" + fbWk);
+        var fbKey = "session_fb_" + fbTab + "_" + fbDay + "_wk" + fbWk; console.log("Loading feedback:", fbKey); var fbSaved = await sGet(fbKey); console.log("Got:", fbKey, fbSaved ? "YES" : "null");
         if (fbSaved) {
           setSessionFeedback(function(prev) { var n = Object.assign({}, prev || {}); n[fbTab + "_" + fbDay] = JSON.parse(fbSaved); return n; });
         }
@@ -2281,7 +2281,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                       var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                      if (txt) { var fb = JSON.parse(txt.replace(/```json|```/g, "").trim()); fb._generatedAt = new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb })); await sSet("session_fb_" + activeTab + "_" + day + "_wk" + currentWeek, JSON.stringify(fb));
+                      if (txt) { var fb = JSON.parse(txt.replace(/```json|```/g, "").trim()); fb._generatedAt = new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb })); var saveKey = "session_fb_" + activeTab + "_" + day + "_wk" + currentWeek; console.log("Saving feedback:", saveKey); await sSet(saveKey, JSON.stringify(fb)); console.log("Saved:", saveKey);
                         // Recommendations shown to user - they accept/decline individually
                         }
                     } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: { exercises: [], summary: "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
@@ -2924,7 +2924,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               setGeneratedShop(shopData);
             } catch(shopErr) { setFormMsg("Error: " + String(shopErr).substring(0, 100)); setTimeout(() => setFormMsg(""), 10000); }
             setShopLoading(false);
-          }} disabled={shopLoading} style={{ ...btnP(!shopLoading), marginBottom: 14, background: shopLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{shopLoading ? "Generating..." : "🛒 Generate " + supermarket + " Shop"}</button>
+          }} disabled={shopLoading} style={{ ...btnP(!shopLoading), marginBottom: 14, background: "linear-gradient(135deg, #059669 0%, #10b981 100%)", opacity: shopLoading ? 0.7 : 1 }}>{shopLoading ? <span>Generating<span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🛒 Generate " + supermarket + " Shop"}</button>
           {generatedShop && Array.isArray(generatedShop) && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 14, overflow: "hidden" }}>
             {generatedShop.map(function(item, ii) { return (<div key={ii} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderBottom: ii < generatedShop.length - 1 ? "1px solid #f1f5f9" : "none" }}>
               <span style={{ fontSize: 13 }}>{typeof item === "string" ? item : (item.item || item.name || JSON.stringify(item))}</span>
