@@ -1226,7 +1226,7 @@ function Dashboard() {
     var fbKeys = ["sunday","monday","friday"];
     for (var fbi2 = 0; fbi2 < fbKeys.length; fbi2++) {
       var fbDay = fbKeys[fbi2];
-      for (var fbTab of ["jc","becks"]) {
+      var fbTabs = ["jc","becks"]; for (var fbi3 = 0; fbi3 < fbTabs.length; fbi3++) { var fbTab = fbTabs[fbi3];
         var fbWk = calcWeek("2026-07-19");
         var fbSaved = await sGet("session_fb_" + fbTab + "_" + fbDay + "_wk" + fbWk);
         if (fbSaved) {
