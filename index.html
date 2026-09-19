@@ -57,17 +57,17 @@
 const { useState, useEffect, useCallback, useRef } = React;
 
 // ═══════════════════════════════════════════════════
-// DEFAULT DATA — complete Week 1-6 safety net
+// DEFAULT DATA  -  complete Week 1-6 safety net
 // ═══════════════════════════════════════════════════
 
 const DEFAULT_DATA = {
   config: { week: 7, session: 15, trainingStart: "2026-07-19", lastUpdate: "4 Sep 2026" },
   jc: {
-    profile: { name: "JC", age: 49, sex: "Male", height: "5ft 11", bodyType: "Upper-body dominant meso-endomorph", fibreType: "Fast-twitch dominant", idealWeight: "13st 6lb", notes: "ADHD diagnosed. Yellow/Red Insights. Trains shirtless — heat sensitivity (thyroid). 90min pre-session fast." },
+    profile: { name: "JC", age: 49, sex: "Male", height: "5ft 11", bodyType: "Upper-body dominant meso-endomorph", fibreType: "Fast-twitch dominant", idealWeight: "13st 6lb", notes: "ADHD diagnosed. Yellow/Red Insights. Trains shirtless  -  heat sensitivity (thyroid). 90min pre-session fast." },
     meds: [
-      { name: "Levothyroxine", type: "medication", dosage: "200mcg", timing: "Lunchtime", frequency: "Daily", notes: "Thyroid — absorption fixed with lunchtime dosing", started: "2026-01", active: true },
-      { name: "Statin", type: "medication", dosage: "20mg", timing: "Daily", frequency: "Daily", notes: "Cholesterol — dependent on TSH control", started: "2026-01", active: true },
-      { name: "Creatine Monohydrate", type: "supplement", dosage: "5g", timing: "Breakfast (in oats)", frequency: "Daily", notes: "Creapure — muscle performance", started: "2026-07", active: true },
+      { name: "Levothyroxine", type: "medication", dosage: "200mcg", timing: "Lunchtime", frequency: "Daily", notes: "Thyroid  -  absorption fixed with lunchtime dosing", started: "2026-01", active: true },
+      { name: "Statin", type: "medication", dosage: "20mg", timing: "Daily", frequency: "Daily", notes: "Cholesterol  -  dependent on TSH control", started: "2026-01", active: true },
+      { name: "Creatine Monohydrate", type: "supplement", dosage: "5g", timing: "Breakfast (in oats)", frequency: "Daily", notes: "Creapure  -  muscle performance", started: "2026-07", active: true },
       { name: "Collagen + Vitamin C", type: "supplement", dosage: "10g", timing: "Dinner (skip Wed)", frequency: "Daily", notes: "Tendon/joint support", started: "2026-07", active: true },
       { name: "Protein Shake", type: "supplement", dosage: "1 scoop", timing: "Post-training", frequency: "Training days", notes: "110-130g daily target", started: "2026-07", active: true },
     ],
@@ -181,7 +181,7 @@ const DEFAULT_DATA = {
             current: "22kg",
             reps: "12/12/10",
             status: "building",
-            notes: "Wk1-4 partial ROM (to waist). Wk5+ full range — rep drop is ROM change not regression.",
+            notes: "Wk1-4 partial ROM (to waist). Wk5+ full range  -  rep drop is ROM change not regression.",
             prog: [{ wk: 1, w: "22kg", r: "12×3" }, { wk: 2, w: "22kg", r: "12×3" }, { wk: 3, w: "22kg", r: "12×3" }, { wk: 4, w: "22kg", r: "15/15/12" }, { wk: 5, w: "22kg", r: "12/12/8" }, { wk: 7, w: "22kg", r: "12/12/10" }]
           },
           {
@@ -209,11 +209,11 @@ const DEFAULT_DATA = {
       },
   },
   becks: {
-    profile: { name: "Becks", age: 48, sex: "Female", height: "5ft 4", bodyType: "Compact meso-endomorph, lower-body dominant", fibreType: "Fast-twitch dominant", idealWeight: "11st 2lb", notes: "Blue/Green Insights. RSI in wrists — neutral grip, cable-based only. Exceptional natural calf/quad development (90-98th percentile untrained). Perimenopausal." },
+    profile: { name: "Becks", age: 48, sex: "Female", height: "5ft 4", bodyType: "Compact meso-endomorph, lower-body dominant", fibreType: "Fast-twitch dominant", idealWeight: "11st 2lb", notes: "Blue/Green Insights. RSI in wrists  -  neutral grip, cable-based only. Exceptional natural calf/quad development (90-98th percentile untrained). Perimenopausal." },
     meds: [
-      { name: "Atorvastatin", type: "medication", dosage: "", timing: "Evening", frequency: "Daily", notes: "Lipid management — raise fatigue at GP review. Request CK levels.", started: "2026-07", active: true },
+      { name: "Atorvastatin", type: "medication", dosage: "", timing: "Evening", frequency: "Daily", notes: "Lipid management  -  raise fatigue at GP review. Request CK levels.", started: "2026-07", active: true },
       { name: "Citalopram", type: "medication", dosage: "", timing: "Daily", frequency: "Daily", notes: "Long-term. Can promote fat retention.", started: "", active: true },
-      { name: "Creatine Monohydrate", type: "supplement", dosage: "5g", timing: "Breakfast (in oats)", frequency: "Daily", notes: "Creapure — adds 1-2kg water weight wks 1-3", started: "2026-07", active: true },
+      { name: "Creatine Monohydrate", type: "supplement", dosage: "5g", timing: "Breakfast (in oats)", frequency: "Daily", notes: "Creapure  -  adds 1-2kg water weight wks 1-3", started: "2026-07", active: true },
       { name: "Collagen + Vitamin C", type: "supplement", dosage: "10g", timing: "Dinner", frequency: "Daily", notes: "Tendon/joint support", started: "2026-07", active: true },
       { name: "Protein Shake", type: "supplement", dosage: "1 scoop", timing: "Post-training", frequency: "Training days", notes: "90-110g daily target", started: "2026-07", active: true },
     ],
@@ -309,7 +309,7 @@ const DEFAULT_DATA = {
             current: "22kg",
             reps: "8×3",
             status: "moved up",
-            notes: "Wk8 22kg assisted — JC supporting behind hands. Progression: assisted 8→12×3, then unassisted, then build reps. Same approach as Bicep Curl.",
+            notes: "Wk8 22kg assisted  -  JC supporting behind hands. Progression: assisted 8→12×3, then unassisted, then build reps. Same approach as Bicep Curl.",
             prog: [{ wk: 1, w: "16kg", r: "10×3" }, { wk: 2, w: "16kg", r: "11/10/10" }, { wk: 3, w: "16kg", r: "13/12/12" }, { wk: 4, w: "16kg", r: "14/14/13" }, { wk: 5, w: "16kg", r: "15×3" }, { wk: 6, w: "16kg", r: "15×3" }, { wk: 8, w: "22kg", r: "8×3 (assisted)" }]
           }
         ],
@@ -402,7 +402,7 @@ const DINNERS = [
   { id: "pub_fish_chips", name: "Pub Fish & Chips", rating: "AMBER", jcKcal: 750, beckKcal: 750, jcProt: 22, beckProt: 22, jcFat: 28, beckFat: 28, freq: "Monthly", time: 0, shop: [] },
   { id: "italian_pasta", name: "Italian Restaurant (Tomato Pasta)", rating: "AMBER", jcKcal: 550, beckKcal: 550, jcProt: 18, beckProt: 18, jcFat: 8, beckFat: 8, freq: "Monthly", time: 0, shop: [] },
   { id: "italian_pizza", name: "Italian Restaurant (Thin Base Pizza)", rating: "AMBER", jcKcal: 600, beckKcal: 600, jcProt: 28, beckProt: 28, jcFat: 14, beckFat: 14, freq: "Monthly", time: 0, shop: [] },
-  { id: "none", name: "— No dinner (eating out / other)", rating: "INFO", jcKcal: 0, beckKcal: 0, jcProt: 0, beckProt: 0, jcFat: 0, beckFat: 0, freq: "", time: 0, shop: [] },
+  { id: "none", name: " -  No dinner (eating out / other)", rating: "INFO", jcKcal: 0, beckKcal: 0, jcProt: 0, beckProt: 0, jcFat: 0, beckFat: 0, freq: "", time: 0, shop: [] },
 ];
 
 const MEAL_DAYS = [
@@ -415,6 +415,8 @@ const MEAL_DAYS = [
   { key: "sat", label: "Sat", full: "Saturday", context: "Flexible · Any" },
 ];
 const DAY_MAP = { sun: "sunday", mon: "monday", tue: "tuesday", wed: "wednesday", thu: "thursday", fri: "friday", sat: "saturday" };
+const TONE_RULES = "TONE RULES: You are their supportive coach - the app IS the intervention. NEVER say urgent attention, immediate action needed, or clinically obese. NEVER use BMI. State facts and trends with numbers. Highlight priorities without alarm. Acknowledge progress first. Only recommend GP/111/999 per NHS guidelines for genuine clinical need. Frame as next step, not warning.";
+
 
 const BREAKFASTS = [
   { id: "overnight_oats", name: "Overnight Oats + Berries", jcKcal: 696, beckKcal: 440, note: "Creatine in oats" },
@@ -428,7 +430,7 @@ const BREAKFASTS = [
   { id: "porridge_apple", name: "Porridge + Stewed Apple + Cinnamon", jcKcal: 420, beckKcal: 325, rating: "GREAT" },
   { id: "porridge_toast", name: "Porridge + 2 Toast + ProActiv", jcKcal: 696, beckKcal: 0, rating: "GREAT" },
   { id: "oats_sisters", name: "Sisters Overnight Oats (Full)", jcKcal: 476, beckKcal: 476, rating: "GREAT" },
-  { id: "porridge_almond", name: "Porridge — Almond Milk + Honey", jcKcal: 360, beckKcal: 0, rating: "GREAT" },
+  { id: "porridge_almond", name: "Porridge  -  Almond Milk + Honey", jcKcal: 360, beckKcal: 0, rating: "GREAT" },
   { id: "bacon_egg_beans", name: "Bacon + Egg + Beans on Toast", jcKcal: 520, beckKcal: 480, rating: "AMBER" },
   { id: "full_cooked", name: "Eggs + Sausages + Hash Browns + Toast", jcKcal: 720, beckKcal: 650, rating: "RED" },
 ];
@@ -448,17 +450,17 @@ const LUNCHES = [
   { id: "tuna_pasta_salad", name: "Tuna Pasta Salad (Prep Ahead)", jcKcal: 380, beckKcal: 380, rating: "GREAT" },
   { id: "soup_cheese_toast", name: "Tinned Soup + Cheese Toast", jcKcal: 340, beckKcal: 340, rating: "GREAT" },
   { id: "sat_jacket", name: "Saturday Jacket Potato (Treat)", jcKcal: 520, beckKcal: 0, rating: "GREAT" },
-  { id: "work_teriyaki", name: "Work — Teriyaki Chicken Stir Fry", jcKcal: 568, beckKcal: 0, rating: "GREAT" },
-  { id: "work_shawarma", name: "Work — Chicken Shawarma", jcKcal: 606, beckKcal: 0, rating: "GREAT" },
-  { id: "work_curry", name: "Work — Chicken Curry (Mayflower)", jcKcal: 588, beckKcal: 0, rating: "GREAT" },
-  { id: "work_jacket", name: "Work — Baked Potato + Eggs + Seeds", jcKcal: 650, beckKcal: 0, rating: "GREAT" },
-  { id: "work_thai", name: "Work — Thai Chicken (Pad Thai)", jcKcal: 550, beckKcal: 0, rating: "AMBER" },
-  { id: "work_fajita", name: "Work — Chicken Fajita", jcKcal: 480, beckKcal: 0, rating: "AMBER" },
+  { id: "work_teriyaki", name: "Work  -  Teriyaki Chicken Stir Fry", jcKcal: 568, beckKcal: 0, rating: "GREAT" },
+  { id: "work_shawarma", name: "Work  -  Chicken Shawarma", jcKcal: 606, beckKcal: 0, rating: "GREAT" },
+  { id: "work_curry", name: "Work  -  Chicken Curry (Mayflower)", jcKcal: 588, beckKcal: 0, rating: "GREAT" },
+  { id: "work_jacket", name: "Work  -  Baked Potato + Eggs + Seeds", jcKcal: 650, beckKcal: 0, rating: "GREAT" },
+  { id: "work_thai", name: "Work  -  Thai Chicken (Pad Thai)", jcKcal: 550, beckKcal: 0, rating: "AMBER" },
+  { id: "work_fajita", name: "Work  -  Chicken Fajita", jcKcal: 480, beckKcal: 0, rating: "AMBER" },
 ];
 const SNACK_TEMPLATES = {
   home: { label: "Home Day", jcKcal: 565, beckKcal: 340, items: "Snack bar after lunch · Porridge pot ~4pm · Protein dessert · Snack bar before bed" },
   office: { label: "Office Day", jcKcal: 350, beckKcal: 290, items: "Porridge pot afternoon only · Protein dessert after dinner" },
-  sat: { label: "Saturday", jcKcal: 945, beckKcal: 340, items: "Flexible — treat day allowance" },
+  sat: { label: "Saturday", jcKcal: 945, beckKcal: 340, items: "Flexible  -  treat day allowance" },
 };
 const DAY_TYPE = { sun: "home", mon: "home", tue: "home", wed: "office", thu: "office", fri: "home", sat: "sat" };
 
@@ -477,7 +479,7 @@ const SNACKS = [
   { id: "babybel", name: "Babybel Light", jcKcal: 42, beckKcal: 42, rating: "GREAT", freq: "Daily" },
   { id: "banana", name: "Banana", jcKcal: 90, beckKcal: 90, rating: "GREAT", freq: "Daily" },
   { id: "fruit", name: "Fruit Portion", jcKcal: 60, beckKcal: 60, rating: "GREAT", freq: "Daily" },
-  { id: "none_snack", name: "— None", jcKcal: 0, beckKcal: 0, rating: "INFO", freq: "" },
+  { id: "none_snack", name: " -  None", jcKcal: 0, beckKcal: 0, rating: "INFO", freq: "" },
   { id: "brooklea_choc_pud", name: "Brooklea Choc Protein Pudding", jcKcal: 150, beckKcal: 150, rating: "GREAT", freq: "Daily" },
   { id: "brooklea_caramel", name: "Brooklea Caramel Protein Pudding", jcKcal: 150, beckKcal: 150, rating: "GREAT", freq: "Daily" },
   { id: "brooklea_sc_cheese", name: "Brooklea SC Protein Soft Cheese", jcKcal: 160, beckKcal: 160, rating: "GREAT", freq: "Daily" },
@@ -620,7 +622,7 @@ function autoStatus(newWeight, newReps, prevProg, notes) {
   if (consecutive15 >= 2) return "ready to move";
   if (consecutive15 === 1) return "consolidating";
   
-  // At same weight, not yet at 15x3 — check if reps are progressing
+  // At same weight, not yet at 15x3  -  check if reps are progressing
   if (reps.every(function(r) { return r >= 12; })) return "building";
   
   // Just moved up and struggling with reps (e.g. 10/10/7)
@@ -684,7 +686,7 @@ function FullChart({ series, height = 160, title, refLine }) {
 // ═══════════════════════════════════════════════════
 function BodyCard({ label, value, rating, trend }) {
   const rc = rating === "Excellent" || rating === "Acceptable" ? "#16a34a" : rating === "Standard" ? "#2563eb" : rating === "High" || rating === "Too High" ? "#dc2626" : rating === "Low" ? "#d97706" : "#64748b";
-  return (<div style={{ background: "#fff", borderRadius: 10, padding: "12px 14px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 4 }}><div style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>{label}</div><div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", lineHeight: 1.1 }}>{value != null ? value : "—"}</div>{rating && <div style={{ fontSize: 10, fontWeight: 600, color: rc, textTransform: "uppercase" }}>{rating}</div>}{trend && <div style={{ fontSize: 11, color: String(trend).startsWith("-") ? "#16a34a" : String(trend).startsWith("+") ? "#dc2626" : "#64748b" }}>{trend}</div>}</div>);
+  return (<div style={{ background: "#fff", borderRadius: 10, padding: "12px 14px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 4 }}><div style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>{label}</div><div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", lineHeight: 1.1 }}>{value != null ? value : " - "}</div>{rating && <div style={{ fontSize: 10, fontWeight: 600, color: rc, textTransform: "uppercase" }}>{rating}</div>}{trend && <div style={{ fontSize: 11, color: String(trend).startsWith("-") ? "#16a34a" : String(trend).startsWith("+") ? "#dc2626" : "#64748b" }}>{trend}</div>}</div>);
 }
 
 function ExTable({ exercises, day, showHistory, onLog }) {
@@ -701,7 +703,7 @@ function ExTable({ exercises, day, showHistory, onLog }) {
         </div>
         <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>{ex.current} · {ex.reps}</div>
         {ex.target && <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 600, marginTop: 3 }}>→ {ex.target}</div>}
-        {ex.status === "reduce" && <div style={{ fontSize: 11, color: "#dc2626", marginTop: 3 }}>Back protection — reduced load</div>}
+        {ex.status === "reduce" && <div style={{ fontSize: 11, color: "#dc2626", marginTop: 3 }}>Back protection  -  reduced load</div>}
         {showHistory && ex.prog && ex.prog.length > 0 && (
           <div style={{ marginTop: 6, paddingTop: 6, borderTop: "1px solid #f1f5f9" }}>
             <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 3 }}>PROGRESSION</div>
@@ -786,13 +788,13 @@ function handleApiError(result) {
   if (result && result.error) {
     var msg = result.error.message || JSON.stringify(result.error);
     if (msg.indexOf("credit") >= 0 || msg.indexOf("billing") >= 0 || msg.indexOf("payment") >= 0 || msg.indexOf("insufficient") >= 0) {
-      return "Out of Credits — please add more credits at console.anthropic.com";
+      return "Out of Credits  -  please add more credits at console.anthropic.com";
     }
     if (msg.indexOf("rate") >= 0 || msg.indexOf("limit") >= 0) {
-      return "Rate limit reached — wait a moment and try again";
+      return "Rate limit reached  -  wait a moment and try again";
     }
     if (msg.indexOf("authentication") >= 0 || msg.indexOf("api_key") >= 0 || msg.indexOf("invalid") >= 0) {
-      return "Invalid API key — check your key in Admin settings";
+      return "Invalid API key  -  check your key in Admin settings";
     }
     return "Error: " + msg.substring(0, 150);
   }
@@ -1002,6 +1004,7 @@ function Dashboard() {
   const [supermarket, setSupermarket] = useState("Aldi");
   const [shopLoading, setShopLoading] = useState(false);
   const [generatedShop, setGeneratedShop] = useState(null);
+  const [manualShopItem, setManualShopItem] = useState("");
   const [showAddPerson, setShowAddPerson] = useState(false);
   const [newPersonName, setNewPersonName] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -1145,11 +1148,11 @@ function Dashboard() {
 
       if (nd[activeTab].activity.length > 90) nd[activeTab].activity = nd[activeTab].activity.slice(-90);
       await saveData(nd);
-      setFormMsg("✓ Synced — weight, body fat, steps, and activities updated");
+      setFormMsg("✓ Synced  -  weight, body fat, steps, and activities updated");
     } catch(err) {
       if (String(err).indexOf("401") >= 0 || String(err).indexOf("403") >= 0) {
         setGoogleConnected(false); setGoogleToken(null);
-        setFormMsg("Google session expired — reconnect in profile");
+        setFormMsg("Google session expired  -  reconnect in profile");
       } else {
         setFormMsg("Sync error: " + String(err).substring(0, 100));
       }
@@ -1218,6 +1221,7 @@ function Dashboard() {
     const cl = await sGet("custom_lunches"); if (cl) setCustomLunches(JSON.parse(cl));
     const md = await sGet("meal_defaults"); if (md) setMealDefaults(JSON.parse(md));
     const cmn = await sGet("custom_med_names"); if (cmn) setCustomMedNames(JSON.parse(cmn));
+    try { var savedShop = await sGet("shop_" + mealKey(weekStart)); if (savedShop) setGeneratedShop(JSON.parse(savedShop)); } catch(se) {}
     const cbt = await sGet("custom_blood_tests"); if (cbt) setCustomBloodTests(JSON.parse(cbt));
     const sm = await sGet("supermarket_pref"); if (sm) setSupermarket(sm);
     const cmt = await sGet("custom_meas_types"); if (cmt) setCustomMeasTypes(JSON.parse(cmt));
@@ -1246,7 +1250,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const sk = mealKey(weekStart) + ":" + activeTab;
   const weekLabel = fmtDate(weekDates[0]) + " – " + fmtDate(weekDates[6]);
   const FIRST_KEY = "mealplan:2026-08-23";
-  const FIRST_DEF = { sun: "spag_bol", mon: "sweet_chilli_mash", tue: "chicken_risotto", wed: "fish_chips", thu: "pesto_pasta", _notes: { wed: "JC at parents — Fish & Chips for Beck + boys", thu: "JC: work lunch + McFlurry with Evan. Session 3 moved to Thu." } };
+  const FIRST_DEF = { sun: "spag_bol", mon: "sweet_chilli_mash", tue: "chicken_risotto", wed: "fish_chips", thu: "pesto_pasta", _notes: { wed: "JC at parents  -  Fish & Chips for Beck + boys", thu: "JC: work lunch + McFlurry with Evan. Session 3 moved to Thu." } };
 
   useEffect(() => {
     setMealLoading(true);
@@ -1499,8 +1503,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       } catch {}
       // Previous feedback context
       const prev = feedbackResults[tab];
-      const prevComment = prev && prev._comment ? "\nUser's response to that feedback: \"" + prev._comment + "\"" + (prev._commentWhen ? " (" + prev._commentWhen + ")" : "") + "\nTake their response into account — acknowledge what they acted on, address any concerns they raised, and adjust recommendations accordingly." : "";
-      const prevContext = prev && prev._when !== "failed" ? "\n\nPrevious feedback (generated " + prev._when + "): Good: " + (prev.good || []).join("; ") + ". Opportunities: " + (prev.opportunities || []).join("; ") + ". Focus: " + (Array.isArray(prev.focus) ? prev.focus.join("; ") : prev.focus) + "." + prevComment + "\nBuild on this — note what has improved since last feedback and what still needs attention." : "\nThis is the FIRST feedback since the programme started. Analyse everything from Week 1 to now — the full journey so far.";
+      const prevComment = prev && prev._comment ? "\nUser's response to that feedback: \"" + prev._comment + "\"" + (prev._commentWhen ? " (" + prev._commentWhen + ")" : "") + "\nTake their response into account  -  acknowledge what they acted on, address any concerns they raised, and adjust recommendations accordingly." : "";
+      const prevContext = prev && prev._when !== "failed" ? "\n\nPrevious feedback (generated " + prev._when + "): Good: " + (prev.good || []).join("; ") + ". Opportunities: " + (prev.opportunities || []).join("; ") + ". Focus: " + (Array.isArray(prev.focus) ? prev.focus.join("; ") : prev.focus) + "." + prevComment + "\nBuild on this  -  note what has improved since last feedback and what still needs attention." : "\nThis is the FIRST feedback since the programme started. Analyse everything from Week 1 to now  -  the full journey so far.";
       // Compress exercise data - just current state, not full progression
       var exSummary = {};
       var days = Object.keys(p.exercises);
@@ -1512,7 +1516,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           return { name: ex.name, current: ex.current, reps: ex.reps, status: ex.status, target: ex.target || "", notes: ex.notes || "", prev: prev ? prev.w + " " + prev.r + " Wk" + prev.wk : "", weeksTracked: ex.prog ? ex.prog.length : 0 };
         });
       }
-      const prompt = "You are a health coach analysing Week " + data.config.week + " for " + who + ". Give integrated analysis across all data.\n\nExercises: " + JSON.stringify(exSummary) + "\nBody: " + JSON.stringify(p.body) + "\nMeasurements: " + JSON.stringify(p.measurements) + mealSummary + exComments + healthContext + bloodContext + medsContext + attachCtx + photoCtx + activityCtx + prevContext + "\n\nRules: EACH point must be ONE short sentence (max 20 words). Reference specific numbers. MEDICATION: Check drug interactions between active meds AND with diet/exercise. Label [OFFICIAL] (NICE/BNF/NHS/manufacturer) vs [ANECDOTAL] (forums/user reports). Never recommend stopping medication. Return ONLY JSON:\n{\"good\":[\"short point\",\"short point\",\"short point\"],\"opportunities\":[\"short point\",\"short point\"],\"focus\":[\"one sentence focus for next 2 weeks\"]}";
+      const prompt = "You are a health coach analysing Week " + data.config.week + " for " + who + ". Give integrated analysis across all data. " + TONE_RULES + " \n\nExercises: " + JSON.stringify(exSummary) + "\nBody: " + JSON.stringify(p.body) + "\nMeasurements: " + JSON.stringify(p.measurements) + mealSummary + exComments + healthContext + bloodContext + medsContext + attachCtx + photoCtx + activityCtx + prevContext + "\n\nRules: EACH point must be ONE short sentence (max 20 words). Reference specific numbers. MEDICATION: Check drug interactions between active meds AND with diet/exercise. Label [OFFICIAL] (NICE/BNF/NHS/manufacturer) vs [ANECDOTAL] (forums/user reports). Never recommend stopping medication. Return ONLY JSON:\n{\"good\":[\"short point\",\"short point\",\"short point\"],\"opportunities\":[\"short point\",\"short point\"],\"focus\":[\"one sentence focus for next 2 weeks\"]}";
       const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
       if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Feedback API", status: response.status, statusText: response.statusText }].concat(prev).slice(0, 20); });
       const result = await response.json();
@@ -1565,7 +1569,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       var photoCtx2 = "";
       if (p.bodyAnalysis) photoCtx2 += " Body assessment: " + JSON.stringify(p.bodyAnalysis);
       if (p.progressPhotos && p.progressPhotos.length > 0) { var rp = p.progressPhotos.slice(-3); var rpd = []; for (var rpi = 0; rpi < rp.length; rpi++) { if (rp[rpi].analysis) rpd.push("Wk" + rp[rpi].week + ": " + rp[rpi].analysis); } if (rpd.length > 0) photoCtx2 += " Progress: " + rpd.join("; "); }
-      var prompt = "You are a health coach for " + who + ". Current exercises: " + JSON.stringify(Object.keys(p.exercises).map(function(d) { return d + ": " + p.exercises[d].map(function(e) { return e.name + " " + e.current + " " + e.reps + " (" + e.status + ")"; }).join(", "); })) + ". Body: " + JSON.stringify(p.body) + ". Measurements: " + JSON.stringify(p.measurements) + mealCtx + healthCtx + bloodCtx + medsCtx + attCtx + photoCtx2 + ". Question: " + question + ". Answer in 2-4 clear sentences. Be specific with numbers.";
+      var prompt = "You are a health coach for " + who + ".  Current exercises: " + JSON.stringify(Object.keys(p.exercises).map(function(d) { return d + ": " + p.exercises[d].map(function(e) { return e.name + " " + e.current + " " + e.reps + " (" + e.status + ")"; }).join(", "); })) + ". Body: " + JSON.stringify(p.body) + ". Measurements: " + JSON.stringify(p.measurements) + mealCtx + healthCtx + bloodCtx + medsCtx + attCtx + photoCtx2 + ". Question: " + question + ". Answer in 2-4 clear sentences. Be specific with numbers.";
       var response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
@@ -1599,7 +1603,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   };
 
   // ─── IMAGE UPLOAD ───
-  const handleFitdaysImage = async (e) => { const file = e.target.files?.[0]; if (!file) return; setImgParsing(true); try { const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result.split(",")[1]); r.onerror = () => rej(new Error("fail")); r.readAsDataURL(file); }); const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }, { type: "text", text: 'Extract body comp values from this Fitdays screenshot. Return ONLY JSON. For weight: convert st:lb to decimal stone (e.g. 14st 8.1lb = 14.579). All other values as numbers only: {"weight":"14.579","bodyFat":"25.8","muscleMass":"","muscleRate":"","skeletalMuscle":"","visceralFat":"","subcutFat":"","bmr":"","bodyWater":"","boneMass":"","bodyAge":"","bmi":""}. Empty string for unreadable values.' }] }] }) }); const result = await response.json(); var text = (result.content || []).map(function(blk) { return blk.text || ""; }).join(""); setBodyInputs(prev => ({ ...prev, ...JSON.parse(text.replace(/```json|```/g, "").trim()) })); setShowBodyForm(true); setFormMsg("✓ Values extracted — review and save"); setTimeout(() => setFormMsg(""), 5000); } catch(err2) { setFormMsg("Error: " + String(err2).substring(0, 100)); setTimeout(function() { setFormMsg(""); }, 8000); } setImgParsing(false); if (fileRef.current) fileRef.current.value = ""; };
+  const handleFitdaysImage = async (e) => { const file = e.target.files?.[0]; if (!file) return; setImgParsing(true); try { const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result.split(",")[1]); r.onerror = () => rej(new Error("fail")); r.readAsDataURL(file); }); const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }, { type: "text", text: 'Extract body comp values from this Fitdays screenshot. Return ONLY JSON. For weight: convert st:lb to decimal stone (e.g. 14st 8.1lb = 14.579). All other values as numbers only: {"weight":"14.579","bodyFat":"25.8","muscleMass":"","muscleRate":"","skeletalMuscle":"","visceralFat":"","subcutFat":"","bmr":"","bodyWater":"","boneMass":"","bodyAge":"","bmi":""}. Empty string for unreadable values.' }] }] }) }); const result = await response.json(); var text = (result.content || []).map(function(blk) { return blk.text || ""; }).join(""); setBodyInputs(prev => ({ ...prev, ...JSON.parse(text.replace(/```json|```/g, "").trim()) })); setShowBodyForm(true); setFormMsg("✓ Values extracted  -  review and save"); setTimeout(() => setFormMsg(""), 5000); } catch(err2) { setFormMsg("Error: " + String(err2).substring(0, 100)); setTimeout(function() { setFormMsg(""); }, 8000); } setImgParsing(false); if (fileRef.current) fileRef.current.value = ""; };
 
   // ─── ADMIN IMPORT ───
   const doImport = async () => { try { const parsed = JSON.parse(importText); const merged = JSON.parse(JSON.stringify(data)); if (parsed.config) merged.config = { ...merged.config, ...parsed.config }; if (parsed.jc) { if (parsed.jc.body) merged.jc = { ...merged.jc, body: { ...merged.jc.body, ...parsed.jc.body } }; if (parsed.jc.exercises) merged.jc = { ...merged.jc, exercises: parsed.jc.exercises }; if (parsed.jc.measurements) merged.jc = { ...merged.jc, measurements: { ...merged.jc.measurements, ...parsed.jc.measurements } }; } if (parsed.becks) { if (parsed.becks.body) merged.becks = { ...merged.becks, body: { ...merged.becks.body, ...parsed.becks.body } }; if (parsed.becks.exercises) merged.becks = { ...merged.becks, exercises: parsed.becks.exercises }; if (parsed.becks.measurements) merged.becks = { ...merged.becks, measurements: { ...merged.becks.measurements, ...parsed.becks.measurements } }; } await saveData(merged); setImportMsg("✓ Data updated"); setImportText(""); setTimeout(() => setImportMsg(""), 3000); } catch (e) { setImportMsg("✗ Invalid JSON: " + e.message); } };
@@ -1618,15 +1622,16 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const shopItems = {}; MEAL_DAYS.forEach(d => { var _dk = DAY_MAP[d.key] || d.key; var _dm = meals[_dk] || {}; var _did = typeof _dm === "object" ? _dm.d : _dm; const m = allDinners.find(x => x.id === _did); if (m) m.shop?.forEach(it => { shopItems[it] = (shopItems[it] || 0) + 1; }); });
   const shopList = Object.entries(shopItems).sort((a, b) => a[0].localeCompare(b[0]));
   const planned = MEAL_DAYS.filter(d => meals[DAY_MAP[d.key] || d.key]).length;
+  useEffect(function() { (async function() { try { var ss = await sGet("shop_" + mealKey(weekStart)); setGeneratedShop(ss ? JSON.parse(ss) : null); } catch(e) { setGeneratedShop(null); } })(); }, [weekOff]);
   const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "Body Comp" }, { id: "weights", l: "Exercise" }, { id: "meals", l: "Eating" }, { id: "bloods", l: "Health" }, { id: "shop", l: "Shop" }, { id: "targets", l: "Targets" }, { id: "admin", l: "⚙" }];
   const wt = p.body.weight || [];
   const latestWt = wt.length > 0 ? wt[wt.length - 1] : null;
   const idealSt = isJC ? IDEALS.jc : IDEALS.becks;
   const latestStVal = latestWt ? latestWt.v : null;
   const toIdeal = latestStVal ? ((latestStVal - idealSt) * 14).toFixed(1) : null;
-  const wtStone = latestStVal ? Math.floor(latestStVal) : "—";
+  const wtStone = latestStVal ? Math.floor(latestStVal) : " - ";
   const wtLbs = latestStVal ? ((latestStVal - Math.floor(latestStVal)) * 10).toFixed(1) : "";
-  const wtStr = latestStVal ? wtStone + "st " + wtLbs + "lb" : "—";
+  const wtStr = latestStVal ? wtStone + "st " + wtLbs + "lb" : " - ";
   const firstWtVal = wt.length > 0 ? wt[0].v : null;
   const wtDelta = (firstWtVal && latestStVal) ? (((latestStVal - firstWtVal) * 14).toFixed(1) + "lb from baseline") : "";
   const wtSign = (firstWtVal && latestStVal && latestStVal < firstWtVal) ? "-" : "+";
@@ -1669,18 +1674,18 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               </div>
             </div>
             {!showProfile && !showOnboarding && (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, fontSize: 11, color: "#475569" }}>
-              <div>Age: <strong>{prof.age || "—"}</strong></div>
-              <div>Sex: <strong>{prof.sex || "—"}</strong></div>
-              <div>Height: <strong>{prof.height || "—"}</strong></div>
-              <div>Ideal: <strong>{prof.idealWeight || "—"}</strong></div>
-              <div style={{ gridColumn: "1 / -1" }}>Type: <strong>{prof.bodyType || "—"}</strong></div>
-              <div style={{ gridColumn: "1 / -1" }}>Fibre: <strong>{prof.fibreType || "—"}</strong></div>
+              <div>Age: <strong>{prof.age || " - "}</strong></div>
+              <div>Sex: <strong>{prof.sex || " - "}</strong></div>
+              <div>Height: <strong>{prof.height || " - "}</strong></div>
+              <div>Ideal: <strong>{prof.idealWeight || " - "}</strong></div>
+              <div style={{ gridColumn: "1 / -1" }}>Type: <strong>{prof.bodyType || " - "}</strong></div>
+              <div style={{ gridColumn: "1 / -1" }}>Fibre: <strong>{prof.fibreType || " - "}</strong></div>
               {prof.notes && <div style={{ gridColumn: "1 / -1", color: "#94a3b8", fontSize: 10, marginTop: 4 }}>{prof.notes}</div>}
             </div>)}
 
             {/* ONBOARDING QUESTIONNAIRE */}
             {showOnboarding && (<div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Getting Started — Tell us about you</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Getting Started  -  Tell us about you</div>
               <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Answer as much as you can. This information is used to generate your personalised body profile, exercise plan, and dietary recommendations.</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {[["name","Name"],["age","Age"],["sex","Sex (Male/Female)"],["height","Height (e.g. 5ft 11)"]].map(function(pair) { return (<div key={pair[0]}><label style={labelStyle}>{pair[1]}</label><input value={onboardInputs[pair[0]] || prof[pair[0]] || ""} onChange={function(e) { setOnboardInputs(function(q) { var n = Object.assign({}, q); n[pair[0]] = e.target.value; return n; }); }} style={inputStyle} /></div>); })}
@@ -1688,7 +1693,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               <div style={{ marginTop: 8 }}><label style={labelStyle}>Medical conditions (e.g. thyroid, high cholesterol, diabetes, PCOS, heart conditions)</label><textarea value={onboardInputs.conditions} onChange={function(e) { setOnboardInputs(function(q) { return Object.assign({}, q, { conditions: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 40, resize: "vertical" }} placeholder="List any diagnosed conditions..." /></div>
               <div style={{ marginTop: 6 }}><label style={labelStyle}>Current medications and supplements</label><textarea value={onboardInputs.medications} onChange={function(e) { setOnboardInputs(function(q) { return Object.assign({}, q, { medications: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 40, resize: "vertical" }} placeholder="e.g. Atorvastatin 20mg, Levothyroxine 200mcg, Vitamin D..." /></div>
               <div style={{ marginTop: 6 }}><label style={labelStyle}>Neurodiversity (e.g. ADHD, autism, dyslexia) and mental health</label><textarea value={onboardInputs.neurodiversity} onChange={function(e) { setOnboardInputs(function(q) { return Object.assign({}, q, { neurodiversity: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 40, resize: "vertical" }} placeholder="Any diagnoses or suspected conditions..." /></div>
-              <div style={{ marginTop: 6 }}><label style={labelStyle}>Recent blood results (if known — e.g. cholesterol, HbA1c, TSH)</label><textarea value={onboardInputs.bloods} onChange={function(e) { setOnboardInputs(function(q) { return Object.assign({}, q, { bloods: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 40, resize: "vertical" }} placeholder="e.g. LDL 3.4, TSH 14.2, HbA1c 43..." /></div>
+              <div style={{ marginTop: 6 }}><label style={labelStyle}>Recent blood results (if known  -  e.g. cholesterol, HbA1c, TSH)</label><textarea value={onboardInputs.bloods} onChange={function(e) { setOnboardInputs(function(q) { return Object.assign({}, q, { bloods: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 40, resize: "vertical" }} placeholder="e.g. LDL 3.4, TSH 14.2, HbA1c 43..." /></div>
               <div style={{ marginTop: 6 }}><label style={labelStyle}>Goals (what do you want to achieve?)</label><textarea value={onboardInputs.goals} onChange={function(e) { setOnboardInputs(function(q) { return Object.assign({}, q, { goals: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 40, resize: "vertical" }} placeholder="e.g. Lose weight, build muscle, improve cholesterol, get fitter..." /></div>
               <div style={{ marginTop: 6 }}><label style={labelStyle}>Current activity level and exercise experience</label><textarea value={onboardInputs.activity} onChange={function(e) { setOnboardInputs(function(q) { return Object.assign({}, q, { activity: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 40, resize: "vertical" }} placeholder="e.g. Sedentary, walk daily, gym 2x/week, swimming..." /></div>
               <div style={{ marginTop: 6 }}><label style={labelStyle}>Equipment available (home gym, gym membership, none)</label><textarea value={onboardInputs.equipment} onChange={function(e) { setOnboardInputs(function(q) { return Object.assign({}, q, { equipment: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 30, resize: "vertical" }} placeholder="e.g. Marcy HG5000 home gym, dumbbells, resistance bands, gym membership..." /></div>
@@ -1714,7 +1719,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               <div style={{ marginTop: 10, padding: 12, background: "#fff", borderRadius: 8, border: "1px solid " + (googleConnected ? "#86efac" : "#e2e8f0") }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📱 Google Health Connect</div>
                 <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.5, marginBottom: 8 }}>
-                  <strong>Android Only</strong> — Syncs body composition and activity data from your phone via Google Health Connect.<br/>
+                  <strong>Android Only</strong>  -  Syncs body composition and activity data from your phone via Google Health Connect.<br/>
                   <strong>Setup:</strong> 1) Download <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata" target="_blank" style={{ color: "#2563eb" }}>Google Health Connect</a> from Play Store. 2) Open it and connect your Fitdays / health apps. 3) Tap Connect below.
                 </div>
                 {googleConnected ? (
@@ -1748,7 +1753,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     await saveData(nd); setAssessment(gen);
                     setFormMsg("✓ Body profile generated"); setTimeout(function() { setFormMsg(""); }, 3000);
                   }
-                } catch(e) { setFormMsg("✗ Could not generate — check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
+                } catch(e) { setFormMsg("✗ Could not generate  -  check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
                 setGenPlanLoading(false);
               }} disabled={genPlanLoading} style={{ ...btnP(!genPlanLoading), marginTop: 12, background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" }}>{genPlanLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🧬 Generate Body Profile"}</button>
               <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Uses your answers, photos, and body comp data to determine body type, fibre dominance, ideal weight, and personalised assessment.</div>
@@ -1793,7 +1798,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             <MiniChart data={wt} color={accent} />
           </div>
           <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", marginBottom: 10 }}>Exercise Status — {stats.total} exercises</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", marginBottom: 10 }}>Exercise Status  -  {stats.total} exercises</div>
             {[{ l: "Moved Up", c: stats.movedUp, co: "#16a34a" }, { l: "Ready to Move", c: stats.ready, co: "#2563eb" }, { l: "Building", c: stats.building, co: "#7c3aed" }, { l: "Consolidating", c: stats.consolidating, co: "#d97706" }, { l: "Maintaining", c: stats.maintaining, co: "#0891b2" }, { l: "Reduce", c: stats.reduce, co: "#dc2626" }].filter(r => r.c > 0).map(r => (<div key={r.l} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: r.co, fontWeight: 500, marginBottom: 4 }}><span>{r.l}</span><PBar count={r.c} total={stats.total} color={r.co} /></div>))}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
@@ -1897,7 +1902,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       parsed.week = String(calcWeek(data.config.trainingStart));
                       setBodyInputs(function(prev) { return Object.assign({}, prev, parsed); });
                       setShowBodyForm(true);
-                      setFormMsg("✓ Values extracted — review and save");
+                      setFormMsg("✓ Values extracted  -  review and save");
                     } catch(pe) { setFormMsg("Parse error: " + txt.substring(0, 80)); setTimeout(function() { setFormMsg(""); }, 8000); }
                   } else { setFormMsg("No data in response: " + JSON.stringify(result).substring(0, 100)); setTimeout(function() { setFormMsg(""); }, 8000); }
                 } catch(err) { setFormMsg("Error: " + String(err).substring(0, 100)); setTimeout(function() { setFormMsg(""); }, 8000); }
@@ -1965,7 +1970,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Progress Photos ({p.progressPhotos.length})</div>
             {p.progressPhotos.slice(-5).reverse().map(function(ph, pi) { return (<div key={pi} style={{ padding: "6px 0", borderBottom: pi < 4 ? "1px solid #f1f5f9" : "none", fontSize: 11 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontWeight: 600 }}>📷 {ph.date} — Wk{ph.week}</span>
+                <span style={{ fontWeight: 600 }}>📷 {ph.date}  -  Wk{ph.week}</span>
                 <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].progressPhotos.splice(nd[activeTab].progressPhotos.length - 5 + pi, 1); await saveData(nd); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer" }}>Remove</button>
               </div>
               {ph.analysis && <div style={{ fontSize: 10, color: "#64748b", marginTop: 2, lineHeight: 1.4 }}>{ph.analysis}</div>}
@@ -2040,7 +2045,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}><button onClick={saveMeasurements} disabled={!measInputs.week} style={{ ...btnP(!!measInputs.week), flex: 1 }}>Save</button><button onClick={() => setShowMeasForm(false)} style={btnS}>Cancel</button></div>
           </div>)}
           <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0" }}>
-            {Object.entries(p.measurements).map(([k, d]) => { const latest = d.length > 0 ? d[d.length - 1] : null; const prev = d.length > 1 ? d[d.length - 2] : null; const delta = (latest && prev && typeof latest.v === "number" && typeof prev.v === "number") ? (latest.v - prev.v).toFixed(1) : null; return (<div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f1f5f9", fontSize: 13 }}><span style={{ fontWeight: 500, color: "#334155" }}>{k.charAt(0).toUpperCase() + k.slice(1)}</span><div style={{ textAlign: "right" }}>{latest ? <><span style={{ fontWeight: 600, color: "#0f172a" }}>{latest.v}{typeof latest.v === "number" ? "cm" : ""}</span>{delta && <span style={{ fontSize: 10, color: parseFloat(delta) > 0 ? "#16a34a" : parseFloat(delta) < 0 ? "#dc2626" : "#64748b", marginLeft: 6 }}>{parseFloat(delta) > 0 ? "+" : ""}{delta}</span>}<span style={{ fontSize: 10, color: "#94a3b8", marginLeft: 4 }}>Wk{latest.wk}</span></> : <span style={{ fontSize: 11, color: "#94a3b8" }}>—</span>}</div></div>); })}
+            {Object.entries(p.measurements).map(([k, d]) => { const latest = d.length > 0 ? d[d.length - 1] : null; const prev = d.length > 1 ? d[d.length - 2] : null; const delta = (latest && prev && typeof latest.v === "number" && typeof prev.v === "number") ? (latest.v - prev.v).toFixed(1) : null; return (<div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f1f5f9", fontSize: 13 }}><span style={{ fontWeight: 500, color: "#334155" }}>{k.charAt(0).toUpperCase() + k.slice(1)}</span><div style={{ textAlign: "right" }}>{latest ? <><span style={{ fontWeight: 600, color: "#0f172a" }}>{latest.v}{typeof latest.v === "number" ? "cm" : ""}</span>{delta && <span style={{ fontSize: 10, color: parseFloat(delta) > 0 ? "#16a34a" : parseFloat(delta) < 0 ? "#dc2626" : "#64748b", marginLeft: 6 }}>{parseFloat(delta) > 0 ? "+" : ""}{delta}</span>}<span style={{ fontSize: 10, color: "#94a3b8", marginLeft: 4 }}>Wk{latest.wk}</span></> : <span style={{ fontSize: 11, color: "#94a3b8" }}> - </span>}</div></div>); })}
           </div>
                 <div style={{ background: accentLight, borderRadius: 10, padding: 12, marginTop: 12, fontSize: 12, color: "#334155", lineHeight: 1.5 }}>Recheck measurements every 4 weeks. Chest at nipple level. Waist at midpoint between lowest rib and hip bone.</div>
               </div>)}
@@ -2095,7 +2100,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         {section === "weights" && (() => {
           const allExNames = [...DEFAULT_EXERCISES, ...customExercises].sort();
           const days = Object.keys(p.exercises);
-          const dayLabels = { sunday: "Sunday — Legs / Calves / Row", monday: "Monday — Back / Chest / Shoulders / Core", friday: "Friday — Arms / Core" };
+          const dayLabels = { sunday: "Sunday  -  Legs / Calves / Row", monday: "Monday  -  Back / Chest / Shoulders / Core", friday: "Friday  -  Arms / Core" };
           const currentWeek = calcWeek(data.config.trainingStart);
           const addExerciseToDay = async (day, name) => {
             const nd = JSON.parse(JSON.stringify(data));
@@ -2217,7 +2222,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#854d0e", marginBottom: 3 }}>📋 NOTES FROM LAST SESSION</div>
                 <div style={{ fontSize: 11, color: "#854d0e", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{prevComment}</div>
               </div>)}
-              {prev && <button onClick={() => { setEditPrev(!editPrev); if (!editPrev) { setLogSets([{ w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[0]||"") }, { w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[1]||"") }, { w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[2]||"") }]); setLogWeek(String(prev.wk)); } else { setLogSets([{ w: prev.w.replace("kg",""), r: "" }, { w: prev.w.replace("kg",""), r: "" }, { w: prev.w.replace("kg",""), r: "" }]); setLogWeek(String(calcWeek(data.config.trainingStart))); } }} style={{ ...btnS, marginBottom: 8, fontSize: 11, background: editPrev ? "#fef3c7" : "#f1f5f9" }}>{editPrev ? "Cancel Edit — Log New Instead" : "Edit Previous Entry"}</button>}
+              {prev && <button onClick={() => { setEditPrev(!editPrev); if (!editPrev) { setLogSets([{ w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[0]||"") }, { w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[1]||"") }, { w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[2]||"") }]); setLogWeek(String(prev.wk)); } else { setLogSets([{ w: prev.w.replace("kg",""), r: "" }, { w: prev.w.replace("kg",""), r: "" }, { w: prev.w.replace("kg",""), r: "" }]); setLogWeek(String(calcWeek(data.config.trainingStart))); } }} style={{ ...btnS, marginBottom: 8, fontSize: 11, background: editPrev ? "#fef3c7" : "#f1f5f9" }}>{editPrev ? "Cancel Edit  -  Log New Instead" : "Edit Previous Entry"}</button>}
               <div style={{ marginBottom: 8 }}><label style={labelStyle}>Week</label><input type="number" value={logWeek} onChange={e => setLogWeek(e.target.value)} style={{ ...inputStyle, width: 80 }} /></div>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Sets (weight kg x reps)</div>
               {logSets.map((s, i) => (<div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}><span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", width: 20 }}>S{i + 1}</span><input type="number" placeholder="kg" value={s.w} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], w: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} /><span style={{ color: "#94a3b8" }}>×</span><input type="number" placeholder="reps" value={s.r} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], r: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} /></div>))}
@@ -2226,9 +2231,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 <label style={labelStyle}>Progression</label>
                 <select value={logOverride} onChange={function(e) { setLogOverride(e.target.value); }} style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, marginBottom: 8, background: logOverride === "move_up" ? "#dcfce7" : logOverride === "hold" ? "#fef3c7" : logOverride === "reduce" ? "#fee2e2" : "#fff" }}>
                   <option value="standard">Standard (follow progression rules)</option>
-                  <option value="move_up">Move Up (override — ready to increase weight)</option>
-                  <option value="hold">Hold (override — maintain current weight)</option>
-                  <option value="reduce">Reduce (override — drop weight)</option>
+                  <option value="move_up">Move Up (override  -  ready to increase weight)</option>
+                  <option value="hold">Hold (override  -  maintain current weight)</option>
+                  <option value="reduce">Reduce (override  -  drop weight)</option>
                 </select>
               </div>
               <div style={{ marginTop: 4 }}><label style={labelStyle}>Notes (carried to next session)</label><textarea value={logComment} onChange={e => setLogComment(e.target.value)} placeholder="Notes for next session..." style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
@@ -2277,7 +2282,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       var prof = p.profile || {};
                       var daySummary = exList.map(function(ex) { var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null; var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null; var progNote = latest && latest.note ? latest.note : ""; var allNotes = [ex.notes, progNote].filter(Boolean).join("; "); var eqInfo = ex.equipment ? " [EQUIPMENT: " + (ex.equipment.type || "") + ", increments: " + (ex.equipment.increments || "standard") + (ex.equipment.formNotes ? ", form: " + ex.equipment.formNotes : "") + "]" : ""; return ex.name + ": " + ex.current + " " + ex.reps + " (" + ex.status + ")" + (ex.target ? " target: " + ex.target : "") + (prev ? " prev: " + prev.w + " " + prev.r : "") + (allNotes ? " [NOTES: " + allNotes + "]" : "") + eqInfo; }).join("; ");
                       var jsonFormat = '{"exercises":[{"name":"...","verdict":"max 25 words honest assessment","icon":"check|triangle|arrow|warning|circle|star","newStatus":"building|moved up|consolidating|ready to move|maintaining|reduce","recommendation":"optional - only if current status should change"}],"summary":"2-3 sentences honest overall assessment","nextSession":"specific focus for next session"}';
-                      var prompt = "You are a direct, honest strength coach giving session feedback for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Week " + currentWeek + " " + day + " session. Exercises: " + daySummary + ". IMPORTANT: 1) READ THE NOTES carefully - if notes mention poor form, pain, struggle, or any concern, address it directly and recommend holding or reducing weight. Do NOT recommend progressing if form is compromised. 2) If current autoStatus seems wrong based on the data and notes, set newStatus to what it SHOULD be and explain why in the verdict. 3) Be genuinely honest - call out where form needs work, where someone is sandbagging, where weight is too heavy, or where they should push harder. 4) DOUBLE PROGRESSION RULES: 15x3 for TWO consecutive sessions at same weight = ready to move (star). First 15x3 = consolidating (arrow). Weight increase = moved up (triangle). Same weight building reps = building (arrow). Holding deliberately = maintaining (circle). Dropped = reduce (warning). 5) Max 25 words per verdict. Be specific not generic. Return ONLY JSON: " + jsonFormat;
+                      var prompt = "You are a direct, honest strength coach giving session feedback for " + (prof.name || "user") + ". " + TONE_RULES + " (" + (prof.bodyType || "") + "). Week " + currentWeek + " " + day + " session. Exercises: " + daySummary + ". IMPORTANT: 1) READ THE NOTES carefully - if notes mention poor form, pain, struggle, or any concern, address it directly and recommend holding or reducing weight. Do NOT recommend progressing if form is compromised. 2) If current autoStatus seems wrong based on the data and notes, set newStatus to what it SHOULD be and explain why in the verdict. 3) Be genuinely honest - call out where form needs work, where someone is sandbagging, where weight is too heavy, or where they should push harder. 4) DOUBLE PROGRESSION RULES: 15x3 for TWO consecutive sessions at same weight = ready to move (star). First 15x3 = consolidating (arrow). Weight increase = moved up (triangle). Same weight building reps = building (arrow). Holding deliberately = maintaining (circle). Dropped = reduce (warning). 5) Max 25 words per verdict. Be specific not generic. Return ONLY JSON: " + jsonFormat;
                       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                       var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
@@ -2312,11 +2317,11 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                           }
                           await saveData(nd3);
                           var el = document.getElementById("rec-" + ei + "-" + day);
-                          if (el) { el.style.background = "#dcfce7"; el.style.borderColor = "#86efac"; el.innerHTML = "<div style=\"font-size:11px;color:#166534;font-weight:600;padding:4px\">\u2705 Accepted — " + ex.name + " updated to " + ex.newStatus + ". Activity updated.</div>"; }
+                          if (el) { el.style.background = "#dcfce7"; el.style.borderColor = "#86efac"; el.innerHTML = "<div style=\"font-size:11px;color:#166534;font-weight:600;padding:4px\">\u2705 Accepted  -  " + ex.name + " updated to " + ex.newStatus + ". Activity updated.</div>"; }
                         }} style={{ padding: "5px 14px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Accept</button>
                         <button onClick={function() {
                           var el = document.getElementById("rec-" + ei + "-" + day);
-                          if (el) { el.style.background = "#f1f5f9"; el.style.borderColor = "#e2e8f0"; el.innerHTML = "<div style=\"font-size:11px;color:#64748b;padding:4px\">\u21a9 Declined — no changes made to Activity.</div>"; }
+                          if (el) { el.style.background = "#f1f5f9"; el.style.borderColor = "#e2e8f0"; el.innerHTML = "<div style=\"font-size:11px;color:#64748b;padding:4px\">\u21a9 Declined  -  no changes made to Activity.</div>"; }
                         }} style={{ padding: "5px 14px", background: "#e2e8f0", color: "#475569", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Decline</button>
                       </div>
                     </div>)}</div></div>); })}
@@ -2427,7 +2432,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       {s.description && <div style={{ fontSize: 10, color: "#475569" }}>{s.description}</div>}
                     </div>);
                   })}
-                  {exList.filter(function(ex) { return ex.settings && (ex.settings.type || ex.settings.increments); }).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 10 }}>No settings yet — describe your equipment above and tap Generate</div>}
+                  {exList.filter(function(ex) { return ex.settings && (ex.settings.type || ex.settings.increments); }).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 10 }}>No settings yet  -  describe your equipment above and tap Generate</div>}
                 </div>)}
               </div>
             </div>);
@@ -2587,7 +2592,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 else if (addingCategory === "lunch") { var u = [].concat(customLunches, [newItem]); setCustomLunches(u); await sSet("custom_lunches", JSON.stringify(u)); }
                 else if (addingCategory === "dinner") { newItem.jcProt = info.protein || 0; newItem.beckProt = info.protein || 0; newItem.jcFat = info.fat || 0; newItem.beckFat = info.fat || 0; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
                 else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
-                setFormMsg("✅ Added to " + addingCategory + " list: " + newItem.name + " (" + newItem.jcKcal + " kcal) — reselect dropdown to see it");
+                setFormMsg("✅ Added to " + addingCategory + " list: " + newItem.name + " (" + newItem.jcKcal + " kcal)  -  reselect dropdown to see it");
               }
             } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); }
             setNewItemName(""); setAddingNew(false); setNewItemLoading(false);
@@ -2676,7 +2681,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   </div>
                 </div>
                 <select value={defs[def.k] || ""} onChange={function(e) { saveDef(def.k, e.target.value, "individual"); }} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }}>
-                  <option value="">—</option>
+                  <option value=""> - </option>
                   {def.items.slice().sort(function(a,b) { return a.name.localeCompare(b.name); }).map(function(item) { return <option key={item.id} value={item.id}>{item.name}</option>; })}
                 </select>
               </div>);
@@ -2687,7 +2692,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 <div style={{ flex: 1 }}>
                   <span style={{ fontSize: 9, color: "#94a3b8" }}>Other {n}</span>
                   <select value={defs["o" + n] === "__placeholder__" ? "" : (defs["o" + n] || "")} onChange={function(e) { saveDef("o" + n, e.target.value, "individual"); }} style={{ width: "100%", padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10 }}>
-                    <option value="">—</option>
+                    <option value=""> - </option>
                     {allOther.slice().sort(function(a,b) { return a.name.localeCompare(b.name); }).map(function(item) { return <option key={item.id} value={item.id}>{item.name}</option>; })}
                   </select>
                 </div>
@@ -2697,9 +2702,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             <button onClick={function() { var next = 1; while (defs["o" + next]) next++; saveDef("o" + next, "__placeholder__", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>+ Add Other Default</button>
           
             <div style={{ marginTop: 10, marginBottom: 10, padding: 10, background: "#f5f3ff", borderRadius: 8, border: "1px solid #c4b5fd" }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: "#6b21a8", marginBottom: 4 }}>AI — Add to My Lists</div>
-              <div style={{ fontSize: 9, color: "#64748b", marginBottom: 6 }}>e.g. "Add to breakfast — overnight oats: 85g oats, seeds, almond milk, yogurt, berries, honey"</div>
-              <textarea id="ai-add-settings" placeholder="Add to breakfast list — overnight oats with berries and seeds..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 40, resize: "vertical", boxSizing: "border-box", marginBottom: 6 }} />
+              <div style={{ fontSize: 10, fontWeight: 600, color: "#6b21a8", marginBottom: 4 }}>AI  -  Add to My Lists</div>
+              <div style={{ fontSize: 9, color: "#64748b", marginBottom: 6 }}>e.g. "Add to breakfast  -  overnight oats: 85g oats, seeds, almond milk, yogurt, berries, honey"</div>
+              <textarea id="ai-add-settings" placeholder="Add to breakfast list  -  overnight oats with berries and seeds..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 40, resize: "vertical", boxSizing: "border-box", marginBottom: 6 }} />
               <button onClick={async function() {
                 var instruction = document.getElementById("ai-add-settings").value;
                 if (!instruction.trim()) return;
@@ -2718,7 +2723,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     else if (cat === "dinner") { newItem.jcProt = info.protein || 0; newItem.beckProt = info.protein || 0; newItem.jcFat = info.fat || 0; newItem.beckFat = info.fat || 0; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
                     else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
                     document.getElementById("ai-add-settings").value = "";
-                    setFormMsg("✅ Added to " + cat + " list: " + info.name + " (" + info.kcal + " kcal) — reselect dropdown to see it");
+                    setFormMsg("✅ Added to " + cat + " list: " + info.name + " (" + info.kcal + " kcal)  -  reselect dropdown to see it");
                   }
                 } catch(e) { setFormMsg("Error: " + String(e).substring(0, 100)); }
                 setTimeout(function() { setFormMsg(""); }, 6000);
@@ -2773,7 +2778,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
           {/* Day content */}
           <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)}  -  {getDayKcal(eatDay)} kcal</div>
 
             {/* Breakfast */}
             <div style={{ marginBottom: 8 }}>
@@ -2819,9 +2824,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             
             {/* AI Add Items */}
             <div style={{ marginTop: 8, padding: 10, background: "#f5f3ff", borderRadius: 8, border: "1px solid #c4b5fd" }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: "#6b21a8", marginBottom: 4 }}>AI — Add to My Lists</div>
-              <div style={{ fontSize: 9, color: "#64748b", marginBottom: 6 }}>Describe what to add and which list. AI calculates calories and adds it. Examples:<br/>• Add to breakfast list — overnight oats: 85g oats, chia/pumpkin/sunflower seeds, 340ml almond milk, 2tbsp 0% greek yogurt, mixed berries, 1tsp honey, 5g creatine<br/>• Add to dinner list — chicken stir fry with egg noodles and teriyaki sauce<br/>• Add to other list — Costa almond latte</div>
-              <textarea id={"ai-add-" + eatDay} placeholder="Add to breakfast list — overnight oats: 85g oats, seeds, almond milk, yogurt, berries, honey..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 50, resize: "vertical", boxSizing: "border-box", marginBottom: 6 }} />
+              <div style={{ fontSize: 10, fontWeight: 600, color: "#6b21a8", marginBottom: 4 }}>AI  -  Add to My Lists</div>
+              <div style={{ fontSize: 9, color: "#64748b", marginBottom: 6 }}>Describe what to add and which list. AI calculates calories and adds it. Examples:<br/>• Add to breakfast list  -  overnight oats: 85g oats, chia/pumpkin/sunflower seeds, 340ml almond milk, 2tbsp 0% greek yogurt, mixed berries, 1tsp honey, 5g creatine<br/>• Add to dinner list  -  chicken stir fry with egg noodles and teriyaki sauce<br/>• Add to other list  -  Costa almond latte</div>
+              <textarea id={"ai-add-" + eatDay} placeholder="Add to breakfast list  -  overnight oats: 85g oats, seeds, almond milk, yogurt, berries, honey..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 50, resize: "vertical", boxSizing: "border-box", marginBottom: 6 }} />
               <button onClick={async function() {
                 var instruction = document.getElementById("ai-add-" + eatDay).value;
                 if (!instruction.trim()) return;
@@ -2840,7 +2845,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     else if (cat === "dinner") { newItem.jcProt = info.protein || 0; newItem.beckProt = info.protein || 0; newItem.jcFat = info.fat || 0; newItem.beckFat = info.fat || 0; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
                     else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
                     document.getElementById("ai-add-" + eatDay).value = "";
-                    setFormMsg("✅ Added to " + cat + " list: " + info.name + " (" + info.kcal + " kcal) — reselect dropdown to see it");
+                    setFormMsg("✅ Added to " + cat + " list: " + info.name + " (" + info.kcal + " kcal)  -  reselect dropdown to see it");
                   }
                 } catch(e) { setFormMsg("Error: " + String(e).substring(0, 100)); }
                 setTimeout(function() { setFormMsg(""); }, 6000);
@@ -2855,7 +2860,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
             {/* Quick text input */}
             <div style={{ marginTop: 8, padding: 10, background: "#f0f9ff", borderRadius: 8, border: "1px solid #bae6fd" }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: "#0369a1", marginBottom: 4 }}>Quick Entry — type or paste what you ate</div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: "#0369a1", marginBottom: 4 }}>Quick Entry  -  type or paste what you ate</div>
               <textarea id={"quick-entry-" + eatDay} placeholder="e.g. Had porridge for breakfast, chicken sandwich for lunch, spag bol for dinner, 2 biscuits and a protein mousse..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 40, resize: "vertical", boxSizing: "border-box", marginBottom: 6 }} />
               <button onClick={async function() {
                 var text = document.getElementById("quick-entry-" + eatDay).value;
@@ -2895,7 +2900,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
         {section === "shop" && (<div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}><button onClick={function() { setWeekOff(function(o) { return o - 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&lsaquo;</button><div style={{ flex: 1, textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 700 }}>Shopping — {weekLabel}</div><div style={{ fontSize: 11, color: "#64748b" }}>{planned}/7 dinners · {shopList.length} items</div></div><button onClick={function() { setWeekOff(function(o) { return o + 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&rsaquo;</button></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}><button onClick={function() { setWeekOff(function(o) { return o - 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&lsaquo;</button><div style={{ flex: 1, textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 700 }}>Shopping  -  {weekLabel}</div><div style={{ fontSize: 11, color: "#64748b" }}>{planned}/7 dinners · {shopList.length} items</div></div><button onClick={function() { setWeekOff(function(o) { return o + 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&rsaquo;</button></div>
             <select value={supermarket} onChange={async (e) => { setSupermarket(e.target.value); await sSet("supermarket_pref", e.target.value); }} style={{ padding: "6px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11, background: "#fff" }}>
               {["Aldi", "Tesco", "Asda", "Sainsbury's", "Morrisons", "Lidl", "Waitrose", "M&S", "Co-op", "Iceland", "Any"].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
@@ -2906,7 +2911,17 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             try {
               var allItems = [].concat(BREAKFASTS, LUNCHES, DINNERS, SNACKS, customMeals);
               var lookupName = function(id) { var found = allItems.find(function(x) { return x.id === id; }); return found ? found.name : id; };
-              var mealNames = MEAL_DAYS.map(function(d) { var dk = DAY_MAP[d.key] || d.key; var entry = meals[dk]; if (!entry || typeof entry !== "object") return d.label + ": unplanned"; var parts = []; if (entry.b) parts.push("B:" + lookupName(entry.b)); if (entry.l) parts.push("L:" + lookupName(entry.l)); if (entry.d) parts.push("D:" + lookupName(entry.d)); for (var oi = 1; oi <= 7; oi++) { if (entry["o" + oi] && entry["o" + oi] !== "__placeholder__" && entry["o" + oi] !== "__empty__") parts.push("S:" + lookupName(entry["o" + oi])); } return d.label + ": " + (parts.length > 0 ? parts.join(", ") : "unplanned"); }).join("; ");
+              var allPeople = Object.keys(data).filter(function(k) { return k !== "config"; });
+              var mealNames = "";
+              for (var pi = 0; pi < allPeople.length; pi++) {
+                var pn = allPeople[pi];
+                var pName = (data[pn].profile && data[pn].profile.name) || pn;
+                var pSk = mealKey(weekStart) + ":" + pn;
+                var pMealsRaw = await sGet(pSk);
+                var pMeals = pMealsRaw ? JSON.parse(pMealsRaw) : {};
+                var pDays = MEAL_DAYS.map(function(d) { var dk = DAY_MAP[d.key] || d.key; var entry = pMeals[dk]; if (!entry || typeof entry !== "object") return null; var parts = []; if (entry.b) parts.push("B:" + lookupName(entry.b)); if (entry.l) parts.push("L:" + lookupName(entry.l)); if (entry.d) parts.push("D:" + lookupName(entry.d)); for (var oi = 1; oi <= 7; oi++) { if (entry["o" + oi] && entry["o" + oi] !== "__placeholder__" && entry["o" + oi] !== "__empty__") parts.push("S:" + lookupName(entry["o" + oi])); } return parts.length > 0 ? d.label + ": " + parts.join(", ") : null; }).filter(Boolean).join("; ");
+                if (pDays) mealNames += pName + "  -  " + pDays + ". ";
+              }
               const prompt = "Generate a shopping list for this week meals at " + supermarket + " (UK). Meals: " + mealNames + ". Include meal ingredients plus weekly staples. Return ONLY a JSON array of strings, each being one shopping item with quantity. Example: [\"2x chicken breast\",\"1x oats 1kg\",\"6x eggs\"]";
               const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
               if (!response.ok) throw new Error("HTTP " + response.status);
@@ -2922,14 +2937,21 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 shopData = JSON.parse(fixed);
               }
               setGeneratedShop(shopData);
+              await sSet("shop_" + mealKey(weekStart), JSON.stringify(shopData));
             } catch(shopErr) { setFormMsg("Error: " + String(shopErr).substring(0, 100)); setTimeout(() => setFormMsg(""), 10000); }
             setShopLoading(false);
-          }} disabled={shopLoading} style={{ ...btnP(!shopLoading), marginBottom: 14, background: shopLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{shopLoading ? "Generating..." : "🛒 Generate " + supermarket + " Shop"}</button>
+          }} disabled={shopLoading} style={{ ...btnP(!shopLoading), marginBottom: 14, background: "linear-gradient(135deg, #059669 0%, #10b981 100%)", opacity: shopLoading ? 0.7 : 1 }}>{shopLoading ? "Generating..." : "🛒 Generate " + supermarket + " Shop"}</button>
           {generatedShop && Array.isArray(generatedShop) && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 14, overflow: "hidden" }}>
             {generatedShop.map(function(item, ii) { return (<div key={ii} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderBottom: ii < generatedShop.length - 1 ? "1px solid #f1f5f9" : "none" }}>
               <span style={{ fontSize: 13 }}>{typeof item === "string" ? item : (item.item || item.name || JSON.stringify(item))}</span>
             </div>); })}
           </div>)}
+
+          {/* Manual items */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+            <input value={manualShopItem} onChange={function(e) { setManualShopItem(e.target.value); }} onKeyDown={function(e) { if (e.key === "Enter" && manualShopItem.trim()) { var cur = generatedShop || []; var updated = cur.concat([manualShopItem.trim()]); setGeneratedShop(updated); sSet("shop_" + mealKey(weekStart), JSON.stringify(updated)); setManualShopItem(""); } }} placeholder="Add item (e.g. toilet rolls, bin bags...)" style={{ flex: 1, padding: 8, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12 }} />
+            <button onClick={function() { if (!manualShopItem.trim()) return; var cur = generatedShop || []; var updated = cur.concat([manualShopItem.trim()]); setGeneratedShop(updated); sSet("shop_" + mealKey(weekStart), JSON.stringify(updated)); setManualShopItem(""); }} style={{ padding: "8px 14px", background: accent, color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Add</button>
+          </div>
           {!generatedShop && shopList.length > 0 && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 14 }}>{shopList.map(([it, ct], i) => (<div key={it} style={{ display: "flex", justifyContent: "space-between", padding: "10px 12px", borderBottom: i < shopList.length - 1 ? "1px solid #f1f5f9" : "none" }}><span style={{ fontSize: 13 }}>{it}</span>{ct > 1 && <span style={{ fontSize: 11, fontWeight: 600, color: "#3b82f6", background: "#eff6ff", padding: "2px 8px", borderRadius: 10 }}>×{ct}</span>}</div>))}</div>)}
           {!generatedShop && shopList.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>Plan meals on the Eating tab first, then generate your shop.</div>}
           <div style={{ fontSize: 13, fontWeight: 700, marginTop: 8, marginBottom: 8 }}>Weekly Staples</div>
@@ -2959,26 +2981,26 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginBottom: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: tp.co, textTransform: "uppercase", marginBottom: 8 }}>Body Composition</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 12, color: "#475569" }}>
-              <div>Weight: <strong>{prof.idealWeight || "—"}</strong></div>
+              <div>Weight: <strong>{prof.idealWeight || " - "}</strong></div>
               <div>Body Fat: <strong>{isJC ? "15-18%" : "24-28%"}</strong></div>
               <div>Waist: <strong>{isJC ? "<94cm" : "<80cm then 70-75cm"}</strong></div>
               <div>Visceral: <strong>{isJC ? "<10" : "<12"}</strong></div>
             </div>
           </div>
-          {isJC ? <div style={{ background: "#dbeafe", borderRadius: 10, padding: 12, fontSize: 12, color: "#1e40af", lineHeight: 1.5 }}>Medical priority: TSH stabilisation → unlocks statin effectiveness → lipid improvement. HbA1c monitoring — thyroid normalisation expected to help.</div>
+          {isJC ? <div style={{ background: "#dbeafe", borderRadius: 10, padding: 12, fontSize: 12, color: "#1e40af", lineHeight: 1.5 }}>Medical priority: TSH stabilisation → unlocks statin effectiveness → lipid improvement. HbA1c monitoring  -  thyroid normalisation expected to help.</div>
           : <div style={{ background: "#ede9fe", borderRadius: 10, padding: 12, fontSize: 12, color: "#5b21b6", lineHeight: 1.5 }}>Medical priority: Lipid clinic referral → statin + ezetimibe, FH genetic confirmation. Menopause review. Atorvastatin fatigue at GP review. Portfolio Diet at ~70-75% coverage.</div>}
           <button onClick={async () => {
             setTargetsLoading(true);
             try {
               const prof = p.profile || {};
-              const prompt = "You are a health and fitness coach creating personalised targets for " + (prof.name || "this person") + " (" + (prof.sex || "") + ", " + (prof.age || "") + ", " + (prof.height || "") + ", " + (prof.bodyType || "") + ", ideal weight " + (prof.idealWeight || "") + ". " + (prof.notes || "") + ").\n\nCurrent data:\nExercises: " + JSON.stringify(p.exercises) + "\nBody: " + JSON.stringify(p.body) + "\nMeasurements: " + JSON.stringify(p.measurements) + "\nBloods: " + JSON.stringify(p.bloods || []) + "\nMeds: " + JSON.stringify((p.meds || []).filter(m => m.active).map(m => m.name + " " + m.dosage)) + "\nHealth: " + JSON.stringify((p.healthLog || []).slice(-3)) + "\n\nGenerate personalised targets across all domains. Return ONLY JSON:\n{\"nutrition\":{\"calories\":\"...\",\"protein\":\"...\",\"satFat\":\"...\",\"sugar\":\"...\",\"fibre\":\"...\"},\"bodyComp\":{\"weight\":\"...\",\"bodyFat\":\"...\",\"waist\":\"...\",\"visceralFat\":\"...\"},\"exercise\":{\"phase\":\"...\",\"weeklyMins\":\"...\",\"sessions\":\"...\",\"primaryGoal\":\"...\"},\"medical\":{\"priority\":\"...\",\"nextAction\":\"...\",\"bloods\":\"...\"},\"priorities\":[\"top priority 1\",\"priority 2\",\"priority 3\"]}";
+              const prompt = "You are a health and fitness coach creating personalised targets. " + TONE_RULES + " for " + (prof.name || "this person") + " (" + (prof.sex || "") + ", " + (prof.age || "") + ", " + (prof.height || "") + ", " + (prof.bodyType || "") + ", ideal weight " + (prof.idealWeight || "") + ". " + (prof.notes || "") + ").\n\nCurrent data:\nExercises: " + JSON.stringify(p.exercises) + "\nBody: " + JSON.stringify(p.body) + "\nMeasurements: " + JSON.stringify(p.measurements) + "\nBloods: " + JSON.stringify(p.bloods || []) + "\nMeds: " + JSON.stringify((p.meds || []).filter(m => m.active).map(m => m.name + " " + m.dosage)) + "\nHealth: " + JSON.stringify((p.healthLog || []).slice(-3)) + "\n\nGenerate personalised targets across all domains.  Return ONLY JSON:\n{\"nutrition\":{\"calories\":\"...\",\"protein\":\"...\",\"satFat\":\"...\",\"sugar\":\"...\",\"fibre\":\"...\"},\"bodyComp\":{\"weight\":\"...\",\"bodyFat\":\"...\",\"waist\":\"...\",\"visceralFat\":\"...\"},\"exercise\":{\"phase\":\"...\",\"weeklyMins\":\"...\",\"sessions\":\"...\",\"primaryGoal\":\"...\"},\"medical\":{\"priority\":\"...\",\"nextAction\":\"...\",\"bloods\":\"...\"},\"priorities\":[\"top priority 1\",\"priority 2\",\"priority 3\"]}";
               const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
               const result = await response.json();
               var text = (result.content || []).map(function(blk) { return blk.text || ""; }).join("");
               const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
               setGeneratedTargets(parsed);
               await sSet("generated_targets_" + activeTab, text.replace(/```json|```/g, "").trim());
-            } catch { setGeneratedTargets({ priorities: ["Could not generate — try again"] }); }
+            } catch { setGeneratedTargets({ priorities: ["Could not generate  -  try again"] }); }
             setTargetsLoading(false);
           }} disabled={targetsLoading} style={{ ...btnP(!targetsLoading), marginTop: 14, background: targetsLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{targetsLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🎯 Generate Personalised Targets"}</button>
           {generatedTargets && (<div style={{ marginTop: 12 }}>
@@ -3022,10 +3044,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
           {healthView === "general" && (<div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Personal Health Profile</div>
-            <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Lasting information — smoker/non-smoker, alcohol intake, allergies, neurodiversities (ADHD, autism, dyslexia), disabilities, learning difficulties, family health history, menopause status</div>
+            <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Lasting information  -  smoker/non-smoker, alcohol intake, allergies, neurodiversities (ADHD, autism, dyslexia), disabilities, learning difficulties, family health history, menopause status</div>
             <textarea value={p.healthProfile || ""} onChange={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthProfile = e.target.value; await saveData(nd); }} placeholder={"e.g. Non-smoker. Social drinker 4-6 units/week. ADHD diagnosed. Hay fever. Family history of high cholesterol."} rows={4} style={{ width: "100%", padding: 10, border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", marginBottom: 12 }} />
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>General Health Notes</div>
-            <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Current or temporary health matters — recovering from a cold, injury, fatigue, stress, sleep issues, pain, symptoms to track</div>
+            <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Current or temporary health matters  -  recovering from a cold, injury, fatigue, stress, sleep issues, pain, symptoms to track</div>
             <textarea value={p.healthNotes || ""} onChange={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthNotes = e.target.value; await saveData(nd); }} placeholder={"e.g. Pulled hip flexor last Sunday. Sleeping poorly this week. Energy levels low Wed/Thu."} rows={4} style={{ width: "100%", padding: 10, border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", marginBottom: 12 }} />
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>Health Log</div>
             <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
@@ -3076,7 +3098,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             var bi = "";
             if (p.bloods && p.bloods.length > 0) { var lat = p.bloods[p.bloods.length - 1]; bi = "Latest (" + lat.date + "): " + Object.entries(lat.tests).map(function(e) { var def = allTests.find(function(t) { return t.key === e[0]; }); return (def ? def.name : e[0]) + "=" + e[1] + (def ? def.unit : ""); }).join(", "); }
             var bdi = ""; if (p.body && p.body.weight && p.body.weight.length > 0) { bdi = "Weight: " + p.body.weight[p.body.weight.length-1].v + (p.body.bodyFat && p.body.bodyFat.length > 0 ? ", BF: " + p.body.bodyFat[p.body.bodyFat.length-1].v + "%" : "") + (p.body.visceralFat && p.body.visceralFat.length > 0 ? ", Visceral: " + p.body.visceralFat[p.body.visceralFat.length-1].v : ""); }
-            var prompt = "You are a health advisor reviewing " + who + ". Be direct and specific. Reference actual numbers.\n\nHealth profile: " + hp + "\nCurrent health: " + hn + "\nRecent log: " + hl + "\nMedications: " + mi + "\nBloods: " + bi + "\nBody: " + bdi + "\n\nRules: Keep each item under 20 words. Check drug interactions. Label sources [OFFICIAL] or [ANECDOTAL]. Never recommend stopping meds.\nReturn ONLY compact JSON: {\"summary\":\"1-2 sentences\",\"concerns\":[\"short item\"],\"positives\":[\"short item\"],\"actions\":[\"short item\"],\"meds\":\"brief interaction notes\"}";
+            var prompt = "You are a health advisor reviewing " + who + ".  Reference actual numbers.\n\nHealth profile: " + hp + "\nCurrent health: " + hn + "\nRecent log: " + hl + "\nMedications: " + mi + "\nBloods: " + bi + "\nBody: " + bdi + "\n\nRules: Keep each item under 20 words. Check drug interactions. Label sources [OFFICIAL] or [ANECDOTAL]. Never recommend stopping meds.\nReturn ONLY compact JSON: {\"summary\":\"1-2 sentences\",\"concerns\":[\"short item\"],\"positives\":[\"short item\"],\"actions\":[\"short item\"],\"meds\":\"brief interaction notes\"}";
             try {
               var bodyStr = JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] });
               var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: bodyStr });
@@ -3135,7 +3157,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) extracted = extracted + result.content[ci].text; } }
                         if (extracted) entry.extracted = extracted;
                       }
-                    } catch(apiErr) { entry.extracted = "Could not extract automatically — data will be stored for reference"; }
+                    } catch(apiErr) { entry.extracted = "Could not extract automatically  -  data will be stored for reference"; }
                     nd[activeTab].attachments.push(entry);
                   } catch(readErr) {}
                 }
@@ -3179,20 +3201,20 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#dc2626", marginBottom: 6 }}>⚠ Reset Data</div>
             <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8 }}>Overwrites Firebase with the clean default data. Use if data has become corrupted from bugs. This cannot be undone.</div>
-            <button onClick={async function() { if (!confirm("This will reset ALL data to defaults. Are you sure?")) return; await sSet("life_care_data", JSON.stringify(DEFAULT_DATA)); setFormMsg("✓ Data reset to defaults — reload the app"); setTimeout(function() { setFormMsg(""); }, 5000); }} style={{ width: "100%", padding: 10, background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Reset to Default Data</button>
+            <button onClick={async function() { if (!confirm("This will reset ALL data to defaults. Are you sure?")) return; await sSet("life_care_data", JSON.stringify(DEFAULT_DATA)); setFormMsg("✓ Data reset to defaults  -  reload the app"); setTimeout(function() { setFormMsg(""); }, 5000); }} style={{ width: "100%", padding: 10, background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Reset to Default Data</button>
           </div>
 
           {/* Debug Mode */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>🔧 Debug Mode</div>
-              <button onClick={function() { setDebugMode(!debugMode); if (!debugMode) setDebugLog([]); }} style={{ padding: "6px 14px", background: debugMode ? "#dc2626" : "#f1f5f9", color: debugMode ? "#fff" : "#475569", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{debugMode ? "ON — Turn Off" : "Turn On"}</button>
+              <button onClick={function() { setDebugMode(!debugMode); if (!debugMode) setDebugLog([]); }} style={{ padding: "6px 14px", background: debugMode ? "#dc2626" : "#f1f5f9", color: debugMode ? "#fff" : "#475569", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{debugMode ? "ON  -  Turn Off" : "Turn On"}</button>
             </div>
             {debugMode && (<div style={{ marginTop: 10 }}>
               <div style={{ fontSize: 10, color: "#dc2626", fontWeight: 600, marginBottom: 6 }}>API calls will log raw responses here. Try Generate Feedback or Ask a Question.</div>
               {debugLog.length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", padding: 8 }}>No API calls yet.</div>}
               {debugLog.map(function(log, li) { return (<div key={li} style={{ padding: 8, background: li === 0 ? "#fef3c7" : "#f8fafc", borderRadius: 6, marginBottom: 4, fontSize: 10, fontFamily: "monospace", wordBreak: "break-all", lineHeight: 1.5 }}>
-                <div style={{ fontWeight: 700, color: "#0f172a" }}>{log.time} — {log.action}</div>
+                <div style={{ fontWeight: 700, color: "#0f172a" }}>{log.time}  -  {log.action}</div>
                 {log.status !== undefined && <div>HTTP: <strong>{log.status} {log.statusText}</strong></div>}
                 {log.data && <div style={{ color: "#475569", marginTop: 2 }}>{log.data}</div>}
               </div>); })}
