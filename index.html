@@ -1222,6 +1222,7 @@ function Dashboard() {
     const md = await sGet("meal_defaults"); if (md) setMealDefaults(JSON.parse(md));
     const cmn = await sGet("custom_med_names"); if (cmn) setCustomMedNames(JSON.parse(cmn));
     try { var savedShop = await sGet("shop_" + mealKey(weekStart)); if (savedShop) setGeneratedShop(JSON.parse(savedShop)); } catch(se) {}
+    try { var bfSaved = await sGet("body_fb_" + activeTab); if (bfSaved) setBodyFeedback(JSON.parse(bfSaved)); } catch(bfe) {}
     const cbt = await sGet("custom_blood_tests"); if (cbt) setCustomBloodTests(JSON.parse(cbt));
     const sm = await sGet("supermarket_pref"); if (sm) setSupermarket(sm);
     const cmt = await sGet("custom_meas_types"); if (cmt) setCustomMeasTypes(JSON.parse(cmt));
@@ -1989,7 +1990,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
                     var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                     var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                    if (txt) { setBodyFeedback(JSON.parse(txt.replace(/```json|```/g, "").trim())); }
+                    if (txt) { var bfRes = JSON.parse(txt.replace(/```json|```/g, "").trim()); bfRes._at = new Date().toLocaleString("en-GB"); setBodyFeedback(bfRes); try { sSet("body_fb_" + activeTab, JSON.stringify(bfRes)); } catch(e) {} }
                   } catch(e) { setBodyFeedback({ good: [], watch: ["Error: " + String(e).substring(0, 80)], outlook: "" }); }
                   setBodyFbLoading(false);
                 }} disabled={bodyFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: bodyFbLoading ? "not-allowed" : "pointer", background: bodyFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{bodyFbLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Weigh In Feedback"}</button>
