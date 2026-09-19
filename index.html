@@ -983,6 +983,7 @@ function Dashboard() {
   const [healthComment, setHealthComment] = useState("");
   const [healthView, setHealthView] = useState("general");
   const [healthFb, setHealthFb] = useState(null);
+  const [healthFbAll, setHealthFbAll] = useState({});
   const [healthFbLoading, setHealthFbLoading] = useState(false);
   const [showMedForm, setShowMedForm] = useState(false);
   const [editMedIdx, setEditMedIdx] = useState(null);
@@ -1025,6 +1026,7 @@ function Dashboard() {
   const [customMeasTypes, setCustomMeasTypes] = useState([]);
   const [bodyFbLoading, setBodyFbLoading] = useState(false);
   const [bodyFeedback, setBodyFeedback] = useState(null);
+  const [bodyFbAll, setBodyFbAll] = useState({});
   const [measFbLoading, setMeasFbLoading] = useState(false);
   const [measFeedback, setMeasFeedback] = useState(null);
   const [assessment, setAssessment] = useState(null);
@@ -1211,6 +1213,8 @@ function Dashboard() {
   // Load saved feedback + history
   useEffect(() => { (async () => {
     const r = await sGet("feedback_results"); if (r) setFeedbackResults(JSON.parse(r));
+    const bfAll = await sGet("body_feedback"); if (bfAll) { var bfObj = JSON.parse(bfAll); setBodyFbAll(bfObj); setBodyFeedback(bfObj["jc"] || null); }
+    const hfAll = await sGet("health_feedback"); if (hfAll) { var hfObj = JSON.parse(hfAll); setHealthFbAll(hfObj); setHealthFb(hfObj["jc"] || null); }
     const h = await sGet("feedback_history"); if (h) setFeedbackHistory(JSON.parse(h));
     const ce = await sGet("custom_exercises"); if (ce) setCustomExercises(JSON.parse(ce));
     const cs = await sGet("custom_snacks"); if (cs) setCustomSnacks(JSON.parse(cs));
@@ -1223,17 +1227,7 @@ function Dashboard() {
     const cmt = await sGet("custom_meas_types"); if (cmt) setCustomMeasTypes(JSON.parse(cmt));
     
     // Load saved session feedback
-    var fbKeys = ["sunday","monday","friday"];
-    for (var fbi2 = 0; fbi2 < fbKeys.length; fbi2++) {
-      var fbDay = fbKeys[fbi2];
-      var fbTabs = ["jc","becks"]; for (var fbi3 = 0; fbi3 < fbTabs.length; fbi3++) { var fbTab = fbTabs[fbi3];
-        var fbWk = calcWeek("2026-07-19");
-        var fbSaved = await sGet("session_fb_" + fbTab + "_" + fbDay + "_wk" + fbWk);
-        if (fbSaved) {
-          setSessionFeedback(function(prev) { var n = Object.assign({}, prev || {}); n[fbTab + "_" + fbDay] = JSON.parse(fbSaved); return n; });
-        }
-      }
-    }
+    var sfAll = await sGet("session_feedback_all"); if (sfAll) { setSessionFeedback(JSON.parse(sfAll)); }
 const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     const gt = await sGet("google_token_" + activeTab); if (gt) { setGoogleToken(gt); setGoogleConnected(true); }
     const qa = await sGet("qa_history"); if (qa) setQaHistory(JSON.parse(qa));
@@ -1641,7 +1635,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           {Object.keys(data).filter(k => k !== "config").map((k, i) => {
             const cols = ["#2563eb", "#7c3aed", "#059669", "#d97706", "#dc2626", "#0891b2", "#e11d48"];
             const label = data[k].profile ? data[k].profile.name : k;
-            return (<button key={k} onClick={() => { setActiveTab(k); }} style={{ flex: 1, padding: "8px 0", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? cols[i % cols.length] : "transparent", color: activeTab === k ? "#fff" : "#64748b", minWidth: 50 }}>{label}</button>);
+            return (<button key={k} onClick={() => { setActiveTab(k); if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); }} style={{ flex: 1, padding: "8px 0", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? cols[i % cols.length] : "transparent", color: activeTab === k ? "#fff" : "#64748b", minWidth: 50 }}>{label}</button>);
           })}
           <button onClick={() => setShowAddPerson(true)} style={{ padding: "8px 10px", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", background: "transparent", color: "#64748b" }}>+</button>
         </div>
@@ -1984,7 +1978,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
                     var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                     var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                    if (txt) { setBodyFeedback(JSON.parse(txt.replace(/```json|```/g, "").trim())); }
+                    if (txt) { var bfParsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); bfParsed._at = new Date().toLocaleString("en-GB"); setBodyFeedback(bfParsed); sSet("body_feedback", JSON.stringify(Object.assign({}, bodyFbAll || {}, { [activeTab]: bfParsed }))); }
                   } catch(e) { setBodyFeedback({ good: [], watch: ["Error: " + String(e).substring(0, 80)], outlook: "" }); }
                   setBodyFbLoading(false);
                 }} disabled={bodyFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: bodyFbLoading ? "not-allowed" : "pointer", background: bodyFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{bodyFbLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Weigh In Feedback"}</button>
@@ -2281,7 +2275,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                       var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                      if (txt) { var fb = JSON.parse(txt.replace(/```json|```/g, "").trim()); fb._generatedAt = new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb })); await sSet("session_fb_" + activeTab + "_" + day + "_wk" + currentWeek, JSON.stringify(fb));
+                      if (txt) { var fb = JSON.parse(txt.replace(/```json|```/g, "").trim()); fb._generatedAt = new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb })); var sfUpdate = Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb }); await sSet("session_feedback_all", JSON.stringify(sfUpdate));
                         // Recommendations shown to user - they accept/decline individually
                         }
                     } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: { exercises: [], summary: "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
@@ -2312,11 +2306,11 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                           }
                           await saveData(nd3);
                           var el = document.getElementById("rec-" + ei + "-" + day);
-                          ex._decision = "accepted"; var sfbKey = activeTab + "_" + day; var curFb = sessionFeedback[sfbKey]; if (curFb && curFb.exercises) { curFb.exercises[ei]._decision = "accepted"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_fb_" + activeTab + "_" + day + "_wk" + currentWeek, JSON.stringify(curFb)); } if (el) { el.style.background = "#dcfce7"; el.style.borderColor = "#86efac"; el.innerHTML = "<div style=\"font-size:11px;color:#166534;font-weight:600;padding:4px\">\u2705 Accepted — " + ex.name + " updated to " + ex.newStatus + ". Activity updated.</div>"; }
+                          ex._decision = "accepted"; var sfbKey = activeTab + "_" + day; var curFb = sessionFeedback[sfbKey]; if (curFb && curFb.exercises) { curFb.exercises[ei]._decision = "accepted"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#dcfce7"; el.style.borderColor = "#86efac"; el.innerHTML = "<div style=\"font-size:11px;color:#166534;font-weight:600;padding:4px\">\u2705 Accepted — " + ex.name + " updated to " + ex.newStatus + ". Activity updated.</div>"; }
                         }} style={{ padding: "5px 14px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Accept</button>
                         <button onClick={function() {
                           var el = document.getElementById("rec-" + ei + "-" + day);
-                          ex._decision = "declined"; var sfbKey2 = activeTab + "_" + day; var curFb2 = sessionFeedback[sfbKey2]; if (curFb2 && curFb2.exercises) { curFb2.exercises[ei]._decision = "declined"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_fb_" + activeTab + "_" + day + "_wk" + currentWeek, JSON.stringify(curFb2)); } if (el) { el.style.background = "#f1f5f9"; el.style.borderColor = "#e2e8f0"; el.innerHTML = "<div style=\"font-size:11px;color:#64748b;padding:4px\">\u21a9 Declined — no changes made to Activity.</div>"; }
+                          ex._decision = "declined"; var sfbKey2 = activeTab + "_" + day; var curFb2 = sessionFeedback[sfbKey2]; if (curFb2 && curFb2.exercises) { curFb2.exercises[ei]._decision = "declined"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#f1f5f9"; el.style.borderColor = "#e2e8f0"; el.innerHTML = "<div style=\"font-size:11px;color:#64748b;padding:4px\">\u21a9 Declined — no changes made to Activity.</div>"; }
                         }} style={{ padding: "5px 14px", background: "#e2e8f0", color: "#475569", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Decline</button>
                       </div></div>)}
                     </div>)}</div></div>); })}
@@ -3087,7 +3081,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               if (!text) throw new Error("Empty response");
               var cleanJson = text.replace(/```json|```/g, "").trim(); cleanJson = cleanJson.replace(/\n/g, " ").replace(/\r/g, " ").replace(/\t/g, " ").replace(/[\x00-\x1F]/g, " "); var fb; try { fb = JSON.parse(cleanJson); } catch(je) { var fixed = cleanJson; if (!fixed.endsWith("}")) { fixed = fixed.replace(/,?\s*"[^"]*$/, ""); fixed = fixed.replace(/,?\s*$/, ""); var opens = (fixed.match(/\[/g) || []).length - (fixed.match(/\]/g) || []).length; for (var bi = 0; bi < opens; bi++) fixed += "]"; var braces = (fixed.match(/\{/g) || []).length - (fixed.match(/\}/g) || []).length; for (var bj = 0; bj < braces; bj++) fixed += "}"; } fb = JSON.parse(fixed); }
               fb._generatedAt = new Date().toLocaleString("en-GB");
-              setHealthFb(fb);
+              setHealthFb(fb); sSet("health_feedback", JSON.stringify(Object.assign({}, healthFbAll || {}, { [activeTab]: fb })));
               try { await sSet("health_fb_" + activeTab, JSON.stringify(fb)); } catch(se) {}
             } catch(e) { setFormMsg("Error: " + String(e).substring(0, 120)); setTimeout(function() { setFormMsg(""); }, 10000); }
             setHealthFbLoading(false);
@@ -3209,7 +3203,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.137
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.138
       </div>
     </div>
   );
