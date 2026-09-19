@@ -1228,7 +1228,7 @@ function Dashboard() {
       var fbDay = fbKeys[fbi2];
       var fbTabs = ["jc","becks"]; for (var fbi3 = 0; fbi3 < fbTabs.length; fbi3++) { var fbTab = fbTabs[fbi3];
         var fbWk = calcWeek("2026-07-19");
-        var fbKey = "session_fb_" + fbTab + "_" + fbDay + "_wk" + fbWk; console.log("Loading feedback:", fbKey); var fbSaved = await sGet(fbKey); console.log("Got:", fbKey, fbSaved ? "YES" : "null");
+        var fbSaved = await sGet("session_fb_" + fbTab + "_" + fbDay + "_wk" + fbWk);
         if (fbSaved) {
           setSessionFeedback(function(prev) { var n = Object.assign({}, prev || {}); n[fbTab + "_" + fbDay] = JSON.parse(fbSaved); return n; });
         }
@@ -2281,7 +2281,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                       var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                      if (txt) { var fb = JSON.parse(txt.replace(/```json|```/g, "").trim()); fb._generatedAt = new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb })); var saveKey = "session_fb_" + activeTab + "_" + day + "_wk" + currentWeek; console.log("Saving feedback:", saveKey); await sSet(saveKey, JSON.stringify(fb)); console.log("Saved:", saveKey);
+                      if (txt) { var fb = JSON.parse(txt.replace(/```json|```/g, "").trim()); fb._generatedAt = new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb })); await sSet("session_fb_" + activeTab + "_" + day + "_wk" + currentWeek, JSON.stringify(fb));
                         // Recommendations shown to user - they accept/decline individually
                         }
                     } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: { exercises: [], summary: "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
@@ -3208,7 +3208,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       </div>
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
-        Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"
+        Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.137
       </div>
     </div>
   );
