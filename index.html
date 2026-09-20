@@ -983,6 +983,7 @@ function Dashboard() {
   const [profileInputs, setProfileInputs] = useState({});
   const [healthComment, setHealthComment] = useState("");
   const [healthView, setHealthView] = useState("general");
+  const [vitalsInput, setVitalsInput] = useState({ date: "", time: "", systolic: "", diastolic: "", hr: "", spo2: "" });
   const [healthFb, setHealthFb] = useState(null);
   const [healthFbAll, setHealthFbAll] = useState({});
   const [healthFbLoading, setHealthFbLoading] = useState(false);
@@ -1430,7 +1431,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       const prof = p.profile || {};
       const who = prof.name + " (" + (prof.sex || "") + ", " + (prof.age || "") + ", " + (prof.height || "") + ", ideal " + (prof.idealWeight || "") + ", " + (prof.bodyType || "") + ". " + (prof.notes || "") + ")";
       // Health log
-      let healthContext = ""; if (p.healthProfile) healthContext += "\nHealth profile: " + p.healthProfile;
+      let healthContext = ""; if (p.vitals && p.vitals.length > 0) { var lv = p.vitals[p.vitals.length-1]; healthContext += "\nVitals(" + lv.date + "): " + (lv.bp ? "BP:" + lv.bp + " " : "") + (lv.hr ? "HR:" + lv.hr + " " : "") + (lv.spo2 ? "SpO2:" + lv.spo2 + "% " : ""); } if (p.healthProfile) healthContext += "\nHealth profile: " + p.healthProfile;
       if (p.healthLog && p.healthLog.length > 0) {
         healthContext = "\nRecent health updates: " + p.healthLog.slice(-5).map(h => h.date + ": " + h.note).join("; ") + ".";
       }
@@ -3012,7 +3013,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           var medsList = p.meds || [];
           var activeMeds = medsList.filter(function(m) { return m.active; });
           var allTests = BLOOD_TESTS.flatMap(function(g) { return g.tests; }).concat(customBloodTests);
-          var tabs = [{ id: "general", l: "General" }, { id: "meds", l: "Medications" }, { id: "bloods", l: "Bloods" }];
+          var tabs = [{ id: "general", l: "General" }, { id: "vitals", l: "Vitals" }, { id: "meds", l: "Medications" }, { id: "bloods", l: "Bloods" }];
           return (<div>
           <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 10 }}>Health</div>
           <div style={{ display: "flex", gap: 0, marginBottom: 14, borderBottom: "2px solid #e2e8f0" }}>
@@ -3035,7 +3036,44 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             {(p.healthLog || []).slice().reverse().map(function(h, i) { return (<div key={i} style={{ padding: "6px 10px", background: "#f8fafc", borderRadius: 6, marginBottom: 4, fontSize: 11, display: "flex", justifyContent: "space-between" }}><span><span style={{ fontWeight: 600, color: "#475569" }}>{h.date}</span> {h.note}</span><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthLog.splice(nd[activeTab].healthLog.length - 1 - i, 1); await saveData(nd); }} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 14, flexShrink: 0 }}>x</button></div>); })}
           </div>)}
 
-          {healthView === "meds" && (<div>
+          
+          {healthView === "vitals" && (<div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Record Vitals</div>
+            <div style={{ display: "flex", gap: 6, marginBottom: 6, flexWrap: "wrap" }}>
+              <input type="date" value={vitalsInput.date} onChange={function(e) { setVitalsInput(Object.assign({}, vitalsInput, { date: e.target.value })); }} style={{ padding: 6, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, flex: 1 }} />
+              <input type="time" value={vitalsInput.time} onChange={function(e) { setVitalsInput(Object.assign({}, vitalsInput, { time: e.target.value })); }} style={{ padding: 6, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, width: 90 }} />
+            </div>
+            <div style={{ display: "flex", gap: 6, marginBottom: 6, flexWrap: "wrap" }}>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 9, color: "#94a3b8", marginBottom: 2 }}>Systolic</div><input type="number" placeholder="120" value={vitalsInput.systolic} onChange={function(e) { setVitalsInput(Object.assign({}, vitalsInput, { systolic: e.target.value })); }} style={{ width: "100%", padding: 6, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, boxSizing: "border-box" }} /></div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 9, color: "#94a3b8", marginBottom: 2 }}>Diastolic</div><input type="number" placeholder="80" value={vitalsInput.diastolic} onChange={function(e) { setVitalsInput(Object.assign({}, vitalsInput, { diastolic: e.target.value })); }} style={{ width: "100%", padding: 6, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, boxSizing: "border-box" }} /></div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 9, color: "#94a3b8", marginBottom: 2 }}>Heart Rate</div><input type="number" placeholder="72" value={vitalsInput.hr} onChange={function(e) { setVitalsInput(Object.assign({}, vitalsInput, { hr: e.target.value })); }} style={{ width: "100%", padding: 6, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, boxSizing: "border-box" }} /></div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 9, color: "#94a3b8", marginBottom: 2 }}>SpO2 %</div><input type="number" placeholder="98" value={vitalsInput.spo2} onChange={function(e) { setVitalsInput(Object.assign({}, vitalsInput, { spo2: e.target.value })); }} style={{ width: "100%", padding: 6, border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, boxSizing: "border-box" }} /></div>
+            </div>
+            <button onClick={async function() { if (!vitalsInput.systolic && !vitalsInput.hr && !vitalsInput.spo2) return; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].vitals) nd[activeTab].vitals = []; var entry = { date: vitalsInput.date || new Date().toISOString().split("T")[0], time: vitalsInput.time || new Date().toTimeString().slice(0,5) }; if (vitalsInput.systolic) entry.bp = vitalsInput.systolic + "/" + vitalsInput.diastolic; if (vitalsInput.hr) entry.hr = parseInt(vitalsInput.hr); if (vitalsInput.spo2) entry.spo2 = parseInt(vitalsInput.spo2); nd[activeTab].vitals.push(entry); await saveData(nd); setVitalsInput({ date: "", time: "", systolic: "", diastolic: "", hr: "", spo2: "" }); setFormMsg("Vitals saved"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ width: "100%", padding: 10, background: accent, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", marginBottom: 12 }}>Save Vitals</button>
+
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>History</div>
+            {(p.vitals || []).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8" }}>No vitals recorded yet</div>}
+            {(p.vitals || []).slice().reverse().map(function(v, vi) {
+              var bpColor = "#16a34a";
+              if (v.bp) { var parts = v.bp.split("/"); var sys = parseInt(parts[0]); if (sys >= 140) bpColor = "#dc2626"; else if (sys >= 130) bpColor = "#d97706"; }
+              var hrColor = "#16a34a";
+              if (v.hr) { if (v.hr > 100 || v.hr < 50) hrColor = "#dc2626"; else if (v.hr > 90 || v.hr < 55) hrColor = "#d97706"; }
+              var spo2Color = "#16a34a";
+              if (v.spo2) { if (v.spo2 < 92) spo2Color = "#dc2626"; else if (v.spo2 < 95) spo2Color = "#d97706"; }
+              return (<div key={vi} style={{ padding: "8px 10px", background: "#f8fafc", borderRadius: 6, marginBottom: 4, border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div><div style={{ fontSize: 11, fontWeight: 600, color: "#475569" }}>{v.date} {v.time}</div>
+                  <div style={{ fontSize: 12, display: "flex", gap: 12, marginTop: 2 }}>
+                    {v.bp && <span>BP: <span style={{ fontWeight: 700, color: bpColor }}>{v.bp}</span></span>}
+                    {v.hr && <span>HR: <span style={{ fontWeight: 700, color: hrColor }}>{v.hr}</span></span>}
+                    {v.spo2 && <span>SpO2: <span style={{ fontWeight: 700, color: spo2Color }}>{v.spo2}%</span></span>}
+                  </div>
+                </div>
+                <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].vitals.splice(nd[activeTab].vitals.length - 1 - vi, 1); await saveData(nd); }} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 14, flexShrink: 0 }}>x</button>
+              </div>);
+            })}
+          </div>)}
+
+{healthView === "meds" && (<div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Active Medications</div>
             {activeMeds.length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 8 }}>No active medications</div>}
             {activeMeds.map(function(med, mi) { return (<div key={mi} style={{ padding: 10, background: "#f8fafc", borderRadius: 8, marginBottom: 6, border: "1px solid #e2e8f0" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div><span style={{ fontWeight: 700, fontSize: 12 }}>{med.name}</span> <span style={{ fontSize: 11, color: "#64748b" }}>{med.dose || ""} {med.freq || ""} {med.time || ""}</span></div><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var idx = nd[activeTab].meds.indexOf(nd[activeTab].meds.filter(function(m){return m.active;})[mi]); if(idx>=0) nd[activeTab].meds[idx].active = false; if (!nd[activeTab].medsHistory) nd[activeTab].medsHistory = []; nd[activeTab].medsHistory.push({ date: new Date().toLocaleDateString("en-GB"), snapshot: "Stopped " + med.name }); await saveData(nd); }} style={{ fontSize: 9, padding: "2px 6px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 4, color: "#dc2626", cursor: "pointer" }}>Stop</button></div>{med.notes && <div style={{ fontSize: 10, color: "#64748b", marginTop: 4 }}>{med.notes}</div>}</div>); })}
@@ -3208,7 +3246,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.140
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.141
       </div>
     </div>
   );
