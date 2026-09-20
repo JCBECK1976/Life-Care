@@ -2594,9 +2594,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             setTimeout(function() { setFormMsg(""); }, 4000);
           };
 
-          var applyDefaults = function() {
-            
-          var defs = mealDefaults[activeTab] || {};
+          var applyDefaults = async function() {
+            var defs = mealDefaults[activeTab] || {};
             var n = Object.assign({}, meals);
             DAYS.forEach(function(d) {
               if (!n[d]) n[d] = {};
@@ -2605,7 +2604,25 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               if (defs.d && !n[d].d) n[d].d = defs.d;
               for (var i = 1; i <= 7; i++) { if (defs["o" + i] && !n[d]["o" + i]) n[d]["o" + i] = defs["o" + i]; }
             });
-            setMeals(n); saveMeals(n); setFormMsg("Defaults applied"); setTimeout(function() { setFormMsg(""); }, 2000);
+            setMeals(n); saveMeals(n);
+            var otherPeople = Object.keys(data).filter(function(k) { return k !== "config" && k !== activeTab; });
+            for (var opi = 0; opi < otherPeople.length; opi++) {
+              var op = otherPeople[opi];
+              var opDefs = mealDefaults[op] || {};
+              if (Object.keys(opDefs).length === 0) continue;
+              var opSk = mealKey(weekStart) + ":" + op;
+              var opRaw = await sGet(opSk);
+              var opM = opRaw ? JSON.parse(opRaw) : {};
+              DAYS.forEach(function(d) {
+                if (!opM[d]) opM[d] = {};
+                if (opDefs.b && !opM[d].b) opM[d].b = opDefs.b;
+                if (opDefs.l && !opM[d].l) opM[d].l = opDefs.l;
+                if (opDefs.d && !opM[d].d) opM[d].d = opDefs.d;
+                for (var i = 1; i <= 7; i++) { if (opDefs["o" + i] && !opM[d]["o" + i]) opM[d]["o" + i] = opDefs["o" + i]; }
+              });
+              await sSet(opSk, JSON.stringify(opM));
+            }
+            setFormMsg("Defaults applied (all people)"); setTimeout(function() { setFormMsg(""); }, 2000);
           };
 
           var saveDef = function(key, val, scope) {
@@ -2755,7 +2772,16 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 var n = Object.assign({}, meals);
                 DAYS.forEach(function(d2) { if (gen[d2]) { if (!n[d2]) n[d2] = {}; if (gen[d2].b && !n[d2].b) n[d2].b = gen[d2].b; if (gen[d2].l && !n[d2].l) n[d2].l = gen[d2].l; if (gen[d2].d && !n[d2].d) n[d2].d = gen[d2].d; } });
                 setMeals(n); saveMeals(n);
-                setFormMsg("Week meals generated");
+                var otherPeople2 = Object.keys(data).filter(function(k) { return k !== "config" && k !== activeTab; });
+                for (var opi2 = 0; opi2 < otherPeople2.length; opi2++) {
+                  var op2 = otherPeople2[opi2];
+                  var opSk2 = mealKey(weekStart) + ":" + op2;
+                  var opRaw2 = await sGet(opSk2);
+                  var opM2 = opRaw2 ? JSON.parse(opRaw2) : {};
+                  DAYS.forEach(function(d2) { if (gen[d2]) { if (!opM2[d2]) opM2[d2] = {}; if (gen[d2].d && !opM2[d2].d) opM2[d2].d = gen[d2].d; } });
+                  await sSet(opSk2, JSON.stringify(opM2));
+                }
+                setFormMsg("Week meals generated (all people)");
               }
             } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); }
             setTimeout(function() { setFormMsg(""); }, 4000); setGenerating(false);
@@ -3256,7 +3282,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.143
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.144
       </div>
     </div>
   );
