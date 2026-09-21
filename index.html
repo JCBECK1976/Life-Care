@@ -825,7 +825,7 @@ function fbIcon(icon) {
 }
 
 function calcWeek(startDate) {
-  var start = new Date(startDate || "2026-07-19");
+  var start = new Date(2026, 6, 19);
   var now = new Date();
   return Math.floor((now - start) / (7 * 24 * 60 * 60 * 1000)) + 1;
 }
@@ -3282,7 +3282,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.144
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.145
       </div>
     </div>
   );
