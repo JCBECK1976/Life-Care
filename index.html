@@ -2167,6 +2167,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           </div>)}
           
           {/* Day Cards */}
+          <div style={{ display: "flex", gap: 0, marginBottom: 10, borderBottom: "2px solid #e2e8f0" }}>
+            {days.map(function(d) { var dl = { sunday: "Sun", monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu", friday: "Fri", saturday: "Sat" }; return (<button key={d} onClick={function() { setExerciseDay(d); }} style={{ flex: 1, padding: "8px 4px", border: "none", borderBottom: exerciseDay === d ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 12, fontWeight: exerciseDay === d ? 700 : 500, color: exerciseDay === d ? accent : "#64748b", cursor: "pointer" }}>{dl[d] || d.slice(0,3)}</button>); })}
+          </div>
+
           {[exerciseDay].map(function(day) {
             var label = dayLabels[day] || day.charAt(0).toUpperCase() + day.slice(1);
             var exList = p.exercises[day] || [];
@@ -2288,9 +2292,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: { exercises: [], summary: "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
                     setSessionFbLoading(false);
                   }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{sessionFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "📊 Generate Session Feedback"}</button>
-          <div style={{ display: "flex", gap: 0, marginBottom: 10, borderBottom: "2px solid #e2e8f0" }}>
-            {["sunday", "monday", "friday"].map(function(d) { var dl = { sunday: "Sun", monday: "Mon", friday: "Fri" }; return (<button key={d} onClick={function() { setExerciseDay(d); }} style={{ flex: 1, padding: "8px 4px", border: "none", borderBottom: exerciseDay === d ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 12, fontWeight: exerciseDay === d ? 700 : 500, color: exerciseDay === d ? accent : "#64748b", cursor: "pointer" }}>{dl[d]}</button>); })}
-          </div>
                   {sessionFeedback && sessionFeedback[activeTab + "_" + day] && (<div style={{ marginTop: 10 }}>
                     {sessionFeedback[activeTab + "_" + day].exercises && sessionFeedback[activeTab + "_" + day].exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc", alignItems: "center" }}><span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{fbIcon(ex.icon)}</span><div><div style={{ fontSize: 12, fontWeight: 700 }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div>{(ex.newStatus || ex.recommendation) && (<div id={"rec-" + ei + "-" + day} style={{ marginTop: 4, padding: 8, background: ex._decision === "accepted" ? "#dcfce7" : ex._decision === "declined" ? "#f1f5f9" : "#fff7ed", borderRadius: 6, border: "1px solid " + (ex._decision === "accepted" ? "#86efac" : ex._decision === "declined" ? "#e2e8f0" : "#fed7aa") }}>
                       {ex._decision ? (<div style={{ fontSize: 11, fontWeight: 600, color: ex._decision === "accepted" ? "#166534" : "#64748b", padding: 4 }}>{ex._decision === "accepted" ? "Accepted — " + ex.name + " updated" : "Declined — no changes made"}</div>) : (<div><div style={{ fontSize: 10, color: "#ea580c", fontWeight: 600, marginBottom: 4 }}>{ex.recommendation || ("Recommendation: " + ex.newStatus)}</div>
@@ -3285,7 +3286,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.147
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.148
       </div>
     </div>
   );
