@@ -2148,7 +2148,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             }
             await saveData(nd); setFormMsg("✓ Entry removed"); setTimeout(function() { setFormMsg(""); }, 2000);
           };
-          return (<div>
+          return (<div key={"ex-"+activeTab}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}>Week {currentWeek}</div>
             <div style={{ display: "flex", gap: 4 }}>
@@ -3050,8 +3050,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           var activeMeds = medsList.filter(function(m) { return m.active; });
           var allTests = BLOOD_TESTS.flatMap(function(g) { return g.tests; }).concat(customBloodTests);
           var tabs = [{ id: "general", l: "General" }, { id: "vitals", l: "Vitals" }, { id: "meds", l: "Medications" }, { id: "bloods", l: "Bloods" }];
-          return (<div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 10 }}>Health</div>
+          return (<div key={"hl-"+activeTab}>          <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 10 }}>Health</div>
           <div style={{ display: "flex", gap: 0, marginBottom: 14, borderBottom: "2px solid #e2e8f0" }}>
             {tabs.map(function(t) { return (<button key={t.id} onClick={function() { setHealthView(t.id); }} style={{ padding: "8px 14px", border: "none", borderBottom: healthView === t.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 12, fontWeight: healthView === t.id ? 700 : 500, color: healthView === t.id ? accent : "#64748b", cursor: "pointer" }}>{t.l}</button>); })}
           </div>
@@ -3282,7 +3281,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.145
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.146
       </div>
     </div>
   );
