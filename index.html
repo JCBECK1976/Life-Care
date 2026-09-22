@@ -2171,6 +2171,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             {days.map(function(d) { var dl = { sunday: "Sun", monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu", friday: "Fri", saturday: "Sat" }; return (<button key={d} onClick={function() { setExerciseDay(d); }} style={{ flex: 1, padding: "8px 4px", border: "none", borderBottom: exerciseDay === d ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 12, fontWeight: exerciseDay === d ? 700 : 500, color: exerciseDay === d ? accent : "#64748b", cursor: "pointer" }}>{dl[d] || d.slice(0,3)}</button>); })}
           </div>
 
+          <div style={{ display: "flex", gap: 0, marginBottom: 10, borderBottom: "2px solid #e2e8f0" }}>
+            {["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].map(function(d) { var dl = {sunday:"Sun",monday:"Mon",tuesday:"Tue",wednesday:"Wed",thursday:"Thu",friday:"Fri",saturday:"Sat"}; return (<button key={d} onClick={function(){setExerciseDay(d);}} style={{flex:1,padding:"8px 2px",border:"none",borderBottom:exerciseDay===d?"2.5px solid "+accent:"2.5px solid transparent",background:"none",fontSize:11,fontWeight:exerciseDay===d?700:500,color:exerciseDay===d?accent:"#64748b",cursor:"pointer"}}>{dl[d]}</button>);})}
+          </div>
           {[exerciseDay].map(function(day) {
             var label = dayLabels[day] || day.charAt(0).toUpperCase() + day.slice(1);
             var exList = p.exercises[day] || [];
@@ -2324,7 +2327,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                           ex._decision = "declined"; var sfbKey2 = activeTab + "_" + day; var curFb2 = sessionFeedback[sfbKey2]; if (curFb2 && curFb2.exercises) { curFb2.exercises[ei]._decision = "declined"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#f1f5f9"; el.style.borderColor = "#e2e8f0"; el.innerHTML = "<div style=\"font-size:11px;color:#64748b;padding:4px\">\u21a9 Declined — no changes made to Activity.</div>"; }
                         }} style={{ padding: "5px 14px", background: "#e2e8f0", color: "#475569", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Decline</button>
                       </div></div>)}
-                    </div>)}</div></div>); })}
+                    </div>)}
+                    <div style={{textAlign:"right",marginTop:4}}><button onClick={async function(){if(!confirm("Remove "+ex.name+" from "+day+"?"))return;var nd=JSON.parse(JSON.stringify(data));nd[activeTab].exercises[day].splice(ei,1);await saveData(nd);}} style={{background:"none",border:"none",color:"#cbd5e1",fontSize:9,cursor:"pointer"}}>remove</button></div></div></div>); })}
                     {sessionFeedback[activeTab + "_" + day]._generatedAt && <div style={{ fontSize: 9, color: "#94a3b8", textAlign: "right", marginTop: 4 }}>Generated: {sessionFeedback[activeTab + "_" + day]._generatedAt}</div>}
                     {sessionFeedback[activeTab + "_" + day].summary && (<div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, padding: 10, marginTop: 8 }}><div style={{ fontSize: 12, color: "#fff" }}>{sessionFeedback[activeTab + "_" + day].summary}</div>{sessionFeedback[activeTab + "_" + day].nextSession && <div style={{ fontSize: 12, color: "#fbbf24", fontWeight: 600, marginTop: 4 }}>Next: {sessionFeedback[activeTab + "_" + day].nextSession}</div>}</div>)}
                   </div>)}
@@ -2365,75 +2369,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   {exList.filter(function(ex) { return ex.prog && ex.prog.length >= 2; }).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 20 }}>Need 2+ weeks of data to show charts</div>}
                 </div>)}
                 {/* SETTINGS TAB */}
-                {dv === "settings" && (<div style={{ padding: 12 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Equipment & Progression Settings</div>
-                  <div style={{ marginBottom: 10 }}>
-                    <label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 4 }}>Describe your equipment (include make/model, link to specs if available)</label>
-                    <textarea id={"equip-desc-" + day} defaultValue={(p.equipmentDesc && p.equipmentDesc[day]) || ""} placeholder="e.g. Marcy HG5000 Deluxe Home Multi Gym. Pin-loaded cable stack: 9,16,22,29,36,42,49,55,62,68,75,81,87,90kg. Dumbbells: 1-10kg pairs." style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 60, resize: "vertical", boxSizing: "border-box" }} />
-                    <button onClick={async function() { var desc = document.getElementById("equip-desc-" + day).value; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].equipmentDesc) nd[activeTab].equipmentDesc = {}; nd[activeTab].equipmentDesc[day] = desc; await saveData(nd); 
-                    // Recalculate targets using new increments
-                    var recalcNd = JSON.parse(JSON.stringify(data));
-                    var recalcExs = recalcNd[activeTab].exercises[day] || [];
-                    for (var ri = 0; ri < recalcExs.length; ri++) {
-                      if (recalcExs[ri].status === "ready to move") {
-                        var rInc = recalcExs[ri].settings && recalcExs[ri].settings.increments;
-                        recalcExs[ri].target = nextPin(parseInt(recalcExs[ri].current), rInc) + "kg x 10x3";
-                      }
-                    }
-                    await saveData(recalcNd);
-                    var savedEl = document.getElementById("equip-saved-" + day); if (savedEl) { savedEl.style.display = "inline"; setTimeout(function() { savedEl.style.display = "none"; }, 3000); }; setTimeout(function() { setFormMsg(""); }, 2000); }} id={"equip-save-btn-" + day} style={{ marginTop: 6, padding: "6px 14px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Save Equipment Info</button>
-                    <span id={"equip-saved-" + day} style={{ fontSize: 11, color: "#16a34a", fontWeight: 600, marginLeft: 8, display: "none" }}>✅ Equipment Saved</span>
-                  </div>
-                  <button onClick={async function() {
-                    setSessionFbLoading(true); setFormMsg("Generating settings for all exercises...");
-                    try {
-                      var prof = p.profile || {};
-                      var equipDesc = (p.equipmentDesc && p.equipmentDesc[day]) || document.getElementById("equip-desc-" + day).value || "cable machine";
-                      var exNames = exList.map(function(ex) { return ex.name + " (current: " + ex.current + " " + ex.reps + ")"; }).join(", ");
-                      var fmt = '{"exercises":[{"name":"...","type":"cable|freeweight|bodyweight","increments":"9,16,22,29,36,42,49","description":"setup and form notes"}]}';
-                      var prompt = "Generate exercise settings for " + (prof.name || "user") + ". Equipment: " + equipDesc + ". Exercises: " + exNames + ". For each exercise determine: 1) type (cable/freeweight/bodyweight), 2) realistic weight increments based on the equipment described (use exact pin/dumbbell weights), 3) brief setup/form description. For bodyweight exercises use BW,BW+2,BW+4 etc for dumbbell-held progression. Return ONLY JSON: " + fmt;
-                      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }) });
-                      var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-                      var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                      if (txt) {
-                        var plan = JSON.parse(txt.replace(/```json|```/g, "").trim());
-                        if (plan.exercises) {
-                          var nd = JSON.parse(JSON.stringify(data));
-                          plan.exercises.forEach(function(pe) {
-                            var dayExs = nd[activeTab].exercises[day] || [];
-                            for (var i = 0; i < dayExs.length; i++) {
-                              if (dayExs[i].name === pe.name) {
-                                if (!dayExs[i].settings) dayExs[i].settings = {};
-                                dayExs[i].settings.type = pe.type || "cable";
-                                dayExs[i].settings.increments = pe.increments || "";
-                                dayExs[i].settings.description = pe.description || "";
-                                dayExs[i].settings.equipment = equipDesc;
-                              }
-                            }
-                          });
-                          await saveData(nd);
-                          setFormMsg("Settings generated for " + plan.exercises.length + " exercises");
-                        }
-                      }
-                    } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); }
-                    setTimeout(function() { setFormMsg(""); }, 4000); setSessionFbLoading(false);
-                  }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" }}>{sessionFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate All Settings"}</button>
-                  <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4, marginBottom: 12 }}>AI reads your equipment description and sets type, weight increments, and form notes for every exercise. You can edit below.</div>
-                  {/* Per-exercise generated settings - editable */}
-                  {exList.map(function(ex, exIdx) {
-                    var s = ex.settings || {};
-                    if (!s.type && !s.increments) return null;
-                    return (<div key={exIdx} style={{ marginBottom: 10, padding: 8, background: "#f8fafc", borderRadius: 6, border: "1px solid #e2e8f0" }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{ex.name}</div>
-                      <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
-                        <div style={{ flex: 1 }}><span style={{ fontSize: 9, color: "#94a3b8" }}>Type</span><input defaultValue={s.type || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].exercises[day][exIdx].settings) nd[activeTab].exercises[day][exIdx].settings = {}; nd[activeTab].exercises[day][exIdx].settings.type = e.target.value; await saveData(nd); }} style={{ width: "100%", padding: "3px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10 }} /></div>
-                        <div style={{ flex: 2 }}><span style={{ fontSize: 9, color: "#94a3b8" }}>Increments (kg)</span><input defaultValue={s.increments || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].exercises[day][exIdx].settings) nd[activeTab].exercises[day][exIdx].settings = {}; nd[activeTab].exercises[day][exIdx].settings.increments = e.target.value; await saveData(nd); }} style={{ width: "100%", padding: "3px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10 }} /></div>
-                      </div>
-                      {s.description && <div style={{ fontSize: 10, color: "#475569" }}>{s.description}</div>}
-                    </div>);
-                  })}
-                  {exList.filter(function(ex) { return ex.settings && (ex.settings.type || ex.settings.increments); }).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 10 }}>No settings yet — describe your equipment above and tap Generate</div>}
-                </div>)}
+                
               </div>
             </div>);
           })}
@@ -3286,7 +3222,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.148
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.149
       </div>
     </div>
   );
