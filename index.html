@@ -2181,8 +2181,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             var dv = dayView[day] || "activity";
             var setDv = function(v) { setDayView(function(prev) { var n = Object.assign({}, prev); n[day] = v; return n; }); };
             return (<div key={day} style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6, paddingLeft: 2 }}>{label}</div>
-              {/* Day Sub-tabs */}
+              
               
               <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", overflow: "hidden" }}>
                 {/* ACTIVITY TAB */}
@@ -2201,7 +2200,17 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer" }} onClick={function() { setEditExercise({ day: day, idx: i }); }}>{ex.name} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span></div>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                           <span style={{ fontSize: 10, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" }}>{sLabel(ex.status)}</span>
-                          <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);}else{setSelectedEx({day:day,idx:i,showAll:false});}}} style={{padding:"5px 14px",border:"none",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer",color:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#fff":accent,background:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?accent:"#dbeafe"}}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"Close":"Select"}</button><button onClick={async function() { if (!confirm("Remove " + ex.name + " from " + day + "?")) return; var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].exercises[day].splice(ei, 1); await saveData(nd); }} style={{ padding: "4px 6px", background: "none", border: "1px solid #fca5a5", borderRadius: 4, color: "#ef4444", fontSize: 10, cursor: "pointer", marginLeft: 4 }} title="Remove exercise">x</button>
+                          <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);}else{setSelectedEx({day:day,idx:i,showAll:false});}}} style={{padding:"5px 14px",border:"none",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer",color:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#fff":accent,background:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?accent:"#dbeafe"}}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"Close":"Select"}</button>
+                    {selectedEx&&selectedEx.day===day&&selectedEx.idx===i&&(<div style={{marginTop:8,background:"#f8fafc",borderRadius:8,padding:10,border:"1px solid #e2e8f0"}}>
+                      <button onClick={function(){setLogExercise({day:day,index:i,exercise:ex});setLogWeight(ex.current?ex.current.replace("kg",""):"");setLogReps("12");setLogSets([{w:"",r:""},{w:"",r:""},{w:"",r:""}]);setLogWeek(String(calcWeek()));setLogComment("");}} style={{width:"100%",padding:12,background:accent,color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:10}}>Log {ex.name}</button>
+                      {ex.prog&&ex.prog.length>0&&(<div style={{marginBottom:8}}><div style={{fontSize:11,fontWeight:700,color:"#0f172a",marginBottom:4}}>Progress</div>
+                        {ex.prog.slice(-4).reverse().map(function(pe,pi){return(<div key={pi} style={{fontSize:11,color:"#475569",padding:"3px 0",borderBottom:"1px solid #e2e8f0"}}>Wk{pe.wk}: {pe.w} {pe.r}{pe.note?" — "+pe.note:""}</div>);})}
+                        {ex.prog.length>4&&<button onClick={function(){setSelectedEx(Object.assign({},selectedEx,{showAll:!selectedEx.showAll}));}} style={{fontSize:10,color:accent,background:"none",border:"none",cursor:"pointer",marginTop:4}}>{selectedEx.showAll?"Show less":"Show all ("+ex.prog.length+")"}</button>}
+                        {selectedEx.showAll&&ex.prog.slice(0,-4).reverse().map(function(pe,pi){return(<div key={"o"+pi} style={{fontSize:11,color:"#94a3b8",padding:"3px 0"}}>Wk{pe.wk}: {pe.w} {pe.r}</div>);})}
+                      </div>)}
+                      <button onClick={function(){setLogExercise({day:day,index:i,exercise:ex});setLogWeight(ex.current?ex.current.replace("kg",""):"");setLogReps("12");setLogSets([{w:"",r:""},{w:"",r:""},{w:"",r:""}]);setLogWeek(String(calcWeek()));setLogComment("");}} style={{width:"100%",padding:12,background:accent,color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:700,cursor:"pointer",marginTop:8,marginBottom:6}}>Log {ex.name}</button>
+                      <div style={{textAlign:"center",marginTop:6}}><button onClick={async function(){if(!confirm("Delete "+ex.name+" and ALL progress?"))return;var nd=JSON.parse(JSON.stringify(data));nd[activeTab].exercises[day].splice(i,1);await saveData(nd);setSelectedEx(null);}} style={{background:"none",border:"1px solid #fca5a5",borderRadius:6,color:"#ef4444",fontSize:10,padding:"4px 10px",cursor:"pointer"}}>Delete exercise and all progress</button></div>
+                    </div>)}<button onClick={async function() { if (!confirm("Remove " + ex.name + " from " + day + "?")) return; var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].exercises[day].splice(ei, 1); await saveData(nd); }} style={{ padding: "4px 6px", background: "none", border: "1px solid #fca5a5", borderRadius: 4, color: "#ef4444", fontSize: 10, cursor: "pointer", marginLeft: 4 }} title="Remove exercise">x</button>
                         </div>
                       </div>
                       <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>{ex.current} · {ex.reps}</div>
@@ -2325,18 +2334,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         }} style={{ padding: "5px 14px", background: "#e2e8f0", color: "#475569", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Decline</button>
                       </div></div>)}
                     </div>)}
-                    <div style={{textAlign:"right",marginTop:4}}><button onClick={async function(){if(!confirm("Remove "+ex.name+" from "+day+"?"))return;var nd=JSON.parse(JSON.stringify(data));nd[activeTab].exercises[day].splice(i,1);await saveData(nd);}} style={{background:"none",border:"none",color:"#cbd5e1",fontSize:9,cursor:"pointer"}}>remove</button></div>
-                    {selectedEx&&selectedEx.day===day&&selectedEx.idx===i&&(<div style={{marginTop:8,background:"#f8fafc",borderRadius:8,padding:10,border:"1px solid #e2e8f0"}}>
-                      <button onClick={function(){setLogExercise({day:day,index:i,exercise:ex});setLogWeight(ex.current?ex.current.replace("kg",""):"");setLogReps(ex.target?ex.target.r.replace(/x3|×3/,""):"12");setLogSets([{w:"",r:""},{w:"",r:""},{w:"",r:""}]);setLogWeek(String(calcWeek()));setLogComment("");}} style={{width:"100%",padding:12,background:accent,color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:10}}>Log {ex.name}</button>
-                      {ex.prog&&ex.prog.length>0&&(<div style={{marginBottom:8}}>
-                        <div style={{fontSize:11,fontWeight:700,color:"#0f172a",marginBottom:4}}>Progress (last 4 weeks)</div>
-                        {ex.prog.slice(-4).reverse().map(function(pe,pi){return(<div key={pi} style={{fontSize:11,color:"#475569",padding:"3px 0",borderBottom:"1px solid #e2e8f0"}}>Wk{pe.wk}: {pe.w} {pe.r} {pe.note?"— "+pe.note:""}</div>);})}
-                        {ex.prog.length>4&&<button onClick={function(){setSelectedEx(Object.assign({},selectedEx,{showAll:!selectedEx.showAll}));}} style={{fontSize:10,color:accent,background:"none",border:"none",cursor:"pointer",marginTop:4}}>{selectedEx.showAll?"Show less":"Show all ("+ex.prog.length+")"}</button>}
-                        {selectedEx.showAll&&ex.prog.slice(0,-4).reverse().map(function(pe,pi){return(<div key={"o"+pi} style={{fontSize:11,color:"#94a3b8",padding:"3px 0",borderBottom:"1px solid #f1f5f9"}}>Wk{pe.wk}: {pe.w} {pe.r}</div>);})}
-                      </div>)}
-                      <button onClick={function(){setLogExercise({day:day,index:i,exercise:ex});setLogWeight(ex.current?ex.current.replace("kg",""):"");setLogReps(ex.target?ex.target.r.replace(/x3|×3/,""):"12");setLogSets([{w:"",r:""},{w:"",r:""},{w:"",r:""}]);setLogWeek(String(calcWeek()));setLogComment("");}} style={{width:"100%",padding:12,background:accent,color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:700,cursor:"pointer",marginTop:10,marginBottom:6}}>Log {ex.name}</button>
-                      <div style={{textAlign:"center",marginTop:6}}><button onClick={async function(){if(!confirm("Delete "+ex.name+" and ALL progress?"))return;var nd=JSON.parse(JSON.stringify(data));nd[activeTab].exercises[day].splice(i,1);await saveData(nd);setSelectedEx(null);}} style={{background:"none",border:"1px solid #fca5a5",borderRadius:6,color:"#ef4444",fontSize:10,padding:"4px 10px",cursor:"pointer"}}>Delete exercise and all progress</button></div>
-                    </div>)}</div></div>); })}
+                    </div></div>); })}
                     {sessionFeedback[activeTab + "_" + day]._generatedAt && <div style={{ fontSize: 9, color: "#94a3b8", textAlign: "right", marginTop: 4 }}>Generated: {sessionFeedback[activeTab + "_" + day]._generatedAt}</div>}
                     {sessionFeedback[activeTab + "_" + day].summary && (<div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, padding: 10, marginTop: 8 }}><div style={{ fontSize: 12, color: "#fff" }}>{sessionFeedback[activeTab + "_" + day].summary}</div>{sessionFeedback[activeTab + "_" + day].nextSession && <div style={{ fontSize: 12, color: "#fbbf24", fontWeight: 600, marginTop: 4 }}>Next: {sessionFeedback[activeTab + "_" + day].nextSession}</div>}</div>)}
                   </div>)}
@@ -3230,7 +3228,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.150
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.151
       </div>
     </div>
   );
