@@ -2182,7 +2182,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             return (<div key={day} style={{ marginBottom: 16 }}>
               
                             <div style={{ display: "flex", gap: 0, marginBottom: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2 }}>
-                {[{ k: "activity", l: "Activity" }, { k: "feedback", l: "Feedback" }, { k: "progression", l: "Progress" }, { k: "history", l: "Charts" }, { k: "settings", l: "Settings" }].map(function(tab) {
+                {[{ k: "activity", l: "Activity" }].map(function(tab) {
                   return (<button key={tab.k} onClick={function() { setDv(tab.k); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: dv === tab.k ? (tab.k === "feedback" ? "#ea580c" : "#fff") : "transparent", color: dv === tab.k ? (tab.k === "feedback" ? "#fff" : "#0f172a") : "#94a3b8" }}>{tab.l}</button>);
                 })}
               </div>
@@ -2376,41 +2376,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 </div>)}
                 {/* FEEDBACK TAB */}
                 
-                {/* PROGRESSION TAB */}
-                {dv === "progression" && (<div style={{ padding: 12 }}>
-                  {exList.map(function(ex, exIdx) { return (<div key={exIdx} style={{ marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid #e2e8f0" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{ex.name}</div>
-                      <span style={{ fontSize: 10, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 8px", borderRadius: 20 }}>{sLabel(ex.status)}</span>
-                    </div>
-                    {ex.notes && <div style={{ fontSize: 10, color: "#854d0e", background: "#fef9c3", padding: "4px 8px", borderRadius: 4, marginBottom: 6 }}>{ex.notes}</div>}
-                    <div style={{ display: "flex", gap: 6, padding: "3px 0", marginBottom: 2, fontSize: 9, color: "#94a3b8", fontWeight: 600 }}>
-                      <span style={{ width: 40 }}>WEEK</span><span style={{ width: 55 }}>WEIGHT</span><span style={{ width: 65 }}>REPS</span><span style={{ flex: 1 }}>NOTES</span><span style={{ width: 20 }}></span>
-                    </div>
-                    {ex.prog && ex.prog.map(function(pr, pi) { return (<div key={pi} style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
-                      <input defaultValue={pr.wk} onBlur={function(e) { updateProg(day, exIdx, pi, "wk", parseInt(e.target.value) || pr.wk); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
-                      <input defaultValue={pr.w} onBlur={function(e) { updateProg(day, exIdx, pi, "w", e.target.value); }} style={{ width: 55, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
-                      <input defaultValue={pr.r} onBlur={function(e) { updateProg(day, exIdx, pi, "r", e.target.value); }} style={{ width: 65, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
-                      <input defaultValue={pr.note || ""} onBlur={function(e) { updateProg(day, exIdx, pi, "note", e.target.value); }} placeholder="..." style={{ flex: 1, minWidth: 0, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
-                      <button onClick={function() { deleteProg(day, exIdx, pi); }} style={{ fontSize: 12, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", minWidth: 24, flexShrink: 0 }}>✕</button>
-                    </div>); })}
-                    {(!ex.prog || ex.prog.length === 0) && <div style={{ fontSize: 10, color: "#94a3b8" }}>No progression data yet</div>}
-                    <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var wk = calcWeek(nd.config.trainingStart); var existWk = -1; for (var awi = 0; awi < nd[activeTab].exercises[day][exIdx].prog.length; awi++) { if (nd[activeTab].exercises[day][exIdx].prog[awi].wk === wk) { existWk = awi; break; } }
-                      if (existWk >= 0) { if (!confirm("Week " + wk + " already exists. OK = Update, Cancel = Go back")) return; nd[activeTab].exercises[day][exIdx].prog[existWk].w = ex.current || "0kg"; nd[activeTab].exercises[day][exIdx].prog[existWk].r = ex.reps || "0"; } else { nd[activeTab].exercises[day][exIdx].prog.push({ wk: wk, w: ex.current || "0kg", r: ex.reps || "0", note: "" }); } var latestNote = nd[activeTab].exercises[day][exIdx].prog[nd[activeTab].exercises[day][exIdx].prog.length-1].note || ""; nd[activeTab].exercises[day][exIdx].notes = latestNote; await saveData(nd); setFormMsg("✓ Week " + wk + " added"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ marginTop: 4, padding: "4px 10px", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 6, fontSize: 10, color: "#166534", cursor: "pointer" }}>+ Add Week</button>
-                  </div>); })}
-                </div>)}
-                {/* CHARTS TAB */}
-                {dv === "history" && (<div style={{ padding: 12 }}>
-                  {exList.map(function(ex, exIdx) {
-                    if (!ex.prog || ex.prog.length < 2) return null;
-                    var repData = ex.prog.map(function(pr) { var w = parseFloat(pr.w) || 0; return { wk: pr.wk, v: w }; });
-                    var setData = ex.prog.map(function(pr) { var w = parseFloat(pr.w) || 0; var rStr = pr.r || "0"; var sets = 3; return { wk: pr.wk, v: w * sets }; });
-                    return (<div key={exIdx} style={{ marginBottom: 12 }}>
-                      <FullChart title={ex.name} series={[{ label: "Rep Weight (kg)", color: accent, data: repData }, { label: "Set Total (kg)", color: "#f59e0b", data: setData }]} height={120} />
-                    </div>);
-                  })}
-                  {exList.filter(function(ex) { return ex.prog && ex.prog.length >= 2; }).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 20 }}>Need 2+ weeks of data to show charts</div>}
-                </div>)}
+                
+                
                 {/* SETTINGS TAB */}
                 
               </div>
@@ -3265,7 +3232,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.164
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.165
       </div>
     </div>
   );
