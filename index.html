@@ -2274,6 +2274,21 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}><button onClick={saveLog} disabled={!logSets[0].r} style={{ ...btnP(!!logSets[0].r), flex: 1 }}>{editPrev ? "Update" : "Save"}</button><button onClick={() => setLogEx(null)} style={btnS}>Cancel</button></div>
             </div>);
           })()}
+                    
+                      <div style={{marginTop:10}}>
+                        <div style={{fontSize:12,fontWeight:700,color:"#0f172a",marginBottom:6}}>Progress</div>
+                        {ex.prog && ex.prog.length > 0 ? ex.prog.slice().reverse().slice(0, 6).map(function(pr, pi) {
+                          var ws = pr.w || ""; var rs = pr.r || "";
+                          return (<div key={pi} style={{display:"flex",gap:8,fontSize:11,color:"#475569",padding:"4px 0",borderBottom:"1px solid #f1f5f9",alignItems:"center"}}>
+                            <span style={{fontWeight:600,minWidth:36}}>Wk{pr.wk}</span>
+                            <span>{ws}</span>
+                            <span style={{color:"#94a3b8"}}>×</span>
+                            <span>{rs}</span>
+                            {pr.note && <span style={{fontSize:10,color:"#94a3b8",marginLeft:4}}>({pr.note})</span>}
+                          </div>);
+                        }) : <div style={{fontSize:11,color:"#94a3b8"}}>No progress logged yet</div>}
+                        {ex.prog && ex.prog.length > 6 && <div style={{fontSize:10,color:accent,marginTop:4}}>{ex.prog.length - 6} more entries</div>}
+                      </div>
                     </div>)}
                     </>)}
                   </div>); })}
@@ -3230,7 +3245,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.160
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.161
       </div>
     </div>
   );
