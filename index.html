@@ -2212,7 +2212,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     
                     {selectedEx&&selectedEx.day===day&&selectedEx.idx===i&&(<div style={{marginTop:10,padding:12,background:"#f8fafc",borderRadius:8,border:"1px solid #e2e8f0",width:"100%"}}>
                       <button onClick={function() { openLogForm(day, i); }} style={{width:"100%",padding:14,background:accent,color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:700,cursor:"pointer"}}>Log {ex.name}</button>
-                      {logEx && logEx.day === day && logEx.index === i && (() => {
+                      {logEx && logEx.day === day && logEx.idx === i && (() => {
             const ex = p.exercises[logEx.day] && p.exercises[logEx.day][logEx.idx]; if (!ex) return null;
             const prev = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
             return (<div ref={logFormRef} style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
@@ -3230,7 +3230,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.159
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.160
       </div>
     </div>
   );
