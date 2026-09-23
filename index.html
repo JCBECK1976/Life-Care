@@ -1619,7 +1619,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const shopItems = {}; MEAL_DAYS.forEach(d => { var _dk = DAY_MAP[d.key] || d.key; var _dm = meals[_dk] || {}; var _did = typeof _dm === "object" ? _dm.d : _dm; const m = allDinners.find(x => x.id === _did); if (m) m.shop?.forEach(it => { shopItems[it] = (shopItems[it] || 0) + 1; }); });
   const shopList = Object.entries(shopItems).sort((a, b) => a[0].localeCompare(b[0]));
   const planned = MEAL_DAYS.filter(d => meals[DAY_MAP[d.key] || d.key]).length;
-  const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "Body Comp" }, { id: "weights", l: "Exercise" }, { id: "meals", l: "Eating" }, { id: "bloods", l: "Health" }, { id: "shop", l: "Shop" }, { id: "targets", l: "Targets" }, { id: "admin", l: "⚙" }];
+  const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "Body Comp" }, { id: "weights", l: "Activities" }, { id: "meals", l: "Eating" }, { id: "bloods", l: "Health" }, { id: "shop", l: "Shop" }, { id: "targets", l: "Targets" }, { id: "admin", l: "⚙" }];
   const wt = p.body.weight || [];
   const latestWt = wt.length > 0 ? wt[wt.length - 1] : null;
   const idealSt = isJC ? IDEALS.jc : IDEALS.becks;
@@ -2181,12 +2181,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             var setDv = function(v) { setDayView(function(prev) { var n = Object.assign({}, prev); n[day] = v; return n; }); };
             return (<div key={day} style={{ marginBottom: 16 }}>
               
-                            <div style={{ display: "flex", gap: 0, marginBottom: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2 }}>
-                {[{ k: "activity", l: "Activity" }].map(function(tab) {
-                  return (<button key={tab.k} onClick={function() { setDv(tab.k); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: dv === tab.k ? (tab.k === "feedback" ? "#ea580c" : "#fff") : "transparent", color: dv === tab.k ? (tab.k === "feedback" ? "#fff" : "#0f172a") : "#94a3b8" }}>{tab.l}</button>);
-                })}
-              </div>
-              <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", overflow: "hidden" }}>
+                                          <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", overflow: "hidden" }}>
                 {/* ACTIVITY TAB */}
                 {dv === "activity" && (<div>
                   {exList.map(function(ex, i) { return (<div key={i} id={"ex-" + day + "-" + i} style={{ padding: "10px 12px", borderBottom: i < exList.length - 1 ? "1px solid #f1f5f9" : "none" }}>
@@ -3232,7 +3227,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.165
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.166
       </div>
     </div>
   );
