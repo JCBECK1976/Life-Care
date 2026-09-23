@@ -1642,7 +1642,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           {Object.keys(data).filter(k => k !== "config").map((k, i) => {
             const cols = ["#2563eb", "#7c3aed", "#059669", "#d97706", "#dc2626", "#0891b2", "#e11d48"];
             const label = data[k].profile ? data[k].profile.name : k;
-            return (<button key={k} onClick={() => { setActiveTab(k); if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); }} style={{ flex: 1, padding: "8px 0", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? cols[i % cols.length] : "transparent", color: activeTab === k ? "#fff" : "#64748b", minWidth: 50 }}>{label}</button>);
+            return (<button key={k} onClick={() => { setActiveTab(k); setSelectedEx(null); setLogEx(null); if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); }} style={{ flex: 1, padding: "8px 0", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? cols[i % cols.length] : "transparent", color: activeTab === k ? "#fff" : "#64748b", minWidth: 50 }}>{label}</button>);
           })}
           <button onClick={() => setShowAddPerson(true)} style={{ padding: "8px 10px", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", background: "transparent", color: "#64748b" }}>+</button>
         </div>
@@ -2172,7 +2172,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           
 
           <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2, marginBottom: 0 }}>
-            {["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].map(function(d) { var dl = {sunday:"Sun",monday:"Mon",tuesday:"Tue",wednesday:"Wed",thursday:"Thu",friday:"Fri",saturday:"Sat"}; return (<button key={d} onClick={function(){setExerciseDay(d);}} style={{flex:1,padding:"6px 2px",border:"none",borderRadius:6,fontSize:10,fontWeight:600,cursor:"pointer",background:exerciseDay===d?"#fff":"transparent",color:exerciseDay===d?"#0f172a":"#94a3b8",lineHeight:1.2}}>{dl[d]}</button>);})}
+            {["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].map(function(d) { var dl = {sunday:"Sun",monday:"Mon",tuesday:"Tue",wednesday:"Wed",thursday:"Thu",friday:"Fri",saturday:"Sat"}; return (<button key={d} onClick={function(){setExerciseDay(d);setSelectedEx(null);setLogEx(null);}} style={{flex:1,padding:"6px 2px",border:"none",borderRadius:6,fontSize:10,fontWeight:600,cursor:"pointer",background:exerciseDay===d?"#fff":"transparent",color:exerciseDay===d?"#0f172a":"#94a3b8",lineHeight:1.2}}>{dl[d]}</button>);})}
           </div>
           {[exerciseDay].map(function(day) {
             var label = dayLabels[day] || day.charAt(0).toUpperCase() + day.slice(1);
@@ -3240,7 +3240,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.173
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.174
       </div>
     </div>
   );
