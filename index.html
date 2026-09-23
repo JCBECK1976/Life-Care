@@ -2202,7 +2202,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer" }} onClick={function() { setEditExercise({ day: day, idx: i }); }}>{ex.name} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span></div>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                           <span style={{ fontSize: 10, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" }}>{sLabel(ex.status)}</span>
-                          <button onClick={function() { openLogForm(day, i); }} style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "#2563eb", border: "none", borderRadius: 6, padding: "3px 8px", cursor: "pointer" }}>Log</button><button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);}else{setSelectedEx({day:day,idx:i});}}} style={{padding:"4px 12px",marginLeft:4,border:"none",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",color:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#fff":"#475569",background:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?accent:"#e2e8f0"}}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"Close":"View"}</button><button onClick={async function() { if (!confirm("Remove " + ex.name + " from " + day + "?")) return; var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].exercises[day].splice(i, 1); await saveData(nd); }} style={{ padding: "4px 6px", background: "none", border: "1px solid #fca5a5", borderRadius: 4, color: "#ef4444", fontSize: 10, cursor: "pointer", marginLeft: 4 }} title="Remove exercise">x</button>
+                          <button onClick={function() { openLogForm(day, i); }} style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "#2563eb", border: "none", borderRadius: 6, padding: "3px 8px", cursor: "pointer" }}>Log</button><button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);}else{setSelectedEx({day:day,idx:i});}}} style={{padding:"4px 12px",marginLeft:4,border:"none",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",color:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#fff":"#475569",background:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?accent:"#e2e8f0"}}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"Close":"View"}</button>
                         </div>
                       </div>
                       <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>{ex.current} · {ex.reps}</div>
@@ -2216,7 +2216,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   </div>); })}
                   <button onClick={function() { addExerciseToDay(day, allExNames[0]); }} style={{ width: "100%", padding: 8, background: "#f8fafc", border: "none", borderTop: "1px solid #e2e8f0", fontSize: 11, color: "#64748b", cursor: "pointer" }}>+ Add Exercise</button>
 
-                (<div style={{ padding: 12 }}>
+                <div style={{ padding: 12 }}>
                   <button onClick={async function() {
                     setSessionFbLoading(true);
                     try {
@@ -3227,7 +3227,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.155
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.156
       </div>
     </div>
   );
