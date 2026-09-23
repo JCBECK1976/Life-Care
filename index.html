@@ -2215,6 +2215,63 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     </>)}
                   </div>); })}
                   <button onClick={function() { addExerciseToDay(day, allExNames[0]); }} style={{ width: "100%", padding: 8, background: "#f8fafc", border: "none", borderTop: "1px solid #e2e8f0", fontSize: 11, color: "#64748b", cursor: "pointer" }}>+ Add Exercise</button>
+
+                (<div style={{ padding: 12 }}>
+                  <button onClick={async function() {
+                    setSessionFbLoading(true);
+                    try {
+                      var prof = p.profile || {};
+                      var daySummary = exList.map(function(ex) { var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null; var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null; var progNote = latest && latest.note ? latest.note : ""; var allNotes = [ex.notes, progNote].filter(Boolean).join("; "); var eqInfo = ex.equipment ? " [EQUIPMENT: " + (ex.equipment.type || "") + ", increments: " + (ex.equipment.increments || "standard") + (ex.equipment.formNotes ? ", form: " + ex.equipment.formNotes : "") + "]" : ""; return ex.name + ": " + ex.current + " " + ex.reps + " (" + ex.status + ")" + (ex.target ? " target: " + ex.target : "") + (prev ? " prev: " + prev.w + " " + prev.r : "") + (allNotes ? " [NOTES: " + allNotes + "]" : "") + eqInfo; }).join("; ");
+                      var jsonFormat = '{"exercises":[{"name":"...","verdict":"max 25 words honest assessment","icon":"check|triangle|arrow|warning|circle|star","newStatus":"building|moved up|consolidating|ready to move|maintaining|reduce","recommendation":"optional - only if current status should change"}],"summary":"2-3 sentences honest overall assessment","nextSession":"specific focus for next session"}';
+                      var prompt = "You are a direct, honest strength coach. "+TONE_RULES+" Giving session feedback for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Week " + currentWeek + " " + day + " session. Exercises: " + daySummary + ". IMPORTANT: 1) READ THE NOTES carefully - if notes mention poor form, pain, struggle, or any concern, address it directly and recommend holding or reducing weight. Do NOT recommend progressing if form is compromised. 2) If current autoStatus seems wrong based on the data and notes, set newStatus to what it SHOULD be and explain why in the verdict. 3) Be genuinely honest - call out where form needs work, where someone is sandbagging, where weight is too heavy, or where they should push harder. 4) DOUBLE PROGRESSION RULES: 15x3 for TWO consecutive sessions at same weight = ready to move (star). First 15x3 = consolidating (arrow). Weight increase = moved up (triangle). Same weight building reps = building (arrow). Holding deliberately = maintaining (circle). Dropped = reduce (warning). 5) Max 25 words per verdict. Be specific not generic. Return ONLY JSON: " + jsonFormat;
+                      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
+                      var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+                      var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
+                      if (txt) { var fb = JSON.parse(txt.replace(/```json|```/g, "").trim()); fb._generatedAt = new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb })); var sfUpdate = Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb }); await sSet("session_feedback_all", JSON.stringify(sfUpdate));
+                        // Recommendations shown to user - they accept/decline individually
+                        }
+                    } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: { exercises: [], summary: "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
+                    setSessionFbLoading(false);
+                  }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{sessionFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "📊 Generate Session Feedback"}</button>
+                  {sessionFeedback && sessionFeedback[activeTab + "_" + day] && (<div style={{ marginTop: 10 }}>
+                    {sessionFeedback[activeTab + "_" + day].exercises && sessionFeedback[activeTab + "_" + day].exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc", alignItems: "center" }}><span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{fbIcon(ex.icon)}</span><div><div style={{ fontSize: 12, fontWeight: 700 }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div>{(ex.newStatus || ex.recommendation) && (<div id={"rec-" + ei + "-" + day} style={{ marginTop: 4, padding: 8, background: ex._decision === "accepted" ? "#dcfce7" : ex._decision === "declined" ? "#f1f5f9" : "#fff7ed", borderRadius: 6, border: "1px solid " + (ex._decision === "accepted" ? "#86efac" : ex._decision === "declined" ? "#e2e8f0" : "#fed7aa") }}>
+                      {ex._decision ? (<div style={{ fontSize: 11, fontWeight: 600, color: ex._decision === "accepted" ? "#166534" : "#64748b", padding: 4 }}>{ex._decision === "accepted" ? "Accepted — " + ex.name + " updated" : "Declined — no changes made"}</div>) : (<div><div style={{ fontSize: 10, color: "#ea580c", fontWeight: 600, marginBottom: 4 }}>{ex.recommendation || ("Recommendation: " + ex.newStatus)}</div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button onClick={async function() {
+                          var nd3 = JSON.parse(JSON.stringify(data));
+                          var dayExs3 = nd3[activeTab].exercises[day] || [];
+                          for (var di3 = 0; di3 < dayExs3.length; di3++) {
+                            if (dayExs3[di3].name === ex.name) {
+                              dayExs3[di3].status = ex.newStatus;
+                              if (ex.newStatus === "ready to move") { dayExs3[di3].target = nextPin(parseInt(dayExs3[di3].current), dayExs3[di3].settings && dayExs3[di3].settings.increments) + "kg x 10x3"; }
+                              else if (ex.newStatus === "reduce") {
+                                var curW = parseInt(dayExs3[di3].current) || 0;
+                                var prevPin = 0;
+                                for (var pi2 = PIN_WEIGHTS.length - 1; pi2 >= 0; pi2--) { if (PIN_WEIGHTS[pi2] < curW) { prevPin = PIN_WEIGHTS[pi2]; break; } }
+                                if (prevPin > 0) { dayExs3[di3].current = prevPin + "kg"; }
+                                dayExs3[di3].reps = "12x3";
+                                delete dayExs3[di3].target;
+                              }
+                              else if (ex.newStatus === "maintaining") { delete dayExs3[di3].target; }
+                              break;
+                            }
+                          }
+                          await saveData(nd3);
+                          var el = document.getElementById("rec-" + ei + "-" + day);
+                          ex._decision = "accepted"; var sfbKey = activeTab + "_" + day; var curFb = sessionFeedback[sfbKey]; if (curFb && curFb.exercises) { curFb.exercises[ei]._decision = "accepted"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#dcfce7"; el.style.borderColor = "#86efac"; el.innerHTML = "<div style=\"font-size:11px;color:#166534;font-weight:600;padding:4px\">\u2705 Accepted — " + ex.name + " updated to " + ex.newStatus + ". Activity updated.</div>"; }
+                        }} style={{ padding: "5px 14px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Accept</button>
+                        <button onClick={function() {
+                          var el = document.getElementById("rec-" + ei + "-" + day);
+                          ex._decision = "declined"; var sfbKey2 = activeTab + "_" + day; var curFb2 = sessionFeedback[sfbKey2]; if (curFb2 && curFb2.exercises) { curFb2.exercises[ei]._decision = "declined"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#f1f5f9"; el.style.borderColor = "#e2e8f0"; el.innerHTML = "<div style=\"font-size:11px;color:#64748b;padding:4px\">\u21a9 Declined — no changes made to Activity.</div>"; }
+                        }} style={{ padding: "5px 14px", background: "#e2e8f0", color: "#475569", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Decline</button>
+                      </div></div>)}
+                    </div>)}
+                    <div style={{textAlign:"right",marginTop:4}}><button onClick={async function(){if(!confirm("Remove "+ex.name+" from "+day+"?"))return;var nd=JSON.parse(JSON.stringify(data));nd[activeTab].exercises[day].splice(i,1);await saveData(nd);}} style={{background:"none",border:"none",color:"#cbd5e1",fontSize:9,cursor:"pointer"}}>remove</button></div></div></div>); })}
+                    {sessionFeedback[activeTab + "_" + day]._generatedAt && <div style={{ fontSize: 9, color: "#94a3b8", textAlign: "right", marginTop: 4 }}>Generated: {sessionFeedback[activeTab + "_" + day]._generatedAt}</div>}
+                    {sessionFeedback[activeTab + "_" + day].summary && (<div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, padding: 10, marginTop: 8 }}><div style={{ fontSize: 12, color: "#fff" }}>{sessionFeedback[activeTab + "_" + day].summary}</div>{sessionFeedback[activeTab + "_" + day].nextSession && <div style={{ fontSize: 12, color: "#fbbf24", fontWeight: 600, marginTop: 4 }}>Next: {sessionFeedback[activeTab + "_" + day].nextSession}</div>}</div>)}
+                  </div>)}
+                </div>)
+                
                 
                 {logEx && logEx.day === day && (() => {
             const ex = p.exercises[logEx.day] && p.exercises[logEx.day][logEx.idx]; if (!ex) return null;
@@ -2280,61 +2337,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           })()}
                 </div>)}
                 {/* FEEDBACK TAB */}
-                {dv === "feedback" && (<div style={{ padding: 12 }}>
-                  <button onClick={async function() {
-                    setSessionFbLoading(true);
-                    try {
-                      var prof = p.profile || {};
-                      var daySummary = exList.map(function(ex) { var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null; var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null; var progNote = latest && latest.note ? latest.note : ""; var allNotes = [ex.notes, progNote].filter(Boolean).join("; "); var eqInfo = ex.equipment ? " [EQUIPMENT: " + (ex.equipment.type || "") + ", increments: " + (ex.equipment.increments || "standard") + (ex.equipment.formNotes ? ", form: " + ex.equipment.formNotes : "") + "]" : ""; return ex.name + ": " + ex.current + " " + ex.reps + " (" + ex.status + ")" + (ex.target ? " target: " + ex.target : "") + (prev ? " prev: " + prev.w + " " + prev.r : "") + (allNotes ? " [NOTES: " + allNotes + "]" : "") + eqInfo; }).join("; ");
-                      var jsonFormat = '{"exercises":[{"name":"...","verdict":"max 25 words honest assessment","icon":"check|triangle|arrow|warning|circle|star","newStatus":"building|moved up|consolidating|ready to move|maintaining|reduce","recommendation":"optional - only if current status should change"}],"summary":"2-3 sentences honest overall assessment","nextSession":"specific focus for next session"}';
-                      var prompt = "You are a direct, honest strength coach. "+TONE_RULES+" Giving session feedback for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Week " + currentWeek + " " + day + " session. Exercises: " + daySummary + ". IMPORTANT: 1) READ THE NOTES carefully - if notes mention poor form, pain, struggle, or any concern, address it directly and recommend holding or reducing weight. Do NOT recommend progressing if form is compromised. 2) If current autoStatus seems wrong based on the data and notes, set newStatus to what it SHOULD be and explain why in the verdict. 3) Be genuinely honest - call out where form needs work, where someone is sandbagging, where weight is too heavy, or where they should push harder. 4) DOUBLE PROGRESSION RULES: 15x3 for TWO consecutive sessions at same weight = ready to move (star). First 15x3 = consolidating (arrow). Weight increase = moved up (triangle). Same weight building reps = building (arrow). Holding deliberately = maintaining (circle). Dropped = reduce (warning). 5) Max 25 words per verdict. Be specific not generic. Return ONLY JSON: " + jsonFormat;
-                      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
-                      var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-                      var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                      if (txt) { var fb = JSON.parse(txt.replace(/```json|```/g, "").trim()); fb._generatedAt = new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb })); var sfUpdate = Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb }); await sSet("session_feedback_all", JSON.stringify(sfUpdate));
-                        // Recommendations shown to user - they accept/decline individually
-                        }
-                    } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: { exercises: [], summary: "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
-                    setSessionFbLoading(false);
-                  }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{sessionFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "📊 Generate Session Feedback"}</button>
-                  {sessionFeedback && sessionFeedback[activeTab + "_" + day] && (<div style={{ marginTop: 10 }}>
-                    {sessionFeedback[activeTab + "_" + day].exercises && sessionFeedback[activeTab + "_" + day].exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc", alignItems: "center" }}><span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{fbIcon(ex.icon)}</span><div><div style={{ fontSize: 12, fontWeight: 700 }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div>{(ex.newStatus || ex.recommendation) && (<div id={"rec-" + ei + "-" + day} style={{ marginTop: 4, padding: 8, background: ex._decision === "accepted" ? "#dcfce7" : ex._decision === "declined" ? "#f1f5f9" : "#fff7ed", borderRadius: 6, border: "1px solid " + (ex._decision === "accepted" ? "#86efac" : ex._decision === "declined" ? "#e2e8f0" : "#fed7aa") }}>
-                      {ex._decision ? (<div style={{ fontSize: 11, fontWeight: 600, color: ex._decision === "accepted" ? "#166534" : "#64748b", padding: 4 }}>{ex._decision === "accepted" ? "Accepted — " + ex.name + " updated" : "Declined — no changes made"}</div>) : (<div><div style={{ fontSize: 10, color: "#ea580c", fontWeight: 600, marginBottom: 4 }}>{ex.recommendation || ("Recommendation: " + ex.newStatus)}</div>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={async function() {
-                          var nd3 = JSON.parse(JSON.stringify(data));
-                          var dayExs3 = nd3[activeTab].exercises[day] || [];
-                          for (var di3 = 0; di3 < dayExs3.length; di3++) {
-                            if (dayExs3[di3].name === ex.name) {
-                              dayExs3[di3].status = ex.newStatus;
-                              if (ex.newStatus === "ready to move") { dayExs3[di3].target = nextPin(parseInt(dayExs3[di3].current), dayExs3[di3].settings && dayExs3[di3].settings.increments) + "kg x 10x3"; }
-                              else if (ex.newStatus === "reduce") {
-                                var curW = parseInt(dayExs3[di3].current) || 0;
-                                var prevPin = 0;
-                                for (var pi2 = PIN_WEIGHTS.length - 1; pi2 >= 0; pi2--) { if (PIN_WEIGHTS[pi2] < curW) { prevPin = PIN_WEIGHTS[pi2]; break; } }
-                                if (prevPin > 0) { dayExs3[di3].current = prevPin + "kg"; }
-                                dayExs3[di3].reps = "12x3";
-                                delete dayExs3[di3].target;
-                              }
-                              else if (ex.newStatus === "maintaining") { delete dayExs3[di3].target; }
-                              break;
-                            }
-                          }
-                          await saveData(nd3);
-                          var el = document.getElementById("rec-" + ei + "-" + day);
-                          ex._decision = "accepted"; var sfbKey = activeTab + "_" + day; var curFb = sessionFeedback[sfbKey]; if (curFb && curFb.exercises) { curFb.exercises[ei]._decision = "accepted"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#dcfce7"; el.style.borderColor = "#86efac"; el.innerHTML = "<div style=\"font-size:11px;color:#166534;font-weight:600;padding:4px\">\u2705 Accepted — " + ex.name + " updated to " + ex.newStatus + ". Activity updated.</div>"; }
-                        }} style={{ padding: "5px 14px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Accept</button>
-                        <button onClick={function() {
-                          var el = document.getElementById("rec-" + ei + "-" + day);
-                          ex._decision = "declined"; var sfbKey2 = activeTab + "_" + day; var curFb2 = sessionFeedback[sfbKey2]; if (curFb2 && curFb2.exercises) { curFb2.exercises[ei]._decision = "declined"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#f1f5f9"; el.style.borderColor = "#e2e8f0"; el.innerHTML = "<div style=\"font-size:11px;color:#64748b;padding:4px\">\u21a9 Declined — no changes made to Activity.</div>"; }
-                        }} style={{ padding: "5px 14px", background: "#e2e8f0", color: "#475569", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Decline</button>
-                      </div></div>)}
-                    </div>)}
-                    <div style={{textAlign:"right",marginTop:4}}><button onClick={async function(){if(!confirm("Remove "+ex.name+" from "+day+"?"))return;var nd=JSON.parse(JSON.stringify(data));nd[activeTab].exercises[day].splice(i,1);await saveData(nd);}} style={{background:"none",border:"none",color:"#cbd5e1",fontSize:9,cursor:"pointer"}}>remove</button></div></div></div>); })}
-                    {sessionFeedback[activeTab + "_" + day]._generatedAt && <div style={{ fontSize: 9, color: "#94a3b8", textAlign: "right", marginTop: 4 }}>Generated: {sessionFeedback[activeTab + "_" + day]._generatedAt}</div>}
-                    {sessionFeedback[activeTab + "_" + day].summary && (<div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, padding: 10, marginTop: 8 }}><div style={{ fontSize: 12, color: "#fff" }}>{sessionFeedback[activeTab + "_" + day].summary}</div>{sessionFeedback[activeTab + "_" + day].nextSession && <div style={{ fontSize: 12, color: "#fbbf24", fontWeight: 600, marginTop: 4 }}>Next: {sessionFeedback[activeTab + "_" + day].nextSession}</div>}</div>)}
-                  </div>)}
-                </div>)}
+                
                 {/* PROGRESSION TAB */}
                 {dv === "progression" && (<div style={{ padding: 12 }}>
                   {exList.map(function(ex, exIdx) { return (<div key={exIdx} style={{ marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid #e2e8f0" }}>
@@ -3224,7 +3227,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.153
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.154
       </div>
     </div>
   );
