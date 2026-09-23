@@ -2337,14 +2337,22 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                           for (var di3 = 0; di3 < dayExs3.length; di3++) {
                             if (dayExs3[di3].name === ex.name) {
                               dayExs3[di3].status = ex.newStatus;
-                              if (ex.newStatus === "ready to move") { dayExs3[di3].target = nextPin(parseInt(dayExs3[di3].current), dayExs3[di3].settings && dayExs3[di3].settings.increments) + "kg x 10x3"; }
+                              if (ex.newStatus === "ready to move") {
+                                var cw3 = parseInt(dayExs3[di3].current) || 0;
+                                var lo3 = cw3 + 5; var hi3 = cw3 + 8;
+                                dayExs3[di3].target = lo3 + "-" + hi3 + "kg x 10x3";
+                              }
+                              else if (ex.newStatus === "moved up") {
+                                var cw4 = parseInt(dayExs3[di3].current) || 0;
+                                dayExs3[di3].target = cw4 + "kg x 12x3";
+                              }
                               else if (ex.newStatus === "reduce") {
-                                var curW = parseInt(dayExs3[di3].current) || 0;
-                                var prevPin = 0;
-                                for (var pi2 = PIN_WEIGHTS.length - 1; pi2 >= 0; pi2--) { if (PIN_WEIGHTS[pi2] < curW) { prevPin = PIN_WEIGHTS[pi2]; break; } }
-                                if (prevPin > 0) { dayExs3[di3].current = prevPin + "kg"; }
-                                dayExs3[di3].reps = "12x3";
-                                delete dayExs3[di3].target;
+                                var cw5 = parseInt(dayExs3[di3].current) || 0;
+                                var lo5 = Math.max(0, cw5 - 8); var hi5 = Math.max(0, cw5 - 5);
+                                dayExs3[di3].target = lo5 + "-" + hi5 + "kg x 12x3";
+                              }
+                              else if (ex.newStatus === "consolidating" || ex.newStatus === "building") {
+                                dayExs3[di3].target = (dayExs3[di3].current || "") + " x 15x3";
                               }
                               else if (ex.newStatus === "maintaining") { delete dayExs3[di3].target; }
                               break;
@@ -3227,7 +3235,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.168
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.169
       </div>
     </div>
   );
