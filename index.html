@@ -1022,7 +1022,7 @@ function Dashboard() {
   const [healthFbExpanded, setHealthFbExpanded] = useState(false);
   const [bodyView, setBodyView] = useState("data");
   const [measView, setMeasView] = useState("data");
-  const [eatDay, setEatDay] = useState("monday");
+  const [eatDay, setEatDay] = useState("week");
   const [eatList, setEatList] = useState("own");
   const [quickPrepMins, setQuickPrepMins] = useState(20);
   const [showDefaults, setShowDefaults] = useState(true);
@@ -2662,7 +2662,7 @@ break;
 
           {/* Controls row */}
           <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
-            <button onClick={function() { setShowDefaults(!showDefaults); }} style={{ padding: "6px 10px", background: showDefaults ? accent : "#f1f5f9", color: showDefaults ? "#fff" : "#475569", border: "1px solid " + (showDefaults ? accent : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Week Settings</button>
+            
             <button onClick={clearWeek} style={{ padding: "6px 10px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 6, fontSize: 10, color: "#991b1b", cursor: "pointer" }}>Clear Week</button>
           </div>
 
@@ -2680,7 +2680,7 @@ break;
           </div>
 
           {/* Defaults panel */}
-          {showDefaults && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginBottom: 12 }}>
+          {eatDay === "week" && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginBottom: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a" }}>Week Settings</div>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>Set Defaults</div>
             <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8 }}>Set default meals. Use "All" to apply to all people or "Individual" for just {activeTab === "jc" ? "JC" : "Becks"}.</div>
@@ -2792,7 +2792,8 @@ break;
 
           {/* Day tabs */}
           <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2, marginBottom: 0 }}>
-            {DAYS.map(function(d) {
+            {<button key="week" onClick={function(){setEatDay("week");}} style={{flex:1,padding:"6px 2px",border:"none",borderRadius:6,fontSize:10,fontWeight:600,cursor:"pointer",background:eatDay==="week"?"#fff":"transparent",color:eatDay==="week"?"#0f172a":"#94a3b8",lineHeight:1.2}}>Week</button>
+              }{DAYS.map(function(d) {
               var dk = getDayKcal(d);
               return (<button key={d} onClick={function() { setEatDay(d); }} style={{ flex: 1, padding: "6px 2px", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: eatDay === d ? "#fff" : "transparent", color: eatDay === d ? "#0f172a" : "#94a3b8", lineHeight: 1.2 }}><div>{DAY_LABELS[d]}</div>{dk > 0 && <div style={{ fontSize: 8, color: dk > (isJC ? 2200 : 1900) ? "#dc2626" : "#16a34a" }}>{dk}</div>}</button>);
             })}
@@ -3283,7 +3284,7 @@ break;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.179
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.180
       </div>
     </div>
   );
