@@ -2360,6 +2360,15 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                                 dayExs3[di3].target = (dayExs3[di3].current || "") + " x 15x3";
                               }
                               else if (ex.newStatus === "maintaining") { delete dayExs3[di3].target; }
+                              if (userNote) {
+                                var wMatch = userNote.match(/(\d+)\s*kg/i);
+                                var rMatch = userNote.match(/(\d+)\s*(?:reps|x)/i);
+                                if (wMatch || rMatch) {
+                                  var tWeight = wMatch ? wMatch[1] + "kg" : (dayExs3[di3].current || "");
+                                  var tReps = rMatch ? rMatch[1] + "x3" : "10x3";
+                                  dayExs3[di3].target = tWeight + " x " + tReps;
+                                }
+                              }
                               break;
                             }
                           }
@@ -2376,11 +2385,12 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                             for (var di4 = 0; di4 < dayExs4.length; di4++) {
                               if (dayExs4[di4].name === ex.name) {
                                 dayExs4[di4].notes = (dayExs4[di4].notes ? dayExs4[di4].notes + "; " : "") + "Wk" + currentWeek + " declined: " + userNote2;
-                                var numMatch = userNote2.match(/(\d+)\s*kg/i);
-                                if (numMatch) {
-                                  var cw6 = parseInt(dayExs4[di4].current) || 0;
-                                  var userKg = parseInt(numMatch[1]);
-                                  dayExs4[di4].target = (cw6 + userKg) + "kg x 10x3";
+                                var wMatch2 = userNote2.match(/(\d+)\s*kg/i);
+                                var rMatch2 = userNote2.match(/(\d+)\s*(?:reps|x)/i);
+                                if (wMatch2 || rMatch2) {
+                                  var tW2 = wMatch2 ? wMatch2[1] + "kg" : (dayExs4[di4].current || "");
+                                  var tR2 = rMatch2 ? rMatch2[1] + "x3" : "10x3";
+                                  dayExs4[di4].target = tW2 + " x " + tR2;
                                   dayExs4[di4].status = "ready to move";
                                 }
                                 break;
@@ -3259,7 +3269,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.176
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.177
       </div>
     </div>
   );
