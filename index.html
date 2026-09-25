@@ -2372,6 +2372,11 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                               break;
                             }
                           }
+                          
+                          if (dayExs3[di3] && dayExs3[di3].target) {
+                            var tParts = dayExs3[di3].target.match(/(\S+)\s*x\s*(\S+)/);
+                            if (tParts) { dayExs3[di3].current = tParts[1]; dayExs3[di3].reps = tParts[2]; }
+                          }
                           await saveData(nd3);
                           var el = document.getElementById("rec-" + ei + "-" + day);
                           var noteEl = document.getElementById("user-note-"+ei+"-"+day); var userNote = noteEl ? noteEl.value.trim() : ""; ex._decision = "accepted"; ex._userNote = userNote; if (userNote) { var exRef = nd3[activeTab].exercises[day]; if (exRef && exRef[di3]) { exRef[di3].notes = (exRef[di3].notes ? exRef[di3].notes + "; " : "") + "Wk" + currentWeek + " accepted: " + userNote; } } var sfbKey = activeTab + "_" + day; var curFb = sessionFeedback[sfbKey]; if (curFb && curFb.exercises) { curFb.exercises[ei]._decision = "accepted"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#dcfce7"; el.style.borderColor = "#86efac"; el.innerHTML = "<div style=\"font-size:11px;color:#166534;font-weight:600;padding:4px\">\u2705 Accepted — " + ex.name + " updated to " + ex.newStatus + ". Activity updated.</div>"; }
@@ -2393,7 +2398,12 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                                   dayExs4[di4].target = tW2 + " x " + tR2;
                                   dayExs4[di4].status = "ready to move";
                                 }
-                                break;
+                                
+                                if (dayExs4[di4].target) {
+                                  var tP2 = dayExs4[di4].target.match(/(\S+)\s*x\s*(\S+)/);
+                                  if (tP2) { dayExs4[di4].current = tP2[1]; dayExs4[di4].reps = tP2[2]; }
+                                }
+break;
                               }
                             }
                             saveData(nd4);
@@ -3269,7 +3279,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.177
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.178
       </div>
     </div>
   );
