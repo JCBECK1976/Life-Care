@@ -2824,7 +2824,7 @@ break;
                     var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#166534";
                     return (<div key={item.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
                       <span style={{ flex: 1, color: color }}>{item.name} ({kcal} kcal)</span>
-                      <button onClick={async function() { if(confirm("Delete " + item.name + "?")) { var u = cat.customs.filter(function(x){return x.id !== item.id;}); cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u)); setFormMsg("Deleted " + item.name); setTimeout(function(){setFormMsg("");},2000); }}} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "1px solid #fecaca", borderRadius: 4, padding: "2px 6px", cursor: "pointer" }}>Delete</button>
+                      <button onClick={function() { setEditingItem(editingItem === item.id ? null : item.id); }} style={{ fontSize: 9, color: accent, background: "none", border: "1px solid #e2e8f0", borderRadius: 4, padding: "2px 6px", cursor: "pointer", marginRight: 4 }}>{editingItem === item.id ? "Cancel" : "Update"}</button><button onClick={async function() { if(confirm("Delete " + item.name + "?")) { var u = cat.customs.filter(function(x){return x.id !== item.id;}); cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u)); setFormMsg("Deleted " + item.name); setTimeout(function(){setFormMsg("");},2000); }}} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "1px solid #fecaca", borderRadius: 4, padding: "2px 6px", cursor: "pointer" }}>Delete</button>
                     </div>);
                   })}
                   {cat.customs.length === 0 && <div style={{ fontSize: 10, color: "#94a3b8", padding: 4 }}>No custom items yet</div>}
@@ -3323,7 +3323,7 @@ break;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.183
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.184
       </div>
     </div>
   );
