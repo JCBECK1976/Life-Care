@@ -2569,9 +2569,9 @@ break;
               if (offProduct && offProduct.nutriments) {
                 var nm = offProduct.nutriments;
                 var info = { name: offProduct.product_name || newItemName, kcal: Math.round(nm["energy-kcal_100g"] || nm["energy-kcal"] || 0), protein: Math.round(nm.proteins_100g || 0), fat: Math.round(nm.fat_100g || 0), rating: "GREAT" };
-                var newItem = { id: "custom_" + Date.now(), name: info.name, jcKcal: info.kcal, beckKcal: info.kcal, rating: info.rating, freq: "Daily" };
+                var newItem = { id: "custom_" + Date.now(), name: info.name, jcKcal: info.kcal, beckKcal: info.kcal, rating: info.rating, freq: "Daily", isCustom: true };
                 var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u));
-                setFormMsg("Added: " + newItem.name + " (" + newItem.jcKcal + " kcal/100g) via Open Food Facts");
+                setFormMsg("✅ Added: " + newItem.name + " (" + newItem.jcKcal + " kcal)"); { var slotKey = addingCategory === "breakfast" ? "b" : addingCategory === "lunch" ? "l" : addingCategory === "dinner" ? "d" : "o1"; if (eatDay && eatDay !== "week") { setMeal(eatDay, slotKey, newItem.id); } }
                 setNewItemName(""); setAddingNew(false); setNewItemLoading(false);
                 setTimeout(function() { setFormMsg(""); }, 4000);
                 return;
@@ -2583,16 +2583,25 @@ break;
               var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
               if (txt) {
                 var info = JSON.parse(txt.replace(/```json|```/g, "").trim());
-                var newItem = { id: "custom_" + Date.now(), name: info.name || newItemName, jcKcal: info.kcal || 0, beckKcal: info.kcal || 0, rating: info.rating || "GREAT", freq: "Daily" };
+                var newItem = { id: "custom_" + Date.now(), name: info.name || newItemName, jcKcal: info.kcal || 0, beckKcal: info.kcal || 0, rating: info.rating || "GREAT", freq: "Daily", isCustom: true };
                 if (addingCategory === "breakfast") { var u = [].concat(customBreakfasts, [newItem]); setCustomBreakfasts(u); await sSet("custom_breakfasts", JSON.stringify(u)); }
                 else if (addingCategory === "lunch") { var u = [].concat(customLunches, [newItem]); setCustomLunches(u); await sSet("custom_lunches", JSON.stringify(u)); }
                 else if (addingCategory === "dinner") { newItem.jcProt = info.protein || 0; newItem.beckProt = info.protein || 0; newItem.jcFat = info.fat || 0; newItem.beckFat = info.fat || 0; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
                 else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
-                setFormMsg("✅ Added to " + addingCategory + " list: " + newItem.name + " (" + newItem.jcKcal + " kcal) — reselect dropdown to see it");
+                setFormMsg("✅ Added: " + newItem.name + " (" + newItem.jcKcal + " kcal)"); { var slotKey = addingCategory === "breakfast" ? "b" : addingCategory === "lunch" ? "l" : addingCategory === "dinner" ? "d" : "o1"; if (eatDay && eatDay !== "week") { setMeal(eatDay, slotKey, newItem.id); } }
               }
             } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); }
             setNewItemName(""); setAddingNew(false); setNewItemLoading(false);
             setTimeout(function() { setFormMsg(""); }, 4000);
+          };
+
+          
+          var deleteCustomItem = async function(itemId) {
+            var cb = customBreakfasts.filter(function(x){return x.id !== itemId;}); setCustomBreakfasts(cb); await sSet("custom_breakfasts", JSON.stringify(cb));
+            var cl = customLunches.filter(function(x){return x.id !== itemId;}); setCustomLunches(cl); await sSet("custom_lunches", JSON.stringify(cl));
+            var cm = customMeals.filter(function(x){return x.id !== itemId;}); setCustomMeals(cm); await sSet("custom_meals", JSON.stringify(cm));
+            var cs = customSnacks.filter(function(x){return x.id !== itemId;}); setCustomSnacks(cs); await sSet("custom_snacks", JSON.stringify(cs));
+            setFormMsg("Item deleted"); setTimeout(function(){setFormMsg("");}, 2000);
           };
 
           var applyDefaults = async function() {
@@ -2645,11 +2654,30 @@ break;
 
           var MealSelect = function(props) {
             var items = props.items; var value = props.value; var onChange = props.onChange; var placeholder = props.placeholder || "Select...";
-            return (<select value={value} onChange={onChange} style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, background: "#fff" }}>
-              <option value="">{placeholder}</option>
-              {items.slice().sort(function(a,b) { return a.name.localeCompare(b.name); }).map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#166534"; return (<option key={item.id} value={item.id} style={{ color: color }}>{item.name} ({kcal} kcal)</option>); })}
-              <option value="__add_new__">+ Add new item...</option>
-            </select>);
+            var _s = React.useState(""); var search = _s[0]; var setSearch = _s[1];
+            var _o = React.useState(false); var open = _o[0]; var setOpen = _o[1];
+            var sorted = items.slice().sort(function(a,b) { return a.name.localeCompare(b.name); });
+            var filtered = search ? sorted.filter(function(it) { return it.name.toLowerCase().indexOf(search.toLowerCase()) >= 0; }) : sorted;
+            var selected = value ? items.find(function(it) { return it.id === value; }) : null;
+            var inputRef = React.useRef(null);
+            if (!open) {
+              return (<div style={{position:"relative"}}>
+                <div onClick={function(){setOpen(true);setSearch("");setTimeout(function(){if(inputRef.current)inputRef.current.focus();},50);}} style={{width:"100%",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,background:"#fff",cursor:"pointer",boxSizing:"border-box",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{color:selected?"#0f172a":"#94a3b8"}}>{selected ? selected.name : placeholder}</span>
+                  <span style={{fontSize:8,color:"#94a3b8"}}>▼</span>
+                </div>
+              </div>);
+            }
+            return (<div style={{position:"relative"}}>
+              <input ref={inputRef} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Type to search..." style={{width:"100%",padding:"8px 10px",border:"1px solid "+accent,borderRadius:6,fontSize:11,background:"#fff",boxSizing:"border-box"}} onBlur={function(){setTimeout(function(){setOpen(false);},200);}} />
+              <div style={{position:"absolute",top:"100%",left:0,right:0,zIndex:50,background:"#fff",border:"1px solid #e2e8f0",borderRadius:6,maxHeight:200,overflowY:"auto",boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}>
+                {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#166534"; return (<div key={item.id} onMouseDown={function(e){e.preventDefault();onChange({target:{value:item.id}});setOpen(false);setSearch("");}} style={{padding:"6px 10px",fontSize:11,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f8fafc",color:color}}>
+                  <span>{item.name} ({kcal} kcal)</span>
+                  {item.isCustom && <span onMouseDown={function(e2){e2.preventDefault();e2.stopPropagation();if(confirm("Delete "+item.name+"?")){props.onDelete && props.onDelete(item.id);}}} style={{fontSize:9,color:"#dc2626",padding:"2px 4px",cursor:"pointer"}}>✕</span>}
+                </div>); })}
+                <div onMouseDown={function(e){e.preventDefault();onChange({target:{value:"__add_new__"}});setOpen(false);setSearch("");}} style={{padding:"8px 10px",fontSize:11,fontWeight:600,color:accent,cursor:"pointer",borderTop:"1px solid #e2e8f0"}}>+ Add new item...</div>
+              </div>
+            </div>);
           };
 
           return (<div>
@@ -2725,34 +2753,7 @@ break;
             })}
             <button onClick={function() { var next = 1; while (defs["o" + next]) next++; saveDef("o" + next, "__placeholder__", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>+ Add Other Default</button>
           
-            <div style={{ marginTop: 10, marginBottom: 10, padding: 10, background: "#f5f3ff", borderRadius: 8, border: "1px solid #c4b5fd" }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: "#6b21a8", marginBottom: 4 }}>AI — Add to My Lists</div>
-              <div style={{ fontSize: 9, color: "#64748b", marginBottom: 6 }}>e.g. "Add to breakfast — overnight oats: 85g oats, seeds, almond milk, yogurt, berries, honey"</div>
-              <textarea id="ai-add-settings" placeholder="Add to breakfast list — overnight oats with berries and seeds..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 40, resize: "vertical", boxSizing: "border-box", marginBottom: 6 }} />
-              <button onClick={async function() {
-                var instruction = document.getElementById("ai-add-settings").value;
-                if (!instruction.trim()) return;
-                setFormMsg("AI processing...");
-                try {
-                  var prompt = "User instruction: " + instruction + ". Parse this and return JSON. Determine which list (breakfast/lunch/dinner/other) from context. Calculate total calories for the COMPLETE meal as described. Return ONLY JSON: " + '{"category":"breakfast|lunch|dinner|other","name":"short descriptive name","kcal":0,"protein":0,"fat":0,"rating":"GREAT|AMBER|RED"}';
-                  var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: prompt }] }) });
-                  var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-                  var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                  if (txt) {
-                    var info = JSON.parse(txt.replace(/```json|```/g, "").trim());
-                    var cat = info.category || "other";
-                    var newItem = { id: "custom_" + Date.now(), name: info.name, jcKcal: info.kcal || 0, beckKcal: info.kcal || 0, rating: info.rating || "GREAT", freq: "Daily" };
-                    if (cat === "breakfast") { var u = [].concat(customBreakfasts, [newItem]); setCustomBreakfasts(u); await sSet("custom_breakfasts", JSON.stringify(u)); }
-                    else if (cat === "lunch") { var u = [].concat(customLunches, [newItem]); setCustomLunches(u); await sSet("custom_lunches", JSON.stringify(u)); }
-                    else if (cat === "dinner") { newItem.jcProt = info.protein || 0; newItem.beckProt = info.protein || 0; newItem.jcFat = info.fat || 0; newItem.beckFat = info.fat || 0; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
-                    else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
-                    document.getElementById("ai-add-settings").value = "";
-                    setFormMsg("✅ Added to " + cat + " list: " + info.name + " (" + info.kcal + " kcal) — reselect dropdown to see it");
-                  }
-                } catch(e) { setFormMsg("Error: " + String(e).substring(0, 100)); }
-                setTimeout(function() { setFormMsg(""); }, 6000);
-              }} style={{ width: "100%", padding: 8, background: "#7c3aed", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Add to My Lists</button>
-            </div>
+            
             <div style={{ marginTop: 10, marginBottom: 10, padding: 10, background: "#f0fdf4", borderRadius: 8, border: "1px solid #bbf7d0" }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#166534", marginBottom: 6 }}>Quick Prep Days</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 4 }}>
@@ -2808,19 +2809,19 @@ break;
             {/* Breakfast */}
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Breakfast</span>
-              <MealSelect items={allBfast} value={getMeal(eatDay, "b")} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory("breakfast"); } else { setMeal(eatDay, "b", e.target.value); } }} placeholder="Select breakfast..." />
+              <MealSelect items={allBfast} value={getMeal(eatDay, "b")} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory("breakfast"); } else { setMeal(eatDay, "b", e.target.value); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
             </div>
 
             {/* Lunch */}
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Lunch</span>
-              <MealSelect items={allLunch} value={getMeal(eatDay, "l")} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory("lunch"); } else { setMeal(eatDay, "l", e.target.value); } }} placeholder="Select lunch..." />
+              <MealSelect items={allLunch} value={getMeal(eatDay, "l")} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory("lunch"); } else { setMeal(eatDay, "l", e.target.value); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
             </div>
 
             {/* Dinner */}
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Dinner</span>
-              <MealSelect items={allDinners} value={getMeal(eatDay, "d")} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory("dinner"); } else { setMeal(eatDay, "d", e.target.value); } }} placeholder="Select dinner..." />
+              <MealSelect items={allDinners} value={getMeal(eatDay, "d")} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory("dinner"); } else { setMeal(eatDay, "d", e.target.value); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
             </div>
 
             {/* Other items */}
@@ -3286,7 +3287,7 @@ break;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.180
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.181
       </div>
     </div>
   );
