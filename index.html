@@ -1022,7 +1022,7 @@ function Dashboard() {
   const [healthFbExpanded, setHealthFbExpanded] = useState(false);
   const [bodyView, setBodyView] = useState("data");
   const [measView, setMeasView] = useState("data");
-  const [eatDay, setEatDay] = useState("week");
+  const [eatDay, setEatDay] = useState("monday");
   const [eatList, setEatList] = useState("own");
   const [quickPrepMins, setQuickPrepMins] = useState(20);
   const [showDefaults, setShowDefaults] = useState(true);
@@ -2662,7 +2662,7 @@ break;
 
           {/* Controls row */}
           <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
-            
+            <button onClick={function() { setShowDefaults(!showDefaults); }} style={{ padding: "6px 10px", background: showDefaults ? accent : "#f1f5f9", color: showDefaults ? "#fff" : "#475569", border: "1px solid " + (showDefaults ? accent : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Week Settings</button>
             <button onClick={clearWeek} style={{ padding: "6px 10px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 6, fontSize: 10, color: "#991b1b", cursor: "pointer" }}>Clear Week</button>
           </div>
 
@@ -2680,7 +2680,7 @@ break;
           </div>
 
           {/* Defaults panel */}
-          {eatDay === "week" && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginBottom: 12 }}>
+          {showDefaults && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginBottom: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a" }}>Week Settings</div>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>Set Defaults</div>
             <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8 }}>Set default meals. Use "All" to apply to all people or "Individual" for just {activeTab === "jc" ? "JC" : "Becks"}.</div>
@@ -2792,15 +2792,124 @@ break;
 
           {/* Day tabs */}
           <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2, marginBottom: 0 }}>
-            {<button key="week" onClick={function(){setEatDay("week");}} style={{flex:1,padding:"6px 2px",border:"none",borderRadius:6,fontSize:10,fontWeight:600,cursor:"pointer",background:eatDay==="week"?"#fff":"transparent",color:eatDay==="week"?"#0f172a":"#94a3b8",lineHeight:1.2}}>Week</button>
-              }{DAYS.map(function(d) {
+            {DAYS.map(function(d) {
               var dk = getDayKcal(d);
               return (<button key={d} onClick={function() { setEatDay(d); }} style={{ flex: 1, padding: "6px 2px", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: eatDay === d ? "#fff" : "transparent", color: eatDay === d ? "#0f172a" : "#94a3b8", lineHeight: 1.2 }}><div>{DAY_LABELS[d]}</div>{dk > 0 && <div style={{ fontSize: 8, color: dk > (isJC ? 2200 : 1900) ? "#dc2626" : "#16a34a" }}>{dk}</div>}</button>);
             })}
           </div>
 
+          {eatDay === "week" && (<div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a" }}>Week Settings</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>Set Defaults</div>
+            <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8 }}>Set default meals. Use "All" to apply to all people or "Individual" for just {activeTab === "jc" ? "JC" : "Becks"}.</div>
+            {[{ k: "b", l: "Breakfast", items: allBfast }, { k: "l", l: "Lunch", items: allLunch }, { k: "d", l: "Dinner", items: allDinners }].map(function(def) {
+              return (<div key={def.k} style={{ marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>{def.l}</span>
+                  <div style={{ display: "flex", background: "#e2e8f0", borderRadius: 4, padding: 1 }}>
+                    <button onClick={function() { saveDef(def.k, defs[def.k], "individual"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes[def.k] || "individual") === "individual" ? "#fff" : "transparent", color: (defScopes[def.k] || "individual") === "individual" ? "#0f172a" : "#94a3b8" }}>Individual</button>
+                    <button onClick={function() { saveDef(def.k, defs[def.k], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes[def.k] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes[def.k] || "individual") === "all" ? "#0f172a" : "#94a3b8" }}>All</button>
+                  </div>
+                </div>
+                <select value={defs[def.k] || ""} onChange={function(e) { saveDef(def.k, e.target.value, "individual"); }} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }}>
+                  <option value="">—</option>
+                  {def.items.slice().sort(function(a,b) { return a.name.localeCompare(b.name); }).map(function(item) { return <option key={item.id} value={item.id}>{item.name}</option>; })}
+                </select>
+              </div>);
+            })}
+            <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", marginTop: 4, marginBottom: 4 }}>Other defaults (snacks, drinks, desserts)</div>
+            {(function() { var slots = []; for (var dn = 1; dn <= 20; dn++) { if (defs["o" + dn] || dn <= (function() { var cnt = 0; for (var k = 1; k <= 20; k++) { if (defs["o" + k]) cnt = k; } return Math.max(cnt, 0); })()) slots.push(dn); } return slots; })().map(function(n) {
+              return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: 9, color: "#94a3b8" }}>Other {n}</span>
+                  <select value={defs["o" + n] === "__placeholder__" ? "" : (defs["o" + n] || "")} onChange={function(e) { saveDef("o" + n, e.target.value, "individual"); }} style={{ width: "100%", padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10 }}>
+                    <option value="">—</option>
+                    {allOther.slice().sort(function(a,b) { return a.name.localeCompare(b.name); }).map(function(item) { return <option key={item.id} value={item.id}>{item.name}</option>; })}
+                  </select>
+                </div>
+                <button onClick={function() { saveDef("o" + n, "", "individual"); }} style={{ fontSize: 10, color: "#dc2626", background: "none", border: "none", cursor: "pointer", marginTop: 12 }}>✕</button>
+              </div>);
+            })}
+            <button onClick={function() { var next = 1; while (defs["o" + next]) next++; saveDef("o" + next, "__placeholder__", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>+ Add Other Default</button>
+          
+            <div style={{ marginTop: 10, marginBottom: 10, padding: 10, background: "#f5f3ff", borderRadius: 8, border: "1px solid #c4b5fd" }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: "#6b21a8", marginBottom: 4 }}>AI — Add to My Lists</div>
+              <div style={{ fontSize: 9, color: "#64748b", marginBottom: 6 }}>e.g. "Add to breakfast — overnight oats: 85g oats, seeds, almond milk, yogurt, berries, honey"</div>
+              <textarea id="ai-add-settings" placeholder="Add to breakfast list — overnight oats with berries and seeds..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 40, resize: "vertical", boxSizing: "border-box", marginBottom: 6 }} />
+              <button onClick={async function() {
+                var instruction = document.getElementById("ai-add-settings").value;
+                if (!instruction.trim()) return;
+                setFormMsg("AI processing...");
+                try {
+                  var prompt = "User instruction: " + instruction + ". Parse this and return JSON. Determine which list (breakfast/lunch/dinner/other) from context. Calculate total calories for the COMPLETE meal as described. Return ONLY JSON: " + '{"category":"breakfast|lunch|dinner|other","name":"short descriptive name","kcal":0,"protein":0,"fat":0,"rating":"GREAT|AMBER|RED"}';
+                  var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: prompt }] }) });
+                  var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+                  var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
+                  if (txt) {
+                    var info = JSON.parse(txt.replace(/```json|```/g, "").trim());
+                    var cat = info.category || "other";
+                    var newItem = { id: "custom_" + Date.now(), name: info.name, jcKcal: info.kcal || 0, beckKcal: info.kcal || 0, rating: info.rating || "GREAT", freq: "Daily" };
+                    if (cat === "breakfast") { var u = [].concat(customBreakfasts, [newItem]); setCustomBreakfasts(u); await sSet("custom_breakfasts", JSON.stringify(u)); }
+                    else if (cat === "lunch") { var u = [].concat(customLunches, [newItem]); setCustomLunches(u); await sSet("custom_lunches", JSON.stringify(u)); }
+                    else if (cat === "dinner") { newItem.jcProt = info.protein || 0; newItem.beckProt = info.protein || 0; newItem.jcFat = info.fat || 0; newItem.beckFat = info.fat || 0; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
+                    else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
+                    document.getElementById("ai-add-settings").value = "";
+                    setFormMsg("✅ Added to " + cat + " list: " + info.name + " (" + info.kcal + " kcal) — reselect dropdown to see it");
+                  }
+                } catch(e) { setFormMsg("Error: " + String(e).substring(0, 100)); }
+                setTimeout(function() { setFormMsg(""); }, 6000);
+              }} style={{ width: "100%", padding: 8, background: "#7c3aed", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Add to My Lists</button>
+            </div>
+            <div style={{ marginTop: 10, marginBottom: 10, padding: 10, background: "#f0fdf4", borderRadius: 8, border: "1px solid #bbf7d0" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#166534", marginBottom: 6 }}>Quick Prep Days</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 4 }}>
+                {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(function(d2) {
+                  return (<label key={d2} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "#166534", cursor: "pointer" }}>
+                    <input type="checkbox" id={"qp-" + d2 + "-" + activeTab} style={{ width: 14, height: 14 }} />
+                    {d2}
+                  </label>);
+                })}
+              </div>
+              <div style={{ fontSize: 9, color: "#64748b" }}>Ticked days will only get dinners within the {quickPrepMins} min prep limit when generating</div>
+            </div>
+
+            <button onClick={applyDefaults} style={{ width: "100%", padding: 10, marginTop: 10, background: "#dcfce7", border: "1px solid #86efac", borderRadius: 8, fontSize: 12, fontWeight: 700, color: "#166534", cursor: "pointer" }}>Apply Defaults</button>
+            <button onClick={async function() {
+            setGenerating(true); setFormMsg("Generating meals...");
+            try {
+              var prof = p.profile || {};
+              var dinnerList = allDinners.filter(function(d2) { return d2.id !== "none"; }).map(function(d2) { return d2.id + ":" + d2.name + "(" + (isJC ? d2.jcKcal : d2.beckKcal) + "kcal," + d2.time + "min)"; }).join(";");
+              var bfastList = allBfast.map(function(b) { return b.id + ":" + b.name; }).join(";");
+              var lunchList = allLunch.map(function(l) { return l.id + ":" + l.name; }).join(";");
+              var fmt = '{"monday":{"b":"id","l":"id","d":"id"},"tuesday":{"b":"id","l":"id","d":"id"},"wednesday":{"b":"id","l":"id","d":"id"},"thursday":{"b":"id","l":"id","d":"id"},"friday":{"b":"id","l":"id","d":"id"},"saturday":{"b":"id","l":"id","d":"id"},"sunday":{"b":"id","l":"id","d":"id"}}';
+              var prompt = "Generate a week of meals for " + (prof.name || "user") + " (" + (isJC ? "2000-2200 kcal" : "1700-1900 kcal") + " target). Only fill EMPTY slots - keep existing selections. Current: " + JSON.stringify(meals) + ". Breakfasts: " + bfastList + ". Lunches: " + lunchList + ". Dinners: " + dinnerList + ". Vary daily. Return ONLY JSON: " + fmt;
+              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }) });
+              var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+              var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
+              if (txt) {
+                var gen = JSON.parse(txt.replace(/```json|```/g, "").trim());
+                var n = Object.assign({}, meals);
+                DAYS.forEach(function(d2) { if (gen[d2]) { if (!n[d2]) n[d2] = {}; if (gen[d2].b && !n[d2].b) n[d2].b = gen[d2].b; if (gen[d2].l && !n[d2].l) n[d2].l = gen[d2].l; if (gen[d2].d && !n[d2].d) n[d2].d = gen[d2].d; } });
+                setMeals(n); saveMeals(n);
+                var otherPeople2 = Object.keys(data).filter(function(k) { return k !== "config" && k !== activeTab; });
+                for (var opi2 = 0; opi2 < otherPeople2.length; opi2++) {
+                  var op2 = otherPeople2[opi2];
+                  var opSk2 = mealKey(weekStart) + ":" + op2;
+                  var opRaw2 = await sGet(opSk2);
+                  var opM2 = opRaw2 ? JSON.parse(opRaw2) : {};
+                  DAYS.forEach(function(d2) { if (gen[d2]) { if (!opM2[d2]) opM2[d2] = {}; if (gen[d2].d && !opM2[d2].d) opM2[d2].d = gen[d2].d; } });
+                  await sSet(opSk2, JSON.stringify(opM2));
+                }
+                setFormMsg("Week meals generated (all people)");
+              }
+            } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); }
+            setTimeout(function() { setFormMsg(""); }, 4000); setGenerating(false);
+          }} disabled={generating} style={{ width: "100%", padding: 12, marginTop: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: generating ? "not-allowed" : "pointer", background: generating ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{generating ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Week Meals"}</button>
+          <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Fills empty breakfast, lunch, and dinner slots for all days. Respects your defaults.</div>
+          </div>)}
+
           {/* Day content */}
-          <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
+          {eatDay !== "week" && <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</div>
 
             {/* Breakfast */}
@@ -2915,7 +3024,7 @@ break;
               }} style={{ width: "100%", padding: 8, background: "#0369a1", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Match My Meals</button>
               <div style={{ fontSize: 9, color: "#64748b", marginTop: 3 }}>Type what you ate in plain English. AI matches to your meal database and fills the fields.</div>
             </div>
-          </div>
+          </div>}
 
           {/* Generate meals */}
           
