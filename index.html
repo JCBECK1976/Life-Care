@@ -1022,6 +1022,7 @@ function Dashboard() {
   const [healthFbExpanded, setHealthFbExpanded] = useState(false);
   const [manageListsOpen, setManageListsOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [cameraPreview, setCameraPreview] = useState(null);
   const [bodyView, setBodyView] = useState("data");
   const [measView, setMeasView] = useState("data");
   const [eatDay, setEatDay] = useState("week");
@@ -2568,20 +2569,24 @@ break;
               var reader = new FileReader();
               var base64 = await new Promise(function(res, rej) { reader.onload = function() { res(reader.result.split(",")[1]); }; reader.onerror = function() { rej(new Error("Read failed")); }; reader.readAsDataURL(file); });
               var mediaType = file.type || "image/jpeg";
-              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Identify this food or product. Read any nutrition label if visible. Return ONLY JSON: {\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\"}" }] }] }) });
+              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Identify this food or product. Read any nutrition label if visible. Return ONLY JSON: {\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\"}" }] }] }) });
               var result = await resp.json();
               var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
               var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
               var info = JSON.parse(txt.replace(/```json|```/g, "").trim());
-              var newItem = { id: "custom_" + Date.now(), name: info.name || "Unknown item", jcKcal: info.kcal || 0, beckKcal: info.kcal || 0, rating: info.rating || "AMBER", freq: "Daily", isCustom: true };
-              if (addingCategory === "breakfast") { var u = [].concat(customBreakfasts, [newItem]); setCustomBreakfasts(u); await sSet("custom_breakfasts", JSON.stringify(u)); }
-              else if (addingCategory === "lunch") { var u = [].concat(customLunches, [newItem]); setCustomLunches(u); await sSet("custom_lunches", JSON.stringify(u)); }
-              else if (addingCategory === "dinner") { newItem.jcProt = info.protein || 0; newItem.beckProt = info.protein || 0; newItem.jcFat = info.fat || 0; newItem.beckFat = info.fat || 0; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
-              else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
-              var slotKey = addingCategory === "breakfast" ? "b" : addingCategory === "lunch" ? "l" : addingCategory === "dinner" ? "d" : "o1";
-              if (eatDay && eatDay !== "week") { setMeal(eatDay, slotKey, newItem.id); }
-              setFormMsg("📷 Added: " + newItem.name + " (" + newItem.jcKcal + " kcal)");
+              setCameraPreview({ name: info.name || "Unknown item", kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, rating: info.rating || "AMBER", category: addingCategory });
+              setFormMsg("");
               setAddingNew(false);
+              // Now generate suitability line
+              try {
+                var p = data[activeTab] || {};
+                var profile = p.profile || {};
+                var suitPrompt = "Food: " + (info.name||"") + " (" + (info.kcal||0) + " kcal, " + (info.protein||0) + "g protein, " + (info.fat||0) + "g fat, " + (info.satFat||0) + "g sat fat, rating: " + (info.rating||"") + "). Person: " + (profile.name||activeTab) + ", targets: " + (isJC ? "2000-2200 kcal, 110-130g protein, <20g sat fat" : "1700-1900 kcal, 90-110g protein, <20g sat fat, LDL 7.2 high cholesterol") + ". Give ONE sentence on suitability for this person. Be specific to their health profile.";
+                var sResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 100, messages: [{ role: "user", content: suitPrompt }] }) });
+                var sResult = await sResp.json();
+                var sTxt = ""; if (sResult.content) { for (var si=0;si<sResult.content.length;si++) { if(sResult.content[si].text) sTxt+=sResult.content[si].text; } }
+                setCameraPreview(function(prev) { return Object.assign({}, prev, { suitability: sTxt.trim() }); });
+              } catch(se) {}
             } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 80)); }
             setNewItemLoading(false);
             setTimeout(function() { setFormMsg(""); }, 4000);
@@ -2910,6 +2915,34 @@ break;
                 <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: "6px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
               </div>
               <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
+            </div>)}
+
+            {cameraPreview && (<div style={{ background: "#f0fdf4", borderRadius: 8, padding: 12, marginBottom: 8, border: "1px solid #86efac" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 {cameraPreview.name}</div>
+              <div style={{ display: "flex", gap: 12, marginBottom: 6, fontSize: 11 }}>
+                <span><b>{cameraPreview.kcal}</b> kcal</span>
+                <span><b>{cameraPreview.protein}g</b> protein</span>
+                <span><b>{cameraPreview.fat}g</b> fat</span>
+                {cameraPreview.satFat > 0 && <span><b>{cameraPreview.satFat}g</b> sat fat</span>}
+              </div>
+              <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: cameraPreview.rating === "RED" ? "#fef2f2" : cameraPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: cameraPreview.rating === "RED" ? "#dc2626" : cameraPreview.rating === "AMBER" ? "#d97706" : "#166534", border: "1px solid " + (cameraPreview.rating === "RED" ? "#fecaca" : cameraPreview.rating === "AMBER" ? "#fde68a" : "#86efac") }}>{cameraPreview.rating}</div>
+              {cameraPreview.suitability ? <div style={{ fontSize: 11, color: "#475569", marginBottom: 8, fontStyle: "italic", lineHeight: 1.4 }}>{cameraPreview.suitability}</div> : <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 8 }}>Checking suitability...</div>}
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={async function() {
+                  var cp = cameraPreview;
+                  var newItem = { id: "custom_" + Date.now(), name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, rating: cp.rating, freq: "Daily", isCustom: true };
+                  if (cp.category === "breakfast") { var u = [].concat(customBreakfasts, [newItem]); setCustomBreakfasts(u); await sSet("custom_breakfasts", JSON.stringify(u)); }
+                  else if (cp.category === "lunch") { var u = [].concat(customLunches, [newItem]); setCustomLunches(u); await sSet("custom_lunches", JSON.stringify(u)); }
+                  else if (cp.category === "dinner") { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
+                  else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
+                  var slotKey = cp.category === "breakfast" ? "b" : cp.category === "lunch" ? "l" : cp.category === "dinner" ? "d" : "o1";
+                  if (eatDay && eatDay !== "week") { setMeal(eatDay, slotKey, newItem.id); }
+                  setFormMsg("✅ Added: " + newItem.name);
+                  setCameraPreview(null);
+                  setTimeout(function(){setFormMsg("");}, 3000);
+                }} style={{ flex: 1, padding: 8, background: "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Add to List</button>
+                <button onClick={function() { setCameraPreview(null); }} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
+              </div>
             </div>)}
 
             
@@ -3355,7 +3388,7 @@ break;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.186
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.187
       </div>
     </div>
   );
