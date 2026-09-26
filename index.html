@@ -2559,6 +2559,34 @@ break;
 
           var clearWeek = function() { if (!confirm("Clear ALL meals for this week? This cannot be undone.")) return; var n = {}; setMeals(n); saveMeals(n); setFormMsg("Week cleared"); setTimeout(function() { setFormMsg(""); }, 3000); };
 
+          
+          var addFromCamera = async function(file) {
+            if (!file) return;
+            setNewItemLoading(true);
+            setFormMsg("📷 Analysing image...");
+            try {
+              var reader = new FileReader();
+              var base64 = await new Promise(function(res, rej) { reader.onload = function() { res(reader.result.split(",")[1]); }; reader.onerror = function() { rej(new Error("Read failed")); }; reader.readAsDataURL(file); });
+              var mediaType = file.type || "image/jpeg";
+              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Identify this food or product. Read any nutrition label if visible. Return ONLY JSON: {\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\"}" }] }] }) });
+              var result = await resp.json();
+              var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+              var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
+              var info = JSON.parse(txt.replace(/```json|```/g, "").trim());
+              var newItem = { id: "custom_" + Date.now(), name: info.name || "Unknown item", jcKcal: info.kcal || 0, beckKcal: info.kcal || 0, rating: info.rating || "AMBER", freq: "Daily", isCustom: true };
+              if (addingCategory === "breakfast") { var u = [].concat(customBreakfasts, [newItem]); setCustomBreakfasts(u); await sSet("custom_breakfasts", JSON.stringify(u)); }
+              else if (addingCategory === "lunch") { var u = [].concat(customLunches, [newItem]); setCustomLunches(u); await sSet("custom_lunches", JSON.stringify(u)); }
+              else if (addingCategory === "dinner") { newItem.jcProt = info.protein || 0; newItem.beckProt = info.protein || 0; newItem.jcFat = info.fat || 0; newItem.beckFat = info.fat || 0; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
+              else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
+              var slotKey = addingCategory === "breakfast" ? "b" : addingCategory === "lunch" ? "l" : addingCategory === "dinner" ? "d" : "o1";
+              if (eatDay && eatDay !== "week") { setMeal(eatDay, slotKey, newItem.id); }
+              setFormMsg("📷 Added: " + newItem.name + " (" + newItem.jcKcal + " kcal)");
+              setAddingNew(false);
+            } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 80)); }
+            setNewItemLoading(false);
+            setTimeout(function() { setFormMsg(""); }, 4000);
+          };
+
           var addNewItem = async function() {
             if (!newItemName.trim()) return;
             setNewItemLoading(true);
@@ -2875,6 +2903,10 @@ break;
               <div style={{ display: "flex", gap: 6 }}>
                 <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. Costa Rocky Road, Protein shake, Glass of wine..." style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
                 <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ padding: "6px 12px", background: newItemLoading ? "#94a3b8" : "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button>
+                <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>
+                  📷
+                  <input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
+                </label>
                 <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: "6px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
               </div>
               <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
@@ -3323,7 +3355,7 @@ break;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.185
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.186
       </div>
     </div>
   );
