@@ -2742,10 +2742,7 @@ break;
                     <button onClick={function() { saveDef(def.k, defs[def.k], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes[def.k] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes[def.k] || "individual") === "all" ? "#0f172a" : "#94a3b8" }}>All</button>
                   </div>
                 </div>
-                <select value={defs[def.k] || ""} onChange={function(e) { saveDef(def.k, e.target.value, "individual"); }} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }}>
-                  <option value="">—</option>
-                  {def.items.slice().sort(function(a,b) { return a.name.localeCompare(b.name); }).map(function(item) { return <option key={item.id} value={item.id}>{item.name}</option>; })}
-                </select>
+                <MealSelect items={def.items} value={defs[def.k] || ""} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory(def.k === "b" ? "breakfast" : def.k === "l" ? "lunch" : def.k === "d" ? "dinner" : "snack"); } else { saveDef(def.k, e.target.value, "individual"); } }} placeholder="Select default..." />
               </div>);
             })}
             <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", marginTop: 4, marginBottom: 4 }}>Other defaults (snacks, drinks, desserts)</div>
@@ -2753,10 +2750,7 @@ break;
               return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                 <div style={{ flex: 1 }}>
                   <span style={{ fontSize: 9, color: "#94a3b8" }}>Other {n}</span>
-                  <select value={defs["o" + n] === "__placeholder__" ? "" : (defs["o" + n] || "")} onChange={function(e) { saveDef("o" + n, e.target.value, "individual"); }} style={{ width: "100%", padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10 }}>
-                    <option value="">—</option>
-                    {allOther.slice().sort(function(a,b) { return a.name.localeCompare(b.name); }).map(function(item) { return <option key={item.id} value={item.id}>{item.name}</option>; })}
-                  </select>
+                  <MealSelect items={allOther} value={defs["o" + n] === "__placeholder__" ? "" : (defs["o" + n] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory("snack"); } else { saveDef("o" + n, e.target.value, "individual"); } }} placeholder="Select..." />
                 </div>
                 <button onClick={function() { saveDef("o" + n, "", "individual"); }} style={{ fontSize: 10, color: "#dc2626", background: "none", border: "none", cursor: "pointer", marginTop: 12 }}>✕</button>
               </div>);
@@ -2810,6 +2804,35 @@ break;
             setTimeout(function() { setFormMsg(""); }, 4000); setGenerating(false);
           }} disabled={generating} style={{ width: "100%", padding: 12, marginTop: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: generating ? "not-allowed" : "pointer", background: generating ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}>{generating ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Week Meals"}</button>
           <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Fills empty breakfast, lunch, and dinner slots for all days. Respects your defaults.</div>
+          
+
+            <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
+            <div onClick={function(){setManageListsOpen(!manageListsOpen);}} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>🍽️ Manage Eating Lists</div>
+              <span style={{ fontSize: 10, color: "#94a3b8" }}>{manageListsOpen ? "▲" : "▼"}</span>
+            </div>
+            {manageListsOpen && (<div style={{ marginTop: 10 }}>
+              {[{k:"breakfast",label:"Breakfasts",items:allBfast,customs:customBreakfasts,setCustoms:setCustomBreakfasts,storageKey:"custom_breakfasts"},
+                {k:"lunch",label:"Lunches",items:allLunch,customs:customLunches,setCustoms:setCustomLunches,storageKey:"custom_lunches"},
+                {k:"dinner",label:"Dinners",items:allDinners,customs:customMeals,setCustoms:setCustomMeals,storageKey:"custom_meals"},
+                {k:"snack",label:"Snacks & Drinks",items:allOther,customs:customSnacks,setCustoms:setCustomSnacks,storageKey:"custom_snacks"}
+              ].map(function(cat) {
+                return (<div key={cat.k} style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4 }}>{cat.label} ({cat.items.length} items, {cat.customs.length} custom)</div>
+                  {cat.customs.map(function(item) {
+                    var kcal = isJC ? item.jcKcal : item.beckKcal;
+                    var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#166534";
+                    return (<div key={item.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
+                      <span style={{ flex: 1, color: color }}>{item.name} ({kcal} kcal)</span>
+                      <button onClick={async function() { if(confirm("Delete " + item.name + "?")) { var u = cat.customs.filter(function(x){return x.id !== item.id;}); cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u)); setFormMsg("Deleted " + item.name); setTimeout(function(){setFormMsg("");},2000); }}} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "1px solid #fecaca", borderRadius: 4, padding: "2px 6px", cursor: "pointer" }}>Delete</button>
+                    </div>);
+                  })}
+                  {cat.customs.length === 0 && <div style={{ fontSize: 10, color: "#94a3b8", padding: 4 }}>No custom items yet</div>}
+                  <button onClick={function(){ setAddingNew(true); setAddingCategory(cat.k); }} style={{ fontSize: 10, color: accent, background: "none", border: "1px solid #e2e8f0", borderRadius: 4, padding: "4px 8px", cursor: "pointer", marginTop: 4 }}>+ Add {cat.label.toLowerCase()} item</button>
+                </div>);
+              })}
+            </div>)}
+          </div>
           </div>)}
 
           {/* Day content */}
@@ -3193,33 +3216,7 @@ break;
 
 {section === "admin" && (<div>
           
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
-            <div onClick={function(){setManageListsOpen(!manageListsOpen);}} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>🍽️ Manage Eating Lists</div>
-              <span style={{ fontSize: 10, color: "#94a3b8" }}>{manageListsOpen ? "▲" : "▼"}</span>
-            </div>
-            {manageListsOpen && (<div style={{ marginTop: 10 }}>
-              {[{k:"breakfast",label:"Breakfasts",items:allBfast,customs:customBreakfasts,setCustoms:setCustomBreakfasts,storageKey:"custom_breakfasts"},
-                {k:"lunch",label:"Lunches",items:allLunch,customs:customLunches,setCustoms:setCustomLunches,storageKey:"custom_lunches"},
-                {k:"dinner",label:"Dinners",items:allDinners,customs:customMeals,setCustoms:setCustomMeals,storageKey:"custom_meals"},
-                {k:"snack",label:"Snacks & Drinks",items:allOther,customs:customSnacks,setCustoms:setCustomSnacks,storageKey:"custom_snacks"}
-              ].map(function(cat) {
-                return (<div key={cat.k} style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4 }}>{cat.label} ({cat.items.length} items, {cat.customs.length} custom)</div>
-                  {cat.customs.map(function(item) {
-                    var kcal = isJC ? item.jcKcal : item.beckKcal;
-                    var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#166534";
-                    return (<div key={item.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
-                      <span style={{ flex: 1, color: color }}>{item.name} ({kcal} kcal)</span>
-                      <button onClick={async function() { if(confirm("Delete " + item.name + "?")) { var u = cat.customs.filter(function(x){return x.id !== item.id;}); cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u)); setFormMsg("Deleted " + item.name); setTimeout(function(){setFormMsg("");},2000); }}} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "1px solid #fecaca", borderRadius: 4, padding: "2px 6px", cursor: "pointer" }}>Delete</button>
-                    </div>);
-                  })}
-                  {cat.customs.length === 0 && <div style={{ fontSize: 10, color: "#94a3b8", padding: 4 }}>No custom items yet</div>}
-                  <button onClick={function(){ setAddingNew(true); setAddingCategory(cat.k); }} style={{ fontSize: 10, color: accent, background: "none", border: "1px solid #e2e8f0", borderRadius: 4, padding: "4px 8px", cursor: "pointer", marginTop: 4 }}>+ Add {cat.label.toLowerCase()} item</button>
-                </div>);
-              })}
-            </div>)}
-          </div>
+          
 
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Data Admin</div>
 
@@ -3326,7 +3323,7 @@ break;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.182
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.183
       </div>
     </div>
   );
