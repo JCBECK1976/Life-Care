@@ -1020,6 +1020,8 @@ function Dashboard() {
   const [fbExpanded, setFbExpanded] = useState(false);
   const [homeFbExpanded, setHomeFbExpanded] = useState(false);
   const [healthFbExpanded, setHealthFbExpanded] = useState(false);
+  const [manageListsOpen, setManageListsOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const [bodyView, setBodyView] = useState("data");
   const [measView, setMeasView] = useState("data");
   const [eatDay, setEatDay] = useState("week");
@@ -2673,7 +2675,7 @@ break;
               <div style={{position:"absolute",top:"100%",left:0,right:0,zIndex:50,background:"#fff",border:"1px solid #e2e8f0",borderRadius:6,maxHeight:200,overflowY:"auto",boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}>
                 {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#166534"; return (<div key={item.id} onMouseDown={function(e){e.preventDefault();onChange({target:{value:item.id}});setOpen(false);setSearch("");}} style={{padding:"6px 10px",fontSize:11,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f8fafc",color:color}}>
                   <span>{item.name} ({kcal} kcal)</span>
-                  {item.isCustom && <span onMouseDown={function(e2){e2.preventDefault();e2.stopPropagation();if(confirm("Delete "+item.name+"?")){props.onDelete && props.onDelete(item.id);}}} style={{fontSize:9,color:"#dc2626",padding:"2px 4px",cursor:"pointer"}}>✕</span>}
+                  
                 </div>); })}
                 <div onMouseDown={function(e){e.preventDefault();onChange({target:{value:"__add_new__"}});setOpen(false);setSearch("");}} style={{padding:"8px 10px",fontSize:11,fontWeight:600,color:accent,cursor:"pointer",borderTop:"1px solid #e2e8f0"}}>+ Add new item...</div>
               </div>
@@ -2721,6 +2723,14 @@ break;
 
           {eatDay === "week" && (<div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a" }}>Week Settings</div>
+            {(() => {
+              var totalKcal = 0; var dayCount = 0;
+              DAYS.forEach(function(d) { var dk = getDayKcal(d); if (dk > 0) { totalKcal += dk; dayCount++; } });
+              var avg = dayCount > 0 ? Math.round(totalKcal / dayCount) : 0;
+              var limit = isJC ? 2200 : 1900;
+              var color = avg === 0 ? "#94a3b8" : avg > limit ? "#dc2626" : "#16a34a";
+              return avg > 0 ? (<div style={{ fontSize: 12, fontWeight: 600, color: color, marginBottom: 10 }}>Average daily: {avg} kcal ({dayCount} day{dayCount !== 1 ? "s" : ""} planned)</div>) : null;
+            })()}
             <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>Set Defaults</div>
             <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8 }}>Set default meals. Use "All" to apply to all people or "Individual" for just {activeTab === "jc" ? "JC" : "Becks"}.</div>
             {[{ k: "b", l: "Breakfast", items: allBfast }, { k: "l", l: "Lunch", items: allLunch }, { k: "d", l: "Dinner", items: allDinners }].map(function(def) {
@@ -3182,6 +3192,35 @@ break;
 </div>); })()}
 
 {section === "admin" && (<div>
+          
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
+            <div onClick={function(){setManageListsOpen(!manageListsOpen);}} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>🍽️ Manage Eating Lists</div>
+              <span style={{ fontSize: 10, color: "#94a3b8" }}>{manageListsOpen ? "▲" : "▼"}</span>
+            </div>
+            {manageListsOpen && (<div style={{ marginTop: 10 }}>
+              {[{k:"breakfast",label:"Breakfasts",items:allBfast,customs:customBreakfasts,setCustoms:setCustomBreakfasts,storageKey:"custom_breakfasts"},
+                {k:"lunch",label:"Lunches",items:allLunch,customs:customLunches,setCustoms:setCustomLunches,storageKey:"custom_lunches"},
+                {k:"dinner",label:"Dinners",items:allDinners,customs:customMeals,setCustoms:setCustomMeals,storageKey:"custom_meals"},
+                {k:"snack",label:"Snacks & Drinks",items:allOther,customs:customSnacks,setCustoms:setCustomSnacks,storageKey:"custom_snacks"}
+              ].map(function(cat) {
+                return (<div key={cat.k} style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4 }}>{cat.label} ({cat.items.length} items, {cat.customs.length} custom)</div>
+                  {cat.customs.map(function(item) {
+                    var kcal = isJC ? item.jcKcal : item.beckKcal;
+                    var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#166534";
+                    return (<div key={item.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
+                      <span style={{ flex: 1, color: color }}>{item.name} ({kcal} kcal)</span>
+                      <button onClick={async function() { if(confirm("Delete " + item.name + "?")) { var u = cat.customs.filter(function(x){return x.id !== item.id;}); cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u)); setFormMsg("Deleted " + item.name); setTimeout(function(){setFormMsg("");},2000); }}} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "1px solid #fecaca", borderRadius: 4, padding: "2px 6px", cursor: "pointer" }}>Delete</button>
+                    </div>);
+                  })}
+                  {cat.customs.length === 0 && <div style={{ fontSize: 10, color: "#94a3b8", padding: 4 }}>No custom items yet</div>}
+                  <button onClick={function(){ setAddingNew(true); setAddingCategory(cat.k); }} style={{ fontSize: 10, color: accent, background: "none", border: "1px solid #e2e8f0", borderRadius: 4, padding: "4px 8px", cursor: "pointer", marginTop: 4 }}>+ Add {cat.label.toLowerCase()} item</button>
+                </div>);
+              })}
+            </div>)}
+          </div>
+
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Data Admin</div>
 
           {/* File Attachments */}
@@ -3287,7 +3326,7 @@ break;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.181
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.182
       </div>
     </div>
   );
