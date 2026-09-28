@@ -2205,8 +2205,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer" }} onClick={function() { setEditExercise({ day: day, idx: i }); }}>{ex.name} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span></div>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                           <span style={{ fontSize: 10, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" }}>{sLabel(ex.status)}</span>
-                          <button onClick={function(){setSelectedEx({day:day,idx:i});openLogForm(day,i);}} style={{padding:"4px 12px",border:"none",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",color:"#fff",background:"#2563eb",marginLeft:4}}>Log</button>
-                          <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} style={{padding:"4px 12px",marginLeft:4,border:"none",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",color:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#fff":"#475569",background:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?accent:"#e2e8f0"}}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"Close":"View"}</button>
+                          <div style={{display:"flex",flexDirection:"column",gap:2,marginLeft:4}}>
+                            <button onClick={function(){setSelectedEx({day:day,idx:i});openLogForm(day,i);}} style={{padding:"4px 8px",border:"none",borderRadius:4,fontSize:13,cursor:"pointer",color:"#fff",background:"#2563eb",lineHeight:1}} title="Log">📝</button>
+                            <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} style={{padding:"4px 8px",border:"none",borderRadius:4,fontSize:13,cursor:"pointer",color:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#fff":"#475569",background:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?accent:"#e2e8f0",lineHeight:1}} title="View">{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕":"👁"}</button>
+                          </div>
                         </div>
                       </div>
                       <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>{ex.current} · {ex.reps}</div>
@@ -2313,6 +2315,13 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 <div style={{marginTop:12}}>
                       <div style={{fontSize:11,fontWeight:700,color:"#0f172a",marginBottom:4}}>Progression Rules</div>
                       <textarea value={ex.progressionNotes || "Double progression: build 12-15 reps then increase weight. 10x3 after increase, build to 15x3 before next."} onChange={async function(e) { var nd=JSON.parse(JSON.stringify(data)); var exs=nd[activeTab].exercises[day]; if(exs&&exs[i]) { exs[i].progressionNotes=e.target.value; await saveData(nd); }}} style={{width:"100%",padding:8,border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#475569",background:"#fff",minHeight:60,resize:"vertical",lineHeight:1.4,boxSizing:"border-box"}} />
+                    </div>
+                    <div style={{marginTop:12,paddingTop:8,borderTop:"1px solid #e2e8f0"}}>
+                      <div style={{fontSize:11,fontWeight:700,color:"#0f172a",marginBottom:6}}>Exercise Settings</div>
+                      <div style={{display:"flex",gap:6}}>
+                        <button onClick={function(){var newName=prompt("Rename exercise:",ex.name);if(newName&&newName.trim()){var nd=JSON.parse(JSON.stringify(data));var exs=nd[activeTab].exercises[day];if(exs&&exs[i]){exs[i].name=newName.trim();saveData(nd);}}}} style={{flex:1,padding:6,background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:4,fontSize:10,cursor:"pointer",color:"#475569"}}>Rename</button>
+                        <button onClick={async function(){if(confirm("Delete "+ex.name+"?\n\nThis will permanently remove this exercise and all its progress history. This cannot be undone.")){var nd=JSON.parse(JSON.stringify(data));var exs=nd[activeTab].exercises[day];if(exs){exs.splice(i,1);await saveData(nd);setSelectedEx(null);setLogEx(null);}}}} style={{flex:1,padding:6,background:"#fef2f2",border:"1px solid #fecaca",borderRadius:4,fontSize:10,cursor:"pointer",color:"#dc2626"}}>Delete Exercise</button>
+                      </div>
                     </div>
                   </div>); })}
                 </div>
@@ -3390,7 +3399,7 @@ break;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.189
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.190
       </div>
     </div>
   );
