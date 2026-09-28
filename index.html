@@ -1343,7 +1343,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
         if (logComment.trim()) await sSet("comment:" + activeTab + ":" + ex.name + ":" + logWk, logComment.trim());
         await saveData(nd);
-        var scrollY = window.scrollY; setLogEx(null); requestAnimationFrame(function() { window.scrollTo(0, scrollY); }); setFormMsg("Updated week " + logWk); setTimeout(function() { setFormMsg(""); }, 3000);
+        var scrollY = window.scrollY; setLogEx(null); setSelectedEx(null); requestAnimationFrame(function() { window.scrollTo(0, scrollY); }); setFormMsg("Updated week " + logWk); setTimeout(function() { setFormMsg(""); }, 3000);
         return;
       }
       const w = logSets[0].w || String(parseInt(ex.current) || 0);
@@ -1368,7 +1368,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     ex.notes = logComment.trim() || ""; // Carry forward to next session
     if (logComment.trim()) await sSet("comment:" + activeTab + ":" + ex.name + ":" + logWeek, logComment.trim());
     const target = "ex-" + day + "-" + idx;
-    var scrollY = window.scrollY; setLogEx(null); requestAnimationFrame(function() { window.scrollTo(0, scrollY); });
+    var scrollY = window.scrollY; setLogEx(null); setSelectedEx(null); requestAnimationFrame(function() { window.scrollTo(0, scrollY); });
     await saveData(nd);
     // Save other person's data if they were edited via dual tabs
     if (window._dualLogState) {
@@ -3397,7 +3397,7 @@ break;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.200
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.201
       </div>
     </div>
   );
