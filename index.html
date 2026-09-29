@@ -701,8 +701,7 @@ function ExTable({ exercises, day, showHistory, onLog }) {
           </div>
         </div>
         <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>{ex.current} · {ex.reps}</div>
-        {ex.target && ex._from && ex._from.trim() !== ex.target.replace(/ x /g, " ").trim() && <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 600, marginTop: 3 }}>{ex._from} → {ex.target}</div>}
-                    {ex.target && (!ex._from || ex._from.trim() === ex.target.replace(/ x /g, " ").trim()) && <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 600, marginTop: 3 }}>Target: {ex.target}</div>}
+        {ex.target && <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 600, marginTop: 3 }}>{ex._userOverride && <span onClick={function(){alert("User override: this target was set by your notes, not the AI recommendation.");}} style={{cursor:"pointer",marginRight:4}}>⚠️</span>}{ex._from ? ex._from + " → " : ""}{ex.target}</div>}
                     {ex._userNote && <div style={{ fontSize: 10, color: "#92400e", background: "#fef9c3", padding: "2px 6px", borderRadius: 4, marginTop: 2 }}>{ex._userNote}</div>}
         {ex.status === "reduce" && <div style={{ fontSize: 11, color: "#dc2626", marginTop: 3 }}>Back protection — reduced load</div>}
         {showHistory && ex.prog && ex.prog.length > 0 && (
@@ -2214,8 +2213,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         </div>
                       </div>
                       <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>{ex.current} · {ex.reps}</div>
-                      {ex.target && ex._from && ex._from.trim() !== ex.target.replace(/ x /g, " ").trim() && <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 600, marginTop: 3 }}>{ex._from} → {ex.target}</div>}
-                    {ex.target && (!ex._from || ex._from.trim() === ex.target.replace(/ x /g, " ").trim()) && <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 600, marginTop: 3 }}>Target: {ex.target}</div>}
+                      {ex.target && <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 600, marginTop: 3 }}>{ex._userOverride && <span onClick={function(){alert("User override: this target was set by your notes, not the AI recommendation.");}} style={{cursor:"pointer",marginRight:4}}>⚠️</span>}{ex._from ? ex._from + " → " : ""}{ex.target}</div>}
                       {ex.notes && <div style={{ fontSize: 10, color: "#854d0e", background: "#fef9c3", padding: "3px 6px", borderRadius: 4, marginTop: 3 }}>📋 {ex.notes}</div>}
                     
                     {selectedEx&&selectedEx.day===day&&selectedEx.idx===i&&(<div style={{marginTop:10,padding:12,background:"#f8fafc",borderRadius:8,border:"1px solid #e2e8f0",width:"100%"}}>
@@ -2382,7 +2380,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     try {
                       var prof = p.profile || {};
                       var daySummary = exList.map(function(ex) { var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null; var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null; var progNote = latest && latest.note ? latest.note : ""; var allNotes = [ex.notes, progNote].filter(Boolean).join("; "); var progRules = ex.progressionNotes || "Progression: build reps to target then increase weight. User defines increment method and ranges."; var eqInfo = ex.equipment ? " [EQUIPMENT: " + (ex.equipment.type || "") + ", increments: " + (ex.equipment.increments || "standard") + (ex.equipment.formNotes ? ", form: " + ex.equipment.formNotes : "") + "]" : ""; return ex.name + ": " + ex.current + " " + ex.reps + " (" + ex.status + ")" + (ex.target ? " target: " + ex.target : "") + (prev ? " prev: " + prev.w + " " + prev.r : "") + (allNotes ? " [NOTES: " + allNotes + "]" : "") + " [PROGRESSION RULES: " + progRules + "]" + eqInfo; }).join("; ");
-                      var jsonFormat = '{"exercises":[{"name":"...","verdict":"max 25 words honest assessment","icon":"check|triangle|arrow|warning|circle|star","newStatus":"building|moved up|consolidating|ready to move|maintaining|reduce","recommendation":"optional progression suggestion with range e.g. increase weight by 2-5kg or add 1-2 reps"}],"summary":"2-3 sentences honest overall assessment","nextSession":"specific focus for next session"}';
+                      var jsonFormat = '{"exercises":[{"name":"...","verdict":"max 25 words honest assessment","icon":"check|triangle|arrow|warning|circle|star","newStatus":"building|moved up|consolidating|ready to move|maintaining|reduce","recommendation":"optional progression suggestion","targetWeight":"recommended weight for next session e.g. 49kg or BW","targetReps":"recommended reps for next session e.g. 12x3 or 15x3"}],"summary":"2-3 sentences honest overall assessment","nextSession":"specific focus for next session"}';
                       var prompt = "You are a direct, honest strength coach. "+TONE_RULES+" Giving session feedback for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Week " + currentWeek + " " + day + " session. Exercises: " + daySummary + ". IMPORTANT: 1) READ EXERCISE NOTES AND PROGRESS HISTORY carefully. If notes mention holding, injury, pain, protection, concern, or any reason for caution, respect that decision and do NOT recommend increasing weight. Review the last 2-4 weeks of progress data alongside notes to make fact-based recommendations. A deliberate hold noted by the user means MAINTAINING status, not building. If a hold has lasted several weeks and notes suggest recovery, you MAY suggest a cautious attempt, but acknowledge the concern and explain your reasoning. 2) If current autoStatus seems wrong based on the data and notes, set newStatus to what it SHOULD be and explain why in the verdict. 3) Be genuinely honest - call out where form needs work, where someone is sandbagging, or where they should push harder. 4) PROGRESSION: CRITICAL PROGRESSION: Each exercise has [PROGRESSION RULES]. You MUST follow them exactly. If rules say build to 15 reps before increasing weight, do NOT recommend weight increase at 12 reps - that is BUILDING status. Only recommend weight increase when the rep target in the rules is met for two consecutive sessions. READ THE RULES CAREFULLY for each exercise before deciding status. 5) STATUS RULES: Follow the PROGRESSION RULES for each exercise to determine target reps. Default is 15x3 unless rules state otherwise. Two consecutive sessions hitting target = ready to move (star). First time hitting target = consolidating (arrow). Below target = building (arrow). Weight increase = moved up (triangle). Building reps = building (arrow). Holding deliberately = maintaining (circle). Dropped = reduce (warning). 6) Max 25 words per verdict. Be specific not generic. Return ONLY JSON: " + jsonFormat;
                       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
@@ -2402,29 +2400,31 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         <button onClick={async function() {
                           var nd3 = JSON.parse(JSON.stringify(data));
                           var dayExs3 = nd3[activeTab].exercises[day] || [];
-                          var origCurrent = ""; var origReps = "";
-                          for (var di3 = 0; di3 < dayExs3.length; di3++) { if (dayExs3[di3].name === ex.name) { origCurrent = dayExs3[di3].current || ""; origReps = dayExs3[di3].reps || ""; } }
                           for (var di3 = 0; di3 < dayExs3.length; di3++) {
                             if (dayExs3[di3].name === ex.name) {
+                              var origW = dayExs3[di3].current || "";
+                              var origR = dayExs3[di3].reps || "";
+                              dayExs3[di3]._from = origW + " " + origR;
                               dayExs3[di3].status = ex.newStatus;
-                              delete dayExs3[di3].target;
+                              var newW = ex.targetWeight || origW;
+                              var newR = ex.targetReps || origR;
+                              var isUserOverride = false;
                               if (userNote) {
-                                var wMatch = userNote.match(/(\d+)\s*kg/i);
-                                var rMatch = userNote.match(/(\d+)\s*(?:reps|x)/i);
-                                if (wMatch || rMatch) {
-                                  var tWeight = wMatch ? wMatch[1] + "kg" : (dayExs3[di3].current || "");
-                                  var tReps = rMatch ? rMatch[1] + "x3" : "10x3";
-                                  dayExs3[di3].target = tWeight + " x " + tReps;
+                                var wM = userNote.match(/(\d+)\s*kg/i);
+                                var rM = userNote.match(/(\d+)\s*(?:reps|x)/i);
+                                if (wM || rM) {
+                                  newW = wM ? wM[1] + "kg" : origW;
+                                  newR = rM ? rM[1] + "x3" : "10x3";
+                                  isUserOverride = true;
                                 }
+                                dayExs3[di3].notes = (dayExs3[di3].notes ? dayExs3[di3].notes + "; " : "") + "Wk" + currentWeek + " accepted: " + userNote;
                               }
-                              dayExs3[di3]._from = origCurrent + " " + origReps;
+                              dayExs3[di3].target = newW + " x " + newR;
+                              dayExs3[di3].current = newW;
+                              dayExs3[di3].reps = newR;
+                              dayExs3[di3]._userOverride = isUserOverride;
                               break;
                             }
-                          }
-                          
-                          if (dayExs3[di3] && dayExs3[di3].target && (ex.newStatus === "ready to move" || ex.newStatus === "reduce" || userNote)) {
-                            var tParts = dayExs3[di3].target.match(/(\S+)\s*x\s*(\S+)/);
-                            if (tParts) { dayExs3[di3].current = tParts[1]; dayExs3[di3].reps = tParts[2]; }
                           }
                           await saveData(nd3);
                           var el = document.getElementById("rec-" + ei + "-" + day);
@@ -2433,30 +2433,34 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         <button onClick={function() {
                           var el = document.getElementById("rec-" + ei + "-" + day);
                           var noteEl2 = document.getElementById("user-note-"+ei+"-"+day); var userNote2 = noteEl2 ? noteEl2.value.trim() : ""; ex._decision = "declined"; ex._userNote = userNote2;
-                          if (userNote2) {
-                            var nd4 = JSON.parse(JSON.stringify(data));
-                            var dayExs4 = nd4[activeTab].exercises[day] || [];
-                            for (var di4 = 0; di4 < dayExs4.length; di4++) {
-                              if (dayExs4[di4].name === ex.name) {
+                          var nd4 = JSON.parse(JSON.stringify(data));
+                          var dayExs4 = nd4[activeTab].exercises[day] || [];
+                          for (var di4 = 0; di4 < dayExs4.length; di4++) {
+                            if (dayExs4[di4].name === ex.name) {
+                              var origW4 = dayExs4[di4].current || "";
+                              var origR4 = dayExs4[di4].reps || "";
+                              dayExs4[di4]._from = origW4 + " " + origR4;
+                              var isUserOverride4 = false;
+                              if (userNote2) {
+                                var wM2 = userNote2.match(/(\d+)\s*kg/i);
+                                var rM2 = userNote2.match(/(\d+)\s*(?:reps|x)/i);
+                                if (wM2 || rM2) {
+                                  var nW2 = wM2 ? wM2[1] + "kg" : origW4;
+                                  var nR2 = rM2 ? rM2[1] + "x3" : origR4;
+                                  dayExs4[di4].target = nW2 + " x " + nR2;
+                                  dayExs4[di4].current = nW2;
+                                  dayExs4[di4].reps = nR2;
+                                  isUserOverride4 = true;
+                                }
                                 dayExs4[di4].notes = (dayExs4[di4].notes ? dayExs4[di4].notes + "; " : "") + "Wk" + currentWeek + " declined: " + userNote2;
-                                var wMatch2 = userNote2.match(/(\d+)\s*kg/i);
-                                var rMatch2 = userNote2.match(/(\d+)\s*(?:reps|x)/i);
-                                if (wMatch2 || rMatch2) {
-                                  var tW2 = wMatch2 ? wMatch2[1] + "kg" : (dayExs4[di4].current || "");
-                                  var tR2 = rMatch2 ? rMatch2[1] + "x3" : "10x3";
-                                  dayExs4[di4]._from = (dayExs4[di4].current || "") + " " + (dayExs4[di4].reps || ""); dayExs4[di4].target = tW2 + " x " + tR2;
-                                  dayExs4[di4].status = "ready to move";
-                                }
-                                
-                                if (dayExs4[di4].target) {
-                                  var tP2 = dayExs4[di4].target.match(/(\S+)\s*x\s*(\S+)/);
-                                  if (tP2) { dayExs4[di4].current = tP2[1]; dayExs4[di4].reps = tP2[2]; }
-                                }
-break;
+                              } else {
+                                dayExs4[di4].target = origW4 + " x " + origR4;
                               }
+                              dayExs4[di4]._userOverride = isUserOverride4;
+                              break;
                             }
-                            saveData(nd4);
                           }
+                          saveData(nd4);
                           var sfbKey2 = activeTab + "_" + day; var curFb2 = sessionFeedback[sfbKey2]; if (curFb2 && curFb2.exercises) { curFb2.exercises[ei]._decision = "declined"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#f1f5f9"; el.style.borderColor = "#e2e8f0"; el.innerHTML = "<div style=\"font-size:11px;color:#64748b;padding:4px\">\u21a9 Declined — no changes made to Activity.</div>"; }
                         }} style={{ padding: "5px 14px", background: "#e2e8f0", color: "#475569", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Decline</button>
                       </div></div>)}
@@ -3427,7 +3431,7 @@ break;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.206
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.207
       </div>
     </div>
   );
