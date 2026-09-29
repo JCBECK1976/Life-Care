@@ -1023,6 +1023,9 @@ function Dashboard() {
   const [healthFbExpanded, setHealthFbExpanded] = useState(false);
   const [manageListsOpen, setManageListsOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [addExOpen, setAddExOpen] = useState(false);
+  const [addExLoading, setAddExLoading] = useState(false);
+  const [addExSearch, setAddExSearch] = useState("");
   const [cameraPreview, setCameraPreview] = useState(null);
   const [bodyView, setBodyView] = useState("data");
   const [measView, setMeasView] = useState("data");
@@ -2327,7 +2330,49 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     </div>)}
                     </>)}
                   </div>); })}
-                  <button onClick={function() { addExerciseToDay(day, allExNames[0]); }} style={{ width: "100%", padding: 8, background: "#f8fafc", border: "none", borderTop: "1px solid #e2e8f0", fontSize: 11, color: "#64748b", cursor: "pointer" }}>+ Add Exercise</button>
+                  
+
+                
+                <div style={{padding:"8px 0",borderTop:"1px solid #e2e8f0"}}>
+                  {!addExOpen ? (
+                    <button onClick={function(){setAddExOpen(true);setAddExSearch("");}} style={{width:"100%",padding:8,background:"none",border:"none",fontSize:11,color:accent,cursor:"pointer",fontWeight:600}}>+ Add Exercise</button>
+                  ) : (
+                    <div style={{padding:8,background:"#f8fafc",borderRadius:8,border:"1px solid #e2e8f0"}}>
+                      <div style={{fontSize:11,fontWeight:700,marginBottom:6}}>Add Exercise to {DAY_LABELS[day] || day}</div>
+                      <input value={addExSearch} onChange={function(e){setAddExSearch(e.target.value);}} placeholder="Search exercises or type new name..." style={{width:"100%",padding:"6px 8px",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,marginBottom:6,boxSizing:"border-box"}} autoFocus />
+                      {addExSearch && allExNames.filter(function(n){return n.toLowerCase().indexOf(addExSearch.toLowerCase())>=0;}).slice(0,5).map(function(n){return (<div key={n} onClick={function(){addExerciseToDay(day,n);setAddExOpen(false);setAddExSearch("");}} style={{padding:"6px 8px",fontSize:11,cursor:"pointer",borderBottom:"1px solid #f1f5f9",color:"#0f172a"}}>{n}</div>);})}
+                      <button disabled={addExLoading} onClick={async function(){
+                        var name = addExSearch.trim(); if(!name){return;}
+                        setAddExLoading(true);
+                        try {
+                          var isJC2 = activeTab === "jc";
+                          var profileInfo = isJC2 ? "Male, 49, 89kg, 5ft11, meso-endomorph, upper-body dominant, ADHD, thyroid TSH issues, trains on Marcy HG5000 cable multi-gym" : "Female, 48, 5ft4, compact meso-endomorph, fast-twitch dominant, lower-body dominant, RSI in wrists (uses Bear Grip straps, J Bryant cuffs, tricep rope), exceptional natural lower body, trains on Marcy HG5000 cable multi-gym";
+                          var prompt2 = "New exercise: " + name + ". Person: " + profileInfo + ". Return ONLY JSON: {\"name\":\"" + name + "\",\"startWeight\":\"recommended starting weight for this person on cable multi-gym e.g. 16kg or BW\",\"startReps\":\"recommended starting reps e.g. 12x3\",\"progressionNotes\":\"specific progression rules for this exercise for this person including weight increment range\",\"equipmentNotes\":\"any equipment or form notes specific to this person\"}";
+                          var resp2 = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{"Content-Type":"application/json","x-api-key":window._anthropicKey||"","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:400,messages:[{role:"user",content:prompt2}]})});
+                          var result2 = await resp2.json();
+                          var txt2 = ""; if(result2.content){for(var ri=0;ri<result2.content.length;ri++){if(result2.content[ri].text)txt2+=result2.content[ri].text;}}
+                          var info2 = JSON.parse(txt2.replace(/```json|```/g,"").trim());
+                          var nd = JSON.parse(JSON.stringify(data));
+                          if(!nd[activeTab].exercises) nd[activeTab].exercises={};
+                          if(!nd[activeTab].exercises[day]) nd[activeTab].exercises[day]=[];
+                          nd[activeTab].exercises[day].push({name:info2.name||name,current:info2.startWeight||"BW",reps:info2.startReps||"10x3",status:"building",prog:[],progressionNotes:info2.progressionNotes||"Double progression: build 12-15 reps then increase weight.",notes:info2.equipmentNotes||""});
+                          await saveData(nd);
+                          setFormMsg("Added: " + (info2.name||name) + " at " + (info2.startWeight||"BW") + " " + (info2.startReps||"10x3"));
+                        } catch(ae) { 
+                          var nd = JSON.parse(JSON.stringify(data));
+                          if(!nd[activeTab].exercises) nd[activeTab].exercises={};
+                          if(!nd[activeTab].exercises[day]) nd[activeTab].exercises[day]=[];
+                          nd[activeTab].exercises[day].push({name:name,current:"BW",reps:"10x3",status:"building",prog:[],progressionNotes:"Double progression: build 12-15 reps then increase weight.",notes:""});
+                          await saveData(nd);
+                          setFormMsg("Added: " + name + " (AI unavailable, defaults applied)");
+                        }
+                        setAddExLoading(false); setAddExOpen(false); setAddExSearch("");
+                        setTimeout(function(){setFormMsg("");},3000);
+                      }} style={{width:"100%",padding:8,background:accent,color:"#fff",border:"none",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",marginTop:4}}>{addExLoading ? "Adding..." : "Add New: " + (addExSearch||"...")}</button>
+                      <button onClick={function(){setAddExOpen(false);setAddExSearch("");}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:10,color:"#64748b",cursor:"pointer",marginTop:4}}>Cancel</button>
+                    </div>
+                  )}
+                </div>
 
                 <div style={{ padding: 12 }}>
                   <button onClick={async function() {
@@ -2447,11 +2492,7 @@ break;
             </div>);
           })}
           
-          {/* Status Key */}
-          <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginTop: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Status Key</div>
-            {[{ s: "moved up", d: "Just increased weight. Reps drop to ~10×3. Fresh start at new load." }, { s: "building", d: "At current weight, pushing reps upward (10→12→13→14→15). Not there yet." }, { s: "consolidating", d: "Hit 15×3 for the first time. Needs one more session to confirm." }, { s: "ready to move", d: "Hit 15×3 two consecutive sessions. Green light to increase weight." }, { s: "maintaining", d: "Deliberately holding. No progression intended (e.g. isolation exercises)." }, { s: "reduce", d: "Dropped weight due to form issues, pain, or overreach. Rebuilding." }].map(function(k) { return (<div key={k.s} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "4px 0", borderBottom: "1px solid #f8fafc" }}><span style={{ background: sBg(k.s), color: sColor(k.s), fontWeight: 600, padding: "2px 8px", borderRadius: 20, fontSize: 10, whiteSpace: "nowrap", minWidth: 90, textAlign: "center" }}>{sLabel(k.s)}</span><span style={{ fontSize: 10, color: "#64748b", lineHeight: 1.4 }}>{k.d}</span></div>); })}
-          </div>
+          
         </div>); })()}
 
         {/* MEDS */}
