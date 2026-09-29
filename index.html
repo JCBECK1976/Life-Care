@@ -2169,10 +2169,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               <button onClick={() => setShowNewExForm(true)} style={{ padding: "4px 10px", background: "#dcfce7", border: "1px solid #86efac", borderRadius: 6, fontSize: 10, color: "#166534", cursor: "pointer" }}>+ Exercise</button>
             </div>
           </div>
-          {showNewSection && (<div style={{ background: "#fff", borderRadius: 10, border: "2px solid " + accent, padding: 12, marginBottom: 12 }}>
-            <label style={labelStyle}>New Section Name</label>
-            <div style={{ display: "flex", gap: 8 }}><input value={newSectionName} onChange={e => setNewSectionName(e.target.value)} style={{ ...inputStyle, flex: 1 }} placeholder="e.g. Saturday" /><button onClick={() => addSection(newSectionName)} disabled={!newSectionName.trim()} style={{ ...btnP(!!newSectionName.trim()), width: "auto", padding: "8px 16px" }}>Add</button><button onClick={() => setShowNewSection(false)} style={btnS}>Cancel</button></div>
-          </div>)}
+          
           {showNewExForm && (<div style={{ background: "#fff", borderRadius: 10, border: "2px solid #16a34a", padding: 12, marginBottom: 12 }}>
             <label style={labelStyle}>New Exercise Name (adds to database)</label>
             <div style={{ display: "flex", gap: 8 }}><input value={newExName} onChange={e => setNewExName(e.target.value)} style={{ ...inputStyle, flex: 1 }} /><button onClick={addCustomEx} disabled={!newExName.trim()} style={{ ...btnP(!!newExName.trim()), width: "auto", padding: "8px 16px", background: "#16a34a" }}>Add</button><button onClick={() => setShowNewExForm(false)} style={btnS}>Cancel</button></div>
