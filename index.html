@@ -2376,7 +2376,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
                 <div style={{ padding: 12 }}>
                   <button onClick={async function() {
-                    setSessionFbLoading(true); setFbExpanded(true);
+                    setSessionFbLoading(true); setFbExpanded(true); var clearKey = activeTab + "_" + day; var clearFb = Object.assign({}, sessionFeedback); delete clearFb[clearKey]; setSessionFeedback(clearFb);
                     try {
                       var prof = p.profile || {};
                       var daySummary = exList.map(function(ex) { var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null; var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null; var progNote = latest && latest.note ? latest.note : ""; var allNotes = [ex.notes, progNote].filter(Boolean).join("; "); var progRules = ex.progressionNotes || "Progression: build reps to target then increase weight. User defines increment method and ranges."; var eqInfo = ex.equipment ? " [EQUIPMENT: " + (ex.equipment.type || "") + ", increments: " + (ex.equipment.increments || "standard") + (ex.equipment.formNotes ? ", form: " + ex.equipment.formNotes : "") + "]" : ""; var histLines = ex.prog ? ex.prog.slice(-4).map(function(p){return "Wk"+p.wk+": "+p.w+" "+p.r+(p.note?" ("+p.note+")":"");}).join(", ") : "no data"; return ex.name + ": LATEST LOGGED=" + (latest ? latest.w + " " + latest.r : "none") + " (" + ex.status + ") HISTORY=[" + histLines + "]" + (ex.target ? " TARGET: " + ex.target : "") + (allNotes ? " [NOTES: " + allNotes + "]" : "") + " [PROGRESSION RULES: " + progRules + "]" + eqInfo; }).join("; ");
@@ -2402,8 +2402,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                           var dayExs3 = nd3[activeTab].exercises[day] || [];
                           for (var di3 = 0; di3 < dayExs3.length; di3++) {
                             if (dayExs3[di3].name === ex.name) {
-                              var origW = dayExs3[di3].current || "";
-                              var origR = dayExs3[di3].reps || "";
+                              var latestProg3 = dayExs3[di3].prog && dayExs3[di3].prog.length > 0 ? dayExs3[di3].prog[dayExs3[di3].prog.length - 1] : null;
+                              var origW = latestProg3 ? latestProg3.w : (dayExs3[di3].current || "");
+                              var origR = latestProg3 ? latestProg3.r : (dayExs3[di3].reps || "");
                               dayExs3[di3]._from = origW + " " + origR;
                               dayExs3[di3].status = ex.newStatus;
                               var newW = ex.targetWeight || origW;
@@ -2437,8 +2438,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                           var dayExs4 = nd4[activeTab].exercises[day] || [];
                           for (var di4 = 0; di4 < dayExs4.length; di4++) {
                             if (dayExs4[di4].name === ex.name) {
-                              var origW4 = dayExs4[di4].current || "";
-                              var origR4 = dayExs4[di4].reps || "";
+                              var latestProg4 = dayExs4[di4].prog && dayExs4[di4].prog.length > 0 ? dayExs4[di4].prog[dayExs4[di4].prog.length - 1] : null;
+                              var origW4 = latestProg4 ? latestProg4.w : (dayExs4[di4].current || "");
+                              var origR4 = latestProg4 ? latestProg4.r : (dayExs4[di4].reps || "");
                               dayExs4[di4]._from = origW4 + " " + origR4;
                               var isUserOverride4 = false;
                               if (userNote2) {
@@ -2454,7 +2456,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                                 }
                                 dayExs4[di4].notes = (dayExs4[di4].notes ? dayExs4[di4].notes + "; " : "") + "Wk" + currentWeek + " declined: " + userNote2;
                               } else {
-                                dayExs4[di4].target = origW4 + " x " + origR4;
+                                dayExs4[di4].current = origW4;
+                                dayExs4[di4].reps = origR4;
+                                delete dayExs4[di4].target;
                               }
                               dayExs4[di4]._userOverride = isUserOverride4;
                               break;
@@ -3431,7 +3435,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.208
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.209
       </div>
     </div>
   );
