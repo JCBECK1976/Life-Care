@@ -2795,6 +2795,47 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             })}
           </div>
 
+                    {addingNew && (<div style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #fde68a" }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#854d0e", marginBottom: 4 }}>Add New {addingCategory.charAt(0).toUpperCase() + addingCategory.slice(1)} Item</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. Costa Rocky Road, Protein shake, Glass of wine..." style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ padding: "6px 12px", background: newItemLoading ? "#94a3b8" : "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button>
+                <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>
+                  📷
+                  <input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
+                </label>
+                <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: "6px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+              </div>
+              <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
+            </div>)}
+          {cameraPreview && (<div style={{ background: "#f0fdf4", borderRadius: 8, padding: 12, marginBottom: 8, border: "1px solid #86efac" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 {cameraPreview.name}</div>
+              <div style={{ display: "flex", gap: 12, marginBottom: 6, fontSize: 11 }}>
+                <span><b>{cameraPreview.kcal}</b> kcal</span>
+                <span><b>{cameraPreview.protein}g</b> protein</span>
+                <span><b>{cameraPreview.fat}g</b> fat</span>
+                {cameraPreview.satFat > 0 && <span><b>{cameraPreview.satFat}g</b> sat fat</span>}
+              </div>
+              <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: cameraPreview.rating === "RED" ? "#fef2f2" : cameraPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: cameraPreview.rating === "RED" ? "#dc2626" : cameraPreview.rating === "AMBER" ? "#d97706" : "#166534", border: "1px solid " + (cameraPreview.rating === "RED" ? "#fecaca" : cameraPreview.rating === "AMBER" ? "#fde68a" : "#86efac") }}>{cameraPreview.rating}</div>
+              {cameraPreview.suitability ? <div style={{ fontSize: 11, color: "#475569", marginBottom: 8, fontStyle: "italic", lineHeight: 1.4 }}>{cameraPreview.suitability}</div> : <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 8 }}>Checking suitability...</div>}
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={async function() {
+                  var cp = cameraPreview;
+                  var newItem = { id: "custom_" + Date.now(), name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, rating: cp.rating, freq: "Daily", isCustom: true };
+                  if (cp.category === "breakfast") { var u = [].concat(customBreakfasts, [newItem]); setCustomBreakfasts(u); await sSet("custom_breakfasts", JSON.stringify(u)); }
+                  else if (cp.category === "lunch") { var u = [].concat(customLunches, [newItem]); setCustomLunches(u); await sSet("custom_lunches", JSON.stringify(u)); }
+                  else if (cp.category === "dinner") { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
+                  else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
+                  var slotKey = cp.category === "breakfast" ? "b" : cp.category === "lunch" ? "l" : cp.category === "dinner" ? "d" : "o1";
+                  if (eatDay && eatDay !== "week") { setMeal(eatDay, slotKey, newItem.id); }
+                  setFormMsg("✅ Added: " + newItem.name);
+                  setCameraPreview(null);
+                  setTimeout(function(){setFormMsg("");}, 3000);
+                }} style={{ flex: 1, padding: 8, background: "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Add to List</button>
+                <button onClick={function() { setCameraPreview(null); }} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
+              </div>
+            </div>)}
+
           {eatDay === "week" && (<div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a" }}>Week Settings</div>
             {(() => {
@@ -3021,49 +3062,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             </div>
           </div>}
 
-          
-
-          {addingNew && (<div style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #fde68a" }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#854d0e", marginBottom: 4 }}>Add New {addingCategory.charAt(0).toUpperCase() + addingCategory.slice(1)} Item</div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. Costa Rocky Road, Protein shake, Glass of wine..." style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
-                <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ padding: "6px 12px", background: newItemLoading ? "#94a3b8" : "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button>
-                <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>
-                  📷
-                  <input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
-                </label>
-                <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: "6px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
-              </div>
-              <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
-            </div>)}
-
-          {cameraPreview && (<div style={{ background: "#f0fdf4", borderRadius: 8, padding: 12, marginBottom: 8, border: "1px solid #86efac" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 {cameraPreview.name}</div>
-              <div style={{ display: "flex", gap: 12, marginBottom: 6, fontSize: 11 }}>
-                <span><b>{cameraPreview.kcal}</b> kcal</span>
-                <span><b>{cameraPreview.protein}g</b> protein</span>
-                <span><b>{cameraPreview.fat}g</b> fat</span>
-                {cameraPreview.satFat > 0 && <span><b>{cameraPreview.satFat}g</b> sat fat</span>}
-              </div>
-              <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: cameraPreview.rating === "RED" ? "#fef2f2" : cameraPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: cameraPreview.rating === "RED" ? "#dc2626" : cameraPreview.rating === "AMBER" ? "#d97706" : "#166534", border: "1px solid " + (cameraPreview.rating === "RED" ? "#fecaca" : cameraPreview.rating === "AMBER" ? "#fde68a" : "#86efac") }}>{cameraPreview.rating}</div>
-              {cameraPreview.suitability ? <div style={{ fontSize: 11, color: "#475569", marginBottom: 8, fontStyle: "italic", lineHeight: 1.4 }}>{cameraPreview.suitability}</div> : <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 8 }}>Checking suitability...</div>}
-              <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={async function() {
-                  var cp = cameraPreview;
-                  var newItem = { id: "custom_" + Date.now(), name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, rating: cp.rating, freq: "Daily", isCustom: true };
-                  if (cp.category === "breakfast") { var u = [].concat(customBreakfasts, [newItem]); setCustomBreakfasts(u); await sSet("custom_breakfasts", JSON.stringify(u)); }
-                  else if (cp.category === "lunch") { var u = [].concat(customLunches, [newItem]); setCustomLunches(u); await sSet("custom_lunches", JSON.stringify(u)); }
-                  else if (cp.category === "dinner") { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
-                  else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
-                  var slotKey = cp.category === "breakfast" ? "b" : cp.category === "lunch" ? "l" : cp.category === "dinner" ? "d" : "o1";
-                  if (eatDay && eatDay !== "week") { setMeal(eatDay, slotKey, newItem.id); }
-                  setFormMsg("✅ Added: " + newItem.name);
-                  setCameraPreview(null);
-                  setTimeout(function(){setFormMsg("");}, 3000);
-                }} style={{ flex: 1, padding: 8, background: "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Add to List</button>
-                <button onClick={function() { setCameraPreview(null); }} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
-              </div>
-            </div>)}
+        
 
           {/* Generate meals */}
           
@@ -3435,7 +3434,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.213
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.214
       </div>
     </div>
   );
