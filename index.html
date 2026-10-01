@@ -3527,11 +3527,15 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       <span style={{width:35}}>WEEK</span><span style={{flex:1}}>WEIGHT</span><span style={{flex:1}}>REPS</span><span style={{flex:2}}>NOTES</span>
                     </div>
                     {(ex.prog || []).map(function(p, pi) {
+                      var wk = p.week || pi+1;
+                      var wt = p.weight || "?";
+                      var rp = p.reps || "?";
+                      var nt = p.notes || p.comment || "";
                       return (<div key={pi} style={{ display: "flex", gap: 4, marginBottom: 2, fontSize: 10, padding: "3px 0", borderBottom: "1px solid #f1f5f9" }}>
-                        <span style={{width:35,fontWeight:600}}>{p.week || p.w || pi+1}</span>
-                        <span style={{flex:1}}>{p.weight || p.w || "?"}</span>
-                        <span style={{flex:1}}>{p.reps || p.r || "?"}</span>
-                        <span style={{flex:2,color:"#64748b"}}>{p.notes || p.comment || p.n || ""}</span>
+                        <span style={{width:35,fontWeight:600}}>{wk}</span>
+                        <span style={{flex:1}}>{wt}</span>
+                        <span style={{flex:1}}>{rp}</span>
+                        <span style={{flex:2,color:"#64748b"}}>{nt}</span>
                       </div>);
                     })}
                     {pc === 0 && <div style={{fontSize:10,color:"#94a3b8",fontStyle:"italic"}}>No logged weeks</div>}
