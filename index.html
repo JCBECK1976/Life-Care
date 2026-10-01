@@ -3517,12 +3517,25 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 var pc = (ex.prog || []).length;
                 var lp = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
                 return (<div key={i} style={{ padding: "6px 8px", marginBottom: 3, background: pc > 0 ? "#f0fdf4" : "#fef2f2", borderRadius: 6, border: "1px solid " + (pc > 0 ? "#86efac" : "#fecaca"), fontSize: 11 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", cursor: "pointer" }} onClick={function(){setDataExpandEx(dataExpandEx === person+"-"+day+"-"+i ? null : person+"-"+day+"-"+i);}}>
                     <span style={{ fontWeight: 600 }}>{ex.name}</span>
-                    <span style={{ color: pc > 0 ? "#16a34a" : "#dc2626", fontWeight: 600 }}>{pc} logs</span>
+                    <span style={{ color: pc > 0 ? "#16a34a" : "#dc2626", fontWeight: 600 }}>{pc} logs {dataExpandEx === person+"-"+day+"-"+i ? "\u25B2" : "\u25BC"}</span>
                   </div>
                   <div style={{ color: "#64748b", fontSize: 10 }}>Current: {ex.current || "?"} / {ex.reps || "?"}</div>
-                  {lp && <div style={{ color: "#475569", fontSize: 10 }}>Last: {lp.weight || lp.w} {lp.reps || lp.r} on {lp.date || lp.d}</div>}
+                  {dataExpandEx === person+"-"+day+"-"+i && (<div style={{ marginTop: 6, borderTop: "1px solid #e2e8f0", paddingTop: 6 }}>
+                    <div style={{ display: "flex", gap: 4, marginBottom: 4, fontSize: 9, fontWeight: 700, color: "#64748b" }}>
+                      <span style={{width:35}}>WEEK</span><span style={{flex:1}}>WEIGHT</span><span style={{flex:1}}>REPS</span><span style={{flex:2}}>NOTES</span>
+                    </div>
+                    {(ex.prog || []).map(function(p, pi) {
+                      return (<div key={pi} style={{ display: "flex", gap: 4, marginBottom: 2, fontSize: 10, padding: "3px 0", borderBottom: "1px solid #f1f5f9" }}>
+                        <span style={{width:35,fontWeight:600}}>{p.week || p.w || pi+1}</span>
+                        <span style={{flex:1}}>{p.weight || p.w || "?"}</span>
+                        <span style={{flex:1}}>{p.reps || p.r || "?"}</span>
+                        <span style={{flex:2,color:"#64748b"}}>{p.notes || p.comment || p.n || ""}</span>
+                      </div>);
+                    })}
+                    {pc === 0 && <div style={{fontSize:10,color:"#94a3b8",fontStyle:"italic"}}>No logged weeks</div>}
+                  </div>)}
                 </div>);
               })}
             </div>);
@@ -3640,7 +3653,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.218r
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.218r2
       </div>
     </div>
   );
