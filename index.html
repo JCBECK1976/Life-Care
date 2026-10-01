@@ -52,6 +52,35 @@
     // Global API key holder
     window._anthropicKey = "";
   </script>
+<script>
+if (window.location.search.indexOf("datacheck") >= 0) {
+  document.addEventListener("DOMContentLoaded", function() {
+    document.body.innerHTML = '<div style="padding:20px;font-family:monospace"><h3>Reading data...</h3><pre id="dcout"></pre></div>';
+    firebase.database().ref("data/dashboard_data").once("value").then(function(snap) {
+      if (snap.exists()) {
+        var d = JSON.parse(snap.val());
+        var r = {};
+        ["jc","becks"].forEach(function(p) {
+          if (d[p] && d[p].exercises) {
+            r[p] = {};
+            Object.keys(d[p].exercises).forEach(function(day) {
+              r[p][day] = d[p].exercises[day].map(function(ex) {
+                return { name: ex.name, current: ex.current, reps: ex.reps, progCount: (ex.prog||[]).length };
+              });
+            });
+          }
+        });
+        document.getElementById("dcout").textContent = JSON.stringify(r, null, 2);
+      } else {
+        document.getElementById("dcout").textContent = "No dashboard_data found";
+      }
+    }).catch(function(e) {
+      document.getElementById("dcout").textContent = "Error: " + e.message;
+    });
+  });
+}
+</script>
+
 
   <script type="text/babel">
 const { useState, useEffect, useCallback, useRef } = React;
@@ -1212,22 +1241,6 @@ function Dashboard() {
       const raw = await sGet("dashboard:data");
       if (raw) {
         const d = JSON.parse(raw);
-        // DATA CHECK MODE
-        if (window.location.search.includes("datacheck")) {
-          var r = {};
-          ["jc","becks"].forEach(function(p) {
-            if (d[p] && d[p].exercises) {
-              r[p] = {};
-              Object.keys(d[p].exercises).forEach(function(day) {
-                r[p][day] = d[p].exercises[day].map(function(ex) {
-                  return { name: ex.name, current: ex.current, reps: ex.reps, progCount: (ex.prog||[]).length, lastEntry: ex.prog && ex.prog.length ? ex.prog[ex.prog.length-1] : null };
-                });
-              });
-            }
-          });
-          document.body.innerHTML = "<pre style=\"padding:20px;font-size:12px\">" + JSON.stringify(r, null, 2) + "</pre>";
-          return;
-        }
         // Migrate to shared storage
         await sSet("dashboard:data", JSON.stringify(d));
         setData(d);
