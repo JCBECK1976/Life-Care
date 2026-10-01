@@ -1029,7 +1029,6 @@ function Dashboard() {
   const [foodCheckerPreview, setFoodCheckerPreview] = useState(null);
   const [foodCheckerLoading, setFoodCheckerLoading] = useState(false);
   const [foodCheckerCategory, setFoodCheckerCategory] = useState("");
-  const [dayNutritionOpen, setDayNutritionOpen] = useState(false);
   const [cameraPreview, setCameraPreview] = useState(null);
   const [bodyView, setBodyView] = useState("data");
   const [measView, setMeasView] = useState("data");
@@ -2850,45 +2849,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               var limit = isJC ? 2200 : 1900;
               var color = avg === 0 ? "#94a3b8" : avg > limit ? "#dc2626" : "#16a34a";
               return avg > 0 ? (<div style={{ fontSize: 12, fontWeight: 600, color: color, marginBottom: 10 }}>Average daily: {avg} kcal ({dayCount} day{dayCount !== 1 ? "s" : ""} planned)</div>) : null;
-            })()
-            
-}
-            {(() => {
-              var totalKcal = 0; var dayCount = 0;
-              DAYS.forEach(function(d) { var dk = getDayKcal(d); if (dk > 0) { totalKcal += dk; dayCount++; } });
-              var avgK = dayCount > 0 ? Math.round(totalKcal / dayCount) : 0;
-              var limit = activeTab === "jc" ? 2200 : 1900;
-              var pct = limit > 0 ? Math.round((avgK / limit) * 100) : 0;
-              var over = avgK > limit;
-              if (dayCount === 0) return null;
-              return (<div style={{background:"#f8fafc",borderRadius:8,padding:10,marginBottom:10,border:"1px solid #e2e8f0"}}>
-                <div style={{fontSize:11,fontWeight:700,marginBottom:6}}>Weekly Overview ({dayCount} day{dayCount!==1?"s":""} planned)</div>
-                <div style={{marginBottom:6}}>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:10,marginBottom:2}}>
-                    <span>Avg Calories/day</span>
-                    <span style={{color:over?"#dc2626":"#16a34a",fontWeight:600}}>{avgK}/{limit} kcal ({pct}%)</span>
-                  </div>
-                  <div style={{height:8,background:"#e2e8f0",borderRadius:4,overflow:"hidden"}}>
-                    <div style={{height:"100%",width:Math.min(pct,100)+"%",background:over?"#dc2626":"#16a34a",borderRadius:4}}></div>
-                  </div>
-                  {over && <div style={{fontSize:9,color:"#dc2626",marginTop:1}}>⚠️ Over target by {avgK - limit} kcal/day average</div>}
-                </div>
-                <button onClick={async function(){
-                  setFormMsg("Generating...");
-                  var isJ = activeTab === "jc";
-                  var dayDetails = DAYS.map(function(d){return d + ": " + getDayKcal(d) + "kcal";}).join(", ");
-                  try {
-                    var prompt = "Weekly eating summary for " + (isJ?"JC male 49":"Becks female 48") + ". Daily targets: " + limit + "kcal, <20g sat fat, " + (isJ?"110-130":"90-110") + "g protein. Days: " + dayDetails + ". Avg: " + avgK + "kcal/day. Give 2-3 sentences honest feedback on the week. Note patterns and suggest improvements.";
-                    var resp = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{"Content-Type":"application/json","x-api-key":window._anthropicKey||"","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:200,messages:[{role:"user",content:prompt}]})});
-                    var result = await resp.json();
-                    var txt = ""; if(result.content){for(var ri=0;ri<result.content.length;ri++){if(result.content[ri].text)txt+=result.content[ri].text;}}
-                    setFormMsg(txt.trim());
-                  } catch(fe) { setFormMsg("Error: " + String(fe).substring(0,60)); }
-                  setTimeout(function(){setFormMsg("");},10000);
-                }} style={{width:"100%",padding:8,background:accent,color:"#fff",border:"none",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",marginTop:4}}>Generate Week Feedback</button>
-              </div>);
             })()}
-            {(() => {var totalKcal=0;var dayCount=0;var isJ=activeTab==="jc";DAYS.forEach(function(d){var dk=getDayKcal(d);if(dk>0){totalKcal+=dk;dayCount++;}});var avgK=dayCount>0?Math.round(totalKcal/dayCount):0;var limit=isJ?2200:1900;if(dayCount===0)return null;var bars=[{l:"Avg Calories/day",v:avgK,t:limit,u:"kcal"},{l:"Protein",v:0,t:isJ?120:100,u:"g"},{l:"Sat Fat",v:0,t:20,u:"g",inv:1},{l:"Fat",v:0,t:isJ?73:62,u:"g"},{l:"Carbs",v:0,t:isJ?275:230,u:"g"},{l:"Sugar",v:0,t:25,u:"g",inv:1},{l:"Fibre",v:0,t:isJ?32:27,u:"g"},{l:"Salt",v:0,t:6,u:"g",inv:1}];return (<div style={{background:"#f8fafc",borderRadius:8,padding:10,marginBottom:10,border:"1px solid #e2e8f0"}}><div style={{fontSize:11,fontWeight:700,marginBottom:6}}>Weekly Overview ({dayCount} day{dayCount!==1?"s":""} planned)</div>{bars.map(function(b){var pct=b.t>0?Math.round((b.v/b.t)*100):0;var ov=b.v>b.t;var cl=b.v===0?"#cbd5e1":b.inv?(ov?"#dc2626":"#16a34a"):(ov?"#dc2626":"#16a34a");return (<div key={b.l} style={{marginBottom:4}}><div style={{display:"flex",justifyContent:"space-between",fontSize:10,marginBottom:1}}><span>{b.l}</span><span style={{color:cl,fontWeight:600}}>{b.v}/{b.t}{b.u} ({pct}%)</span></div><div style={{height:6,background:"#e2e8f0",borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:Math.min(pct,100)+"%",background:cl,borderRadius:3}}></div></div>{ov&&<div style={{fontSize:8,color:"#dc2626"}}>Over by {b.v-b.t}{b.u}</div>}</div>);})}<button onClick={async function(){setFormMsg("Generating...");var dd=DAYS.map(function(d){return d+": "+getDayKcal(d)+"kcal";}).join(", ");try{var p="Weekly for "+(isJ?"JC male 49":"Becks female 48")+". Targets: "+limit+"kcal, <20g sat fat. "+dd+". Avg: "+avgK+". 2-3 sentences.";var rp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":window._anthropicKey||"","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:200,messages:[{role:"user",content:p}]})});var r=await rp.json();var t="";if(r.content){for(var i=0;i<r.content.length;i++){if(r.content[i].text)t+=r.content[i].text;}}setFormMsg(t.trim());}catch(e){setFormMsg("Error: "+String(e).substring(0,60));}setTimeout(function(){setFormMsg("");},10000);}} style={{width:"100%",padding:8,background:accent,color:"#fff",border:"none",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",marginTop:4}}>Generate Week Feedback</button></div>);})()}
             <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>Set Defaults</div>
             <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8 }}>Set default meals. Use "All" to apply to all people or "Individual" for just {activeTab === "jc" ? "JC" : "Becks"}.</div>
             {[{ k: "b", l: "Breakfast", items: allBfast }, { k: "l", l: "Lunch", items: allLunch }, { k: "d", l: "Dinner", items: allDinners }].map(function(def) {
@@ -2995,67 +2956,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
           {/* Day content */}
           {eatDay !== "week" && <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — <span style={{color: getDayKcal(eatDay) > (activeTab === "jc" ? 2200 : 1900) ? "#dc2626" : "#16a34a"}}>{getDayKcal(eatDay)} kcal</span></span><button onClick={function(){setDayNutritionOpen(!dayNutritionOpen);}} style={{border:"none",background:"none",fontSize:14,cursor:"pointer",padding:"2px 4px"}}>{dayNutritionOpen ? "✕" : "👁"}</button></div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</div>
 
-            
-            {dayNutritionOpen && (() => {
-              var dk = getDayKcal(eatDay); var limit = activeTab === "jc" ? 2200 : 1900;
-              var fatLimit = 20; var protTarget = activeTab === "jc" ? 120 : 100;
-              var bId = getMeal(eatDay,"b"); var lId = getMeal(eatDay,"l"); var dId = getMeal(eatDay,"d");
-              var bItem = bId ? allBfast.find(function(x){return x.id===bId;}) : null;
-              var lItem = lId ? allLunch.find(function(x){return x.id===lId;}) : null;
-              var dItem = dId ? allDinners.find(function(x){return x.id===dId;}) : null;
-              var isJ = activeTab === "jc";
-              var bK = bItem ? (isJ ? bItem.jcKcal : bItem.beckKcal) : 0;
-              var lK = lItem ? (isJ ? lItem.jcKcal : lItem.beckKcal) : 0;
-              var dK = dItem ? (isJ ? dItem.jcKcal : dItem.beckKcal) : 0;
-              var bars = [{label:"Calories",value:dk,target:limit,unit:"kcal"},{label:"Protein",value:0,target:protTarget,unit:"g"},{label:"Sat Fat",value:0,target:fatLimit,unit:"g"}];
-              return (<div style={{background:"#f8fafc",borderRadius:8,padding:10,marginBottom:10,border:"1px solid #e2e8f0"}}>
-                <div style={{fontSize:11,fontWeight:700,marginBottom:8}}>Daily Nutrition — {eatDay.charAt(0).toUpperCase() + eatDay.slice(1)}</div>
-                {bars.map(function(b) {
-                  var pct = b.target > 0 ? Math.round((b.value / b.target) * 100) : 0;
-                  var over = b.value > b.target;
-                  var color = b.label === "Sat Fat" ? (over ? "#dc2626" : "#16a34a") : (over ? "#dc2626" : "#2563eb");
-                  return (<div key={b.label} style={{marginBottom:6}}>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,marginBottom:2}}>
-                      <span>{b.label}</span>
-                      <span style={{color:color,fontWeight:600}}>{b.value}/{b.target}{b.unit} ({pct}%)</span>
-                    </div>
-                    <div style={{height:8,background:"#e2e8f0",borderRadius:4,overflow:"hidden"}}>
-                      <div style={{height:"100%",width:Math.min(pct,100)+"%",background:color,borderRadius:4,transition:"width 0.3s"}}></div>
-                    </div>
-                    {over && <div style={{fontSize:9,color:"#dc2626",marginTop:1}}>⚠️ Over by {b.value - b.target}{b.unit}</div>}
-                  </div>);
-                })}
-                <button onClick={async function(){
-                  setFormMsg("Generating...");
-                  try {
-                    var prompt = "Day: " + eatDay + ". Meals: Breakfast=" + (bItem?bItem.name:"none") + ", Lunch=" + (lItem?lItem.name:"none") + ", Dinner=" + (dItem?dItem.name:"none") + ". Calories: " + dk + "/" + limit + ". Person: " + (isJ ? "JC male 49, 2000-2200 kcal target, <20g sat fat" : "Becks female 48, 1700-1900 kcal target, LDL 7.2, <20g sat fat") + ". Give 2-3 sentences of honest feedback on this day. Suggest improvements.";
-                    var resp = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{"Content-Type":"application/json","x-api-key":window._anthropicKey||"","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:200,messages:[{role:"user",content:prompt}]})});
-                    var result = await resp.json();
-                    var txt = ""; if(result.content){for(var ri=0;ri<result.content.length;ri++){if(result.content[ri].text)txt+=result.content[ri].text;}}
-                    setFormMsg(txt.trim());
-                  } catch(fe) { setFormMsg("Error: " + String(fe).substring(0,60)); }
-                  setTimeout(function(){setFormMsg("");},10000);
-                }} style={{width:"100%",padding:8,background:accent,color:"#fff",border:"none",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",marginTop:6}}>Generate Day Feedback</button>
-              </div>);
-            })()}
-
-            {dayNutritionOpen && (() => {
-              var dk=getDayKcal(eatDay);var isJ=activeTab==="jc";var limit=isJ?2200:1900;
-              var bId=getMeal(eatDay,"b");var lId=getMeal(eatDay,"l");var dId=getMeal(eatDay,"d");
-              var bI=bId?allBfast.find(function(x){return x.id===bId;}):null;
-              var lI=lId?allLunch.find(function(x){return x.id===lId;}):null;
-              var dI=dId?allDinners.find(function(x){return x.id===dId;}):null;
-              var tP=(bI?(bI.protein||0):0)+(lI?(lI.protein||0):0)+(dI?(isJ?(dI.jcProt||0):(dI.beckProt||0)):0);
-              var tF=(bI?(bI.fat||0):0)+(lI?(lI.fat||0):0)+(dI?(isJ?(dI.jcFat||0):(dI.beckFat||0)):0);
-              var bars=[{l:"Calories",v:dk,t:limit,u:"kcal"},{l:"Protein",v:tP,t:isJ?120:100,u:"g"},{l:"Sat Fat",v:0,t:20,u:"g",inv:1},{l:"Fat",v:tF,t:isJ?73:62,u:"g"},{l:"Carbs",v:0,t:isJ?275:230,u:"g"},{l:"Sugar",v:0,t:25,u:"g",inv:1},{l:"Fibre",v:0,t:isJ?32:27,u:"g"},{l:"Salt",v:0,t:6,u:"g",inv:1}];
-              return (<div style={{background:"#f8fafc",borderRadius:8,padding:10,marginBottom:10,border:"1px solid #e2e8f0"}}>
-                <div style={{fontSize:11,fontWeight:700,marginBottom:8,display:"flex",justifyContent:"space-between"}}><span>Daily Nutrition</span><button onClick={function(){setDayNutritionOpen(false);}} style={{border:"none",background:"none",fontSize:12,cursor:"pointer",padding:0}}>✕</button></div>
-                {bars.map(function(b){var pct=b.t>0?Math.round((b.v/b.t)*100):0;var ov=b.v>b.t;var cl=b.v===0?"#cbd5e1":b.inv?(ov?"#dc2626":"#16a34a"):(ov?"#dc2626":"#16a34a");return (<div key={b.l} style={{marginBottom:4}}><div style={{display:"flex",justifyContent:"space-between",fontSize:10,marginBottom:1}}><span>{b.l}</span><span style={{color:cl,fontWeight:600}}>{b.v}/{b.t}{b.u} ({pct}%)</span></div><div style={{height:6,background:"#e2e8f0",borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:Math.min(pct,100)+"%",background:cl,borderRadius:3,transition:"width 0.3s"}}></div></div>{ov&&<div style={{fontSize:8,color:"#dc2626"}}>Over by {b.v-b.t}{b.u}</div>}</div>);})}
-                <button onClick={async function(){setFormMsg("Generating...");try{var p="Day: "+eatDay+". B="+(bI?bI.name:"none")+", L="+(lI?lI.name:"none")+", D="+(dI?dI.name:"none")+". Cal:"+dk+"/"+limit+". "+(isJ?"JC male 49":"Becks female 48")+". 2-3 sentences feedback.";var rp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":window._anthropicKey||"","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:200,messages:[{role:"user",content:p}]})});var r=await rp.json();var t="";if(r.content){for(var i=0;i<r.content.length;i++){if(r.content[i].text)t+=r.content[i].text;}}setFormMsg(t.trim());}catch(e){setFormMsg("Error: "+String(e).substring(0,60));}setTimeout(function(){setFormMsg("");},10000);}} style={{width:"100%",padding:8,background:accent,color:"#fff",border:"none",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",marginTop:4}}>Generate Day Feedback</button>
-              </div>);
-            })()}
             {/* Breakfast */}
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Breakfast</span>
@@ -3094,7 +2996,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             
             {/* AI Add Items */}
             <div style={{ marginTop: 8, padding: 10, background: "#f5f3ff", borderRadius: 8, border: "1px solid #c4b5fd" }}>
-              
+              <div style={{ fontSize: 10, fontWeight: 600, color: "#6b21a8", marginBottom: 4 }}>AI — Add to My Lists</div>
               <div style={{ fontSize: 9, color: "#64748b", marginBottom: 6 }}>Describe what to add and which list. AI calculates calories and adds it. Examples:<br/>• Add to breakfast list — overnight oats: 85g oats, chia/pumpkin/sunflower seeds, 340ml almond milk, 2tbsp 0% greek yogurt, mixed berries, 1tsp honey, 5g creatine<br/>• Add to dinner list — chicken stir fry with egg noodles and teriyaki sauce<br/>• Add to other list — Costa almond latte</div>
               <textarea id={"ai-add-" + eatDay} placeholder="Add to breakfast list — overnight oats: 85g oats, seeds, almond milk, yogurt, berries, honey..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 50, resize: "vertical", boxSizing: "border-box", marginBottom: 6 }} />
               <button onClick={async function() {
@@ -3130,39 +3032,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
             {/* Quick text input */}
             <div style={{ marginTop: 8, padding: 10, background: "#f0f9ff", borderRadius: 8, border: "1px solid #bae6fd" }}>
-              <div style={{ marginBottom: 8, marginTop: 8 }}>
-              <label style={{ display: "block", width: "100%", padding: 10, background: "linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", textAlign: "center" }}>
-                📷 Record my Eating
-                <input type="file" accept="image/*" capture="environment" onChange={async function(e) {
-                  if (!e.target.files || !e.target.files[0]) return;
-                  var file = e.target.files[0];
-                  setFoodCheckerLoading(true);
-                  try {
-                    var reader = new FileReader();
-                    var base64 = await new Promise(function(res, rej) { reader.onload = function() { res(reader.result.split(",")[1]); }; reader.onerror = function() { rej(new Error("Read failed")); }; reader.readAsDataURL(file); });
-                    var mediaType = file.type || "image/jpeg";
-                    var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Identify this food. Return ONLY JSON: {\"name\":\"food name\",\"kcal\":calories,\"protein\":grams,\"fat\":grams,\"satFat\":sat_fat_grams,\"rating\":\"GREAT or AMBER or RED\",\"mealType\":\"breakfast or lunch or dinner or snack\"}" }] }] }) });
-                    var result = await resp.json();
-                    var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
-                    var info = JSON.parse(txt.replace(/```json|```/g, "").trim());
-                    var slotKey = info.mealType === "breakfast" ? "b" : info.mealType === "lunch" ? "l" : info.mealType === "dinner" ? "d" : "o1";
-                    var listKey = info.mealType === "breakfast" ? "custom_breakfasts" : info.mealType === "lunch" ? "custom_lunches" : info.mealType === "dinner" ? "custom_meals" : "custom_snacks";
-                    var newItem = { id: "custom_" + Date.now(), name: info.name || "Unknown", jcKcal: info.kcal || 0, beckKcal: info.kcal || 0, rating: info.rating || "AMBER", freq: "Daily", isCustom: true };
-                    if (info.mealType === "dinner") { newItem.jcProt = info.protein || 0; newItem.beckProt = info.protein || 0; newItem.jcFat = info.fat || 0; newItem.beckFat = info.fat || 0; newItem.time = 30; newItem.shop = []; }
-                    var listItems = info.mealType === "breakfast" ? customBreakfasts : info.mealType === "lunch" ? customLunches : info.mealType === "dinner" ? customMeals : customSnacks;
-                    var setList = info.mealType === "breakfast" ? setCustomBreakfasts : info.mealType === "lunch" ? setCustomLunches : info.mealType === "dinner" ? setCustomMeals : setCustomSnacks;
-                    var u = [].concat(listItems, [newItem]); setList(u); await sSet(listKey, JSON.stringify(u));
-                    setMeal(eatDay, slotKey, newItem.id);
-                    setFormMsg("📷 " + (info.name||"") + " added to " + (info.mealType||"snack") + " (" + (info.kcal||0) + " kcal)");
-                  } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 80)); }
-                  setFoodCheckerLoading(false);
-                  e.target.value = "";
-                  setTimeout(function(){setFormMsg("");}, 4000);
-                }} style={{ display: "none" }} />
-              </label>
-            </div>
-
-            <div style={{ fontSize: 10, fontWeight: 600, color: "#0369a1", marginBottom: 4 }}>Quick Entry — type or paste what you ate</div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: "#0369a1", marginBottom: 4 }}>Quick Entry — type or paste what you ate</div>
               <textarea id={"quick-entry-" + eatDay} placeholder="e.g. Had porridge for breakfast, chicken sandwich for lunch, spag bol for dinner, 2 biscuits and a protein mousse..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 40, resize: "vertical", boxSizing: "border-box", marginBottom: 6 }} />
               <button onClick={async function() {
                 var text = document.getElementById("quick-entry-" + eatDay).value;
@@ -3631,7 +3501,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.220
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.218
       </div>
     </div>
   );
