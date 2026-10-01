@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head><title>Data Check</title></head>
+<body style="font-family:sans-serif;padding:20px">
+<h3>Exercise Data Check</h3>
+<div id="s">Loading...</div>
+<pre id="o" style="background:#f5f5f5;padding:10px;overflow:auto;max-height:80vh;font-size:11px"></pre>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+window.onload=function(){
+firebase.initializeApp({apiKey:"AIzaSyDnNHlqyEg3IVxYo9M6Z_pfn5ABMp7Jbt4",authDomain:"life-care-app-64d04.firebaseapp.com",databaseURL:"https://life-care-app-64d04-default-rtdb.europe-west1.firebasedatabase.app",projectId:"life-care-app-64d04"});
+document.getElementById("s").textContent="Reading...";
+firebase.database().ref("data/dashboard_data").once("value").then(function(snap){
+if(snap.exists()){var d=JSON.parse(snap.val());var r={};["jc","becks"].forEach(function(p){if(d[p]&&d[p].exercises){r[p]={};Object.keys(d[p].exercises).forEach(function(day){r[p][day]=d[p].exercises[day].map(function(ex){return{name:ex.name,current:ex.current,reps:ex.reps,progCount:(ex.prog||[]).length,lastEntry:ex.prog&&ex.prog.length?ex.prog[ex.prog.length-1]:null};});});}});
+document.getElementById("s").textContent="Found:";document.getElementById("o").textContent=JSON.stringify(r,null,2);}
+else{document.getElementById("s").textContent="No dashboard_data. Listing keys...";
+firebase.database().ref("data").once("value").then(function(a){document.getElementById("o").textContent=a.val()?Object.keys(a.val()).join("\n"):"empty";});}
+}).catch(function(e){document.getElementById("s").textContent="Error: "+e.message;});
+};
+</script>
+</body>
+</html>
