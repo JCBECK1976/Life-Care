@@ -3546,6 +3546,92 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           setTimeout(function(){setFormMsg("");}, 30000);
         }} style={{ width: "100%", padding: 8, background: accent, color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Show All Firebase Keys</button>
       </div>
+      <div style={{ marginTop: 10, padding: 10, background: "#fef3c7", borderRadius: 8, border: "1px solid #fde68a" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6 }}>Recovery: Read Comment Keys</div>
+        <div style={{ fontSize: 10, color: "#475569", marginBottom: 6 }}>Comments are saved separately at log time. Missing weeks may be recoverable.</div>
+        <button onClick={async function() {
+          setFormMsg("Reading all comment keys...");
+          try {
+            var snap = await firebase.database().ref("data").once("value");
+            var all = snap.val();
+            if (!all) { setFormMsg("No data"); return; }
+            var keys = Object.keys(all);
+            var comments = {};
+            keys.forEach(function(k) {
+              if (k.indexOf("comment:") === 0) {
+                var parts = k.split(":");
+                var person = parts[1];
+                var exercise = parts[2];
+                var week = parts[3];
+                if (!comments[person]) comments[person] = {};
+                if (!comments[person][exercise]) comments[person][exercise] = {};
+                comments[person][exercise]["w" + week] = all[k];
+              }
+            });
+            var summary = [];
+            Object.keys(comments).forEach(function(person) {
+              summary.push("=== " + person.toUpperCase() + " ===");
+              Object.keys(comments[person]).sort().forEach(function(ex) {
+                var weeks = Object.keys(comments[person][ex]).sort();
+                summary.push(ex + ": " + weeks.join(", "));
+                weeks.forEach(function(w) {
+                  var val = comments[person][ex][w];
+                  if (typeof val === "string" && val.length < 200) {
+                    summary.push("  " + w + ": " + val);
+                  }
+                });
+              });
+            });
+            setFormMsg(summary.join("\n"));
+          } catch(e) { setFormMsg("Error: " + e.message); }
+          setTimeout(function(){setFormMsg("");}, 60000);
+        }} style={{ width: "100%", padding: 8, background: "#d97706", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", marginBottom: 6 }}>Show Comment Data</button>
+        <button onClick={async function() {
+          setFormMsg("Rebuilding from comments...");
+          try {
+            var snap = await firebase.database().ref("data").once("value");
+            var all = snap.val();
+            if (!all) { setFormMsg("No data"); return; }
+            var keys = Object.keys(all);
+            var nd = JSON.parse(JSON.stringify(data));
+            var restored = 0;
+            keys.forEach(function(k) {
+              if (k.indexOf("comment:") === 0) {
+                var parts = k.split(":");
+                var person = parts[1];
+                var exercise = parts[2];
+                var weekNum = parseInt(parts[3]);
+                if (!nd[person] || !nd[person].exercises) return;
+                var days = Object.keys(nd[person].exercises);
+                for (var di = 0; di < days.length; di++) {
+                  var exList = nd[person].exercises[days[di]];
+                  for (var ei = 0; ei < exList.length; ei++) {
+                    if (exList[ei].name === exercise) {
+                      var prog = exList[ei].prog || [];
+                      var hasWeek = false;
+                      for (var pi = 0; pi < prog.length; pi++) {
+                        if (prog[pi].week === weekNum || prog[pi].w === weekNum) { hasWeek = true; break; }
+                      }
+                      if (!hasWeek && weekNum > 0) {
+                        prog.push({ week: weekNum, weight: exList[ei].current || "?", reps: exList[ei].reps || "?", date: "", notes: String(all[k]).substring(0, 100) });
+                        exList[ei].prog = prog.sort(function(a, b) { return (a.week || a.w || 0) - (b.week || b.w || 0); });
+                        restored++;
+                      }
+                    }
+                  }
+                }
+              }
+            });
+            if (restored > 0) {
+              await saveData(nd);
+              setFormMsg("Restored " + restored + " missing week entries from comments. Reload to see changes.");
+            } else {
+              setFormMsg("No missing weeks found to restore.");
+            }
+          } catch(e) { setFormMsg("Error: " + e.message); }
+          setTimeout(function(){setFormMsg("");}, 30000);
+        }} style={{ width: "100%", padding: 8, background: "#dc2626", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Restore Missing Weeks from Comments</button>
+      </div>
     </div>);
   })()}
 </div>)}
@@ -3554,7 +3640,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.218d
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.218r
       </div>
     </div>
   );
