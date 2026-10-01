@@ -55,27 +55,35 @@
 <script>
 if (window.location.search.indexOf("datacheck") >= 0) {
   document.addEventListener("DOMContentLoaded", function() {
-    document.body.innerHTML = '<div style="padding:20px;font-family:monospace"><h3>Reading data...</h3><pre id="dcout"></pre></div>';
-    firebase.database().ref("data/dashboard:data").once("value").then(function(snap) {
-      if (snap.exists()) {
-        var d = JSON.parse(snap.val());
-        var r = {};
-        ["jc","becks"].forEach(function(p) {
-          if (d[p] && d[p].exercises) {
-            r[p] = {};
-            Object.keys(d[p].exercises).forEach(function(day) {
-              r[p][day] = d[p].exercises[day].map(function(ex) {
-                return { name: ex.name, current: ex.current, reps: ex.reps, progCount: (ex.prog||[]).length };
-              });
-            });
-          }
-        });
-        document.getElementById("dcout").textContent = JSON.stringify(r, null, 2);
-      } else {
-        document.getElementById("dcout").textContent = "No dashboard_data found";
-      }
-    }).catch(function(e) {
-      document.getElementById("dcout").textContent = "Error: " + e.message;
+    document.body.innerHTML = '<div style="padding:20px;font-family:monospace"><h3>Reading data...</h3><pre id="dcout" style="white-space:pre-wrap;word-break:break-all"></pre></div>';
+    var out = document.getElementById("dcout");
+    var db = firebase.database();
+    var results = [];
+    
+    function tryPath(path) {
+      return db.ref(path).once("value").then(function(s) {
+        if (s.exists()) {
+          var v = s.val();
+          var t = typeof v;
+          var preview = t === "string" ? v.substring(0,200) : JSON.stringify(v).substring(0,200);
+          results.push("OK " + path + " (" + t + "): " + preview);
+        } else {
+          results.push("EMPTY " + path);
+        }
+      }).catch(function(e) {
+        results.push("ERR " + path + ": " + e.message.substring(0,60));
+      });
+    }
+    
+    Promise.all([
+      tryPath("data"),
+      tryPath("data/dashboard_data"),
+      tryPath("data/dashboard:data"),
+      tryPath("/"),
+      tryPath("dashboard_data"),
+      tryPath("dashboard:data")
+    ]).then(function() {
+      out.textContent = results.join("\n\n");
     });
   });
 }
