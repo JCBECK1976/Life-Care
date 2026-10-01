@@ -52,43 +52,6 @@
     // Global API key holder
     window._anthropicKey = "";
   </script>
-<script>
-if (window.location.search.indexOf("datacheck") >= 0) {
-  document.addEventListener("DOMContentLoaded", function() {
-    document.body.innerHTML = '<div style="padding:20px;font-family:monospace"><h3>Reading data...</h3><pre id="dcout" style="white-space:pre-wrap;word-break:break-all"></pre></div>';
-    var out = document.getElementById("dcout");
-    var db = firebase.database();
-    var results = [];
-    
-    function tryPath(path) {
-      return db.ref(path).once("value").then(function(s) {
-        if (s.exists()) {
-          var v = s.val();
-          var t = typeof v;
-          var preview = t === "string" ? v.substring(0,200) : JSON.stringify(v).substring(0,200);
-          results.push("OK " + path + " (" + t + "): " + preview);
-        } else {
-          results.push("EMPTY " + path);
-        }
-      }).catch(function(e) {
-        results.push("ERR " + path + ": " + e.message.substring(0,60));
-      });
-    }
-    
-    Promise.all([
-      tryPath("data"),
-      tryPath("data/dashboard_data"),
-      tryPath("data/dashboard:data"),
-      tryPath("/"),
-      tryPath("dashboard_data"),
-      tryPath("dashboard:data")
-    ]).then(function() {
-      out.textContent = results.join("\n\n");
-    });
-  });
-}
-</script>
-
 
   <script type="text/babel">
 const { useState, useEffect, useCallback, useRef } = React;
@@ -1063,6 +1026,9 @@ function Dashboard() {
   const [addExOpen, setAddExOpen] = useState(false);
   const [addExLoading, setAddExLoading] = useState(false);
   const [addExSearch, setAddExSearch] = useState("");
+  const [foodCheckerPreview, setFoodCheckerPreview] = useState(null);
+  const [foodCheckerLoading, setFoodCheckerLoading] = useState(false);
+  const [foodCheckerCategory, setFoodCheckerCategory] = useState("");
   const [cameraPreview, setCameraPreview] = useState(null);
   const [bodyView, setBodyView] = useState("data");
   const [measView, setMeasView] = useState("data");
@@ -1666,7 +1632,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const shopItems = {}; MEAL_DAYS.forEach(d => { var _dk = DAY_MAP[d.key] || d.key; var _dm = meals[_dk] || {}; var _did = typeof _dm === "object" ? _dm.d : _dm; const m = allDinners.find(x => x.id === _did); if (m) m.shop?.forEach(it => { shopItems[it] = (shopItems[it] || 0) + 1; }); });
   const shopList = Object.entries(shopItems).sort((a, b) => a[0].localeCompare(b[0]));
   const planned = MEAL_DAYS.filter(d => meals[DAY_MAP[d.key] || d.key]).length;
-  const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "Body Comp" }, { id: "weights", l: "Activities" }, { id: "meals", l: "Eating" }, { id: "bloods", l: "Health" }, { id: "shop", l: "Shop" }, { id: "targets", l: "Targets" }, { id: "admin", l: "⚙" }];
+  const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "Body Comp" }, { id: "weights", l: "Activities" }, { id: "meals", l: "Eating" }, { id: "bloods", l: "Health" }, { id: "shop", l: "Shop" }, { id: "targets", l: "Targets" }, { id: "admin", l: "⚙" }, { id: "data", l: "Data" }];
   const wt = p.body.weight || [];
   const latestWt = wt.length > 0 ? wt[wt.length - 1] : null;
   const idealSt = isJC ? IDEALS.jc : IDEALS.becks;
@@ -3165,10 +3131,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               <button onClick={async function() {
                 var cp = foodCheckerPreview; var cat = foodCheckerCategory;
                 var newItem = { id: "custom_" + Date.now(), name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, rating: cp.rating, freq: "Daily", isCustom: true };
-                if (cat === "breakfast") { var u = [].concat(customBreakfasts, [newItem]); setCustomBreakfasts(u); await sSet("custom_breakfasts", JSON.stringify(u)); }
-                else if (cat === "lunch") { var u = [].concat(customLunches, [newItem]); setCustomLunches(u); await sSet("custom_lunches", JSON.stringify(u)); }
-                else if (cat === "dinner") { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
-                else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
+                var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : "custom_snacks";
+                if (cat === "dinner") { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = []; }
+                try { var existing = await sGet(storageKey); var list = existing ? JSON.parse(existing) : []; list.push(newItem); await sSet(storageKey, JSON.stringify(list)); } catch(se2) {}
                 setFormMsg("Added " + cp.name + " to " + cat + " list");
                 setFoodCheckerPreview(null); setFoodCheckerCategory("");
                 setTimeout(function(){setFormMsg("");}, 3000);
@@ -3532,11 +3497,64 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             </div>)}
           </div>
         </div>)}
+
+{section === "data" && (<div>
+  <div style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 12 }}>Firebase Data Viewer</div>
+  {(() => {
+    if (!data) return (<div style={{fontSize:11,color:"#94a3b8"}}>No data loaded</div>);
+    var people = Object.keys(data).filter(function(k) { return data[k] && data[k].exercises; });
+    return (<div>
+      {people.map(function(person) {
+        var exercises = data[person].exercises;
+        var days = Object.keys(exercises);
+        return (<div key={person} style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: accent, marginBottom: 8, textTransform: "capitalize" }}>{person}</div>
+          {days.map(function(day) {
+            var exList = exercises[day] || [];
+            return (<div key={day} style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 4, textTransform: "capitalize" }}>{day} ({exList.length} exercises)</div>
+              {exList.map(function(ex, i) {
+                var pc = (ex.prog || []).length;
+                var lp = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
+                return (<div key={i} style={{ padding: "6px 8px", marginBottom: 3, background: pc > 0 ? "#f0fdf4" : "#fef2f2", borderRadius: 6, border: "1px solid " + (pc > 0 ? "#86efac" : "#fecaca"), fontSize: 11 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ fontWeight: 600 }}>{ex.name}</span>
+                    <span style={{ color: pc > 0 ? "#16a34a" : "#dc2626", fontWeight: 600 }}>{pc} logs</span>
+                  </div>
+                  <div style={{ color: "#64748b", fontSize: 10 }}>Current: {ex.current || "?"} / {ex.reps || "?"}</div>
+                  {lp && <div style={{ color: "#475569", fontSize: 10 }}>Last: {lp.weight || lp.w} {lp.reps || lp.r} on {lp.date || lp.d}</div>}
+                </div>);
+              })}
+            </div>);
+          })}
+        </div>);
+      })}
+      <div style={{ marginTop: 16, padding: 10, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6 }}>Raw Firebase Keys</div>
+        <button onClick={async function() {
+          setFormMsg("Reading Firebase...");
+          try {
+            var snap = await firebase.database().ref("data").once("value");
+            var all = snap.val();
+            var keys = Object.keys(all || {});
+            var summary = keys.map(function(k) {
+              var v = all[k];
+              return k + " (" + typeof v + ")";
+            });
+            setFormMsg(summary.join("\n"));
+          } catch(e) { setFormMsg("Error: " + e.message); }
+          setTimeout(function(){setFormMsg("");}, 30000);
+        }} style={{ width: "100%", padding: 8, background: accent, color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Show All Firebase Keys</button>
+      </div>
+    </div>);
+  })()}
+</div>)}
+
       </div>
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.216dc
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.218d
       </div>
     </div>
   );
