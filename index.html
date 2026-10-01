@@ -3032,39 +3032,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             </div>
 
             {/* Quick text input */}
-            <div style={{ marginTop: 8, padding: 10, background: "#f0f9ff", borderRadius: 8, border: "1px solid #bae6fd" }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: "#0369a1", marginBottom: 4 }}>Quick Entry — type or paste what you ate</div>
-              <textarea id={"quick-entry-" + eatDay} placeholder="e.g. Had porridge for breakfast, chicken sandwich for lunch, spag bol for dinner, 2 biscuits and a protein mousse..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 40, resize: "vertical", boxSizing: "border-box", marginBottom: 6 }} />
-              <button onClick={async function() {
-                var text = document.getElementById("quick-entry-" + eatDay).value;
-                if (!text.trim()) return;
-                setFormMsg("Reading your meals...");
-                try {
-                  var bIds = allBfast.map(function(b) { return b.id + ":" + b.name; }).join(",");
-                  var lIds = allLunch.map(function(l) { return l.id + ":" + l.name; }).join(",");
-                  var dIds = allDinners.map(function(d2) { return d2.id + ":" + d2.name; }).join(",");
-                  var oIds = allOther.map(function(o) { return o.id + ":" + o.name; }).join(",");
-                  var fmt = '{"b":"meal_id or empty","l":"meal_id or empty","d":"meal_id or empty","others":["item_id","item_id"]}';
-                  var prompt = "Match these meals to the closest items in our database. User said: " + text + ". Breakfasts: " + bIds + ". Lunches: " + lIds + ". Dinners: " + dIds + ". Others: " + oIds + ". Return ONLY JSON: " + fmt;
-                  var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: prompt }] }) });
-                  var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-                  var txt2 = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt2 += result.content[ci].text; } }
-                  if (txt2) {
-                    var matched = JSON.parse(txt2.replace(/```json|```/g, "").trim());
-                    var n = Object.assign({}, meals); if (!n[eatDay]) n[eatDay] = {};
-                    if (matched.b) n[eatDay].b = matched.b;
-                    if (matched.l) n[eatDay].l = matched.l;
-                    if (matched.d) n[eatDay].d = matched.d;
-                    if (matched.others) { matched.others.forEach(function(oid, idx2) { n[eatDay]["o" + (idx2 + 1)] = oid; }); }
-                    setMeals(n); saveMeals(n);
-                    setFormMsg("Meals matched and saved");
-                    document.getElementById("quick-entry-" + eatDay).value = "";
-                  }
-                } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); }
-                setTimeout(function() { setFormMsg(""); }, 4000);
-              }} style={{ width: "100%", padding: 8, background: "#0369a1", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Match My Meals</button>
-              <div style={{ fontSize: 9, color: "#64748b", marginTop: 3 }}>Type what you ate in plain English. AI matches to your meal database and fills the fields.</div>
-            </div>
+            
           </div>}
 
         
