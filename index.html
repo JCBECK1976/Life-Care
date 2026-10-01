@@ -3528,10 +3528,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       <span style={{width:35}}>WEEK</span><span style={{flex:1}}>WEIGHT</span><span style={{flex:1}}>REPS</span><span style={{flex:2}}>NOTES</span>
                     </div>
                     {(ex.prog || []).map(function(p, pi) {
-                      var wk = p.week || pi+1;
-                      var wt = p.weight || "?";
-                      var rp = p.reps || "?";
-                      var nt = p.notes || p.comment || "";
+                      var wk = p.wk || p.week || pi+1;
+                      var wt = p.w || p.weight || "?";
+                      var rp = p.r || p.reps || "?";
+                      var nt = p.note || p.notes || "";
                       return (<div key={pi} style={{ display: "flex", gap: 4, marginBottom: 2, fontSize: 10, padding: "3px 0", borderBottom: "1px solid #f1f5f9" }}>
                         <span style={{width:35,fontWeight:600}}>{wk}</span>
                         <span style={{flex:1}}>{wt}</span>
@@ -3628,11 +3628,11 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       var prog = exList[ei].prog || [];
                       var hasWeek = false;
                       for (var pi = 0; pi < prog.length; pi++) {
-                        if (prog[pi].week === weekNum || prog[pi].w === weekNum) { hasWeek = true; break; }
+                        if (prog[pi].wk === weekNum) { hasWeek = true; break; }
                       }
                       if (!hasWeek && weekNum > 0) {
-                        prog.push({ week: weekNum, weight: exList[ei].current || "?", reps: exList[ei].reps || "?", date: "", notes: String(all[k]).substring(0, 100) });
-                        exList[ei].prog = prog.sort(function(a, b) { return (a.week || a.w || 0) - (b.week || b.w || 0); });
+                        prog.push({ wk: weekNum, w: exList[ei].current || "?", r: exList[ei].reps || "?", note: String(all[k]).substring(0, 100) });
+                        exList[ei].prog = prog.sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
                         restored++;
                       }
                     }
