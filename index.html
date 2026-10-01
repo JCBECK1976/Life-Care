@@ -1212,6 +1212,22 @@ function Dashboard() {
       const raw = await sGet("dashboard:data");
       if (raw) {
         const d = JSON.parse(raw);
+        // DATA CHECK MODE
+        if (window.location.search.includes("datacheck")) {
+          var r = {};
+          ["jc","becks"].forEach(function(p) {
+            if (d[p] && d[p].exercises) {
+              r[p] = {};
+              Object.keys(d[p].exercises).forEach(function(day) {
+                r[p][day] = d[p].exercises[day].map(function(ex) {
+                  return { name: ex.name, current: ex.current, reps: ex.reps, progCount: (ex.prog||[]).length, lastEntry: ex.prog && ex.prog.length ? ex.prog[ex.prog.length-1] : null };
+                });
+              });
+            }
+          });
+          document.body.innerHTML = "<pre style=\"padding:20px;font-size:12px\">" + JSON.stringify(r, null, 2) + "</pre>";
+          return;
+        }
         // Migrate to shared storage
         await sSet("dashboard:data", JSON.stringify(d));
         setData(d);
@@ -3499,7 +3515,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.216
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.216dc
       </div>
     </div>
   );
