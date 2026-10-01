@@ -2996,34 +2996,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
             
             {/* AI Add Items */}
-            <div style={{ marginTop: 8, padding: 10, background: "#f5f3ff", borderRadius: 8, border: "1px solid #c4b5fd" }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: "#6b21a8", marginBottom: 4 }}>AI — Add to My Lists</div>
-              <div style={{ fontSize: 9, color: "#64748b", marginBottom: 6 }}>Describe what to add and which list. AI calculates calories and adds it. Examples:<br/>• Add to breakfast list — overnight oats: 85g oats, chia/pumpkin/sunflower seeds, 340ml almond milk, 2tbsp 0% greek yogurt, mixed berries, 1tsp honey, 5g creatine<br/>• Add to dinner list — chicken stir fry with egg noodles and teriyaki sauce<br/>• Add to other list — Costa almond latte</div>
-              <textarea id={"ai-add-" + eatDay} placeholder="Add to breakfast list — overnight oats: 85g oats, seeds, almond milk, yogurt, berries, honey..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 50, resize: "vertical", boxSizing: "border-box", marginBottom: 6 }} />
-              <button onClick={async function() {
-                var instruction = document.getElementById("ai-add-" + eatDay).value;
-                if (!instruction.trim()) return;
-                setFormMsg("AI processing...");
-                try {
-                  var prompt = "User instruction: " + instruction + ". Parse this and return JSON. Determine which list (breakfast/lunch/dinner/other) from context. Calculate total calories for the COMPLETE meal as described. Return ONLY JSON: " + '{"category":"breakfast|lunch|dinner|other","name":"short descriptive name","kcal":0,"protein":0,"fat":0,"satfat":0,"fibre":0,"rating":"GREAT|AMBER|RED"}';
-                  var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: prompt }] }) });
-                  var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-                  var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                  if (txt) {
-                    var info = JSON.parse(txt.replace(/```json|```/g, "").trim());
-                    var cat = info.category || "other";
-                    var newItem = { id: "custom_" + Date.now(), name: info.name, jcKcal: info.kcal || 0, beckKcal: info.kcal || 0, rating: info.rating || "GREAT", freq: "Daily" };
-                    if (cat === "breakfast") { var u = [].concat(customBreakfasts, [newItem]); setCustomBreakfasts(u); await sSet("custom_breakfasts", JSON.stringify(u)); }
-                    else if (cat === "lunch") { var u = [].concat(customLunches, [newItem]); setCustomLunches(u); await sSet("custom_lunches", JSON.stringify(u)); }
-                    else if (cat === "dinner") { newItem.jcProt = info.protein || 0; newItem.beckProt = info.protein || 0; newItem.jcFat = info.fat || 0; newItem.beckFat = info.fat || 0; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
-                    else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
-                    document.getElementById("ai-add-" + eatDay).value = "";
-                    setFormMsg("✅ Added to " + cat + " list: " + info.name + " (" + info.kcal + " kcal) — reselect dropdown to see it");
-                  }
-                } catch(e) { setFormMsg("Error: " + String(e).substring(0, 100)); }
-                setTimeout(function() { setFormMsg(""); }, 6000);
-              }} style={{ width: "100%", padding: 8, background: "#7c3aed", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Add to My Lists</button>
-            </div>
+            
 {/* Day notes */}
             
               <div style={{ marginTop: 8 }}>
