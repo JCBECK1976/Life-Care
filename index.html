@@ -3128,9 +3128,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               <button onClick={async function() {
                 var cp = foodCheckerPreview; var cat = foodCheckerCategory;
                 var newItem = { id: "custom_" + Date.now(), name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, rating: cp.rating, freq: "Daily", isCustom: true };
-                var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : "custom_snacks";
-                if (cat === "dinner") { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = []; }
-                try { var existing = await sGet(storageKey); var list = existing ? JSON.parse(existing) : []; list.push(newItem); await sSet(storageKey, JSON.stringify(list)); } catch(se2) {}
+                if (cat === "breakfast") { var u = [].concat(customBreakfasts, [newItem]); setCustomBreakfasts(u); await sSet("custom_breakfasts", JSON.stringify(u)); }
+                else if (cat === "lunch") { var u = [].concat(customLunches, [newItem]); setCustomLunches(u); await sSet("custom_lunches", JSON.stringify(u)); }
+                else if (cat === "dinner") { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
+                else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
                 setFormMsg("Added " + cp.name + " to " + cat + " list");
                 setFoodCheckerPreview(null); setFoodCheckerCategory("");
                 setTimeout(function(){setFormMsg("");}, 3000);
@@ -3498,7 +3499,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.217
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.216
       </div>
     </div>
   );
