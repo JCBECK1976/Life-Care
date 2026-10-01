@@ -56,7 +56,7 @@
 if (window.location.search.indexOf("datacheck") >= 0) {
   document.addEventListener("DOMContentLoaded", function() {
     document.body.innerHTML = '<div style="padding:20px;font-family:monospace"><h3>Reading data...</h3><pre id="dcout"></pre></div>';
-    firebase.database().ref("data/dashboard_data").once("value").then(function(snap) {
+    firebase.database().ref("data/dashboard:data").once("value").then(function(snap) {
       if (snap.exists()) {
         var d = JSON.parse(snap.val());
         var r = {};
