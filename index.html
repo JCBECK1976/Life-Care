@@ -2176,16 +2176,27 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             await saveData(nd);
           };
           const deleteProg = async (day, exIdx, progIdx) => {
+            var ex2 = data[activeTab].exercises[day][exIdx];
+            var entry = ex2.prog[progIdx];
+            if (!confirm("Delete week " + (entry ? entry.wk : progIdx+1) + " entry for " + ex2.name + "?")) return;
             var nd = JSON.parse(JSON.stringify(data));
             nd[activeTab].exercises[day][exIdx].prog.splice(progIdx, 1);
-            // Sync Activity from latest remaining entry
             var prog = nd[activeTab].exercises[day][exIdx].prog;
             if (prog.length > 0) {
               var latest = prog[prog.length - 1];
               nd[activeTab].exercises[day][exIdx].current = latest.w;
               nd[activeTab].exercises[day][exIdx].reps = latest.r;
+              nd[activeTab].exercises[day][exIdx].status = autoStatus(latest.w, latest.r, prog.slice(0, -1), latest.note || "");
+            } else {
+              nd[activeTab].exercises[day][exIdx].current = "";
+              nd[activeTab].exercises[day][exIdx].reps = "";
+              nd[activeTab].exercises[day][exIdx].status = "";
+              delete nd[activeTab].exercises[day][exIdx].target;
             }
-            await saveData(nd); setFormMsg("✓ Entry removed"); setTimeout(function() { setFormMsg(""); }, 2000);
+            nd[activeTab].exercises[day][exIdx].notes = prog.length > 0 ? (prog[prog.length-1].note || "") : "";
+            await saveData(nd);
+            setFormMsg("✓ Week " + (entry ? entry.wk : "") + " entry removed");
+            setTimeout(function() { setFormMsg(""); }, 3000);
           };
           return (<div key={"ex-"+activeTab}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -3764,7 +3775,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.228.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.228.2
       </div>
     </div>
   );
