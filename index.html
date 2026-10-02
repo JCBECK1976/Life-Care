@@ -1427,10 +1427,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             otEx.current = otW; otEx.reps = otReps;
             otEx.notes = otState.comment || "";
             var otOverride = otState.override || "standard";
-            var otSuggested = autoStatus(otW, otReps, otEx.prog.slice(0, -1), ((otState.comment || "") + " " + (otEx.notes || "")).trim());
-            otEx.status = otOverride === "move_up" ? "ready to move" : otOverride === "hold" ? "maintaining" : otOverride === "reduce" ? "reduce" : otSuggested;
-            if (otEx.status === "ready to move") { otEx.target = nextPin(parseInt(otW), otEx.settings && otEx.settings.increments) + "kg x 10x3"; }
-            else if (otEx.status !== "maintaining") { delete otEx.target; }
+            // Status and target deferred to AI feedback
+            otEx.status = "";
+            delete otEx.target;
           }
         }
       }
@@ -2268,7 +2267,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               <div style={{ marginBottom: 8 }}><label style={labelStyle}>Week</label><input type="number" value={logWeek} onChange={e => setLogWeek(e.target.value)} style={{ ...inputStyle, width: 80 }} /></div>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Sets (weight kg x reps)</div>
               {logSets.map((s, i) => (<div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}><span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", width: 20 }}>S{i + 1}</span><input type="number" placeholder="kg" value={s.w} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], w: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} /><span style={{ color: "#94a3b8" }}>×</span><input type="number" placeholder="reps" value={s.r} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], r: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} /></div>))}
-              {logSets[0].w && logSets[0].r && (() => { const rs = fmtReps(logSets.map(s => parseInt(s.r) || 0)); const sg = autoStatus(logSets[0].w + "kg", rs, editPrev ? ex.prog.slice(0,-1) : ex.prog, ((logComment || "") + " " + (ex.notes || "")).trim()); return (<div style={{ margin: "8px 0", padding: 8, background: sBg(sg), borderRadius: 8 }}><div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}></div></div>); })()}
+              
               <div style={{ marginTop: 8 }}>
                 <label style={labelStyle}>Progression</label>
                 <select value={logOverride} onChange={function(e) { setLogOverride(e.target.value); }} style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, marginBottom: 8, background: logOverride === "move_up" ? "#dcfce7" : logOverride === "hold" ? "#fef3c7" : logOverride === "reduce" ? "#fee2e2" : "#fff" }}>
@@ -3779,7 +3778,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.228.3
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.229.0
       </div>
     </div>
   );
