@@ -1677,7 +1677,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         {/* HOME */}
         {section === "overview" && (<div>
           {/* Profile */}
-          {(() => { const prof = p.profile || {}; const hasBaseline = p.body && p.body.weight && p.body.weight.length > 0; return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
+          {(() => { const prof = p.profile || {}; const hasBaseline = p.body && p.body.weight && p.body.weight.length > 0; return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <div style={{ fontSize: 14, fontWeight: 700 }}>{prof.name || "New User"}</div>
               <div style={{ display: "flex", gap: 4 }}>
@@ -1848,7 +1848,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           </div>)}
 
           {/* Ask a Question */}
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Ask a Question</div>
             <div style={{ fontSize: 11, color: "#64748b", marginBottom: 8 }}>Ask anything about your health, training, nutrition, or progress. Your full data history is used to answer.</div>
             <textarea id={"qa-input-" + activeTab} placeholder="e.g. Why did my bicep curl reps drop? Am I eating enough protein? What should I focus on next?" style={{ ...inputStyle, minHeight: 50, resize: "vertical", fontSize: 12, marginBottom: 8 }} />
@@ -2890,7 +2890,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Fills empty breakfast, lunch, and dinner slots for all days. Respects your defaults.</div>
           
 
-            <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
+            <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div onClick={function(){setManageListsOpen(!manageListsOpen);}} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>🍽️ Manage Eating Lists</div>
               <span style={{ fontSize: 10, color: "#94a3b8" }}>{manageListsOpen ? "▲" : "▼"}</span>
@@ -3361,7 +3361,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Data Admin</div>
 
           {/* File Attachments */}
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📎 Attachments</div>
             <div style={{ fontSize: 11, color: "#64748b", marginBottom: 10 }}>Upload files, images, or documents as data points for Generate Feedback and Ask a Question.</div>
             <label style={{ display: "block", width: "100%", padding: 14, background: "#f8fafc", border: "2px dashed #cbd5e1", borderRadius: 8, textAlign: "center", cursor: "pointer", fontSize: 12, color: "#64748b", marginBottom: 8 }}>
@@ -3417,7 +3417,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           </div>
 
           {/* API Key */}
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🔑 API Keys</div>
             <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.5, marginBottom: 8 }}>Required for AI features. Get your Claude key from <strong>console.anthropic.com</strong> → API Keys.</div>
             <label style={labelStyle}>Claude API Key</label>
@@ -3430,14 +3430,14 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           </div>
 
           {/* Reset to Defaults */}
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#dc2626", marginBottom: 6 }}>⚠ Reset Data</div>
             <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8 }}>Overwrites Firebase with the clean default data. Use if data has become corrupted from bugs. This cannot be undone.</div>
             <button onClick={async function() { if (!confirm("This will reset ALL data to defaults. Are you sure?")) return; await sSet("life_care_data", JSON.stringify(DEFAULT_DATA)); setFormMsg("✓ Data reset to defaults — reload the app"); setTimeout(function() { setFormMsg(""); }, 5000); }} style={{ width: "100%", padding: 10, background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Reset to Default Data</button>
           </div>
 
           {/* Debug Mode */}
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>🔧 Debug Mode</div>
               <button onClick={function() { setDebugMode(!debugMode); if (!debugMode) setDebugLog([]); }} style={{ padding: "6px 14px", background: debugMode ? "#dc2626" : "#f1f5f9", color: debugMode ? "#fff" : "#475569", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{debugMode ? "ON — Turn Off" : "Turn On"}</button>
@@ -3689,7 +3689,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.224.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.224.1
       </div>
     </div>
   );
