@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <m
-                  }eta charset="UTF-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2839,7 +2838,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     <button onClick={function() { saveDef(def.k, defs[def.k], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes[def.k] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes[def.k] || "individual") === "all" ? "#0f172a" : "#94a3b8" }}>All</button>
                   </div>
                 </div>
-                <MealSelect items={def.items} value={defs[def.k] || ""} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm(def.k === "b" ? "breakfast" : def.k === "l" ? "lunch" : def.k === "d" ? "dinner" : "snack"); } else { saveDef(def.k, e.target.value, "individual"); } }} placeholder="Select default..." />
+                <MealSelect items={def.items} value={defs[def.k] || ""} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm(def.k === "b" ? "breakfast" : def.k === "l" ? "lunch" : def.k === "d" ? "dinner" : def.k === "dr" ? "drink" : def.k === "ds" ? "dessert" : "snack"); } else { saveDef(def.k, e.target.value, "individual"); } }} placeholder="Select default..." />
               </div>);
             })}
             <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", marginTop: 4, marginBottom: 4 }}>Other defaults (snacks, drinks, desserts, other)</div>
