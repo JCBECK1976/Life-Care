@@ -1029,6 +1029,7 @@ function Dashboard() {
   const [foodCheckerPreview, setFoodCheckerPreview] = useState(null);
   const [foodCheckerLoading, setFoodCheckerLoading] = useState(false);
   const [foodCheckerCategory, setFoodCheckerCategory] = useState("");
+  const [foodCheckerText, setFoodCheckerText] = useState("");
   const [dataExpandEx, setDataExpandEx] = useState(null);
   const [cameraPreview, setCameraPreview] = useState(null);
   const [bodyView, setBodyView] = useState("data");
@@ -3022,67 +3023,81 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             </select>
           </div>
           
-          <div style={{ marginBottom: 10 }}>
-            <label style={{ display: "block", width: "100%", padding: 12, background: "linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "center" }}>
-              {foodCheckerLoading ? "📷 Analysing..." : "📷 Food Checker"}
-              <input type="file" accept="image/*" capture="environment" onChange={async function(e) {
-                if (!e.target.files || !e.target.files[0]) return;
-                var file = e.target.files[0];
-                setFoodCheckerLoading(true);
-                try {
-                  var reader = new FileReader();
-                  var base64 = await new Promise(function(res, rej) { reader.onload = function() { res(reader.result.split(",")[1]); }; reader.onerror = function() { rej(new Error("Read failed")); }; reader.readAsDataURL(file); });
-                  var mediaType = file.type || "image/jpeg";
-                  var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Identify this food or product. Read any nutrition label if visible. Return ONLY JSON: {\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\"}" }] }] }) });
-                  var result = await resp.json();
-                  var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
-                  var info = JSON.parse(txt.replace(/```json|```/g, "").trim());
-                  setFoodCheckerPreview({ name: info.name || "Unknown", kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, rating: info.rating || "AMBER" });
-                  try {
-                    var isJC2 = activeTab === "jc";
-                    var sPrompt = "Food: " + (info.name||"") + " (" + (info.kcal||0) + " kcal, " + (info.protein||0) + "g protein, " + (info.fat||0) + "g fat, " + (info.satFat||0) + "g sat fat). Person: " + (isJC2 ? "JC, male 49, targets 2000-2200 kcal, 110-130g protein, <20g sat fat, thyroid issues" : "Becks, female 48, targets 1700-1900 kcal, 90-110g protein, <20g sat fat, LDL 7.2 high cholesterol") + ". ONE sentence suitability for this person.";
-                    var sResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 100, messages: [{ role: "user", content: sPrompt }] }) });
-                    var sResult = await sResp.json();
-                    var sTxt = ""; if (sResult.content) { for (var si=0;si<sResult.content.length;si++) { if(sResult.content[si].text) sTxt+=sResult.content[si].text; } }
-                    setFoodCheckerPreview(function(prev) { return Object.assign({}, prev, { suitability: sTxt.trim() }); });
-                  } catch(se) {}
-                } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 80)); setTimeout(function(){setFormMsg("");},3000); }
-                setFoodCheckerLoading(false);
-                e.target.value = "";
-              }} style={{ display: "none" }} />
-            </label>
-          </div>
-
-          {foodCheckerPreview && (<div style={{ background: "#f0fdf4", borderRadius: 8, padding: 12, marginBottom: 10, border: "1px solid #86efac" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 {foodCheckerPreview.name}</div>
-            <div style={{ display: "flex", gap: 10, marginBottom: 6, fontSize: 11 }}>
-              <span><b>{foodCheckerPreview.kcal}</b> kcal</span>
-              <span><b>{foodCheckerPreview.protein}g</b> protein</span>
-              <span><b>{foodCheckerPreview.fat}g</b> fat</span>
-              {foodCheckerPreview.satFat > 0 && <span><b>{foodCheckerPreview.satFat}g</b> sat fat</span>}
+          <div style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginBottom: 10, border: "1px solid #fde68a" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#854d0e", marginBottom: 6 }}>📷 Food Checker</div>
+              {!foodCheckerPreview ? (<div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input value={foodCheckerText} onChange={function(e) { setFoodCheckerText(e.target.value); }} placeholder="e.g. Aldi protein bar, Lurpak butter..." style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                  <button onClick={async function() {
+                    if (!foodCheckerText.trim()) return;
+                    setFoodCheckerLoading(true);
+                    try {
+                      var isJC2 = activeTab === "jc";
+                      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: "Identify this food or product: " + foodCheckerText + ". Return ONLY JSON: {\"name\":\"product name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\",\"suitability\":\"ONE sentence suitability for " + (isJC2 ? "JC, male 49, 2000-2200 kcal target, <20g sat fat, thyroid issues" : "Becks, female 48, 1700-1900 kcal target, <20g sat fat, LDL 7.2") + "\"}" }] }) });
+                      var result = await resp.json();
+                      var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
+                      var info = JSON.parse(txt.replace(/```json|```/g, "").trim());
+                      setFoodCheckerPreview({ name: info.name || foodCheckerText, kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, rating: info.rating || "AMBER", suitability: info.suitability || "" });
+                    } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 80)); setTimeout(function(){setFormMsg("");},3000); }
+                    setFoodCheckerLoading(false);
+                  }} disabled={foodCheckerLoading || !foodCheckerText.trim()} style={{ padding: "6px 12px", background: foodCheckerLoading ? "#94a3b8" : "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{foodCheckerLoading ? "..." : "Check"}</button>
+                  <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>
+                    📷
+                    <input type="file" accept="image/*" capture="environment" onChange={async function(e) {
+                      if (!e.target.files || !e.target.files[0]) return;
+                      var file = e.target.files[0];
+                      setFoodCheckerLoading(true);
+                      try {
+                        var reader = new FileReader();
+                        var base64 = await new Promise(function(res, rej) { reader.onload = function() { res(reader.result.split(",")[1]); }; reader.onerror = function() { rej(new Error("Read failed")); }; reader.readAsDataURL(file); });
+                        var mediaType = file.type || "image/jpeg";
+                        var isJC2 = activeTab === "jc";
+                        var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": window._anthropicKey || "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Identify this food or product. Read any nutrition label if visible. Return ONLY JSON: {\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\",\"suitability\":\"ONE sentence suitability for " + (isJC2 ? "JC, male 49, 2000-2200 kcal target, <20g sat fat, thyroid issues" : "Becks, female 48, 1700-1900 kcal target, <20g sat fat, LDL 7.2") + "\"}" }] }] }) });
+                        var result = await resp.json();
+                        var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
+                        var info = JSON.parse(txt.replace(/```json|```/g, "").trim());
+                        setFoodCheckerPreview({ name: info.name || "Unknown", kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, rating: info.rating || "AMBER", suitability: info.suitability || "" });
+                      } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 80)); setTimeout(function(){setFormMsg("");},3000); }
+                      setFoodCheckerLoading(false);
+                      e.target.value = "";
+                    }} style={{ display: "none" }} />
+                  </label>
+                </div>
+                <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>Type a food name or scan a product — AI will check nutritional info</div>
+              </div>) : (<div>
+                <div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, border: "1px solid #86efac", marginBottom: 6 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 {foodCheckerPreview.name}</div>
+                  <div style={{ display: "flex", gap: 10, marginBottom: 6, fontSize: 11 }}>
+                    <span><b>{foodCheckerPreview.kcal}</b> kcal</span>
+                    <span><b>{foodCheckerPreview.protein}g</b> protein</span>
+                    <span><b>{foodCheckerPreview.fat}g</b> fat</span>
+                    {foodCheckerPreview.satFat > 0 && <span><b>{foodCheckerPreview.satFat}g</b> sat fat</span>}
+                  </div>
+                  <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: foodCheckerPreview.rating === "RED" ? "#fef2f2" : foodCheckerPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: foodCheckerPreview.rating === "RED" ? "#dc2626" : foodCheckerPreview.rating === "AMBER" ? "#d97706" : "#166534", border: "1px solid " + (foodCheckerPreview.rating === "RED" ? "#fecaca" : foodCheckerPreview.rating === "AMBER" ? "#fde68a" : "#86efac") }}>{foodCheckerPreview.rating}</div>
+                  {foodCheckerPreview.suitability && <div style={{ fontSize: 11, color: "#475569", fontStyle: "italic", lineHeight: 1.4 }}>{foodCheckerPreview.suitability}</div>}
+                </div>
+                {!foodCheckerCategory ? (<div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Add to which list?</div>
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 6 }}>
+                    {["breakfast","lunch","dinner","snack"].map(function(cat) { return (<button key={cat} onClick={function(){setFoodCheckerCategory(cat);}} style={{ padding: "6px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer", textTransform: "capitalize" }}>{cat}</button>); })}
+                  </div>
+                  <button onClick={function() { setFoodCheckerPreview(null); setFoodCheckerText(""); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer" }}>Cancel</button>
+                </div>) : (<div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={async function() {
+                    var cp = foodCheckerPreview; var cat = foodCheckerCategory;
+                    var newItem = { id: "custom_" + Date.now(), name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, rating: cp.rating, freq: "Daily", isCustom: true };
+                    if (cat === "breakfast") { var u = [].concat(customBreakfasts, [newItem]); setCustomBreakfasts(u); await sSet("custom_breakfasts", JSON.stringify(u)); }
+                    else if (cat === "lunch") { var u = [].concat(customLunches, [newItem]); setCustomLunches(u); await sSet("custom_lunches", JSON.stringify(u)); }
+                    else if (cat === "dinner") { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
+                    else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
+                    setFormMsg("Added " + cp.name + " to " + cat + " list");
+                    setFoodCheckerPreview(null); setFoodCheckerCategory(""); setFoodCheckerText("");
+                    setTimeout(function(){setFormMsg("");}, 3000);
+                  }} style={{ flex: 1, padding: 8, background: "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Add to {foodCheckerCategory}</button>
+                  <button onClick={function() { setFoodCheckerPreview(null); setFoodCheckerCategory(""); setFoodCheckerText(""); }} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
+                </div>)}
+              </div>)}
             </div>
-            <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: foodCheckerPreview.rating === "RED" ? "#fef2f2" : foodCheckerPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: foodCheckerPreview.rating === "RED" ? "#dc2626" : foodCheckerPreview.rating === "AMBER" ? "#d97706" : "#166534", border: "1px solid " + (foodCheckerPreview.rating === "RED" ? "#fecaca" : foodCheckerPreview.rating === "AMBER" ? "#fde68a" : "#86efac") }}>{foodCheckerPreview.rating}</div>
-            {foodCheckerPreview.suitability ? <div style={{ fontSize: 11, color: "#475569", marginBottom: 8, fontStyle: "italic", lineHeight: 1.4 }}>{foodCheckerPreview.suitability}</div> : <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 8 }}>Checking suitability...</div>}
-            {!foodCheckerCategory ? (<div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Add to which list?</div>
-              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 6 }}>
-                {["breakfast","lunch","dinner","snack"].map(function(cat) { return (<button key={cat} onClick={function(){setFoodCheckerCategory(cat);}} style={{ padding: "6px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer", textTransform: "capitalize" }}>{cat}</button>); })}
-              </div>
-              <button onClick={function() { setFoodCheckerPreview(null); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer" }}>Cancel</button>
-            </div>) : (<div style={{ display: "flex", gap: 6 }}>
-              <button onClick={async function() {
-                var cp = foodCheckerPreview; var cat = foodCheckerCategory;
-                var newItem = { id: "custom_" + Date.now(), name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, rating: cp.rating, freq: "Daily", isCustom: true };
-                var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : "custom_snacks";
-                if (cat === "dinner") { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = []; }
-                try { var existing = await sGet(storageKey); var list = existing ? JSON.parse(existing) : []; list.push(newItem); await sSet(storageKey, JSON.stringify(list)); } catch(se2) {}
-                setFormMsg("Added " + cp.name + " to " + cat + " list");
-                setFoodCheckerPreview(null); setFoodCheckerCategory("");
-                setTimeout(function(){setFormMsg("");}, 3000);
-              }} style={{ flex: 1, padding: 8, background: "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Add to {foodCheckerCategory}</button>
-              <button onClick={function() { setFoodCheckerPreview(null); setFoodCheckerCategory(""); }} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
-            </div>)}
-          </div>)}
 
           <button onClick={async () => {
             if (planned === 0) { setFormMsg("Add meals to the Eating tab first"); setTimeout(() => setFormMsg(""), 10000); return; }
