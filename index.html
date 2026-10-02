@@ -2841,7 +2841,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 <MealSelect items={def.items} value={defs[def.k] || ""} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm(def.k === "b" ? "breakfast" : def.k === "l" ? "lunch" : def.k === "d" ? "dinner" : def.k === "dr" ? "drink" : def.k === "ds" ? "dessert" : "snack"); } else { saveDef(def.k, e.target.value, "individual"); } }} placeholder="Select default..." />
               </div>);
             })}
-            <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", marginTop: 4, marginBottom: 4 }}>Other defaults (snacks, drinks, desserts, other)</div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", marginTop: 4, marginBottom: 4 }}>Other defaults (snacks & other)</div>
             {(function() { var slots = []; for (var dn = 1; dn <= 20; dn++) { if (defs["o" + dn] || dn <= (function() { var cnt = 0; for (var k = 1; k <= 20; k++) { if (defs["o" + k]) cnt = k; } return Math.max(cnt, 0); })()) slots.push(dn); } return slots; })().map(function(n) {
               return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                 <div style={{ flex: 1 }}>
@@ -3011,27 +3011,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               <MealSelect items={allDinners} value={getMeal(eatDay, "d")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner"); } else { setMeal(eatDay, "d", e.target.value); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
             </div>
 
-            {/* Other items */}
-            {otherSlots.map(function(idx) {
-              return (<div key={idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
-                <div style={{ flex: 1 }}>
-                  <span style={{ fontSize: 9, color: "#94a3b8" }}>Other {idx}</span>
-                  <MealSelect items={allOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory("other"); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Snack / other..." />
-                </div>
-                <button onClick={function() { removeOtherSlot(eatDay, idx); }} style={{ fontSize: 12, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", marginTop: 14 }}>✕</button>
-              </div>);
-            })}
-            <button onClick={function() { addOtherSlot(eatDay); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginBottom: 8 }}>+ Add Other</button>
-
-            {/* Add new item */}
-            
-
-            
-
-            
-            {/* AI Add Items */}
-            
-
             {/* Drinks */}
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Drinks</span>
@@ -3063,6 +3042,27 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 });
               })()}
             </div>
+
+            {/* Other items */}
+            {otherSlots.map(function(idx) {
+              return (<div key={idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: 9, color: "#94a3b8" }}>Other {idx}</span>
+                  <MealSelect items={allOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory("other"); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Snack / other..." />
+                </div>
+                <button onClick={function() { removeOtherSlot(eatDay, idx); }} style={{ fontSize: 12, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", marginTop: 14 }}>✕</button>
+              </div>);
+            })}
+            <button onClick={function() { addOtherSlot(eatDay); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginBottom: 8 }}>+ Add Other</button>
+
+            {/* Add new item */}
+            
+
+            
+
+            
+            {/* AI Add Items */}
+            
 
             {/* Day notes */}
             
@@ -3750,7 +3750,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.227.0d
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.228.0
       </div>
     </div>
   );
