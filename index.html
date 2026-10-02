@@ -998,6 +998,8 @@ function Dashboard() {
   const [newBloodTest, setNewBloodTest] = useState({ key: "", name: "", unit: "", lo: "", hi: "" });
   const [customExercises, setCustomExercises] = useState([]);
   const [customSnacks, setCustomSnacks] = useState([]);
+  const [customDrinks, setCustomDrinks] = useState([]);
+  const [customDesserts, setCustomDesserts] = useState([]);
   const [showNewExForm, setShowNewExForm] = useState(false);
   const [newExName, setNewExName] = useState("");
   const [exNotesLoading, setExNotesLoading] = useState(false);
@@ -1243,6 +1245,8 @@ function Dashboard() {
     const h = await sGet("feedback_history"); if (h) setFeedbackHistory(JSON.parse(h));
     const ce = await sGet("custom_exercises"); if (ce) setCustomExercises(JSON.parse(ce));
     const cs = await sGet("custom_snacks"); if (cs) setCustomSnacks(JSON.parse(cs));
+    const cdr = await sGet("custom_drinks"); if (cdr) setCustomDrinks(JSON.parse(cdr));
+    const cde = await sGet("custom_desserts"); if (cde) setCustomDesserts(JSON.parse(cde));
     const cb = await sGet("custom_breakfasts"); if (cb) setCustomBreakfasts(JSON.parse(cb));
     const cl = await sGet("custom_lunches"); if (cl) setCustomLunches(JSON.parse(cl));
     const md = await sGet("meal_defaults"); if (md) setMealDefaults(JSON.parse(md));
@@ -2594,6 +2598,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           var allLunch = [...LUNCHES, ...customLunches];
           var allDinners = [...DINNERS, ...customMeals];
           var allOther = [...SNACKS, ...customSnacks];
+          var allDrinks = [...customDrinks];
+          var allDesserts = [...customDesserts];
           var allItems = [].concat(allBfast, allLunch, allDinners, allOther);
           var currentWeek = calcWeek(data.config.trainingStart);
           var DAYS = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
@@ -2672,7 +2678,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 if (addingCategory === "breakfast") { var u = [].concat(customBreakfasts, [newItem]); setCustomBreakfasts(u); await sSet("custom_breakfasts", JSON.stringify(u)); }
                 else if (addingCategory === "lunch") { var u = [].concat(customLunches, [newItem]); setCustomLunches(u); await sSet("custom_lunches", JSON.stringify(u)); }
                 else if (addingCategory === "dinner") { newItem.jcProt = info.protein || 0; newItem.beckProt = info.protein || 0; newItem.jcFat = info.fat || 0; newItem.beckFat = info.fat || 0; newItem.time = 30; newItem.shop = []; var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
-                else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
+                else if (cat === "drink") { var u = [].concat(customDrinks, [newItem]); setCustomDrinks(u); await sSet("custom_drinks", JSON.stringify(u)); }
+                    else if (cat === "dessert") { var u = [].concat(customDesserts, [newItem]); setCustomDesserts(u); await sSet("custom_desserts", JSON.stringify(u)); }
+                    else { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
                 setFormMsg("✅ Added: " + newItem.name + " (" + newItem.jcKcal + " kcal)"); { var slotKey = addingCategory === "breakfast" ? "b" : addingCategory === "lunch" ? "l" : addingCategory === "dinner" ? "d" : "o1"; if (eatDay && eatDay !== "week") { setMeal(eatDay, slotKey, newItem.id); } }
               }
             } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); }
@@ -2822,7 +2830,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             })()}
             <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>Set Defaults</div>
             <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8 }}>Set default meals. Use "All" to apply to all people or "Individual" for just {activeTab === "jc" ? "JC" : "Becks"}.</div>
-            {[{ k: "b", l: "Breakfast", items: allBfast }, { k: "l", l: "Lunch", items: allLunch }, { k: "d", l: "Dinner", items: allDinners }].map(function(def) {
+            {[{ k: "b", l: "Breakfast", items: allBfast }, { k: "l", l: "Lunch", items: allLunch }, { k: "d", l: "Dinner", items: allDinners }, { k: "dr", l: "Drink", items: allDrinks }, { k: "ds", l: "Dessert", items: allDesserts }].map(function(def) {
               return (<div key={def.k} style={{ marginBottom: 8 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
                   <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>{def.l}</span>
@@ -2834,7 +2842,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 <MealSelect items={def.items} value={defs[def.k] || ""} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm(def.k === "b" ? "breakfast" : def.k === "l" ? "lunch" : def.k === "d" ? "dinner" : "snack"); } else { saveDef(def.k, e.target.value, "individual"); } }} placeholder="Select default..." />
               </div>);
             })}
-            <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", marginTop: 4, marginBottom: 4 }}>Other defaults (snacks, drinks, desserts)</div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", marginTop: 4, marginBottom: 4 }}>Other defaults (snacks, drinks, desserts, other)</div>
             {(function() { var slots = []; for (var dn = 1; dn <= 20; dn++) { if (defs["o" + dn] || dn <= (function() { var cnt = 0; for (var k = 1; k <= 20; k++) { if (defs["o" + k]) cnt = k; } return Math.max(cnt, 0); })()) slots.push(dn); } return slots; })().map(function(n) {
               return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                 <div style={{ flex: 1 }}>
@@ -2910,7 +2918,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               {[{k:"breakfast",label:"Breakfasts",items:allBfast,customs:customBreakfasts,setCustoms:setCustomBreakfasts,storageKey:"custom_breakfasts"},
                 {k:"lunch",label:"Lunches",items:allLunch,customs:customLunches,setCustoms:setCustomLunches,storageKey:"custom_lunches"},
                 {k:"dinner",label:"Dinners",items:allDinners,customs:customMeals,setCustoms:setCustomMeals,storageKey:"custom_meals"},
-                {k:"snack",label:"Snacks & Drinks",items:allOther,customs:customSnacks,setCustoms:setCustomSnacks,storageKey:"custom_snacks"}
+                {k:"snack",label:"Snacks & Other",items:allOther,customs:customSnacks,setCustoms:setCustomSnacks,storageKey:"custom_snacks"},
+                {k:"drink",label:"Drinks",items:allDrinks,customs:customDrinks,setCustoms:setCustomDrinks,storageKey:"custom_drinks"},
+                {k:"dessert",label:"Desserts",items:allDesserts,customs:customDesserts,setCustoms:setCustomDesserts,storageKey:"custom_desserts"}
               ].map(function(cat) {
                 return (<div key={cat.k} style={{ marginBottom: 12 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4 }}>{cat.label} ({cat.items.length} items, {cat.customs.length} custom)</div>
@@ -2955,9 +2965,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         var cp = cameraPreview; var cat = addingCategory;
                         var newItem = { id: "custom_" + Date.now(), name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, rating: cp.rating, freq: "Daily", isCustom: true };
                         if (cat === "dinner") { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = []; }
-                        var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : customSnacks;
-                        var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : setCustomSnacks;
-                        var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : "custom_snacks";
+                        var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
+                        var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
+                        var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : cat === "drink" ? "custom_drinks" : cat === "dessert" ? "custom_desserts" : "custom_snacks";
                         var u = [].concat(listItems, [newItem]); setList(u); await sSet(storageKey, JSON.stringify(u));
                         setFormMsg("Added " + cp.name + " to " + cat);
                         setCameraPreview(null);
@@ -3007,7 +3017,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               return (<div key={idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                 <div style={{ flex: 1 }}>
                   <span style={{ fontSize: 9, color: "#94a3b8" }}>Other {idx}</span>
-                  <MealSelect items={allOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory("other"); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Snack / drink / other..." />
+                  <MealSelect items={allOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory("other"); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Snack / other..." />
                 </div>
                 <button onClick={function() { removeOtherSlot(eatDay, idx); }} style={{ fontSize: 12, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", marginTop: 14 }}>✕</button>
               </div>);
@@ -3022,7 +3032,40 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             
             {/* AI Add Items */}
             
-{/* Day notes */}
+
+            {/* Drinks */}
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Drinks</span>
+              {(function() {
+                var slots = []; for (var di = 1; di <= 5; di++) { if (getMeal(eatDay, "dr" + di) || di <= 1) slots.push(di); }
+                return slots.map(function(idx) {
+                  return (<div key={"dr"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
+                    <div style={{ flex: 1 }}>
+                      <MealSelect items={allDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory("drink"); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Select drink..." />
+                    </div>
+                    {getMeal(eatDay, "dr" + idx) && <button onClick={function() { setMeal(eatDay, "dr" + idx, ""); }} style={{ border: "none", background: "none", fontSize: 12, cursor: "pointer", color: "#94a3b8" }}>✕</button>}
+                  </div>);
+                });
+              })()}
+            </div>
+
+            {/* Desserts */}
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Desserts</span>
+              {(function() {
+                var slots = []; for (var di = 1; di <= 5; di++) { if (getMeal(eatDay, "ds" + di) || di <= 1) slots.push(di); }
+                return slots.map(function(idx) {
+                  return (<div key={"ds"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
+                    <div style={{ flex: 1 }}>
+                      <MealSelect items={allDesserts} value={getMeal(eatDay, "ds" + idx) === "__empty__" ? "" : getMeal(eatDay, "ds" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory("dessert"); } else { setMeal(eatDay, "ds" + idx, e.target.value); } }} placeholder="Select dessert..." />
+                    </div>
+                    {getMeal(eatDay, "ds" + idx) && <button onClick={function() { setMeal(eatDay, "ds" + idx, ""); }} style={{ border: "none", background: "none", fontSize: 12, cursor: "pointer", color: "#94a3b8" }}>✕</button>}
+                  </div>);
+                });
+              })()}
+            </div>
+
+            {/* Day notes */}
             
               <div style={{ marginTop: 8 }}>
               <span style={{ fontSize: 10, color: "#94a3b8" }}>Day notes</span>
@@ -3103,7 +3146,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 {!foodCheckerCategory ? (<div>
                   <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Add to which list?</div>
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 6 }}>
-                    {["breakfast","lunch","dinner","snack"].map(function(cat) { return (<button key={cat} onClick={function(){setFoodCheckerCategory(cat);}} style={{ padding: "6px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer", textTransform: "capitalize" }}>{cat}</button>); })}
+                    {["breakfast","lunch","dinner","snack","drink","dessert"].map(function(cat) { return (<button key={cat} onClick={function(){setFoodCheckerCategory(cat);}} style={{ padding: "6px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer", textTransform: "capitalize" }}>{cat}</button>); })}
                   </div>
                   <button onClick={function() { setFoodCheckerPreview(null); setFoodCheckerText(""); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer" }}>Cancel</button>
                 </div>) : (<div style={{ display: "flex", gap: 6 }}>
@@ -3708,7 +3751,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.226.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.227.0d
       </div>
     </div>
   );
