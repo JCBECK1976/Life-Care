@@ -1031,6 +1031,8 @@ function Dashboard() {
   const [foodCheckerLoading, setFoodCheckerLoading] = useState(false);
   const [foodCheckerCategory, setFoodCheckerCategory] = useState("");
   const [foodCheckerText, setFoodCheckerText] = useState("");
+  const [eatDayEyeOpen, setEatDayEyeOpen] = useState(false);
+  const [eatWeekEyeOpen, setEatWeekEyeOpen] = useState(false);
   const [dataExpandEx, setDataExpandEx] = useState(null);
   const [cameraPreview, setCameraPreview] = useState(null);
   const [bodyView, setBodyView] = useState("data");
@@ -2801,7 +2803,15 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           
 
           {eatDay === "week" && (<div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a" }}>My Week</div>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>My Week</span><button onClick={function(){setEatWeekEyeOpen(!eatWeekEyeOpen);}} style={{ border: "none", background: "none", fontSize: 14, cursor: "pointer", padding: "2px 4px" }}>{eatWeekEyeOpen ? "✕" : "👁"}</button></div>
+            
+            {eatWeekEyeOpen && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, marginBottom: 10, border: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#0f172a" }}>Week — Overview</span>
+                <button onClick={function(){setEatWeekEyeOpen(false);}} style={{ border: "none", background: "none", fontSize: 14, cursor: "pointer", padding: 0 }}>✕</button>
+              </div>
+            </div>)}
+
             {(() => {
               var totalKcal = 0; var dayCount = 0;
               DAYS.forEach(function(d) { var dk = getDayKcal(d); if (dk > 0) { totalKcal += dk; dayCount++; } });
@@ -2964,7 +2974,15 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
           {/* Day content */}
           {eatDay !== "week" && <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</span><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);}} style={{ border: "none", background: "none", fontSize: 14, cursor: "pointer", padding: "2px 4px" }}>{eatDayEyeOpen ? "✕" : "👁"}</button></div>
+
+            
+            {eatDayEyeOpen && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, marginBottom: 10, border: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#0f172a" }}>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — Overview</span>
+                <button onClick={function(){setEatDayEyeOpen(false);}} style={{ border: "none", background: "none", fontSize: 14, cursor: "pointer", padding: 0 }}>✕</button>
+              </div>
+            </div>)}
 
             {/* Breakfast */}
             <div style={{ marginBottom: 8 }}>
@@ -3690,7 +3708,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.225.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.226.0
       </div>
     </div>
   );
