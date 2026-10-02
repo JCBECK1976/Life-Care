@@ -1320,7 +1320,11 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     var r2 = targetR || (lastReps[1] ? String(lastReps[1]) : (lastReps[0] ? String(lastReps[0]) : ""));
     var r3 = targetR || (lastReps[2] ? String(lastReps[2]) : (lastReps[0] ? String(lastReps[0]) : ""));
     setLogSets([{ w: useW, r: r1 }, { w: useW, r: r2 }, { w: useW, r: r3 }]);
-    setLogWeek(String(calcWeek(data.config.trainingStart)));
+    (function() {
+      var maxWk = 0;
+      if (ex.prog) { for (var mwi = 0; mwi < ex.prog.length; mwi++) { if (ex.prog[mwi].wk > maxWk) maxWk = ex.prog[mwi].wk; } }
+      setLogWeek(String(maxWk > 0 ? maxWk + 1 : calcWeek(data.config.trainingStart)));
+    })();
     setLogComment(""); setLogStatus(""); setEditPrev(false);
     setPrevComment("");
     // Load previous week's comment
@@ -2260,7 +2264,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#854d0e", marginBottom: 3 }}>📋 NOTES FROM LAST SESSION</div>
                 <div style={{ fontSize: 11, color: "#854d0e", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{prevComment}</div>
               </div>)}
-              {prev && <button onClick={() => { setEditPrev(!editPrev); if (!editPrev) { setLogSets([{ w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[0]||"") }, { w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[1]||"") }, { w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[2]||"") }]); setLogWeek(String(prev.wk)); } else { setLogSets([{ w: prev.w.replace("kg",""), r: "" }, { w: prev.w.replace("kg",""), r: "" }, { w: prev.w.replace("kg",""), r: "" }]); setLogWeek(String(calcWeek(data.config.trainingStart))); } }} style={{ ...btnS, marginBottom: 8, fontSize: 11, background: editPrev ? "#fef3c7" : "#f1f5f9" }}>{editPrev ? "Cancel Edit — Log New Instead" : "Edit Previous Entry"}</button>}
+              {prev && <button onClick={() => { setEditPrev(!editPrev); if (!editPrev) { setLogSets([{ w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[0]||"") }, { w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[1]||"") }, { w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[2]||"") }]); setLogWeek(String(prev.wk)); } else { setLogSets([{ w: prev.w.replace("kg",""), r: "" }, { w: prev.w.replace("kg",""), r: "" }, { w: prev.w.replace("kg",""), r: "" }]); (function() { var mwk = 0; var cex = data[activeTab].exercises[logEx.day][logEx.idx]; if (cex && cex.prog) { for (var mi = 0; mi < cex.prog.length; mi++) { if (cex.prog[mi].wk > mwk) mwk = cex.prog[mi].wk; } } setLogWeek(String(mwk > 0 ? mwk + 1 : calcWeek(data.config.trainingStart))); })(); } }} style={{ ...btnS, marginBottom: 8, fontSize: 11, background: editPrev ? "#fef3c7" : "#f1f5f9" }}>{editPrev ? "Cancel Edit — Log New Instead" : "Edit Previous Entry"}</button>}
               <div style={{ marginBottom: 8 }}><label style={labelStyle}>Week</label><input type="number" value={logWeek} onChange={e => setLogWeek(e.target.value)} style={{ ...inputStyle, width: 80 }} /></div>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Sets (weight kg x reps)</div>
               {logSets.map((s, i) => (<div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}><span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", width: 20 }}>S{i + 1}</span><input type="number" placeholder="kg" value={s.w} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], w: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} /><span style={{ color: "#94a3b8" }}>×</span><input type="number" placeholder="reps" value={s.r} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], r: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} /></div>))}
@@ -3775,7 +3779,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.228.2
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.228.3
       </div>
     </div>
   );
