@@ -1288,7 +1288,21 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
   // ─── WEIGHT LOGGING ───
   const [prevComment, setPrevComment] = useState("");
+  React.useEffect(function() {
+    if (!logEx) return;
+    var ex = data[activeTab] && data[activeTab].exercises && data[activeTab].exercises[logEx.day] ? data[activeTab].exercises[logEx.day][logEx.idx] : null;
+    if (!ex) return;
+    setPrevComment("");
+    var last = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
+    if (last) {
+      sGet("comment:" + activeTab + ":" + ex.name + ":" + last.wk).then(function(val) { if (val) setPrevComment(val); });
+    }
+    if (ex.notes) setPrevComment(function(prev) { return prev ? prev + "\n" + ex.notes : ex.notes; });
+    if (last && last.note) setPrevComment(function(prev) { return prev ? prev + "\nPrev session: " + last.note : last.note; });
+  }, [activeTab]);
   const openLogForm = (day, idx) => {
+    window._dualLogState = null;
+
     const ex = data[activeTab].exercises[day][idx];
     const last = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
     setLogEx({ day, idx });
@@ -3750,7 +3764,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.228.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.228.1
       </div>
     </div>
   );
