@@ -2326,12 +2326,12 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     <div style={{ display: "flex", gap: 6, padding: "3px 0", marginBottom: 2, fontSize: 9, color: "#94a3b8", fontWeight: 600 }}>
                       <span style={{ width: 40 }}>WEEK</span><span style={{ width: 55 }}>WEIGHT</span><span style={{ width: 65 }}>REPS</span><span style={{ flex: 1 }}>NOTES</span><span style={{ width: 20 }}></span>
                     </div>
-                    {ex.prog && ex.prog.slice().reverse().slice(0, selectedEx && selectedEx.showAll ? 999 : 4).map(function(pr, pi) { return (<div key={pi} style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
-                      <input defaultValue={pr.wk} onBlur={function(e) { updateProg(day, exIdx, pi, "wk", parseInt(e.target.value) || pr.wk); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
-                      <input defaultValue={pr.w} onBlur={function(e) { updateProg(day, exIdx, pi, "w", e.target.value); }} style={{ width: 55, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
-                      <input defaultValue={pr.r} onBlur={function(e) { updateProg(day, exIdx, pi, "r", e.target.value); }} style={{ width: 65, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
-                      <input defaultValue={pr.note || ""} onBlur={function(e) { updateProg(day, exIdx, pi, "note", e.target.value); }} placeholder="..." style={{ flex: 1, minWidth: 0, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
-                      <button onClick={function() { deleteProg(day, exIdx, pi); }} style={{ fontSize: 12, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", minWidth: 24, flexShrink: 0 }}>✕</button>
+                    {ex.prog && ex.prog.slice().reverse().slice(0, selectedEx && selectedEx.showAll ? 999 : 4).map(function(pr, pi) { var realPi = ex.prog.length - 1 - pi; return (<div key={pi} style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
+                      <input defaultValue={pr.wk} onBlur={function(e) { updateProg(day, exIdx, realPi, "wk", parseInt(e.target.value) || pr.wk); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
+                      <input defaultValue={pr.w} onBlur={function(e) { updateProg(day, exIdx, realPi, "w", e.target.value); }} style={{ width: 55, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
+                      <input defaultValue={pr.r} onBlur={function(e) { updateProg(day, exIdx, realPi, "r", e.target.value); }} style={{ width: 65, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
+                      <input defaultValue={pr.note || ""} onBlur={function(e) { updateProg(day, exIdx, realPi, "note", e.target.value); }} placeholder="..." style={{ flex: 1, minWidth: 0, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
+                      <button onClick={function() { deleteProg(day, exIdx, realPi); }} style={{ fontSize: 12, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", minWidth: 24, flexShrink: 0 }}>✕</button>
                     </div>); })}
                     {(!ex.prog || ex.prog.length === 0) && <div style={{ fontSize: 10, color: "#94a3b8" }}>No progression data yet</div>}
                     {ex.prog && ex.prog.length > 4 && <button onClick={function(){setSelectedEx(Object.assign({},selectedEx,{showAll:!selectedEx.showAll}));}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:accent,cursor:"pointer",marginBottom:6}}>{selectedEx && selectedEx.showAll ? "▲ Show less" : "▼ View more (" + (ex.prog.length - 4) + " entries)"}</button>}
@@ -3778,7 +3778,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.229.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.229.2
       </div>
     </div>
   );
