@@ -1325,6 +1325,28 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       if (ex.prog) { for (var mwi = 0; mwi < ex.prog.length; mwi++) { if (ex.prog[mwi].wk > maxWk) maxWk = ex.prog[mwi].wk; } }
       setLogWeek(String(maxWk > 0 ? maxWk + 1 : calcWeek(data.config.trainingStart)));
     })();
+    // Pre-fill form if this week already has data
+    (function() {
+      var maxWk = 0;
+      if (ex.prog) { for (var mwi = 0; mwi < ex.prog.length; mwi++) { if (ex.prog[mwi].wk > maxWk) maxWk = ex.prog[mwi].wk; } }
+      var nextWk = maxWk > 0 ? maxWk + 1 : calcWeek(data.config.trainingStart);
+      // Check if latest prog entry is for current calcWeek (re-logging same session)
+      var last2 = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
+      var currentCalcWk = calcWeek(data.config.trainingStart);
+      if (last2 && last2.wk === currentCalcWk) {
+        setLogWeek(String(currentCalcWk));
+        var existW = last2.w ? last2.w.replace("kg","") : "";
+        var existReps = last2.r ? parseReps(last2.r) : [];
+        setLogSets([
+          { w: existW, r: existReps[0] ? String(existReps[0]) : "" },
+          { w: existW, r: existReps[1] ? String(existReps[1]) : "" },
+          { w: existW, r: existReps[2] ? String(existReps[2]) : "" }
+        ]);
+        if (last2.note) setLogComment(last2.note);
+        setEditPrev(true);
+      }
+    })();
+
     setLogComment(""); setLogStatus(""); setEditPrev(false);
     setPrevComment("");
     // Load previous week's comment
@@ -1350,9 +1372,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       prev.wk = parseInt(logWeek) || prev.wk;
       prev.note = logComment.trim() || prev.note || "";
       ex.current = prev.w; ex.reps = prev.r;
-      const suggested = autoStatus(prev.w, prev.r, ex.prog.slice(0, -1), ((logComment || "") + " " + (ex.notes || "")).trim());
-      ex.status = logOverride === "move_up" ? "ready to move" : logOverride === "hold" ? "maintaining" : logOverride === "reduce" ? "reduce" : (logStatus || suggested);
-      if (ex.status === "ready to move") { ex.target = nextPin(parseInt(ex.current), ex.settings && ex.settings.increments) + "kg \u00d7 10\u00d73"; } else if (ex.status !== "maintaining") { delete ex.target; }
+      // Status and target deferred to AI feedback
+      ex.status = "";
+      delete ex.target;
     } else {
       // New entry - check for duplicates
       var logWk = parseInt(logWeek) || calcWeek(data.config.trainingStart);
@@ -2200,6 +2222,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             await saveData(nd);
             setFormMsg("✓ Week " + (entry ? entry.wk : "") + " entry removed");
             setTimeout(function() { setFormMsg(""); }, 3000);
+            setSelectedEx(null);
           };
           return (<div key={"ex-"+activeTab}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -2216,7 +2239,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           
 
           <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2, marginBottom: 0 }}>
-            {["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].map(function(d) { var dl = {sunday:"Sun",monday:"Mon",tuesday:"Tue",wednesday:"Wed",thursday:"Thu",friday:"Fri",saturday:"Sat"}; return (<button key={d} onClick={function(){setExerciseDay(d);setSelectedEx(null);setLogEx(null);}} style={{flex:1,padding:"6px 2px",border:"none",borderRadius:6,fontSize:10,fontWeight:600,cursor:"pointer",background:exerciseDay===d?"#fff":"transparent",color:exerciseDay===d?"#0f172a":"#94a3b8",lineHeight:1.2}}>{dl[d]}</button>);})}
+            {["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].map(function(d) { var dl = {sunday:"Sun",monday:"Mon",tuesday:"Tue",wednesday:"Wed",thursday:"Thu",friday:"Fri",saturday:"Sat"}; return (<button key={d} onClick={function(){setExerciseDay(d);setSelectedEx(null);setFbExpanded(false);setLogEx(null);}} style={{flex:1,padding:"6px 2px",border:"none",borderRadius:6,fontSize:10,fontWeight:600,cursor:"pointer",background:exerciseDay===d?"#fff":"transparent",color:exerciseDay===d?"#0f172a":"#94a3b8",lineHeight:1.2}}>{dl[d]}</button>);})}
           </div>
           {[exerciseDay].map(function(day) {
             var label = dayLabels[day] || day.charAt(0).toUpperCase() + day.slice(1);
@@ -2448,8 +2471,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                                 var wM = userNote.match(/(\d+)\s*kg/i);
                                 var rM = userNote.match(/(\d+)\s*(?:reps|x)/i);
                                 if (wM || rM) {
-                                  newW = wM ? wM[1] + "kg" : origW;
-                                  newR = rM ? rM[1] + "x3" : "10x3";
+                                  newW = wM ? wM[1] + "kg" : newW;
+                                  newR = rM ? rM[1] + "x3" : newR;
                                   isUserOverride = true;
                                 }
                                 dayExs3[di3].notes = (dayExs3[di3].notes ? dayExs3[di3].notes + "; " : "") + "Wk" + currentWeek + " accepted: " + userNote;
@@ -3778,7 +3801,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.229.2
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.230.0
       </div>
     </div>
   );
