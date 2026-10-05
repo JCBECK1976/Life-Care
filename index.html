@@ -3146,7 +3146,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <button onClick={function(){setTrack(eatDay,"o"+idx,getTrack(eatDay,"o"+idx)==="skipped"?"":"skipped");}} style={{ border: "none", background: getTrack(eatDay,"o"+idx)==="skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "6px", fontSize: 11, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay,"o"+idx)==="skipped" ? 1 : 0.4 }} title="Skipped">{getTrack(eatDay,"o"+idx)==="skipped" ? "❌" : "✘"}</button>
                   <button onClick={function() { setMeal(eatDay, "o" + idx, ""); setTrack(eatDay, "o"+idx, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>
                 </React.Fragment>)}
-                
+                </div>
               </div>);
             })}
             <button onClick={function() { addOtherSlot(eatDay); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginBottom: 8 }}>+ Add Other</button>
