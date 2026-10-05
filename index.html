@@ -3056,9 +3056,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 <div style={{ flex: 1 }}>
                   <MealSelect items={allBfast} value={getMeal(eatDay, "b")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast"); } else { setMeal(eatDay, "b", e.target.value); setTrack(eatDay, "b", ""); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
                 </div>
-                {getMeal(eatDay, "b") && (<div style={{ display: "flex", gap: 2 }}>
-                  <button onClick={function(){setTrack(eatDay,"b",getTrack(eatDay,"b")==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,"b")==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "2px 4px", fontSize: 12, cursor: "pointer", opacity: getTrack(eatDay,"b")==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{getTrack(eatDay,"b")==="eaten" ? "✅" : "✔"}</button>
-                  <button onClick={function(){setTrack(eatDay,"b",getTrack(eatDay,"b")==="skipped"?"":"skipped");}} style={{ border: "none", background: getTrack(eatDay,"b")==="skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "2px 4px", fontSize: 12, cursor: "pointer", opacity: getTrack(eatDay,"b")==="skipped" ? 1 : 0.4 }} title="Skipped">{getTrack(eatDay,"b")==="skipped" ? "❌" : "✘"}</button>
+                {getMeal(eatDay, "b") && (<div style={{ display: "flex", gap: 2, alignItems: "center" }}>
+                  <button onClick={function(){setTrack(eatDay,"b",getTrack(eatDay,"b")==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,"b")==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "4px 6px", fontSize: 12, cursor: "pointer", opacity: getTrack(eatDay,"b")==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{getTrack(eatDay,"b")==="eaten" ? "✅" : "✔"}</button>
+                  <button onClick={function(){setTrack(eatDay,"b",getTrack(eatDay,"b")==="skipped"?"":"skipped");}} style={{ border: "none", background: getTrack(eatDay,"b")==="skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "4px 6px", fontSize: 12, cursor: "pointer", opacity: getTrack(eatDay,"b")==="skipped" ? 1 : 0.4 }} title="Skipped">{getTrack(eatDay,"b")==="skipped" ? "❌" : "✘"}</button>
                 </div>)}
               </div>
             </div>
@@ -3070,9 +3070,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 <div style={{ flex: 1 }}>
                   <MealSelect items={allLunch} value={getMeal(eatDay, "l")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch"); } else { setMeal(eatDay, "l", e.target.value); setTrack(eatDay, "l", ""); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
                 </div>
-                {getMeal(eatDay, "l") && (<div style={{ display: "flex", gap: 2 }}>
-                  <button onClick={function(){setTrack(eatDay,"l",getTrack(eatDay,"l")==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,"l")==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "2px 4px", fontSize: 12, cursor: "pointer", opacity: getTrack(eatDay,"l")==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{getTrack(eatDay,"l")==="eaten" ? "✅" : "✔"}</button>
-                  <button onClick={function(){setTrack(eatDay,"l",getTrack(eatDay,"l")==="skipped"?"":"skipped");}} style={{ border: "none", background: getTrack(eatDay,"l")==="skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "2px 4px", fontSize: 12, cursor: "pointer", opacity: getTrack(eatDay,"l")==="skipped" ? 1 : 0.4 }} title="Skipped">{getTrack(eatDay,"l")==="skipped" ? "❌" : "✘"}</button>
+                {getMeal(eatDay, "l") && (<div style={{ display: "flex", gap: 2, alignItems: "center" }}>
+                  <button onClick={function(){setTrack(eatDay,"l",getTrack(eatDay,"l")==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,"l")==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "4px 6px", fontSize: 12, cursor: "pointer", opacity: getTrack(eatDay,"l")==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{getTrack(eatDay,"l")==="eaten" ? "✅" : "✔"}</button>
+                  <button onClick={function(){setTrack(eatDay,"l",getTrack(eatDay,"l")==="skipped"?"":"skipped");}} style={{ border: "none", background: getTrack(eatDay,"l")==="skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "4px 6px", fontSize: 12, cursor: "pointer", opacity: getTrack(eatDay,"l")==="skipped" ? 1 : 0.4 }} title="Skipped">{getTrack(eatDay,"l")==="skipped" ? "❌" : "✘"}</button>
                 </div>)}
               </div>
             </div>
@@ -3084,9 +3084,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 <div style={{ flex: 1 }}>
                   <MealSelect items={allDinners} value={getMeal(eatDay, "d")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner"); } else { setMeal(eatDay, "d", e.target.value); setTrack(eatDay, "d", ""); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
                 </div>
-                {getMeal(eatDay, "d") && (<div style={{ display: "flex", gap: 2 }}>
-                  <button onClick={function(){setTrack(eatDay,"d",getTrack(eatDay,"d")==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,"d")==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "2px 4px", fontSize: 12, cursor: "pointer", opacity: getTrack(eatDay,"d")==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{getTrack(eatDay,"d")==="eaten" ? "✅" : "✔"}</button>
-                  <button onClick={function(){setTrack(eatDay,"d",getTrack(eatDay,"d")==="skipped"?"":"skipped");}} style={{ border: "none", background: getTrack(eatDay,"d")==="skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "2px 4px", fontSize: 12, cursor: "pointer", opacity: getTrack(eatDay,"d")==="skipped" ? 1 : 0.4 }} title="Skipped">{getTrack(eatDay,"d")==="skipped" ? "❌" : "✘"}</button>
+                {getMeal(eatDay, "d") && (<div style={{ display: "flex", gap: 2, alignItems: "center" }}>
+                  <button onClick={function(){setTrack(eatDay,"d",getTrack(eatDay,"d")==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,"d")==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "4px 6px", fontSize: 12, cursor: "pointer", opacity: getTrack(eatDay,"d")==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{getTrack(eatDay,"d")==="eaten" ? "✅" : "✔"}</button>
+                  <button onClick={function(){setTrack(eatDay,"d",getTrack(eatDay,"d")==="skipped"?"":"skipped");}} style={{ border: "none", background: getTrack(eatDay,"d")==="skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "4px 6px", fontSize: 12, cursor: "pointer", opacity: getTrack(eatDay,"d")==="skipped" ? 1 : 0.4 }} title="Skipped">{getTrack(eatDay,"d")==="skipped" ? "❌" : "✘"}</button>
                 </div>)}
               </div>
             </div>
@@ -3102,8 +3102,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       <MealSelect items={allDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory("drink"); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Select drink..." />
                     </div>
                     {getMeal(eatDay, "dr" + idx) && (<React.Fragment>
-                      <button onClick={function(){setTrack(eatDay,"dr"+idx,getTrack(eatDay,"dr"+idx)==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,"dr"+idx)==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "2px 3px", fontSize: 11, cursor: "pointer", opacity: getTrack(eatDay,"dr"+idx)==="eaten" ? 1 : 0.4 }} title="Tracked">{getTrack(eatDay,"dr"+idx)==="eaten" ? "✅" : "✔"}</button>
-                      <button onClick={function(){setTrack(eatDay,"dr"+idx,getTrack(eatDay,"dr"+idx)==="skipped"?"":"skipped");}} style={{ border: "none", background: getTrack(eatDay,"dr"+idx)==="skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "2px 3px", fontSize: 11, cursor: "pointer", opacity: getTrack(eatDay,"dr"+idx)==="skipped" ? 1 : 0.4 }} title="Skipped">{getTrack(eatDay,"dr"+idx)==="skipped" ? "❌" : "✘"}</button>
+                      <button onClick={function(){setTrack(eatDay,"dr"+idx,getTrack(eatDay,"dr"+idx)==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,"dr"+idx)==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "4px 6px", fontSize: 11, cursor: "pointer", opacity: getTrack(eatDay,"dr"+idx)==="eaten" ? 1 : 0.4 }} title="Tracked">{getTrack(eatDay,"dr"+idx)==="eaten" ? "✅" : "✔"}</button>
+                      <button onClick={function(){setTrack(eatDay,"dr"+idx,getTrack(eatDay,"dr"+idx)==="skipped"?"":"skipped");}} style={{ border: "none", background: getTrack(eatDay,"dr"+idx)==="skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "4px 6px", fontSize: 11, cursor: "pointer", opacity: getTrack(eatDay,"dr"+idx)==="skipped" ? 1 : 0.4 }} title="Skipped">{getTrack(eatDay,"dr"+idx)==="skipped" ? "❌" : "✘"}</button>
                       <button onClick={function() { setMeal(eatDay, "dr" + idx, ""); setTrack(eatDay, "dr"+idx, ""); }} style={{ fontSize: 11, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>Del</button>
                     </React.Fragment>)}
                   </div>);
@@ -3122,8 +3122,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       <MealSelect items={allDesserts} value={getMeal(eatDay, "ds" + idx) === "__empty__" ? "" : getMeal(eatDay, "ds" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory("dessert"); } else { setMeal(eatDay, "ds" + idx, e.target.value); } }} placeholder="Select dessert..." />
                     </div>
                     {getMeal(eatDay, "ds" + idx) && (<React.Fragment>
-                      <button onClick={function(){setTrack(eatDay,"ds"+idx,getTrack(eatDay,"ds"+idx)==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,"ds"+idx)==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "2px 3px", fontSize: 11, cursor: "pointer", opacity: getTrack(eatDay,"ds"+idx)==="eaten" ? 1 : 0.4 }} title="Tracked">{getTrack(eatDay,"ds"+idx)==="eaten" ? "✅" : "✔"}</button>
-                      <button onClick={function(){setTrack(eatDay,"ds"+idx,getTrack(eatDay,"ds"+idx)==="skipped"?"":"skipped");}} style={{ border: "none", background: getTrack(eatDay,"ds"+idx)==="skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "2px 3px", fontSize: 11, cursor: "pointer", opacity: getTrack(eatDay,"ds"+idx)==="skipped" ? 1 : 0.4 }} title="Skipped">{getTrack(eatDay,"ds"+idx)==="skipped" ? "❌" : "✘"}</button>
+                      <button onClick={function(){setTrack(eatDay,"ds"+idx,getTrack(eatDay,"ds"+idx)==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,"ds"+idx)==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "4px 6px", fontSize: 11, cursor: "pointer", opacity: getTrack(eatDay,"ds"+idx)==="eaten" ? 1 : 0.4 }} title="Tracked">{getTrack(eatDay,"ds"+idx)==="eaten" ? "✅" : "✔"}</button>
+                      <button onClick={function(){setTrack(eatDay,"ds"+idx,getTrack(eatDay,"ds"+idx)==="skipped"?"":"skipped");}} style={{ border: "none", background: getTrack(eatDay,"ds"+idx)==="skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "4px 6px", fontSize: 11, cursor: "pointer", opacity: getTrack(eatDay,"ds"+idx)==="skipped" ? 1 : 0.4 }} title="Skipped">{getTrack(eatDay,"ds"+idx)==="skipped" ? "❌" : "✘"}</button>
                       <button onClick={function() { setMeal(eatDay, "ds" + idx, ""); setTrack(eatDay, "ds"+idx, ""); }} style={{ fontSize: 11, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>Del</button>
                     </React.Fragment>)}
                   </div>);
@@ -3139,11 +3139,11 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <MealSelect items={allOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { setAddingNew(true); setAddingCategory("other"); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Snack / other..." />
                 </div>
                 {getMeal(eatDay, "o" + idx) && (<React.Fragment>
-                  <button onClick={function(){setTrack(eatDay,"o"+idx,getTrack(eatDay,"o"+idx)==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,"o"+idx)==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "2px 3px", fontSize: 11, cursor: "pointer", opacity: getTrack(eatDay,"o"+idx)==="eaten" ? 1 : 0.4 }} title="Tracked">{getTrack(eatDay,"o"+idx)==="eaten" ? "✅" : "✔"}</button>
-                  <button onClick={function(){setTrack(eatDay,"o"+idx,getTrack(eatDay,"o"+idx)==="skipped"?"":"skipped");}} style={{ border: "none", background: getTrack(eatDay,"o"+idx)==="skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "2px 3px", fontSize: 11, cursor: "pointer", opacity: getTrack(eatDay,"o"+idx)==="skipped" ? 1 : 0.4 }} title="Skipped">{getTrack(eatDay,"o"+idx)==="skipped" ? "❌" : "✘"}</button>
+                  <button onClick={function(){setTrack(eatDay,"o"+idx,getTrack(eatDay,"o"+idx)==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,"o"+idx)==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "4px 6px", fontSize: 11, cursor: "pointer", opacity: getTrack(eatDay,"o"+idx)==="eaten" ? 1 : 0.4 }} title="Tracked">{getTrack(eatDay,"o"+idx)==="eaten" ? "✅" : "✔"}</button>
+                  <button onClick={function(){setTrack(eatDay,"o"+idx,getTrack(eatDay,"o"+idx)==="skipped"?"":"skipped");}} style={{ border: "none", background: getTrack(eatDay,"o"+idx)==="skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "4px 6px", fontSize: 11, cursor: "pointer", opacity: getTrack(eatDay,"o"+idx)==="skipped" ? 1 : 0.4 }} title="Skipped">{getTrack(eatDay,"o"+idx)==="skipped" ? "❌" : "✘"}</button>
                   <button onClick={function() { setMeal(eatDay, "o" + idx, ""); setTrack(eatDay, "o"+idx, ""); }} style={{ fontSize: 11, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>Del</button>
                 </React.Fragment>)}
-                <button onClick={function() { removeOtherSlot(eatDay, idx); }} style={{ fontSize: 12, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", marginTop: 14 }}>✕</button>
+                
               </div>);
             })}
             <button onClick={function() { addOtherSlot(eatDay); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginBottom: 8 }}>+ Add Other</button>
@@ -3843,7 +3843,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.231.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.231.2
       </div>
     </div>
   );
