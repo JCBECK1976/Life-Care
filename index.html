@@ -3106,7 +3106,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       <button onClick={function(){setTrack(eatDay,"dr"+idx,getTrack(eatDay,"dr"+idx)==="skipped"?"":"skipped");}} style={{ border: "none", background: getTrack(eatDay,"dr"+idx)==="skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "6px", fontSize: 11, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay,"dr"+idx)==="skipped" ? 1 : 0.4 }} title="Skipped">{getTrack(eatDay,"dr"+idx)==="skipped" ? "❌" : "✘"}</button>
                       <button onClick={function() { setMeal(eatDay, "dr" + idx, ""); setTrack(eatDay, "dr"+idx, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>
                     </React.Fragment>)}
-                  </div>);
+                </div>
+              </div>);
                 });
               })()}
             </div>
@@ -3126,7 +3127,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       <button onClick={function(){setTrack(eatDay,"ds"+idx,getTrack(eatDay,"ds"+idx)==="skipped"?"":"skipped");}} style={{ border: "none", background: getTrack(eatDay,"ds"+idx)==="skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "6px", fontSize: 11, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay,"ds"+idx)==="skipped" ? 1 : 0.4 }} title="Skipped">{getTrack(eatDay,"ds"+idx)==="skipped" ? "❌" : "✘"}</button>
                       <button onClick={function() { setMeal(eatDay, "ds" + idx, ""); setTrack(eatDay, "ds"+idx, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>
                     </React.Fragment>)}
-                  </div>);
+                </div>
+              </div>);
                 });
               })()}
             </div>
