@@ -2904,6 +2904,71 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 <MealSelect items={def.items} value={defs[def.k] || ""} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm(def.k === "b" ? "breakfast" : def.k === "l" ? "lunch" : def.k === "d" ? "dinner" : def.k === "dr" ? "drink" : def.k === "ds" ? "dessert" : "snack"); } else { saveDef(def.k, e.target.value, "individual"); } }} placeholder="Select default..." />
               </div>);
             })}
+            {addingNew && addingCategory === "breakfast" && (<div id="add-item-form" style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 8, border: "1px solid #fde68a" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#854d0e" }}>Add New Breakfast Item</span>
+                <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: 0, background: "none", border: "none", fontSize: 14, color: "#854d0e", cursor: "pointer", lineHeight: 1 }}>✕</button>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ padding: "6px 12px", background: newItemLoading ? "#94a3b8" : "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button>
+                <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label>
+              </div>
+              <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
+            </div>)}
+
+            {addingNew && addingCategory === "lunch" && (<div id="add-item-form" style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 8, border: "1px solid #fde68a" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#854d0e" }}>Add New Lunch Item</span>
+                <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: 0, background: "none", border: "none", fontSize: 14, color: "#854d0e", cursor: "pointer", lineHeight: 1 }}>✕</button>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ padding: "6px 12px", background: newItemLoading ? "#94a3b8" : "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button>
+                <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label>
+              </div>
+              <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
+            </div>)}
+
+            {addingNew && addingCategory === "dinner" && (<div id="add-item-form" style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 8, border: "1px solid #fde68a" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#854d0e" }}>Add New Dinner Item</span>
+                <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: 0, background: "none", border: "none", fontSize: 14, color: "#854d0e", cursor: "pointer", lineHeight: 1 }}>✕</button>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ padding: "6px 12px", background: newItemLoading ? "#94a3b8" : "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button>
+                <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label>
+              </div>
+              <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
+            </div>)}
+
+            {addingNew && addingCategory === "drink" && (<div id="add-item-form" style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 8, border: "1px solid #fde68a" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#854d0e" }}>Add New Drink Item</span>
+                <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: 0, background: "none", border: "none", fontSize: 14, color: "#854d0e", cursor: "pointer", lineHeight: 1 }}>✕</button>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ padding: "6px 12px", background: newItemLoading ? "#94a3b8" : "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button>
+                <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label>
+              </div>
+              <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
+            </div>)}
+
+            {addingNew && addingCategory === "dessert" && (<div id="add-item-form" style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 8, border: "1px solid #fde68a" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#854d0e" }}>Add New Dessert Item</span>
+                <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: 0, background: "none", border: "none", fontSize: 14, color: "#854d0e", cursor: "pointer", lineHeight: 1 }}>✕</button>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ padding: "6px 12px", background: newItemLoading ? "#94a3b8" : "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button>
+                <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label>
+              </div>
+              <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
+            </div>)}
+
             <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", marginTop: 4, marginBottom: 4 }}>Other defaults (snacks & other)</div>
             {(function() { var slots = []; for (var dn = 1; dn <= 20; dn++) { if (defs["o" + dn] || dn <= (function() { var cnt = 0; for (var k = 1; k <= 20; k++) { if (defs["o" + k]) cnt = k; } return Math.max(cnt, 0); })()) slots.push(dn); } return slots; })().map(function(n) {
               return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
@@ -3070,6 +3135,20 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               </div>
             </div>
 
+            
+            {addingNew && addingCategory === "breakfast" && (<div id="add-item-form" style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 8, border: "1px solid #fde68a" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#854d0e" }}>Add New Breakfast Item</span>
+                <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: 0, background: "none", border: "none", fontSize: 14, color: "#854d0e", cursor: "pointer", lineHeight: 1 }}>✕</button>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ padding: "6px 12px", background: newItemLoading ? "#94a3b8" : "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button>
+                <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label>
+              </div>
+              <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
+            </div>)}
+
             {/* Lunch */}
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Lunch</span>
@@ -3084,6 +3163,20 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               </div>
             </div>
 
+            
+            {addingNew && addingCategory === "lunch" && (<div id="add-item-form" style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 8, border: "1px solid #fde68a" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#854d0e" }}>Add New Lunch Item</span>
+                <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: 0, background: "none", border: "none", fontSize: 14, color: "#854d0e", cursor: "pointer", lineHeight: 1 }}>✕</button>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ padding: "6px 12px", background: newItemLoading ? "#94a3b8" : "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button>
+                <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label>
+              </div>
+              <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
+            </div>)}
+
             {/* Dinner */}
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Dinner</span>
@@ -3097,6 +3190,20 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>)}
               </div>
             </div>
+
+            
+            {addingNew && addingCategory === "dinner" && (<div id="add-item-form" style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 8, border: "1px solid #fde68a" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#854d0e" }}>Add New Dinner Item</span>
+                <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: 0, background: "none", border: "none", fontSize: 14, color: "#854d0e", cursor: "pointer", lineHeight: 1 }}>✕</button>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ padding: "6px 12px", background: newItemLoading ? "#94a3b8" : "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button>
+                <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label>
+              </div>
+              <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
+            </div>)}
 
             {/* Drinks */}
             <div style={{ marginBottom: 8 }}>
@@ -3118,6 +3225,20 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               })()}
             </div>
 
+            
+            {addingNew && addingCategory === "drink" && (<div id="add-item-form" style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 8, border: "1px solid #fde68a" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#854d0e" }}>Add New Drink Item</span>
+                <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: 0, background: "none", border: "none", fontSize: 14, color: "#854d0e", cursor: "pointer", lineHeight: 1 }}>✕</button>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ padding: "6px 12px", background: newItemLoading ? "#94a3b8" : "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button>
+                <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label>
+              </div>
+              <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
+            </div>)}
+
             {/* Desserts */}
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Desserts</span>
@@ -3137,6 +3258,20 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 });
               })()}
             </div>
+
+            
+            {addingNew && addingCategory === "dessert" && (<div id="add-item-form" style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 8, border: "1px solid #fde68a" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#854d0e" }}>Add New Dessert Item</span>
+                <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: 0, background: "none", border: "none", fontSize: 14, color: "#854d0e", cursor: "pointer", lineHeight: 1 }}>✕</button>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ padding: "6px 12px", background: newItemLoading ? "#94a3b8" : "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button>
+                <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label>
+              </div>
+              <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
+            </div>)}
 
             {/* Other items */}
             {otherSlots.map(function(idx) {
@@ -3852,7 +3987,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.232.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.233.0
       </div>
     </div>
   );
