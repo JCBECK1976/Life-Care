@@ -3198,7 +3198,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
                       var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
                       setFoodCheckerPreview({ name: info.name || foodCheckerText, kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, rating: info.rating || "AMBER", suitability: info.suitability || "" });
-                    } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 80)); setTimeout(function(){setFormMsg("");},3000); }
+                    } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 120)); setTimeout(function(){setFormMsg("");},10000); }
                     setFoodCheckerLoading(false);
                   }} disabled={foodCheckerLoading || !foodCheckerText.trim()} style={{ padding: "6px 12px", background: foodCheckerLoading ? "#94a3b8" : "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{foodCheckerLoading ? "..." : "Check"}</button>
                   <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>
@@ -3218,7 +3218,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
                         var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
                         setFoodCheckerPreview({ name: info.name || "Unknown", kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, rating: info.rating || "AMBER", suitability: info.suitability || "" });
-                      } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 80)); setTimeout(function(){setFormMsg("");},3000); }
+                      } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 120)); setTimeout(function(){setFormMsg("");},10000); }
                       setFoodCheckerLoading(false);
                       e.target.value = "";
                     }} style={{ display: "none" }} />
@@ -3845,7 +3845,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.231.6
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.231.7
       </div>
     </div>
   );
