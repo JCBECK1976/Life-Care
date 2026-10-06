@@ -2964,29 +2964,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             </div>
             <div style={{ marginBottom: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
-                <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Drink</span>
-                <div style={{ display: "flex", background: "#e2e8f0", borderRadius: 4, padding: 1 }}>
-                  <button onClick={function() { saveDef("dr", defs["dr"], "individual"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["dr"] || "individual") === "individual" ? "#fff" : "transparent", color: (defScopes["dr"] || "individual") === "individual" ? "#0f172a" : "#94a3b8" }}>Individual</button>
-                  <button onClick={function() { saveDef("dr", defs["dr"], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["dr"] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes["dr"] || "individual") === "all" ? "#0f172a" : "#94a3b8" }}>All</button>
-                </div>
-              </div>
-              {(function() { var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "dr" : "dr" + si; if (defs[sk] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
-                var slotKey = n === 1 ? "dr" : "dr" + n;
-                return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
-                  <div style={{ flex: 1 }}>
-                    <MealSelect items={allDrinks} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select drink..." />
-                  </div>
-                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (<React.Fragment>
-                    <button onClick={function(){var tk="wk_track_"+slotKey;var cv=defs[tk];saveDef(tk,cv==="eaten"?"":"eaten","individual");}} style={{ border: "none", background: (defs["wk_track_"+slotKey])==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: (defs["wk_track_"+slotKey])==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{(defs["wk_track_"+slotKey])==="eaten" ? "✅" : "✔"}</button>
-                    <button onClick={function(){var tk="wk_track_"+slotKey;var cv=defs[tk];saveDef(slotKey, "", "individual");}} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
-                    {n > 1 && <button onClick={function() { saveDef(slotKey, "", "individual"); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
-                  </React.Fragment>)}
-                </div>);
-              })}
-              <button onClick={function() { var next = 1; var pk = "dr"; while (defs[next === 1 ? pk : pk + next]) next++; saveDef(next === 1 ? pk : pk + next, "__placeholder__", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginTop: 4 }}>+ Add Drink</button>
-            </div>
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
                 <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Dessert</span>
                 <div style={{ display: "flex", background: "#e2e8f0", borderRadius: 4, padding: 1 }}>
                   <button onClick={function() { saveDef("ds", defs["ds"], "individual"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["ds"] || "individual") === "individual" ? "#fff" : "transparent", color: (defScopes["ds"] || "individual") === "individual" ? "#0f172a" : "#94a3b8" }}>Individual</button>
@@ -3076,6 +3053,29 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             </div>)}
 
             <div style={{ marginBottom: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Drink</span>
+                <div style={{ display: "flex", background: "#e2e8f0", borderRadius: 4, padding: 1 }}>
+                  <button onClick={function() { saveDef("dr", defs["dr"], "individual"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["dr"] || "individual") === "individual" ? "#fff" : "transparent", color: (defScopes["dr"] || "individual") === "individual" ? "#0f172a" : "#94a3b8" }}>Individual</button>
+                  <button onClick={function() { saveDef("dr", defs["dr"], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["dr"] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes["dr"] || "individual") === "all" ? "#0f172a" : "#94a3b8" }}>All</button>
+                </div>
+              </div>
+              {(function() { var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "dr" : "dr" + si; if (defs[sk] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
+                var slotKey = n === 1 ? "dr" : "dr" + n;
+                return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
+                  <div style={{ flex: 1 }}>
+                    <MealSelect items={allDrinks} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select drink..." />
+                  </div>
+                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (<React.Fragment>
+                    <button onClick={function(){var tk="wk_track_"+slotKey;var cv=defs[tk];saveDef(tk,cv==="eaten"?"":"eaten","individual");}} style={{ border: "none", background: (defs["wk_track_"+slotKey])==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: (defs["wk_track_"+slotKey])==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{(defs["wk_track_"+slotKey])==="eaten" ? "✅" : "✔"}</button>
+                    <button onClick={function(){var tk="wk_track_"+slotKey;var cv=defs[tk];saveDef(slotKey, "", "individual");}} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
+                    {n > 1 && <button onClick={function() { saveDef(slotKey, "", "individual"); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
+                  </React.Fragment>)}
+                </div>);
+              })}
+              <button onClick={function() { var next = 1; var pk = "dr"; while (defs[next === 1 ? pk : pk + next]) next++; saveDef(next === 1 ? pk : pk + next, "__placeholder__", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginTop: 4 }}>+ Add Drink</button>
+            </div>
+            <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Snacks</span>
               {(function() { var slots = []; for (var si = 1; si <= 20; si++) { if (defs["o" + si] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
                 var slotKey = "o" + n;
@@ -3158,8 +3158,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 {k:"lunch",label:"Lunches",items:allLunch,customs:customLunches,setCustoms:setCustomLunches,storageKey:"custom_lunches"},
                 {k:"dinner",label:"Dinners",items:allDinners,customs:customMeals,setCustoms:setCustomMeals,storageKey:"custom_meals"},
                 {k:"snack",label:"Snacks",items:allOther,customs:customSnacks,setCustoms:setCustomSnacks,storageKey:"custom_snacks"},
-                {k:"drink",label:"Drinks",items:allDrinks,customs:customDrinks,setCustoms:setCustomDrinks,storageKey:"custom_drinks"},
-                {k:"dessert",label:"Desserts",items:allDesserts,customs:customDesserts,setCustoms:setCustomDesserts,storageKey:"custom_desserts"}
+                {k:"dessert",label:"Desserts",items:allDesserts,customs:customDesserts,setCustoms:setCustomDesserts,storageKey:"custom_desserts"},
+                {k:"drink",label:"Drinks",items:allDrinks,customs:customDrinks,setCustoms:setCustomDrinks,storageKey:"custom_drinks"}
               ].map(function(cat) {
                 return (<div key={cat.k} style={{ marginBottom: 12 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4 }}>{cat.label} ({cat.items.length} items, {cat.customs.length} custom)</div>
@@ -3341,42 +3341,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
             </div>)}
 
-            {/* Drinks */}
-            <div style={{ marginBottom: 8 }}>
-              <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Drinks</span>
-              {(function() {
-                var slots = []; for (var di = 1; di <= 5; di++) { if (getMeal(eatDay, "dr" + di) || di <= 1) slots.push(di); }
-                return slots.map(function(idx) {
-                  return (<div key={"dr"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
-                    <div style={{ flex: 1 }}>
-                      <MealSelect items={allDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink"); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Select drink..." />
-                    </div>
-                    {getMeal(eatDay, "dr" + idx) && (<React.Fragment>
-                      <button onClick={function(){setTrack(eatDay,"dr"+idx,getTrack(eatDay,"dr"+idx)==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,"dr"+idx)==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 11, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay,"dr"+idx)==="eaten" ? 1 : 0.4 }} title="Tracked">{getTrack(eatDay,"dr"+idx)==="eaten" ? "✅" : "✔"}</button>
-                      <button onClick={function(){setMeal(eatDay, "dr" + idx, ""); setTrack(eatDay, "dr"+idx, "");}} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 11, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
-                      <button onClick={function() { setMeal(eatDay, "dr" + idx, ""); setTrack(eatDay, "dr"+idx, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>
-                    </React.Fragment>)}
-                  </div>);
-                });
-              })()}
-            </div>
-              <button onClick={function() { var nk = 1; while (getMeal(eatDay, "dr" + nk)) nk++; setMeal(eatDay, "dr" + nk, "__empty__"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginBottom: 8 }}>+ Add Drink</button>
-
-
-            
-            {addingNew && addingCategory === "drink" && (<div id="add-item-form" style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 8, border: "1px solid #fde68a" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "#854d0e" }}>Add New Drink Item</span>
-                <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: 0, background: "none", border: "none", fontSize: 14, color: "#854d0e", cursor: "pointer", lineHeight: 1 }}>✕</button>
-              </div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
-                <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ padding: "6px 12px", background: newItemLoading ? "#94a3b8" : "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button>
-                <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label>
-              </div>
-              <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
-            </div>)}
-
             {/* Desserts */}
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Desserts</span>
@@ -3403,6 +3367,42 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             {addingNew && addingCategory === "dessert" && (<div id="add-item-form" style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 8, border: "1px solid #fde68a" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                 <span style={{ fontSize: 11, fontWeight: 600, color: "#854d0e" }}>Add New Dessert Item</span>
+                <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: 0, background: "none", border: "none", fontSize: 14, color: "#854d0e", cursor: "pointer", lineHeight: 1 }}>✕</button>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ padding: "6px 12px", background: newItemLoading ? "#94a3b8" : "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button>
+                <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label>
+              </div>
+              <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
+            </div>)}
+
+            {/* Drinks */}
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Drinks</span>
+              {(function() {
+                var slots = []; for (var di = 1; di <= 5; di++) { if (getMeal(eatDay, "dr" + di) || di <= 1) slots.push(di); }
+                return slots.map(function(idx) {
+                  return (<div key={"dr"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
+                    <div style={{ flex: 1 }}>
+                      <MealSelect items={allDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink"); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Select drink..." />
+                    </div>
+                    {getMeal(eatDay, "dr" + idx) && (<React.Fragment>
+                      <button onClick={function(){setTrack(eatDay,"dr"+idx,getTrack(eatDay,"dr"+idx)==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,"dr"+idx)==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 11, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay,"dr"+idx)==="eaten" ? 1 : 0.4 }} title="Tracked">{getTrack(eatDay,"dr"+idx)==="eaten" ? "✅" : "✔"}</button>
+                      <button onClick={function(){setMeal(eatDay, "dr" + idx, ""); setTrack(eatDay, "dr"+idx, "");}} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 11, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
+                      <button onClick={function() { setMeal(eatDay, "dr" + idx, ""); setTrack(eatDay, "dr"+idx, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>
+                    </React.Fragment>)}
+                  </div>);
+                });
+              })()}
+            </div>
+              <button onClick={function() { var nk = 1; while (getMeal(eatDay, "dr" + nk)) nk++; setMeal(eatDay, "dr" + nk, "__empty__"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginBottom: 8 }}>+ Add Drink</button>
+
+
+            
+            {addingNew && addingCategory === "drink" && (<div id="add-item-form" style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 8, border: "1px solid #fde68a" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#854d0e" }}>Add New Drink Item</span>
                 <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: 0, background: "none", border: "none", fontSize: 14, color: "#854d0e", cursor: "pointer", lineHeight: 1 }}>✕</button>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
@@ -4129,7 +4129,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.238.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.239.0
       </div>
     </div>
   );
