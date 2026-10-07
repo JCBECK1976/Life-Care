@@ -3240,11 +3240,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "b" : "b" + si; if (getMeal(eatDay, sk) || si <= 1) slots.push(si); }
                 return slots.map(function(idx) {
                   var slotKey = idx === 1 ? "b" : "b" + idx;
+                  var _hasItem = allBfast.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
                   return (<div key={"b"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
                       <MealSelect items={allBfast} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast"); } else { setMeal(eatDay, slotKey, e.target.value); setTrack(eatDay, slotKey, ""); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
                     </div>
-                    {getMeal(eatDay, slotKey) && getMeal(eatDay, slotKey) !== "__empty__" && (<React.Fragment>
+                    {_hasItem && (<React.Fragment>
                       <button onClick={function(){setTrack(eatDay,slotKey,getTrack(eatDay,slotKey)==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,slotKey)==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay,slotKey)==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{getTrack(eatDay,slotKey)==="eaten" ? "\u2705" : "\u2714"}</button>
                       <button onClick={function(){setTrack(eatDay,slotKey,getTrack(eatDay,slotKey)==="skipped"?"":"skipped");}} style={{ border: "none", background: getTrack(eatDay,slotKey)==="skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay,slotKey)==="skipped" ? 1 : 0.4 }} title="Skipped">{getTrack(eatDay,slotKey)==="skipped" ? "\u274c" : "\u2718"}</button>
                       {idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); setTrack(eatDay, slotKey, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
@@ -3276,11 +3277,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "l" : "l" + si; if (getMeal(eatDay, sk) || si <= 1) slots.push(si); }
                 return slots.map(function(idx) {
                   var slotKey = idx === 1 ? "l" : "l" + idx;
+                  var _hasItem = allLunch.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
                   return (<div key={"l"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
                       <MealSelect items={allLunch} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch"); } else { setMeal(eatDay, slotKey, e.target.value); setTrack(eatDay, slotKey, ""); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
                     </div>
-                    {getMeal(eatDay, slotKey) && getMeal(eatDay, slotKey) !== "__empty__" && (<React.Fragment>
+                    {_hasItem && (<React.Fragment>
                       <button onClick={function(){setTrack(eatDay,slotKey,getTrack(eatDay,slotKey)==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,slotKey)==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay,slotKey)==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{getTrack(eatDay,slotKey)==="eaten" ? "✅" : "✔"}</button>
                       <button onClick={function(){setMeal(eatDay, slotKey, ""); setTrack(eatDay, slotKey, "");}} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
                       {idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); setTrack(eatDay, slotKey, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
@@ -3312,11 +3314,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "d" : "d" + si; if (getMeal(eatDay, sk) || si <= 1) slots.push(si); }
                 return slots.map(function(idx) {
                   var slotKey = idx === 1 ? "d" : "d" + idx;
+                  var _hasItem = allDinners.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
                   return (<div key={"d"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
                       <MealSelect items={allDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner"); } else { setMeal(eatDay, slotKey, e.target.value); setTrack(eatDay, slotKey, ""); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
                     </div>
-                    {getMeal(eatDay, slotKey) && getMeal(eatDay, slotKey) !== "__empty__" && (<React.Fragment>
+                    {_hasItem && (<React.Fragment>
                       <button onClick={function(){setTrack(eatDay,slotKey,getTrack(eatDay,slotKey)==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,slotKey)==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay,slotKey)==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{getTrack(eatDay,slotKey)==="eaten" ? "✅" : "✔"}</button>
                       <button onClick={function(){setMeal(eatDay, slotKey, ""); setTrack(eatDay, slotKey, "");}} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
                       {idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); setTrack(eatDay, slotKey, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
