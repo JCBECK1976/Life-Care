@@ -2977,7 +2977,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {(function() { var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "ds" : "ds" + si; if (defs[sk] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
                 var slotKey = n === 1 ? "ds" : "ds" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
-                  <div style={{ flex: 1, opacity: getTrack(eatDay, "ds"+idx) ? 0.5 : 1, pointerEvents: getTrack(eatDay, "ds"+idx) ? "none" : "auto" }}>
+                  <div style={{ flex: 1, opacity: getTrack(eatDay, slotKey) ? 0.5 : 1, pointerEvents: getTrack(eatDay, slotKey) ? "none" : "auto" }}>
                     <MealSelect items={allDesserts} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select dessert..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (<React.Fragment>
@@ -3067,7 +3067,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {(function() { var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "dr" : "dr" + si; if (defs[sk] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
                 var slotKey = n === 1 ? "dr" : "dr" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
-                  <div style={{ flex: 1, opacity: getTrack(eatDay, "dr"+idx) ? 0.5 : 1, pointerEvents: getTrack(eatDay, "dr"+idx) ? "none" : "auto" }}>
+                  <div style={{ flex: 1, opacity: getTrack(eatDay, slotKey) ? 0.5 : 1, pointerEvents: getTrack(eatDay, slotKey) ? "none" : "auto" }}>
                     <MealSelect items={allDrinks} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select drink..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (<React.Fragment>
@@ -3084,7 +3084,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {(function() { var slots = []; for (var si = 1; si <= 20; si++) { if (defs["o" + si] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
                 var slotKey = "o" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
-                  <div style={{ flex: 1, opacity: getTrack(eatDay, "o"+idx) ? 0.5 : 1, pointerEvents: getTrack(eatDay, "o"+idx) ? "none" : "auto" }}>
+                  <div style={{ flex: 1, opacity: getTrack(eatDay, slotKey) ? 0.5 : 1, pointerEvents: getTrack(eatDay, slotKey) ? "none" : "auto" }}>
                     <MealSelect items={allOther} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select snack..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (<React.Fragment>
@@ -4353,7 +4353,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.243.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.243.1
       </div>
     </div>
   );
