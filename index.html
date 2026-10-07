@@ -3247,7 +3247,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     </div>
                     {_hasItem && (<React.Fragment>
                       <button onClick={function(){setTrack(eatDay,slotKey,getTrack(eatDay,slotKey)==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,slotKey)==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay,slotKey)==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{getTrack(eatDay,slotKey)==="eaten" ? "\u2705" : "\u2714"}</button>
-                      <button onClick={function(){setTrack(eatDay,slotKey,getTrack(eatDay,slotKey)==="skipped"?"":"skipped");}} style={{ border: "none", background: getTrack(eatDay,slotKey)==="skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay,slotKey)==="skipped" ? 1 : 0.4 }} title="Skipped">{getTrack(eatDay,slotKey)==="skipped" ? "\u274c" : "\u2718"}</button>
+                      <button onClick={function(){setMeal(eatDay, slotKey, ""); setTrack(eatDay, slotKey, "");}} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
                       {idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); setTrack(eatDay, slotKey, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
                     </React.Fragment>)}
                   </div>);
@@ -4132,7 +4132,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.239.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.239.2
       </div>
     </div>
   );
