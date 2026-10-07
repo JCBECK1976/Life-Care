@@ -418,13 +418,13 @@ const MEAL_DAYS = [
 const DAY_MAP = { sun: "sunday", mon: "monday", tue: "tuesday", wed: "wednesday", thu: "thursday", fri: "friday", sat: "saturday" };
 
 const BREAKFASTS = [
-  { id: "overnight_oats", name: "Overnight Oats + Berries", jcKcal: 696, beckKcal: 440, note: "Creatine in oats" },
-  { id: "porridge_berries", name: "Porridge + Berries", jcKcal: 696, beckKcal: 440, note: "Morrisons Mighty/Creamy only" },
-  { id: "porridge_honey", name: "Porridge + Honey", jcKcal: 696, beckKcal: 380, note: "" },
-  { id: "weetabix", name: "Weetabix + Berries", jcKcal: 360, beckKcal: 380, note: "Beck max 1×/week" },
-  { id: "toast_eggs", name: "Toast + Eggs", jcKcal: 450, beckKcal: 380, note: "Super Seeded 138kcal/slice" },
-  { id: "cornflakes", name: "Cornflakes", jcKcal: 360, beckKcal: 320, note: "Max 1×/week (high GI)" },
-  { id: "office_oats", name: "Office Porridge Pot", jcKcal: 360, beckKcal: 0, note: "JC London days only" },
+  { id: "overnight_oats", name: "Overnight Oats + Berries", jcKcal: 696, beckKcal: 440, rating: "GREAT", note: "Creatine in oats" },
+  { id: "porridge_berries", name: "Porridge + Berries", jcKcal: 696, beckKcal: 440, rating: "GREAT", note: "Morrisons Mighty/Creamy only" },
+  { id: "porridge_honey", name: "Porridge + Honey", jcKcal: 696, beckKcal: 380, rating: "GREAT", note: "" },
+  { id: "weetabix", name: "Weetabix + Berries", jcKcal: 360, beckKcal: 380, rating: "GREAT", note: "Beck max 1×/week" },
+  { id: "toast_eggs", name: "Toast + Eggs", jcKcal: 450, beckKcal: 380, rating: "GREAT", note: "Super Seeded 138kcal/slice" },
+  { id: "cornflakes", name: "Cornflakes", jcKcal: 360, beckKcal: 320, rating: "GREAT", note: "Max 1×/week (high GI)" },
+  { id: "office_oats", name: "Office Porridge Pot", jcKcal: 360, beckKcal: 0, rating: "GREAT", note: "JC London days only" },
   { id: "porridge_seeds", name: "Porridge + Seeds", jcKcal: 430, beckKcal: 335, rating: "GREAT" },
   { id: "porridge_apple", name: "Porridge + Stewed Apple + Cinnamon", jcKcal: 420, beckKcal: 325, rating: "GREAT" },
   { id: "porridge_toast", name: "Porridge + 2 Toast + ProActiv", jcKcal: 696, beckKcal: 0, rating: "GREAT" },
@@ -434,14 +434,14 @@ const BREAKFASTS = [
   { id: "full_cooked", name: "Eggs + Sausages + Hash Browns + Toast", jcKcal: 720, beckKcal: 650, rating: "RED" },
 ];
 const LUNCHES = [
-  { id: "jacket_tuna", name: "Jacket Potato + Tuna + Cheese + Eggs", jcKcal: 580, beckKcal: 400, note: "JC office template 1" },
-  { id: "cajun_salad", name: "Cajun Chicken Salad + Seeds", jcKcal: 580, beckKcal: 400, note: "JC office template 2" },
-  { id: "wrap_chicken", name: "Chicken Wrap + Salad", jcKcal: 400, beckKcal: 360, note: "" },
-  { id: "soup_bread", name: "Soup + Bread", jcKcal: 350, beckKcal: 320, note: "" },
-  { id: "sandwich", name: "Sandwich (Super Seeded)", jcKcal: 400, beckKcal: 360, note: "" },
-  { id: "salad_protein", name: "Salad + Protein", jcKcal: 380, beckKcal: 340, note: "" },
-  { id: "leftovers", name: "Leftovers", jcKcal: 450, beckKcal: 400, note: "" },
-  { id: "pitta_hummus", name: "Pitta + Hummus + Chicken", jcKcal: 420, beckKcal: 370, note: "" },
+  { id: "jacket_tuna", name: "Jacket Potato + Tuna + Cheese + Eggs", jcKcal: 580, beckKcal: 400, rating: "GREAT", note: "JC office template 1" },
+  { id: "cajun_salad", name: "Cajun Chicken Salad + Seeds", jcKcal: 580, beckKcal: 400, rating: "GREAT", note: "JC office template 2" },
+  { id: "wrap_chicken", name: "Chicken Wrap + Salad", jcKcal: 400, beckKcal: 360, rating: "GREAT", note: "" },
+  { id: "soup_bread", name: "Soup + Bread", jcKcal: 350, beckKcal: 320, rating: "GREAT", note: "" },
+  { id: "sandwich", name: "Sandwich (Super Seeded)", jcKcal: 400, beckKcal: 360, rating: "GREAT", note: "" },
+  { id: "salad_protein", name: "Salad + Protein", jcKcal: 380, beckKcal: 340, rating: "GREAT", note: "" },
+  { id: "leftovers", name: "Leftovers", jcKcal: 450, beckKcal: 400, rating: "GREAT", note: "" },
+  { id: "pitta_hummus", name: "Pitta + Hummus + Chicken", jcKcal: 420, beckKcal: 370, rating: "GREAT", note: "" },
   { id: "pulled_chicken", name: "Roosters Pulled Chicken Sandwich", jcKcal: 650, beckKcal: 650, rating: "GREAT" },
   { id: "flame_grilled", name: "Roosters Flame Grilled Sandwich", jcKcal: 648, beckKcal: 648, rating: "GREAT" },
   { id: "tuna_sandwich", name: "Tuna Sandwich (Super Seeded)", jcKcal: 636, beckKcal: 636, rating: "GREAT" },
@@ -4416,7 +4416,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.245.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.245.2
       </div>
     </div>
   );
