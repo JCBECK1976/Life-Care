@@ -3380,9 +3380,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     </tfoot>
                   </table>
 
-                  {/* Nutrition bar chart */}
-                  <div style={{ marginTop: 10, padding: "8px 0", borderTop: "1px solid #e2e8f0" }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", marginBottom: 6 }}>% of Daily Recommended</div>
+                  {/* Nutrition diverging bar chart */}
+                  <div style={{ marginTop: 16, background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 8, paddingLeft: 4 }}>Daily Percentages</div>
                     {(function() {
                       var cLimKcal = isJC ? 2200 : 1900;
                       var cLimProt = isJC ? 130 : 110;
@@ -3398,37 +3398,37 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         { label: "Fibre", consumed: dayFibConsumed, limit: cLimFib, overIsBad: false },
                         { label: "Salt", consumed: daySaltConsumed, limit: cLimSalt, overIsBad: true }
                       ];
-                      return bars.map(function(b) {
-                        var pct = b.limit > 0 ? Math.round((b.consumed / b.limit) * 100) : 0;
-                        var isOver = pct > 100;
-                        var isBad = b.overIsBad ? isOver : !isOver && pct < 100;
-                        if (b.overIsBad) {
-                          var greenW = Math.min(pct, 100);
-                          var redW = pct > 100 ? Math.min(pct - 100, 50) : 0;
-                          return (<div key={b.label} style={{ display: "flex", alignItems: "center", marginBottom: 4 }}>
-                            <span style={{ fontSize: 9, fontWeight: 600, color: "#475569", width: 32, textAlign: "right", marginRight: 6 }}>{b.label}</span>
-                            <div style={{ flex: 1, background: "#f1f5f9", borderRadius: 4, height: 14, position: "relative", overflow: "hidden" }}>
-                              <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: (greenW / 150 * 100) + "%", background: "#16a34a", borderRadius: redW > 0 ? "4px 0 0 4px" : "4px", transition: "width 0.3s" }}></div>
-                              {redW > 0 && <div style={{ position: "absolute", left: (greenW / 150 * 100) + "%", top: 0, bottom: 0, width: (redW / 150 * 100) + "%", background: "#dc2626", borderRadius: "0 4px 4px 0", transition: "width 0.3s" }}></div>}
-                              <div style={{ position: "absolute", left: (100 / 150 * 100) + "%", top: 0, bottom: 0, width: 2, background: "#334155", zIndex: 1 }}></div>
-                            </div>
-                            <span style={{ fontSize: 9, fontWeight: 600, color: isBad ? "#dc2626" : "#16a34a", width: 36, textAlign: "right", marginLeft: 4 }}>{pct}%</span>
-                          </div>);
-                        } else {
-                          var fillW = Math.min(pct, 150);
-                          var barCol = pct >= 100 ? "#16a34a" : pct >= 80 ? "#84cc16" : pct >= 50 ? "#f59e0b" : "#dc2626";
-                          return (<div key={b.label} style={{ display: "flex", alignItems: "center", marginBottom: 4 }}>
-                            <span style={{ fontSize: 9, fontWeight: 600, color: "#475569", width: 32, textAlign: "right", marginRight: 6 }}>{b.label}</span>
-                            <div style={{ flex: 1, background: "#f1f5f9", borderRadius: 4, height: 14, position: "relative", overflow: "hidden" }}>
-                              <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: (fillW / 150 * 100) + "%", background: barCol, borderRadius: 4, transition: "width 0.3s, background 0.3s" }}></div>
-                              <div style={{ position: "absolute", left: (100 / 150 * 100) + "%", top: 0, bottom: 0, width: 2, background: "#334155", zIndex: 1 }}></div>
-                            </div>
-                            <span style={{ fontSize: 9, fontWeight: 600, color: barCol, width: 36, textAlign: "right", marginLeft: 4 }}>{pct}%</span>
-                          </div>);
-                        }
-                      });
+                      var maxDev = 50;
+                      return React.createElement("div", null,
+                        React.createElement("div", { style: { position: "relative", marginBottom: 2, height: 12, marginLeft: 38, marginRight: 42 } },
+                          React.createElement("span", { style: { position: "absolute", left: 0, fontSize: 8, color: "#94a3b8" } }, "-" + maxDev + "%"),
+                          React.createElement("span", { style: { position: "absolute", left: "50%", transform: "translateX(-50%)", fontSize: 8, color: "#64748b", fontWeight: 600 } }, "Target"),
+                          React.createElement("span", { style: { position: "absolute", right: 0, fontSize: 8, color: "#94a3b8" } }, "+" + maxDev + "%")
+                        ),
+                        bars.map(function(b) {
+                          var pct = b.limit > 0 ? Math.round((b.consumed / b.limit) * 100) : 0;
+                          var dev = pct - 100;
+                          var clampedDev = Math.max(-maxDev, Math.min(maxDev, dev));
+                          var isBad = b.overIsBad ? dev > 0 : dev < 0;
+                          var barColor = isBad ? "#dc2626" : "#16a34a";
+                          var barWidthPct = (Math.abs(clampedDev) / maxDev) * 50;
+                          var barStyle = {};
+                          if (clampedDev < 0) {
+                            barStyle = { position: "absolute", right: "50%", top: 0, bottom: 0, width: barWidthPct + "%", background: barColor, borderRadius: "4px 0 0 4px", transition: "width 0.3s, background 0.3s" };
+                          } else if (clampedDev > 0) {
+                            barStyle = { position: "absolute", left: "50%", top: 0, bottom: 0, width: barWidthPct + "%", background: barColor, borderRadius: "0 4px 4px 0", transition: "width 0.3s, background 0.3s" };
+                          }
+                          return React.createElement("div", { key: b.label, style: { display: "flex", alignItems: "center", marginBottom: 4 } },
+                            React.createElement("span", { style: { fontSize: 9, fontWeight: 600, color: "#475569", width: 32, textAlign: "right", marginRight: 6 } }, b.label),
+                            React.createElement("div", { style: { flex: 1, background: "#f1f5f9", borderRadius: 4, height: 14, position: "relative", overflow: "hidden" } },
+                              clampedDev !== 0 && React.createElement("div", { style: barStyle }),
+                              React.createElement("div", { style: { position: "absolute", left: "50%", top: 0, bottom: 0, width: 2, background: "#334155", zIndex: 1, transform: "translateX(-1px)" } })
+                            ),
+                            React.createElement("span", { style: { fontSize: 9, fontWeight: 600, color: dev === 0 ? "#16a34a" : barColor, width: 42, textAlign: "right", marginLeft: 4 } }, (dev > 0 ? "+" : "") + dev + "%")
+                          );
+                        })
+                      );
                     })()}
-                    <div style={{ fontSize: 8, color: "#94a3b8", textAlign: "center", marginTop: 2 }}>Line = 100% recommended</div>
                   </div>
 
                 </div>);
@@ -4470,7 +4470,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.247.3
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.248.0
       </div>
     </div>
   );
