@@ -1259,7 +1259,7 @@ function Dashboard() {
     const cs = await sGet("custom_snacks"); if (cs) setCustomSnacks(JSON.parse(cs));
     const cdr = await sGet("custom_drinks"); if (cdr) setCustomDrinks(JSON.parse(cdr));
     const cde = await sGet("custom_desserts"); if (cde) setCustomDesserts(JSON.parse(cde));
-    const mt = await sGet("meal_tracking:" + t); if (mt) setMealTracking(JSON.parse(mt));
+    const mt = await sGet("meal_tracking:" + activeTab); if (mt) setMealTracking(JSON.parse(mt));
     const cb = await sGet("custom_breakfasts"); if (cb) setCustomBreakfasts(JSON.parse(cb));
     const cl = await sGet("custom_lunches"); if (cl) setCustomLunches(JSON.parse(cl));
     const md = await sGet("meal_defaults"); if (md) setMealDefaults(JSON.parse(md));
@@ -1715,7 +1715,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           {Object.keys(data).filter(k => k !== "config").map((k, i) => {
             const cols = ["#2563eb", "#7c3aed", "#059669", "#d97706", "#dc2626", "#0891b2", "#e11d48"];
             const label = data[k].profile ? data[k].profile.name : k;
-            return (<button key={k} onClick={() => { setActiveTab(k); if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); }} style={{ flex: 1, padding: "8px 0", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? cols[i % cols.length] : "transparent", color: activeTab === k ? "#fff" : "#64748b", minWidth: 50 }}>{label}</button>);
+            return (<button key={k} onClick={() => { setActiveTab(k); if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); sGet("meal_tracking:" + k).then(function(mt) { if (mt) setMealTracking(JSON.parse(mt)); else setMealTracking({}); }); }} style={{ flex: 1, padding: "8px 0", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? cols[i % cols.length] : "transparent", color: activeTab === k ? "#fff" : "#64748b", minWidth: 50 }}>{label}</button>);
           })}
           <button onClick={() => setShowAddPerson(true)} style={{ padding: "8px 10px", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", background: "transparent", color: "#64748b" }}>+</button>
         </div>
@@ -3381,8 +3381,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   </table>
 
                   {/* Nutrition diverging bar chart */}
-                  <div style={{ marginTop: 16, background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: "10px 8px" }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 8, paddingLeft: 4 }}>Daily Percentages</div>
+                  <div style={{ marginTop: 24, background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 8, paddingLeft: 4 }}>Daily Percentage of Recommendations</div>
                     {(function() {
                       var cLimKcal = isJC ? 2200 : 1900;
                       var cLimProt = isJC ? 130 : 110;
@@ -4470,7 +4470,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.248.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.248.1
       </div>
     </div>
   );
