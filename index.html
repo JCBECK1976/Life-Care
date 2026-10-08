@@ -3158,9 +3158,232 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             
             {eatWeekEyeOpen && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, marginBottom: 10, border: "1px solid #e2e8f0" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#0f172a" }}>Week — Overview</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#0f172a" }}>Week — Nutrition Overview (g)</span>
                 <button onClick={function(){setEatWeekEyeOpen(false);}} style={{ padding: "2px 8px", background: "#7c3aed", border: "none", borderRadius: 4, fontSize: 12, color: "#fff", cursor: "pointer", lineHeight: 1 }}>✕</button>
               </div>
+              {(function() {
+                var isJC = activeTab === "jc";
+                var kf = isJC ? "jcKcal" : "beckKcal";
+                var pf = isJC ? "jcProt" : "beckProt";
+                var ff = isJC ? "jcFat" : "beckFat";
+                var limKcal = isJC ? 2200 : 1900;
+                var limProt = isJC ? 130 : 110;
+                var limSfat = 20;
+                var limCarbs = isJC ? 300 : 260;
+                var limFib = isJC ? 35 : 30;
+                var limSalt = 6;
+                var cats = [
+                  { label: "Breakfast", prefix: "b", items: allBfast, multi: true },
+                  { label: "Lunch", prefix: "l", items: allLunch, multi: true },
+                  { label: "Dinner", prefix: "d", items: allDinners, multi: true },
+                  { label: "Desserts", prefix: "ds", items: allDesserts, multi: false },
+                  { label: "Drinks", prefix: "dr", items: allDrinks, multi: false },
+                  { label: "Snacks", prefix: "o", items: allOther, multi: false }
+                ];
+                var weekTotalPlanned = 0; var weekTotalConsumed = 0;
+                var weekProtPlanned = 0; var weekProtConsumed = 0;
+                var weekSfatPlanned = 0; var weekSfatConsumed = 0;
+                var weekCarbsPlanned = 0; var weekCarbsConsumed = 0;
+                var weekFibPlanned = 0; var weekFibConsumed = 0;
+                var weekSaltPlanned = 0; var weekSaltConsumed = 0;
+                var catSections = cats.map(function(cat) {
+                  var catWeekKcal = 0; var catWeekProt = 0; var catWeekSfat = 0; var catWeekCarbs = 0; var catWeekFib = 0; var catWeekSalt = 0;
+                  var dayRows = DAYS.map(function(day) {
+                    var dayKcal = 0; var dayProt = 0; var daySfat = 0; var dayCarbs = 0; var dayFib = 0; var daySalt = 0;
+                    var dayConKcal = 0; var dayConProt = 0; var dayConSfat = 0; var dayConCarbs = 0; var dayConFib = 0; var dayConSalt = 0;
+                    for (var si = 1; si <= 10; si++) {
+                      var sk = cat.multi ? (si === 1 ? cat.prefix : cat.prefix + si) : cat.prefix + si;
+                      var val = getMeal(day, sk);
+                      if (!val || val === "__empty__") continue;
+                      var found = cat.items.find(function(it) { return it.id === val; });
+                      if (!found) continue;
+                      var kcal = found[kf] || 0;
+                      var prot = found[pf] || found.protein || 0;
+                      var sfat = found.satFat || 0;
+                      var carbs = found.carbs || 0;
+                      var fibre = found.fibre || 0;
+                      var salt = found.salt || 0;
+                      dayKcal += kcal; dayProt += prot; daySfat += sfat; dayCarbs += carbs; dayFib += fibre; daySalt += salt;
+                      var track = getTrack(day, sk);
+                      if (track === "eaten") { dayConKcal += kcal; dayConProt += prot; dayConSfat += sfat; dayConCarbs += carbs; dayConFib += fibre; dayConSalt += salt; }
+                    }
+                    catWeekKcal += dayKcal; catWeekProt += dayProt; catWeekSfat += daySfat; catWeekCarbs += dayCarbs; catWeekFib += dayFib; catWeekSalt += daySalt;
+                    return { day: day, kcal: dayKcal, prot: dayProt, sfat: daySfat, carbs: dayCarbs, fib: dayFib, salt: daySalt, conKcal: dayConKcal, conProt: dayConProt, conSfat: dayConSfat, conCarbs: dayConCarbs, conFib: dayConFib, conSalt: dayConSalt };
+                  });
+                  return { label: cat.label, dayRows: dayRows, weekKcal: catWeekKcal, weekProt: catWeekProt, weekSfat: catWeekSfat, weekCarbs: catWeekCarbs, weekFib: catWeekFib, weekSalt: catWeekSalt };
+                });
+                var dayGrandTotals = DAYS.map(function(day, di) {
+                  var tKcal = 0; var tProt = 0; var tSfat = 0; var tCarbs = 0; var tFib = 0; var tSalt = 0;
+                  var cKcal = 0; var cProt = 0; var cSfat = 0; var cCarbs = 0; var cFib = 0; var cSalt = 0;
+                  catSections.forEach(function(cs) {
+                    var dr = cs.dayRows[di];
+                    tKcal += dr.kcal; tProt += dr.prot; tSfat += dr.sfat; tCarbs += dr.carbs; tFib += dr.fib; tSalt += dr.salt;
+                    cKcal += dr.conKcal; cProt += dr.conProt; cSfat += dr.conSfat; cCarbs += dr.conCarbs; cFib += dr.conFib; cSalt += dr.conSalt;
+                  });
+                  weekTotalPlanned += tKcal; weekProtPlanned += tProt; weekSfatPlanned += tSfat; weekCarbsPlanned += tCarbs; weekFibPlanned += tFib; weekSaltPlanned += tSalt;
+                  weekTotalConsumed += cKcal; weekProtConsumed += cProt; weekSfatConsumed += cSfat; weekCarbsConsumed += cCarbs; weekFibConsumed += cFib; weekSaltConsumed += cSalt;
+                  var inRange = 0;
+                  if (cKcal <= limKcal) inRange++;
+                  if (cProt >= (isJC ? 110 : 90)) inRange++;
+                  if (cSfat <= 20) inRange++;
+                  if (cCarbs <= limCarbs) inRange++;
+                  if (cFib >= (isJC ? 30 : 25)) inRange++;
+                  if (cSalt <= 6) inRange++;
+                  var ragColor = inRange >= 5 ? "#16a34a" : inRange >= 3 ? "#f59e0b" : "#dc2626";
+                  return { day: day, kcal: tKcal, prot: tProt, sfat: tSfat, carbs: tCarbs, fib: tFib, salt: tSalt, conKcal: cKcal, conProt: cProt, conSfat: cSfat, conCarbs: cCarbs, conFib: cFib, conSalt: cSalt, ragColor: ragColor, inRange: inRange };
+                });
+                return (<div>
+                  <div style={{ overflowX: "auto", width: "100%", boxSizing: "border-box" }}><table style={{ width: "100%", fontSize: 10, borderCollapse: "collapse", tableLayout: "fixed" }}>
+                    <colgroup><col style={{ width: "30%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "8%" }} /><col style={{ width: "8%" }} /><col style={{ width: "14%" }} /></colgroup>
+                    <thead>
+                      <tr style={{ borderBottom: "2px solid #e2e8f0", textAlign: "left" }}>
+                        <th style={{ padding: "4px 2px", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Day</th>
+                        <th style={{ padding: "4px 2px", color: "#64748b", textAlign: "right" }}>kcal</th>
+                        <th style={{ padding: "4px 2px", color: "#64748b", textAlign: "right" }}>prot</th>
+                        <th style={{ padding: "4px 2px", color: "#64748b", textAlign: "right" }}>s/fat</th>
+                        <th style={{ padding: "4px 2px", color: "#64748b", textAlign: "right" }}>carbs</th>
+                        <th style={{ padding: "4px 2px", color: "#64748b", textAlign: "right" }}>fib</th>
+                        <th style={{ padding: "4px 2px", color: "#64748b", textAlign: "right" }}>salt</th>
+                        <th style={{ padding: "4px 2px", color: "#64748b", textAlign: "center" }}>Rating</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {catSections.map(function(cs) {
+                        var hasData = cs.dayRows.some(function(dr) { return dr.kcal > 0; });
+                        if (!hasData) return null;
+                        return (<React.Fragment key={cs.label}>
+                          <tr><td colSpan={8} style={{ padding: "6px 2px 2px", fontWeight: 700, color: "#0f172a", fontSize: 11 }}>{cs.label}</td></tr>
+                          {cs.dayRows.map(function(dr) {
+                            if (dr.kcal === 0 && dr.prot === 0) return null;
+                            return (<tr key={dr.day} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                              <td style={{ padding: "3px 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dr.day.charAt(0).toUpperCase() + dr.day.slice(1, 3)}</td>
+                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{dr.kcal}</td>
+                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{dr.prot || "-"}</td>
+                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{Math.round(dr.sfat * 10) / 10 || "-"}</td>
+                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{dr.carbs || "-"}</td>
+                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{dr.fib || "-"}</td>
+                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{Math.round(dr.salt * 10) / 10 || "-"}</td>
+                              <td></td>
+                            </tr>);
+                          })}
+                          <tr style={{ borderBottom: "1px solid #cbd5e1" }}><td style={{ padding: "3px 2px", fontWeight: 600, fontSize: 9, color: "#475569" }}>{cs.label} total</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{cs.weekKcal}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{cs.weekProt || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{Math.round(cs.weekSfat * 10) / 10 || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{cs.weekCarbs || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{cs.weekFib || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{Math.round(cs.weekSalt * 10) / 10 || "-"}</td><td></td></tr>
+                        </React.Fragment>);
+                      })}
+                      <tr><td colSpan={8} style={{ padding: "8px 2px 2px", fontWeight: 700, color: "#0f172a", fontSize: 11 }}>Daily Totals</td></tr>
+                      {dayGrandTotals.map(function(dg) {
+                        if (dg.kcal === 0 && dg.conKcal === 0) return null;
+                        return (<tr key={dg.day} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <td style={{ padding: "3px 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", marginRight: 4, background: dg.ragColor, verticalAlign: "middle" }}></span>{dg.day.charAt(0).toUpperCase() + dg.day.slice(1, 3)}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{dg.conKcal}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{dg.conProt || "-"}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{Math.round(dg.conSfat * 10) / 10 || "-"}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{dg.conCarbs || "-"}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{dg.conFib || "-"}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{Math.round(dg.conSalt * 10) / 10 || "-"}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "center", fontSize: 9 }}>{dg.inRange}/6</td>
+                        </tr>);
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ borderTop: "2px solid #0f172a" }}>
+                        <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Week Planned</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11 }}>{weekTotalPlanned}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11 }}>{weekProtPlanned || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11 }}>{Math.round(weekSfatPlanned * 10) / 10 || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11 }}>{weekCarbsPlanned || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11 }}>{weekFibPlanned || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11 }}>{Math.round(weekSaltPlanned * 10) / 10 || "-"}</td>
+                        <td></td>
+                      </tr>
+                      <tr style={{ background: "#dcfce7" }}>
+                        <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 11, color: "#166534", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Consumed</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekTotalConsumed > limKcal * 7 ? "#dc2626" : "#166534" }}>{weekTotalConsumed}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekProtConsumed < (isJC ? 110 : 90) * 7 ? "#dc2626" : "#166534" }}>{weekProtConsumed || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekSfatConsumed > 20 * 7 ? "#dc2626" : "#166534" }}>{Math.round(weekSfatConsumed * 10) / 10 || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekCarbsConsumed > limCarbs * 7 ? "#dc2626" : "#166534" }}>{weekCarbsConsumed || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekFibConsumed < (isJC ? 30 : 25) * 7 ? "#dc2626" : "#166534" }}>{weekFibConsumed || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekSaltConsumed > 6 * 7 ? "#dc2626" : "#166534" }}>{Math.round(weekSaltConsumed * 10) / 10 || "-"}</td>
+                        <td></td>
+                      </tr>
+                      <tr style={{ background: "#f1f5f9" }}>
+                        <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 10, color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Recommended</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{limKcal * 7}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{limProt * 7}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{limSfat * 7}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{limCarbs * 7}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{limFib * 7}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{limSalt * 7}</td>
+                        <td></td>
+                      </tr>
+                      {(function() {
+                        var wLimKcal = limKcal * 7; var wLimProt = limProt * 7; var wLimSfat = limSfat * 7; var wLimCarbs = limCarbs * 7; var wLimFib = limFib * 7; var wLimSalt = limSalt * 7;
+                        var dKcal = weekTotalConsumed - wLimKcal;
+                        var dProt = weekProtConsumed - wLimProt;
+                        var dSfat = weekSfatConsumed - wLimSfat;
+                        var dCarbs = weekCarbsConsumed - wLimCarbs;
+                        var dFib = weekFibConsumed - wLimFib;
+                        var dSalt = weekSaltConsumed - wLimSalt;
+                        return (<tr style={{ background: "#fafafa" }}>
+                          <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 10, color: "#475569" }}>+/−</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dKcal > 0 ? "#dc2626" : "#166534" }}>{(dKcal > 0 ? "+" : "") + dKcal}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dProt < 0 ? "#dc2626" : "#166534" }}>{(dProt > 0 ? "+" : "") + dProt}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dSfat > 0 ? "#dc2626" : "#166534" }}>{(dSfat > 0 ? "+" : "") + Math.round(dSfat * 10) / 10}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dCarbs > 0 ? "#dc2626" : "#166534" }}>{(dCarbs > 0 ? "+" : "") + dCarbs}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dFib < 0 ? "#dc2626" : "#166534" }}>{(dFib > 0 ? "+" : "") + dFib}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dSalt > 0 ? "#dc2626" : "#166534" }}>{(dSalt > 0 ? "+" : "") + Math.round(dSalt * 10) / 10}</td>
+                          <td></td>
+                        </tr>);
+                      })()}
+                    </tfoot>
+                  </table></div>
+
+                  {/* Weekly diverging bar chart */}
+                  <div style={{ marginTop: 24, background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: "10px 8px" }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 8, paddingLeft: 4 }}>Weekly Percentage of Recommendations</div>
+                    {(function() {
+                      var wLimKcal = limKcal * 7; var wLimProt = limProt * 7; var wLimSfat = limSfat * 7; var wLimCarbs = limCarbs * 7; var wLimFib = limFib * 7; var wLimSalt = limSalt * 7;
+                      var bars = [
+                        { label: "Kcal", consumed: weekTotalConsumed, limit: wLimKcal, overIsBad: true },
+                        { label: "Prot", consumed: weekProtConsumed, limit: wLimProt, overIsBad: false },
+                        { label: "S/Fat", consumed: weekSfatConsumed, limit: wLimSfat, overIsBad: true },
+                        { label: "Carbs", consumed: weekCarbsConsumed, limit: wLimCarbs, overIsBad: true },
+                        { label: "Fibre", consumed: weekFibConsumed, limit: wLimFib, overIsBad: false },
+                        { label: "Salt", consumed: weekSaltConsumed, limit: wLimSalt, overIsBad: true }
+                      ];
+                      var maxDev = 100;
+                      return React.createElement("div", null,
+                        React.createElement("div", { style: { position: "relative", marginBottom: 2, height: 12, marginLeft: 38, marginRight: 42 } },
+                          React.createElement("span", { style: { position: "absolute", left: 0, fontSize: 8, color: "#94a3b8" } }, "-" + maxDev + "%"),
+                          React.createElement("span", { style: { position: "absolute", left: "50%", transform: "translateX(-50%)", fontSize: 8, color: "#64748b", fontWeight: 600 } }, "Target"),
+                          React.createElement("span", { style: { position: "absolute", right: 0, fontSize: 8, color: "#94a3b8" } }, "+" + maxDev + "%")
+                        ),
+                        bars.map(function(b) {
+                          var pct = b.limit > 0 ? Math.round((b.consumed / b.limit) * 100) : 0;
+                          var dev = pct - 100;
+                          var clampedDev = Math.max(-maxDev, Math.min(maxDev, dev));
+                          var isBad = b.overIsBad ? dev > 0 : dev < 0;
+                          var barColor = isBad ? "#dc2626" : "#16a34a";
+                          var barWidthPct = (Math.abs(clampedDev) / maxDev) * 50;
+                          var barStyle = {};
+                          if (clampedDev < 0) {
+                            barStyle = { position: "absolute", right: "50%", top: 0, bottom: 0, width: barWidthPct + "%", background: barColor, borderRadius: "4px 0 0 4px", transition: "width 0.3s, background 0.3s" };
+                          } else if (clampedDev > 0) {
+                            barStyle = { position: "absolute", left: "50%", top: 0, bottom: 0, width: barWidthPct + "%", background: barColor, borderRadius: "0 4px 4px 0", transition: "width 0.3s, background 0.3s" };
+                          }
+                          return React.createElement("div", { key: b.label, style: { display: "flex", alignItems: "center", marginBottom: 4 } },
+                            React.createElement("span", { style: { fontSize: 9, fontWeight: 600, color: "#475569", width: 32, textAlign: "right", marginRight: 6 } }, b.label),
+                            React.createElement("div", { style: { flex: 1, background: "#f1f5f9", borderRadius: 4, height: 14, position: "relative", overflow: "hidden" } },
+                              clampedDev !== 0 && React.createElement("div", { style: barStyle }),
+                              React.createElement("div", { style: { position: "absolute", left: "50%", top: 0, bottom: 0, width: 2, background: "#334155", zIndex: 1, transform: "translateX(-1px)" } })
+                            ),
+                            React.createElement("span", { style: { fontSize: 9, fontWeight: 600, color: dev === 0 ? "#16a34a" : barColor, width: 42, textAlign: "right", marginLeft: 4 } }, (dev > 0 ? "+" : "") + dev + "%")
+                          );
+                        })
+                      );
+                    })()}
+                  </div>
+                </div>);
+              })()}
             </div>)}
 
             {(() => {
@@ -4811,7 +5034,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.249.2
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.250.0
       </div>
     </div>
   );
