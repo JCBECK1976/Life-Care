@@ -982,6 +982,9 @@ function Dashboard() {
   const [feedbackResults, setFeedbackResults] = useState({ jc: null, becks: null });
   const [feedbackHistory, setFeedbackHistory] = useState({ jc: [], becks: [] });
   const [showFbHistory, setShowFbHistory] = useState(false);
+  const [eatFbLoading, setEatFbLoading] = useState(false);
+  const [eatFbResults, setEatFbResults] = useState({});
+  const [eatFbExpanded, setEatFbExpanded] = useState(true);
   const [qaLoading, setQaLoading] = useState(false);
   const [qaHistory, setQaHistory] = useState({ jc: [], becks: [] });
   const [showQaHistory, setShowQaHistory] = useState(false);
@@ -1255,6 +1258,7 @@ function Dashboard() {
     const hfAll = await sGet("health_feedback"); if (hfAll) { var hfObj = JSON.parse(hfAll); setHealthFbAll(hfObj); setHealthFb(hfObj["jc"] || null); }
     const mfAll = await sGet("meas_feedback"); if (mfAll) { var mfObj = JSON.parse(mfAll); setMeasFbAll(mfObj); setMeasFeedback(mfObj["jc"] || null); }
     const h = await sGet("feedback_history"); if (h) setFeedbackHistory(JSON.parse(h));
+    const efb = await sGet("eat_feedback"); if (efb) setEatFbResults(JSON.parse(efb));
     const ce = await sGet("custom_exercises"); if (ce) setCustomExercises(JSON.parse(ce));
     const cs = await sGet("custom_snacks"); if (cs) setCustomSnacks(JSON.parse(cs));
     const cdr = await sGet("custom_drinks"); if (cdr) setCustomDrinks(JSON.parse(cdr));
@@ -1614,6 +1618,153 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       setFeedbackResults(updated);
     }
     setFeedbackLoading(false);
+  };
+
+  // ─── EATING DAY FEEDBACK ───
+  const generateEatFeedback = async (dayKey) => {
+    if (!data) return;
+    setEatFbLoading(true); setEatFbExpanded(true);
+    const tab = activeTab;
+    const fbStoreKey = "eat_feedback";
+    try {
+      const isJ = tab === "jc";
+      const p = isJ ? data.jc : data.becks;
+      const prof = p.profile || {};
+      const who = prof.name + " (" + (prof.sex || "") + ", " + (prof.age || "") + ", " + (prof.height || "") + ", " + (prof.bodyType || "") + ")";
+      const kf = isJ ? "jcKcal" : "beckKcal";
+      const pf = isJ ? "jcProt" : "beckProt";
+      const ff = isJ ? "jcFat" : "beckFat";
+      const allBf = [...BREAKFASTS, ...customBreakfasts];
+      const allLu = [...LUNCHES, ...customLunches];
+      const allDin = [...DINNERS, ...customMeals];
+      const allSn = [...SNACKS, ...customSnacks];
+      const allDr = [...customDrinks];
+      const allDe = [...customDesserts];
+      const allFood = [].concat(allBf, allLu, allDin, allSn, allDr, allDe);
+      const dayMeals = meals[dayKey] || {};
+      const tracking = mealTracking || {};
+      // Build planned vs consumed for this day
+      var planned = []; var consumed = []; var skipped = [];
+      var slots = [
+        { prefix: "b", cat: "Breakfast", items: allBf, multi: true },
+        { prefix: "l", cat: "Lunch", items: allLu, multi: true },
+        { prefix: "d", cat: "Dinner", items: allDin, multi: true },
+        { prefix: "ds", cat: "Dessert", items: allDe, multi: true },
+        { prefix: "dr", cat: "Drink", items: allDr, multi: true },
+        { prefix: "o", cat: "Snack", items: allSn, multi: true }
+      ];
+      slots.forEach(function(sl) {
+        var keys = sl.multi ? [] : [sl.prefix];
+        if (sl.multi) { if (sl.prefix === "o") { for (var i = 1; i <= 20; i++) { if (dayMeals["o" + i]) keys.push("o" + i); } } else { keys.push(sl.prefix); for (var j = 2; j <= 10; j++) { if (dayMeals[sl.prefix + j]) keys.push(sl.prefix + j); } } }
+        keys.forEach(function(k) {
+          var id = dayMeals[k]; if (!id || id === "__empty__") return;
+          var item = allFood.find(function(x) { return x.id === id; });
+          if (!item) return;
+          var trackKey = dayKey + ":" + k;
+          var status = tracking[trackKey] || "planned";
+          var entry = { slot: sl.cat, name: item.name, kcal: item[kf] || 0, prot: item[pf] || item.jcProt || 0, fat: item[ff] || item.jcFat || 0, rating: item.rating || "GREAT", freq: item.freq || "" };
+          planned.push(entry);
+          if (status === "consumed") consumed.push(entry);
+          else if (status === "skipped") skipped.push(entry);
+          else consumed.push(entry); // default to planned = consumed if not tracked
+        });
+      });
+      // Calorie & macro targets
+      var limKcal = isJ ? 2200 : 1900; var limProt = isJ ? 130 : 110; var limSfat = 20;
+      var limCarbs = isJ ? 300 : 260; var limFib = isJ ? 35 : 30; var limSalt = 6;
+      var totPlanned = planned.reduce(function(s,x){return s+x.kcal;},0);
+      var totConsumed = consumed.reduce(function(s,x){return s+x.kcal;},0);
+      var protConsumed = consumed.reduce(function(s,x){return s+(x.prot||0);},0);
+      var fatConsumed = consumed.reduce(function(s,x){return s+(x.fat||0);},0);
+      // RAG frequency summary
+      var ragSummary = "";
+      var redItems = consumed.filter(function(x){return x.rating==="RED";});
+      var amberItems = consumed.filter(function(x){return x.rating==="AMBER";});
+      if (redItems.length > 0) ragSummary += "RED items (target monthly): " + redItems.map(function(x){return x.name;}).join(", ") + ". ";
+      if (amberItems.length > 0) ragSummary += "AMBER items (target weekly): " + amberItems.map(function(x){return x.name;}).join(", ") + ". ";
+      // Day notes
+      var dayNote = dayMeals._note || "";
+      // Health context
+      let healthCtx = ""; if (p.healthProfile) healthCtx += "Health: " + p.healthProfile + ". ";
+      if (p.bloods && p.bloods.length > 0) { var lb = p.bloods[p.bloods.length-1]; healthCtx += "Latest bloods(" + lb.date + "): " + Object.entries(lb.tests).map(function([k,v]){return k+"="+v;}).join(", ") + ". "; }
+      if (p.meds && p.meds.length > 0) healthCtx += "Meds: " + p.meds.filter(function(m){return m.active;}).map(function(m){return m.name+" "+m.dosage;}).join(", ") + ". ";
+      // Body comp
+      let bodyCtx = "";
+      if (p.body) { var bk = Object.keys(p.body); bk.forEach(function(k) { var arr = p.body[k]; if (arr && arr.length > 0) bodyCtx += k + ":" + arr[arr.length-1].v + " "; }); }
+      // Exercise context
+      let exCtx = "";
+      if (p.exercises) { var exDays = Object.keys(p.exercises); exCtx = exDays.map(function(d) { return d + ": " + p.exercises[d].map(function(e){return e.name + " " + e.current;}).join(", "); }).join("; "); }
+      // Activity
+      let actCtx = "";
+      if (p.activity && p.activity.length > 0) { actCtx = p.activity.slice(-3).map(function(a){return a.date+": "+(a.steps||"")+"steps "+(a.activity||"");}).join(", "); }
+      // Previous eating feedback for this day
+      var prevEat = (eatFbResults[tab] || {})[dayKey];
+      var prevCtx = prevEat && prevEat._when ? "\nPrevious feedback for this day (" + prevEat._when + "): Wins: " + (prevEat.wins || []).join("; ") + ". Tweaks: " + (prevEat.tweaks || []).join("; ") + ". Outlook: " + (prevEat.outlook || "") + ".\nBuild on what changed since." : "";
+      // Previous activity feedback
+      var prevActFb = feedbackResults[tab];
+      var prevActCtx = prevActFb && prevActFb._when !== "failed" ? "\nLast activity feedback (" + prevActFb._when + "): Good: " + (prevActFb.good || []).join("; ") + ". Opportunities: " + (prevActFb.opportunities || []).join("; ") + "." : "";
+      // Week context - what other days look like
+      var weekCtx = "";
+      try {
+        var DAYS7 = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+        var dayParts = [];
+        DAYS7.forEach(function(dk) {
+          if (dk === dayKey) return;
+          var dm = meals[dk]; if (!dm) return;
+          var dayItems = [];
+          ["b","l","d"].forEach(function(s) { if (dm[s]) { var it = allFood.find(function(x){return x.id===dm[s];}); if (it) dayItems.push(it.name + "(" + (it[kf]||0) + "kcal)"); } });
+          for (var oi=1;oi<=5;oi++) { if (dm["o"+oi]) { var oit = allFood.find(function(x){return x.id===dm["o"+oi];}); if (oit) dayItems.push(oit.name+"("+((oit[kf])||0)+"kcal)"); } }
+          if (dayItems.length > 0) dayParts.push(dk.slice(0,3) + ": " + dayItems.join(", "));
+        });
+        if (dayParts.length > 0) weekCtx = "\nOther days this week: " + dayParts.join("; ") + ".";
+      } catch(e) {}
+
+      const prompt = "You are a pragmatic, experienced nutrition coach reviewing " + dayKey.charAt(0).toUpperCase() + dayKey.slice(1) + "'s eating for " + who + ". Week " + (data.config.week || calcWeek(data.config.trainingStart)) + " of their programme.\n\n" +
+        "COMMUNICATION STYLE: You are speaking adult-to-adult, like a knowledgeable mate who happens to be a nutrition coach. Be pragmatic, warm, non-judgemental and direct. Give your honest opinions based on experience. NEVER be preachy or say 'you should have cut that out'. If they ate something indulgent, assume there was a good reason. Instead of criticising, show how a small tweak (like reducing a portion by a third) would have made it fit comfortably within targets — so they can enjoy it guilt-free next time. Frame every improvement as a choice they can make, not a rule they broke.\n\n" +
+        "TARGETS: Kcal " + limKcal + ", Protein " + limProt + "g, Sat Fat <" + limSfat + "g, Carbs " + limCarbs + "g, Fibre " + limFib + "g, Salt <" + limSalt + "g.\n" +
+        "RAG STATUS FREQUENCY TARGETS: GREEN items = daily staples. AMBER items = weekly max. RED items = monthly max.\n\n" +
+        "PLANNED TODAY: " + planned.map(function(x){return x.slot+": "+x.name+" ("+x.kcal+"kcal, "+x.prot+"g prot, "+x.fat+"g fat, "+x.rating+")";}).join("; ") + "\n" +
+        "CONSUMED TODAY: " + consumed.map(function(x){return x.slot+": "+x.name+" ("+x.kcal+"kcal, "+x.prot+"g prot, "+x.fat+"g fat)";}).join("; ") + "\n" +
+        (skipped.length > 0 ? "SKIPPED: " + skipped.map(function(x){return x.name;}).join(", ") + "\n" : "") +
+        "Day total: " + totConsumed + "/" + limKcal + " kcal, " + protConsumed + "/" + limProt + "g protein, " + fatConsumed + "/" + limSfat + "g sat fat.\n" +
+        (ragSummary ? "RAG: " + ragSummary + "\n" : "") +
+        (dayNote ? "Day notes: " + dayNote + "\n" : "") +
+        weekCtx + "\n" +
+        healthCtx + "\n" +
+        (bodyCtx ? "Body comp: " + bodyCtx + "\n" : "") +
+        (exCtx ? "Exercise programme: " + exCtx + "\n" : "") +
+        (actCtx ? "Recent activity: " + actCtx + "\n" : "") +
+        prevCtx + prevActCtx + "\n\n" +
+        TONE_RULES + "\n\n" +
+        "RULES FOR RESPONSE:\n" +
+        "1. 'wins': 2-4 things that went well — specific good decisions, smart food choices, patterns improving vs previous feedback. Reference actual items and numbers.\n" +
+        "2. 'tweaks': 1-3 constructive alternatives. NEVER say 'cut it out'. Instead: 'If you'd done [specific small change], the saving of Xg sat fat per week over 3 months would reduce [material health benefit like visceral fat, LDL impact, etc]'. Always translate the nutritional number into a real-world health outcome they care about.\n" +
+        "3. 'outlook': One sentence — the honest but encouraging big picture for the day. Frame it as a mate who's proud of the effort.\n\n" +
+        "Return ONLY valid JSON: {\"wins\":[\"point\",\"point\"],\"tweaks\":[\"point\",\"point\"],\"outlook\":\"one sentence\"}";
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }) });
+      if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "EatFeedback API", status: response.status }].concat(prev).slice(0, 20); });
+      const result = await response.json();
+      var apiErr = handleApiError(result);
+      if (apiErr) throw new Error(apiErr);
+      var text = (result.content || []).map(function(blk) { return blk.text || ""; }).join("");
+      if (!text && result.error) throw new Error(result.error.message || JSON.stringify(result.error));
+      const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+      const newFb = { ...parsed, _when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) };
+      // Save
+      const updated = Object.assign({}, eatFbResults);
+      if (!updated[tab]) updated[tab] = {};
+      updated[tab][dayKey] = newFb;
+      setEatFbResults(updated);
+      await sSet(fbStoreKey, JSON.stringify(updated));
+    } catch(err) {
+      if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "EatFeedback Error", data: String(err).substring(0, 300) }].concat(prev).slice(0, 20); });
+      const updated = Object.assign({}, eatFbResults);
+      if (!updated[tab]) updated[tab] = {};
+      updated[tab][dayKey] = { wins: ["Error: " + String(err).substring(0, 150)], tweaks: [], outlook: "Check debug log", _when: "failed" };
+      setEatFbResults(updated);
+    }
+    setEatFbLoading(false);
   };
 
   const [qaMsg, setQaMsg] = useState("");
@@ -3782,10 +3933,41 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             
 
             {/* Day notes */}
-            
+
               <div style={{ marginTop: 8 }}>
               <span style={{ fontSize: 10, color: "#94a3b8" }}>Day notes</span>
               <textarea defaultValue={dayMeals._note || ""} onBlur={function(e) { setMeal(eatDay, "_note", e.target.value); }} placeholder="e.g. Ate out, exam stress, birthday..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 30, resize: "vertical", boxSizing: "border-box" }} />
+            </div>
+
+            {/* Eating Day Feedback */}
+            <div style={{ marginTop: 12 }}>
+              <button onClick={function(){ generateEatFeedback(eatDay); }} disabled={eatFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: eatFbLoading ? "not-allowed" : "pointer", opacity: eatFbLoading ? 0.7 : 1, background: eatFbLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)", marginBottom: 6 }}>{eatFbLoading ? React.createElement("span", null, "Generating, please wait ", React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })) : "Generate Eating Feedback"}</button>
+              {(eatFbResults[activeTab] || {})[eatDay] && <button onClick={function(){ setEatFbExpanded(!eatFbExpanded); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer", marginBottom: 6 }}>{eatFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>}
+              {eatFbExpanded && (eatFbResults[activeTab] || {})[eatDay] && (function() { var efb = eatFbResults[activeTab][eatDay]; return React.createElement("div", { style: { marginBottom: 10 } },
+                React.createElement("div", { style: { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" } },
+                  efb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", efb._when, " for ", isJC ? "JC" : "Becks"),
+                  React.createElement("div", { style: { padding: "12px 14px", background: "#dcfce7", borderBottom: "1px solid #bbf7d0" } },
+                    React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#166534" } }, "What went well"),
+                    (efb.wins || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#166534", marginTop: 4 } }, "✓ ", w); })
+                  ),
+                  React.createElement("div", { style: { padding: "12px 14px", background: "#fef9c3", borderBottom: "1px solid #fde68a" } },
+                    React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#854d0e" } }, "Could be even better"),
+                    (efb.tweaks || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#854d0e", marginTop: 4 } }, "→ ", t); })
+                  ),
+                  React.createElement("div", { style: { padding: "12px 14px", background: "#dbeafe" } },
+                    React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#1e40af" } }, "Outlook"),
+                    React.createElement("div", { style: { fontSize: 12, color: "#1e40af", marginTop: 4 } }, "★ ", efb.outlook)
+                  ),
+                  efb._comment && React.createElement("div", { style: { padding: "10px 14px", background: "#f8fafc", borderTop: "1px solid #e2e8f0" } },
+                    React.createElement("div", { style: { fontSize: 10, fontWeight: 600, color: "#94a3b8", marginBottom: 4 } }, "YOUR RESPONSE", efb._commentWhen ? " · " + efb._commentWhen : ""),
+                    React.createElement("div", { style: { fontSize: 12, color: "#334155", lineHeight: 1.5 } }, efb._comment)
+                  )
+                ),
+                React.createElement("div", { style: { marginTop: 8, display: "flex", gap: 6 } },
+                  React.createElement("textarea", { id: "efb-comment-" + activeTab + "-" + eatDay, placeholder: "Add your response to this feedback...", defaultValue: "", style: { flex: 1, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, resize: "vertical", minHeight: 40, boxSizing: "border-box", fontFamily: "inherit" } }),
+                  React.createElement("button", { onClick: async function() { var el = document.getElementById("efb-comment-" + activeTab + "-" + eatDay); var txt = el ? el.value.trim() : ""; if (!txt) return; var updated = Object.assign({}, eatFbResults); updated[activeTab] = Object.assign({}, updated[activeTab]); updated[activeTab][eatDay] = Object.assign({}, efb, { _comment: txt, _commentWhen: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) }); setEatFbResults(updated); await sSet("eat_feedback", JSON.stringify(updated)); el.value = ""; setFormMsg("✓ Response saved"); setTimeout(function() { setFormMsg(""); }, 3000); }, style: { padding: "8px 14px", background: "#2563eb", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", alignSelf: "flex-end" } }, "Save")
+                )
+              ); })()}
             </div>
 
             {/* Quick text input */}
@@ -4472,7 +4654,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.248.5
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.249.0
       </div>
     </div>
   );
