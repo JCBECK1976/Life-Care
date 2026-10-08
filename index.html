@@ -6,8 +6,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0f172a">
-  <title>Life Care Dashboard</title>
-  <link rel="manifest" href="data:application/json,{%22name%22:%22Life%20Care%22,%22short_name%22:%22LifeCare%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%230f172a%22,%22theme_color%22:%22%230f172a%22}">
+  <title>Life Care Companion</title>
+  <link rel="manifest" href="data:application/json,{%22name%22:%22Life%20Care%20Companion%22,%22short_name%22:%22LifeCare%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%230f172a%22,%22theme_color%22:%22%230f172a%22}">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; }
@@ -1984,7 +1984,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   return (
     <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", background: "#f8fafc", minHeight: "100vh", color: "#0f172a", maxWidth: 520, margin: "0 auto" }}>
       <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", padding: "20px 16px 16px", color: "#fff" }}>
-        <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#94a3b8", marginBottom: 4 }}>Life Care Dashboard</div>
+        <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#94a3b8", marginBottom: 4 }}>Life Care Companion</div>
         <div style={{ fontSize: 22, fontWeight: 800 }}>{Object.keys(data).filter(k => k !== "config").map(k => (data[k].profile ? data[k].profile.name : k)).join(" & ")}</div>
         <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Week {calcWeek(data.config.trainingStart)} · Updated {data.config.lastUpdate}{saving ? " · Saving..." : ""}</div>
         <div style={{ display: "flex", gap: 0, marginTop: 14, background: "#1e293b", borderRadius: 10, padding: 3, overflowX: "auto" }}>
@@ -2152,9 +2152,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             <BodyCard label="Visceral Fat" value={p.body.visceralFat?.[p.body.visceralFat.length-1]?.v} rating={isJC ? "Standard" : "High"} />
             <BodyCard label="BMR (kcal)" value={p.body.bmr?.[p.body.bmr.length-1]?.v} rating={isJC ? "Excellent" : ""} />
           </div>
-          <button onClick={generateFeedback} disabled={feedbackLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: feedbackLoading ? "not-allowed" : "pointer", opacity: feedbackLoading ? 0.7 : 1, background: feedbackLoading ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #10b981 100%)", marginBottom: 14 }}>{feedbackLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Feedback"}</button>
+          <button onClick={generateFeedback} disabled={feedbackLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: feedbackLoading ? "not-allowed" : "pointer", opacity: feedbackLoading ? 0.7 : 1, background: feedbackLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", marginBottom: 14 }}>{feedbackLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Companion Feedback"}</button>
           <button onClick={function(){setHomeFbExpanded(!homeFbExpanded);}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#64748b",cursor:"pointer",marginTop:4}}>{homeFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>
-          {homeFbExpanded && feedbackResults[activeTab] && (() => { const fb = feedbackResults[activeTab]; return (<div style={{ marginBottom: 14 }}><div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" }}>
+          {homeFbExpanded && feedbackResults[activeTab] && (() => { const fb = feedbackResults[activeTab]; return (<div style={{ marginBottom: 14 }}><div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>Your Companion Feedback</div><div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" }}>
             {fb._when && <div style={{ padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" }}>Generated {fb._when} for {isJC ? "JC" : "Becks"}</div>}
             <div style={{ padding: "12px 14px", background: "#dcfce7", borderBottom: "1px solid #bbf7d0" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#166534" }}>What's going well</div>{fb.good?.map((g, i) => <div key={i} style={{ fontSize: 12, color: "#166534", marginTop: 4 }}>✓ {g}</div>)}</div>
             <div style={{ padding: "12px 14px", background: "#fef9c3", borderBottom: "1px solid #fde68a" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#854d0e" }}>Opportunities</div>{fb.opportunities?.map((o, i) => <div key={i} style={{ fontSize: 12, color: "#854d0e", marginTop: 4 }}>→ {o}</div>)}</div>
@@ -2338,8 +2338,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     if (txt) { var bfParsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); bfParsed._at = new Date().toLocaleString("en-GB"); setBodyFeedback(bfParsed); sSet("body_feedback", JSON.stringify(Object.assign({}, bodyFbAll || {}, { [activeTab]: bfParsed }))); }
                   } catch(e) { setBodyFeedback({ good: [], watch: ["Error: " + String(e).substring(0, 80)], outlook: "" }); }
                   setBodyFbLoading(false);
-                }} disabled={bodyFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: bodyFbLoading ? "not-allowed" : "pointer", background: bodyFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{bodyFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Weigh In Feedback"}</button>
+                }} disabled={bodyFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: bodyFbLoading ? "not-allowed" : "pointer", background: bodyFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{bodyFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Companion Weigh In Feedback"}</button>
                 {bodyFeedback && (<div style={{ marginTop: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>Your Companion Feedback</div>
                   {bodyFeedback._at && <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Generated: {bodyFeedback._at}</div>}
                   {bodyFeedback.good && bodyFeedback.good.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#166534" }}>✓ {pt}</div>; })}
                   {bodyFeedback.watch && bodyFeedback.watch.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#d97706" }}>⚠ {pt}</div>; })}
@@ -2410,8 +2411,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     if (txt) { var mfParsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); mfParsed._at = new Date().toLocaleString("en-GB"); setMeasFeedback(mfParsed); sSet("meas_feedback", JSON.stringify(Object.assign({}, measFbAll || {}, { [activeTab]: mfParsed }))); }
                   } catch(e) { setMeasFeedback({ good: [], watch: ["Error: " + String(e).substring(0, 80)], outlook: "" }); }
                   setMeasFbLoading(false);
-                }} disabled={measFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: measFbLoading ? "not-allowed" : "pointer", background: measFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{measFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Measurement Feedback"}</button>
+                }} disabled={measFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: measFbLoading ? "not-allowed" : "pointer", background: measFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{measFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Companion Measurement Feedback"}</button>
                 {measFeedback && (<div style={{ marginTop: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>Your Companion Feedback</div>
                   {measFeedback._at && <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Generated: {measFeedback._at}</div>}
                   {measFeedback.good && measFeedback.good.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#166534" }}>✓ {pt}</div>; })}
                   {measFeedback.watch && measFeedback.watch.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#d97706" }}>⚠ {pt}</div>; })}
@@ -2737,9 +2739,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         }
                     } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: { exercises: [], summary: "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
                     setSessionFbLoading(false);
-                  }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)" }}>{sessionFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "📊 Generate Session Feedback"}</button>
+                  }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{sessionFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "📊 Companion Session Feedback"}</button>
                   <button onClick={function(){setFbExpanded(!fbExpanded);}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#64748b",cursor:"pointer",marginTop:4}}>{fbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>
                   {fbExpanded && sessionFeedback && sessionFeedback[activeTab + "_" + day] && (<div style={{ marginTop: 10 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>Your Companion Feedback</div>
                     {sessionFeedback[activeTab + "_" + day].summary && (<div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, padding: 10, marginTop: 8 }}><div style={{ fontSize: 12, color: "#fff" }}>{sessionFeedback[activeTab + "_" + day].summary}</div>{sessionFeedback[activeTab + "_" + day].nextSession && <div style={{ fontSize: 12, color: "#fbbf24", fontWeight: 600, marginTop: 4 }}>Next: {sessionFeedback[activeTab + "_" + day].nextSession}</div>}</div>)}
                     {sessionFeedback[activeTab + "_" + day].exercises && sessionFeedback[activeTab + "_" + day].exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc", alignItems: "center" }}><span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{fbIcon(ex.icon)}</span><div><div style={{ fontSize: 12, fontWeight: 700 }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div>{(ex.newStatus || ex.recommendation) && (<div id={"rec-" + ei + "-" + day} style={{ marginTop: 4, padding: 8, background: ex._decision === "accepted" ? "#dcfce7" : ex._decision === "declined" ? "#f1f5f9" : "#fff7ed", borderRadius: 6, border: "1px solid " + (ex._decision === "accepted" ? "#86efac" : ex._decision === "declined" ? "#e2e8f0" : "#fed7aa") }}>
                       {ex._decision ? (<div style={{ fontSize: 11, fontWeight: 600, color: ex._decision === "accepted" ? "#166534" : "#64748b", padding: 4 }}>{ex._decision === "accepted" ? "Accepted — " + ex.name + " updated" + (ex._userNote ? " — " + ex._userNote : "") : "Declined — no changes made" + (ex._userNote ? " — " + ex._userNote : "")}</div>) : (<div><div style={{ fontSize: 10, color: "#ea580c", fontWeight: 600, marginBottom: 4 }}>{ex.recommendation || ("Recommendation: " + ex.newStatus)}</div>
@@ -3699,10 +3702,11 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
             {/* Weekly Eating Feedback */}
             <div style={{ marginTop: 14 }}>
-              <button onClick={function(){ generateWeekEatFeedback(); }} disabled={eatFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: eatFbLoading ? "not-allowed" : "pointer", opacity: eatFbLoading ? 0.7 : 1, background: eatFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)", marginBottom: 6 }}>{eatFbLoading ? React.createElement("span", null, "Generating, please wait ", React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })) : "Generate Weekly Eating Feedback"}</button>
+              <button onClick={function(){ generateWeekEatFeedback(); }} disabled={eatFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: eatFbLoading ? "not-allowed" : "pointer", opacity: eatFbLoading ? 0.7 : 1, background: eatFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", marginBottom: 6 }}>{eatFbLoading ? React.createElement("span", null, "Generating, please wait ", React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })) : "Companion Weekly Eating Feedback"}</button>
               <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Reviews all planned and consumed meals across the week for patterns, RAG compliance and nutritional trends.</div>
               {(eatFbResults[activeTab] || {})["week"] && <button onClick={function(){ setEatFbExpanded(!eatFbExpanded); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer", marginBottom: 6 }}>{eatFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>}
               {eatFbExpanded && (eatFbResults[activeTab] || {})["week"] && (function() { var efb = eatFbResults[activeTab]["week"]; return React.createElement("div", { style: { marginBottom: 10 } },
+                React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 } }, "Your Companion Feedback"),
                 React.createElement("div", { style: { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" } },
                   efb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", efb._when, " for ", isJC ? "JC" : "Becks"),
                   React.createElement("div", { style: { padding: "12px 14px", background: "#dcfce7", borderBottom: "1px solid #bbf7d0" } },
@@ -4373,9 +4377,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
             {/* Eating Day Feedback */}
             <div style={{ marginTop: 12 }}>
-              <button onClick={function(){ generateEatFeedback(eatDay); }} disabled={eatFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: eatFbLoading ? "not-allowed" : "pointer", opacity: eatFbLoading ? 0.7 : 1, background: eatFbLoading ? "#94a3b8" : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)", marginBottom: 6 }}>{eatFbLoading ? React.createElement("span", null, "Generating, please wait ", React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })) : "Generate Eating Feedback"}</button>
+              <button onClick={function(){ generateEatFeedback(eatDay); }} disabled={eatFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: eatFbLoading ? "not-allowed" : "pointer", opacity: eatFbLoading ? 0.7 : 1, background: eatFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", marginBottom: 6 }}>{eatFbLoading ? React.createElement("span", null, "Generating, please wait ", React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })) : "Companion Eating Feedback"}</button>
               {(eatFbResults[activeTab] || {})[eatDay] && <button onClick={function(){ setEatFbExpanded(!eatFbExpanded); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer", marginBottom: 6 }}>{eatFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>}
               {eatFbExpanded && (eatFbResults[activeTab] || {})[eatDay] && (function() { var efb = eatFbResults[activeTab][eatDay]; return React.createElement("div", { style: { marginBottom: 10 } },
+                React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 } }, "Your Companion Feedback"),
                 React.createElement("div", { style: { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" } },
                   efb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", efb._when, " for ", isJC ? "JC" : "Becks"),
                   React.createElement("div", { style: { padding: "12px 14px", background: "#dcfce7", borderBottom: "1px solid #bbf7d0" } },
@@ -4738,10 +4743,11 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               try { await sSet("health_fb_" + activeTab, JSON.stringify(fb)); } catch(se) {}
             } catch(e) { setFormMsg("Error: " + String(e).substring(0, 120)); setTimeout(function() { setFormMsg(""); }, 10000); }
             setHealthFbLoading(false);
-          }} disabled={healthFbLoading} style={{ width: "100%", padding: 12, marginTop: 14, background: healthFbLoading ? "#94a3b8" : accent, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: healthFbLoading ? "default" : "pointer" }}>{healthFbLoading ? <span>Generating<span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Generate Health Feedback"}</button>
+          }} disabled={healthFbLoading} style={{ width: "100%", padding: 12, marginTop: 14, background: healthFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: healthFbLoading ? "default" : "pointer" }}>{healthFbLoading ? <span>Generating<span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Companion Health Feedback"}</button>
                   <button onClick={function(){setHealthFbExpanded(!healthFbExpanded);}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#64748b",cursor:"pointer",marginTop:4}}>{healthFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>
 
           {healthFbExpanded && healthFb && (<div style={{ marginTop: 10, padding: 12, background: "#f0fdf4", borderRadius: 8, border: "1px solid #86efac" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>Your Companion Feedback</div>
             <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Generated: {healthFb._generatedAt}</div>
             <div style={{ fontSize: 12, color: "#0f172a", marginBottom: 8 }}>{healthFb.summary}</div>
             {healthFb.concerns && healthFb.concerns.length > 0 && (<div style={{ marginBottom: 6 }}><div style={{ fontSize: 11, fontWeight: 700, color: "#dc2626", marginBottom: 3 }}>Concerns</div>{healthFb.concerns.map(function(x, i) { return (<div key={i} style={{ fontSize: 11, color: "#475569", padding: "2px 0", paddingLeft: 8 }}>- {x}</div>); })}</div>)}
@@ -4760,7 +4766,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           {/* File Attachments */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📎 Attachments</div>
-            <div style={{ fontSize: 11, color: "#64748b", marginBottom: 10 }}>Upload files, images, or documents as data points for Generate Feedback and Ask a Question.</div>
+            <div style={{ fontSize: 11, color: "#64748b", marginBottom: 10 }}>Upload files, images, or documents as data points for Companion Feedback and Ask a Question.</div>
             <label style={{ display: "block", width: "100%", padding: 14, background: "#f8fafc", border: "2px dashed #cbd5e1", borderRadius: 8, textAlign: "center", cursor: "pointer", fontSize: 12, color: "#64748b", marginBottom: 8 }}>
               📄 Tap to upload file (PDF, image, document)
               <input type="file" accept="image/*,.pdf,.doc,.docx,.txt,.csv" multiple onChange={async function(e) {
@@ -4796,7 +4802,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 e.target.value = "";
               }} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)", border: 0 }} />
             </label>
-            <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 8 }}>Upload files to add as data points for Generate Feedback and Ask a Question.</div>
+            <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 8 }}>Upload files to add as data points for Companion Feedback and Ask a Question.</div>
             {/* Show attached files */}
             {p.attachments && p.attachments.length > 0 && (<div>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Attached Files</div>
@@ -4840,7 +4846,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               <button onClick={function() { setDebugMode(!debugMode); if (!debugMode) setDebugLog([]); }} style={{ padding: "6px 14px", background: debugMode ? "#dc2626" : "#f1f5f9", color: debugMode ? "#fff" : "#475569", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{debugMode ? "ON — Turn Off" : "Turn On"}</button>
             </div>
             {debugMode && (<div style={{ marginTop: 10 }}>
-              <div style={{ fontSize: 10, color: "#dc2626", fontWeight: 600, marginBottom: 6 }}>API calls will log raw responses here. Try Generate Feedback or Ask a Question.</div>
+              <div style={{ fontSize: 10, color: "#dc2626", fontWeight: 600, marginBottom: 6 }}>API calls will log raw responses here. Try Companion Feedback or Ask a Question.</div>
               {debugLog.length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", padding: 8 }}>No API calls yet.</div>}
               {debugLog.map(function(log, li) { return (<div key={li} style={{ padding: 8, background: li === 0 ? "#fef3c7" : "#f8fafc", borderRadius: 6, marginBottom: 4, fontSize: 10, fontFamily: "monospace", wordBreak: "break-all", lineHeight: 1.5 }}>
                 <div style={{ fontWeight: 700, color: "#0f172a" }}>{log.time} — {log.action}</div>
@@ -5085,8 +5091,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       </div>
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
-        Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.253.1
+        Life Care Companion · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.254.0
       </div>
     </div>
   );
