@@ -2540,6 +2540,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                                           <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", overflow: "hidden" }}>
                 {/* ACTIVITY TAB */}
                 {dv === "activity" && (<div>
+                <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, margin: 8, border: "1px solid #e2e8f0" }}>
                   {exList.map(function(ex, i) { return (<div key={i} id={"ex-" + day + "-" + i} style={{ padding: "10px 12px", borderBottom: i < exList.length - 1 ? "1px solid #f1f5f9" : "none" }}>
                     {editExercise && editExercise.day === day && editExercise.idx === i ? (
                       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -2820,9 +2821,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     
                   </div>)}
                 </div>
-                
-                
-                
+                </div>
+
+
+
                 </div>)}
                 {/* FEEDBACK TAB */}
                 
@@ -5084,7 +5086,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.252.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.253.0
       </div>
     </div>
   );
