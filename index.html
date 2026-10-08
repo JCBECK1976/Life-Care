@@ -3228,7 +3228,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           {/* Day content */}
           {eatDay !== "week" && <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);if(!eatDayEyeOpen)setEatDayChartOpen(false);}} style={{ padding: "4px 10px", background: eatDayEyeOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (eatDayEyeOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 12, cursor: "pointer", color: eatDayEyeOpen ? "#fff" : "#475569" }}>{eatDayEyeOpen ? "✕" : "👁"}</button><button onClick={function(){setEatDayChartOpen(!eatDayChartOpen);if(!eatDayChartOpen)setEatDayEyeOpen(false);}} style={{ padding: "4px 10px", background: eatDayChartOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (eatDayChartOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 12, cursor: "pointer", color: eatDayChartOpen ? "#fff" : "#475569" }}>{eatDayChartOpen ? "✕" : "📊"}</button></div></div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</span><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);}} style={{ padding: "4px 10px", background: eatDayEyeOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (eatDayEyeOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 12, cursor: "pointer", color: eatDayEyeOpen ? "#fff" : "#475569" }}>{eatDayEyeOpen ? "✕" : "👁"}</button></div>
 
             
             {eatDayEyeOpen && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, marginBottom: 10, border: "1px solid #e2e8f0" }}>
@@ -3380,99 +3380,54 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     </tfoot>
                   </table>
 
+                  {/* Nutrition bar chart */}
+                  <div style={{ marginTop: 10, padding: "8px 0", borderTop: "1px solid #e2e8f0" }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", marginBottom: 6 }}>% of Daily Recommended</div>
+                    {(function() {
+                      var bars = [
+                        { label: "Kcal", consumed: dayTotalConsumed, limit: limKcal, overIsBad: true },
+                        { label: "Prot", consumed: dayProtConsumed, limit: limProt, overIsBad: false },
+                        { label: "S/Fat", consumed: daySfatConsumed, limit: limSfat, overIsBad: true },
+                        { label: "Carbs", consumed: dayCarbsConsumed, limit: limCarbs, overIsBad: true },
+                        { label: "Fibre", consumed: dayFibConsumed, limit: limFib, overIsBad: false },
+                        { label: "Salt", consumed: daySaltConsumed, limit: limSalt, overIsBad: true }
+                      ];
+                      return bars.map(function(b) {
+                        var pct = b.limit > 0 ? Math.round((b.consumed / b.limit) * 100) : 0;
+                        var isOver = pct > 100;
+                        var isBad = b.overIsBad ? isOver : !isOver && pct < 100;
+                        if (b.overIsBad) {
+                          var greenW = Math.min(pct, 100);
+                          var redW = pct > 100 ? Math.min(pct - 100, 50) : 0;
+                          return (<div key={b.label} style={{ display: "flex", alignItems: "center", marginBottom: 4 }}>
+                            <span style={{ fontSize: 9, fontWeight: 600, color: "#475569", width: 32, textAlign: "right", marginRight: 6 }}>{b.label}</span>
+                            <div style={{ flex: 1, background: "#f1f5f9", borderRadius: 4, height: 14, position: "relative", overflow: "hidden" }}>
+                              <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: (greenW / 150 * 100) + "%", background: "#16a34a", borderRadius: redW > 0 ? "4px 0 0 4px" : "4px", transition: "width 0.3s" }}></div>
+                              {redW > 0 && <div style={{ position: "absolute", left: (greenW / 150 * 100) + "%", top: 0, bottom: 0, width: (redW / 150 * 100) + "%", background: "#dc2626", borderRadius: "0 4px 4px 0", transition: "width 0.3s" }}></div>}
+                              <div style={{ position: "absolute", left: (100 / 150 * 100) + "%", top: 0, bottom: 0, width: 2, background: "#334155", zIndex: 1 }}></div>
+                            </div>
+                            <span style={{ fontSize: 9, fontWeight: 600, color: isBad ? "#dc2626" : "#16a34a", width: 36, textAlign: "right", marginLeft: 4 }}>{pct}%</span>
+                          </div>);
+                        } else {
+                          var greenFill = Math.min(pct, 100);
+                          return (<div key={b.label} style={{ display: "flex", alignItems: "center", marginBottom: 4 }}>
+                            <span style={{ fontSize: 9, fontWeight: 600, color: "#475569", width: 32, textAlign: "right", marginRight: 6 }}>{b.label}</span>
+                            <div style={{ flex: 1, background: pct < 100 ? "#fecaca" : "#f1f5f9", borderRadius: 4, height: 14, position: "relative", overflow: "hidden" }}>
+                              <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: (greenFill / 150 * 100) + "%", background: "#16a34a", borderRadius: 4, transition: "width 0.3s" }}></div>
+                              <div style={{ position: "absolute", left: (100 / 150 * 100) + "%", top: 0, bottom: 0, width: 2, background: "#334155", zIndex: 1 }}></div>
+                            </div>
+                            <span style={{ fontSize: 9, fontWeight: 600, color: isBad ? "#dc2626" : "#16a34a", width: 36, textAlign: "right", marginLeft: 4 }}>{pct}%</span>
+                          </div>);
+                        }
+                      });
+                    })()}
+                    <div style={{ fontSize: 8, color: "#94a3b8", textAlign: "center", marginTop: 2 }}>Line = 100% recommended</div>
+                  </div>
+
                 </div>);
               })()}
             </div>)}
 
-            {/* Nutrition chart panel */}
-            {eatDayChartOpen && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, marginBottom: 10, border: "1px solid #e2e8f0" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#0f172a" }}>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — Nutrition Chart</span>
-                <button onClick={function(){setEatDayChartOpen(false);}} style={{ padding: "2px 8px", background: "#7c3aed", border: "none", borderRadius: 4, fontSize: 12, color: "#fff", cursor: "pointer", lineHeight: 1 }}>✕</button>
-              </div>
-              {(function() {
-                var isJC = activeTab === "jc";
-                var limKcal2 = isJC ? 2200 : 1900;
-                var limProt2 = isJC ? 130 : 110;
-                var limSfat2 = 20;
-                var limCarbs2 = isJC ? 300 : 260;
-                var limFib2 = isJC ? 35 : 30;
-                var limSalt2 = 6;
-                var cats2 = [
-                  { label: "Breakfast", keys: function(n){return n===1?"b":"b"+n;}, max: 10 },
-                  { label: "Lunch", keys: function(n){return n===1?"l":"l"+n;}, max: 10 },
-                  { label: "Dinner", keys: function(n){return n===1?"d":"d"+n;}, max: 10 },
-                  { label: "Desserts", keys: function(n){return "ds"+n;}, max: 10 },
-                  { label: "Drinks", keys: function(n){return "dr"+n;}, max: 10 },
-                  { label: "Snacks", keys: function(n){return "o"+n;}, max: 10 }
-                ];
-                var allItems2 = { breakfast: allBfast, lunch: allLunch, dinner: allDinner, desserts: allDesserts, drinks: allDrinks, snacks: allSnacks };
-                var dayTotalConsumed2 = 0, dayProtConsumed2 = 0, daySfatConsumed2 = 0, dayCarbsConsumed2 = 0, dayFibConsumed2 = 0, daySaltConsumed2 = 0;
-                cats2.forEach(function(cat) {
-                  var itemsList = allItems2[cat.label.toLowerCase()];
-                  for (var n = 1; n <= cat.max; n++) {
-                    var sk = cat.keys(n);
-                    var mid = getMeal(eatDay, sk);
-                    if (!mid || mid === "__empty__") continue;
-                    var track = getTrack(eatDay, sk);
-                    if (track === "skipped") continue;
-                    if (track === "eaten") {
-                      var item = itemsList ? itemsList.find(function(it){return it.id === mid;}) : null;
-                      if (item) {
-                        var kcVal = isJC ? (item.jcKcal || item.kcal || 0) : (item.beckKcal || item.kcal || 0);
-                        dayTotalConsumed2 += Number(kcVal) || 0;
-                        dayProtConsumed2 += Number(item.protein) || 0;
-                        daySfatConsumed2 += Number(item.satFat) || 0;
-                        dayCarbsConsumed2 += Number(item.carbs) || 0;
-                        dayFibConsumed2 += Number(item.fibre) || 0;
-                        daySaltConsumed2 += Number(item.salt) || 0;
-                      }
-                    }
-                  }
-                });
-                var bars = [
-                  { label: "Kcal", consumed: dayTotalConsumed2, limit: limKcal2, overIsBad: true },
-                  { label: "Prot", consumed: dayProtConsumed2, limit: limProt2, overIsBad: false },
-                  { label: "S/Fat", consumed: daySfatConsumed2, limit: limSfat2, overIsBad: true },
-                  { label: "Carbs", consumed: dayCarbsConsumed2, limit: limCarbs2, overIsBad: true },
-                  { label: "Fibre", consumed: dayFibConsumed2, limit: limFib2, overIsBad: false },
-                  { label: "Salt", consumed: daySaltConsumed2, limit: limSalt2, overIsBad: true }
-                ];
-                return (<div>
-                  {bars.map(function(b) {
-                    var pct = b.limit > 0 ? Math.round((b.consumed / b.limit) * 100) : 0;
-                    var isOver = pct > 100;
-                    var isBad = b.overIsBad ? isOver : !isOver && pct < 100;
-                    if (b.overIsBad) {
-                      var greenW = Math.min(pct, 100);
-                      var redW = pct > 100 ? Math.min(pct - 100, 50) : 0;
-                      var totalW = greenW + redW;
-                      return (<div key={b.label} style={{ display: "flex", alignItems: "center", marginBottom: 4 }}>
-                        <span style={{ fontSize: 9, fontWeight: 600, color: "#475569", width: 32, textAlign: "right", marginRight: 6 }}>{b.label}</span>
-                        <div style={{ flex: 1, background: "#f1f5f9", borderRadius: 4, height: 14, position: "relative", overflow: "hidden" }}>
-                          <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: (greenW / 150 * 100) + "%", background: "#16a34a", borderRadius: redW > 0 ? "4px 0 0 4px" : "4px", transition: "width 0.3s" }}></div>
-                          {redW > 0 && <div style={{ position: "absolute", left: (greenW / 150 * 100) + "%", top: 0, bottom: 0, width: (redW / 150 * 100) + "%", background: "#dc2626", borderRadius: "0 4px 4px 0", transition: "width 0.3s" }}></div>}
-                          <div style={{ position: "absolute", left: (100 / 150 * 100) + "%", top: 0, bottom: 0, width: 2, background: "#334155", zIndex: 1 }}></div>
-                        </div>
-                        <span style={{ fontSize: 9, fontWeight: 600, color: isBad ? "#dc2626" : "#16a34a", width: 36, textAlign: "right", marginLeft: 4 }}>{pct}%</span>
-                      </div>);
-                    } else {
-                      var gapPct = 100 - Math.min(pct, 100);
-                      var greenFill = Math.min(pct, 100);
-                      return (<div key={b.label} style={{ display: "flex", alignItems: "center", marginBottom: 4 }}>
-                        <span style={{ fontSize: 9, fontWeight: 600, color: "#475569", width: 32, textAlign: "right", marginRight: 6 }}>{b.label}</span>
-                        <div style={{ flex: 1, background: pct < 100 ? "#fecaca" : "#f1f5f9", borderRadius: 4, height: 14, position: "relative", overflow: "hidden" }}>
-                          <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: (greenFill / 150 * 100) + "%", background: "#16a34a", borderRadius: 4, transition: "width 0.3s" }}></div>
-                          <div style={{ position: "absolute", left: (100 / 150 * 100) + "%", top: 0, bottom: 0, width: 2, background: "#334155", zIndex: 1 }}></div>
-                        </div>
-                        <span style={{ fontSize: 9, fontWeight: 600, color: isBad ? "#dc2626" : "#16a34a", width: 36, textAlign: "right", marginLeft: 4 }}>{pct}%</span>
-                      </div>);
-                    }
-                  })}
-                  <div style={{ fontSize: 8, color: "#94a3b8", textAlign: "center", marginTop: 4 }}>Line = 100% daily recommended</div>
-                </div>);
-              })()}
-            </div>)}
 
             {/* Breakfast */}
             <div style={{ marginBottom: 8 }}>
@@ -4508,7 +4463,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.247.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.247.1
       </div>
     </div>
   );
