@@ -3031,7 +3031,49 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             setTimeout(function() { setFormMsg(""); }, 4000);
           };
 
-          
+          var bulkImportItems = async function(file) {
+            if (!file) return;
+            setNewItemLoading(true);
+            setFormMsg("📄 Reading file...");
+            try {
+              var text = await new Promise(function(res, rej) { var r = new FileReader(); r.onload = function() { res(r.result); }; r.onerror = function() { rej(new Error("Read failed")); }; r.readAsText(file); });
+              var lines = text.split(/[\n\r]+/).map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0 && l !== "---"; });
+              if (lines.length === 0) { setFormMsg("No items found in file"); setNewItemLoading(false); return; }
+              setFormMsg("🔍 Analysing " + lines.length + " item" + (lines.length > 1 ? "s" : "") + "...");
+              var isJC = activeTab === "jc";
+              var targetsStr = isJC ? "Daily targets: 2000-2200 kcal, 110-130g protein, <20g sat fat, <25g added sugar, 30-35g fibre, <6g salt. Category: " + addingCategory : "Daily targets: 1700-1900 kcal, 90-110g protein, <20g sat fat (critical - LDL 7.2 high cholesterol/suspected FH), <25g added sugar, 25-30g fibre, <6g salt. Category: " + addingCategory;
+              var prompt = "I have a list of food items to add to a meal planning app under the '" + addingCategory + "' category. For each item, find the closest nutritional match and assign a RAG colour rating.\n\nRating rules:\n- GREAT (green): Fits well within daily targets, healthy choice for this person\n- AMBER: Acceptable but has some nutritional concerns (moderate sat fat, sugar, or calories)\n- RED: Should be limited — high in sat fat, sugar, or calories relative to targets\n\nPerson's profile: " + targetsStr + "\n\nItems to look up:\n" + lines.join("\n") + "\n\nReturn ONLY a JSON array. For each item return: {\"name\":\"item name (corrected spelling if needed)\",\"kcal\":number,\"protein\":number,\"fat\":number,\"satFat\":number,\"carbs\":number,\"fibre\":number,\"salt\":number,\"rating\":\"GREAT or AMBER or RED\",\"matched\":true}. If you absolutely cannot identify or find a close match for an item, return {\"name\":\"original name\",\"matched\":false}. All nutritional values should be per typical serving. Return ONLY the JSON array, no other text.";
+              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4000, messages: [{ role: "user", content: prompt }] }) });
+              var result = await resp.json();
+              var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+              var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
+              var jsonStr = txt.replace(/```json|```/g, "").trim();
+              var arrMatch = jsonStr.match(/\[[\s\S]*\]/); if (!arrMatch) throw new Error("No JSON array found");
+              var items = JSON.parse(arrMatch[0]);
+              var added = []; var failed = [];
+              var cat = addingCategory;
+              var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
+              var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
+              var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : cat === "drink" ? "custom_drinks" : cat === "dessert" ? "custom_desserts" : "custom_snacks";
+              var newList = [].concat(listItems);
+              for (var bi = 0; bi < items.length; bi++) {
+                var it = items[bi];
+                if (!it.matched) { failed.push(it.name); continue; }
+                var newItem = { id: "custom_" + Date.now() + "_" + bi, name: it.name, jcKcal: it.kcal || 0, beckKcal: it.kcal || 0, protein: it.protein || 0, fat: it.fat || 0, satFat: it.satFat || 0, carbs: it.carbs || 0, fibre: it.fibre || 0, salt: it.salt || 0, rating: it.rating || "AMBER", freq: "Daily", isCustom: true };
+                if (cat === "dinner") { newItem.jcProt = it.protein || 0; newItem.beckProt = it.protein || 0; newItem.jcFat = it.fat || 0; newItem.beckFat = it.fat || 0; newItem.time = 30; newItem.shop = []; }
+                newList.push(newItem);
+                added.push(it.name);
+              }
+              setList(newList); await sSet(storageKey, JSON.stringify(newList));
+              var msg = "✅ " + added.length + " item" + (added.length !== 1 ? "s" : "") + " uploaded";
+              if (failed.length > 0) { msg += ". ⚠️ Could not add: " + failed.join(", "); }
+              setFormMsg(msg);
+              setAddingNew(false);
+              setTimeout(function() { setFormMsg(""); }, failed.length > 0 ? 8000 : 4000);
+            } catch(e) { setFormMsg("Error: " + String(e).substring(0, 120)); setTimeout(function() { setFormMsg(""); }, 5000); }
+            setNewItemLoading(false);
+          };
+
           var deleteCustomItem = async function(itemId) {
             var cb = customBreakfasts.filter(function(x){return x.id !== itemId;}); setCustomBreakfasts(cb); await sSet("custom_breakfasts", JSON.stringify(cb));
             var cl = customLunches.filter(function(x){return x.id !== itemId;}); setCustomLunches(cl); await sSet("custom_lunches", JSON.stringify(cl));
@@ -3717,9 +3759,13 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         📷
                         <input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
                       </label>
-                      
+                      <label style={{ padding: "6px 8px", background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }} title="Import list of items from file">
+                        📄
+                        <input type="file" accept=".txt,.csv,.tsv,text/plain,text/csv" onChange={function(e) { if (e.target.files && e.target.files[0]) bulkImportItems(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
+                      </label>
+
                     </div>
-                    <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically</div>
+                    <div style={{ fontSize: 9, color: "#854d0e", marginTop: 4 }}>AI will find nutritional info automatically. 📄 = import list from file</div>
                   </div>)}
                   {cameraPreview && (<div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, marginTop: 6, border: "1px solid #86efac" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -5034,7 +5080,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Dashboard · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.250.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.251.0
       </div>
     </div>
   );
