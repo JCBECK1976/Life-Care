@@ -984,7 +984,7 @@ function Dashboard() {
   const [showFbHistory, setShowFbHistory] = useState(false);
   const [eatFbLoading, setEatFbLoading] = useState(false);
   const [eatFbResults, setEatFbResults] = useState({});
-  const [eatFbExpanded, setEatFbExpanded] = useState(true);
+  const [eatFbExpanded, setEatFbExpanded] = useState(false);
   const [qaLoading, setQaLoading] = useState(false);
   const [qaHistory, setQaHistory] = useState({ jc: [], becks: [] });
   const [showQaHistory, setShowQaHistory] = useState(false);
@@ -2003,7 +2003,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         </div>)}
       </div>
       <div style={{ display: "flex", gap: 0, padding: "0 4px", background: "#fff", borderBottom: "1px solid #e2e8f0", overflowX: "auto" }}>
-        {SECS.map(s => (<button key={s.id} onClick={() => setSection(s.id)} style={{ padding: "10px 8px", border: "none", borderBottom: section === s.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 11, fontWeight: section === s.id ? 700 : 500, color: section === s.id ? accent : "#64748b", cursor: "pointer", whiteSpace: "nowrap" }}>{s.l}</button>))}
+        {SECS.map(s => (<button key={s.id} onClick={() => { setSection(s.id); setFbExpanded(false); setEatFbExpanded(false); setHomeFbExpanded(false); setHealthFbExpanded(false); }} style={{ padding: "10px 8px", border: "none", borderBottom: section === s.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 11, fontWeight: section === s.id ? 700 : 500, color: section === s.id ? accent : "#64748b", cursor: "pointer", whiteSpace: "nowrap" }}>{s.l}</button>))}
       </div>
       {formMsg && <div style={{ margin: "8px 16px 0", padding: 10, borderRadius: 8, background: formMsg.startsWith("✓") ? "#dcfce7" : "#fee2e2", color: formMsg.startsWith("✓") ? "#166534" : "#991b1b", fontSize: 12, fontWeight: 600 }}>{formMsg}</div>}
 
@@ -5033,7 +5033,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Companion · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.259.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.259.2
       </div>
     </div>
   );
