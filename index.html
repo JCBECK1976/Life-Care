@@ -742,7 +742,7 @@ function PBar({ count, total, color }) { return (<div style={{ display: "flex", 
 
 const inputStyle = { width: "100%", padding: "10px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, boxSizing: "border-box", background: "#fff" };
 const labelStyle = { fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 4, display: "block" };
-const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "#2563eb" : "#e2e8f0", color: on ? "#fff" : "#94a3b8", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: on ? "pointer" : "default" });
+const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" : "#e2e8f0", color: on ? "#fff" : "#94a3b8", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: on ? "pointer" : "default", letterSpacing: 0.3 });
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
@@ -2122,7 +2122,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const shopItems = {}; MEAL_DAYS.forEach(d => { var _dk = DAY_MAP[d.key] || d.key; var _dm = meals[_dk] || {}; var _did = typeof _dm === "object" ? _dm.d : _dm; const m = allDinners.find(x => x.id === _did); if (m) m.shop?.forEach(it => { shopItems[it] = (shopItems[it] || 0) + 1; }); });
   const shopList = Object.entries(shopItems).sort((a, b) => a[0].localeCompare(b[0]));
   const planned = MEAL_DAYS.filter(d => meals[DAY_MAP[d.key] || d.key]).length;
-  const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "Body" }, { id: "weights", l: "Activities" }, { id: "meals", l: "Eating" }, { id: "shop", l: "Shop" }, { id: "bloods", l: "Health" }, { id: "targets", l: "Targets" }, { id: "admin", l: "⚙" }, { id: "data", l: "Data" }];
+  const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "Body" }, { id: "weights", l: "Activities" }, { id: "meals", l: "Eating" }, { id: "shop", l: "Shop" }, { id: "bloods", l: "Health" }, { id: "targets", l: "Targets" }, { id: "admin", l: "⚙" }];
   const wt = p.body.weight || [];
   const latestWt = wt.length > 0 ? wt[wt.length - 1] : null;
   const idealSt = isJC ? IDEALS.jc : IDEALS.becks;
@@ -2348,8 +2348,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
               {bodyView === "data" && (<div>
           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-            <button onClick={() => { setShowBodyForm(true); setBodyInputs({ weight: "", bodyFat: "", muscleMass: "", muscleRate: "", skeletalMuscle: "", visceralFat: "", subcutFat: "", bmr: "", bodyWater: "", boneMass: "", bodyAge: "", bmi: "", week: String(calcWeek(data.config.trainingStart)) }); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>⏳ Record Body Comp</button>
-            <label style={{ display: "inline-flex", alignItems: "center", padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>
+            <button onClick={() => { setShowBodyForm(true); setBodyInputs({ weight: "", bodyFat: "", muscleMass: "", muscleRate: "", skeletalMuscle: "", visceralFat: "", subcutFat: "", bmr: "", bodyWater: "", boneMass: "", bodyAge: "", bmi: "", week: String(calcWeek(data.config.trainingStart)) }); }} style={{ padding: "4px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer" }}>⏳ Record Body Comp</button>
+            <label style={{ display: "inline-flex", alignItems: "center", padding: "4px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>
               📷 Image Upload
               <input type="file" accept="image/*" onChange={async function(e) {
                 var file = e.target.files ? e.target.files[0] : null;
@@ -5338,7 +5338,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Companion · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.272.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.273.0
       </div>
 
       {/* Floating Ask a Question button */}
