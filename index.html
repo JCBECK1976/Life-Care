@@ -1073,6 +1073,8 @@ function Dashboard() {
   const [measFbLoading, setMeasFbLoading] = useState(false);
   const [measFeedback, setMeasFeedback] = useState(null);
   const [measFbAll, setMeasFbAll] = useState({});
+  const [bodyFbExpanded, setBodyFbExpanded] = useState(false);
+  const [measFbExpanded2, setMeasFbExpanded2] = useState(false);
   const [assessment, setAssessment] = useState(null);
   const [googleToken, setGoogleToken] = useState(null);
   const [googleConnected, setGoogleConnected] = useState(false);
@@ -2333,8 +2335,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>Body Composition - Week {calcWeek(data.config.trainingStart)}</div>
             <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2 }}>
-              {[{ k: "data", l: "Weigh In" }, { k: "measurements", l: "Measurements" }, { k: "feedback", l: "Feedback" }, { k: "progress", l: "Progress" }, { k: "charts", l: "Charts" }].map(function(tab) {
-                return (<button key={tab.k} onClick={function() { setBodyView(tab.k); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: bodyView === tab.k ? (tab.k === "feedback" ? "#ea580c" : "#fff") : "transparent", color: bodyView === tab.k ? (tab.k === "feedback" ? "#fff" : "#0f172a") : "#94a3b8" }}>{tab.l}</button>);
+              {[{ k: "data", l: "Weigh In" }, { k: "measurements", l: "Measurements" }, { k: "progress", l: "Progress" }, { k: "charts", l: "Charts" }].map(function(tab) {
+                return (<button key={tab.k} onClick={function() { setBodyView(tab.k); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: bodyView === tab.k ? "#fff" : "transparent", color: bodyView === tab.k ? "#0f172a" : "#94a3b8" }}>{tab.l}</button>);
               })}
             </div>
             <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
@@ -2404,6 +2406,73 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             <BodyCard label="Body Age" value={p.body.bodyAge?.[p.body.bodyAge.length-1]?.v} rating="High" trend={isJC ? "Actual: 49" : "Actual: 48"} />
           </div>
           {!isJC && <div style={{ background: "#fef3c7", borderRadius: 10, padding: 12, fontSize: 12, color: "#92400e", lineHeight: 1.5 }}>Ideal weight and obesity classification don't account for Becks' exceptional muscle density. Track body fat % and visceral fat as primary metrics.</div>}
+
+          {/* Weigh-In Companion Feedback */}
+          <div style={{ marginTop: 14 }}>
+            <button onClick={async function() {
+              setBodyFbLoading(true);
+              try {
+                var prof = p.profile || {};
+                var bodySum = "Weight: " + (wt.length > 0 ? wt[wt.length-1].v + "st" : "none") + ", Body Fat: " + ((p.body.bodyFat||[]).length > 0 ? p.body.bodyFat[p.body.bodyFat.length-1].v + "pct" : "none") + ", Muscle Mass: " + ((p.body.muscleMass||[]).length > 0 ? p.body.muscleMass[p.body.muscleMass.length-1].v : "none") + ", Muscle Rate: " + ((p.body.muscleRate||[]).length > 0 ? p.body.muscleRate[p.body.muscleRate.length-1].v + "pct" : "none") + ", Visceral: " + ((p.body.visceralFat||[]).length > 0 ? p.body.visceralFat[p.body.visceralFat.length-1].v : "none") + ", Subcut Fat: " + ((p.body.subcutFat||[]).length > 0 ? p.body.subcutFat[p.body.subcutFat.length-1].v + "pct" : "none") + ", BMR: " + ((p.body.bmr||[]).length > 0 ? p.body.bmr[p.body.bmr.length-1].v : "none") + ", Body Water: " + ((p.body.bodyWater||[]).length > 0 ? p.body.bodyWater[p.body.bodyWater.length-1].v + "pct" : "none") + ", Bone Mass: " + ((p.body.boneMass||[]).length > 0 ? p.body.boneMass[p.body.boneMass.length-1].v : "none") + ", Body Age: " + ((p.body.bodyAge||[]).length > 0 ? p.body.bodyAge[p.body.bodyAge.length-1].v : "none") + ", Ideal: " + (prof.idealWeight || "unknown");
+                var prevEntries = wt.length > 1 ? "Previous weights: " + wt.slice(-4).map(function(w) { return w.v + "st (Wk" + w.wk + ")"; }).join(", ") : "";
+                var allBodyTrends = "";
+                ["bodyFat","muscleRate","visceralFat","subcutFat","bmr","bodyWater","boneMass","bodyAge","skeletalMuscle","muscleMass"].forEach(function(mk) {
+                  var arr = p.body[mk] || [];
+                  if (arr.length >= 2) { allBodyTrends += mk + " trend: " + arr.slice(-4).map(function(e) { return e.v + " (Wk" + e.wk + ")"; }).join(" → ") + ". "; }
+                });
+                var measSum = Object.entries(p.measurements).map(function(pair) { var latest = pair[1].length > 0 ? pair[1][pair[1].length-1] : null; return latest ? pair[0] + ": " + latest.v + "cm Wk" + latest.wk : ""; }).filter(Boolean).join(", ");
+                var prevBodyFb = bodyFeedback;
+                var prevBodyCtx = "";
+                if (prevBodyFb && prevBodyFb._at) {
+                  prevBodyCtx = "\nPrevious body comp feedback (" + prevBodyFb._at + "): Wins: " + (prevBodyFb.wins || prevBodyFb.good || []).join("; ") + ". Tweaks: " + (prevBodyFb.tweaks || prevBodyFb.watch || []).join("; ") + ". Outlook: " + (prevBodyFb.outlook || "") + ".";
+                  if (prevBodyFb._thread && prevBodyFb._thread.length > 0) {
+                    prevBodyCtx += "\nConversation on that feedback:\n" + prevBodyFb._thread.map(function(m) { return (m.role === "user" ? "User" : "Companion") + ": " + m.text; }).join("\n") + "\nRespect what they pushed back on, build on what they agreed with.";
+                  }
+                  prevBodyCtx += "\nBuild on what changed since.";
+                }
+                var prompt = "You are a pragmatic, experienced body composition coach reviewing the FULL weigh-in and body comp data for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Week " + calcWeek(data.config.trainingStart) + " of their programme.\n\n" +
+                  "COMMUNICATION STYLE: You are speaking adult-to-adult, like a knowledgeable mate who happens to be a body comp coach. Be pragmatic, warm, non-judgemental and direct. Give your honest opinions based on experience. NEVER be preachy. If a metric went the wrong way, assume there may be a good reason. Instead of criticising, show how small changes would accumulate over weeks to meaningful health outcomes. Frame every improvement as a choice they can make, not a standard they failed.\n\n" +
+                  "PRIMARY FOCUS: Weigh-in data — weight trends, body fat changes, muscle mass shifts, visceral fat, BMR, body water, bone mass, body age. Analyse changes vs previous readings and trajectory over time.\n\n" +
+                  TONE_RULES + "\n\n" +
+                  "CURRENT BODY COMP: " + bodySum + "\n" +
+                  (prevEntries ? prevEntries + "\n" : "") +
+                  (allBodyTrends ? "BODY TRENDS: " + allBodyTrends + "\n" : "") +
+                  (measSum ? "MEASUREMENTS: " + measSum + "\n" : "") +
+                  prevBodyCtx + getCrossSectionCtx(activeTab, "bodycomp") + "\n\n" +
+                  "RULES FOR RESPONSE:\n" +
+                  "1. 'wins': 3-5 things going well — weight direction, body comp improvements, consistency, positive trends across metrics. Reference actual numbers and week-on-week changes.\n" +
+                  "2. 'tweaks': 2-4 constructive suggestions for the next period. NEVER say 'you need to fix this'. Instead: 'If you [specific action] over the next 4 weeks, expect to see [specific body comp outcome]'. Always translate the suggestion into a real-world outcome they care about.\n" +
+                  "3. 'outlook': One sentence — the honest but encouraging big picture trajectory. Frame it as a mate who can see the data trend and the effort behind it.\n\n" +
+                  "Return ONLY valid JSON: {\"wins\":[\"point\",\"point\"],\"tweaks\":[\"point\",\"point\"],\"outlook\":\"one sentence\"}";
+                var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
+                var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+                var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
+                if (txt) { var bfParsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); bfParsed._at = new Date().toLocaleString("en-GB"); bfParsed._when = new Date().toLocaleString("en-GB"); setBodyFeedback(bfParsed); setBodyFbExpanded(true); sSet("body_feedback", JSON.stringify(Object.assign({}, bodyFbAll || {}, { [activeTab]: bfParsed }))); }
+              } catch(e) { setBodyFeedback({ wins: [], tweaks: ["Error: " + String(e).substring(0, 80)], outlook: "" }); setBodyFbExpanded(true); }
+              setBodyFbLoading(false);
+            }} disabled={bodyFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: bodyFbLoading ? "not-allowed" : "pointer", background: bodyFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", marginBottom: 6 }}>{bodyFbLoading ? React.createElement("span", null, "Generating, please wait ", React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })) : "Companion Weigh-In Feedback"}</button>
+            <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Reviews all body comp data — weight trends, body fat, muscle mass, visceral fat and more — cross-referenced with your eating, activity and health data.</div>
+            {bodyFeedback && bodyFeedback._at && <button onClick={function(){ setBodyFbExpanded(!bodyFbExpanded); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer", marginBottom: 6 }}>{bodyFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>}
+            {bodyFbExpanded && bodyFeedback && bodyFeedback._at && (function() { var bfb = bodyFeedback; return React.createElement("div", { style: { marginBottom: 10 } },
+              React.createElement("div", { style: { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" } },
+                bfb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", bfb._when, " for ", isJC ? "JC" : "Becks"),
+                React.createElement("div", { style: { padding: "8px 14px", borderBottom: "1px solid #e2e8f0" } }, React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f" } }, "Your Companion Feedback")),
+                React.createElement("div", { style: { padding: "12px 14px", background: "#dcfce7", borderBottom: "1px solid #bbf7d0" } },
+                  React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#166534" } }, "What’s going well"),
+                  (bfb.wins || bfb.good || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#166534", marginTop: 4 } }, "✓ ", w); })
+                ),
+                React.createElement("div", { style: { padding: "12px 14px", background: "#fef9c3", borderBottom: "1px solid #fde68a" } },
+                  React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#854d0e" } }, "Tweaks for next period"),
+                  (bfb.tweaks || bfb.watch || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#854d0e", marginTop: 4 } }, "→ ", t); })
+                ),
+                React.createElement("div", { style: { padding: "12px 14px", background: "#dbeafe" } },
+                  React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#1e40af" } }, "Body comp outlook"),
+                  React.createElement("div", { style: { fontSize: 12, color: "#1e40af", marginTop: 4 } }, "★ ", bfb.outlook)
+                )
+              ),
+              renderThread(bfb, "bodycomp", activeTab, updateBodyFb, activeTab)
+            ); })()}
+          </div>
               </div>)}
               {bodyView === "measurements" && (<div>
                 <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
@@ -2412,8 +2481,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 </div>
                 {p.progressPhotos && p.progressPhotos.length > 0 && (<div style={{ marginBottom: 12 }}><div style={{ fontSize: 12, fontWeight: 600, color: "#334155", marginBottom: 6 }}>Progress Photos</div><div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>{p.progressPhotos.map(function(ph, phi) { return (<div key={phi} style={{ position: "relative", flexShrink: 0 }}><img src={ph.data} style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8 }} /><div style={{ fontSize: 9, color: "#94a3b8", textAlign: "center" }}>Wk{ph.week}</div><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].progressPhotos.splice(phi, 1); await saveData(nd); }} style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: "#dc2626", color: "#fff", border: "none", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button></div>); })}</div></div>)}
                 <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: 8, padding: 2, marginBottom: 10 }}>
-                  {[{ k: "data", l: "Measure" }, { k: "feedback", l: "Feedback" }, { k: "progress", l: "Progress" }, { k: "charts", l: "Charts" }].map(function(tab) {
-                    return (<button key={tab.k} onClick={function() { setMeasView(tab.k); }} style={{ flex: 1, padding: "5px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: measView === tab.k ? (tab.k === "feedback" ? "#ea580c" : "#fff") : "transparent", color: measView === tab.k ? (tab.k === "feedback" ? "#fff" : "#0f172a") : "#94a3b8" }}>{tab.l}</button>);
+                  {[{ k: "data", l: "Measure" }, { k: "progress", l: "Progress" }, { k: "charts", l: "Charts" }].map(function(tab) {
+                    return (<button key={tab.k} onClick={function() { setMeasView(tab.k); }} style={{ flex: 1, padding: "5px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: measView === tab.k ? "#fff" : "transparent", color: measView === tab.k ? "#0f172a" : "#94a3b8" }}>{tab.l}</button>);
                   })}
                 </div>
                 {measView === "data" && (<div>
@@ -2430,41 +2499,70 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             {Object.entries(p.measurements).map(([k, d]) => { const latest = d.length > 0 ? d[d.length - 1] : null; const prev = d.length > 1 ? d[d.length - 2] : null; const delta = (latest && prev && typeof latest.v === "number" && typeof prev.v === "number") ? (latest.v - prev.v).toFixed(1) : null; return (<div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f1f5f9", fontSize: 13 }}><span style={{ fontWeight: 500, color: "#334155" }}>{k.charAt(0).toUpperCase() + k.slice(1)}</span><div style={{ textAlign: "right" }}>{latest ? <><span style={{ fontWeight: 600, color: "#0f172a" }}>{latest.v}{typeof latest.v === "number" ? "cm" : ""}</span>{delta && <span style={{ fontSize: 10, color: parseFloat(delta) > 0 ? "#16a34a" : parseFloat(delta) < 0 ? "#dc2626" : "#64748b", marginLeft: 6 }}>{parseFloat(delta) > 0 ? "+" : ""}{delta}</span>}<span style={{ fontSize: 10, color: "#94a3b8", marginLeft: 4 }}>Wk{latest.wk}</span></> : <span style={{ fontSize: 11, color: "#94a3b8" }}>—</span>}</div></div>); })}
           </div>
                 <div style={{ background: accentLight, borderRadius: 10, padding: 12, marginTop: 12, fontSize: 12, color: "#334155", lineHeight: 1.5 }}>Recheck measurements every 4 weeks. Chest at nipple level. Waist at midpoint between lowest rib and hip bone.</div>
-              </div>)}
-              {measView === "feedback" && (<div>
-                <button onClick={async function() {
-                  setMeasFbLoading(true);
-                  try {
-                    var prof = p.profile || {};
-                    var measSum = Object.entries(p.measurements).map(function(pair) { var latest = pair[1].length > 0 ? pair[1][pair[1].length-1] : null; return latest ? pair[0] + ": " + latest.v + "cm Wk" + latest.wk : ""; }).filter(Boolean).join(", ");
-                    var jsonFmt2 = '{"good":["point"],"watch":["point"],"outlook":"one sentence"}';
-                    var prevMeasFb = measFeedback;
-                    var prevMeasCtx = "";
-                    if (prevMeasFb && prevMeasFb._at) {
-                      prevMeasCtx = "\nPrevious measurement feedback (" + prevMeasFb._at + "): Good: " + (prevMeasFb.good || []).join("; ") + ". Watch: " + (prevMeasFb.watch || []).join("; ") + ". Outlook: " + (prevMeasFb.outlook || "") + ".";
-                      if (prevMeasFb._thread && prevMeasFb._thread.length > 0) {
-                        prevMeasCtx += "\nConversation on that feedback:\n" + prevMeasFb._thread.map(function(m) { return (m.role === "user" ? "User" : "Companion") + ": " + m.text; }).join("\n") + "\nRespect what they pushed back on, build on what they agreed with.";
-                      } else if (prevMeasFb._comment) {
-                        prevMeasCtx += "\nUser responded: \"" + prevMeasFb._comment + "\"";
-                      }
-                      prevMeasCtx += "\nBuild on what changed since.";
-                    }
-                    var prompt = "You are a pragmatic, experienced body composition coach reviewing tape measurements for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Week " + calcWeek(data.config.trainingStart) + ".\n\nCOMMUNICATION STYLE: You are speaking adult-to-adult, like a knowledgeable mate who happens to be a body comp coach. Be pragmatic, warm, non-judgemental and direct. Give your honest opinions based on experience. NEVER be preachy. If a measurement went the wrong way, assume there may be a good reason. Frame every improvement as a choice they can make, not a standard they failed.\n\n" + TONE_RULES + "\n\nMeasurements: " + measSum + "." + prevMeasCtx + getCrossSectionCtx(activeTab, "meas") + "\n\nMax 15 words per point. Return ONLY JSON: " + jsonFmt2;
-                    var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
-                    var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-                    var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                    if (txt) { var mfParsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); mfParsed._at = new Date().toLocaleString("en-GB"); setMeasFeedback(mfParsed); sSet("meas_feedback", JSON.stringify(Object.assign({}, measFbAll || {}, { [activeTab]: mfParsed }))); }
-                  } catch(e) { setMeasFeedback({ good: [], watch: ["Error: " + String(e).substring(0, 80)], outlook: "" }); }
-                  setMeasFbLoading(false);
-                }} disabled={measFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: measFbLoading ? "not-allowed" : "pointer", background: measFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{measFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Companion Measurement Feedback"}</button>
-                {measFeedback && (<div style={{ marginTop: 10 }}>
-                  {measFeedback._at && <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 4 }}>Generated: {measFeedback._at}</div>}
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>Your Companion Feedback</div>
-                  {measFeedback.good && measFeedback.good.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#166534" }}>✓ {pt}</div>; })}
-                  {measFeedback.watch && measFeedback.watch.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#d97706" }}>⚠ {pt}</div>; })}
-                  {measFeedback.outlook && <div style={{ marginTop: 8, padding: 10, background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, color: "#fff", fontSize: 12 }}>{measFeedback.outlook}</div>}
-                  {renderThread(measFeedback, "meas", activeTab, updateMeasFb, activeTab)}
-                </div>)}
+
+          {/* Measurement Companion Feedback */}
+          <div style={{ marginTop: 14 }}>
+            <button onClick={async function() {
+              setMeasFbLoading(true);
+              try {
+                var prof = p.profile || {};
+                var measSum = Object.entries(p.measurements).map(function(pair) { var latest = pair[1].length > 0 ? pair[1][pair[1].length-1] : null; return latest ? pair[0] + ": " + latest.v + "cm Wk" + latest.wk : ""; }).filter(Boolean).join(", ");
+                var measTrends = "";
+                Object.entries(p.measurements).forEach(function(pair) {
+                  if (pair[1].length >= 2) { measTrends += pair[0] + " trend: " + pair[1].slice(-4).map(function(e) { return e.v + "cm (Wk" + e.wk + ")"; }).join(" → ") + ". "; }
+                });
+                var bodySum = "Weight: " + (wt.length > 0 ? wt[wt.length-1].v + "st" : "none") + ", Body Fat: " + ((p.body.bodyFat||[]).length > 0 ? p.body.bodyFat[p.body.bodyFat.length-1].v + "pct" : "none") + ", Muscle Rate: " + ((p.body.muscleRate||[]).length > 0 ? p.body.muscleRate[p.body.muscleRate.length-1].v + "pct" : "none") + ", Visceral: " + ((p.body.visceralFat||[]).length > 0 ? p.body.visceralFat[p.body.visceralFat.length-1].v : "none");
+                var prevMeasFb = measFeedback;
+                var prevMeasCtx = "";
+                if (prevMeasFb && prevMeasFb._at) {
+                  prevMeasCtx = "\nPrevious measurement feedback (" + prevMeasFb._at + "): Wins: " + (prevMeasFb.wins || prevMeasFb.good || []).join("; ") + ". Tweaks: " + (prevMeasFb.tweaks || prevMeasFb.watch || []).join("; ") + ". Outlook: " + (prevMeasFb.outlook || "") + ".";
+                  if (prevMeasFb._thread && prevMeasFb._thread.length > 0) {
+                    prevMeasCtx += "\nConversation on that feedback:\n" + prevMeasFb._thread.map(function(m) { return (m.role === "user" ? "User" : "Companion") + ": " + m.text; }).join("\n") + "\nRespect what they pushed back on, build on what they agreed with.";
+                  }
+                  prevMeasCtx += "\nBuild on what changed since.";
+                }
+                var prompt = "You are a pragmatic, experienced body composition coach reviewing tape measurements for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Week " + calcWeek(data.config.trainingStart) + " of their programme.\n\n" +
+                  "COMMUNICATION STYLE: You are speaking adult-to-adult, like a knowledgeable mate who happens to be a body comp coach. Be pragmatic, warm, non-judgemental and direct. Give your honest opinions based on experience. NEVER be preachy. If a measurement went the wrong way, assume there may be a good reason. Instead of criticising, show how the measurements connect to the bigger picture. Frame every change as information they can use, not a pass/fail.\n\n" +
+                  "PRIMARY FOCUS: Tape measurements — bicep, forearm, calf, quad, chest, waist, shoulders. Analyse changes vs previous readings and trajectory over time. Consider what measurement changes tell us about body recomposition.\n\n" +
+                  TONE_RULES + "\n\n" +
+                  "CURRENT MEASUREMENTS: " + measSum + "\n" +
+                  (measTrends ? "MEASUREMENT TRENDS: " + measTrends + "\n" : "") +
+                  (bodySum ? "BODY COMP CONTEXT: " + bodySum + "\n" : "") +
+                  prevMeasCtx + getCrossSectionCtx(activeTab, "meas") + "\n\n" +
+                  "RULES FOR RESPONSE:\n" +
+                  "1. 'wins': 3-5 things the measurements show going well — positive size changes, body recomposition evidence, consistency of measuring, meaningful trends. Reference actual numbers and changes.\n" +
+                  "2. 'tweaks': 2-4 constructive suggestions. NEVER say 'you need to fix this'. Instead: 'If you [specific action] over the next 4 weeks, expect to see [specific measurement outcome]'. Always connect measurement changes to training, nutrition or lifestyle factors.\n" +
+                  "3. 'outlook': One sentence — the honest but encouraging trajectory shown by the tape. Frame it as a mate who can read the measurements and see the recomposition story.\n\n" +
+                  "Return ONLY valid JSON: {\"wins\":[\"point\",\"point\"],\"tweaks\":[\"point\",\"point\"],\"outlook\":\"one sentence\"}";
+                var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
+                var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+                var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
+                if (txt) { var mfParsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); mfParsed._at = new Date().toLocaleString("en-GB"); mfParsed._when = new Date().toLocaleString("en-GB"); setMeasFeedback(mfParsed); setMeasFbExpanded2(true); sSet("meas_feedback", JSON.stringify(Object.assign({}, measFbAll || {}, { [activeTab]: mfParsed }))); }
+              } catch(e) { setMeasFeedback({ wins: [], tweaks: ["Error: " + String(e).substring(0, 80)], outlook: "" }); setMeasFbExpanded2(true); }
+              setMeasFbLoading(false);
+            }} disabled={measFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: measFbLoading ? "not-allowed" : "pointer", background: measFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", marginBottom: 6 }}>{measFbLoading ? React.createElement("span", null, "Generating, please wait ", React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })) : "Companion Measurement Feedback"}</button>
+            <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Reviews tape measurements — size trends, recomposition evidence — cross-referenced with your body comp, eating, activity and health data.</div>
+            {measFeedback && measFeedback._at && <button onClick={function(){ setMeasFbExpanded2(!measFbExpanded2); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer", marginBottom: 6 }}>{measFbExpanded2 ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>}
+            {measFbExpanded2 && measFeedback && measFeedback._at && (function() { var mfb = measFeedback; return React.createElement("div", { style: { marginBottom: 10 } },
+              React.createElement("div", { style: { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" } },
+                mfb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", mfb._when, " for ", isJC ? "JC" : "Becks"),
+                React.createElement("div", { style: { padding: "8px 14px", borderBottom: "1px solid #e2e8f0" } }, React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f" } }, "Your Companion Feedback")),
+                React.createElement("div", { style: { padding: "12px 14px", background: "#dcfce7", borderBottom: "1px solid #bbf7d0" } },
+                  React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#166534" } }, "What’s going well"),
+                  (mfb.wins || mfb.good || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#166534", marginTop: 4 } }, "✓ ", w); })
+                ),
+                React.createElement("div", { style: { padding: "12px 14px", background: "#fef9c3", borderBottom: "1px solid #fde68a" } },
+                  React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#854d0e" } }, "Tweaks for next period"),
+                  (mfb.tweaks || mfb.watch || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#854d0e", marginTop: 4 } }, "→ ", t); })
+                ),
+                React.createElement("div", { style: { padding: "12px 14px", background: "#dbeafe" } },
+                  React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#1e40af" } }, "Measurement outlook"),
+                  React.createElement("div", { style: { fontSize: 12, color: "#1e40af", marginTop: 4 } }, "★ ", mfb.outlook)
+                )
+              ),
+              renderThread(mfb, "meas", activeTab, updateMeasFb, activeTab)
+            ); })()}
+          </div>
               </div>)}
               {measView === "progress" && (<div>
                 {Object.entries(p.measurements).map(function(pair) {
@@ -2488,42 +2586,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 })}
                 {Object.entries(p.measurements).filter(function(pair) { return pair[1].length >= 2; }).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 20 }}>Need 2+ weeks of data</div>}
               </div>)}
-              </div>)}
-              {bodyView === "feedback" && (<div>
-                <button onClick={async function() {
-                  setBodyFbLoading(true);
-                  try {
-                    var prof = p.profile || {};
-                    var bodySum = "Weight: " + (wt.length > 0 ? wt[wt.length-1].v + "st" : "none") + ", Body Fat: " + ((p.body.bodyFat||[]).length > 0 ? p.body.bodyFat[p.body.bodyFat.length-1].v + "pct" : "none") + ", Muscle Rate: " + ((p.body.muscleRate||[]).length > 0 ? p.body.muscleRate[p.body.muscleRate.length-1].v + "pct" : "none") + ", Visceral: " + ((p.body.visceralFat||[]).length > 0 ? p.body.visceralFat[p.body.visceralFat.length-1].v : "none") + ", BMR: " + ((p.body.bmr||[]).length > 0 ? p.body.bmr[p.body.bmr.length-1].v : "none") + ", Ideal: " + (prof.idealWeight || "unknown");
-                    var prevW = wt.length > 1 ? "Previous: " + wt[wt.length-2].v + "st Wk" + wt[wt.length-2].wk : "";
-                    var jsonFmt = '{"good":["point"],"watch":["point"],"outlook":"one sentence"}';
-                    var prevBodyFb = bodyFeedback;
-                    var prevBodyCtx = "";
-                    if (prevBodyFb && prevBodyFb._at) {
-                      prevBodyCtx = "\nPrevious body comp feedback (" + prevBodyFb._at + "): Good: " + (prevBodyFb.good || []).join("; ") + ". Watch: " + (prevBodyFb.watch || []).join("; ") + ". Outlook: " + (prevBodyFb.outlook || "") + ".";
-                      if (prevBodyFb._thread && prevBodyFb._thread.length > 0) {
-                        prevBodyCtx += "\nConversation on that feedback:\n" + prevBodyFb._thread.map(function(m) { return (m.role === "user" ? "User" : "Companion") + ": " + m.text; }).join("\n") + "\nRespect what they pushed back on, build on what they agreed with.";
-                      } else if (prevBodyFb._comment) {
-                        prevBodyCtx += "\nUser responded: \"" + prevBodyFb._comment + "\"";
-                      }
-                      prevBodyCtx += "\nBuild on what changed since.";
-                    }
-                    var prompt = "You are a pragmatic, experienced body composition coach reviewing weigh-in data for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Week " + calcWeek(data.config.trainingStart) + ".\n\nCOMMUNICATION STYLE: You are speaking adult-to-adult, like a knowledgeable mate who happens to be a body comp coach. Be pragmatic, warm, non-judgemental and direct. Give your honest opinions based on experience. NEVER be preachy. If a metric went the wrong way, assume there may be a good reason. Frame every improvement as a choice they can make, not a standard they failed.\n\n" + TONE_RULES + "\n\nCurrent: " + bodySum + ". " + prevW + "." + prevBodyCtx + getCrossSectionCtx(activeTab, "bodycomp") + "\n\nMax 15 words per point. Return ONLY JSON: " + jsonFmt;
-                    var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
-                    var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-                    var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                    if (txt) { var bfParsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); bfParsed._at = new Date().toLocaleString("en-GB"); setBodyFeedback(bfParsed); sSet("body_feedback", JSON.stringify(Object.assign({}, bodyFbAll || {}, { [activeTab]: bfParsed }))); }
-                  } catch(e) { setBodyFeedback({ good: [], watch: ["Error: " + String(e).substring(0, 80)], outlook: "" }); }
-                  setBodyFbLoading(false);
-                }} disabled={bodyFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: bodyFbLoading ? "not-allowed" : "pointer", background: bodyFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{bodyFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Companion Weigh In Feedback"}</button>
-                {bodyFeedback && (<div style={{ marginTop: 10 }}>
-                  {bodyFeedback._at && <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 4 }}>Generated: {bodyFeedback._at}</div>}
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>Your Companion Feedback</div>
-                  {bodyFeedback.good && bodyFeedback.good.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#166534" }}>✓ {pt}</div>; })}
-                  {bodyFeedback.watch && bodyFeedback.watch.map(function(pt, i) { return <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #f8fafc", fontSize: 12, color: "#d97706" }}>⚠ {pt}</div>; })}
-                  {bodyFeedback.outlook && <div style={{ marginTop: 8, padding: 10, background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, color: "#fff", fontSize: 12 }}>{bodyFeedback.outlook}</div>}
-                  {renderThread(bodyFeedback, "bodycomp", activeTab, updateBodyFb, activeTab)}
-                </div>)}
               </div>)}
               {bodyView === "progress" && (<div>
                 {[{ k: "weight", l: "Weight (st)" }, { k: "bodyFat", l: "Body Fat %" }, { k: "muscleRate", l: "Muscle Rate %" }, { k: "visceralFat", l: "Visceral Fat" }, { k: "bmr", l: "BMR" }, { k: "skeletalMuscle", l: "Skeletal Muscle %" }, { k: "subcutFat", l: "Subcut Fat %" }, { k: "bodyWater", l: "Body Water %" }, { k: "boneMass", l: "Bone Mass" }, { k: "bodyAge", l: "Body Age" }].map(function(metric) {
@@ -5230,7 +5292,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Companion · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.266.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.267.0
       </div>
 
       {/* Floating Ask a Question button */}
