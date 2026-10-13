@@ -1077,6 +1077,10 @@ function Dashboard() {
   const [measFbExpanded2, setMeasFbExpanded2] = useState(false);
   const [bodyMetricOpen, setBodyMetricOpen] = useState(null);
   const [bodyMetricShowAll, setBodyMetricShowAll] = useState(false);
+  const [measMetricOpen, setMeasMetricOpen] = useState(null);
+  const [measMetricShowAll, setMeasMetricShowAll] = useState(false);
+  const [measLogKey, setMeasLogKey] = useState(null);
+  const [measLogInputs, setMeasLogInputs] = useState({ week: "", value: "", note: "" });
   const [assessment, setAssessment] = useState(null);
   const [googleToken, setGoogleToken] = useState(null);
   const [googleConnected, setGoogleConnected] = useState(false);
@@ -2496,27 +2500,48 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               </div>)}
               {bodyView === "measurements" && (<div>
                 <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                  <button onClick={() => { setShowMeasForm(true); setMeasInputs({ week: calcWeek(data.config.trainingStart), bicep: "", forearm: "", calf: "", quad: "", chest: "", waist: "", shoulders: "", comment: "" }); }} style={{ ...btnP(), flex: 1 }}>Record Measurements</button>
                   <label style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" }}>📸 Progress Photo <input type="file" accept="image/*" multiple onChange={async function(e) { var files = Array.from(e.target.files); if (!files.length) return; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].progressPhotos) nd[activeTab].progressPhotos = []; for (var fi = 0; fi < files.length; fi++) { var reader = new FileReader(); await new Promise(function(resolve) { reader.onload = function(ev) { nd[activeTab].progressPhotos.push({ data: ev.target.result, date: new Date().toLocaleDateString("en-GB"), week: calcWeek(data.config.trainingStart) }); resolve(); }; reader.readAsDataURL(files[fi]); }); } await saveData(nd); setFormMsg("📸 Photo saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ display: "none" }} /></label>
                 </div>
                 {p.progressPhotos && p.progressPhotos.length > 0 && (<div style={{ marginBottom: 12 }}><div style={{ fontSize: 12, fontWeight: 600, color: "#334155", marginBottom: 6 }}>Progress Photos</div><div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>{p.progressPhotos.map(function(ph, phi) { return (<div key={phi} style={{ position: "relative", flexShrink: 0 }}><img src={ph.data} style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8 }} /><div style={{ fontSize: 9, color: "#94a3b8", textAlign: "center" }}>Wk{ph.week}</div><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].progressPhotos.splice(phi, 1); await saveData(nd); }} style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: "#dc2626", color: "#fff", border: "none", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button></div>); })}</div></div>)}
-                <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: 8, padding: 2, marginBottom: 10 }}>
-                  {[{ k: "data", l: "Measure" }, { k: "progress", l: "Progress" }, { k: "charts", l: "Charts" }].map(function(tab) {
-                    return (<button key={tab.k} onClick={function() { setMeasView(tab.k); }} style={{ flex: 1, padding: "5px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: measView === tab.k ? "#fff" : "transparent", color: measView === tab.k ? "#0f172a" : "#94a3b8" }}>{tab.l}</button>);
-                  })}
-                </div>
-                {measView === "data" && (<div>
-{showMeasForm && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Body Measurements (cm)</div>
-            <div style={{ marginBottom: 8 }}><label style={labelStyle}>Week</label><input type="number" value={measInputs.week} onChange={e => setMeasInputs(q => ({ ...q, week: e.target.value }))} style={{ ...inputStyle, width: 80 }} /></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {["bicep","forearm","calf","quad","chest","waist","shoulders"].map(f => { const prev = p.measurements[f] && p.measurements[f].length > 0 ? p.measurements[f][p.measurements[f].length - 1] : null; return (<div key={f}><label style={labelStyle}>{f.charAt(0).toUpperCase() + f.slice(1)} {prev ? "(was " + prev.v + "cm)" : ""}</label><input type="number" step="0.5" value={measInputs[f] || ""} onChange={e => setMeasInputs(q => ({ ...q, [f]: e.target.value }))} style={inputStyle} placeholder="cm" /></div>); })}
-            </div>
-            <div style={{ marginTop: 8 }}><label style={labelStyle}>Notes</label><textarea value={measInputs.comment} onChange={e => setMeasInputs(q => ({ ...q, comment: e.target.value }))} style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} placeholder="Any notes..." /></div>
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}><button onClick={saveMeasurements} disabled={!measInputs.week} style={{ ...btnP(!!measInputs.week), flex: 1 }}>Save</button><button onClick={() => setShowMeasForm(false)} style={btnS}>Cancel</button></div>
-          </div>)}
           <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0" }}>
-            {Object.entries(p.measurements).map(([k, d]) => { const latest = d.length > 0 ? d[d.length - 1] : null; const prev = d.length > 1 ? d[d.length - 2] : null; const delta = (latest && prev && typeof latest.v === "number" && typeof prev.v === "number") ? (latest.v - prev.v).toFixed(1) : null; return (<div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f1f5f9", fontSize: 13 }}><span style={{ fontWeight: 500, color: "#334155" }}>{k.charAt(0).toUpperCase() + k.slice(1)}</span><div style={{ textAlign: "right" }}>{latest ? <><span style={{ fontWeight: 600, color: "#0f172a" }}>{latest.v}{typeof latest.v === "number" ? "cm" : ""}</span>{delta && <span style={{ fontSize: 10, color: parseFloat(delta) > 0 ? "#16a34a" : parseFloat(delta) < 0 ? "#dc2626" : "#64748b", marginLeft: 6 }}>{parseFloat(delta) > 0 ? "+" : ""}{delta}</span>}<span style={{ fontSize: 10, color: "#94a3b8", marginLeft: 4 }}>Wk{latest.wk}</span></> : <span style={{ fontSize: 11, color: "#94a3b8" }}>—</span>}</div></div>); })}
+            {Object.entries(p.measurements).map(function(pair, mi) { var k = pair[0]; var d = pair[1]; var latest = d.length > 0 ? d[d.length - 1] : null; var prev = d.length > 1 ? d[d.length - 2] : null; var delta = (latest && prev && typeof latest.v === "number" && typeof prev.v === "number") ? (latest.v - prev.v).toFixed(1) : null; var measColors = ["#2563eb","#7c3aed","#059669","#d97706","#dc2626","#0891b2","#ec4899"]; return (<div key={k}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #f1f5f9", fontSize: 13 }}>
+                <span style={{ fontWeight: 500, color: "#334155", flex: 1 }}>{k.charAt(0).toUpperCase() + k.slice(1)}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  {latest ? <><span style={{ fontWeight: 600, color: "#0f172a", fontSize: 13 }}>{latest.v}{typeof latest.v === "number" ? "cm" : ""}</span>{delta && <span style={{ fontSize: 10, color: parseFloat(delta) > 0 ? "#16a34a" : parseFloat(delta) < 0 ? "#dc2626" : "#64748b", marginLeft: 2 }}>{parseFloat(delta) > 0 ? "+" : ""}{delta}</span>}<span style={{ fontSize: 10, color: "#94a3b8", marginLeft: 2 }}>Wk{latest.wk}</span></> : <span style={{ fontSize: 11, color: "#94a3b8" }}>—</span>}
+                  <button onClick={function(){ if (measLogKey === k) { setMeasLogKey(null); } else { setMeasLogKey(k); setMeasLogInputs({ week: calcWeek(data.config.trainingStart), value: "", note: "" }); setMeasMetricOpen(null); } }} style={{ padding: "4px 8px", marginLeft: 4, background: measLogKey === k ? accent : "#f1f5f9", border: "1px solid " + (measLogKey === k ? accent : "#e2e8f0"), borderRadius: 6, fontSize: 12, cursor: "pointer", color: measLogKey === k ? "#fff" : "#475569" }}>📋</button>
+                  <button onClick={function(){ if (measMetricOpen === k) { setMeasMetricOpen(null); } else { setMeasMetricOpen(k); setMeasMetricShowAll(false); setMeasLogKey(null); } }} style={{ padding: "4px 8px", background: measMetricOpen === k ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (measMetricOpen === k ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 12, cursor: "pointer", color: measMetricOpen === k ? "#fff" : "#475569" }}>{measMetricOpen === k ? "✕" : "👁"}</button>
+                </div>
+              </div>
+              {measLogKey === k && (<div style={{ background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginTop: 6, marginBottom: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Log {k.charAt(0).toUpperCase() + k.slice(1)} (cm)</div>
+                <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                  <div><label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 2 }}>Week</label><input type="number" value={measLogInputs.week} onChange={function(e){ setMeasLogInputs(Object.assign({}, measLogInputs, { week: e.target.value })); }} style={{ width: 50, padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12 }} /></div>
+                  <div><label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 2 }}>cm</label><input type="number" step="0.5" value={measLogInputs.value} onChange={function(e){ setMeasLogInputs(Object.assign({}, measLogInputs, { value: e.target.value })); }} style={{ width: 60, padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12 }} placeholder={latest ? "was " + latest.v : "cm"} /></div>
+                  <div style={{ flex: 1 }}><label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 2 }}>Note</label><input type="text" value={measLogInputs.note} onChange={function(e){ setMeasLogInputs(Object.assign({}, measLogInputs, { note: e.target.value })); }} style={{ width: "100%", padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} placeholder="optional" /></div>
+                  <button onClick={async function(){ var wk = parseInt(measLogInputs.week); var v = parseFloat(measLogInputs.value); if (!wk || isNaN(v)) return; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].measurements[k]) nd[activeTab].measurements[k] = []; var ei = nd[activeTab].measurements[k].findIndex(function(e){ return e.wk === wk; }); if (ei >= 0) { nd[activeTab].measurements[k][ei].v = v; if (measLogInputs.note) nd[activeTab].measurements[k][ei].note = measLogInputs.note; } else { nd[activeTab].measurements[k].push({ wk: wk, v: v, note: measLogInputs.note || "" }); } nd[activeTab].measurements[k].sort(function(a,b){ return a.wk - b.wk; }); nd.config.week = calcWeek(nd.config.trainingStart); nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); await saveData(nd); setMeasLogKey(null); setFormMsg("✓ " + k.charAt(0).toUpperCase() + k.slice(1) + " saved"); setTimeout(function(){ setFormMsg(""); }, 3000); }} style={{ padding: "6px 14px", background: accent, color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>Save</button>
+                  <button onClick={function(){ setMeasLogKey(null); }} style={{ padding: "6px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer" }}>✕</button>
+                </div>
+              </div>)}
+              {measMetricOpen === k && (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 6, marginBottom: 6 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>👁 {k.charAt(0).toUpperCase() + k.slice(1)} Progress</div>
+                  <button onClick={function(){ setMeasMetricOpen(null); }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "#94a3b8" }}>✕</button>
+                </div>
+                {d.length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 16 }}>No progress data yet</div>}
+                {d.length > 0 && (<div>
+                  <div style={{ display: "flex", gap: 6, padding: "2px 0", fontSize: 9, color: "#94a3b8", fontWeight: 600 }}><span style={{ width: 40 }}>WK</span><span style={{ width: 60 }}>CM</span><span style={{ flex: 1 }}>NOTES</span><span style={{ width: 20 }}></span></div>
+                  {d.slice(0, measMetricShowAll ? 999 : 4).map(function(entry, ei) { return (<div key={ei} style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
+                    <input defaultValue={entry.wk} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].wk = parseInt(e.target.value) || entry.wk; await saveData(nd); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
+                    <input defaultValue={entry.v} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].v = parseFloat(e.target.value) || entry.v; await saveData(nd); }} style={{ width: 60, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
+                    <input defaultValue={entry.note || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].note = e.target.value; await saveData(nd); }} placeholder="..." style={{ flex: 1, minWidth: 0, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
+                    <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", minWidth: 24, flexShrink: 0 }}>✕</button>
+                  </div>); })}
+                  {d.length > 4 && <button onClick={function() { setMeasMetricShowAll(!measMetricShowAll); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: accent, cursor: "pointer", marginTop: 6 }}>{measMetricShowAll ? "▲ Show less" : "▼ View more (" + (d.length - 4) + " entries)"}</button>}
+                </div>)}
+                {(function() { var chartData = d.map(function(e) { return { wk: e.wk, v: typeof e.v === "number" ? e.v : parseFloat(e.v), note: e.note }; }).filter(function(e) { return !isNaN(e.v); }); if (chartData.length >= 2) return <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}><FullChart title={k.charAt(0).toUpperCase() + k.slice(1) + " (cm)"} series={[{ label: k, color: measColors[mi % 7], data: chartData }]} height={120} /></div>; if (d.length > 0 && chartData.length < 2) return <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}><div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12 }}>Need 2+ entries for chart</div></div>; return null; })()}
+              </div>)}
+            </div>); })}
           </div>
                 <div style={{ background: accentLight, borderRadius: 10, padding: 12, marginTop: 12, fontSize: 12, color: "#334155", lineHeight: 1.5 }}>Recheck measurements every 4 weeks. Chest at nipple level. Waist at midpoint between lowest rib and hip bone.</div>
 
@@ -2550,9 +2575,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   (bodySum ? "BODY COMP CONTEXT: " + bodySum + "\n" : "") +
                   prevMeasCtx + getCrossSectionCtx(activeTab, "meas") + "\n\n" +
                   "RULES FOR RESPONSE:\n" +
-                  "1. 'wins': 3-5 things the measurements show going well — positive size changes, body recomposition evidence, consistency of measuring, meaningful trends. Reference actual numbers and changes.\n" +
-                  "2. 'tweaks': 2-4 constructive suggestions. NEVER say 'you need to fix this'. Instead: 'If you [specific action] over the next 4 weeks, expect to see [specific measurement outcome]'. Always connect measurement changes to training, nutrition or lifestyle factors.\n" +
-                  "3. 'outlook': One sentence — the honest but encouraging trajectory shown by the tape. Frame it as a mate who can read the measurements and see the recomposition story.\n\n" +
+                  "1. ‘wins’: 3-5 things the measurements show going well — positive size changes, body recomposition evidence, consistency of measuring, meaningful trends. Reference actual numbers and changes.\n" +
+                  "2. ‘tweaks’: 2-4 constructive suggestions. NEVER say ‘you need to fix this’. Instead: ‘If you [specific action] over the next 4 weeks, expect to see [specific measurement outcome]’. Always connect measurement changes to training, nutrition or lifestyle factors.\n" +
+                  "3. ‘outlook’: One sentence — the honest but encouraging trajectory shown by the tape. Frame it as a mate who can read the measurements and see the recomposition story.\n\n" +
                   "Return ONLY valid JSON: {\"wins\":[\"point\",\"point\"],\"tweaks\":[\"point\",\"point\"],\"outlook\":\"one sentence\"}";
                 var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
                 var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
@@ -2583,29 +2608,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               renderThread(mfb, "meas", activeTab, updateMeasFb, activeTab)
             ); })()}
           </div>
-              </div>)}
-              {measView === "progress" && (<div>
-                {Object.entries(p.measurements).map(function(pair) {
-                  var k = pair[0]; var arr = pair[1];
-                  if (arr.length === 0) return null;
-                  return (<div key={k} style={{ marginBottom: 12, paddingBottom: 8, borderBottom: "1px solid #e2e8f0" }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{k.charAt(0).toUpperCase() + k.slice(1)}</div>
-                    <div style={{ display: "flex", gap: 6, padding: "2px 0", fontSize: 9, color: "#94a3b8", fontWeight: 600 }}><span style={{ width: 40 }}>WK</span><span style={{ width: 60 }}>CM</span><span style={{ flex: 1 }}>NOTES</span><span style={{ width: 20 }}></span></div>
-                    {arr.map(function(entry, ei) { return (<div key={ei} style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
-                      <input defaultValue={entry.wk} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].wk = parseInt(e.target.value) || entry.wk; await saveData(nd); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
-                      <input defaultValue={entry.v} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].v = parseFloat(e.target.value) || entry.v; await saveData(nd); }} style={{ width: 60, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
-                      <input defaultValue={entry.note || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].note = e.target.value; await saveData(nd); }} placeholder="..." style={{ flex: 1, minWidth: 0, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
-                      <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", minWidth: 24, flexShrink: 0 }}>✕</button>
-                    </div>); })}
-                  </div>);
-                })}
-              </div>)}
-              {measView === "charts" && (<div>
-                {Object.entries(p.measurements).filter(function(pair) { return pair[1].length >= 2; }).map(function(pair, mi) {
-                  return <FullChart key={pair[0]} title={pair[0].charAt(0).toUpperCase() + pair[0].slice(1) + " (cm)"} series={[{ label: pair[0], color: ["#2563eb","#7c3aed","#059669","#d97706","#dc2626","#0891b2","#ec4899"][mi % 7], data: pair[1] }]} height={100} />;
-                })}
-                {Object.entries(p.measurements).filter(function(pair) { return pair[1].length >= 2; }).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 20 }}>Need 2+ weeks of data</div>}
-              </div>)}
               </div>)}
             </div>
           </div>
@@ -5289,7 +5291,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Companion · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.270.2
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.271.0
       </div>
 
       {/* Floating Ask a Question button */}
