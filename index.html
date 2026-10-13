@@ -3448,14 +3448,91 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             <button onClick={function() { setWeekOff(function(o) { return o + 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&rsaquo;</button>
           </div>
 
-          {/* List toggle + Clear Week */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "center" }}>
+          {/* List toggle + Update My List + Clear Week */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 0, alignItems: "center" }}>
             <div style={{ display: "flex", background: "#e2e8f0", borderRadius: 6, padding: 2 }}>
               <button onClick={function() { setEatList("own"); }} style={{ padding: "4px 10px", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: eatList === "own" ? "#fff" : "transparent", color: eatList === "own" ? "#0f172a" : "#94a3b8" }}>My List</button>
               <button onClick={function() { setEatList("default"); }} style={{ padding: "4px 10px", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: eatList === "default" ? "#fff" : "transparent", color: eatList === "default" ? "#0f172a" : "#94a3b8" }}>Default List</button>
             </div>
-            <button onClick={clearWeek} style={{ marginLeft: "auto", padding: "6px 10px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 6, fontSize: 10, color: "#991b1b", cursor: "pointer" }}>Clear Week</button>
+            <button onClick={function(){ setManageListsOpen(!manageListsOpen); }} style={{ marginLeft: "auto", padding: "6px 10px", background: manageListsOpen ? "#eff6ff" : "#f1f5f9", border: "1px solid " + (manageListsOpen ? "#bfdbfe" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, color: manageListsOpen ? "#1e3a5f" : "#475569", cursor: "pointer" }}>{manageListsOpen ? "✕ Close" : "Update My List"}</button>
+            <button onClick={clearWeek} style={{ padding: "6px 10px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 6, fontSize: 10, color: "#991b1b", cursor: "pointer" }}>Clear Week</button>
           </div>
+
+          {/* My Food Options — collapsible */}
+          {manageListsOpen && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 14, marginTop: 8, marginBottom: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>🍽️ My Food Options</div>
+              {[{k:"breakfast",label:"Breakfasts",items:allBfast,customs:customBreakfasts,setCustoms:setCustomBreakfasts,storageKey:"custom_breakfasts"},
+                {k:"lunch",label:"Lunches",items:allLunch,customs:customLunches,setCustoms:setCustomLunches,storageKey:"custom_lunches"},
+                {k:"dinner",label:"Dinners",items:allDinners,customs:customMeals,setCustoms:setCustomMeals,storageKey:"custom_meals"},
+                {k:"snack",label:"Snacks",items:allOther,customs:customSnacks,setCustoms:setCustomSnacks,storageKey:"custom_snacks"},
+                {k:"dessert",label:"Desserts",items:allDesserts,customs:customDesserts,setCustoms:setCustomDesserts,storageKey:"custom_desserts"},
+                {k:"drink",label:"Drinks",items:allDrinks,customs:customDrinks,setCustoms:setCustomDrinks,storageKey:"custom_drinks"}
+              ].map(function(cat) {
+                return (<div key={cat.k} style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4 }}>{cat.label} ({cat.items.length} items, {cat.customs.length} custom)</div>
+                  {cat.customs.map(function(item) {
+                    var kcal = isJC ? item.jcKcal : item.beckKcal;
+                    var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#166534";
+                    return (<div key={item.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
+                      <span style={{ flex: 1, color: color }}>{item.name} ({kcal} kcal)</span>
+                      <button onClick={function() { setEditingItem(editingItem === item.id ? null : item.id); }} style={{ fontSize: 9, color: accent, background: "none", border: "1px solid #e2e8f0", borderRadius: 4, padding: "2px 6px", cursor: "pointer", marginRight: 4 }}>{editingItem === item.id ? "Cancel" : "Update"}</button><button onClick={async function() { if(confirm("Delete " + item.name + "?")) { var u = cat.customs.filter(function(x){return x.id !== item.id;}); cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u)); setFormMsg("Deleted " + item.name); setTimeout(function(){setFormMsg("");},2000); }}} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "1px solid #fecaca", borderRadius: 4, padding: "2px 6px", cursor: "pointer" }}>Delete</button>
+                    </div>);
+                  })}
+                  {cat.customs.length === 0 && <div style={{ fontSize: 10, color: "#94a3b8", padding: 4 }}>No custom items yet</div>}
+                  <button onClick={function(){ openAddForm(cat.k, "top"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginTop: 4 }}>+ Add {cat.label.toLowerCase()} item</button>
+                  {addingNew && addingSource === "top" && addingCategory === cat.k && (<div id="add-item-form-top" style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 6, marginBottom: 8, border: "1px solid #bfdbfe", overflow: "hidden" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}><span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a5f" }}>Add New {addingCategory.charAt(0).toUpperCase() + addingCategory.slice(1)} Item</span><button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: "2px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#475569", cursor: "pointer", lineHeight: 1 }}>Cancel</button></div>
+                    <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                      <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. Costa Rocky Road, Protein shake..." style={{ flex: 1, minWidth: 0, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                      <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>
+                        📷
+                        <input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
+                      </label>
+                      <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }} title="Import list of items from file">
+                        📄
+                        <input type="file" accept=".txt,.csv,.tsv,text/plain,text/csv" onChange={function(e) { if (e.target.files && e.target.files[0]) bulkImportItems(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
+                      </label>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ flex: 1, padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? <span>Adding <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Add"}</button>
+                      <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer", flexShrink: 0 }}>Cancel</button>
+                    </div>
+                    <div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type food name or scan a product with or without a short description or import list to add with nutritional information</div>
+                  </div>)}
+                  {cameraPreview && (<div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, marginTop: 6, border: "1px solid #86efac" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>📷 {cameraPreview.name}</div>
+                      <button onClick={function() { setCameraPreview(null); }} style={{ padding: 0, background: "none", border: "none", fontSize: 14, color: "#64748b", cursor: "pointer" }}>✕</button>
+                    </div>
+                    <div style={{ display: "flex", gap: 10, marginBottom: 6, fontSize: 11 }}>
+                      <span><b>{cameraPreview.kcal}</b> kcal</span>
+                      <span><b>{cameraPreview.protein}g</b> protein</span>
+                      <span><b>{cameraPreview.fat}g</b> fat</span>
+                      {cameraPreview.satFat > 0 && <span><b>{cameraPreview.satFat}g</b> sat fat</span>}
+                    </div>
+                    <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: cameraPreview.rating === "RED" ? "#fef2f2" : cameraPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: cameraPreview.rating === "RED" ? "#dc2626" : cameraPreview.rating === "AMBER" ? "#d97706" : "#166534", border: "1px solid " + (cameraPreview.rating === "RED" ? "#fecaca" : cameraPreview.rating === "AMBER" ? "#fde68a" : "#86efac") }}>{cameraPreview.rating}</div>
+                    {cameraPreview.suitability && <div style={{ fontSize: 11, color: "#475569", fontStyle: "italic", lineHeight: 1.4, marginBottom: 6 }}>{cameraPreview.suitability}</div>}
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={async function() {
+                        var cp = cameraPreview; var cat = addingCategory;
+                        var newItem = { id: "custom_" + Date.now(), name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, rating: cp.rating, freq: "Daily", isCustom: true };
+                        if (cat === "dinner") { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = []; }
+                        var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
+                        var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
+                        var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : cat === "drink" ? "custom_drinks" : cat === "dessert" ? "custom_desserts" : "custom_snacks";
+                        var u = [].concat(listItems, [newItem]); setList(u); await sSet(storageKey, JSON.stringify(u));
+                        setFormMsg("Added " + cp.name + " to " + cat);
+                        setCameraPreview(null);
+                        setTimeout(function(){setFormMsg("");}, 3000);
+                      }} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Add to {addingCategory}</button>
+                      <button onClick={function() { setCameraPreview(null); }} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
+                    </div>
+                  </div>)}
+                </div>);
+              })}
+          </div>)}
+
+          {!manageListsOpen && <div style={{ height: 10 }} />}
 
           {/* Defaults panel */}
           
@@ -3919,7 +3996,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             {/* Weekly Eating Feedback */}
             <div style={{ marginTop: 14 }}>
               <button onClick={function(){ generateWeekEatFeedback(); }} disabled={eatFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: eatFbLoading ? "not-allowed" : "pointer", opacity: eatFbLoading ? 0.7 : 1, background: eatFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", marginBottom: 6 }}>{eatFbLoading ? React.createElement("span", null, "Generating, please wait ", React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })) : "Companion Weekly Eating Feedback"}</button>
-              <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Reviews all planned and consumed meals across the week for patterns, RAG compliance and nutritional trends.</div>
+              <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Reviews all planned and consumed meals across the week for patterns colour coded recommendations and nutritional trends.</div>
               {(eatFbResults[activeTab] || {})["week"] && <button onClick={function(){ setEatFbExpanded(!eatFbExpanded); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer", marginBottom: 6 }}>{eatFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>}
               {eatFbExpanded && (eatFbResults[activeTab] || {})["week"] && (function() { var efb = eatFbResults[activeTab]["week"]; return React.createElement("div", { style: { marginBottom: 10 } },
                 React.createElement("div", { style: { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" } },
@@ -3942,83 +4019,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               ); })()}
             </div>
 
-            <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
-            <div onClick={function(){setManageListsOpen(!manageListsOpen);}} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>🍽️ Manage Eating Lists</div>
-              <span style={{ fontSize: 10, color: "#94a3b8" }}>{manageListsOpen ? "▲" : "▼"}</span>
-            </div>
-            {manageListsOpen && (<div style={{ marginTop: 10 }}>
-              {[{k:"breakfast",label:"Breakfasts",items:allBfast,customs:customBreakfasts,setCustoms:setCustomBreakfasts,storageKey:"custom_breakfasts"},
-                {k:"lunch",label:"Lunches",items:allLunch,customs:customLunches,setCustoms:setCustomLunches,storageKey:"custom_lunches"},
-                {k:"dinner",label:"Dinners",items:allDinners,customs:customMeals,setCustoms:setCustomMeals,storageKey:"custom_meals"},
-                {k:"snack",label:"Snacks",items:allOther,customs:customSnacks,setCustoms:setCustomSnacks,storageKey:"custom_snacks"},
-                {k:"dessert",label:"Desserts",items:allDesserts,customs:customDesserts,setCustoms:setCustomDesserts,storageKey:"custom_desserts"},
-                {k:"drink",label:"Drinks",items:allDrinks,customs:customDrinks,setCustoms:setCustomDrinks,storageKey:"custom_drinks"}
-              ].map(function(cat) {
-                return (<div key={cat.k} style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4 }}>{cat.label} ({cat.items.length} items, {cat.customs.length} custom)</div>
-                  {cat.customs.map(function(item) {
-                    var kcal = isJC ? item.jcKcal : item.beckKcal;
-                    var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#166534";
-                    return (<div key={item.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
-                      <span style={{ flex: 1, color: color }}>{item.name} ({kcal} kcal)</span>
-                      <button onClick={function() { setEditingItem(editingItem === item.id ? null : item.id); }} style={{ fontSize: 9, color: accent, background: "none", border: "1px solid #e2e8f0", borderRadius: 4, padding: "2px 6px", cursor: "pointer", marginRight: 4 }}>{editingItem === item.id ? "Cancel" : "Update"}</button><button onClick={async function() { if(confirm("Delete " + item.name + "?")) { var u = cat.customs.filter(function(x){return x.id !== item.id;}); cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u)); setFormMsg("Deleted " + item.name); setTimeout(function(){setFormMsg("");},2000); }}} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "1px solid #fecaca", borderRadius: 4, padding: "2px 6px", cursor: "pointer" }}>Delete</button>
-                    </div>);
-                  })}
-                  {cat.customs.length === 0 && <div style={{ fontSize: 10, color: "#94a3b8", padding: 4 }}>No custom items yet</div>}
-                  <button onClick={function(){ openAddForm(cat.k, "manage"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginTop: 4 }}>+ Add {cat.label.toLowerCase()} item</button>
-                  {addingNew && addingSource === "manage" && addingCategory === cat.k && (<div id="add-item-form-manage" style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 6, marginBottom: 8, border: "1px solid #bfdbfe", overflow: "hidden" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}><span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a5f" }}>Add New {addingCategory.charAt(0).toUpperCase() + addingCategory.slice(1)} Item</span><button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: "2px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#475569", cursor: "pointer", lineHeight: 1 }}>Cancel</button></div>
-                    <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-                      <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. Costa Rocky Road, Protein shake..." style={{ flex: 1, minWidth: 0, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
-                      <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>
-                        📷
-                        <input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
-                      </label>
-                      <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }} title="Import list of items from file">
-                        📄
-                        <input type="file" accept=".txt,.csv,.tsv,text/plain,text/csv" onChange={function(e) { if (e.target.files && e.target.files[0]) bulkImportItems(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
-                      </label>
-                    </div>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ flex: 1, padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? <span>Adding <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Add"}</button>
-                      <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer", flexShrink: 0 }}>Cancel</button>
-                    </div>
-                    <div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type food name or scan a product with or without a short description or import list to add with nutritional information</div>
-                  </div>)}
-                  {cameraPreview && (<div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, marginTop: 6, border: "1px solid #86efac" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>📷 {cameraPreview.name}</div>
-                      <button onClick={function() { setCameraPreview(null); }} style={{ padding: 0, background: "none", border: "none", fontSize: 14, color: "#64748b", cursor: "pointer" }}>✕</button>
-                    </div>
-                    <div style={{ display: "flex", gap: 10, marginBottom: 6, fontSize: 11 }}>
-                      <span><b>{cameraPreview.kcal}</b> kcal</span>
-                      <span><b>{cameraPreview.protein}g</b> protein</span>
-                      <span><b>{cameraPreview.fat}g</b> fat</span>
-                      {cameraPreview.satFat > 0 && <span><b>{cameraPreview.satFat}g</b> sat fat</span>}
-                    </div>
-                    <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: cameraPreview.rating === "RED" ? "#fef2f2" : cameraPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: cameraPreview.rating === "RED" ? "#dc2626" : cameraPreview.rating === "AMBER" ? "#d97706" : "#166534", border: "1px solid " + (cameraPreview.rating === "RED" ? "#fecaca" : cameraPreview.rating === "AMBER" ? "#fde68a" : "#86efac") }}>{cameraPreview.rating}</div>
-                    {cameraPreview.suitability && <div style={{ fontSize: 11, color: "#475569", fontStyle: "italic", lineHeight: 1.4, marginBottom: 6 }}>{cameraPreview.suitability}</div>}
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button onClick={async function() {
-                        var cp = cameraPreview; var cat = addingCategory;
-                        var newItem = { id: "custom_" + Date.now(), name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, rating: cp.rating, freq: "Daily", isCustom: true };
-                        if (cat === "dinner") { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = []; }
-                        var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
-                        var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
-                        var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : cat === "drink" ? "custom_drinks" : cat === "dessert" ? "custom_desserts" : "custom_snacks";
-                        var u = [].concat(listItems, [newItem]); setList(u); await sSet(storageKey, JSON.stringify(u));
-                        setFormMsg("Added " + cp.name + " to " + cat);
-                        setCameraPreview(null);
-                        setTimeout(function(){setFormMsg("");}, 3000);
-                      }} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Add to {addingCategory}</button>
-                      <button onClick={function() { setCameraPreview(null); }} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
-                    </div>
-                  </div>)}
-                </div>);
-              })}
-            </div>)}
-          </div>
           </div>)}
 
           {/* Day content */}
@@ -5343,7 +5343,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Companion · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.275.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.276.0
       </div>
 
       {/* Floating Ask a Question button */}
