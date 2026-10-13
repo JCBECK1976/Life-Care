@@ -1076,6 +1076,7 @@ function Dashboard() {
   const [bodyFbExpanded, setBodyFbExpanded] = useState(false);
   const [measFbExpanded2, setMeasFbExpanded2] = useState(false);
   const [bodyMetricOpen, setBodyMetricOpen] = useState(null);
+  const [bodyMetricShowAll, setBodyMetricShowAll] = useState(false);
   const [assessment, setAssessment] = useState(null);
   const [googleToken, setGoogleToken] = useState(null);
   const [googleConnected, setGoogleConnected] = useState(false);
@@ -2336,7 +2337,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>Body Composition - Week {calcWeek(data.config.trainingStart)}</div>
             <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2 }}>
-              {[{ k: "data", l: "Weigh In" }, { k: "measurements", l: "Measurements" }, { k: "progress", l: "Progress" }, { k: "charts", l: "Charts" }].map(function(tab) {
+              {[{ k: "data", l: "Weigh In" }, { k: "measurements", l: "Measurements" }, { k: "charts", l: "Charts" }].map(function(tab) {
                 return (<button key={tab.k} onClick={function() { setBodyView(tab.k); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: bodyView === tab.k ? "#fff" : "transparent", color: bodyView === tab.k ? "#0f172a" : "#94a3b8" }}>{tab.l}</button>);
               })}
             </div>
@@ -2395,24 +2396,34 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             <div style={{ display: "flex", gap: 8, marginTop: 12 }}><button onClick={saveBodyComp} style={{ ...btnP(!!bodyInputs.week), flex: 1 }}>Save</button><button onClick={() => setShowBodyForm(false)} style={btnS}>Cancel</button></div>
           </div>)}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-            <BodyCard label="Weight" value={wtStr} rating="High" trend={wtDelta ? (wtSign === "-" ? "-" : "+") + wtDelta.split("lb")[0] + "lb" : ""} onEye={() => setBodyMetricOpen(bodyMetricOpen === "weight" ? null : "weight")} eyeOpen={bodyMetricOpen === "weight"} />
-            <BodyCard label="Body Fat %" value={p.body.bodyFat?.[p.body.bodyFat.length-1]?.v} rating={isJC ? "Acceptable" : "Too High"} onEye={() => setBodyMetricOpen(bodyMetricOpen === "bodyFat" ? null : "bodyFat")} eyeOpen={bodyMetricOpen === "bodyFat"} />
-            <BodyCard label="Muscle Mass" value={p.body.muscleMass?.[p.body.muscleMass.length-1]?.v} rating="Excellent" onEye={() => setBodyMetricOpen(bodyMetricOpen === "muscleMass" ? null : "muscleMass")} eyeOpen={bodyMetricOpen === "muscleMass"} />
-            <BodyCard label="Muscle Rate %" value={p.body.muscleRate?.[p.body.muscleRate.length-1]?.v} rating="Excellent" onEye={() => setBodyMetricOpen(bodyMetricOpen === "muscleRate" ? null : "muscleRate")} eyeOpen={bodyMetricOpen === "muscleRate"} />
-            <BodyCard label="Visceral Fat" value={p.body.visceralFat?.[p.body.visceralFat.length-1]?.v} rating={isJC ? "Standard" : "High"} onEye={() => setBodyMetricOpen(bodyMetricOpen === "visceralFat" ? null : "visceralFat")} eyeOpen={bodyMetricOpen === "visceralFat"} />
-            <BodyCard label="Subcut Fat %" value={p.body.subcutFat?.[p.body.subcutFat.length-1]?.v} rating="High" onEye={() => setBodyMetricOpen(bodyMetricOpen === "subcutFat" ? null : "subcutFat")} eyeOpen={bodyMetricOpen === "subcutFat"} />
-            <BodyCard label="Body Water %" value={p.body.bodyWater?.[p.body.bodyWater.length-1]?.v} rating={isJC ? "Standard" : "Excellent"} onEye={() => setBodyMetricOpen(bodyMetricOpen === "bodyWater" ? null : "bodyWater")} eyeOpen={bodyMetricOpen === "bodyWater"} />
-            <BodyCard label="Bone Mass" value={p.body.boneMass?.[p.body.boneMass.length-1]?.v} rating={isJC ? "Standard" : "Excellent"} onEye={() => setBodyMetricOpen(bodyMetricOpen === "boneMass" ? null : "boneMass")} eyeOpen={bodyMetricOpen === "boneMass"} />
-            <BodyCard label="BMR (kcal)" value={p.body.bmr?.[p.body.bmr.length-1]?.v} rating={isJC ? "Excellent" : ""} onEye={() => setBodyMetricOpen(bodyMetricOpen === "bmr" ? null : "bmr")} eyeOpen={bodyMetricOpen === "bmr"} />
-            <BodyCard label="Body Age" value={p.body.bodyAge?.[p.body.bodyAge.length-1]?.v} rating="High" trend={isJC ? "Actual: 49" : "Actual: 48"} onEye={() => setBodyMetricOpen(bodyMetricOpen === "bodyAge" ? null : "bodyAge")} eyeOpen={bodyMetricOpen === "bodyAge"} />
+            <BodyCard label="Weight" value={wtStr} rating="High" trend={wtDelta ? (wtSign === "-" ? "-" : "+") + wtDelta.split("lb")[0] + "lb" : ""} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "weight" ? null : "weight"); }} eyeOpen={bodyMetricOpen === "weight"} />
+            <BodyCard label="Body Fat %" value={p.body.bodyFat?.[p.body.bodyFat.length-1]?.v} rating={isJC ? "Acceptable" : "Too High"} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "bodyFat" ? null : "bodyFat"); }} eyeOpen={bodyMetricOpen === "bodyFat"} />
+            <BodyCard label="Muscle Mass" value={p.body.muscleMass?.[p.body.muscleMass.length-1]?.v} rating="Excellent" onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "muscleMass" ? null : "muscleMass"); }} eyeOpen={bodyMetricOpen === "muscleMass"} />
+            <BodyCard label="Muscle Rate %" value={p.body.muscleRate?.[p.body.muscleRate.length-1]?.v} rating="Excellent" onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "muscleRate" ? null : "muscleRate"); }} eyeOpen={bodyMetricOpen === "muscleRate"} />
+            <BodyCard label="Visceral Fat" value={p.body.visceralFat?.[p.body.visceralFat.length-1]?.v} rating={isJC ? "Standard" : "High"} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "visceralFat" ? null : "visceralFat"); }} eyeOpen={bodyMetricOpen === "visceralFat"} />
+            <BodyCard label="Subcut Fat %" value={p.body.subcutFat?.[p.body.subcutFat.length-1]?.v} rating="High" onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "subcutFat" ? null : "subcutFat"); }} eyeOpen={bodyMetricOpen === "subcutFat"} />
+            <BodyCard label="Body Water %" value={p.body.bodyWater?.[p.body.bodyWater.length-1]?.v} rating={isJC ? "Standard" : "Excellent"} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "bodyWater" ? null : "bodyWater"); }} eyeOpen={bodyMetricOpen === "bodyWater"} />
+            <BodyCard label="Bone Mass" value={p.body.boneMass?.[p.body.boneMass.length-1]?.v} rating={isJC ? "Standard" : "Excellent"} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "boneMass" ? null : "boneMass"); }} eyeOpen={bodyMetricOpen === "boneMass"} />
+            <BodyCard label="BMR (kcal)" value={p.body.bmr?.[p.body.bmr.length-1]?.v} rating={isJC ? "Excellent" : ""} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "bmr" ? null : "bmr"); }} eyeOpen={bodyMetricOpen === "bmr"} />
+            <BodyCard label="Body Age" value={p.body.bodyAge?.[p.body.bodyAge.length-1]?.v} rating="High" trend={isJC ? "Actual: 49" : "Actual: 48"} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "bodyAge" ? null : "bodyAge"); }} eyeOpen={bodyMetricOpen === "bodyAge"} />
           </div>
-          {bodyMetricOpen && (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 10 }}>
+          {bodyMetricOpen && (function() { var metricLabels = { weight: "Weight (st)", bodyFat: "Body Fat %", muscleMass: "Muscle Mass", muscleRate: "Muscle Rate %", visceralFat: "Visceral Fat", subcutFat: "Subcut Fat %", bodyWater: "Body Water %", boneMass: "Bone Mass", bmr: "BMR (kcal)", bodyAge: "Body Age", skeletalMuscle: "Skeletal Muscle %" }; var mArr = p.body[bodyMetricOpen] || []; return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>👁 {bodyMetricOpen === "weight" ? "Weight" : bodyMetricOpen === "bodyFat" ? "Body Fat %" : bodyMetricOpen === "muscleMass" ? "Muscle Mass" : bodyMetricOpen === "muscleRate" ? "Muscle Rate %" : bodyMetricOpen === "visceralFat" ? "Visceral Fat" : bodyMetricOpen === "subcutFat" ? "Subcut Fat %" : bodyMetricOpen === "bodyWater" ? "Body Water %" : bodyMetricOpen === "boneMass" ? "Bone Mass" : bodyMetricOpen === "bmr" ? "BMR (kcal)" : bodyMetricOpen === "bodyAge" ? "Body Age" : bodyMetricOpen} Detail</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>👁 {metricLabels[bodyMetricOpen] || bodyMetricOpen} Progress</div>
               <button onClick={() => setBodyMetricOpen(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "#94a3b8" }}>✕</button>
             </div>
-            <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 16 }}>Metric detail view — coming soon</div>
-          </div>)}
+            {mArr.length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 16 }}>No progress data yet</div>}
+            {mArr.length > 0 && (<div>
+              <div style={{ display: "flex", gap: 6, padding: "2px 0", fontSize: 9, color: "#94a3b8", fontWeight: 600 }}><span style={{ width: 40 }}>WK</span><span style={{ width: 60 }}>VALUE</span><span style={{ flex: 1 }}>NOTES</span><span style={{ width: 20 }}></span></div>
+              {mArr.slice(0, bodyMetricShowAll ? 999 : 4).map(function(entry, ei) { return (<div key={ei} style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
+                <input defaultValue={entry.wk} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[bodyMetricOpen][ei].wk = parseInt(e.target.value) || entry.wk; await saveData(nd); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
+                <input defaultValue={entry.v} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[bodyMetricOpen][ei].v = parseFloat(e.target.value) || entry.v; await saveData(nd); }} style={{ width: 60, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
+                <input defaultValue={entry.note || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[bodyMetricOpen][ei].note = e.target.value; await saveData(nd); }} placeholder="..." style={{ flex: 1, minWidth: 0, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
+                <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[bodyMetricOpen].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", minWidth: 24, flexShrink: 0 }}>✕</button>
+              </div>); })}
+              {mArr.length > 4 && <button onClick={function() { setBodyMetricShowAll(!bodyMetricShowAll); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: accent, cursor: "pointer", marginTop: 6 }}>{bodyMetricShowAll ? "▲ Show less" : "▼ View more (" + (mArr.length - 4) + " entries)"}</button>}
+            </div>)}
+          </div>); })()}
           {!isJC && <div style={{ background: "#fef3c7", borderRadius: 10, padding: 12, fontSize: 12, color: "#92400e", lineHeight: 1.5 }}>Ideal weight and obesity classification don't account for Becks' exceptional muscle density. Track body fat % and visceral fat as primary metrics.</div>}
 
           {/* Weigh-In Companion Feedback */}
@@ -2594,22 +2605,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 })}
                 {Object.entries(p.measurements).filter(function(pair) { return pair[1].length >= 2; }).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 20 }}>Need 2+ weeks of data</div>}
               </div>)}
-              </div>)}
-              {bodyView === "progress" && (<div>
-                {[{ k: "weight", l: "Weight (st)" }, { k: "bodyFat", l: "Body Fat %" }, { k: "muscleRate", l: "Muscle Rate %" }, { k: "visceralFat", l: "Visceral Fat" }, { k: "bmr", l: "BMR" }, { k: "skeletalMuscle", l: "Skeletal Muscle %" }, { k: "subcutFat", l: "Subcut Fat %" }, { k: "bodyWater", l: "Body Water %" }, { k: "boneMass", l: "Bone Mass" }, { k: "bodyAge", l: "Body Age" }].map(function(metric) {
-                  var arr = p.body[metric.k] || [];
-                  if (arr.length === 0) return null;
-                  return (<div key={metric.k} style={{ marginBottom: 12, paddingBottom: 8, borderBottom: "1px solid #e2e8f0" }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{metric.l}</div>
-                    <div style={{ display: "flex", gap: 6, padding: "2px 0", fontSize: 9, color: "#94a3b8", fontWeight: 600 }}><span style={{ width: 40 }}>WK</span><span style={{ width: 60 }}>VALUE</span><span style={{ flex: 1 }}>NOTES</span><span style={{ width: 20 }}></span></div>
-                    {arr.map(function(entry, ei) { return (<div key={ei} style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
-                      <input defaultValue={entry.wk} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[metric.k][ei].wk = parseInt(e.target.value) || entry.wk; await saveData(nd); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
-                      <input defaultValue={entry.v} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[metric.k][ei].v = parseFloat(e.target.value) || entry.v; await saveData(nd); }} style={{ width: 60, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
-                      <input defaultValue={entry.note || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[metric.k][ei].note = e.target.value; await saveData(nd); }} placeholder="..." style={{ flex: 1, minWidth: 0, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
-                      <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[metric.k].splice(i, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", minWidth: 24, flexShrink: 0 }}>✕</button>
-                    </div>); })}
-                  </div>);
-                })}
               </div>)}
               {bodyView === "charts" && (<div>
                 <FullChart title="Weight (stone)" series={[{ label: isJC ? "JC" : "Beck", color: accent, data: wt }]} refLine={idealSt} />
@@ -5300,7 +5295,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Companion · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.268.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.269.0
       </div>
 
       {/* Floating Ask a Question button */}
