@@ -1427,12 +1427,12 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       nd.config.week = Math.max(nd.config.week, wk);
     }
     }
-    // Sync same exercise across all other days
+    // Sync parent-level context (notes) across other days — each day keeps its own prog/current/reps/status/target
     ["sunday", "monday", "friday"].filter(function(d) { return d !== day; }).forEach(function(od) {
         var oi = -1;
         var odExs = nd[activeTab].exercises[od] || [];
         for (var si = 0; si < odExs.length; si++) { if (odExs[si].name === ex.name) { oi = si; break; } }
-        if (oi >= 0) { var oe = nd[activeTab].exercises[od][oi]; oe.current = ex.current; oe.reps = ex.reps; oe.status = ex.status; oe.prog = JSON.parse(JSON.stringify(ex.prog)); oe.notes = ex.notes || ""; if (ex.target) oe.target = ex.target; else delete oe.target; }
+        if (oi >= 0) { var oe = nd[activeTab].exercises[od][oi]; oe.notes = ex.notes || ""; if (ex.progressionNotes) oe.progressionNotes = ex.progressionNotes; }
       });
     nd.config.week = calcWeek(nd.config.trainingStart); nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
     ex.notes = logComment.trim() || ""; // Carry forward to next session
@@ -1467,15 +1467,13 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             // Status and target deferred to AI feedback
             otEx.status = "";
             delete otEx.target;
-            // Sync other person's exercise across all days
+            // Sync parent-level context (notes) for other person — each day keeps its own session data
             ["sunday", "monday", "friday"].filter(function(od2) { return od2 !== day; }).forEach(function(od2) {
               var odExs2 = nd[ot].exercises[od2] || [];
               for (var si2 = 0; si2 < odExs2.length; si2++) {
                 if (odExs2[si2].name === otEx.name) {
-                  odExs2[si2].current = otEx.current; odExs2[si2].reps = otEx.reps;
-                  odExs2[si2].status = otEx.status; odExs2[si2].notes = otEx.notes;
-                  odExs2[si2].prog = JSON.parse(JSON.stringify(otEx.prog));
-                  if (otEx.target) odExs2[si2].target = otEx.target; else delete odExs2[si2].target;
+                  odExs2[si2].notes = otEx.notes || "";
+                  if (otEx.progressionNotes) odExs2[si2].progressionNotes = otEx.progressionNotes;
                   break;
                 }
               }
@@ -2907,7 +2905,14 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     setSessionFbLoading(true); setFbExpanded(true); var clearKey = activeTab + "_" + day; var clearFb = Object.assign({}, sessionFeedback); delete clearFb[clearKey]; setSessionFeedback(clearFb);
                     try {
                       var prof = p.profile || {};
-                      var daySummary = exList.map(function(ex) { var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null; var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null; var progNote = latest && latest.note ? latest.note : ""; var allNotes = [ex.notes, progNote].filter(Boolean).join("; "); var progRules = ex.progressionNotes || "Progression: build reps to target then increase weight. User defines increment method and ranges."; var eqInfo = ex.equipment ? " [EQUIPMENT: " + (ex.equipment.type || "") + ", increments: " + (ex.equipment.increments || "standard") + (ex.equipment.formNotes ? ", form: " + ex.equipment.formNotes : "") + "]" : ""; var histLines = ex.prog ? ex.prog.slice(-4).map(function(p){return "Wk"+p.wk+": "+p.w+" "+p.r+(p.note?" ("+p.note+")":"");}).join(", ") : "no data"; return ex.name + ": LATEST LOGGED=" + (latest ? latest.w + " " + latest.r : "none") + " (" + ex.status + ") HISTORY=[" + histLines + "]" + (ex.target ? " TARGET: " + ex.target : "") + (allNotes ? " [NOTES: " + allNotes + "]" : "") + " [PROGRESSION RULES: " + progRules + "]" + eqInfo; }).join("; ");
+                      var daySummary = exList.map(function(ex) { var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null; var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null; var progNote = latest && latest.note ? latest.note : ""; var allNotes = [ex.notes, progNote].filter(Boolean).join("; "); var progRules = ex.progressionNotes || "Progression: build reps to target then increase weight. User defines increment method and ranges."; var eqInfo = ex.equipment ? " [EQUIPMENT: " + (ex.equipment.type || "") + ", increments: " + (ex.equipment.increments || "standard") + (ex.equipment.formNotes ? ", form: " + ex.equipment.formNotes : "") + "]" : ""; var histLines = ex.prog ? ex.prog.slice(-4).map(function(p){return "Wk"+p.wk+": "+p.w+" "+p.r+(p.note?" ("+p.note+")":"");}).join(", ") : "no data";
+                        // Cross-day context: pull data from other sessions of the same exercise (parent/child model)
+                        var crossDayCtx = "";
+                        var otherDays = ["sunday", "monday", "friday"].filter(function(cd) { return cd !== day; });
+                        var crossDayLines = [];
+                        otherDays.forEach(function(cd) { var cdExList = p.exercises[cd] || []; for (var cdi = 0; cdi < cdExList.length; cdi++) { if (cdExList[cdi].name === ex.name && cdExList[cdi].prog && cdExList[cdi].prog.length > 0) { crossDayLines.push(cd + ": " + cdExList[cdi].prog.slice(-3).map(function(cp) { return "Wk" + cp.wk + ": " + cp.w + " " + cp.r + (cp.note ? " (" + cp.note + ")" : ""); }).join(", ")); } } });
+                        if (crossDayLines.length > 0) { crossDayCtx = " [OTHER SESSIONS: " + crossDayLines.join("; ") + "]"; }
+                        return ex.name + ": LATEST LOGGED=" + (latest ? latest.w + " " + latest.r : "none") + " (" + ex.status + ") HISTORY=[" + histLines + "]" + (ex.target ? " TARGET: " + ex.target : "") + (allNotes ? " [NOTES: " + allNotes + "]" : "") + " [PROGRESSION RULES: " + progRules + "]" + eqInfo + crossDayCtx; }).join("; ");
                       var jsonFormat = '{"exercises":[{"name":"...","verdict":"max 25 words honest assessment","icon":"check|triangle|arrow|warning|circle|star","newStatus":"building|moved up|consolidating|ready to move|maintaining|reduce","recommendation":"optional progression suggestion","targetWeight":"recommended weight for next session e.g. 49kg or BW","targetReps":"recommended reps for next session e.g. 12x3 or 15x3"}],"summary":"2-3 sentences honest overall assessment — speak like a mate who trains with them","nextSession":"one sentence — specific focus for next session, warm and direct"}';
                       // Build previous session feedback context including accept/decline decisions
                       var prevSfbKey = activeTab + "_" + day;
@@ -5268,7 +5273,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Companion · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.264.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.265.0
       </div>
 
       {/* Floating Ask a Question button */}
