@@ -1075,6 +1075,7 @@ function Dashboard() {
   const [measFbAll, setMeasFbAll] = useState({});
   const [bodyFbExpanded, setBodyFbExpanded] = useState(false);
   const [measFbExpanded2, setMeasFbExpanded2] = useState(false);
+  // Note: bodyFbExpanded/measFbExpanded2 default false — feedback hidden until toggled
   const [assessment, setAssessment] = useState(null);
   const [googleToken, setGoogleToken] = useState(null);
   const [googleConnected, setGoogleConnected] = useState(false);
@@ -2447,8 +2448,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
                 var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                 var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                if (txt) { var bfParsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); bfParsed._at = new Date().toLocaleString("en-GB"); bfParsed._when = new Date().toLocaleString("en-GB"); setBodyFeedback(bfParsed); setBodyFbExpanded(true); sSet("body_feedback", JSON.stringify(Object.assign({}, bodyFbAll || {}, { [activeTab]: bfParsed }))); }
-              } catch(e) { setBodyFeedback({ wins: [], tweaks: ["Error: " + String(e).substring(0, 80)], outlook: "" }); setBodyFbExpanded(true); }
+                if (txt) { var bfParsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); bfParsed._at = new Date().toLocaleString("en-GB"); bfParsed._when = new Date().toLocaleString("en-GB"); setBodyFeedback(bfParsed); sSet("body_feedback", JSON.stringify(Object.assign({}, bodyFbAll || {}, { [activeTab]: bfParsed }))); }
+              } catch(e) { setBodyFeedback({ wins: [], tweaks: ["Error: " + String(e).substring(0, 80)], outlook: "" }); }
               setBodyFbLoading(false);
             }} disabled={bodyFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: bodyFbLoading ? "not-allowed" : "pointer", background: bodyFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", marginBottom: 6 }}>{bodyFbLoading ? React.createElement("span", null, "Generating, please wait ", React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })) : "Companion Weigh-In Feedback"}</button>
             <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Reviews all body comp data — weight trends, body fat, muscle mass, visceral fat and more — cross-referenced with your eating, activity and health data.</div>
@@ -2537,8 +2538,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
                 var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                 var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                if (txt) { var mfParsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); mfParsed._at = new Date().toLocaleString("en-GB"); mfParsed._when = new Date().toLocaleString("en-GB"); setMeasFeedback(mfParsed); setMeasFbExpanded2(true); sSet("meas_feedback", JSON.stringify(Object.assign({}, measFbAll || {}, { [activeTab]: mfParsed }))); }
-              } catch(e) { setMeasFeedback({ wins: [], tweaks: ["Error: " + String(e).substring(0, 80)], outlook: "" }); setMeasFbExpanded2(true); }
+                if (txt) { var mfParsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); mfParsed._at = new Date().toLocaleString("en-GB"); mfParsed._when = new Date().toLocaleString("en-GB"); setMeasFeedback(mfParsed); sSet("meas_feedback", JSON.stringify(Object.assign({}, measFbAll || {}, { [activeTab]: mfParsed }))); }
+              } catch(e) { setMeasFeedback({ wins: [], tweaks: ["Error: " + String(e).substring(0, 80)], outlook: "" }); }
               setMeasFbLoading(false);
             }} disabled={measFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: measFbLoading ? "not-allowed" : "pointer", background: measFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", marginBottom: 6 }}>{measFbLoading ? React.createElement("span", null, "Generating, please wait ", React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })) : "Companion Measurement Feedback"}</button>
             <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Reviews tape measurements — size trends, recomposition evidence — cross-referenced with your body comp, eating, activity and health data.</div>
@@ -5292,7 +5293,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Companion · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.267.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.267.1
       </div>
 
       {/* Floating Ask a Question button */}
