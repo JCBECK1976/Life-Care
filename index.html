@@ -3170,21 +3170,23 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           <button onClick={() => { setShowMedForm(true); setEditMedIdx(null); setMedInputs({ name: "", type: "medication", dosage: "", timing: "", frequency: "Daily", notes: "" }); }} style={{ ...btnP(), marginBottom: 14 }}>+ Add Medication / Supplement</button>
           {(showMedForm || editMedIdx !== null) && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>{editMedIdx !== null ? "Edit" : "Add"} {medInputs.type === "supplement" ? "Supplement" : "Medication"}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <div style={{ gridColumn: "1 / -1" }}><label style={labelStyle}>Name</label>
-                <div style={{ display: "flex", gap: 4 }}>
-                  <select value={allMedNames.includes(medInputs.name) ? medInputs.name : "_custom"} onChange={e => { if (e.target.value !== "_custom") setMedInputs(q => ({ ...q, name: e.target.value })); }} style={{ ...inputStyle, flex: 1 }}>
-                    <option value="_custom">Custom / type below</option>
-                    {allMedNames.map(n => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                  <input value={medInputs.name} onChange={e => setMedInputs(q => ({ ...q, name: e.target.value }))} style={{ ...inputStyle, flex: 1 }} placeholder="Or type name" />
-                </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div><label style={labelStyle}>Name</label>
+                <select value={allMedNames.includes(medInputs.name) ? medInputs.name : "_custom"} onChange={e => { if (e.target.value !== "_custom") setMedInputs(q => ({ ...q, name: e.target.value })); }} style={{ ...inputStyle, marginBottom: 4 }}>
+                  <option value="_custom">Custom / type below</option>
+                  {allMedNames.map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+                <input value={medInputs.name} onChange={e => setMedInputs(q => ({ ...q, name: e.target.value }))} style={inputStyle} placeholder="Or type name" />
               </div>
-              <div><label style={labelStyle}>Type</label><select value={medInputs.type} onChange={e => setMedInputs(q => ({ ...q, type: e.target.value }))} style={inputStyle}><option value="medication">Medication</option><option value="supplement">Supplement</option></select></div>
-              <div><label style={labelStyle}>Dosage</label><input value={medInputs.dosage} onChange={e => setMedInputs(q => ({ ...q, dosage: e.target.value }))} style={inputStyle} placeholder="e.g. 200mcg" /></div>
-              <div><label style={labelStyle}>When to take</label><input value={medInputs.timing} onChange={e => setMedInputs(q => ({ ...q, timing: e.target.value }))} style={inputStyle} placeholder="e.g. Lunchtime" /></div>
-              <div><label style={labelStyle}>Frequency</label><select value={medInputs.frequency} onChange={e => setMedInputs(q => ({ ...q, frequency: e.target.value }))} style={inputStyle}><option>Daily</option><option>Twice daily</option><option>Training days</option><option>Weekly</option><option>As needed</option></select></div>
-              <div style={{ gridColumn: "1 / -1" }}><label style={labelStyle}>Notes</label><input value={medInputs.notes} onChange={e => setMedInputs(q => ({ ...q, notes: e.target.value }))} style={inputStyle} placeholder="Any notes..." /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div><label style={labelStyle}>Type</label><select value={medInputs.type} onChange={e => setMedInputs(q => ({ ...q, type: e.target.value }))} style={inputStyle}><option value="medication">Medication</option><option value="supplement">Supplement</option></select></div>
+                <div><label style={labelStyle}>Dosage</label><input value={medInputs.dosage} onChange={e => setMedInputs(q => ({ ...q, dosage: e.target.value }))} style={inputStyle} placeholder="e.g. 200mcg" /></div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div><label style={labelStyle}>When to take</label><input value={medInputs.timing} onChange={e => setMedInputs(q => ({ ...q, timing: e.target.value }))} style={inputStyle} placeholder="e.g. Lunchtime" /></div>
+                <div><label style={labelStyle}>Frequency</label><select value={medInputs.frequency} onChange={e => setMedInputs(q => ({ ...q, frequency: e.target.value }))} style={inputStyle}><option>Daily</option><option>Twice daily</option><option>Training days</option><option>Weekly</option><option>As needed</option></select></div>
+              </div>
+              <div><label style={labelStyle}>Notes</label><input value={medInputs.notes} onChange={e => setMedInputs(q => ({ ...q, notes: e.target.value }))} style={inputStyle} placeholder="Any notes..." /></div>
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               <button onClick={editMedIdx !== null ? updateMed : addMed} disabled={!medInputs.name.trim()} style={{ ...btnP(!!medInputs.name.trim()), flex: 1 }}>{editMedIdx !== null ? "Update" : "Add"}</button>
@@ -5291,7 +5293,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Companion · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.271.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.271.2
       </div>
 
       {/* Floating Ask a Question button */}
