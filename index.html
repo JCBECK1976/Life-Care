@@ -2337,7 +2337,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>Body Composition - Week {calcWeek(data.config.trainingStart)}</div>
             <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2 }}>
-              {[{ k: "data", l: "Weigh In" }, { k: "measurements", l: "Measurements" }, { k: "charts", l: "Charts" }].map(function(tab) {
+              {[{ k: "data", l: "Weigh In" }, { k: "measurements", l: "Measurements" }].map(function(tab) {
                 return (<button key={tab.k} onClick={function() { setBodyView(tab.k); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: bodyView === tab.k ? "#fff" : "transparent", color: bodyView === tab.k ? "#0f172a" : "#94a3b8" }}>{tab.l}</button>);
               })}
             </div>
@@ -2423,6 +2423,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               </div>); })}
               {mArr.length > 4 && <button onClick={function() { setBodyMetricShowAll(!bodyMetricShowAll); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: accent, cursor: "pointer", marginTop: 6 }}>{bodyMetricShowAll ? "▲ Show less" : "▼ View more (" + (mArr.length - 4) + " entries)"}</button>}
             </div>)}
+            {(function() { var chartData = bodyMetricOpen === "weight" ? wt : mArr; var chartColors = { weight: accent, bodyFat: "#ef4444", muscleMass: "#22c55e", muscleRate: "#22c55e", visceralFat: "#f97316", subcutFat: "#f97316", bodyWater: "#3b82f6", boneMass: "#8b5cf6", bmr: "#3b82f6", bodyAge: "#d97706", skeletalMuscle: "#22c55e" }; var chartRefs = { weight: idealSt, bodyFat: isJC ? 18 : 28 }; if (chartData.length >= 2) return <FullChart title={metricLabels[bodyMetricOpen] || bodyMetricOpen} series={[{ label: metricLabels[bodyMetricOpen] || bodyMetricOpen, color: chartColors[bodyMetricOpen] || accent, data: chartData }]} refLine={chartRefs[bodyMetricOpen]} height={120} />; return chartData.length > 0 ? null : null; })()}
           </div>); })()}
           {!isJC && <div style={{ background: "#fef3c7", borderRadius: 10, padding: 12, fontSize: 12, color: "#92400e", lineHeight: 1.5 }}>Ideal weight and obesity classification don't account for Becks' exceptional muscle density. Track body fat % and visceral fat as primary metrics.</div>}
 
@@ -2605,13 +2606,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 })}
                 {Object.entries(p.measurements).filter(function(pair) { return pair[1].length >= 2; }).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 20 }}>Need 2+ weeks of data</div>}
               </div>)}
-              </div>)}
-              {bodyView === "charts" && (<div>
-                <FullChart title="Weight (stone)" series={[{ label: isJC ? "JC" : "Beck", color: accent, data: wt }]} refLine={idealSt} />
-                <FullChart title="Body Fat %" series={[{ label: "Body Fat", color: "#ef4444", data: p.body.bodyFat || [] }]} refLine={isJC ? 18 : 28} />
-                <FullChart title="Visceral Fat" series={[{ label: "Visceral", color: "#f97316", data: p.body.visceralFat || [] }]} />
-                <FullChart title="Muscle Rate %" series={[{ label: "Muscle Rate", color: "#22c55e", data: p.body.muscleRate || [] }]} />
-                <FullChart title="BMR (kcal)" series={[{ label: "BMR", color: "#3b82f6", data: p.body.bmr || [] }]} />
               </div>)}
             </div>
           </div>
@@ -5295,7 +5289,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Companion · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.269.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.270.0
       </div>
 
       {/* Floating Ask a Question button */}
