@@ -2423,7 +2423,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               </div>); })}
               {mArr.length > 4 && <button onClick={function() { setBodyMetricShowAll(!bodyMetricShowAll); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: accent, cursor: "pointer", marginTop: 6 }}>{bodyMetricShowAll ? "▲ Show less" : "▼ View more (" + (mArr.length - 4) + " entries)"}</button>}
             </div>)}
-            {(function() { var chartData = bodyMetricOpen === "weight" ? wt : mArr; var chartColors = { weight: accent, bodyFat: "#ef4444", muscleMass: "#22c55e", muscleRate: "#22c55e", visceralFat: "#f97316", subcutFat: "#f97316", bodyWater: "#3b82f6", boneMass: "#8b5cf6", bmr: "#3b82f6", bodyAge: "#d97706", skeletalMuscle: "#22c55e" }; var chartRefs = { weight: idealSt, bodyFat: isJC ? 18 : 28 }; if (chartData.length >= 2) return <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}><FullChart title={metricLabels[bodyMetricOpen] || bodyMetricOpen} series={[{ label: metricLabels[bodyMetricOpen] || bodyMetricOpen, color: chartColors[bodyMetricOpen] || accent, data: chartData }]} refLine={chartRefs[bodyMetricOpen]} height={120} /></div>; return null; })()}
+            {(function() { var chartData = (bodyMetricOpen === "weight" ? wt : mArr).map(function(d) { return { wk: d.wk, v: typeof d.v === "number" ? d.v : parseFloat(d.v), note: d.note }; }).filter(function(d) { return !isNaN(d.v); }); var chartColors = { weight: accent, bodyFat: "#ef4444", muscleMass: "#22c55e", muscleRate: "#22c55e", visceralFat: "#f97316", subcutFat: "#f97316", bodyWater: "#3b82f6", boneMass: "#8b5cf6", bmr: "#3b82f6", bodyAge: "#d97706", skeletalMuscle: "#22c55e" }; var chartRefs = { weight: idealSt, bodyFat: isJC ? 18 : 28 }; if (chartData.length >= 2) return <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}><FullChart title={metricLabels[bodyMetricOpen] || bodyMetricOpen} series={[{ label: metricLabels[bodyMetricOpen] || bodyMetricOpen, color: chartColors[bodyMetricOpen] || accent, data: chartData }]} refLine={chartRefs[bodyMetricOpen]} height={120} /></div>; if (mArr.length > 0 && chartData.length < 2) return <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}><div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12 }}>Need 2+ entries for chart</div></div>; return null; })()}
           </div>); })()}
           {!isJC && <div style={{ background: "#fef3c7", borderRadius: 10, padding: 12, fontSize: 12, color: "#92400e", lineHeight: 1.5 }}>Ideal weight and obesity classification don't account for Becks' exceptional muscle density. Track body fat % and visceral fat as primary metrics.</div>}
 
@@ -5289,7 +5289,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Companion · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.270.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.270.2
       </div>
 
       {/* Floating Ask a Question button */}
