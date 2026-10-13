@@ -685,7 +685,7 @@ function FullChart({ series, height = 160, title, refLine }) {
 // ═══════════════════════════════════════════════════
 function BodyCard({ label, value, rating, trend, onEye, eyeOpen }) {
   const rc = rating === "Excellent" || rating === "Acceptable" ? "#16a34a" : rating === "Standard" ? "#2563eb" : rating === "High" || rating === "Too High" ? "#dc2626" : rating === "Low" ? "#d97706" : "#64748b";
-  return (<div style={{ background: "#fff", borderRadius: 10, padding: "12px 14px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 4 }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>{label}</div>{onEye && <button onClick={onEye} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 4px", fontSize: 13, color: eyeOpen ? "#2563eb" : "#cbd5e1", lineHeight: 1 }} title={"View " + label + " detail"}>{eyeOpen ? "👁" : "👁‍🗨"}</button>}</div><div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", lineHeight: 1.1 }}>{value != null ? value : "—"}</div>{rating && <div style={{ fontSize: 10, fontWeight: 600, color: rc, textTransform: "uppercase" }}>{rating}</div>}{trend && <div style={{ fontSize: 11, color: String(trend).startsWith("-") ? "#16a34a" : String(trend).startsWith("+") ? "#dc2626" : "#64748b" }}>{trend}</div>}</div>);
+  return (<div style={{ background: "#fff", borderRadius: 10, padding: "12px 14px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 4 }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>{label}</div>{onEye && <button onClick={onEye} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 4px", fontSize: 11, color: eyeOpen ? "#2563eb" : "#cbd5e1", lineHeight: 1 }} title={"View " + label + " detail"}>👁</button>}</div><div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", lineHeight: 1.1 }}>{value != null ? value : "—"}</div>{rating && <div style={{ fontSize: 10, fontWeight: 600, color: rc, textTransform: "uppercase" }}>{rating}</div>}{trend && <div style={{ fontSize: 11, color: String(trend).startsWith("-") ? "#16a34a" : String(trend).startsWith("+") ? "#dc2626" : "#64748b" }}>{trend}</div>}</div>);
 }
 
 function ExTable({ exercises, day, showHistory, onLog }) {
@@ -5300,7 +5300,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Companion · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.268.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.268.1
       </div>
 
       {/* Floating Ask a Question button */}
