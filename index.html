@@ -2348,7 +2348,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
               {bodyView === "data" && (<div>
           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-            <button onClick={() => { setShowBodyForm(true); setBodyInputs({ weight: "", bodyFat: "", muscleMass: "", muscleRate: "", skeletalMuscle: "", visceralFat: "", subcutFat: "", bmr: "", bodyWater: "", boneMass: "", bodyAge: "", bmi: "", week: String(calcWeek(data.config.trainingStart)) }); }} style={{ padding: "4px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer" }}>⏳ Record Body Comp</button>
+            <button onClick={() => { setShowBodyForm(true); setBodyInputs({ weight: "", bodyFat: "", muscleMass: "", muscleRate: "", skeletalMuscle: "", visceralFat: "", subcutFat: "", bmr: "", bodyWater: "", boneMass: "", bodyAge: "", bmi: "", week: String(calcWeek(data.config.trainingStart)) }); }} style={{ padding: "4px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer" }}>📋 Record Body Comp</button>
             <label style={{ display: "inline-flex", alignItems: "center", padding: "4px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>
               📷 Image Upload
               <input type="file" accept="image/*" onChange={async function(e) {
@@ -3839,7 +3839,13 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {addingNew && addingSource === "defaults" && addingCategory === "drink" && (<div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 4, border: "1px solid #bfdbfe" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}><span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a5f" }}>Add New Drink Item</span><button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: "2px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#475569", cursor: "pointer", lineHeight: 1 }}>Cancel</button></div><div style={{ display: "flex", gap: 6, marginBottom: 6 }}><input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, minWidth: 0, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} /><label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label></div><button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ width: "100%", padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button><div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type food name or scan a product with or without a short description to add with nutritional information</div></div>)}
             </div>
             <div style={{ marginBottom: 8 }}>
-              <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Snacks</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Snacks</span>
+                <div style={{ display: "flex", background: "#e2e8f0", borderRadius: 4, padding: 1 }}>
+                  <button onClick={function() { saveDef("o1", defs["o1"], "individual"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["o1"] || "individual") === "individual" ? "#fff" : "transparent", color: (defScopes["o1"] || "individual") === "individual" ? "#0f172a" : "#94a3b8" }}>Individual</button>
+                  <button onClick={function() { saveDef("o1", defs["o1"], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["o1"] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes["o1"] || "individual") === "all" ? "#0f172a" : "#94a3b8" }}>All</button>
+                </div>
+              </div>
               {(function() { var slots = []; for (var si = 1; si <= 20; si++) { if (defs["o" + si] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
                 var slotKey = "o" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
@@ -3859,17 +3865,17 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             </div>
 
 
-            <div style={{ marginTop: 10, marginBottom: 10, padding: 10, background: "#f0fdf4", borderRadius: 8, border: "1px solid #bbf7d0" }}>
+            <div style={{ marginTop: 10, marginBottom: 10, padding: 10, background: "#eff6ff", borderRadius: 8, border: "1px solid #bfdbfe" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#166534" }}>Quick Prep Days</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f" }}>⏱ Quick Prep Days</span>
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <input type="number" value={quickPrepMins} onChange={function(e) { setQuickPrepMins(parseInt(e.target.value) || 20); }} style={{ width: 40, padding: "3px 6px", border: "1px solid #a7f3d0", borderRadius: 4, fontSize: 11, textAlign: "center", background: "#fff" }} />
-                  <span style={{ fontSize: 10, color: "#166534" }}>mins</span>
+                  <input type="number" value={quickPrepMins} onChange={function(e) { setQuickPrepMins(parseInt(e.target.value) || 20); }} style={{ width: 40, padding: "3px 6px", border: "1px solid #bfdbfe", borderRadius: 4, fontSize: 11, textAlign: "center", background: "#fff" }} />
+                  <span style={{ fontSize: 10, color: "#1e3a5f" }}>mins</span>
                 </div>
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 4 }}>
                 {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(function(d2) {
-                  return (<label key={d2} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "#166534", cursor: "pointer" }}>
+                  return (<label key={d2} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "#1e3a5f", cursor: "pointer" }}>
                     <input type="checkbox" id={"qp-" + d2 + "-" + activeTab} style={{ width: 14, height: 14 }} />
                     {d2}
                   </label>);
@@ -4707,6 +4713,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               </div>)}
             </div>
 
+          <div style={{ height: 14 }} />
           <button onClick={async () => {
             if (planned === 0) { setFormMsg("Add meals to the Eating tab first"); setTimeout(() => setFormMsg(""), 10000); return; }
             setShopLoading(true);
@@ -4748,7 +4755,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             </div>); })}
           </div>)}
           {!generatedShop && shopList.length > 0 && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 14 }}>{shopList.map(([it, ct], i) => (<div key={it} style={{ display: "flex", justifyContent: "space-between", padding: "10px 12px", borderBottom: i < shopList.length - 1 ? "1px solid #f1f5f9" : "none" }}><span style={{ fontSize: 13 }}>{it}</span>{ct > 1 && <span style={{ fontSize: 11, fontWeight: 600, color: "#3b82f6", background: "#eff6ff", padding: "2px 8px", borderRadius: 10 }}>×{ct}</span>}</div>))}</div>)}
-          {!generatedShop && shopList.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>Plan meals on the Eating tab first, then generate your shop.</div>}
+          {!generatedShop && shopList.length === 0 && <div style={{ textAlign: "center", padding: "16px 12px", color: "#94a3b8", fontSize: 12 }}>Plan meals on the Eating tab first, then generate your shop.</div>}
           <div style={{ fontSize: 13, fontWeight: 700, marginTop: 8, marginBottom: 8 }}>Weekly Staples</div>
           <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, fontSize: 12, color: "#475569", lineHeight: 1.8 }}>
             <div style={{ fontWeight: 600, color: "#166534", marginBottom: 4 }}>Portfolio Diet</div>Brooklea Cholesterol Drink (Beck) · ProActiv · Morrisons Oats · Pumpkin seeds · Sunflower seeds · Frozen berries
@@ -4845,14 +4852,14 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>General Health Notes</div>
               <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Current or temporary health matters — recovering from a cold, injury, fatigue, stress, sleep issues, pain, symptoms to track</div>
-              <textarea value={p.healthNotes || ""} onChange={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthNotes = e.target.value; await saveData(nd); }} placeholder={"e.g. Pulled hip flexor last Sunday. Sleeping poorly this week. Energy levels low Wed/Thu."} rows={4} style={Object.assign({}, inputStyle, { minHeight: 80, resize: "vertical", fontFamily: "inherit" })} />
+              <textarea value={p.healthNotes || ""} onChange={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthNotes = e.target.value; await saveData(nd); }} placeholder={"e.g. Pulled hip flexor last Sunday. Sleeping poorly this week. Energy levels low Wed/Thu."} rows={6} style={Object.assign({}, inputStyle, { minHeight: 120, resize: "vertical", fontFamily: "inherit" })} />
             </div>
             <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Health Log</div>
               <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
                 <input type="date" value={bloodInputs.healthDate || ""} onChange={function(e) { setBloodInputs(Object.assign({}, bloodInputs, { healthDate: e.target.value })); }} style={{ padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12, boxSizing: "border-box" }} />
                 <input value={healthComment} onChange={function(e) { setHealthComment(e.target.value); }} placeholder="Health note..." style={{ flex: 1, padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12, boxSizing: "border-box" }} />
-                <button onClick={async function() { if (!healthComment.trim()) return; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].healthLog) nd[activeTab].healthLog = []; nd[activeTab].healthLog.push({ date: bloodInputs.healthDate || new Date().toISOString().split("T")[0], note: healthComment.trim() }); await saveData(nd); setHealthComment(""); }} style={{ padding: "8px 14px", background: accent, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>Add</button>
+                <button onClick={async function() { if (!healthComment.trim()) return; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].healthLog) nd[activeTab].healthLog = []; nd[activeTab].healthLog.push({ date: bloodInputs.healthDate || new Date().toISOString().split("T")[0], note: healthComment.trim() }); await saveData(nd); setHealthComment(""); }} style={{ padding: "8px 14px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>Add</button>
               </div>
               {(p.healthLog || []).slice().reverse().map(function(h, i) { return (<div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f1f5f9", fontSize: 12 }}><span><span style={{ fontWeight: 600, color: "#475569" }}>{h.date}</span> <span style={{ color: "#334155" }}>{h.note}</span></span><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthLog.splice(nd[activeTab].healthLog.length - 1 - i, 1); await saveData(nd); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", minWidth: 24, flexShrink: 0 }}>✕</button></div>); })}
               {(p.healthLog || []).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12 }}>No health log entries yet</div>}
@@ -5338,7 +5345,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Companion · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.273.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.274.0
       </div>
 
       {/* Floating Ask a Question button */}
