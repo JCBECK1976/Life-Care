@@ -1346,29 +1346,24 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       if (ex.prog) { for (var mwi = 0; mwi < ex.prog.length; mwi++) { if (ex.prog[mwi].wk > maxWk) maxWk = ex.prog[mwi].wk; } }
       setLogWeek(String(maxWk > 0 ? maxWk + 1 : calcWeek(data.config.trainingStart)));
     })();
-    // Pre-fill form if this week already has data
-    (function() {
-      var maxWk = 0;
-      if (ex.prog) { for (var mwi = 0; mwi < ex.prog.length; mwi++) { if (ex.prog[mwi].wk > maxWk) maxWk = ex.prog[mwi].wk; } }
-      var nextWk = maxWk > 0 ? maxWk + 1 : calcWeek(data.config.trainingStart);
-      // Check if latest prog entry is for current calcWeek (re-logging same session)
-      var last2 = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
-      var currentCalcWk = calcWeek(data.config.trainingStart);
-      if (last2 && last2.wk === currentCalcWk) {
-        setLogWeek(String(currentCalcWk));
-        var existW = last2.w ? last2.w.replace("kg","") : "";
-        var existReps = last2.r ? parseReps(last2.r) : [];
-        setLogSets([
-          { w: existW, r: existReps[0] ? String(existReps[0]) : "" },
-          { w: existW, r: existReps[1] ? String(existReps[1]) : "" },
-          { w: existW, r: existReps[2] ? String(existReps[2]) : "" }
-        ]);
-        if (last2.note) setLogComment(last2.note);
-        setEditPrev(true);
-      }
-    })();
-
-    setLogComment(""); setLogStatus(""); setEditPrev(false);
+    // Check if current week already has saved data — if so, pre-fill from it
+    var currentCalcWk2 = calcWeek(data.config.trainingStart);
+    var currentWkEntry = null;
+    if (ex.prog) { for (var cwi = 0; cwi < ex.prog.length; cwi++) { if (ex.prog[cwi].wk === currentCalcWk2) { currentWkEntry = ex.prog[cwi]; break; } } }
+    if (currentWkEntry) {
+      var cwReps = currentWkEntry.r ? parseReps(currentWkEntry.r) : [];
+      setLogSets([
+        { w: currentWkEntry.w ? currentWkEntry.w.replace("kg","") : "", r: cwReps[0] ? String(cwReps[0]) : "" },
+        { w: currentWkEntry.w ? currentWkEntry.w.replace("kg","") : "", r: cwReps[1] ? String(cwReps[1]) : "" },
+        { w: currentWkEntry.w ? currentWkEntry.w.replace("kg","") : "", r: cwReps[2] ? String(cwReps[2]) : "" }
+      ]);
+      setLogWeek(String(currentCalcWk2));
+      setLogComment(currentWkEntry.note || "");
+      setEditPrev(true);
+    } else {
+      setLogComment(""); setEditPrev(false);
+    }
+    setLogStatus("");
     setPrevComment("");
     // Load previous week's comment
     if (last) {
@@ -1437,7 +1432,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         var oi = -1;
         var odExs = nd[activeTab].exercises[od] || [];
         for (var si = 0; si < odExs.length; si++) { if (odExs[si].name === ex.name) { oi = si; break; } }
-        if (oi >= 0) { var oe = nd[activeTab].exercises[od][oi]; oe.current = ex.current; oe.reps = ex.reps; oe.status = ex.status; oe.prog = JSON.parse(JSON.stringify(ex.prog)); if (ex.target) oe.target = ex.target; else delete oe.target; }
+        if (oi >= 0) { var oe = nd[activeTab].exercises[od][oi]; oe.current = ex.current; oe.reps = ex.reps; oe.status = ex.status; oe.prog = JSON.parse(JSON.stringify(ex.prog)); oe.notes = ex.notes || ""; if (ex.target) oe.target = ex.target; else delete oe.target; }
       });
     nd.config.week = calcWeek(nd.config.trainingStart); nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
     ex.notes = logComment.trim() || ""; // Carry forward to next session
@@ -1451,7 +1446,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       for (var oti = 0; oti < otherTabs.length; oti++) {
         var ot = otherTabs[oti];
         var otState = window._dualLogState[ot];
-        if (otState && otState.sets && otState.sets[0] && otState.sets[0].w && otState.sets[0].r) {
+        if (otState && otState._edited && otState.sets && otState.sets[0] && otState.sets[0].w && otState.sets[0].r) {
           var otEx = nd[ot] && nd[ot].exercises && nd[ot].exercises[day] ? nd[ot].exercises[day][idx] : null;
           if (otEx) {
             var otW = otState.sets[0].w + "kg";
@@ -1472,6 +1467,19 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             // Status and target deferred to AI feedback
             otEx.status = "";
             delete otEx.target;
+            // Sync other person's exercise across all days
+            ["sunday", "monday", "friday"].filter(function(od2) { return od2 !== day; }).forEach(function(od2) {
+              var odExs2 = nd[ot].exercises[od2] || [];
+              for (var si2 = 0; si2 < odExs2.length; si2++) {
+                if (odExs2[si2].name === otEx.name) {
+                  odExs2[si2].current = otEx.current; odExs2[si2].reps = otEx.reps;
+                  odExs2[si2].status = otEx.status; odExs2[si2].notes = otEx.notes;
+                  odExs2[si2].prog = JSON.parse(JSON.stringify(otEx.prog));
+                  if (otEx.target) odExs2[si2].target = otEx.target; else delete odExs2[si2].target;
+                  break;
+                }
+              }
+            });
           }
         }
       }
@@ -2745,7 +2753,12 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     return (<button key={tab} onClick={function() {
                       // Save current form state before switching
                       if (!window._dualLogState) window._dualLogState = {};
-                      window._dualLogState[activeTab] = { sets: logSets.map(function(s) { return { w: s.w, r: s.r }; }), comment: logComment, override: logOverride, week: logWeek };
+                      // Save current form state — check if user actually changed values from what was loaded
+                      var _origState = window._dualLogState[activeTab] && window._dualLogState[activeTab]._orig ? window._dualLogState[activeTab]._orig : null;
+                      var _curSets = logSets.map(function(s) { return s.w + "x" + s.r; }).join(",");
+                      var _wasEdited = true;
+                      if (_origState) { _wasEdited = _origState.sets !== _curSets || _origState.comment !== logComment; }
+                      window._dualLogState[activeTab] = { sets: logSets.map(function(s) { return { w: s.w, r: s.r }; }), comment: logComment, override: logOverride, week: logWeek, _edited: _wasEdited };
                       // Switch tab
                       setActiveTab(tab);
                       // Restore other tab state if exists
@@ -2756,14 +2769,36 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         setLogOverride(st.override || "standard");
                         setLogWeek(st.week || "");
                       } else {
-                        // Load from other person's exercise data
+                        // Load from other person's exercise data — check current week first
                         var otherEx = data[tab] && data[tab].exercises && data[tab].exercises[logEx.day] ? data[tab].exercises[logEx.day][logEx.idx] : null;
                         if (otherEx) {
-                          var otherLast = otherEx.prog && otherEx.prog.length > 0 ? otherEx.prog[otherEx.prog.length - 1] : null;
-                          var oReps = otherLast && otherLast.r ? parseReps(otherLast.r) : [];
-                          setLogSets([{ w: otherLast ? otherLast.w.replace("kg","") : "", r: oReps[0] ? String(oReps[0]) : "" }, { w: otherLast ? otherLast.w.replace("kg","") : "", r: oReps[1] ? String(oReps[1]) : "" }, { w: otherLast ? otherLast.w.replace("kg","") : "", r: oReps[2] ? String(oReps[2]) : "" }]);
-                          setLogComment("");
-                          setLogOverride("standard");
+                          var otherCurWk = calcWeek(data.config.trainingStart);
+                          var otherCurEntry = null;
+                          if (otherEx.prog) { for (var oci = 0; oci < otherEx.prog.length; oci++) { if (otherEx.prog[oci].wk === otherCurWk) { otherCurEntry = otherEx.prog[oci]; break; } } }
+                          if (otherCurEntry) {
+                            // Current week data exists — pre-fill from it
+                            var ocReps = otherCurEntry.r ? parseReps(otherCurEntry.r) : [];
+                            var ocSets = [{ w: otherCurEntry.w ? otherCurEntry.w.replace("kg","") : "", r: ocReps[0] ? String(ocReps[0]) : "" }, { w: otherCurEntry.w ? otherCurEntry.w.replace("kg","") : "", r: ocReps[1] ? String(ocReps[1]) : "" }, { w: otherCurEntry.w ? otherCurEntry.w.replace("kg","") : "", r: ocReps[2] ? String(ocReps[2]) : "" }];
+                            setLogSets(ocSets);
+                            var ocComment = otherCurEntry.note || "";
+                            setLogComment(ocComment);
+                            setLogWeek(String(otherCurWk));
+                            setLogOverride("standard");
+                            // Record original state for edit detection
+                            if (!window._dualLogState) window._dualLogState = {};
+                            window._dualLogState[tab] = { sets: ocSets, comment: ocComment, override: "standard", week: String(otherCurWk), _edited: false, _orig: { sets: ocSets.map(function(s){return s.w+"x"+s.r;}).join(","), comment: ocComment } };
+                          } else {
+                            // No current week data — load from last entry as before
+                            var otherLast = otherEx.prog && otherEx.prog.length > 0 ? otherEx.prog[otherEx.prog.length - 1] : null;
+                            var oReps = otherLast && otherLast.r ? parseReps(otherLast.r) : [];
+                            var oSets = [{ w: otherLast ? otherLast.w.replace("kg","") : "", r: oReps[0] ? String(oReps[0]) : "" }, { w: otherLast ? otherLast.w.replace("kg","") : "", r: oReps[1] ? String(oReps[1]) : "" }, { w: otherLast ? otherLast.w.replace("kg","") : "", r: oReps[2] ? String(oReps[2]) : "" }];
+                            setLogSets(oSets);
+                            setLogComment("");
+                            setLogOverride("standard");
+                            // Record original state for edit detection
+                            if (!window._dualLogState) window._dualLogState = {};
+                            window._dualLogState[tab] = { sets: oSets, comment: "", override: "standard", week: logWeek, _edited: false, _orig: { sets: oSets.map(function(s){return s.w+"x"+s.r;}).join(","), comment: "" } };
+                          }
                         }
                       }
                     }} style={{ flex: 1, padding: "5px 0", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer", background: isActive ? "#fff" : "transparent", color: isActive ? "#0f172a" : "#94a3b8" }}>{tabName}</button>);
@@ -2879,18 +2914,55 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       var prevSfb = sessionFeedback ? sessionFeedback[prevSfbKey] : null;
                       var prevSfbCtx = "";
                       if (prevSfb && prevSfb._generatedAt && prevSfb.exercises) {
-                        var decisionLines = prevSfb.exercises.filter(function(pex) { return pex._decision; }).map(function(pex) {
-                          return pex.name + ": " + pex._decision + (pex._userNote ? " — reason: " + pex._userNote : "") + (pex.recommendation ? " (recommendation was: " + pex.recommendation + ")" : "");
-                        });
-                        var prevSfbThread = "";
-                        if (prevSfb._thread && prevSfb._thread.length > 0) {
-                          prevSfbThread = "\nConversation on that feedback:\n" + prevSfb._thread.map(function(m) { return (m.role === "user" ? "User" : "Companion") + ": " + m.text; }).join("\n") + "\nRespect what they pushed back on, build on what they agreed with.";
-                        } else if (prevSfb._comment) {
-                          prevSfbThread = "\nUser responded: \"" + prevSfb._comment + "\"";
+                        // Check if this is a re-run on same week (data was corrected)
+                        var isReRun = false;
+                        if (prevSfb.exercises && prevSfb.exercises.length > 0) {
+                          for (var rri = 0; rri < prevSfb.exercises.length; rri++) {
+                            var pfbEx = prevSfb.exercises[rri];
+                            var matchEx = exList.find(function(e) { return e.name === pfbEx.name; });
+                            if (matchEx) {
+                              var matchLatest = matchEx.prog && matchEx.prog.length > 0 ? matchEx.prog[matchEx.prog.length - 1] : null;
+                              // Compare current data vs what feedback was based on — if different, data was corrected
+                              if (matchLatest && pfbEx.verdict) {
+                                var curDataStr = matchLatest.w + " " + matchLatest.r;
+                                // Check if the previous feedback's verdict references different numbers
+                                if (pfbEx._prevData && pfbEx._prevData !== curDataStr) { isReRun = true; break; }
+                              }
+                            }
+                          }
                         }
-                        prevSfbCtx = "\nPrevious session feedback (" + prevSfb._generatedAt + "): Summary: " + (prevSfb.summary || "") + ". Next session focus: " + (prevSfb.nextSession || "") + "." + (decisionLines.length > 0 ? "\nUser decisions on recommendations: " + decisionLines.join("; ") + ".\nRESPECT DECLINED DECISIONS: If the user declined a recommendation, do NOT repeat the same suggestion. Consider their reason and adapt your advice accordingly. If they declined a weight increase, they may have a good reason — acknowledge it." : "") + prevSfbThread + "\nBuild on what changed since.";
+                        // Also detect re-run by comparing previous week data — if the last feedback was generated this same week
+                        var prevFbWeek = null;
+                        if (exList[0] && exList[0].prog && exList[0].prog.length > 0) {
+                          var latestProg = exList[0].prog[exList[0].prog.length - 1];
+                          prevFbWeek = latestProg.wk;
+                        }
+                        if (prevSfb._feedbackWeek && prevSfb._feedbackWeek === prevFbWeek) { isReRun = true; }
+
+                        if (isReRun) {
+                          // Data was corrected — tell the AI to ignore previous feedback and use current data only
+                          prevSfbCtx = "\nIMPORTANT: This is a RE-RUN of feedback because the user corrected their logged data. Previous feedback was based on INCORRECT data and should be IGNORED. Base your feedback ONLY on the current exercise data shown above. Compare the current week's data against the PREVIOUS WEEK only (the second-to-last entry in each exercise history). Do not reference or repeat anything from the previous feedback.";
+                          // Still include user decisions that may still be relevant
+                          var decisionLines = prevSfb.exercises.filter(function(pex) { return pex._decision; }).map(function(pex) {
+                            return pex.name + ": " + pex._decision + (pex._userNote ? " — reason: " + pex._userNote : "");
+                          });
+                          if (decisionLines.length > 0) {
+                            prevSfbCtx += "\nHowever, these user decisions on progression preferences are still valid: " + decisionLines.join("; ");
+                          }
+                        } else {
+                          var decisionLines = prevSfb.exercises.filter(function(pex) { return pex._decision; }).map(function(pex) {
+                            return pex.name + ": " + pex._decision + (pex._userNote ? " — reason: " + pex._userNote : "") + (pex.recommendation ? " (recommendation was: " + pex.recommendation + ")" : "");
+                          });
+                          var prevSfbThread = "";
+                          if (prevSfb._thread && prevSfb._thread.length > 0) {
+                            prevSfbThread = "\nConversation on that feedback:\n" + prevSfb._thread.map(function(m) { return (m.role === "user" ? "User" : "Companion") + ": " + m.text; }).join("\n") + "\nRespect what they pushed back on, build on what they agreed with.";
+                          } else if (prevSfb._comment) {
+                            prevSfbThread = "\nUser responded: \"" + prevSfb._comment + "\"";
+                          }
+                          prevSfbCtx = "\nPrevious session feedback (" + prevSfb._generatedAt + "): Summary: " + (prevSfb.summary || "") + ". Next session focus: " + (prevSfb.nextSession || "") + "." + (decisionLines.length > 0 ? "\nUser decisions on recommendations: " + decisionLines.join("; ") + ".\nRESPECT DECLINED DECISIONS: If the user declined a recommendation, do NOT repeat the same suggestion. Consider their reason and adapt your advice accordingly. If they declined a weight increase, they may have a good reason — acknowledge it." : "") + prevSfbThread + "\nBuild on what changed since.";
+                        }
                       }
-                      var prompt = "You are a pragmatic, experienced strength coach reviewing " + day + "'s session for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Week " + currentWeek + " of their programme.\n\n" +
+                      var prompt = "You are a pragmatic, experienced strength coach reviewing " + day + "'s session for " + (prof.name || "user") + " (" + (prof.bodyType || "") + "). Week " + currentWeek + " of their programme.\nIMPORTANT: This feedback is ONLY for " + (prof.name || activeTab.toUpperCase()) + ". Do NOT reference or include data, notes, or exercises from any other user. Address ONLY " + (prof.name || activeTab.toUpperCase()) + " throughout.\n\n" +
                         "COMMUNICATION STYLE: You are speaking adult-to-adult, like a knowledgeable mate who happens to be a strength coach. Be pragmatic, warm, non-judgemental and direct. Give your honest opinions based on experience. NEVER be preachy or lecture them about consistency. If they had a rough session, assume there was a good reason. Instead of criticising, show how a small adjustment would help next time. Frame every improvement as a choice they can make, not a standard they failed. If someone is holding weight deliberately, respect that — they know their body.\n\n" +
                         TONE_RULES + "\n\n" +
                         "Exercises: " + daySummary + "\n" +
@@ -2906,7 +2978,13 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                       var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                      if (txt) { var fb = JSON.parse(txt.replace(/```json|```/g, "").trim()); fb._generatedAt = new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb })); var sfUpdate = Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb }); await sSet("session_feedback_all", JSON.stringify(sfUpdate));
+                      if (txt) { var fb = JSON.parse(txt.replace(/```json|```/g, "").trim()); fb._generatedAt = new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+                        // Store current week and data snapshot for re-run detection
+                        var fbWeekNum = exList[0] && exList[0].prog && exList[0].prog.length > 0 ? exList[0].prog[exList[0].prog.length - 1].wk : null;
+                        fb._feedbackWeek = fbWeekNum;
+                        fb._feedbackFor = activeTab;
+                        if (fb.exercises) { fb.exercises.forEach(function(fbEx) { var srcEx = exList.find(function(e) { return e.name === fbEx.name; }); if (srcEx) { var srcLatest = srcEx.prog && srcEx.prog.length > 0 ? srcEx.prog[srcEx.prog.length - 1] : null; if (srcLatest) fbEx._prevData = srcLatest.w + " " + srcLatest.r; } }); }
+                        setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb })); var sfUpdate = Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb }); await sSet("session_feedback_all", JSON.stringify(sfUpdate));
                         // Recommendations shown to user - they accept/decline individually
                         }
                     } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: { exercises: [], summary: "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
@@ -5190,7 +5268,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Life Care Companion · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.263.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.264.0
       </div>
 
       {/* Floating Ask a Question button */}
