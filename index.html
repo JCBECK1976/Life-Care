@@ -1030,7 +1030,7 @@ function Dashboard() {
   const [decisionsExpanded, setDecisionsExpanded] = useState({});
   const [exView, setExView] = useState("exercises");
   const [dayView, setDayView] = useState({});
-  const [exerciseDay, setExerciseDay] = useState("sunday");
+  const [exerciseDay, setExerciseDay] = useState(function() { var ds = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"]; return ds[new Date().getDay()]; });
   const [selectedEx, setSelectedEx] = useState(null);
   const [fbExpanded, setFbExpanded] = useState(false);
   const [homeFbExpanded, setHomeFbExpanded] = useState(false);
@@ -1056,7 +1056,9 @@ function Dashboard() {
   const [cameraPreview, setCameraPreview] = useState(null);
   const [bodyView, setBodyView] = useState("data");
   const [measView, setMeasView] = useState("data");
-  const [eatDay, setEatDay] = useState("week");
+  const [eatDay, setEatDay] = useState(function() { var ds = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"]; return ds[new Date().getDay()]; });
+  const eatWeekResetRef = React.useRef(weekOff);
+  React.useEffect(function() { if (eatWeekResetRef.current !== weekOff) { setEatDay("week"); eatWeekResetRef.current = weekOff; } }, [weekOff]);
   const [eatList, setEatList] = useState("own");
   const [quickPrepMins, setQuickPrepMins] = useState(20);
   const [showDefaults, setShowDefaults] = useState(true);
@@ -2141,13 +2143,12 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#94a3b8", marginBottom: 4 }}>My Lifecare Companion</div>
         <div style={{ fontSize: 22, fontWeight: 800 }}>{Object.keys(data).filter(k => k !== "config").map(k => (data[k].profile ? data[k].profile.name : k)).join(" & ")}</div>
         <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Week {calcWeek(data.config.trainingStart)} · Updated {data.config.lastUpdate}{saving ? " · Saving..." : ""}</div>
-        <div style={{ display: "flex", gap: 0, marginTop: 14, background: "#1e293b", borderRadius: 10, padding: 3, overflowX: "auto" }}>
+        <div style={{ display: "flex", gap: 4, marginTop: 14, background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 4, border: "1px solid rgba(255,255,255,0.08)", overflowX: "auto" }}>
           {Object.keys(data).filter(k => k !== "config").map((k, i) => {
-            const cols = ["#2563eb", "#7c3aed", "#059669", "#d97706", "#dc2626", "#0891b2", "#e11d48"];
             const label = data[k].profile ? data[k].profile.name : k;
-            return (<button key={k} onClick={() => { setActiveTab(k); if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); sGet("meal_tracking:" + k).then(function(mt) { if (mt) setMealTracking(JSON.parse(mt)); else setMealTracking({}); }); }} style={{ flex: 1, padding: "8px 0", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? cols[i % cols.length] : "transparent", color: activeTab === k ? "#fff" : "#64748b", minWidth: 50 }}>{label}</button>);
+            return (<button key={k} onClick={() => { setActiveTab(k); if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); sGet("meal_tracking:" + k).then(function(mt) { if (mt) setMealTracking(JSON.parse(mt)); else setMealTracking({}); }); }} style={{ flex: 1, padding: "10px 0", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? "rgba(255,255,255,0.95)" : "transparent", color: activeTab === k ? "#0f172a" : "rgba(255,255,255,0.45)", minWidth: 50, letterSpacing: activeTab === k ? "0.02em" : "0", transition: "all 0.2s ease" }}>{label}</button>);
           })}
-          <button onClick={() => setShowAddPerson(true)} style={{ padding: "8px 10px", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", background: "transparent", color: "#64748b" }}>+</button>
+          <button onClick={() => setShowAddPerson(true)} style={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: "transparent", color: "rgba(255,255,255,0.3)", transition: "all 0.2s ease" }}>+</button>
         </div>
         {showAddPerson && (<div style={{ marginTop: 10, display: "flex", gap: 6 }}>
           <input value={newPersonName} onChange={e => setNewPersonName(e.target.value)} placeholder="Name..." style={{ flex: 1, padding: "8px 10px", border: "1px solid #475569", borderRadius: 8, fontSize: 13, background: "#1e293b", color: "#fff" }} />
@@ -5342,8 +5343,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       </div>
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
-        My Lifecare Companion · © Jan-Christian Zaluski 2026 · Install: Android tap ⋮ · iPhone tap ⬆ then "Add to Home Screen"</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.277.0
+        My Lifecare Companion · © Jan-Christian Zaluski 2026</div>
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.281.0
       </div>
 
       {/* Floating Ask a Question button */}
