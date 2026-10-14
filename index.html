@@ -1043,6 +1043,10 @@ function Dashboard() {
   const [foodCheckerLoading, setFoodCheckerLoading] = useState(false);
   const [foodCheckerCategory, setFoodCheckerCategory] = useState("");
   const [foodCheckerText, setFoodCheckerText] = useState("");
+  const [helpEatCat, setHelpEatCat] = useState("");
+  const [helpEatText, setHelpEatText] = useState("");
+  const [helpEatLoading, setHelpEatLoading] = useState(false);
+  const [helpEatResult, setHelpEatResult] = useState(null);
   const [mealTracking, setMealTracking] = useState({});
   const [portionSlot, setPortionSlot] = useState("");
   const [portionLoading, setPortionLoading] = useState(false);
@@ -4550,8 +4554,124 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             
 
             
-            {/* AI Add Items */}
-            
+            {/* Help Me with What to Eat */}
+            <div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 10, marginBottom: 10, border: "1px solid #bfdbfe" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", marginBottom: 4 }}>🍽 Help Me with What to Eat</div>
+              <div style={{ fontSize: 9, color: "#64748b", marginBottom: 8, lineHeight: 1.4 }}>State or describe where you are including brand named place if available and if possible, provide an image upload of your options (i.e menu, buffet, supermarket shelves)</div>
+              {!helpEatResult ? (<div>
+                {!helpEatCat ? (<div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", marginBottom: 4 }}>What are you looking for?</div>
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    {["breakfast","lunch","dinner","snack","drink","dessert"].map(function(cat) { return (<button key={cat} onClick={function(){setHelpEatCat(cat);}} style={{ padding: "6px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer", textTransform: "capitalize" }}>{cat}</button>); })}
+                  </div>
+                </div>) : (<div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Looking for: <span style={{ textTransform: "capitalize", color: "#1e3a5f" }}>{helpEatCat}</span></span>
+                    <button onClick={function(){ setHelpEatCat(""); setHelpEatText(""); }} style={{ padding: "2px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#475569", cursor: "pointer" }}>Change</button>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                    <input value={helpEatText} onChange={function(e) { setHelpEatText(e.target.value); }} placeholder="e.g. M&S services, hotel buffet, Pizza Express..." style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                    <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: helpEatLoading ? "wait" : "pointer", display: "flex", alignItems: "center" }}>
+                      📷
+                      <input type="file" accept="image/*" capture="environment" onChange={async function(e) {
+                        if (!e.target.files || !e.target.files[0]) return;
+                        var file = e.target.files[0];
+                        setHelpEatLoading(true);
+                        try {
+                          var reader = new FileReader();
+                          var base64 = await new Promise(function(res, rej) { reader.onload = function() { res(reader.result.split(",")[1]); }; reader.onerror = function() { rej(new Error("Read failed")); }; reader.readAsDataURL(file); });
+                          var mediaType = file.type || "image/jpeg";
+                          var isJC2 = activeTab === "jc";
+                          var personCtx = isJC2 ? "JC, male 49, 2000-2200 kcal/day target, 110-130g protein, under 20g sat fat, under 25g added sugar, 30-35g fibre. Thyroid issues (TSH 14.2), statin 20mg, HbA1c 43." : "Becks, female 48, 1700-1900 kcal/day target, 90-110g protein, under 20g sat fat (critical — LDL 7.2, Total Cholesterol 9.6, suspected FH), under 25g added sugar, 25-30g fibre. Perimenopausal, citalopram, atorvastatin.";
+                          var locationHint = helpEatText.trim() ? " The user is at or considering: " + helpEatText.trim() + "." : "";
+                          var catLabel = helpEatCat;
+                          var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "This person needs help choosing a " + catLabel + " option." + locationHint + " Person profile: " + personCtx + " Analyse the image (menu, buffet, shelf, food options). Recommend the BEST suitable option and explain why. Include portion advice if relevant (e.g. 'have half portion', 'skip the side'). Return ONLY JSON: {\"name\":\"recommended food/meal name\",\"kcal\":estimated_calories,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED\",\"recommendation\":\"2-3 sentences explaining why this is the best choice and any portion/modification advice\",\"alternatives\":\"1 sentence naming one alternative if available\"}" }] }] }) });
+                          var result = await resp.json();
+                          var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+                          var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
+                          var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
+                          setHelpEatResult({ name: info.name || "Unknown", kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0, rating: info.rating || "AMBER", recommendation: info.recommendation || "", alternatives: info.alternatives || "", category: helpEatCat });
+                        } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 120)); setTimeout(function(){setFormMsg("");},10000); }
+                        setHelpEatLoading(false);
+                        e.target.value = "";
+                      }} style={{ display: "none" }} />
+                    </label>
+                  </div>
+                  <button onClick={async function() {
+                      if (!helpEatText.trim()) return;
+                      setHelpEatLoading(true);
+                      try {
+                        var isJC2 = activeTab === "jc";
+                        var personCtx = isJC2 ? "JC, male 49, 2000-2200 kcal/day target, 110-130g protein, under 20g sat fat, under 25g added sugar, 30-35g fibre. Thyroid issues (TSH 14.2), statin 20mg, HbA1c 43." : "Becks, female 48, 1700-1900 kcal/day target, 90-110g protein, under 20g sat fat (critical — LDL 7.2, Total Cholesterol 9.6, suspected FH), under 25g added sugar, 25-30g fibre. Perimenopausal, citalopram, atorvastatin.";
+                        var catLabel = helpEatCat;
+                        var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: "This person needs help choosing a " + catLabel + " option. They are at or considering: " + helpEatText.trim() + ". Person profile: " + personCtx + " Research what food options this place/situation typically offers and recommend the BEST suitable " + catLabel + " option. Include portion advice if relevant (e.g. 'have half portion', 'skip the side'). Return ONLY JSON: {\"name\":\"recommended food/meal name\",\"kcal\":estimated_calories,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED\",\"recommendation\":\"2-3 sentences explaining why this is the best choice and any portion/modification advice\",\"alternatives\":\"1 sentence naming one alternative if available\"}" }] }) });
+                        var result = await resp.json();
+                        var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+                        var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
+                        var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
+                        setHelpEatResult({ name: info.name || helpEatText, kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0, rating: info.rating || "AMBER", recommendation: info.recommendation || "", alternatives: info.alternatives || "", category: helpEatCat });
+                      } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 120)); setTimeout(function(){setFormMsg("");},10000); }
+                      setHelpEatLoading(false);
+                    }} disabled={helpEatLoading || !helpEatText.trim()} style={{ width: "100%", padding: "8px 12px", background: helpEatLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{helpEatLoading ? <span>Finding best options <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Find Best Option"}</button>
+                </div>)}
+              </div>) : (<div>
+                <div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, border: "1px solid #86efac", marginBottom: 6 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🍽 {helpEatResult.name}</div>
+                  <div style={{ display: "flex", gap: 10, marginBottom: 6, fontSize: 11, flexWrap: "wrap" }}>
+                    <span><b>{helpEatResult.kcal}</b> kcal</span>
+                    <span><b>{helpEatResult.protein}g</b> prot</span>
+                    <span><b>{helpEatResult.fat}g</b> fat</span>
+                    {helpEatResult.satFat > 0 && <span><b>{helpEatResult.satFat}g</b> s/fat</span>}
+                    {helpEatResult.carbs > 0 && <span><b>{helpEatResult.carbs}g</b> carbs</span>}
+                    {helpEatResult.fibre > 0 && <span><b>{helpEatResult.fibre}g</b> fib</span>}
+                    {helpEatResult.salt > 0 && <span><b>{helpEatResult.salt}g</b> salt</span>}
+                  </div>
+                  <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: helpEatResult.rating === "RED" ? "#fef2f2" : helpEatResult.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: helpEatResult.rating === "RED" ? "#dc2626" : helpEatResult.rating === "AMBER" ? "#d97706" : "#166534", border: "1px solid " + (helpEatResult.rating === "RED" ? "#fecaca" : helpEatResult.rating === "AMBER" ? "#fde68a" : "#86efac") }}>{helpEatResult.rating}</div>
+                  {helpEatResult.recommendation && <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.4, marginBottom: 4 }}>{helpEatResult.recommendation}</div>}
+                  {helpEatResult.alternatives && <div style={{ fontSize: 10, color: "#64748b", fontStyle: "italic", lineHeight: 1.4 }}>Also consider: {helpEatResult.alternatives}</div>}
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={async function() {
+                    var hr = helpEatResult; var cat = hr.category;
+                    var newItem = { id: "custom_" + Date.now(), name: hr.name, jcKcal: hr.kcal, beckKcal: hr.kcal, protein: hr.protein || 0, fat: hr.fat || 0, satFat: hr.satFat || 0, carbs: hr.carbs || 0, fibre: hr.fibre || 0, salt: hr.salt || 0, rating: hr.rating, freq: "Daily", isCustom: true };
+                    var slotKey = "";
+                    var exists = null;
+                    if (cat === "breakfast") {
+                      exists = allBfast.find(function(x){ return x.name.toLowerCase() === hr.name.toLowerCase(); });
+                      if (!exists) { var u = [].concat(customBreakfasts, [newItem]); setCustomBreakfasts(u); await sSet("custom_breakfasts", JSON.stringify(u)); }
+                      slotKey = "b";
+                    } else if (cat === "lunch") {
+                      exists = allLunch.find(function(x){ return x.name.toLowerCase() === hr.name.toLowerCase(); });
+                      if (!exists) { var u = [].concat(customLunches, [newItem]); setCustomLunches(u); await sSet("custom_lunches", JSON.stringify(u)); }
+                      slotKey = "l";
+                    } else if (cat === "dinner") {
+                      exists = allDinners.find(function(x){ return x.name.toLowerCase() === hr.name.toLowerCase(); });
+                      newItem.jcProt = hr.protein; newItem.beckProt = hr.protein; newItem.jcFat = hr.fat; newItem.beckFat = hr.fat; newItem.time = 30; newItem.shop = [];
+                      if (!exists) { var u = [].concat(customMeals, [newItem]); setCustomMeals(u); await sSet("custom_meals", JSON.stringify(u)); }
+                      slotKey = "d";
+                    } else if (cat === "dessert") {
+                      exists = allDesserts.find(function(x){ return x.name.toLowerCase() === hr.name.toLowerCase(); });
+                      if (!exists) { var u = [].concat(customDesserts, [newItem]); setCustomDesserts(u); await sSet("custom_desserts", JSON.stringify(u)); }
+                      slotKey = "ds1";
+                    } else if (cat === "drink") {
+                      exists = allDrinks.find(function(x){ return x.name.toLowerCase() === hr.name.toLowerCase(); });
+                      if (!exists) { var u = [].concat(customDrinks, [newItem]); setCustomDrinks(u); await sSet("custom_drinks", JSON.stringify(u)); }
+                      slotKey = "dr1";
+                    } else {
+                      exists = allOther.find(function(x){ return x.name.toLowerCase() === hr.name.toLowerCase(); });
+                      if (!exists) { var u = [].concat(customSnacks, [newItem]); setCustomSnacks(u); await sSet("custom_snacks", JSON.stringify(u)); }
+                      var dm = meals[eatDay] || {}; var sn = 1; while (dm["o" + sn] && dm["o" + sn] !== "__empty__" && dm["o" + sn] !== "__placeholder__") sn++; slotKey = "o" + sn;
+                    }
+                    var itemId = exists ? exists.id : newItem.id;
+                    setMeal(eatDay, slotKey, itemId);
+                    setFormMsg("✓ Added " + hr.name + " to today's " + cat);
+                    setHelpEatResult(null); setHelpEatCat(""); setHelpEatText("");
+                    setTimeout(function(){setFormMsg("");}, 3000);
+                  }} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>✓ Confirm & Add</button>
+                  <button onClick={function() { setHelpEatResult(null); setHelpEatCat(""); setHelpEatText(""); }} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
+                </div>
+              </div>)}
+            </div>
 
             {/* Day notes */}
 
@@ -5317,7 +5437,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         My Lifecare Companion · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.285.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.286.0
       </div>
 
       {/* Floating Ask a Question button */}
