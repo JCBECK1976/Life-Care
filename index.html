@@ -1047,6 +1047,10 @@ function Dashboard() {
   const [helpEatText, setHelpEatText] = useState("");
   const [helpEatLoading, setHelpEatLoading] = useState(false);
   const [helpEatResult, setHelpEatResult] = useState(null);
+  const [copyDayOpen, setCopyDayOpen] = useState(false);
+  const [copyDayTargets, setCopyDayTargets] = useState({});
+  const [copyWeekOpen, setCopyWeekOpen] = useState(false);
+  const [copyWeekTargets, setCopyWeekTargets] = useState({});
   const [mealTracking, setMealTracking] = useState({});
   const [portionSlot, setPortionSlot] = useState("");
   const [portionLoading, setPortionLoading] = useState(false);
@@ -2150,7 +2154,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         <div style={{ display: "flex", gap: 4, marginTop: 14, background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 4, border: "1px solid rgba(255,255,255,0.08)", overflowX: "auto" }}>
           {Object.keys(data).filter(k => k !== "config").map((k, i) => {
             const label = data[k].profile ? data[k].profile.name : k;
-            return (<button key={k} onClick={() => { setActiveTab(k); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); sGet("meal_tracking:" + k).then(function(mt) { if (mt) setMealTracking(JSON.parse(mt)); else setMealTracking({}); }); }} style={{ flex: 1, padding: "10px 0", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? "rgba(255,255,255,0.95)" : "transparent", color: activeTab === k ? "#0f172a" : "rgba(255,255,255,0.45)", minWidth: 50, letterSpacing: activeTab === k ? "0.02em" : "0", transition: "all 0.2s ease" }}>{label}</button>);
+            return (<button key={k} onClick={() => { setActiveTab(k); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); setCopyDayOpen(false); setCopyWeekOpen(false); if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); sGet("meal_tracking:" + k).then(function(mt) { if (mt) setMealTracking(JSON.parse(mt)); else setMealTracking({}); }); }} style={{ flex: 1, padding: "10px 0", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? "rgba(255,255,255,0.95)" : "transparent", color: activeTab === k ? "#0f172a" : "rgba(255,255,255,0.45)", minWidth: 50, letterSpacing: activeTab === k ? "0.02em" : "0", transition: "all 0.2s ease" }}>{label}</button>);
           })}
           <button onClick={() => setShowAddPerson(true)} style={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: "transparent", color: "rgba(255,255,255,0.3)", transition: "all 0.2s ease" }}>+</button>
         </div>
@@ -3599,10 +3603,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           {/* Day tabs */}
           <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2, marginBottom: 0 }}>
-            <button key="week" onClick={function(){setEatDay("week"); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false);}} style={{flex:1,padding:"6px 2px",border:"none",borderRadius:6,fontSize:10,fontWeight:600,cursor:"pointer",background:eatDay==="week"?"#fff":"transparent",color:eatDay==="week"?"#0f172a":"#94a3b8",lineHeight:1.2}}>Week</button>
+            <button key="week" onClick={function(){setEatDay("week"); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); setCopyDayOpen(false); setCopyWeekOpen(false);}} style={{flex:1,padding:"6px 2px",border:"none",borderRadius:6,fontSize:10,fontWeight:600,cursor:"pointer",background:eatDay==="week"?"#fff":"transparent",color:eatDay==="week"?"#0f172a":"#94a3b8",lineHeight:1.2}}>Week</button>
             {DAYS.map(function(d) {
               var dk = getDayKcal(d);
-              return (<button key={d} onClick={function() { setEatDay(d); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); }} style={{ flex: 1, padding: "6px 2px", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: eatDay === d ? "#fff" : "transparent", color: eatDay === d ? "#0f172a" : "#94a3b8", lineHeight: 1.2 }}><div>{DAY_LABELS[d]}</div>{dk > 0 && <div style={{ fontSize: 8, color: dk > (isJC ? 2200 : 1900) ? "#dc2626" : "#16a34a" }}>{dk}</div>}</button>);
+              return (<button key={d} onClick={function() { setEatDay(d); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); setCopyDayOpen(false); setCopyWeekOpen(false); }} style={{ flex: 1, padding: "6px 2px", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: eatDay === d ? "#fff" : "transparent", color: eatDay === d ? "#0f172a" : "#94a3b8", lineHeight: 1.2 }}><div>{DAY_LABELS[d]}</div>{dk > 0 && <div style={{ fontSize: 8, color: dk > (isJC ? 2200 : 1900) ? "#dc2626" : "#16a34a" }}>{dk}</div>}</button>);
             })}
           </div>
 
@@ -3617,8 +3621,54 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               var limit2 = isJC ? 2200 : 1900;
               var color2 = avg2 === 0 ? "#94a3b8" : avg2 > limit2 ? "#dc2626" : "#16a34a";
               return avg2 > 0 ? (<span style={{ fontSize: 11, fontWeight: 600, color: color2 }}>— Avg {avg2} kcal/day</span>) : null;
-            })()}</span><button onClick={function(){setEatWeekEyeOpen(!eatWeekEyeOpen);}} style={{ padding: "4px 10px", background: eatWeekEyeOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (eatWeekEyeOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 12, cursor: "pointer", color: eatWeekEyeOpen ? "#fff" : "#475569" }}>{eatWeekEyeOpen ? "✕" : "👁"}</button></div>
-            
+            })()}</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyWeekOpen(!copyWeekOpen); setCopyWeekTargets({}); }} style={{ padding: "4px 10px", background: copyWeekOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (copyWeekOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, cursor: "pointer", color: copyWeekOpen ? "#fff" : "#475569", display: "flex", alignItems: "center", gap: 3 }}>{copyWeekOpen ? "✕" : <span>📋 Copy Week</span>}</button><button onClick={function(){setEatWeekEyeOpen(!eatWeekEyeOpen);}} style={{ padding: "4px 10px", background: eatWeekEyeOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (eatWeekEyeOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 12, cursor: "pointer", color: eatWeekEyeOpen ? "#fff" : "#475569" }}>{eatWeekEyeOpen ? "✕" : "👁"}</button></div></div>
+
+            {copyWeekOpen && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 10, marginBottom: 10, border: "1px solid #e2e8f0" }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Copy this week's day selections to:</div>
+              <div style={{ maxHeight: 200, overflowY: "auto", marginBottom: 8 }}>
+                {(function() {
+                  var weeks = [];
+                  for (var wi = -4; wi <= 12; wi++) {
+                    if (wi === weekOff) continue;
+                    var ws = new Date(baseStart); ws.setDate(ws.getDate() + (wi * 7));
+                    var wd = getWeekDates(ws);
+                    var label = fmtDate(wd[0]) + " – " + fmtDate(wd[6]);
+                    var isPast = ws < new Date() && wi < weekOff;
+                    weeks.push({ off: wi, label: label, isPast: isPast });
+                  }
+                  return weeks.map(function(w) {
+                    return (<label key={w.off} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, cursor: "pointer", padding: "6px 8px", background: copyWeekTargets[w.off] ? "#ddd6fe" : (w.off % 2 === 0 ? "#fff" : "#f8fafc"), border: "1px solid " + (copyWeekTargets[w.off] ? "#7c3aed" : "transparent"), borderRadius: 4, marginBottom: 2 }}>
+                      <input type="checkbox" checked={!!copyWeekTargets[w.off]} onChange={function(){ var o = w.off; setCopyWeekTargets(function(prev){ var n = Object.assign({}, prev); n[o] = !n[o]; return n; }); }} style={{ margin: 0 }} />
+                      <span style={{ color: w.isPast ? "#94a3b8" : "#0f172a" }}>{w.label}</span>
+                    </label>);
+                  });
+                })()}
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={async function() {
+                  var targets = Object.keys(copyWeekTargets).filter(function(k){ return copyWeekTargets[k]; }).map(Number);
+                  if (targets.length === 0) { setFormMsg("Select at least one week to copy to"); setTimeout(function(){setFormMsg("");},3000); return; }
+                  var dayData = {};
+                  DAYS.forEach(function(d) { if (meals[d]) dayData[d] = JSON.parse(JSON.stringify(meals[d])); });
+                  if (Object.keys(dayData).length === 0) { setFormMsg("Nothing to copy — no day selections this week"); setTimeout(function(){setFormMsg("");},3000); return; }
+                  setSaving(true);
+                  for (var ti = 0; ti < targets.length; ti++) {
+                    var tws = new Date(baseStart); tws.setDate(tws.getDate() + (targets[ti] * 7));
+                    var tsk = mealKey(tws) + ":" + activeTab;
+                    var existRaw = await sGet(tsk);
+                    var existMeals = existRaw ? JSON.parse(existRaw) : {};
+                    DAYS.forEach(function(d) { if (dayData[d]) existMeals[d] = JSON.parse(JSON.stringify(dayData[d])); });
+                    await sSet(tsk, JSON.stringify(existMeals));
+                  }
+                  setSaving(false);
+                  setCopyWeekOpen(false); setCopyWeekTargets({});
+                  setFormMsg("✓ Copied week to " + targets.length + " week" + (targets.length > 1 ? "s" : ""));
+                  setTimeout(function(){setFormMsg("");},3000);
+                }} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Apply</button>
+                <button onClick={function(){ setCopyWeekOpen(false); setCopyWeekTargets({}); }} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+              </div>
+            </div>)}
+
             {eatWeekEyeOpen && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, marginBottom: 10, border: "1px solid #e2e8f0" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: "#0f172a" }}>Week — Nutrition Overview (g)</span>
@@ -4055,7 +4105,36 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           {/* Day content */}
           {eatDay !== "week" && <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</span><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);}} style={{ padding: "4px 10px", background: eatDayEyeOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (eatDayEyeOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 12, cursor: "pointer", color: eatDayEyeOpen ? "#fff" : "#475569" }}>{eatDayEyeOpen ? "✕" : "👁"}</button></div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyDayOpen(!copyDayOpen); setCopyDayTargets({}); }} style={{ padding: "4px 10px", background: copyDayOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (copyDayOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, cursor: "pointer", color: copyDayOpen ? "#fff" : "#475569", display: "flex", alignItems: "center", gap: 3 }}>{copyDayOpen ? "✕" : <span>📋 Copy Day</span>}</button><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);}} style={{ padding: "4px 10px", background: eatDayEyeOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (eatDayEyeOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 12, cursor: "pointer", color: eatDayEyeOpen ? "#fff" : "#475569" }}>{eatDayEyeOpen ? "✕" : "👁"}</button></div></div>
+
+            {copyDayOpen && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 10, marginBottom: 10, border: "1px solid #e2e8f0" }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Copy {eatDay.charAt(0).toUpperCase() + eatDay.slice(1)}'s selections to:</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                {DAYS.filter(function(d){ return d !== eatDay; }).map(function(d) {
+                  return (<label key={d} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, cursor: "pointer", padding: "4px 8px", background: copyDayTargets[d] ? "#ddd6fe" : "#f1f5f9", border: "1px solid " + (copyDayTargets[d] ? "#7c3aed" : "#e2e8f0"), borderRadius: 6 }}>
+                    <input type="checkbox" checked={!!copyDayTargets[d]} onChange={function(){ setCopyDayTargets(function(prev){ var n = Object.assign({}, prev); n[d] = !n[d]; return n; }); }} style={{ margin: 0 }} />
+                    {DAY_LABELS[d]}
+                  </label>);
+                })}
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={function() {
+                  var src = meals[eatDay];
+                  if (!src) { setFormMsg("Nothing to copy — no selections on " + eatDay); setTimeout(function(){setFormMsg("");},3000); return; }
+                  var targets = Object.keys(copyDayTargets).filter(function(d){ return copyDayTargets[d]; });
+                  if (targets.length === 0) { setFormMsg("Select at least one day to copy to"); setTimeout(function(){setFormMsg("");},3000); return; }
+                  var n = Object.assign({}, meals);
+                  for (var ti = 0; ti < targets.length; ti++) {
+                    n[targets[ti]] = JSON.parse(JSON.stringify(src));
+                  }
+                  setMeals(n); saveMeals(n);
+                  setCopyDayOpen(false); setCopyDayTargets({});
+                  setFormMsg("✓ Copied " + eatDay.charAt(0).toUpperCase() + eatDay.slice(1) + " to " + targets.map(function(d){ return DAY_LABELS[d]; }).join(", "));
+                  setTimeout(function(){setFormMsg("");},3000);
+                }} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Apply</button>
+                <button onClick={function(){ setCopyDayOpen(false); setCopyDayTargets({}); }} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+              </div>
+            </div>)}
 
             
             {eatDayEyeOpen && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, marginBottom: 10, border: "1px solid #e2e8f0" }}>
@@ -5437,7 +5516,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         My Lifecare Companion · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.286.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.287.0
       </div>
 
       {/* Floating Ask a Question button */}
