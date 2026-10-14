@@ -530,7 +530,7 @@ const DEFAULT_SUPPS = [
 
 const JC_BASE = { sun: { bfast: 696, lunch: 500, snacks: 565 }, mon: { bfast: 696, lunch: 400, snacks: 565 }, tue: { bfast: 696, lunch: 400, snacks: 565 }, wed: { bfast: 360, lunch: 580, snacks: 350 }, thu: { bfast: 780, lunch: 580, snacks: 350 }, fri: { bfast: 696, lunch: 400, snacks: 565 }, sat: { bfast: 360, lunch: 380, snacks: 945 } };
 const BECK_BASE = { sun: { bfast: 440, lunch: 400, snacks: 340 }, mon: { bfast: 380, lunch: 360, snacks: 340 }, tue: { bfast: 380, lunch: 360, snacks: 340 }, wed: { bfast: 380, lunch: 340, snacks: 340 }, thu: { bfast: 380, lunch: 340, snacks: 290 }, fri: { bfast: 380, lunch: 360, snacks: 340 }, sat: { bfast: 360, lunch: 320, snacks: 340 } };
-const RC = { GREAT: { bg: "#dcfce7", text: "#166534", dot: "#22c55e" }, AMBER: { bg: "#fef9c3", text: "#854d0e", dot: "#eab308" }, RED: { bg: "#fee2e2", text: "#991b1b", dot: "#ef4444" }, INFO: { bg: "#f1f5f9", text: "#475569", dot: "#94a3b8" } };
+const RC = { GREAT: { bg: "#e0f2fe", text: "#0c4a6e", dot: "#22c55e" }, AMBER: { bg: "#fef3c7", text: "#92400e", dot: "#eab308" }, RED: { bg: "#fee2e2", text: "#991b1b", dot: "#ef4444" }, INFO: { bg: "#f1f5f9", text: "#475569", dot: "#94a3b8" } };
 const PIN_WEIGHTS = [9, 16, 22, 29, 36, 42, 49, 55, 62, 68, 75, 81, 87, 90];
 function nextPin(w, customIncrements) {
   var kg = parseInt(w) || 0;
@@ -582,7 +582,7 @@ function countStatus(ex) {
   return { movedUp: unique.filter(e => e.status === "moved up").length, ready: unique.filter(e => e.status === "ready to move").length, building: unique.filter(e => e.status === "building").length, consolidating: unique.filter(e => e.status === "consolidating").length, maintaining: unique.filter(e => e.status === "maintaining").length, reduce: unique.filter(e => e.status === "reduce").length, total: unique.length };
 }
 const sColor = s => s === "moved up" ? "#16a34a" : s === "ready to move" ? "#2563eb" : s === "building" ? "#7c3aed" : s === "consolidating" ? "#d97706" : s === "maintaining" ? "#0891b2" : s === "reduce" ? "#dc2626" : "#64748b";
-const sBg = s => s === "moved up" ? "#dcfce7" : s === "ready to move" ? "#dbeafe" : s === "building" ? "#ede9fe" : s === "consolidating" ? "#fef3c7" : s === "maintaining" ? "#cffafe" : s === "reduce" ? "#fee2e2" : "#f1f5f9";
+const sBg = s => s === "moved up" ? "#e0f2fe" : s === "ready to move" ? "#dbeafe" : s === "building" ? "#ede9fe" : s === "consolidating" ? "#fef3c7" : s === "maintaining" ? "#cffafe" : s === "reduce" ? "#fee2e2" : "#f1f5f9";
 const sLabel = s => s === "moved up" ? "Moved Up" : s === "ready to move" ? "Ready to Move" : s === "building" ? "Building" : s === "consolidating" ? "Consolidating" : s === "maintaining" ? "Maintaining" : s === "reduce" ? "Reduce" : s;
 function parseReps(str) { if (!str) return []; const s = String(str); if (s.includes("×")) { const p = s.split("×"); return Array(parseInt(p[1])||3).fill(parseInt(p[0])||0); } return s.split("/").map(n => parseInt(n)||0); }
 function fmtReps(arr) { if (!arr || arr.length === 0) return ""; if (arr.every(r => r === arr[0])) return arr[0] + "×" + arr.length; return arr.join("/"); }
@@ -685,7 +685,7 @@ function FullChart({ series, height = 160, title, refLine }) {
 // ═══════════════════════════════════════════════════
 function BodyCard({ label, value, rating, trend, onEye, eyeOpen }) {
   const rc = rating === "Excellent" || rating === "Acceptable" ? "#16a34a" : rating === "Standard" ? "#2563eb" : rating === "High" || rating === "Too High" ? "#dc2626" : rating === "Low" ? "#d97706" : "#64748b";
-  return (<div style={{ background: "#fff", borderRadius: 10, padding: "12px 14px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 4 }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>{label}</div>{onEye && <button onClick={onEye} style={{ padding: "4px 8px", background: eyeOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (eyeOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, cursor: "pointer", fontSize: 12, color: eyeOpen ? "#fff" : "#475569", lineHeight: 1 }} title={"View " + label + " detail"}>{eyeOpen ? "✕" : "👁"}</button>}</div><div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", lineHeight: 1.1 }}>{value != null ? value : "—"}</div>{rating && <div style={{ fontSize: 10, fontWeight: 600, color: rc, textTransform: "uppercase" }}>{rating}</div>}{trend && <div style={{ fontSize: 11, color: String(trend).startsWith("-") ? "#16a34a" : String(trend).startsWith("+") ? "#dc2626" : "#64748b" }}>{trend}</div>}</div>);
+  return (<div style={{ background: "#fff", borderRadius: 10, padding: "12px 14px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 4 }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>{label}</div>{onEye && <button onClick={onEye} style={{ padding: "4px 8px", background: eyeOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (eyeOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, cursor: "pointer", fontSize: 10, fontWeight: 600, color: eyeOpen ? "#fff" : "#475569", lineHeight: 1, display: "flex", alignItems: "center", gap: 3 }} title={"View " + label + " detail"}>{eyeOpen ? "✕" : "👁 Progress"}</button>}</div><div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", lineHeight: 1.1 }}>{value != null ? value : "—"}</div>{rating && <div style={{ fontSize: 10, fontWeight: 600, color: rc, textTransform: "uppercase" }}>{rating}</div>}{trend && <div style={{ fontSize: 11, color: String(trend).startsWith("-") ? "#16a34a" : String(trend).startsWith("+") ? "#dc2626" : "#64748b" }}>{trend}</div>}</div>);
 }
 
 function ExTable({ exercises, day, showHistory, onLog }) {
@@ -702,7 +702,7 @@ function ExTable({ exercises, day, showHistory, onLog }) {
         </div>
         <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>{ex.current} · {ex.reps}</div>
         {ex.target && <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 600, marginTop: 3 }}>{ex._userOverride && <span onClick={function(){alert("User override: this target was set by your notes, not the AI recommendation.");}} style={{cursor:"pointer",marginRight:4}}>⚠️</span>}{ex._from ? ex._from + " → " : ""}{ex.target}</div>}
-                    {ex._userNote && <div style={{ fontSize: 10, color: "#92400e", background: "#fef9c3", padding: "2px 6px", borderRadius: 4, marginTop: 2 }}>{ex._userNote}</div>}
+                    {ex._userNote && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "2px 6px", borderRadius: 4, marginTop: 2 }}>{ex._userNote}</div>}
         {ex.status === "reduce" && <div style={{ fontSize: 11, color: "#dc2626", marginTop: 3 }}>Back protection — reduced load</div>}
         {showHistory && ex.prog && ex.prog.length > 0 && (
           <div style={{ marginTop: 6, paddingTop: 6, borderTop: "1px solid #f1f5f9" }}>
@@ -1021,6 +1021,7 @@ function Dashboard() {
   const [showAddPerson, setShowAddPerson] = useState(false);
   const [newPersonName, setNewPersonName] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [setupDirty, setSetupDirty] = useState(false);
   const [setupTab, setSetupTab] = useState("profile");
   function calcAge(dob) { if (!dob) return null; var d = new Date(dob); if (isNaN(d.getTime())) return null; var t = new Date(); var a = t.getFullYear() - d.getFullYear(); var m = t.getMonth() - d.getMonth(); if (m < 0 || (m === 0 && t.getDate() < d.getDate())) a--; return a; }
   const [onboardInputs, setOnboardInputs] = useState({ conditions: "", medications: "", neurodiversity: "", bloods: "", goals: "", activity: "", equipment: "", dietary: "", allergies: "" });
@@ -2167,9 +2168,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         </div>)}
       </div>
       <div style={{ display: "flex", gap: 0, padding: "0 4px", background: "#fff", borderBottom: "1px solid #e2e8f0", overflowX: "auto" }}>
-        {SECS.map(s => (<button key={s.id} onClick={() => { setSection(s.id); setFbExpanded(false); setEatFbExpanded(false); setHomeFbExpanded(false); setHealthFbExpanded(false); }} style={{ padding: "10px 8px", border: "none", borderBottom: section === s.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 11, fontWeight: section === s.id ? 700 : 500, color: section === s.id ? accent : "#64748b", cursor: "pointer", whiteSpace: "nowrap" }}>{s.l}</button>))}
+        {SECS.map(s => (<button key={s.id} onClick={() => { setSection(s.id); setShowOnboarding(false); setSetupTab("profile"); setFbExpanded(false); setEatFbExpanded(false); setHomeFbExpanded(false); setHealthFbExpanded(false); }} style={{ padding: "10px 8px", border: "none", borderBottom: section === s.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 11, fontWeight: section === s.id ? 700 : 500, color: section === s.id ? accent : "#64748b", cursor: "pointer", whiteSpace: "nowrap" }}>{s.l}</button>))}
       </div>
-      {formMsg && <div style={{ margin: "8px 16px 0", padding: 10, borderRadius: 8, background: formMsg.startsWith("✓") ? "#dcfce7" : "#fee2e2", color: formMsg.startsWith("✓") ? "#166534" : "#991b1b", fontSize: 12, fontWeight: 600 }}>{formMsg}</div>}
+      {formMsg && <div style={{ margin: "8px 16px 0", padding: 10, borderRadius: 8, background: formMsg.startsWith("✓") ? "#e0f2fe" : "#fee2e2", color: formMsg.startsWith("✓") ? "#0c4a6e" : "#991b1b", fontSize: 12, fontWeight: 600 }}>{formMsg}</div>}
 
       <div style={{ padding: 16 }}>
         {/* HOME */}
@@ -2187,7 +2188,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             {/* ONBOARDING QUESTIONNAIRE — TABBED */}
             {showOnboarding && (() => {
               var ob = onboardInputs;
-              var setOB = function(k, v) { setOnboardInputs(function(q) { var n = Object.assign({}, q); n[k] = v; return n; }); };
+              var setOB = function(k, v) { setSetupDirty(true); setOnboardInputs(function(q) { var n = Object.assign({}, q); n[k] = v; return n; }); };
               var personAge = calcAge(ob.dob || prof.dob) || prof.age;
 
               var SETUP_TABS = [
@@ -2271,6 +2272,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   Your data is used solely by your Lifecare Companion to tailor recommendations, feedback and support to work best with you and achieve the best possible outcome. No information is shared with third parties. Any AI-generated content is processed without linking it to any identifiable individual. You choose what information to share — more detail helps your Companion provide better, more personalised guidance, but every field is optional.
                 </div>
 
+                {/* Save Setup button - always visible */}
+                <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; var ob = onboardInputs; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; if (ob.conditions) { if (!nd[activeTab].healthLog) nd[activeTab].healthLog = {}; nd[activeTab].healthLog.conditions = ob.conditions; } if (ob.medications) { var meds = nd[activeTab].meds || []; var newMeds = ob.medications.split(",").map(function(m){return m.trim();}).filter(function(m){return m && !meds.some(function(em){return (em.name||em) === m;});}); newMeds.forEach(function(m){ meds.push({name:m,dose:"",freq:"",started:new Date().toISOString().slice(0,10)}); }); nd[activeTab].meds = meds; } if (ob.bloods) { var bl = nd[activeTab].bloods || []; bl.push({date:new Date().toISOString().slice(0,10),notes:ob.bloods,source:"setup"}); nd[activeTab].bloods = bl; } await saveData(nd); setSetupDirty(false); setFormMsg("✓ Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} disabled={!setupDirty} style={{ width: "100%", marginBottom: 10, padding: 10, color: setupDirty ? "#fff" : "#94a3b8", border: setupDirty ? "none" : "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: setupDirty ? "pointer" : "default", background: setupDirty ? "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" : "#f1f5f9" }}>{setupDirty ? "Save Setup" : "✓ Saved"}</button>
+
                 {/* ═══ MY PROFILE (read-only generated) ═══ */}
                 {setupTab === "profile" && (<div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>My Profile</div>
@@ -2316,10 +2320,17 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   }} disabled={genPlanLoading} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: genPlanLoading ? "not-allowed" : "pointer", background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{genPlanLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "📊 My Companion Recommendations"}</button>
 
                   {/* Assessment */}
-                  {(assessment || p.profileAssessment) && (() => { var a = assessment || p.profileAssessment; return (<div style={{ marginTop: 12, background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 12, padding: 14, color: "#fff" }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", opacity: 0.7, marginBottom: 8 }}>Your Assessment</div>
+                  {(assessment || p.profileAssessment) && (() => { var a = assessment || p.profileAssessment; return (<div style={{ marginTop: 12, background: "linear-gradient(135deg, #1e1b4b 0%, #4c1d95 100%)", borderRadius: 12, padding: 14, color: "#fff" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", opacity: 0.7, marginBottom: 8 }}>My Companion Recommendations</div>
                     {a.assessment && <div style={{ fontSize: 12, lineHeight: 1.6, marginBottom: 10 }}>{a.assessment}</div>}
-                    {a.priorities && a.priorities.length > 0 && (<div>{a.priorities.map(function(pr, i) { return <div key={i} style={{ fontSize: 12, fontWeight: 600, marginBottom: 3 }}>{i + 1}. {pr}</div>; })}</div>)}
+                    {a.priorities && a.priorities.length > 0 && (<div>
+                      <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.8, marginTop: 8, marginBottom: 4 }}>🏋️ Activities</div>
+                      {a.priorities.filter(function(pr) { return pr; }).slice(0, 1).map(function(pr, i) { return <div key={"a"+i} style={{ fontSize: 12, marginBottom: 3, paddingLeft: 8, borderLeft: "2px solid rgba(255,255,255,0.3)" }}>{pr}</div>; })}
+                      <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.8, marginTop: 8, marginBottom: 4 }}>🥗 Dietary</div>
+                      {a.priorities.filter(function(pr) { return pr; }).slice(1, 2).map(function(pr, i) { return <div key={"d"+i} style={{ fontSize: 12, marginBottom: 3, paddingLeft: 8, borderLeft: "2px solid rgba(255,255,255,0.3)" }}>{pr}</div>; })}
+                      <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.8, marginTop: 8, marginBottom: 4 }}>🏥 Medical</div>
+                      {a.priorities.filter(function(pr) { return pr; }).slice(2).map(function(pr, i) { return <div key={"m"+i} style={{ fontSize: 12, marginBottom: 3, paddingLeft: 8, borderLeft: "2px solid rgba(255,255,255,0.3)" }}>{pr}</div>; })}
+                    </div>)}
                   </div>); })()}
 
                   {/* Recommendations section */}
@@ -2328,28 +2339,28 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Personalised daily targets and body composition goals based on your profile, health data, and lifestyle.</div>
 
                     {/* Daily Nutrition Targets */}
-                    <div style={{ background: "#f0fdf4", borderRadius: 10, padding: 12, border: "1px solid #bbf7d0", marginBottom: 10 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#166534", marginBottom: 8 }}>Daily Nutrition</div>
+                    <div style={{ background: "#f0fdf4", borderRadius: 10, padding: 12, border: "1px solid #bae6fd", marginBottom: 10 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#0c4a6e", marginBottom: 8 }}>Daily Nutrition</div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 11 }}>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
                           <div style={{ color: "#94a3b8", fontSize: 9 }}>Calories</div>
-                          <div style={{ fontWeight: 700, color: "#166534" }}>{(p.targets && p.targets.calories) || (generatedTargets && generatedTargets.calories) || (p.generatedTargets && p.generatedTargets.calories) || "—"}</div>
+                          <div style={{ fontWeight: 700, color: "#0c4a6e" }}>{(p.targets && p.targets.calories) || (generatedTargets && generatedTargets.calories) || (p.generatedTargets && p.generatedTargets.calories) || "—"}</div>
                         </div>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
                           <div style={{ color: "#94a3b8", fontSize: 9 }}>Protein</div>
-                          <div style={{ fontWeight: 700, color: "#166534" }}>{(p.targets && p.targets.protein) || (generatedTargets && generatedTargets.protein) || (p.generatedTargets && p.generatedTargets.protein) || "—"}</div>
+                          <div style={{ fontWeight: 700, color: "#0c4a6e" }}>{(p.targets && p.targets.protein) || (generatedTargets && generatedTargets.protein) || (p.generatedTargets && p.generatedTargets.protein) || "—"}</div>
                         </div>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
                           <div style={{ color: "#94a3b8", fontSize: 9 }}>Sat Fat</div>
-                          <div style={{ fontWeight: 700, color: "#166534" }}>{(p.targets && p.targets.satFat) || (generatedTargets && generatedTargets.satFat) || (p.generatedTargets && p.generatedTargets.satFat) || "—"}</div>
+                          <div style={{ fontWeight: 700, color: "#0c4a6e" }}>{(p.targets && p.targets.satFat) || (generatedTargets && generatedTargets.satFat) || (p.generatedTargets && p.generatedTargets.satFat) || "—"}</div>
                         </div>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
                           <div style={{ color: "#94a3b8", fontSize: 9 }}>Added Sugar</div>
-                          <div style={{ fontWeight: 700, color: "#166534" }}>{(p.targets && p.targets.sugar) || (generatedTargets && generatedTargets.sugar) || (p.generatedTargets && p.generatedTargets.sugar) || "—"}</div>
+                          <div style={{ fontWeight: 700, color: "#0c4a6e" }}>{(p.targets && p.targets.sugar) || (generatedTargets && generatedTargets.sugar) || (p.generatedTargets && p.generatedTargets.sugar) || "—"}</div>
                         </div>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center", gridColumn: "1 / -1" }}>
                           <div style={{ color: "#94a3b8", fontSize: 9 }}>Fibre</div>
-                          <div style={{ fontWeight: 700, color: "#166534" }}>{(p.targets && p.targets.fibre) || (generatedTargets && generatedTargets.fibre) || (p.generatedTargets && p.generatedTargets.fibre) || "—"}</div>
+                          <div style={{ fontWeight: 700, color: "#0c4a6e" }}>{(p.targets && p.targets.fibre) || (generatedTargets && generatedTargets.fibre) || (p.generatedTargets && p.generatedTargets.fibre) || "—"}</div>
                         </div>
                       </div>
                     </div>
@@ -2389,10 +2400,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   {rf([["sex", "Sex", "select", "", "Male", "Female"], ["height", "Height (e.g. 5ft 11)"]])}
 
                   {/* Body Type Photo Upload */}
-                  <div style={{ marginTop: 12, padding: 12, background: "#f0fdf4", borderRadius: 8, border: "1px solid #bbf7d0" }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#166534", marginBottom: 6 }}>📸 Body Type Photos</div>
+                  <div style={{ marginTop: 12, padding: 12, background: "#eff6ff", borderRadius: 8, border: "1px solid #bfdbfe" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>📸 Body Type Photos</div>
                     <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>Upload photos for AI body type analysis. Best results from:<br/>• Front relaxed (full body, arms at sides)<br/>• Bicep flex (single arm, side on)<br/>• Side profile (relaxed)<br/>• Back relaxed or flexed<br/>• Legs: quad flex and calf raise</div>
-                    <label style={{ display: "block", padding: 10, background: "#fff", border: "2px dashed #86efac", borderRadius: 8, textAlign: "center", cursor: "pointer", fontSize: 11, color: "#166534" }}>
+                    <label style={{ display: "block", padding: 10, background: "#fff", border: "2px dashed #93c5fd", borderRadius: 8, textAlign: "center", cursor: "pointer", fontSize: 11, color: "#1e3a5f" }}>
                       📷 Upload Body Type Photos
                       <input type="file" accept="image/*" multiple onChange={async function(e) { var files = e.target.files; if (!files || files.length === 0) return; setFormMsg("Generating from photos..."); var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].bodyPhotos) nd[activeTab].bodyPhotos = []; var imageContents = []; for (var fi = 0; fi < Math.min(files.length, 5); fi++) { try { var b64 = await new Promise(function(res, rej) { var r = new FileReader(); r.onload = function() { res(r.result.split(",")[1]); }; r.onerror = function() { rej("fail"); }; r.readAsDataURL(files[fi]); }); nd[activeTab].bodyPhotos.push({ date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), name: files[fi].name, thumbnail: b64.substring(0, 500), type: "baseline" }); imageContents.push({ type: "image", source: { type: "base64", media_type: files[fi].type || "image/jpeg", data: b64 } }); } catch(re) {} } if (imageContents.length > 0) { try { var content = imageContents.concat([{ type: "text", text: "Analyse this person's physique. Determine: 1) Somatotype, 2) Upper or lower body dominant, 3) Fast-twitch or slow-twitch dominant, 4) Notable strengths. Return ONLY JSON: {\"bodyType\":\"...\",\"dominance\":\"...\",\"fibreType\":\"...\",\"strengths\":\"...\",\"notes\":\"...\"}" }]); var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: content }] }) }); var result = await resp.json(); var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt = txt + result.content[ci].text; } } if (txt) { var parsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); if (!nd[activeTab].profile) nd[activeTab].profile = {}; if (parsed.bodyType) nd[activeTab].profile.bodyType = parsed.bodyType + (parsed.dominance ? ", " + parsed.dominance : ""); if (parsed.fibreType) nd[activeTab].profile.fibreType = parsed.fibreType; nd[activeTab].bodyAnalysis = parsed; } } catch(ae) {} } if (nd[activeTab].bodyPhotos.length > 20) nd[activeTab].bodyPhotos = nd[activeTab].bodyPhotos.slice(-20); await saveData(nd); setFormMsg("✓ Photos analysed"); setTimeout(function() { setFormMsg(""); }, 4000); e.target.value = ""; }} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)", border: 0 }} />
                     </label>
@@ -2428,8 +2439,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
                   {/* Baseline Body Comp Upload */}
                   {(() => { var hasBaseline = p.body && p.body.weight && p.body.weight.length > 0; return (
-                    <div style={{ marginTop: 10, padding: 10, background: hasBaseline ? "#f1f5f9" : "#fef3c7", borderRadius: 8, border: "1px solid " + (hasBaseline ? "#e2e8f0" : "#fde68a"), opacity: hasBaseline ? 0.6 : 1 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: hasBaseline ? "#64748b" : "#854d0e" }}>{hasBaseline ? "✓ Baseline body composition recorded" : "📊 Upload baseline body composition from your scales app (weight, body fat %, muscle mass etc)"}</div>
+                    <div style={{ marginTop: 10, padding: 10, background: hasBaseline ? "#f1f5f9" : "#fef3c7", borderRadius: 8, border: "1px solid " + (hasBaseline ? "#e2e8f0" : "#fcd34d"), opacity: hasBaseline ? 0.6 : 1 }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: hasBaseline ? "#64748b" : "#92400e" }}>{hasBaseline ? "✓ Baseline body composition recorded" : "📊 Upload baseline body composition from your scales app (weight, body fat %, muscle mass etc)"}</div>
                     </div>
                   ); })()}
 
@@ -2438,7 +2449,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     {[["bodyType","Body Type"],["fibreType","Fibre Type"],["idealWeight","Ideal Weight"]].map(function(pair) { return (<div key={pair[0]} style={pair[0] === "bodyType" ? { gridColumn: "1 / -1" } : {}}><label style={labelStyle}>{pair[1]}</label><input value={profileInputs[pair[0]] || prof[pair[0]] || ""} onChange={function(e) { setProfileInputs(function(q) { var n = Object.assign({}, q); n[pair[0]] = e.target.value; return n; }); }} style={inputStyle} /></div>); })}
                   </div>
                   <div style={{ marginTop: 8 }}><label style={labelStyle}>Notes</label><textarea value={profileInputs.notes || prof.notes || ""} onChange={function(e) { setProfileInputs(function(q) { return Object.assign({}, q, { notes: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
-                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; nd[activeTab].profile = Object.assign({}, nd[activeTab].profile || {}, profileInputs); if (onboardInputs.name) nd[activeTab].profile.name = onboardInputs.name; if (onboardInputs.dob) { nd[activeTab].profile.dob = onboardInputs.dob; nd[activeTab].profile.age = calcAge(onboardInputs.dob); } if (onboardInputs.sex) nd[activeTab].profile.sex = onboardInputs.sex; if (onboardInputs.height) nd[activeTab].profile.height = onboardInputs.height; await saveData(nd); setFormMsg("✓ Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>Save Setup</button>
                 </div>)}
 
                 {/* ═══ MY FAMILY ═══ */}
@@ -2449,7 +2459,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     ["livingSituation", "Living situation", "ta", "e.g. Live with partner and 2 children, dog..."],
                     ["familyHistory", "Family health history", "ta", "e.g. Father — Type 2 diabetes, Mother — high cholesterol, Familial Hypercholesterolaemia suspected..."]
                   ])}
-                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; await saveData(nd); setFormMsg("\u2713 Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>Save Setup</button>
                 </div>)}
 
                 {/* ═══ MY PERSONALITY ═══ */}
@@ -2462,7 +2471,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     ["whatDerails", "What typically derails your plans?", "ta", "e.g. Routine disruption, travel, stress, boredom, perfectionism..."],
                     ["accountabilityPref", "Accountability preference", "select", "", "Self-motivated", "Partner/friend", "Coach/app", "Group/class", "Mix of approaches"]
                   ])}
-                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; await saveData(nd); setFormMsg("\u2713 Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>Save Setup</button>
                 </div>)}
 
                 {/* ═══ MY LIFESTYLE ═══ */}
@@ -2478,7 +2486,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     ["equipment", "Equipment available", "ta", "e.g. Marcy HG5000 home gym, dumbbells, resistance bands, gym membership..."],
                     ["goals", "Goals — what do you want to achieve?", "ta", "e.g. Lose weight, build muscle, improve cholesterol, get fitter..."]
                   ])}
-                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; await saveData(nd); setFormMsg("\u2713 Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>Save Setup</button>
                 </div>)}
 
                 {/* ═══ MY SLEEP ═══ */}
@@ -2499,7 +2506,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     ["caffeineDaily", "Daily caffeine", "text", "e.g. 3 coffees, 2 teas, energy drinks..."],
                     ["alcoholFrequency", "Alcohol frequency", "select", "", "Never", "Rarely (special occasions)", "1-2 times/week", "3-4 times/week", "Most days", "Daily"]
                   ])}
-                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; await saveData(nd); setFormMsg("\u2713 Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>Save Setup</button>
                 </div>)}
 
                 {/* ═══ MY WELLBEING ═══ */}
@@ -2523,7 +2529,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     ["mentalHealth", "Mental health", "ta", "e.g. Anxiety, depression, on medication, seeing therapist, no concerns..."],
                     ["currentSupport", "Current support", "ta", "e.g. GP, therapist, counsellor, medication, none currently..."]
                   ])}
-                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; await saveData(nd); setFormMsg("\u2713 Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>Save Setup</button>
                 </div>)}
 
                 {/* ═══ MY HEALTH ═══ */}
@@ -2540,7 +2545,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     ["weightLowest", "Lowest adult weight", "text", "e.g. 11st, 70kg..."],
                     ["previousDiets", "Previous diets or weight loss attempts", "ta", "e.g. Calorie counting, keto, Slimming World, none..."]
                   ])}
-                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; await saveData(nd); setFormMsg("\u2713 Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>Save Setup</button>
                 </div>)}
               </div>);
             })()}
@@ -2562,8 +2566,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           {homeFbExpanded && feedbackResults[activeTab] && (() => { const fb = feedbackResults[activeTab]; return (<div style={{ marginBottom: 14 }}><div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" }}>
             {fb._when && <div style={{ padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" }}>Generated {fb._when} for {isJC ? "JC" : "Becks"}</div>}
             <div style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0" }}><div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f" }}>My Companion Feedback</div></div>
-            <div style={{ padding: "12px 14px", background: "#dcfce7", borderBottom: "1px solid #bbf7d0" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#166534" }}>What's going well</div>{fb.good?.map((g, i) => <div key={i} style={{ fontSize: 12, color: "#166534", marginTop: 4 }}>✓ {g}</div>)}</div>
-            <div style={{ padding: "12px 14px", background: "#fef9c3", borderBottom: "1px solid #fde68a" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#854d0e" }}>Opportunities</div>{fb.opportunities?.map((o, i) => <div key={i} style={{ fontSize: 12, color: "#854d0e", marginTop: 4 }}>→ {o}</div>)}</div>
+            <div style={{ padding: "12px 14px", background: "#e0f2fe", borderBottom: "1px solid #bae6fd" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#0c4a6e" }}>What's going well</div>{fb.good?.map((g, i) => <div key={i} style={{ fontSize: 12, color: "#0c4a6e", marginTop: 4 }}>✓ {g}</div>)}</div>
+            <div style={{ padding: "12px 14px", background: "#fef3c7", borderBottom: "1px solid #fcd34d" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#92400e" }}>Opportunities</div>{fb.opportunities?.map((o, i) => <div key={i} style={{ fontSize: 12, color: "#92400e", marginTop: 4 }}>→ {o}</div>)}</div>
             <div style={{ padding: "12px 14px", background: "#dbeafe" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#1e40af" }}>Focus next 2 weeks</div>{(Array.isArray(fb.focus) ? fb.focus : [fb.focus]).map((f, i) => <div key={i} style={{ fontSize: 12, color: "#1e40af", marginTop: 4 }}>★ {f}</div>)}</div>
           </div>
           {renderThread(fb, "home", activeTab, updateHomeFb, activeTab)}
@@ -2574,8 +2578,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               <div key={hi} style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 8, overflow: "hidden", opacity: 0.8 }}>
                 <div style={{ padding: "6px 12px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" }}>Generated {hb._when}</div>
                 <div style={{ padding: "8px 12px", fontSize: 11 }}>
-                  <div style={{ color: "#166534", marginBottom: 4 }}>{(hb.good || []).map((g, gi) => <span key={gi}>✓ {g} </span>)}</div>
-                  <div style={{ color: "#854d0e", marginBottom: 4 }}>{(hb.opportunities || []).map((o, oi) => <span key={oi}>→ {o} </span>)}</div>
+                  <div style={{ color: "#0c4a6e", marginBottom: 4 }}>{(hb.good || []).map((g, gi) => <span key={gi}>✓ {g} </span>)}</div>
+                  <div style={{ color: "#92400e", marginBottom: 4 }}>{(hb.opportunities || []).map((o, oi) => <span key={oi}>→ {o} </span>)}</div>
                   <div style={{ color: "#1e40af" }}>★ {Array.isArray(hb.focus) ? hb.focus.join("; ") : hb.focus}</div>
                 </div>
                 {hb._thread && hb._thread.length > 0 && <div style={{ padding: "6px 12px", background: "#f8fafc", borderTop: "1px solid #e2e8f0" }}>{hb._thread.map(function(m, mi) { return <div key={mi} style={{ fontSize: 11, color: m.role === "user" ? "#1e3a5f" : "#475569", marginBottom: 2 }}><span style={{ fontWeight: 600 }}>{m.role === "user" ? "You" : "Companion"}:</span> {m.text} {m.when ? <span style={{ fontSize: 9, color: "#94a3b8" }}>· {m.when}</span> : null}</div>; })}</div>}
@@ -2732,13 +2736,13 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               React.createElement("div", { style: { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" } },
                 bfb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", bfb._when, " for ", isJC ? "JC" : "Becks"),
                 React.createElement("div", { style: { padding: "8px 14px", borderBottom: "1px solid #e2e8f0" } }, React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f" } }, "My Companion Feedback")),
-                React.createElement("div", { style: { padding: "12px 14px", background: "#dcfce7", borderBottom: "1px solid #bbf7d0" } },
-                  React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#166534" } }, "What’s going well"),
-                  (bfb.wins || bfb.good || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#166534", marginTop: 4 } }, "✓ ", w); })
+                React.createElement("div", { style: { padding: "12px 14px", background: "#e0f2fe", borderBottom: "1px solid #bae6fd" } },
+                  React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#0c4a6e" } }, "What’s going well"),
+                  (bfb.wins || bfb.good || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#0c4a6e", marginTop: 4 } }, "✓ ", w); })
                 ),
-                React.createElement("div", { style: { padding: "12px 14px", background: "#fef9c3", borderBottom: "1px solid #fde68a" } },
-                  React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#854d0e" } }, "Tweaks for next period"),
-                  (bfb.tweaks || bfb.watch || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#854d0e", marginTop: 4 } }, "→ ", t); })
+                React.createElement("div", { style: { padding: "12px 14px", background: "#fef3c7", borderBottom: "1px solid #fcd34d" } },
+                  React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#92400e" } }, "Tweaks for next period"),
+                  (bfb.tweaks || bfb.watch || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#92400e", marginTop: 4 } }, "→ ", t); })
                 ),
                 React.createElement("div", { style: { padding: "12px 14px", background: "#dbeafe" } },
                   React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#1e40af" } }, "Body comp outlook"),
@@ -2761,7 +2765,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   {latest ? <><span style={{ fontWeight: 600, color: "#0f172a", fontSize: 13 }}>{latest.v}{typeof latest.v === "number" ? "cm" : ""}</span>{delta && <span style={{ fontSize: 10, color: parseFloat(delta) > 0 ? "#16a34a" : parseFloat(delta) < 0 ? "#dc2626" : "#64748b", marginLeft: 2 }}>{parseFloat(delta) > 0 ? "+" : ""}{delta}</span>}<span style={{ fontSize: 10, color: "#94a3b8", marginLeft: 2 }}>Wk{latest.wk}</span></> : <span style={{ fontSize: 11, color: "#94a3b8" }}>—</span>}
                   <button onClick={function(){ if (measLogKey === k) { setMeasLogKey(null); } else { setMeasLogKey(k); setMeasLogInputs({ week: calcWeek(data.config.trainingStart), value: "", note: "" }); setMeasMetricOpen(null); } }} style={{ padding: "4px 8px", marginLeft: 4, background: measLogKey === k ? accent : "#f1f5f9", border: "1px solid " + (measLogKey === k ? accent : "#e2e8f0"), borderRadius: 6, fontSize: 12, cursor: "pointer", color: measLogKey === k ? "#fff" : "#475569" }}>📋</button>
-                  <button onClick={function(){ if (measMetricOpen === k) { setMeasMetricOpen(null); } else { setMeasMetricOpen(k); setMeasMetricShowAll(false); setMeasLogKey(null); } }} style={{ padding: "4px 8px", background: measMetricOpen === k ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (measMetricOpen === k ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 12, cursor: "pointer", color: measMetricOpen === k ? "#fff" : "#475569" }}>{measMetricOpen === k ? "✕" : "👁"}</button>
+                  <button onClick={function(){ if (measMetricOpen === k) { setMeasMetricOpen(null); } else { setMeasMetricOpen(k); setMeasMetricShowAll(false); setMeasLogKey(null); } }} style={{ padding: "4px 8px", background: measMetricOpen === k ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (measMetricOpen === k ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", color: measMetricOpen === k ? "#fff" : "#475569", display: "flex", alignItems: "center", gap: 3 }}>{measMetricOpen === k ? "✕" : "👁 Progress"}</button>
                 </div>
               </div>
               {measLogKey === k && (<div style={{ background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginTop: 6, marginBottom: 6 }}>
@@ -2843,13 +2847,13 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               React.createElement("div", { style: { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" } },
                 mfb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", mfb._when, " for ", isJC ? "JC" : "Becks"),
                 React.createElement("div", { style: { padding: "8px 14px", borderBottom: "1px solid #e2e8f0" } }, React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f" } }, "My Companion Feedback")),
-                React.createElement("div", { style: { padding: "12px 14px", background: "#dcfce7", borderBottom: "1px solid #bbf7d0" } },
-                  React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#166534" } }, "What’s going well"),
-                  (mfb.wins || mfb.good || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#166534", marginTop: 4 } }, "✓ ", w); })
+                React.createElement("div", { style: { padding: "12px 14px", background: "#e0f2fe", borderBottom: "1px solid #bae6fd" } },
+                  React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#0c4a6e" } }, "What’s going well"),
+                  (mfb.wins || mfb.good || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#0c4a6e", marginTop: 4 } }, "✓ ", w); })
                 ),
-                React.createElement("div", { style: { padding: "12px 14px", background: "#fef9c3", borderBottom: "1px solid #fde68a" } },
-                  React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#854d0e" } }, "Tweaks for next period"),
-                  (mfb.tweaks || mfb.watch || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#854d0e", marginTop: 4 } }, "→ ", t); })
+                React.createElement("div", { style: { padding: "12px 14px", background: "#fef3c7", borderBottom: "1px solid #fcd34d" } },
+                  React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#92400e" } }, "Tweaks for next period"),
+                  (mfb.tweaks || mfb.watch || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#92400e", marginTop: 4 } }, "→ ", t); })
                 ),
                 React.createElement("div", { style: { padding: "12px 14px", background: "#dbeafe" } },
                   React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#1e40af" } }, "Measurement outlook"),
@@ -2974,15 +2978,15 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     ) : (<>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                         <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer" }} onClick={function() { setEditExercise({ day: day, idx: i }); }}>{ex.name} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span></div>
-                        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", justifyContent: "center" }}>
                           <span style={{ fontSize: 10, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" }}>{sLabel(ex.status)}</span>
-                          <button onClick={function(){setSelectedEx({day:day,idx:i});openLogForm(day,i);}} style={{padding:"4px 8px",marginLeft:4,background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:6,fontSize:12,cursor:"pointer",marginRight:4}}>📋</button>
-                          <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} style={{padding:"4px 8px",background:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#7c3aed":"#f1f5f9",border:"1px solid "+(selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#7c3aed":"#e2e8f0"),borderRadius:6,fontSize:12,cursor:"pointer",color:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#fff":"#475569"}}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕":"👁"}</button>
+                          <button onClick={function(){setSelectedEx({day:day,idx:i});openLogForm(day,i);}} style={{padding:"4px 8px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:6,fontSize:10,cursor:"pointer",fontWeight:600,color:"#475569",display:"flex",alignItems:"center",gap:3}}>📋 Log</button>
+                          <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} style={{padding:"4px 8px",background:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#7c3aed":"#f1f5f9",border:"1px solid "+(selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#7c3aed":"#e2e8f0"),borderRadius:6,fontSize:10,cursor:"pointer",fontWeight:600,color:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#fff":"#475569",display:"flex",alignItems:"center",gap:3}}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕":"👁 Progress"}</button>
                         </div>
                       </div>
                       <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>{ex.current} · {ex.reps}</div>
                       {ex.target && <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 600, marginTop: 3 }}>{ex._userOverride && <span onClick={function(){alert("User override: this target was set by your notes, not the AI recommendation.");}} style={{cursor:"pointer",marginRight:4}}>⚠️</span>}{ex._from ? ex._from + " → " : ""}{ex.target}</div>}
-                      {ex.notes && <div style={{ fontSize: 10, color: "#854d0e", background: "#fef9c3", padding: "3px 6px", borderRadius: 4, marginTop: 3 }}>📋 {ex.notes}</div>}
+                      {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 3 }}>📋 {ex.notes}</div>}
                     
                     {selectedEx&&selectedEx.day===day&&selectedEx.idx===i&&(<div style={{marginTop:10,padding:12,background:"#f8fafc",borderRadius:8,border:"1px solid #e2e8f0",width:"100%"}}>
                       <button onClick={function() { openLogForm(day, i); }} style={{ padding: "6px 14px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, fontWeight: 600, color: "#475569", cursor: "pointer" }}>📋 Log {ex.name}</button>
@@ -2993,9 +2997,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               <div style={{ fontSize: 11, fontWeight: 700, color: accent, marginBottom: 2 }}>{(p.profile && p.profile.name) || activeTab}</div>
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Log: {ex.name}</div>
               <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Previous: {prev ? prev.w + " " + prev.r + " (Wk " + prev.wk + ")" : "No data"}</div>
-              {prevComment && (<div style={{ padding: 8, background: "#fef3c7", borderRadius: 8, marginBottom: 8, border: "1px solid #fde68a" }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#854d0e", marginBottom: 3 }}>📋 NOTES FROM LAST SESSION</div>
-                <div style={{ fontSize: 11, color: "#854d0e", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{prevComment}</div>
+              {prevComment && (<div style={{ padding: 8, background: "#fef3c7", borderRadius: 8, marginBottom: 8, border: "1px solid #fcd34d" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>📋 NOTES FROM LAST SESSION</div>
+                <div style={{ fontSize: 11, color: "#92400e", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{prevComment}</div>
               </div>)}
               {prev && <button onClick={() => { setEditPrev(!editPrev); if (!editPrev) { setLogSets([{ w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[0]||"") }, { w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[1]||"") }, { w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[2]||"") }]); setLogWeek(String(prev.wk)); } else { setLogSets([{ w: prev.w.replace("kg",""), r: "" }, { w: prev.w.replace("kg",""), r: "" }, { w: prev.w.replace("kg",""), r: "" }]); (function() { var mwk = 0; var cex = data[activeTab].exercises[logEx.day][logEx.idx]; if (cex && cex.prog) { for (var mi = 0; mi < cex.prog.length; mi++) { if (cex.prog[mi].wk > mwk) mwk = cex.prog[mi].wk; } } setLogWeek(String(mwk > 0 ? mwk + 1 : calcWeek(data.config.trainingStart))); })(); } }} style={{ ...btnS, marginBottom: 8, fontSize: 11, background: editPrev ? "#fef3c7" : "#f1f5f9" }}>{editPrev ? "Cancel Edit — Log New Instead" : "Edit Previous Entry"}</button>}
               <div style={{ marginBottom: 8 }}><label style={labelStyle}>Week</label><input type="number" value={logWeek} onChange={e => setLogWeek(e.target.value)} style={{ ...inputStyle, width: 80 }} /></div>
@@ -3004,7 +3008,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               
               <div style={{ marginTop: 8 }}>
                 <label style={labelStyle}>Progression</label>
-                <select value={logOverride} onChange={function(e) { setLogOverride(e.target.value); }} style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, marginBottom: 8, background: logOverride === "move_up" ? "#dcfce7" : logOverride === "hold" ? "#fef3c7" : logOverride === "reduce" ? "#fee2e2" : "#fff" }}>
+                <select value={logOverride} onChange={function(e) { setLogOverride(e.target.value); }} style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, marginBottom: 8, background: logOverride === "move_up" ? "#e0f2fe" : logOverride === "hold" ? "#fef3c7" : logOverride === "reduce" ? "#fee2e2" : "#fff" }}>
                   <option value="standard">Standard (follow progression rules)</option>
                   <option value="move_up">Move Up (override — ready to increase weight)</option>
                   <option value="hold">Hold (override — maintain current weight)</option>
@@ -3083,7 +3087,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{ex.name}</div>
                       <span style={{ fontSize: 10, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 8px", borderRadius: 20 }}>{sLabel(ex.status)}</span>
                     </div>
-                    {ex.notes && <div style={{ fontSize: 10, color: "#854d0e", background: "#fef9c3", padding: "4px 8px", borderRadius: 4, marginBottom: 6 }}>{ex.notes}</div>}
+                    {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "4px 8px", borderRadius: 4, marginBottom: 6 }}>{ex.notes}</div>}
                     <div style={{ display: "flex", gap: 6, padding: "3px 0", marginBottom: 2, fontSize: 9, color: "#94a3b8", fontWeight: 600 }}>
                       <span style={{ width: 40 }}>WEEK</span><span style={{ width: 55 }}>WEIGHT</span><span style={{ width: 65 }}>REPS</span><span style={{ flex: 1 }}>NOTES</span><span style={{ width: 20 }}></span>
                     </div>
@@ -3097,7 +3101,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     {(!ex.prog || ex.prog.length === 0) && <div style={{ fontSize: 10, color: "#94a3b8" }}>No progression data yet</div>}
                     {ex.prog && ex.prog.length > 4 && <button onClick={function(){setSelectedEx(Object.assign({},selectedEx,{showAll:!selectedEx.showAll}));}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:accent,cursor:"pointer",marginBottom:6}}>{selectedEx && selectedEx.showAll ? "▲ Show less" : "▼ View more (" + (ex.prog.length - 4) + " entries)"}</button>}
                     <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var wk = calcWeek(nd.config.trainingStart); var existWk = -1; for (var awi = 0; awi < nd[activeTab].exercises[day][exIdx].prog.length; awi++) { if (nd[activeTab].exercises[day][exIdx].prog[awi].wk === wk) { existWk = awi; break; } }
-                      if (existWk >= 0) { if (!confirm("Week " + wk + " already exists. OK = Update, Cancel = Go back")) return; nd[activeTab].exercises[day][exIdx].prog[existWk].w = ex.current || "0kg"; nd[activeTab].exercises[day][exIdx].prog[existWk].r = ex.reps || "0"; } else { nd[activeTab].exercises[day][exIdx].prog.push({ wk: wk, w: ex.current || "0kg", r: ex.reps || "0", note: "" }); } var latestNote = nd[activeTab].exercises[day][exIdx].prog[nd[activeTab].exercises[day][exIdx].prog.length-1].note || ""; nd[activeTab].exercises[day][exIdx].notes = latestNote; await saveData(nd); setFormMsg("✓ Week " + wk + " added"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ marginTop: 4, padding: "4px 10px", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 6, fontSize: 10, color: "#166534", cursor: "pointer" }}>+ Add Week</button>
+                      if (existWk >= 0) { if (!confirm("Week " + wk + " already exists. OK = Update, Cancel = Go back")) return; nd[activeTab].exercises[day][exIdx].prog[existWk].w = ex.current || "0kg"; nd[activeTab].exercises[day][exIdx].prog[existWk].r = ex.reps || "0"; } else { nd[activeTab].exercises[day][exIdx].prog.push({ wk: wk, w: ex.current || "0kg", r: ex.reps || "0", note: "" }); } var latestNote = nd[activeTab].exercises[day][exIdx].prog[nd[activeTab].exercises[day][exIdx].prog.length-1].note || ""; nd[activeTab].exercises[day][exIdx].notes = latestNote; await saveData(nd); setFormMsg("✓ Week " + wk + " added"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ marginTop: 4, padding: "4px 10px", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 6, fontSize: 10, color: "#0c4a6e", cursor: "pointer" }}>+ Add Week</button>
 
                     
                     {ex.prog && ex.prog.length >= 2 && (() => {
@@ -3130,7 +3134,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 
                 <div style={{padding:"8px 0",borderTop:"1px solid #e2e8f0"}}>
                   {!addExOpen ? (
-                    <button onClick={function(){setAddExOpen(true);setAddExSearch("");}} style={{width:"100%",padding:8,background:"none",border:"none",fontSize:11,color:accent,cursor:"pointer",fontWeight:600}}>+ Add Exercise</button>
+                    <button onClick={function(){setAddExOpen(true);setAddExSearch("");}} style={{width:"100%",padding:8,background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:8,fontSize:11,color:"#475569",cursor:"pointer",fontWeight:600}}>+ Add Exercise</button>
                   ) : (
                     <div style={{padding:8,background:"#f8fafc",borderRadius:8,border:"1px solid #e2e8f0"}}>
                       <div style={{fontSize:11,fontWeight:700,marginBottom:6}}>Add Exercise to {dayLabels[day] || day}</div>
@@ -3163,7 +3167,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         }
                         setAddExLoading(false); setAddExOpen(false); setAddExSearch("");
                         setTimeout(function(){setFormMsg("");},3000);
-                      }} style={{width:"100%",padding:8,background:accent,color:"#fff",border:"none",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",marginTop:4}}>{addExLoading ? "Adding..." : "Add New: " + (addExSearch||"...")}</button>
+                      }} style={{width:"100%",padding:8,background:addExLoading?"#94a3b8":"linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",color:"#fff",border:"none",borderRadius:8,fontSize:11,fontWeight:600,cursor:addExLoading?"not-allowed":"pointer",marginTop:4}}>{addExLoading ? "Adding..." : "Add New: " + (addExSearch||"...")}</button>
                       <button onClick={function(){setAddExOpen(false);setAddExSearch("");}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:10,color:"#64748b",cursor:"pointer",marginTop:4}}>Cancel</button>
                     </div>
                   )}
@@ -3269,9 +3273,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     {sessionFeedback[activeTab + "_" + day]._generatedAt && <div style={{ fontSize: 9, color: "#94a3b8", marginBottom: 4 }}>Generated: {sessionFeedback[activeTab + "_" + day]._generatedAt}</div>}
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>My Companion Feedback</div>
                     {sessionFeedback[activeTab + "_" + day].summary && (<div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, padding: 10, marginTop: 8 }}><div style={{ fontSize: 12, color: "#fff" }}>{sessionFeedback[activeTab + "_" + day].summary}</div>{sessionFeedback[activeTab + "_" + day].nextSession && <div style={{ fontSize: 12, color: "#fbbf24", fontWeight: 600, marginTop: 4 }}>Next: {sessionFeedback[activeTab + "_" + day].nextSession}</div>}</div>)}
-                    {sessionFeedback[activeTab + "_" + day].exercises && (function() { var decKey2 = activeTab + "_" + day; var totalRecs2 = sessionFeedback[decKey2].exercises.filter(function(ex){return ex.newStatus||ex.recommendation;}).length; var decidedCount2 = sessionFeedback[decKey2].exercises.filter(function(ex){return ex._decision;}).length; var pendingCount2 = totalRecs2 - decidedCount2; return (<div><button onClick={function(){setDecisionsExpanded(function(prev){return Object.assign({},prev,{[decKey2]:!prev[decKey2]});});}} style={{width:"100%",padding:"8px 12px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:8,fontSize:11,fontWeight:600,color:"#475569",cursor:"pointer",marginTop:8,marginBottom:decisionsExpanded[decKey2]?6:0,textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}><span>{decisionsExpanded[decKey2]?"▲":"▼"} Exercise Feedback{totalRecs2>0?" & Recommendations":""}</span>{totalRecs2>0&&pendingCount2>0?<span style={{fontSize:9,background:"#fff7ed",color:"#ea580c",padding:"2px 8px",borderRadius:10,fontWeight:700}}>{pendingCount2} pending</span>:decidedCount2>0?<span style={{fontSize:9,background:"#dcfce7",color:"#166534",padding:"2px 8px",borderRadius:10,fontWeight:700}}>All reviewed</span>:null}</button></div>); })()}
-                    {decisionsExpanded[activeTab + "_" + day] && sessionFeedback[activeTab + "_" + day].exercises && sessionFeedback[activeTab + "_" + day].exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc", alignItems: "center" }}><span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{fbIcon(ex.icon)}</span><div><div style={{ fontSize: 12, fontWeight: 700 }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div>{(ex.newStatus || ex.recommendation) && (<div id={"rec-" + ei + "-" + day} style={{ marginTop: 4, padding: 8, background: ex._decision === "accepted" ? "#dcfce7" : ex._decision === "declined" ? "#f1f5f9" : "#fff7ed", borderRadius: 6, border: "1px solid " + (ex._decision === "accepted" ? "#86efac" : ex._decision === "declined" ? "#e2e8f0" : "#fed7aa") }}>
-                      {ex._decision ? (<div style={{ fontSize: 11, fontWeight: 600, color: ex._decision === "accepted" ? "#166534" : "#64748b", padding: 4 }}>{ex._decision === "accepted" ? "Accepted — " + ex.name + " updated" + (ex._userNote ? " — " + ex._userNote : "") : "Declined — no changes made" + (ex._userNote ? " — " + ex._userNote : "")}</div>) : (<div><div style={{ fontSize: 10, color: "#ea580c", fontWeight: 600, marginBottom: 4 }}>{ex.recommendation || ("Recommendation: " + ex.newStatus)}</div>
+                    {sessionFeedback[activeTab + "_" + day].exercises && (function() { var decKey2 = activeTab + "_" + day; var totalRecs2 = sessionFeedback[decKey2].exercises.filter(function(ex){return ex.newStatus||ex.recommendation;}).length; var decidedCount2 = sessionFeedback[decKey2].exercises.filter(function(ex){return ex._decision;}).length; var pendingCount2 = totalRecs2 - decidedCount2; return (<div><button onClick={function(){setDecisionsExpanded(function(prev){return Object.assign({},prev,{[decKey2]:!prev[decKey2]});});}} style={{width:"100%",padding:"8px 12px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:8,fontSize:11,fontWeight:600,color:"#475569",cursor:"pointer",marginTop:8,marginBottom:decisionsExpanded[decKey2]?6:0,textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}><span>{decisionsExpanded[decKey2]?"▲":"▼"} Exercise Feedback{totalRecs2>0?" & Recommendations":""}</span>{totalRecs2>0&&pendingCount2>0?<span style={{fontSize:9,background:"#fff7ed",color:"#ea580c",padding:"2px 8px",borderRadius:10,fontWeight:700}}>{pendingCount2} pending</span>:decidedCount2>0?<span style={{fontSize:9,background:"#e0f2fe",color:"#0c4a6e",padding:"2px 8px",borderRadius:10,fontWeight:700}}>All reviewed</span>:null}</button></div>); })()}
+                    {decisionsExpanded[activeTab + "_" + day] && sessionFeedback[activeTab + "_" + day].exercises && sessionFeedback[activeTab + "_" + day].exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc", alignItems: "center" }}><span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{fbIcon(ex.icon)}</span><div><div style={{ fontSize: 12, fontWeight: 700 }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div>{(ex.newStatus || ex.recommendation) && (<div id={"rec-" + ei + "-" + day} style={{ marginTop: 4, padding: 8, background: ex._decision === "accepted" ? "#e0f2fe" : ex._decision === "declined" ? "#f1f5f9" : "#fff7ed", borderRadius: 6, border: "1px solid " + (ex._decision === "accepted" ? "#86efac" : ex._decision === "declined" ? "#e2e8f0" : "#fed7aa") }}>
+                      {ex._decision ? (<div style={{ fontSize: 11, fontWeight: 600, color: ex._decision === "accepted" ? "#0c4a6e" : "#64748b", padding: 4 }}>{ex._decision === "accepted" ? "Accepted — " + ex.name + " updated" + (ex._userNote ? " — " + ex._userNote : "") : "Declined — no changes made" + (ex._userNote ? " — " + ex._userNote : "")}</div>) : (<div><div style={{ fontSize: 10, color: "#ea580c", fontWeight: 600, marginBottom: 4 }}>{ex.recommendation || ("Recommendation: " + ex.newStatus)}</div>
                       <div style={{marginTop:6,marginBottom:6}}><input id={"user-note-"+ei+"-"+day} placeholder="Add a note (optional)..." style={{width:"100%",padding:6,border:"1px solid #e2e8f0",borderRadius:4,fontSize:10,boxSizing:"border-box"}} /></div><div style={{ display: "flex", gap: 6 }}>
                         <button onClick={async function() {
                           var nd3 = JSON.parse(JSON.stringify(data));
@@ -3305,7 +3309,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                           }
                           await saveData(nd3);
                           var el = document.getElementById("rec-" + ei + "-" + day);
-                          var noteEl = document.getElementById("user-note-"+ei+"-"+day); var userNote = noteEl ? noteEl.value.trim() : ""; ex._decision = "accepted"; ex._userNote = userNote;  if (userNote) { var exRef = nd3[activeTab].exercises[day]; if (exRef && exRef[di3]) { exRef[di3].notes = (exRef[di3].notes ? exRef[di3].notes + "; " : "") + "Wk" + currentWeek + " accepted: " + userNote; } } var sfbKey = activeTab + "_" + day; var curFb = sessionFeedback[sfbKey]; if (curFb && curFb.exercises) { curFb.exercises[ei]._decision = "accepted"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#dcfce7"; el.style.borderColor = "#86efac"; el.innerHTML = "<div style=\"font-size:11px;color:#166534;font-weight:600;padding:4px\">\u2705 Accepted — " + ex.name + " updated to " + ex.newStatus + ". Activity updated.</div>"; }
+                          var noteEl = document.getElementById("user-note-"+ei+"-"+day); var userNote = noteEl ? noteEl.value.trim() : ""; ex._decision = "accepted"; ex._userNote = userNote;  if (userNote) { var exRef = nd3[activeTab].exercises[day]; if (exRef && exRef[di3]) { exRef[di3].notes = (exRef[di3].notes ? exRef[di3].notes + "; " : "") + "Wk" + currentWeek + " accepted: " + userNote; } } var sfbKey = activeTab + "_" + day; var curFb = sessionFeedback[sfbKey]; if (curFb && curFb.exercises) { curFb.exercises[ei]._decision = "accepted"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#e0f2fe"; el.style.borderColor = "#86efac"; el.innerHTML = "<div style=\"font-size:11px;color:#0c4a6e;font-weight:600;padding:4px\">\u2705 Accepted — " + ex.name + " updated to " + ex.newStatus + ". Activity updated.</div>"; }
                         }} style={{ padding: "5px 14px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Accept</button>
                         <button onClick={function() {
                           var el = document.getElementById("rec-" + ei + "-" + day);
@@ -3737,7 +3741,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             return (<div style={{position:"relative"}}>
               <input ref={inputRef} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Type to search..." style={{width:"100%",padding:"8px 10px",border:"1px solid "+accent,borderRadius:6,fontSize:11,background:"#fff",boxSizing:"border-box"}} onBlur={function(){setTimeout(function(){setOpen(false);},200);}} />
               <div style={{position:"absolute",top:"100%",left:0,right:0,zIndex:50,background:"#fff",border:"1px solid #e2e8f0",borderRadius:6,maxHeight:200,overflowY:"auto",boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}>
-                {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#166534"; return (<div key={item.id} onMouseDown={function(e){e.preventDefault();onChange({target:{value:item.id}});setOpen(false);setSearch("");}} style={{padding:"6px 10px",fontSize:11,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f8fafc",color:color}}>
+                {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#0c4a6e"; return (<div key={item.id} onMouseDown={function(e){e.preventDefault();onChange({target:{value:item.id}});setOpen(false);setSearch("");}} style={{padding:"6px 10px",fontSize:11,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f8fafc",color:color}}>
                   <span>{item.name} ({kcal} kcal)</span>
                   
                 </div>); })}
@@ -3778,7 +3782,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4 }}>{cat.label} ({cat.items.length} items, {cat.customs.length} custom)</div>
                   {cat.customs.map(function(item) {
                     var kcal = isJC ? item.jcKcal : item.beckKcal;
-                    var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#166534";
+                    var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#0c4a6e";
                     return (<div key={item.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
                       <span style={{ flex: 1, color: color }}>{item.name} ({kcal} kcal)</span>
                       <button onClick={function() { setEditingItem(editingItem === item.id ? null : item.id); }} style={{ fontSize: 9, color: accent, background: "none", border: "1px solid #e2e8f0", borderRadius: 4, padding: "2px 6px", cursor: "pointer", marginRight: 4 }}>{editingItem === item.id ? "Cancel" : "Update"}</button><button onClick={async function() { if(confirm("Delete " + item.name + "?")) { var u = cat.customs.filter(function(x){return x.id !== item.id;}); cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u)); setFormMsg("Deleted " + item.name); setTimeout(function(){setFormMsg("");},2000); }}} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "1px solid #fecaca", borderRadius: 4, padding: "2px 6px", cursor: "pointer" }}>Delete</button>
@@ -3816,7 +3820,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       <span><b>{cameraPreview.fat}g</b> fat</span>
                       {cameraPreview.satFat > 0 && <span><b>{cameraPreview.satFat}g</b> sat fat</span>}
                     </div>
-                    <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: cameraPreview.rating === "RED" ? "#fef2f2" : cameraPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: cameraPreview.rating === "RED" ? "#dc2626" : cameraPreview.rating === "AMBER" ? "#d97706" : "#166534", border: "1px solid " + (cameraPreview.rating === "RED" ? "#fecaca" : cameraPreview.rating === "AMBER" ? "#fde68a" : "#86efac") }}>{cameraPreview.rating}</div>
+                    <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: cameraPreview.rating === "RED" ? "#fef2f2" : cameraPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: cameraPreview.rating === "RED" ? "#dc2626" : cameraPreview.rating === "AMBER" ? "#d97706" : "#0c4a6e", border: "1px solid " + (cameraPreview.rating === "RED" ? "#fecaca" : cameraPreview.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{cameraPreview.rating}</div>
                     {cameraPreview.suitability && <div style={{ fontSize: 11, color: "#475569", fontStyle: "italic", lineHeight: 1.4, marginBottom: 6 }}>{cameraPreview.suitability}</div>}
                     <div style={{ display: "flex", gap: 6 }}>
                       <button onClick={async function() {
@@ -3863,7 +3867,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               var limit2 = isJC ? 2200 : 1900;
               var color2 = avg2 === 0 ? "#94a3b8" : avg2 > limit2 ? "#dc2626" : "#16a34a";
               return avg2 > 0 ? (<span style={{ fontSize: 11, fontWeight: 600, color: color2 }}>— Avg {avg2} kcal/day</span>) : null;
-            })()}</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyWeekOpen(!copyWeekOpen); setCopyWeekTargets({}); }} style={{ padding: "4px 10px", background: copyWeekOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (copyWeekOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, cursor: "pointer", color: copyWeekOpen ? "#fff" : "#475569", display: "flex", alignItems: "center", gap: 3 }}>{copyWeekOpen ? "✕" : <span>📋 Copy Week</span>}</button><button onClick={function(){setEatWeekEyeOpen(!eatWeekEyeOpen);}} style={{ padding: "4px 10px", background: eatWeekEyeOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (eatWeekEyeOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 12, cursor: "pointer", color: eatWeekEyeOpen ? "#fff" : "#475569" }}>{eatWeekEyeOpen ? "✕" : "👁"}</button></div></div>
+            })()}</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyWeekOpen(!copyWeekOpen); setCopyWeekTargets({}); }} style={{ padding: "4px 10px", background: copyWeekOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (copyWeekOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, cursor: "pointer", color: copyWeekOpen ? "#fff" : "#475569", display: "flex", alignItems: "center", gap: 3 }}>{copyWeekOpen ? "✕" : <span>📋 Copy Week</span>}</button><button onClick={function(){setEatWeekEyeOpen(!eatWeekEyeOpen);}} style={{ padding: "4px 10px", background: eatWeekEyeOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (eatWeekEyeOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", color: eatWeekEyeOpen ? "#fff" : "#475569", display: "flex", alignItems: "center", gap: 3 }}>{eatWeekEyeOpen ? "✕" : "👁 Progress"}</button></div></div>
 
             {copyWeekOpen && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 10, marginBottom: 10, border: "1px solid #e2e8f0" }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Copy this week's day selections to:</div>
@@ -4036,14 +4040,14 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       })}
                     </tbody>
                     <tfoot>
-                      <tr style={{ background: "#dcfce7", borderTop: "2px solid #0f172a" }}>
-                        <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 11, color: "#166534", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Total</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekTotalConsumed > limKcal * 7 ? "#dc2626" : "#166534" }}>{weekTotalConsumed}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekProtConsumed < (isJC ? 110 : 90) * 7 ? "#dc2626" : "#166534" }}>{weekProtConsumed || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekSfatConsumed > 20 * 7 ? "#dc2626" : "#166534" }}>{Math.round(weekSfatConsumed * 10) / 10 || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekCarbsConsumed > limCarbs * 7 ? "#dc2626" : "#166534" }}>{weekCarbsConsumed || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekFibConsumed < (isJC ? 30 : 25) * 7 ? "#dc2626" : "#166534" }}>{weekFibConsumed || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekSaltConsumed > 6 * 7 ? "#dc2626" : "#166534" }}>{Math.round(weekSaltConsumed * 10) / 10 || "-"}</td>
+                      <tr style={{ background: "#e0f2fe", borderTop: "2px solid #0f172a" }}>
+                        <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 11, color: "#0c4a6e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Total</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekTotalConsumed > limKcal * 7 ? "#dc2626" : "#0c4a6e" }}>{weekTotalConsumed}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekProtConsumed < (isJC ? 110 : 90) * 7 ? "#dc2626" : "#0c4a6e" }}>{weekProtConsumed || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekSfatConsumed > 20 * 7 ? "#dc2626" : "#0c4a6e" }}>{Math.round(weekSfatConsumed * 10) / 10 || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekCarbsConsumed > limCarbs * 7 ? "#dc2626" : "#0c4a6e" }}>{weekCarbsConsumed || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekFibConsumed < (isJC ? 30 : 25) * 7 ? "#dc2626" : "#0c4a6e" }}>{weekFibConsumed || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekSaltConsumed > 6 * 7 ? "#dc2626" : "#0c4a6e" }}>{Math.round(weekSaltConsumed * 10) / 10 || "-"}</td>
                         <td></td>
                       </tr>
                       <tr style={{ background: "#f1f5f9" }}>
@@ -4066,12 +4070,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         var dSalt = weekSaltConsumed - wLimSalt;
                         return (<tr style={{ background: "#fafafa" }}>
                           <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 10, color: "#475569" }}>+/−</td>
-                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dKcal > 0 ? "#dc2626" : "#166534" }}>{(dKcal > 0 ? "+" : "") + dKcal}</td>
-                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dProt < 0 ? "#dc2626" : "#166534" }}>{(dProt > 0 ? "+" : "") + dProt}</td>
-                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dSfat > 0 ? "#dc2626" : "#166534" }}>{(dSfat > 0 ? "+" : "") + Math.round(dSfat * 10) / 10}</td>
-                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dCarbs > 0 ? "#dc2626" : "#166534" }}>{(dCarbs > 0 ? "+" : "") + dCarbs}</td>
-                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dFib < 0 ? "#dc2626" : "#166534" }}>{(dFib > 0 ? "+" : "") + dFib}</td>
-                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dSalt > 0 ? "#dc2626" : "#166534" }}>{(dSalt > 0 ? "+" : "") + Math.round(dSalt * 10) / 10}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dKcal > 0 ? "#dc2626" : "#0c4a6e" }}>{(dKcal > 0 ? "+" : "") + dKcal}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dProt < 0 ? "#dc2626" : "#0c4a6e" }}>{(dProt > 0 ? "+" : "") + dProt}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dSfat > 0 ? "#dc2626" : "#0c4a6e" }}>{(dSfat > 0 ? "+" : "") + Math.round(dSfat * 10) / 10}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dCarbs > 0 ? "#dc2626" : "#0c4a6e" }}>{(dCarbs > 0 ? "+" : "") + dCarbs}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dFib < 0 ? "#dc2626" : "#0c4a6e" }}>{(dFib > 0 ? "+" : "") + dFib}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dSalt > 0 ? "#dc2626" : "#0c4a6e" }}>{(dSalt > 0 ? "+" : "") + Math.round(dSalt * 10) / 10}</td>
                           <td></td>
                         </tr>);
                       })()}
@@ -4328,13 +4332,13 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 React.createElement("div", { style: { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" } },
                   efb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", efb._when, " for ", isJC ? "JC" : "Becks"),
                   React.createElement("div", { style: { padding: "8px 14px", borderBottom: "1px solid #e2e8f0" } }, React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f" } }, "My Companion Feedback")),
-                  React.createElement("div", { style: { padding: "12px 14px", background: "#dcfce7", borderBottom: "1px solid #bbf7d0" } },
-                    React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#166534" } }, "What went well this week"),
-                    (efb.wins || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#166534", marginTop: 4 } }, "✓ ", w); })
+                  React.createElement("div", { style: { padding: "12px 14px", background: "#e0f2fe", borderBottom: "1px solid #bae6fd" } },
+                    React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#0c4a6e" } }, "What went well this week"),
+                    (efb.wins || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#0c4a6e", marginTop: 4 } }, "✓ ", w); })
                   ),
-                  React.createElement("div", { style: { padding: "12px 14px", background: "#fef9c3", borderBottom: "1px solid #fde68a" } },
-                    React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#854d0e" } }, "Tweaks for next week"),
-                    (efb.tweaks || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#854d0e", marginTop: 4 } }, "→ ", t); })
+                  React.createElement("div", { style: { padding: "12px 14px", background: "#fef3c7", borderBottom: "1px solid #fcd34d" } },
+                    React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#92400e" } }, "Tweaks for next week"),
+                    (efb.tweaks || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#92400e", marginTop: 4 } }, "→ ", t); })
                   ),
                   React.createElement("div", { style: { padding: "12px 14px", background: "#dbeafe" } },
                     React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#1e40af" } }, "Weekly outlook"),
@@ -4349,7 +4353,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           {/* Day content */}
           {eatDay !== "week" && <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyDayOpen(!copyDayOpen); setCopyDayTargets({}); }} style={{ padding: "4px 10px", background: copyDayOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (copyDayOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, cursor: "pointer", color: copyDayOpen ? "#fff" : "#475569", display: "flex", alignItems: "center", gap: 3 }}>{copyDayOpen ? "✕" : <span>📋 Copy Day</span>}</button><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);}} style={{ padding: "4px 10px", background: eatDayEyeOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (eatDayEyeOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 12, cursor: "pointer", color: eatDayEyeOpen ? "#fff" : "#475569" }}>{eatDayEyeOpen ? "✕" : "👁"}</button></div></div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyDayOpen(!copyDayOpen); setCopyDayTargets({}); }} style={{ padding: "4px 10px", background: copyDayOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (copyDayOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, cursor: "pointer", color: copyDayOpen ? "#fff" : "#475569", display: "flex", alignItems: "center", gap: 3 }}>{copyDayOpen ? "✕" : <span>📋 Copy Day</span>}</button><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);}} style={{ padding: "4px 10px", background: eatDayEyeOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (eatDayEyeOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", color: eatDayEyeOpen ? "#fff" : "#475569", display: "flex", alignItems: "center", gap: 3 }}>{eatDayEyeOpen ? "✕" : "👁 Progress"}</button></div></div>
 
             {copyDayOpen && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 10, marginBottom: 10, border: "1px solid #e2e8f0" }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Copy {eatDay.charAt(0).toUpperCase() + eatDay.slice(1)}'s selections to:</div>
@@ -4462,14 +4466,14 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       })}
                     </tbody>
                     <tfoot>
-                      <tr style={{ background: "#dcfce7", borderTop: "2px solid #0f172a" }}>
-                        <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 11, color: "#166534", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Total</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayTotalConsumed > (isJC ? 2200 : 1900) ? "#dc2626" : "#166534" }}>{dayTotalConsumed}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayProtConsumed < (isJC ? 110 : 90) ? "#dc2626" : "#166534" }}>{dayProtConsumed || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: daySfatConsumed > 20 ? "#dc2626" : "#166534" }}>{daySfatConsumed || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayCarbsConsumed > (isJC ? 300 : 260) ? "#dc2626" : "#166534" }}>{dayCarbsConsumed || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayFibConsumed < (isJC ? 30 : 25) ? "#dc2626" : "#166534" }}>{dayFibConsumed || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: daySaltConsumed > 6 ? "#dc2626" : "#166534" }}>{daySaltConsumed || "-"}</td>
+                      <tr style={{ background: "#e0f2fe", borderTop: "2px solid #0f172a" }}>
+                        <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 11, color: "#0c4a6e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Total</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayTotalConsumed > (isJC ? 2200 : 1900) ? "#dc2626" : "#0c4a6e" }}>{dayTotalConsumed}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayProtConsumed < (isJC ? 110 : 90) ? "#dc2626" : "#0c4a6e" }}>{dayProtConsumed || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: daySfatConsumed > 20 ? "#dc2626" : "#0c4a6e" }}>{daySfatConsumed || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayCarbsConsumed > (isJC ? 300 : 260) ? "#dc2626" : "#0c4a6e" }}>{dayCarbsConsumed || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayFibConsumed < (isJC ? 30 : 25) ? "#dc2626" : "#0c4a6e" }}>{dayFibConsumed || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: daySaltConsumed > 6 ? "#dc2626" : "#0c4a6e" }}>{daySaltConsumed || "-"}</td>
                       </tr>
                     <tr style={{ background: "#f1f5f9" }}>
                         <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 10, color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Recommended</td>
@@ -4493,12 +4497,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         var dCarbs = dayCarbsConsumed - limCarbs;
                         var dFib = dayFibConsumed - limFib;
                         var dSalt = daySaltConsumed - limSalt;
-                        var kcalColor = dKcal > 0 ? "#dc2626" : "#166534";
-                        var protColor = dProt < 0 ? "#dc2626" : "#166534";
-                        var sfatColor = dSfat > 0 ? "#dc2626" : "#166534";
-                        var carbsColor = dCarbs > 0 ? "#dc2626" : "#166534";
-                        var fibColor = dFib < 0 ? "#dc2626" : "#166534";
-                        var saltColor = dSalt > 0 ? "#dc2626" : "#166534";
+                        var kcalColor = dKcal > 0 ? "#dc2626" : "#0c4a6e";
+                        var protColor = dProt < 0 ? "#dc2626" : "#0c4a6e";
+                        var sfatColor = dSfat > 0 ? "#dc2626" : "#0c4a6e";
+                        var carbsColor = dCarbs > 0 ? "#dc2626" : "#0c4a6e";
+                        var fibColor = dFib < 0 ? "#dc2626" : "#0c4a6e";
+                        var saltColor = dSalt > 0 ? "#dc2626" : "#0c4a6e";
                         return (<tr style={{ background: "#fafafa" }}>
                           <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 10, color: "#475569" }}>+/−</td>
                           <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: kcalColor }}>{(dKcal > 0 ? "+" : "") + dKcal}</td>
@@ -4594,9 +4598,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
-                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#166534", fontWeight: 600 }}>{portionResult.kcal}</div>
+                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
                     <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
-                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#166534", fontWeight: 600 }}>{portionResult.satFat}g</div>
+                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
                   </div>
                   {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
                   <div style={{ display: "flex", gap: 6 }}>
@@ -4648,9 +4652,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
-                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#166534", fontWeight: 600 }}>{portionResult.kcal}</div>
+                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
                     <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
-                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#166534", fontWeight: 600 }}>{portionResult.satFat}g</div>
+                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
                   </div>
                   {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
                   <div style={{ display: "flex", gap: 6 }}>
@@ -4702,9 +4706,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
-                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#166534", fontWeight: 600 }}>{portionResult.kcal}</div>
+                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
                     <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
-                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#166534", fontWeight: 600 }}>{portionResult.satFat}g</div>
+                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
                   </div>
                   {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
                   <div style={{ display: "flex", gap: 6 }}>
@@ -4754,9 +4758,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
-                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#166534", fontWeight: 600 }}>{portionResult.kcal}</div>
+                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
                     <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
-                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#166534", fontWeight: 600 }}>{portionResult.satFat}g</div>
+                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
                   </div>
                   {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
                   <div style={{ display: "flex", gap: 6 }}>
@@ -4806,9 +4810,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
-                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#166534", fontWeight: 600 }}>{portionResult.kcal}</div>
+                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
                     <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
-                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#166534", fontWeight: 600 }}>{portionResult.satFat}g</div>
+                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
                   </div>
                   {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
                   <div style={{ display: "flex", gap: 6 }}>
@@ -4855,9 +4859,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
-                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#166534", fontWeight: 600 }}>{portionResult.kcal}</div>
+                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
                     <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
-                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#166534", fontWeight: 600 }}>{portionResult.satFat}g</div>
+                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
                   </div>
                   {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
                   <div style={{ display: "flex", gap: 6 }}>
@@ -4949,7 +4953,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     {helpEatResult.fibre > 0 && <span><b>{helpEatResult.fibre}g</b> fib</span>}
                     {helpEatResult.salt > 0 && <span><b>{helpEatResult.salt}g</b> salt</span>}
                   </div>
-                  <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: helpEatResult.rating === "RED" ? "#fef2f2" : helpEatResult.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: helpEatResult.rating === "RED" ? "#dc2626" : helpEatResult.rating === "AMBER" ? "#d97706" : "#166534", border: "1px solid " + (helpEatResult.rating === "RED" ? "#fecaca" : helpEatResult.rating === "AMBER" ? "#fde68a" : "#86efac") }}>{helpEatResult.rating}</div>
+                  <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: helpEatResult.rating === "RED" ? "#fef2f2" : helpEatResult.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: helpEatResult.rating === "RED" ? "#dc2626" : helpEatResult.rating === "AMBER" ? "#d97706" : "#0c4a6e", border: "1px solid " + (helpEatResult.rating === "RED" ? "#fecaca" : helpEatResult.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{helpEatResult.rating}</div>
                   {helpEatResult.recommendation && <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.4, marginBottom: 4 }}>{helpEatResult.recommendation}</div>}
                   {helpEatResult.alternatives && <div style={{ fontSize: 10, color: "#64748b", fontStyle: "italic", lineHeight: 1.4 }}>Also consider: {helpEatResult.alternatives}</div>}
                 </div>
@@ -5012,13 +5016,13 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 React.createElement("div", { style: { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" } },
                   efb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", efb._when, " for ", isJC ? "JC" : "Becks"),
                   React.createElement("div", { style: { padding: "8px 14px", borderBottom: "1px solid #e2e8f0" } }, React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f" } }, "My Companion Feedback")),
-                  React.createElement("div", { style: { padding: "12px 14px", background: "#dcfce7", borderBottom: "1px solid #bbf7d0" } },
-                    React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#166534" } }, "What went well"),
-                    (efb.wins || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#166534", marginTop: 4 } }, "✓ ", w); })
+                  React.createElement("div", { style: { padding: "12px 14px", background: "#e0f2fe", borderBottom: "1px solid #bae6fd" } },
+                    React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#0c4a6e" } }, "What went well"),
+                    (efb.wins || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#0c4a6e", marginTop: 4 } }, "✓ ", w); })
                   ),
-                  React.createElement("div", { style: { padding: "12px 14px", background: "#fef9c3", borderBottom: "1px solid #fde68a" } },
-                    React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#854d0e" } }, "Could be even better"),
-                    (efb.tweaks || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#854d0e", marginTop: 4 } }, "→ ", t); })
+                  React.createElement("div", { style: { padding: "12px 14px", background: "#fef3c7", borderBottom: "1px solid #fcd34d" } },
+                    React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#92400e" } }, "Could be even better"),
+                    (efb.tweaks || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#92400e", marginTop: 4 } }, "→ ", t); })
                   ),
                   React.createElement("div", { style: { padding: "12px 14px", background: "#dbeafe" } },
                     React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#1e40af" } }, "Outlook"),
@@ -5103,7 +5107,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     {foodCheckerPreview.fibre > 0 && <span><b>{foodCheckerPreview.fibre}g</b> fib</span>}
                     {foodCheckerPreview.salt > 0 && <span><b>{foodCheckerPreview.salt}g</b> salt</span>}
                   </div>
-                  <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: foodCheckerPreview.rating === "RED" ? "#fef2f2" : foodCheckerPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: foodCheckerPreview.rating === "RED" ? "#dc2626" : foodCheckerPreview.rating === "AMBER" ? "#d97706" : "#166534", border: "1px solid " + (foodCheckerPreview.rating === "RED" ? "#fecaca" : foodCheckerPreview.rating === "AMBER" ? "#fde68a" : "#86efac") }}>{foodCheckerPreview.rating}</div>
+                  <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: foodCheckerPreview.rating === "RED" ? "#fef2f2" : foodCheckerPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: foodCheckerPreview.rating === "RED" ? "#dc2626" : foodCheckerPreview.rating === "AMBER" ? "#d97706" : "#0c4a6e", border: "1px solid " + (foodCheckerPreview.rating === "RED" ? "#fecaca" : foodCheckerPreview.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{foodCheckerPreview.rating}</div>
                   {foodCheckerPreview.suitability && <div style={{ fontSize: 11, color: "#475569", fontStyle: "italic", lineHeight: 1.4 }}>{foodCheckerPreview.suitability}</div>}
                 </div>
                 {!foodCheckerCategory ? (<div>
@@ -5174,7 +5178,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           {!generatedShop && shopList.length === 0 && <div style={{ textAlign: "center", padding: "16px 12px", color: "#94a3b8", fontSize: 12 }}>Plan meals on the Eating tab first, then generate your shop.</div>}
           <div style={{ fontSize: 13, fontWeight: 700, marginTop: 8, marginBottom: 8 }}>Weekly Staples</div>
           <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, fontSize: 12, color: "#475569", lineHeight: 1.8 }}>
-            <div style={{ fontWeight: 600, color: "#166534", marginBottom: 4 }}>Portfolio Diet</div>Brooklea Cholesterol Drink (Beck) · ProActiv · Morrisons Oats · Pumpkin seeds · Sunflower seeds · Frozen berries
+            <div style={{ fontWeight: 600, color: "#0c4a6e", marginBottom: 4 }}>Portfolio Diet</div>Brooklea Cholesterol Drink (Beck) · ProActiv · Morrisons Oats · Pumpkin seeds · Sunflower seeds · Frozen berries
             <div style={{ fontWeight: 600, color: "#1e293b", marginTop: 8, marginBottom: 4 }}>Protein & Dairy</div>Chicken breast strips · Eggs · Half-fat cheddar · Fromage frais · Skimmed milk · Alpro almond (JC) · Babybel Light
             <div style={{ fontWeight: 600, color: "#1e293b", marginTop: 8, marginBottom: 4 }}>Snacks</div>Brooklea protein mousses · Lindahls Kvarg · Popcorn · Snack-a-Jacks · Trek/Nakd bars · Aldi porridge pots (JC)
             <div style={{ fontWeight: 600, color: "#1e293b", marginTop: 8, marginBottom: 4 }}>Veg</div>Frozen peas · Sweetcorn · Broccoli · Carrots · Courgette · Cucumber · Tomatoes · Salad · Bananas (Beck)
@@ -5219,8 +5223,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {(p.healthLog || []).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12 }}>No health log entries yet</div>}
             </div>
             {/* Medical Priorities */}
-            {isJC ? <div style={{ background: "#dbeafe", borderRadius: 10, padding: 12, fontSize: 12, color: "#1e40af", lineHeight: 1.5, marginTop: 12 }}>Medical priority: TSH stabilisation \u2192 unlocks statin effectiveness \u2192 lipid improvement. HbA1c monitoring \u2014 thyroid normalisation expected to help.</div>
-            : <div style={{ background: "#ede9fe", borderRadius: 10, padding: 12, fontSize: 12, color: "#5b21b6", lineHeight: 1.5, marginTop: 12 }}>Medical priority: Lipid clinic referral \u2192 statin + ezetimibe, FH genetic confirmation. Menopause review. Atorvastatin fatigue at GP review. Portfolio Diet at ~70-75% coverage.</div>}
+            {isJC ? <div style={{ background: "#dbeafe", borderRadius: 10, padding: 12, fontSize: 12, color: "#1e40af", lineHeight: 1.5, marginTop: 12 }}>Medical priority: TSH stabilisation → unlocks statin effectiveness → lipid improvement. HbA1c monitoring — thyroid normalisation expected to help.</div>
+            : <div style={{ background: "#ede9fe", borderRadius: 10, padding: 12, fontSize: 12, color: "#5b21b6", lineHeight: 1.5, marginTop: 12 }}>Medical priority: Lipid clinic referral → statin + ezetimibe, FH genetic confirmation. Menopause review. Atorvastatin fatigue at GP review. Portfolio Diet at ~70-75% coverage.</div>}
           </div>)}
 
           {healthView === "vitals" && (<div>
@@ -5381,7 +5385,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             </div>
             {googleConnected ? (
               <div>
-                <div style={{ padding: 8, background: "#dcfce7", borderRadius: 6, fontSize: 11, color: "#166534", fontWeight: 600, marginBottom: 8 }}>✓ Connected to Google Health</div>
+                <div style={{ padding: 8, background: "#e0f2fe", borderRadius: 6, fontSize: 11, color: "#0c4a6e", fontWeight: 600, marginBottom: 8 }}>✓ Connected to Google Health</div>
                 <button onClick={syncGoogleHealth} disabled={syncLoading} style={{ width: "100%", padding: 10, background: syncLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: syncLoading ? "not-allowed" : "pointer" }}>{syncLoading ? <span>Syncing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🔄 Sync Google Health Data"}</button>
                 <button onClick={function() { setGoogleConnected(false); setGoogleToken(null); sSet("google_token_" + activeTab, ""); }} style={{ width: "100%", padding: 6, background: "none", border: "none", fontSize: 10, color: "#dc2626", cursor: "pointer", marginTop: 4 }}>Disconnect</button>
               </div>
@@ -5555,7 +5559,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           setTimeout(function(){setFormMsg("");}, 30000);
         }} style={{ width: "100%", padding: 8, background: accent, color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Show All Firebase Keys</button>
       </div>
-      <div style={{ marginTop: 10, padding: 10, background: "#fef3c7", borderRadius: 8, border: "1px solid #fde68a" }}>
+      <div style={{ marginTop: 10, padding: 10, background: "#fef3c7", borderRadius: 8, border: "1px solid #fcd34d" }}>
         <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6 }}>Recovery: Read Comment Keys</div>
         <div style={{ fontSize: 10, color: "#475569", marginBottom: 6 }}>Comments are saved separately at log time. Missing weeks may be recoverable.</div>
         <button onClick={async function() {
@@ -5642,7 +5646,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
         }} style={{ width: "100%", padding: 8, background: "#dc2626", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Restore Missing Weeks from Comments</button>
       </div>
       <div style={{ marginTop: 10, padding: 10, background: "#ecfdf5", borderRadius: 8, border: "1px solid #86efac" }}>
-        <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6, color: "#166534" }}>Restore from Firebase Export</div>
+        <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6, color: "#0c4a6e" }}>Restore from Firebase Export</div>
         <div style={{ fontSize: 10, color: "#475569", marginBottom: 6 }}>Paste your Firebase JSON export below and press Restore. This will merge missing weeks into current data without overwriting existing entries.</div>
         <textarea id="restore-json" placeholder="Paste the full JSON here..." style={{ width: "100%", padding: 8, border: "1px solid #86efac", borderRadius: 6, fontSize: 10, minHeight: 80, resize: "vertical", boxSizing: "border-box", marginBottom: 6, fontFamily: "monospace" }}></textarea>
         <button onClick={async function() {
@@ -5719,7 +5723,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         My Lifecare Companion · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.289.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.289.1
       </div>
 
       {/* Floating Ask a Question button */}
@@ -5739,7 +5743,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             <button onClick={askQuestion} disabled={qaLoading} style={{ width: "100%", padding: 12, background: qaLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: qaLoading ? "not-allowed" : "pointer", opacity: qaLoading ? 0.7 : 1 }}>{qaLoading ? <span>Thinking, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Ask"}</button>
             {qaMsg && <div style={{ marginTop: 6, padding: 8, borderRadius: 6, background: qaMsg.startsWith("Error") ? "#fee2e2" : "#dbeafe", color: qaMsg.startsWith("Error") ? "#991b1b" : "#1e40af", fontSize: 11, fontWeight: 600 }}>{qaMsg}</div>}
             {qaHistory[activeTab] && qaHistory[activeTab].length > 0 && (<div style={{ marginTop: 12 }}>
-              {qaHistory[activeTab].slice(-3).reverse().map((qa, i) => (<div key={i} style={{ padding: 10, background: i === 0 ? "#f0fdf4" : "#f8fafc", borderRadius: 8, marginBottom: 6, border: i === 0 ? "1px solid #bbf7d0" : "1px solid #e2e8f0" }}>
+              {qaHistory[activeTab].slice(-3).reverse().map((qa, i) => (<div key={i} style={{ padding: 10, background: i === 0 ? "#f0fdf4" : "#f8fafc", borderRadius: 8, marginBottom: 6, border: i === 0 ? "1px solid #bae6fd" : "1px solid #e2e8f0" }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Q: {qa.q} <span style={{ fontWeight: 400, color: "#94a3b8" }}>· {qa.when}</span></div>
                 <div style={{ fontSize: 12, color: "#0f172a", lineHeight: 1.5 }}>{qa.a}</div>
               </div>))}
