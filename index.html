@@ -2179,18 +2179,12 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <div style={{ fontSize: 14, fontWeight: 700 }}>{prof.name || "New User"}</div>
               <div style={{ display: "flex", gap: 4 }}>
-                <button onClick={() => { setShowProfile(!showProfile); setProfileInputs(Object.assign({}, prof)); }} style={{ fontSize: 10, color: "#64748b", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, padding: "3px 8px", cursor: "pointer" }}>{showProfile ? "Close" : "Edit Profile"}</button>
-                <button onClick={() => { if (!showOnboarding) { var ob = p.onboarding || {}; setOnboardInputs(Object.assign({ conditions: "", medications: "", neurodiversity: "", bloods: "", goals: "", activity: "", equipment: "", dietary: "", allergies: "", livingSituation: "", familyHistory: "", personalityType: "", motivationStyle: "", whatDerails: "", accountabilityPref: "", occupation: "", workPattern: "", workHours: "", commute: "", sleepHours: "", sleepQuality: "", sleepIssues: "", screensBed: "", caffeineCutoff: "", cookingConfidence: "", eatingOutFreq: "", whoCooks: "", mealRegularity: "", emotionalEating: "", waterIntake: "", caffeineDaily: "", alcoholFrequency: "", stressLevel: "", mainStressors: "", copingStrategies: "", mentalHealth: "", currentSupport: "", injuries: "", painAreas: "", weightHighest: "", weightLowest: "", previousDiets: "" }, ob, { name: ob.name || prof.name || "", dob: ob.dob || prof.dob || "", sex: ob.sex || prof.sex || "", height: ob.height || prof.height || "" })); setSetupTab("profile"); } setShowOnboarding(!showOnboarding); }} style={{ fontSize: 10, color: "#166534", background: "#dcfce7", border: "1px solid #86efac", borderRadius: 6, padding: "3px 8px", cursor: "pointer" }}>{showOnboarding ? "Close" : "Setup"}</button>
+                <button onClick={() => { if (!showOnboarding) { var ob = p.onboarding || {}; setOnboardInputs(Object.assign({ conditions: "", medications: "", neurodiversity: "", bloods: "", goals: "", activity: "", equipment: "", dietary: "", allergies: "", livingSituation: "", familyHistory: "", personalityType: "", motivationStyle: "", whatDerails: "", accountabilityPref: "", occupation: "", workPattern: "", workHours: "", commute: "", sleepHours: "", sleepQuality: "", sleepIssues: "", screensBed: "", caffeineCutoff: "", cookingConfidence: "", eatingOutFreq: "", whoCooks: "", mealRegularity: "", emotionalEating: "", waterIntake: "", caffeineDaily: "", alcoholFrequency: "", stressLevel: "", mainStressors: "", copingStrategies: "", mentalHealth: "", currentSupport: "", injuries: "", painAreas: "", weightHighest: "", weightLowest: "", previousDiets: "" }, ob, { name: ob.name || prof.name || "", dob: ob.dob || prof.dob || "", sex: ob.sex || prof.sex || "", height: ob.height || prof.height || "" })); setSetupTab("profile"); } setShowOnboarding(!showOnboarding); }} style={{ fontSize: 10, color: "#475569", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, padding: "3px 8px", cursor: "pointer" }}>{showOnboarding ? "✕ Close" : "✏️ Edit My Profile"}</button>
               </div>
             </div>
-            {!showProfile && !showOnboarding && (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, fontSize: 11, color: "#475569" }}>
+            {!showOnboarding && (<div style={{ display: "flex", gap: 12, fontSize: 11, color: "#475569" }}>
               <div>Age: <strong>{calcAge(prof.dob) || prof.age || "—"}</strong></div>
               <div>Sex: <strong>{prof.sex || "—"}</strong></div>
-              <div>Height: <strong>{prof.height || "—"}</strong></div>
-              <div>Ideal: <strong>{prof.idealWeight || "—"}</strong></div>
-              <div style={{ gridColumn: "1 / -1" }}>Type: <strong>{prof.bodyType || "—"}</strong></div>
-              <div style={{ gridColumn: "1 / -1" }}>Fibre: <strong>{prof.fibreType || "—"}</strong></div>
-              {prof.notes && <div style={{ gridColumn: "1 / -1", color: "#94a3b8", fontSize: 10, marginTop: 4 }}>{prof.notes}</div>}
             </div>)}
 
             {/* ONBOARDING QUESTIONNAIRE — TABBED */}
@@ -2265,12 +2259,20 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   Your data is used solely by your Lifecare Companion to tailor recommendations, feedback and support to work best with you and achieve the best possible outcome. No information is shared with third parties. Any AI-generated content is processed without linking it to any identifiable individual. You choose what information to share — more detail helps your Companion provide better, more personalised guidance, but every field is optional.
                 </div>
 
-                {/* Tab bar */}
-                <div style={{ display: "flex", overflowX: "auto", gap: 0, marginBottom: 10, borderBottom: "2px solid #e2e8f0", WebkitOverflowScrolling: "touch", msOverflowStyle: "none", scrollbarWidth: "none" }}>
-                  {SETUP_TABS.map(function(tab) {
-                    var active = setupTab === tab.id;
-                    return (<button key={tab.id} onClick={function() { setSetupTab(tab.id); }} style={{ padding: "8px 12px", fontSize: 11, fontWeight: active ? 700 : 500, color: active ? "#7c3aed" : "#64748b", background: "none", border: "none", borderBottom: active ? "2px solid #7c3aed" : "2px solid transparent", marginBottom: -2, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, transition: "all 0.15s" }}>{tab.l}</button>);
-                  })}
+                {/* Tab bar — double row grey pills */}
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: 8, padding: 2, marginBottom: 2 }}>
+                    {SETUP_TABS.slice(0, 5).map(function(tab) {
+                      var active = setupTab === tab.id;
+                      return (<button key={tab.id} onClick={function() { setSetupTab(tab.id); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: active ? "#fff" : "transparent", color: active ? "#0f172a" : "#94a3b8" }}>{tab.l}</button>);
+                    })}
+                  </div>
+                  <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: 8, padding: 2 }}>
+                    {SETUP_TABS.slice(5).map(function(tab) {
+                      var active = setupTab === tab.id;
+                      return (<button key={tab.id} onClick={function() { setSetupTab(tab.id); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: active ? "#fff" : "transparent", color: active ? "#0f172a" : "#94a3b8" }}>{tab.l}</button>);
+                    })}
+                  </div>
                 </div>
 
                 {/* ═══ MY PROFILE (read-only generated) ═══ */}
@@ -2343,6 +2345,34 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     </label>
                   </div>
 
+                  {/* My Companion Body Type Check */}
+                  <div style={{ marginTop: 10, padding: 12, background: "#eff6ff", borderRadius: 8, border: "1px solid #bfdbfe" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>🔍 My Companion Body Type Check</div>
+                    <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>Uses your answers, photos, and body comp data to determine body type, fibre dominance, ideal weight, and personalised assessment.</div>
+                    <button onClick={async function() {
+                      setGenPlanLoading(true); setFormMsg("Analysing body type...");
+                      try {
+                        var obd = p.onboarding || onboardInputs;
+                        var prompt = "Based on this person's information, generate a body profile. " + (obd.name || "") + ", age " + (calcAge(obd.dob || prof.dob) || obd.age || prof.age || "") + ", " + (obd.sex || prof.sex || "") + ", " + (obd.height || prof.height || "") + ". Conditions: " + (obd.conditions || "none stated") + ". Medications: " + (obd.medications || "none") + ". Neurodiversity: " + (obd.neurodiversity || "none") + ". Activity: " + (obd.activity || "unknown") + ". Goals: " + (obd.goals || "general health") + ". Living: " + (obd.livingSituation || "not stated") + ". Work: " + (obd.occupation || "") + " " + (obd.workPattern || "") + ". Sleep: " + (obd.sleepHours || "") + "hrs, quality " + (obd.sleepQuality || "?") + "/5. Stress: " + (obd.stressLevel || "?") + "/5. " + (p.bodyAnalysis ? "Photo analysis: " + JSON.stringify(p.bodyAnalysis) : "") + ". Return ONLY JSON: {\"bodyType\":\"e.g. Compact meso-endomorph\",\"fibreType\":\"e.g. Fast-twitch dominant\",\"idealWeight\":\"e.g. 13st 6lb\",\"notes\":\"key notes about this person\",\"assessment\":\"3-4 sentence assessment of current position and realistic expectations over 6-12 months\",\"priorities\":[\"priority 1\",\"priority 2\",\"priority 3\"]}";
+                        var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: prompt }] }) });
+                        var result = await resp.json(); var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
+                        if (txt) {
+                          var gen = JSON.parse(txt.replace(/```json|```/g, "").trim());
+                          var nd = JSON.parse(JSON.stringify(data));
+                          if (!nd[activeTab].profile) nd[activeTab].profile = {};
+                          if (gen.bodyType) nd[activeTab].profile.bodyType = gen.bodyType;
+                          if (gen.fibreType) nd[activeTab].profile.fibreType = gen.fibreType;
+                          if (gen.idealWeight) nd[activeTab].profile.idealWeight = gen.idealWeight;
+                          if (gen.notes) nd[activeTab].profile.notes = gen.notes;
+                          nd[activeTab].profileAssessment = gen;
+                          await saveData(nd); setAssessment(gen);
+                          setFormMsg("\u2713 Body type check complete"); setTimeout(function() { setFormMsg(""); }, 3000);
+                        }
+                      } catch(e) { setFormMsg("\u2717 Could not generate \u2014 check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
+                      setGenPlanLoading(false);
+                    }} disabled={genPlanLoading} style={{ width: "100%", padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: genPlanLoading ? "not-allowed" : "pointer", background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{genPlanLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "\ud83d\udd0d My Companion Body Type Check"}</button>
+                  </div>
+
                   {/* Baseline Body Comp Upload */}
                   {(() => { var hasBaseline = p.body && p.body.weight && p.body.weight.length > 0; return (
                     <div style={{ marginTop: 10, padding: 10, background: hasBaseline ? "#f1f5f9" : "#fef3c7", borderRadius: 8, border: "1px solid " + (hasBaseline ? "#e2e8f0" : "#fde68a"), opacity: hasBaseline ? 0.6 : 1 }}>
@@ -2350,31 +2380,12 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     </div>
                   ); })()}
 
-                  {/* Google Health Connect */}
-                  <div style={{ marginTop: 10, padding: 12, background: "#fff", borderRadius: 8, border: "1px solid " + (googleConnected ? "#86efac" : "#e2e8f0") }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📱 Google Health Connect</div>
-                    <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.5, marginBottom: 8 }}>
-                      <strong>Android Only</strong> — Syncs body composition and activity data from your phone via Google Health Connect.<br/>
-                      <strong>Setup:</strong> 1) Download <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata" target="_blank" style={{ color: "#2563eb" }}>Google Health Connect</a> from Play Store. 2) Open it and connect your Fitdays / health apps. 3) Tap Connect below.
-                    </div>
-                    {googleConnected ? (
-                      <div>
-                        <div style={{ padding: 8, background: "#dcfce7", borderRadius: 6, fontSize: 11, color: "#166534", fontWeight: 600, marginBottom: 8 }}>{"✓"} Connected to Google Health</div>
-                        <button onClick={syncGoogleHealth} disabled={syncLoading} style={{ width: "100%", padding: 10, background: syncLoading ? "#94a3b8" : "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: syncLoading ? "not-allowed" : "pointer" }}>{syncLoading ? <span>Syncing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🔄 Sync Google Health Data"}</button>
-                        <button onClick={function() { setGoogleConnected(false); setGoogleToken(null); sSet("google_token_" + activeTab, ""); }} style={{ width: "100%", padding: 6, background: "none", border: "none", fontSize: 10, color: "#dc2626", cursor: "pointer", marginTop: 4 }}>Disconnect</button>
-                      </div>
-                    ) : (
-                      <button onClick={connectGoogle} style={{ width: "100%", padding: 10, background: "#4285f4", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>{"🔗"} Connect Google Health</button>
-                    )}
-                  </div>
-
                   {/* Editable body profile fields */}
                   <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     {[["bodyType","Body Type"],["fibreType","Fibre Type"],["idealWeight","Ideal Weight"]].map(function(pair) { return (<div key={pair[0]} style={pair[0] === "bodyType" ? { gridColumn: "1 / -1" } : {}}><label style={labelStyle}>{pair[1]}</label><input value={profileInputs[pair[0]] || prof[pair[0]] || ""} onChange={function(e) { setProfileInputs(function(q) { var n = Object.assign({}, q); n[pair[0]] = e.target.value; return n; }); }} style={inputStyle} /></div>); })}
                   </div>
                   <div style={{ marginTop: 8 }}><label style={labelStyle}>Notes</label><textarea value={profileInputs.notes || prof.notes || ""} onChange={function(e) { setProfileInputs(function(q) { return Object.assign({}, q, { notes: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
-                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].profile = Object.assign({}, nd[activeTab].profile, profileInputs); await saveData(nd); setFormMsg("✓ Profile updated"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(), marginTop: 8 }}>Save Profile</button>
-                  <button onClick={saveSetup} style={{ ...btnP(), marginTop: 6 }}>Save All Setup</button>
+                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; nd[activeTab].profile = Object.assign({}, nd[activeTab].profile || {}, profileInputs); if (onboardInputs.name) nd[activeTab].profile.name = onboardInputs.name; if (onboardInputs.dob) { nd[activeTab].profile.dob = onboardInputs.dob; nd[activeTab].profile.age = calcAge(onboardInputs.dob); } if (onboardInputs.sex) nd[activeTab].profile.sex = onboardInputs.sex; if (onboardInputs.height) nd[activeTab].profile.height = onboardInputs.height; await saveData(nd); setFormMsg("✓ Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>Save Setup</button>
                 </div>)}
 
                 {/* ═══ MY FAMILY ═══ */}
@@ -2385,7 +2396,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     ["livingSituation", "Living situation", "ta", "e.g. Live with partner and 2 children, dog..."],
                     ["familyHistory", "Family health history", "ta", "e.g. Father — Type 2 diabetes, Mother — high cholesterol, Familial Hypercholesterolaemia suspected..."]
                   ])}
-                  <button onClick={saveSetup} style={{ ...btnP(), marginTop: 10 }}>Save</button>
+                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; await saveData(nd); setFormMsg("\u2713 Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>Save Setup</button>
                 </div>)}
 
                 {/* ═══ MY PERSONALITY ═══ */}
@@ -2398,7 +2409,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     ["whatDerails", "What typically derails your plans?", "ta", "e.g. Routine disruption, travel, stress, boredom, perfectionism..."],
                     ["accountabilityPref", "Accountability preference", "select", "", "Self-motivated", "Partner/friend", "Coach/app", "Group/class", "Mix of approaches"]
                   ])}
-                  <button onClick={saveSetup} style={{ ...btnP(), marginTop: 10 }}>Save</button>
+                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; await saveData(nd); setFormMsg("\u2713 Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>Save Setup</button>
                 </div>)}
 
                 {/* ═══ MY LIFESTYLE ═══ */}
@@ -2414,7 +2425,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     ["equipment", "Equipment available", "ta", "e.g. Marcy HG5000 home gym, dumbbells, resistance bands, gym membership..."],
                     ["goals", "Goals — what do you want to achieve?", "ta", "e.g. Lose weight, build muscle, improve cholesterol, get fitter..."]
                   ])}
-                  <button onClick={saveSetup} style={{ ...btnP(), marginTop: 10 }}>Save</button>
+                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; await saveData(nd); setFormMsg("\u2713 Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>Save Setup</button>
                 </div>)}
 
                 {/* ═══ MY SLEEP ═══ */}
@@ -2428,7 +2439,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     ["screensBed", "Screen use before bed", "select", "", "Phone/tablet in bed", "TV only", "No screens 30min before", "No screens 1hr+ before"],
                     ["caffeineCutoff", "Last caffeine of the day", "text", "e.g. 2pm, 4pm, after dinner, none..."]
                   ])}
-                  <button onClick={saveSetup} style={{ ...btnP(), marginTop: 10 }}>Save</button>
+                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; await saveData(nd); setFormMsg("\u2713 Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>Save Setup</button>
                 </div>)}
 
                 {/* ═══ MY EATING & DRINKING ═══ */}
@@ -2446,7 +2457,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     ["caffeineDaily", "Daily caffeine", "text", "e.g. 3 coffees, 2 teas, energy drinks..."],
                     ["alcoholFrequency", "Alcohol frequency", "select", "", "Never", "Rarely (special occasions)", "1-2 times/week", "3-4 times/week", "Most days", "Daily"]
                   ])}
-                  <button onClick={saveSetup} style={{ ...btnP(), marginTop: 10 }}>Save</button>
+                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; await saveData(nd); setFormMsg("\u2713 Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>Save Setup</button>
                 </div>)}
 
                 {/* ═══ MY WELLBEING ═══ */}
@@ -2461,7 +2472,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     ["mentalHealth", "Mental health", "ta", "e.g. Anxiety, depression, on medication, seeing therapist, no concerns..."],
                     ["currentSupport", "Current support", "ta", "e.g. GP, therapist, counsellor, medication, none currently..."]
                   ])}
-                  <button onClick={saveSetup} style={{ ...btnP(), marginTop: 10 }}>Save</button>
+                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; await saveData(nd); setFormMsg("\u2713 Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>Save Setup</button>
                 </div>)}
 
                 {/* ═══ MY HEALTH ═══ */}
@@ -2478,7 +2489,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     ["weightLowest", "Lowest adult weight", "text", "e.g. 11st, 70kg..."],
                     ["previousDiets", "Previous diets or weight loss attempts", "ta", "e.g. Calorie counting, keto, Slimming World, none..."]
                   ])}
-                  <button onClick={saveSetup} style={{ ...btnP(), marginTop: 10 }}>Save</button>
+                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; await saveData(nd); setFormMsg("\u2713 Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>Save Setup</button>
                 </div>)}
               </div>);
             })()}
@@ -2491,32 +2502,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               <div style={{ marginTop: 8 }}><label style={labelStyle}>Notes</label><textarea value={profileInputs.notes || ""} onChange={function(e) { setProfileInputs(function(q) { return Object.assign({}, q, { notes: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
               <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].profile = profileInputs; await saveData(nd); setShowProfile(false); setFormMsg("✓ Profile updated"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(), marginTop: 8 }}>Save Profile</button>
             </div>)}
-            {p.bodyAnalysis && !showOnboarding && !showProfile && (<div style={{ marginTop: 8, padding: 8, background: "#f0fdf4", borderRadius: 6, fontSize: 11, color: "#475569" }}>
-              <div style={{ fontWeight: 600, marginBottom: 2 }}>AI Assessment</div>
-              {p.bodyAnalysis.bodyType && <div>Type: <strong>{p.bodyAnalysis.bodyType}</strong></div>}
-              {p.bodyAnalysis.fibreType && <div>Fibre: <strong>{p.bodyAnalysis.fibreType}</strong></div>}
-              {p.bodyAnalysis.strengths && <div>Strengths: <strong>{p.bodyAnalysis.strengths}</strong></div>}
-            </div>)}
+
           </div>); })()}
 
-          <StrengthBanner exercises={p.exercises} isJC={isJC} />
-          <div style={{ background: "#fff", borderRadius: 12, padding: 16, border: "1px solid #e2e8f0", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div><div style={{ fontSize: 11, color: "#64748b", marginBottom: 2 }}>WEIGHT</div><div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1 }}>{wtStr}</div>
-              {toIdeal && <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>{toIdeal}lb to ideal ({isJC ? "13st 6lb" : "11st 2lb"})</div>}
-              {wtDelta && <div style={{ fontSize: 13, color: wtSign === "-" ? "#16a34a" : "#dc2626", fontWeight: 600, marginTop: 2 }}>{wtSign === "-" ? "" : "+"}{wtDelta}</div>}
-            </div>
-            <MiniChart data={wt} color={accent} />
-          </div>
-          <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", marginBottom: 10 }}>Exercise Status — {stats.total} exercises</div>
-            {[{ l: "Moved Up", c: stats.movedUp, co: "#16a34a" }, { l: "Ready to Move", c: stats.ready, co: "#2563eb" }, { l: "Building", c: stats.building, co: "#7c3aed" }, { l: "Consolidating", c: stats.consolidating, co: "#d97706" }, { l: "Maintaining", c: stats.maintaining, co: "#0891b2" }, { l: "Reduce", c: stats.reduce, co: "#dc2626" }].filter(r => r.c > 0).map(r => (<div key={r.l} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: r.co, fontWeight: 500, marginBottom: 4 }}><span>{r.l}</span><PBar count={r.c} total={stats.total} color={r.co} /></div>))}
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-            <BodyCard label="Body Fat %" value={p.body.bodyFat?.[p.body.bodyFat.length-1]?.v} rating={isJC ? "Acceptable" : "Too High"} />
-            <BodyCard label="Muscle Rate %" value={p.body.muscleRate?.[p.body.muscleRate.length-1]?.v} rating="Excellent" />
-            <BodyCard label="Visceral Fat" value={p.body.visceralFat?.[p.body.visceralFat.length-1]?.v} rating={isJC ? "Standard" : "High"} />
-            <BodyCard label="BMR (kcal)" value={p.body.bmr?.[p.body.bmr.length-1]?.v} rating={isJC ? "Excellent" : ""} />
-          </div>
+          {/* Home summary cards — new features coming soon */}
           <button onClick={generateFeedback} disabled={feedbackLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: feedbackLoading ? "not-allowed" : "pointer", opacity: feedbackLoading ? 0.7 : 1, background: feedbackLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", marginBottom: 14 }}>{feedbackLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Feedback"}</button>
           <button onClick={function(){setHomeFbExpanded(!homeFbExpanded);}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#64748b",cursor:"pointer",marginTop:4}}>{homeFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>
           {homeFbExpanded && feedbackResults[activeTab] && (() => { const fb = feedbackResults[activeTab]; return (<div style={{ marginBottom: 14 }}><div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" }}>
@@ -5391,6 +5380,24 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Data Admin</div>
 
+          {/* Google Health Connect */}
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid " + (googleConnected ? "#86efac" : "#e2e8f0"), padding: 14, marginTop: 14, marginBottom: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📱 Google Health Connect</div>
+            <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.5, marginBottom: 8 }}>
+              <strong>Android Only</strong> — Syncs body composition and activity data from your phone via Google Health Connect.<br/>
+              <strong>Setup:</strong> 1) Download <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata" target="_blank" style={{ color: "#2563eb" }}>Google Health Connect</a> from Play Store. 2) Open it and connect your Fitdays / health apps. 3) Tap Connect below.
+            </div>
+            {googleConnected ? (
+              <div>
+                <div style={{ padding: 8, background: "#dcfce7", borderRadius: 6, fontSize: 11, color: "#166534", fontWeight: 600, marginBottom: 8 }}>✓ Connected to Google Health</div>
+                <button onClick={syncGoogleHealth} disabled={syncLoading} style={{ width: "100%", padding: 10, background: syncLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: syncLoading ? "not-allowed" : "pointer" }}>{syncLoading ? <span>Syncing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🔄 Sync Google Health Data"}</button>
+                <button onClick={function() { setGoogleConnected(false); setGoogleToken(null); sSet("google_token_" + activeTab, ""); }} style={{ width: "100%", padding: 6, background: "none", border: "none", fontSize: 10, color: "#dc2626", cursor: "pointer", marginTop: 4 }}>Disconnect</button>
+              </div>
+            ) : (
+              <button onClick={connectGoogle} style={{ width: "100%", padding: 10, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>🔗 Connect Google Health</button>
+            )}
+          </div>
+
           {/* File Attachments */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📎 Attachments</div>
@@ -5720,7 +5727,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         My Lifecare Companion · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.288.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.288.1
       </div>
 
       {/* Floating Ask a Question button */}
