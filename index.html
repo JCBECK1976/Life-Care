@@ -2134,7 +2134,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const shopItems = {}; MEAL_DAYS.forEach(d => { var _dk = DAY_MAP[d.key] || d.key; var _dm = meals[_dk] || {}; var _did = typeof _dm === "object" ? _dm.d : _dm; const m = allDinners.find(x => x.id === _did); if (m) m.shop?.forEach(it => { shopItems[it] = (shopItems[it] || 0) + 1; }); });
   const shopList = Object.entries(shopItems).sort((a, b) => a[0].localeCompare(b[0]));
   const planned = MEAL_DAYS.filter(d => meals[DAY_MAP[d.key] || d.key]).length;
-  const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "My Body" }, { id: "weights", l: "My Activities" }, { id: "meals", l: "My Eating" }, { id: "shop", l: "My Shop" }, { id: "bloods", l: "My Health" }, { id: "targets", l: "My Targets" }, { id: "admin", l: "⚙" }];
+  const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "My Body" }, { id: "weights", l: "My Activities" }, { id: "meals", l: "My Eating" }, { id: "shop", l: "My Shop" }, { id: "bloods", l: "My Health" }, { id: "admin", l: "⚙" }];
   const wt = p.body.weight || [];
   const latestWt = wt.length > 0 ? wt[wt.length - 1] : null;
   const idealSt = isJC ? IDEALS.jc : IDEALS.becks;
@@ -2182,10 +2182,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 <button onClick={() => { if (!showOnboarding) { var ob = p.onboarding || {}; setOnboardInputs(Object.assign({ conditions: "", medications: "", neurodiversity: "", bloods: "", goals: "", activity: "", equipment: "", dietary: "", allergies: "", livingSituation: "", familyHistory: "", personalityType: "", motivationStyle: "", whatDerails: "", accountabilityPref: "", occupation: "", workPattern: "", workHours: "", commute: "", sleepHours: "", sleepQuality: "", sleepIssues: "", screensBed: "", caffeineCutoff: "", cookingConfidence: "", eatingOutFreq: "", whoCooks: "", mealRegularity: "", emotionalEating: "", waterIntake: "", caffeineDaily: "", alcoholFrequency: "", stressLevel: "", mainStressors: "", copingStrategies: "", mentalHealth: "", currentSupport: "", injuries: "", painAreas: "", weightHighest: "", weightLowest: "", previousDiets: "" }, ob, { name: ob.name || prof.name || "", dob: ob.dob || prof.dob || "", sex: ob.sex || prof.sex || "", height: ob.height || prof.height || "" })); setSetupTab("profile"); } setShowOnboarding(!showOnboarding); }} style={{ fontSize: 10, color: "#475569", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, padding: "3px 8px", cursor: "pointer" }}>{showOnboarding ? "✕ Close" : "✏️ Edit My Profile"}</button>
               </div>
             </div>
-            {!showOnboarding && (<div style={{ display: "flex", gap: 12, fontSize: 11, color: "#475569" }}>
-              <div>Age: <strong>{calcAge(prof.dob) || prof.age || "—"}</strong></div>
-              <div>Sex: <strong>{prof.sex || "—"}</strong></div>
-            </div>)}
+            {!showOnboarding && null}
 
             {/* ONBOARDING QUESTIONNAIRE — TABBED */}
             {showOnboarding && (() => {
@@ -2197,11 +2194,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 { id: "profile", l: "My Profile" },
                 { id: "details", l: "My Details" },
                 { id: "family", l: "My Family" },
-                { id: "personality", l: "My Personality" },
-                { id: "lifestyle", l: "My Lifestyle" },
-                { id: "sleep", l: "My Sleep" },
-                { id: "eating", l: "My Eating & Drinking" },
-                { id: "wellbeing", l: "My Wellbeing" },
+                { id: "personality", l: "Personality" },
+                { id: "lifestyle", l: "Lifestyle" },
+                { id: "eating", l: "Food & Drink" },
+                { id: "wellbeing", l: "Wellbeing" },
                 { id: "health", l: "My Health" }
               ];
 
@@ -2253,26 +2249,26 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               };
 
               return (<div style={{ marginTop: 8 }}>
-                {/* Privacy notice */}
-                <div style={{ padding: 10, background: "linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)", borderRadius: 8, border: "1px solid #bfdbfe", marginBottom: 10, fontSize: 10, color: "#475569", lineHeight: 1.6 }}>
-                  <div style={{ fontWeight: 700, fontSize: 11, color: "#1e40af", marginBottom: 4 }}>🔒 Your information is private</div>
-                  Your data is used solely by your Lifecare Companion to tailor recommendations, feedback and support to work best with you and achieve the best possible outcome. No information is shared with third parties. Any AI-generated content is processed without linking it to any identifiable individual. You choose what information to share — more detail helps your Companion provide better, more personalised guidance, but every field is optional.
-                </div>
-
                 {/* Tab bar — double row grey pills */}
                 <div style={{ marginBottom: 10 }}>
                   <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: 8, padding: 2, marginBottom: 2 }}>
-                    {SETUP_TABS.slice(0, 5).map(function(tab) {
+                    {SETUP_TABS.slice(0, 4).map(function(tab) {
                       var active = setupTab === tab.id;
                       return (<button key={tab.id} onClick={function() { setSetupTab(tab.id); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: active ? "#fff" : "transparent", color: active ? "#0f172a" : "#94a3b8" }}>{tab.l}</button>);
                     })}
                   </div>
                   <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: 8, padding: 2 }}>
-                    {SETUP_TABS.slice(5).map(function(tab) {
+                    {SETUP_TABS.slice(4).map(function(tab) {
                       var active = setupTab === tab.id;
                       return (<button key={tab.id} onClick={function() { setSetupTab(tab.id); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: active ? "#fff" : "transparent", color: active ? "#0f172a" : "#94a3b8" }}>{tab.l}</button>);
                     })}
                   </div>
+                </div>
+
+                {/* Privacy notice */}
+                <div style={{ padding: 10, background: "linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)", borderRadius: 8, border: "1px solid #bfdbfe", marginBottom: 10, fontSize: 10, color: "#475569", lineHeight: 1.6 }}>
+                  <div style={{ fontWeight: 700, fontSize: 11, color: "#1e40af", marginBottom: 4 }}>🔒 Your information is private</div>
+                  Your data is used solely by your Lifecare Companion to tailor recommendations, feedback and support to work best with you and achieve the best possible outcome. No information is shared with third parties. Any AI-generated content is processed without linking it to any identifiable individual. You choose what information to share — more detail helps your Companion provide better, more personalised guidance, but every field is optional.
                 </div>
 
                 {/* ═══ MY PROFILE (read-only generated) ═══ */}
@@ -2293,13 +2289,13 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     {prof.notes && <div style={{ gridColumn: "1 / -1", color: "#94a3b8", fontSize: 10, marginTop: 4 }}>{prof.notes}</div>}
                   </div>
 
-                  {/* Generate Body Profile button */}
+                  {/* My Companion Recommendations button */}
                   <button onClick={async function() {
-                    setGenPlanLoading(true); setFormMsg("Generating body profile...");
+                    setGenPlanLoading(true); setFormMsg("Generating recommendations...");
                     try {
                       var obd = p.onboarding || onboardInputs;
-                      var prompt = "Based on this person's information, generate a body profile. " + (obd.name || "") + ", age " + (calcAge(obd.dob || prof.dob) || obd.age || prof.age || "") + ", " + (obd.sex || prof.sex || "") + ", " + (obd.height || prof.height || "") + ". Conditions: " + (obd.conditions || "none stated") + ". Medications: " + (obd.medications || "none") + ". Neurodiversity: " + (obd.neurodiversity || "none") + ". Activity: " + (obd.activity || "unknown") + ". Goals: " + (obd.goals || "general health") + ". Living: " + (obd.livingSituation || "not stated") + ". Work: " + (obd.occupation || "") + " " + (obd.workPattern || "") + ". Sleep: " + (obd.sleepHours || "") + "hrs, quality " + (obd.sleepQuality || "?") + "/5. Stress: " + (obd.stressLevel || "?") + "/5. " + (p.bodyAnalysis ? "Photo analysis: " + JSON.stringify(p.bodyAnalysis) : "") + ". Return ONLY JSON: {\"bodyType\":\"e.g. Compact meso-endomorph\",\"fibreType\":\"e.g. Fast-twitch dominant\",\"idealWeight\":\"e.g. 13st 6lb\",\"notes\":\"key notes about this person\",\"assessment\":\"3-4 sentence assessment of current position and realistic expectations over 6-12 months\",\"priorities\":[\"priority 1\",\"priority 2\",\"priority 3\"]}";
-                      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: prompt }] }) });
+                      var prompt = "Based on this person's information, generate a comprehensive assessment and recommendations. " + (obd.name || "") + ", age " + (calcAge(obd.dob || prof.dob) || obd.age || prof.age || "") + ", " + (obd.sex || prof.sex || "") + ", " + (obd.height || prof.height || "") + ". Conditions: " + (obd.conditions || "none stated") + ". Medications: " + (obd.medications || "none") + ". Neurodiversity: " + (obd.neurodiversity || "none") + ". Activity: " + (obd.activity || "unknown") + ". Goals: " + (obd.goals || "general health") + ". Living: " + (obd.livingSituation || "not stated") + ". Work: " + (obd.occupation || "") + " " + (obd.workPattern || "") + ". Sleep: " + (obd.sleepHours || "") + "hrs, quality " + (obd.sleepQuality || "?") + "/5. Stress: " + (obd.stressLevel || "?") + "/5. " + (p.bodyAnalysis ? "Photo analysis: " + JSON.stringify(p.bodyAnalysis) : "") + ". Return ONLY JSON: {\"bodyType\":\"e.g. Compact meso-endomorph\",\"fibreType\":\"e.g. Fast-twitch dominant\",\"idealWeight\":\"e.g. 13st 6lb\",\"notes\":\"key notes about this person\",\"assessment\":\"3-4 sentence assessment of current position and realistic expectations over 6-12 months\",\"priorities\":[\"priority 1\",\"priority 2\",\"priority 3\"],\"targets\":{\"calories\":\"e.g. 2000-2200\",\"protein\":\"e.g. 110-130g\",\"satFat\":\"e.g. under 20g\",\"sugar\":\"e.g. under 25g\",\"fibre\":\"e.g. 30-35g\",\"targetWeight\":\"e.g. 82kg\",\"targetBodyFat\":\"e.g. 18-22%\",\"targetWaist\":\"e.g. under 94cm\"}}";
+                      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
                       if (txt) {
                         var gen = JSON.parse(txt.replace(/```json|```/g, "").trim());
@@ -2310,13 +2306,14 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         if (gen.idealWeight) nd[activeTab].profile.idealWeight = gen.idealWeight;
                         if (gen.notes) nd[activeTab].profile.notes = gen.notes;
                         nd[activeTab].profileAssessment = gen;
+                        if (gen.targets) nd[activeTab].generatedTargets = gen.targets;
                         await saveData(nd); setAssessment(gen);
-                        setFormMsg("✓ Body profile generated"); setTimeout(function() { setFormMsg(""); }, 3000);
+                        if (gen.targets) setGeneratedTargets(gen.targets);
+                        setFormMsg("✓ Recommendations generated"); setTimeout(function() { setFormMsg(""); }, 3000);
                       }
                     } catch(e) { setFormMsg("✗ Could not generate — check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
                     setGenPlanLoading(false);
-                  }} disabled={genPlanLoading} style={{ ...btnP(!genPlanLoading), marginTop: 12, background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" }}>{genPlanLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🧬 Generate Body Profile"}</button>
-                  <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Uses your answers, photos, and body comp data to determine body type, fibre dominance, ideal weight, and personalised assessment.</div>
+                  }} disabled={genPlanLoading} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: genPlanLoading ? "not-allowed" : "pointer", background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{genPlanLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "📊 My Companion Recommendations"}</button>
 
                   {/* Assessment */}
                   {(assessment || p.profileAssessment) && (() => { var a = assessment || p.profileAssessment; return (<div style={{ marginTop: 12, background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 12, padding: 14, color: "#fff" }}>
@@ -2324,6 +2321,62 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     {a.assessment && <div style={{ fontSize: 12, lineHeight: 1.6, marginBottom: 10 }}>{a.assessment}</div>}
                     {a.priorities && a.priorities.length > 0 && (<div>{a.priorities.map(function(pr, i) { return <div key={i} style={{ fontSize: 12, fontWeight: 600, marginBottom: 3 }}>{i + 1}. {pr}</div>; })}</div>)}
                   </div>); })()}
+
+                  {/* Recommendations section */}
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{(p.profile && p.profile.name) || (onboardInputs && onboardInputs.name) || "Your"} Recommendations</div>
+                    <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Personalised daily targets and body composition goals based on your profile, health data, and lifestyle.</div>
+
+                    {/* Daily Nutrition Targets */}
+                    <div style={{ background: "#f0fdf4", borderRadius: 10, padding: 12, border: "1px solid #bbf7d0", marginBottom: 10 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#166534", marginBottom: 8 }}>Daily Nutrition</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 11 }}>
+                        <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
+                          <div style={{ color: "#94a3b8", fontSize: 9 }}>Calories</div>
+                          <div style={{ fontWeight: 700, color: "#166534" }}>{(p.targets && p.targets.calories) || (generatedTargets && generatedTargets.calories) || (p.generatedTargets && p.generatedTargets.calories) || "—"}</div>
+                        </div>
+                        <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
+                          <div style={{ color: "#94a3b8", fontSize: 9 }}>Protein</div>
+                          <div style={{ fontWeight: 700, color: "#166534" }}>{(p.targets && p.targets.protein) || (generatedTargets && generatedTargets.protein) || (p.generatedTargets && p.generatedTargets.protein) || "—"}</div>
+                        </div>
+                        <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
+                          <div style={{ color: "#94a3b8", fontSize: 9 }}>Sat Fat</div>
+                          <div style={{ fontWeight: 700, color: "#166534" }}>{(p.targets && p.targets.satFat) || (generatedTargets && generatedTargets.satFat) || (p.generatedTargets && p.generatedTargets.satFat) || "—"}</div>
+                        </div>
+                        <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
+                          <div style={{ color: "#94a3b8", fontSize: 9 }}>Added Sugar</div>
+                          <div style={{ fontWeight: 700, color: "#166534" }}>{(p.targets && p.targets.sugar) || (generatedTargets && generatedTargets.sugar) || (p.generatedTargets && p.generatedTargets.sugar) || "—"}</div>
+                        </div>
+                        <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center", gridColumn: "1 / -1" }}>
+                          <div style={{ color: "#94a3b8", fontSize: 9 }}>Fibre</div>
+                          <div style={{ fontWeight: 700, color: "#166534" }}>{(p.targets && p.targets.fibre) || (generatedTargets && generatedTargets.fibre) || (p.generatedTargets && p.generatedTargets.fibre) || "—"}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Body Composition Targets */}
+                    <div style={{ background: "#eff6ff", borderRadius: 10, padding: 12, border: "1px solid #bfdbfe", marginBottom: 10 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#1e40af", marginBottom: 8 }}>Body Composition</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 11 }}>
+                        <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
+                          <div style={{ color: "#94a3b8", fontSize: 9 }}>Target Weight</div>
+                          <div style={{ fontWeight: 700, color: "#1e40af" }}>{(p.targets && p.targets.targetWeight) || (generatedTargets && generatedTargets.targetWeight) || (p.generatedTargets && p.generatedTargets.targetWeight) || (p.profile && p.profile.idealWeight) || "—"}</div>
+                        </div>
+                        <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
+                          <div style={{ color: "#94a3b8", fontSize: 9 }}>Body Fat</div>
+                          <div style={{ fontWeight: 700, color: "#1e40af" }}>{(p.targets && p.targets.targetBodyFat) || (generatedTargets && generatedTargets.targetBodyFat) || (p.generatedTargets && p.generatedTargets.targetBodyFat) || "—"}</div>
+                        </div>
+                        <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
+                          <div style={{ color: "#94a3b8", fontSize: 9 }}>Waist</div>
+                          <div style={{ fontWeight: 700, color: "#1e40af" }}>{(p.targets && p.targets.targetWaist) || (generatedTargets && generatedTargets.targetWaist) || (p.generatedTargets && p.generatedTargets.targetWaist) || "—"}</div>
+                        </div>
+                        <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
+                          <div style={{ color: "#94a3b8", fontSize: 9 }}>Visceral Fat</div>
+                          <div style={{ fontWeight: 700, color: "#1e40af" }}>{(p.targets && p.targets.visceralFat) || (generatedTargets && generatedTargets.visceralFat) || (p.generatedTargets && p.generatedTargets.visceralFat) || "—"}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>)}
 
                 {/* ═══ MY DETAILS ═══ */}
@@ -2429,18 +2482,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 </div>)}
 
                 {/* ═══ MY SLEEP ═══ */}
-                {setupTab === "sleep" && (<div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>My Sleep</div>
-                  <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Sleep quality significantly impacts recovery, metabolism, and mental health.</div>
-                  {rf([
-                    ["sleepHours", "Average hours of sleep per night", "text", "e.g. 6-7 hours"],
-                    ["sleepQuality", "Sleep quality (1-5)", "select", "", "1 — Very poor", "2 — Poor", "3 — Average", "4 — Good", "5 — Excellent"],
-                    ["sleepIssues", "Sleep issues", "ta", "e.g. Trouble falling asleep, wake during night, snoring, sleep apnoea..."],
-                    ["screensBed", "Screen use before bed", "select", "", "Phone/tablet in bed", "TV only", "No screens 30min before", "No screens 1hr+ before"],
-                    ["caffeineCutoff", "Last caffeine of the day", "text", "e.g. 2pm, 4pm, after dinner, none..."]
-                  ])}
-                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; await saveData(nd); setFormMsg("\u2713 Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>Save Setup</button>
-                </div>)}
+
 
                 {/* ═══ MY EATING & DRINKING ═══ */}
                 {setupTab === "eating" && (<div>
@@ -2463,12 +2505,21 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 {/* ═══ MY WELLBEING ═══ */}
                 {setupTab === "wellbeing" && (<div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>My Wellbeing</div>
-                  <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Mental health and neurodiversity inform how we approach habit formation and support.</div>
+                  <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Sleep, mental health and neurodiversity inform how we approach habit formation and support.</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4, marginTop: 8 }}>Sleep</div>
                   {rf([
-                    ["stressLevel", "Current stress level (1-5)", "select", "", "1 — Very low", "2 — Low", "3 — Moderate", "4 — High", "5 — Very high"],
+                    ["sleepHours", "Average hours of sleep per night", "text", "e.g. 6-7 hours"],
+                    ["sleepQuality", "Sleep quality (1-5)", "select", "", "1 \u2014 Very poor", "2 \u2014 Poor", "3 \u2014 Average", "4 \u2014 Good", "5 \u2014 Excellent"],
+                    ["sleepIssues", "Sleep issues", "ta", "e.g. Trouble falling asleep, wake during night, snoring, sleep apnoea..."],
+                    ["screensBed", "Screen use before bed", "select", "", "Phone/tablet in bed", "TV only", "No screens 30min before", "No screens 1hr+ before"],
+                    ["caffeineCutoff", "Last caffeine of the day", "text", "e.g. 2pm, 4pm, after dinner, none..."]
+                  ])}
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4, marginTop: 12 }}>Mental Health & Wellbeing</div>
+                  {rf([
+                    ["stressLevel", "Current stress level (1-5)", "select", "", "1 \u2014 Very low", "2 \u2014 Low", "3 \u2014 Moderate", "4 \u2014 High", "5 \u2014 Very high"],
                     ["mainStressors", "Main sources of stress", "ta", "e.g. Work deadlines, finances, family, health concerns..."],
                     ["copingStrategies", "Current coping strategies", "ta", "e.g. Exercise, meditation, talking to friends, nothing specific..."],
-                    ["neurodiversity", "Neurodiversity", "ta", "e.g. ADHD, autism, dyslexia — any diagnoses or suspected conditions..."],
+                    ["neurodiversity", "Neurodiversity", "ta", "e.g. ADHD, autism, dyslexia \u2014 any diagnoses or suspected conditions..."],
                     ["mentalHealth", "Mental health", "ta", "e.g. Anxiety, depression, on medication, seeing therapist, no concerns..."],
                     ["currentSupport", "Current support", "ta", "e.g. GP, therapist, counsellor, medication, none currently..."]
                   ])}
@@ -5132,68 +5183,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
         </div>)}
 
         {/* TARGETS */}
-        {section === "targets" && (() => {
-          const tp = isJC ? { who: "JC", co: "#1e40af", lo: 2000, hi: 2200, w: 2400, tgts: ["Calories: 2,000–2,200", "Protein: 110–130g", "Sat fat: <20g", "Sugar: <25g", "Fibre: 30–35g"], base: JC_BASE, kk: "jcKcal" } : { who: "Beck", co: "#be185d", lo: 1700, hi: 1900, w: 1900, tgts: ["Calories: 1,700–1,900", "Protein: 90–110g", "Sat fat: <20g (critical)", "Sugar: <25g", "Fibre: 25–30g"], base: BECK_BASE, kk: "beckKcal" };
-          const prof = p.profile || {};
-          return (<div>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{tp.who}'s Targets</div>
-          <div style={{ fontSize: 11, color: "#64748b", marginBottom: 12 }}>{prof.height || ""} · Ideal {prof.idealWeight || ""} · {prof.bodyType || ""}</div>
-          <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginBottom: 10 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: tp.co, textTransform: "uppercase", marginBottom: 8 }}>Daily Nutrition</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 12, color: "#475569" }}>{tp.tgts.map(t => <div key={t}>{t.split(":")[0]}: <strong>{t.split(":")[1]}</strong></div>)}</div>
-            {planned > 0 && (<div style={{ marginTop: 10, borderTop: "1px solid #f1f5f9", paddingTop: 8 }}><div style={{ fontSize: 11, fontWeight: 600, color: "#64748b", marginBottom: 6 }}>This week's daily totals</div>
-              {MEAL_DAYS.map((d, di) => { const entry = meals[DAY_MAP[d.key] || d.key]; const isO = entry && typeof entry === "object"; const din = isO ? entry.d : entry; const ml = typeof din === "string" ? allDinners.find(m => m.id === din) : null; if (!ml) return null; const tot = tp.base[d.key].bfast + tp.base[d.key].lunch + tp.base[d.key].snacks + ml[tp.kk]; const ok = tot >= tp.lo && tot <= tp.w; return (<div key={d.key} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "3px 0", color: ok ? "#166534" : tot > tp.w ? "#991b1b" : "#854d0e" }}><span>{d.label} {fmtDate(weekDates[di])}</span><span style={{ fontWeight: 600 }}>~{tot} {ok ? "✓" : tot > tp.w ? "▲" : "▼"}</span></div>); })}
-            </div>)}
-          </div>
-          <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginBottom: 10 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: tp.co, textTransform: "uppercase", marginBottom: 8 }}>Body Composition</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 12, color: "#475569" }}>
-              <div>Weight: <strong>{prof.idealWeight || "—"}</strong></div>
-              <div>Body Fat: <strong>{isJC ? "15-18%" : "24-28%"}</strong></div>
-              <div>Waist: <strong>{isJC ? "<94cm" : "<80cm then 70-75cm"}</strong></div>
-              <div>Visceral: <strong>{isJC ? "<10" : "<12"}</strong></div>
-            </div>
-          </div>
-          {isJC ? <div style={{ background: "#dbeafe", borderRadius: 10, padding: 12, fontSize: 12, color: "#1e40af", lineHeight: 1.5 }}>Medical priority: TSH stabilisation → unlocks statin effectiveness → lipid improvement. HbA1c monitoring — thyroid normalisation expected to help.</div>
-          : <div style={{ background: "#ede9fe", borderRadius: 10, padding: 12, fontSize: 12, color: "#5b21b6", lineHeight: 1.5 }}>Medical priority: Lipid clinic referral → statin + ezetimibe, FH genetic confirmation. Menopause review. Atorvastatin fatigue at GP review. Portfolio Diet at ~70-75% coverage.</div>}
-          <button onClick={async () => {
-            setTargetsLoading(true);
-            try {
-              const prof = p.profile || {};
-              const prompt = "You are the user's Lifecare Companion — a trusted, knowledgeable friend creating personalised targets for " + (prof.name || "this person") + " (" + (prof.sex || "") + ", " + (calcAge(prof.dob) || prof.age || "") + ", " + (prof.height || "") + ", " + (prof.bodyType || "") + ", ideal weight " + (prof.idealWeight || "") + ". " + (prof.notes || "") + ").\n\nCurrent data:\nExercises: " + JSON.stringify(p.exercises) + "\nBody: " + JSON.stringify(p.body) + "\nMeasurements: " + JSON.stringify(p.measurements) + "\nBloods: " + JSON.stringify(p.bloods || []) + "\nMeds: " + JSON.stringify((p.meds || []).filter(m => m.active).map(m => m.name + " " + m.dosage)) + "\nHealth: " + JSON.stringify((p.healthLog || []).slice(-3)) + "\n\nGenerate personalised targets across all domains. "+TONE_RULES+" Return ONLY JSON:\n{\"nutrition\":{\"calories\":\"...\",\"protein\":\"...\",\"satFat\":\"...\",\"sugar\":\"...\",\"fibre\":\"...\"},\"bodyComp\":{\"weight\":\"...\",\"bodyFat\":\"...\",\"waist\":\"...\",\"visceralFat\":\"...\"},\"exercise\":{\"phase\":\"...\",\"weeklyMins\":\"...\",\"sessions\":\"...\",\"primaryGoal\":\"...\"},\"medical\":{\"priority\":\"...\",\"nextAction\":\"...\",\"bloods\":\"...\"},\"priorities\":[\"top priority 1\",\"priority 2\",\"priority 3\"]}";
-              const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
-              const result = await response.json();
-              var text = (result.content || []).map(function(blk) { return blk.text || ""; }).join("");
-              const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
-              setGeneratedTargets(parsed);
-              await sSet("generated_targets_" + activeTab, text.replace(/```json|```/g, "").trim());
-            } catch { setGeneratedTargets({ priorities: ["Could not generate — try again"] }); }
-            setTargetsLoading(false);
-          }} disabled={targetsLoading} style={{ ...btnP(!targetsLoading), marginTop: 14, background: targetsLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{targetsLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🎯 Generate Personalised Targets"}</button>
-          {generatedTargets && (<div style={{ marginTop: 12 }}>
-            {generatedTargets.priorities && generatedTargets.priorities.length > 0 && (<div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 12, padding: 14, marginBottom: 10, color: "#fff" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", opacity: 0.7, marginBottom: 8 }}>Priorities</div>
-              {generatedTargets.priorities.map((pr, i) => <div key={i} style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{i + 1}. {pr}</div>)}
-            </div>)}
-            {generatedTargets.nutrition && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginBottom: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#16a34a", marginBottom: 6 }}>NUTRITION</div>
-              {Object.entries(generatedTargets.nutrition).map(function([k, v]) { return <div key={k} style={{ fontSize: 11, color: "#475569", padding: "2px 0" }}>{k}: <strong>{v}</strong></div>; })}
-            </div>)}
-            {generatedTargets.bodyComp && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginBottom: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#2563eb", marginBottom: 6 }}>BODY COMPOSITION</div>
-              {Object.entries(generatedTargets.bodyComp).map(function([k, v]) { return <div key={k} style={{ fontSize: 11, color: "#475569", padding: "2px 0" }}>{k}: <strong>{v}</strong></div>; })}
-            </div>)}
-            {generatedTargets.exercise && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginBottom: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#7c3aed", marginBottom: 6 }}>EXERCISE</div>
-              {Object.entries(generatedTargets.exercise).map(function([k, v]) { return <div key={k} style={{ fontSize: 11, color: "#475569", padding: "2px 0" }}>{k}: <strong>{v}</strong></div>; })}
-            </div>)}
-            {generatedTargets.medical && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, marginBottom: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#dc2626", marginBottom: 6 }}>MEDICAL</div>
-              {Object.entries(generatedTargets.medical).map(function([k, v]) { return <div key={k} style={{ fontSize: 11, color: "#475569", padding: "2px 0" }}>{k}: <strong>{v}</strong></div>; })}
-            </div>)}
-          </div>)}
-        </div>); })()}
-
         {/* ADMIN */}
         
         {/* HEALTH */}
@@ -5229,6 +5218,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {(p.healthLog || []).slice().reverse().map(function(h, i) { return (<div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f1f5f9", fontSize: 12 }}><span><span style={{ fontWeight: 600, color: "#475569" }}>{h.date}</span> <span style={{ color: "#334155" }}>{h.note}</span></span><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthLog.splice(nd[activeTab].healthLog.length - 1 - i, 1); await saveData(nd); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", minWidth: 24, flexShrink: 0 }}>✕</button></div>); })}
               {(p.healthLog || []).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12 }}>No health log entries yet</div>}
             </div>
+            {/* Medical Priorities */}
+            {isJC ? <div style={{ background: "#dbeafe", borderRadius: 10, padding: 12, fontSize: 12, color: "#1e40af", lineHeight: 1.5, marginTop: 12 }}>Medical priority: TSH stabilisation \u2192 unlocks statin effectiveness \u2192 lipid improvement. HbA1c monitoring \u2014 thyroid normalisation expected to help.</div>
+            : <div style={{ background: "#ede9fe", borderRadius: 10, padding: 12, fontSize: 12, color: "#5b21b6", lineHeight: 1.5, marginTop: 12 }}>Medical priority: Lipid clinic referral \u2192 statin + ezetimibe, FH genetic confirmation. Menopause review. Atorvastatin fatigue at GP review. Portfolio Diet at ~70-75% coverage.</div>}
           </div>)}
 
           {healthView === "vitals" && (<div>
@@ -5727,7 +5719,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         My Lifecare Companion · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.288.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.289.0
       </div>
 
       {/* Floating Ask a Question button */}
