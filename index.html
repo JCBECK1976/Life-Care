@@ -808,7 +808,6 @@ function handleApiError(result) {
   return null;
 }
 
-
 // Calculate current training week from start date
 
 // Convert st:lb format to decimal stone
@@ -1678,8 +1677,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         { prefix: "o", cat: "Snack", items: allSn, multi: true }
       ];
       slots.forEach(function(sl) {
-        var keys = sl.multi ? [] : [sl.prefix];
-        if (sl.multi) { if (sl.prefix === "o") { for (var i = 1; i <= 20; i++) { if (dayMeals["o" + i]) keys.push("o" + i); } } else { keys.push(sl.prefix); for (var j = 2; j <= 10; j++) { if (dayMeals[sl.prefix + j]) keys.push(sl.prefix + j); } } }
+        var keys = sl.multi ? [] : [sl.prefix];        if (sl.multi) { if (sl.prefix === "o") { for (var i = 1; i <= 20; i++) { if (dayMeals["o" + i]) keys.push("o" + i); } } else { keys.push(sl.prefix); for (var j = 2; j <= 10; j++) { if (dayMeals[sl.prefix + j]) keys.push(sl.prefix + j); } } }
         keys.forEach(function(k) {
           var id = dayMeals[k]; if (!id || id === "__empty__") return;
           var item = allFood.find(function(x) { return x.id === id; });
@@ -3101,8 +3099,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 </div>
                 </div>
 
-
-
                 </div>)}
                 {/* FEEDBACK TAB */}
                 
@@ -3584,17 +3580,16 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   { label: "Drinks", prefix: "dr", items: allDrinks, multi: false },
                   { label: "Snacks", prefix: "o", items: allOther, multi: false }
                 ];
-                var weekTotalPlanned = 0; var weekTotalConsumed = 0;
-                var weekProtPlanned = 0; var weekProtConsumed = 0;
-                var weekSfatPlanned = 0; var weekSfatConsumed = 0;
-                var weekCarbsPlanned = 0; var weekCarbsConsumed = 0;
-                var weekFibPlanned = 0; var weekFibConsumed = 0;
-                var weekSaltPlanned = 0; var weekSaltConsumed = 0;
+                var weekTotalConsumed = 0;
+                var weekProtConsumed = 0;
+                var weekSfatConsumed = 0;
+                var weekCarbsConsumed = 0;
+                var weekFibConsumed = 0;
+                var weekSaltConsumed = 0;
                 var catSections = cats.map(function(cat) {
                   var catWeekKcal = 0; var catWeekProt = 0; var catWeekSfat = 0; var catWeekCarbs = 0; var catWeekFib = 0; var catWeekSalt = 0;
                   var dayRows = DAYS.map(function(day) {
                     var dayKcal = 0; var dayProt = 0; var daySfat = 0; var dayCarbs = 0; var dayFib = 0; var daySalt = 0;
-                    var dayConKcal = 0; var dayConProt = 0; var dayConSfat = 0; var dayConCarbs = 0; var dayConFib = 0; var dayConSalt = 0;
                     for (var si = 1; si <= 10; si++) {
                       var sk = cat.multi ? (si === 1 ? cat.prefix : cat.prefix + si) : cat.prefix + si;
                       var val = getMeal(day, sk);
@@ -3608,33 +3603,28 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       var fibre = found.fibre || 0;
                       var salt = found.salt || 0;
                       dayKcal += kcal; dayProt += prot; daySfat += sfat; dayCarbs += carbs; dayFib += fibre; daySalt += salt;
-                      var track = getTrack(day, sk);
-                      if (track === "eaten") { dayConKcal += kcal; dayConProt += prot; dayConSfat += sfat; dayConCarbs += carbs; dayConFib += fibre; dayConSalt += salt; }
                     }
                     catWeekKcal += dayKcal; catWeekProt += dayProt; catWeekSfat += daySfat; catWeekCarbs += dayCarbs; catWeekFib += dayFib; catWeekSalt += daySalt;
-                    return { day: day, kcal: dayKcal, prot: dayProt, sfat: daySfat, carbs: dayCarbs, fib: dayFib, salt: daySalt, conKcal: dayConKcal, conProt: dayConProt, conSfat: dayConSfat, conCarbs: dayConCarbs, conFib: dayConFib, conSalt: dayConSalt };
+                    return { day: day, kcal: dayKcal, prot: dayProt, sfat: daySfat, carbs: dayCarbs, fib: dayFib, salt: daySalt };
                   });
                   return { label: cat.label, dayRows: dayRows, weekKcal: catWeekKcal, weekProt: catWeekProt, weekSfat: catWeekSfat, weekCarbs: catWeekCarbs, weekFib: catWeekFib, weekSalt: catWeekSalt };
                 });
                 var dayGrandTotals = DAYS.map(function(day, di) {
                   var tKcal = 0; var tProt = 0; var tSfat = 0; var tCarbs = 0; var tFib = 0; var tSalt = 0;
-                  var cKcal = 0; var cProt = 0; var cSfat = 0; var cCarbs = 0; var cFib = 0; var cSalt = 0;
                   catSections.forEach(function(cs) {
                     var dr = cs.dayRows[di];
                     tKcal += dr.kcal; tProt += dr.prot; tSfat += dr.sfat; tCarbs += dr.carbs; tFib += dr.fib; tSalt += dr.salt;
-                    cKcal += dr.conKcal; cProt += dr.conProt; cSfat += dr.conSfat; cCarbs += dr.conCarbs; cFib += dr.conFib; cSalt += dr.conSalt;
                   });
-                  weekTotalPlanned += tKcal; weekProtPlanned += tProt; weekSfatPlanned += tSfat; weekCarbsPlanned += tCarbs; weekFibPlanned += tFib; weekSaltPlanned += tSalt;
-                  weekTotalConsumed += cKcal; weekProtConsumed += cProt; weekSfatConsumed += cSfat; weekCarbsConsumed += cCarbs; weekFibConsumed += cFib; weekSaltConsumed += cSalt;
+                  weekTotalConsumed += tKcal; weekProtConsumed += tProt; weekSfatConsumed += tSfat; weekCarbsConsumed += tCarbs; weekFibConsumed += tFib; weekSaltConsumed += tSalt;
                   var inRange = 0;
-                  if (cKcal <= limKcal) inRange++;
-                  if (cProt >= (isJC ? 110 : 90)) inRange++;
-                  if (cSfat <= 20) inRange++;
-                  if (cCarbs <= limCarbs) inRange++;
-                  if (cFib >= (isJC ? 30 : 25)) inRange++;
-                  if (cSalt <= 6) inRange++;
+                  if (tKcal <= limKcal) inRange++;
+                  if (tProt >= (isJC ? 110 : 90)) inRange++;
+                  if (tSfat <= 20) inRange++;
+                  if (tCarbs <= limCarbs) inRange++;
+                  if (tFib >= (isJC ? 30 : 25)) inRange++;
+                  if (tSalt <= 6) inRange++;
                   var ragColor = inRange >= 5 ? "#16a34a" : inRange >= 3 ? "#f59e0b" : "#dc2626";
-                  return { day: day, kcal: tKcal, prot: tProt, sfat: tSfat, carbs: tCarbs, fib: tFib, salt: tSalt, conKcal: cKcal, conProt: cProt, conSfat: cSfat, conCarbs: cCarbs, conFib: cFib, conSalt: cSalt, ragColor: ragColor, inRange: inRange };
+                  return { day: day, kcal: tKcal, prot: tProt, sfat: tSfat, carbs: tCarbs, fib: tFib, salt: tSalt, conKcal: tKcal, conProt: tProt, conSfat: tSfat, conCarbs: tCarbs, conFib: tFib, conSalt: tSalt, ragColor: ragColor, inRange: inRange };
                 });
                 return (<div>
                   <div style={{ overflowX: "auto", width: "100%", boxSizing: "border-box" }}><table style={{ width: "100%", fontSize: 10, borderCollapse: "collapse", tableLayout: "fixed" }}>
@@ -3678,29 +3668,19 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         if (dg.kcal === 0 && dg.conKcal === 0) return null;
                         return (<tr key={dg.day} style={{ borderBottom: "1px solid #f1f5f9" }}>
                           <td style={{ padding: "3px 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", marginRight: 4, background: dg.ragColor, verticalAlign: "middle" }}></span>{dg.day.charAt(0).toUpperCase() + dg.day.slice(1, 3)}</td>
-                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{dg.conKcal}</td>
-                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{dg.conProt || "-"}</td>
-                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{Math.round(dg.conSfat * 10) / 10 || "-"}</td>
-                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{dg.conCarbs || "-"}</td>
-                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{dg.conFib || "-"}</td>
-                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{Math.round(dg.conSalt * 10) / 10 || "-"}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{dg.kcal}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{dg.prot || "-"}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{Math.round(dg.sfat * 10) / 10 || "-"}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{dg.carbs || "-"}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{dg.fib || "-"}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{Math.round(dg.salt * 10) / 10 || "-"}</td>
                           <td style={{ padding: "3px 2px", textAlign: "center", fontSize: 9 }}>{dg.inRange}/6</td>
                         </tr>);
                       })}
                     </tbody>
                     <tfoot>
-                      <tr style={{ borderTop: "2px solid #0f172a" }}>
-                        <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Week Planned</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11 }}>{weekTotalPlanned}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11 }}>{weekProtPlanned || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11 }}>{Math.round(weekSfatPlanned * 10) / 10 || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11 }}>{weekCarbsPlanned || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11 }}>{weekFibPlanned || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11 }}>{Math.round(weekSaltPlanned * 10) / 10 || "-"}</td>
-                        <td></td>
-                      </tr>
-                      <tr style={{ background: "#dcfce7" }}>
-                        <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 11, color: "#166534", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Consumed</td>
+                      <tr style={{ background: "#dcfce7", borderTop: "2px solid #0f172a" }}>
+                        <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 11, color: "#166534", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Total</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekTotalConsumed > limKcal * 7 ? "#dc2626" : "#166534" }}>{weekTotalConsumed}</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekProtConsumed < (isJC ? 110 : 90) * 7 ? "#dc2626" : "#166534" }}>{weekProtConsumed || "-"}</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekSfatConsumed > 20 * 7 ? "#dc2626" : "#166534" }}>{Math.round(weekSfatConsumed * 10) / 10 || "-"}</td>
@@ -3827,14 +3807,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <div style={{ flex: 1 }}>
                     <MealSelect items={allBfast} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select breakfast..." />
                   </div>
-                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (<React.Fragment>
-                    <button onClick={function(){var tk="wk_track_"+slotKey;var cv=defs[tk];saveDef(tk,cv==="eaten"?"":"eaten","individual");}} style={{ border: "none", background: (defs["wk_track_"+slotKey])==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: (defs["wk_track_"+slotKey])==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{(defs["wk_track_"+slotKey])==="eaten" ? "✅" : "✔"}</button>
-                    <button onClick={function(){var tk="wk_track_"+slotKey;var cv=defs[tk];saveDef(slotKey, "", "individual");}} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
-                    {n > 1 && <button onClick={function() { saveDef(slotKey, "", "individual"); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
-                  </React.Fragment>)}
+                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
+                    <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
+                  )}
                 </div>);
               })}
-              <button onClick={function() { var next = 1; var pk = "b"; while (defs[next === 1 ? pk : pk + next]) next++; saveDef(next === 1 ? pk : pk + next, "__placeholder__", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginTop: 4 }}>⏳ Plan New</button>
+              <button onClick={function() { var next = 1; var pk = "b"; while (defs[next === 1 ? pk : pk + next]) next++; saveDef(next === 1 ? pk : pk + next, "__placeholder__", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginTop: 4 }}>➕ Add New</button>
               {addingNew && addingSource === "defaults" && addingCategory === "breakfast" && (<div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 4, border: "1px solid #bfdbfe" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}><span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a5f" }}>Add New Breakfast Item</span><button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: "2px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#475569", cursor: "pointer", lineHeight: 1 }}>Cancel</button></div><div style={{ display: "flex", gap: 6, marginBottom: 6 }}><input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, minWidth: 0, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} /><label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label></div><button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ width: "100%", padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button><div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type food name or scan a product with or without a short description to add with nutritional information</div></div>)}
             </div>
             <div style={{ marginBottom: 8 }}>
@@ -3851,14 +3829,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <div style={{ flex: 1 }}>
                     <MealSelect items={allLunch} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select lunch..." />
                   </div>
-                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (<React.Fragment>
-                    <button onClick={function(){var tk="wk_track_"+slotKey;var cv=defs[tk];saveDef(tk,cv==="eaten"?"":"eaten","individual");}} style={{ border: "none", background: (defs["wk_track_"+slotKey])==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: (defs["wk_track_"+slotKey])==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{(defs["wk_track_"+slotKey])==="eaten" ? "✅" : "✔"}</button>
-                    <button onClick={function(){var tk="wk_track_"+slotKey;var cv=defs[tk];saveDef(slotKey, "", "individual");}} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
-                    {n > 1 && <button onClick={function() { saveDef(slotKey, "", "individual"); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
-                  </React.Fragment>)}
+                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
+                    <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
+                  )}
                 </div>);
               })}
-              <button onClick={function() { var next = 1; var pk = "l"; while (defs[next === 1 ? pk : pk + next]) next++; saveDef(next === 1 ? pk : pk + next, "__placeholder__", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginTop: 4 }}>⏳ Plan New</button>
+              <button onClick={function() { var next = 1; var pk = "l"; while (defs[next === 1 ? pk : pk + next]) next++; saveDef(next === 1 ? pk : pk + next, "__placeholder__", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginTop: 4 }}>➕ Add New</button>
               {addingNew && addingSource === "defaults" && addingCategory === "lunch" && (<div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 4, border: "1px solid #bfdbfe" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}><span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a5f" }}>Add New Lunch Item</span><button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: "2px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#475569", cursor: "pointer", lineHeight: 1 }}>Cancel</button></div><div style={{ display: "flex", gap: 6, marginBottom: 6 }}><input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, minWidth: 0, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} /><label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label></div><button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ width: "100%", padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button><div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type food name or scan a product with or without a short description to add with nutritional information</div></div>)}
             </div>
             <div style={{ marginBottom: 8 }}>
@@ -3875,14 +3851,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <div style={{ flex: 1 }}>
                     <MealSelect items={allDinners} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select dinner..." />
                   </div>
-                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (<React.Fragment>
-                    <button onClick={function(){var tk="wk_track_"+slotKey;var cv=defs[tk];saveDef(tk,cv==="eaten"?"":"eaten","individual");}} style={{ border: "none", background: (defs["wk_track_"+slotKey])==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: (defs["wk_track_"+slotKey])==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{(defs["wk_track_"+slotKey])==="eaten" ? "✅" : "✔"}</button>
-                    <button onClick={function(){var tk="wk_track_"+slotKey;var cv=defs[tk];saveDef(slotKey, "", "individual");}} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
-                    {n > 1 && <button onClick={function() { saveDef(slotKey, "", "individual"); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
-                  </React.Fragment>)}
+                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
+                    <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
+                  )}
                 </div>);
               })}
-              <button onClick={function() { var next = 1; var pk = "d"; while (defs[next === 1 ? pk : pk + next]) next++; saveDef(next === 1 ? pk : pk + next, "__placeholder__", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginTop: 4 }}>⏳ Plan New</button>
+              <button onClick={function() { var next = 1; var pk = "d"; while (defs[next === 1 ? pk : pk + next]) next++; saveDef(next === 1 ? pk : pk + next, "__placeholder__", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginTop: 4 }}>➕ Add New</button>
               {addingNew && addingSource === "defaults" && addingCategory === "dinner" && (<div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 4, border: "1px solid #bfdbfe" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}><span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a5f" }}>Add New Dinner Item</span><button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: "2px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#475569", cursor: "pointer", lineHeight: 1 }}>Cancel</button></div><div style={{ display: "flex", gap: 6, marginBottom: 6 }}><input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, minWidth: 0, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} /><label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label></div><button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ width: "100%", padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button><div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type food name or scan a product with or without a short description to add with nutritional information</div></div>)}
             </div>
             <div style={{ marginBottom: 8 }}>
@@ -3896,17 +3870,15 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {(function() { var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "ds" : "ds" + si; if (defs[sk] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
                 var slotKey = n === 1 ? "ds" : "ds" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
-                  <div style={{ flex: 1, opacity: getTrack(eatDay, slotKey) ? 0.5 : 1, pointerEvents: getTrack(eatDay, slotKey) ? "none" : "auto" }}>
+                  <div style={{ flex: 1 }}>
                     <MealSelect items={allDesserts} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select dessert..." />
                   </div>
-                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (<React.Fragment>
-                    <button onClick={function(){var tk="wk_track_"+slotKey;var cv=defs[tk];saveDef(tk,cv==="eaten"?"":"eaten","individual");}} style={{ border: "none", background: (defs["wk_track_"+slotKey])==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: (defs["wk_track_"+slotKey])==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{(defs["wk_track_"+slotKey])==="eaten" ? "✅" : "✔"}</button>
-                    <button onClick={function(){var tk="wk_track_"+slotKey;var cv=defs[tk];saveDef(slotKey, "", "individual");}} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
-                    {n > 1 && <button onClick={function() { saveDef(slotKey, "", "individual"); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
-                  </React.Fragment>)}
+                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
+                    <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
+                  )}
                 </div>);
               })}
-              <button onClick={function() { var next = 1; var pk = "ds"; while (defs[next === 1 ? pk : pk + next]) next++; saveDef(next === 1 ? pk : pk + next, "__placeholder__", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginTop: 4 }}>⏳ Plan New</button>
+              <button onClick={function() { var next = 1; var pk = "ds"; while (defs[next === 1 ? pk : pk + next]) next++; saveDef(next === 1 ? pk : pk + next, "__placeholder__", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginTop: 4 }}>➕ Add New</button>
               {addingNew && addingSource === "defaults" && addingCategory === "dessert" && (<div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 4, border: "1px solid #bfdbfe" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}><span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a5f" }}>Add New Dessert Item</span><button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: "2px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#475569", cursor: "pointer", lineHeight: 1 }}>Cancel</button></div><div style={{ display: "flex", gap: 6, marginBottom: 6 }}><input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, minWidth: 0, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} /><label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label></div><button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ width: "100%", padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button><div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type food name or scan a product with or without a short description to add with nutritional information</div></div>)}
             </div>
 
@@ -3921,17 +3893,15 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {(function() { var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "dr" : "dr" + si; if (defs[sk] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
                 var slotKey = n === 1 ? "dr" : "dr" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
-                  <div style={{ flex: 1, opacity: getTrack(eatDay, slotKey) ? 0.5 : 1, pointerEvents: getTrack(eatDay, slotKey) ? "none" : "auto" }}>
+                  <div style={{ flex: 1 }}>
                     <MealSelect items={allDrinks} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select drink..." />
                   </div>
-                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (<React.Fragment>
-                    <button onClick={function(){var tk="wk_track_"+slotKey;var cv=defs[tk];saveDef(tk,cv==="eaten"?"":"eaten","individual");}} style={{ border: "none", background: (defs["wk_track_"+slotKey])==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: (defs["wk_track_"+slotKey])==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{(defs["wk_track_"+slotKey])==="eaten" ? "✅" : "✔"}</button>
-                    <button onClick={function(){var tk="wk_track_"+slotKey;var cv=defs[tk];saveDef(slotKey, "", "individual");}} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
-                    {n > 1 && <button onClick={function() { saveDef(slotKey, "", "individual"); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
-                  </React.Fragment>)}
+                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
+                    <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
+                  )}
                 </div>);
               })}
-              <button onClick={function() { var next = 1; var pk = "dr"; while (defs[next === 1 ? pk : pk + next]) next++; saveDef(next === 1 ? pk : pk + next, "__placeholder__", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginTop: 4 }}>⏳ Plan New</button>
+              <button onClick={function() { var next = 1; var pk = "dr"; while (defs[next === 1 ? pk : pk + next]) next++; saveDef(next === 1 ? pk : pk + next, "__placeholder__", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginTop: 4 }}>➕ Add New</button>
               {addingNew && addingSource === "defaults" && addingCategory === "drink" && (<div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 4, border: "1px solid #bfdbfe" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}><span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a5f" }}>Add New Drink Item</span><button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: "2px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#475569", cursor: "pointer", lineHeight: 1 }}>Cancel</button></div><div style={{ display: "flex", gap: 6, marginBottom: 6 }}><input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, minWidth: 0, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} /><label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label></div><button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ width: "100%", padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button><div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type food name or scan a product with or without a short description to add with nutritional information</div></div>)}
             </div>
             <div style={{ marginBottom: 8 }}>
@@ -3945,17 +3915,15 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {(function() { var slots = []; for (var si = 1; si <= 20; si++) { if (defs["o" + si] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
                 var slotKey = "o" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
-                  <div style={{ flex: 1, opacity: getTrack(eatDay, slotKey) ? 0.5 : 1, pointerEvents: getTrack(eatDay, slotKey) ? "none" : "auto" }}>
+                  <div style={{ flex: 1 }}>
                     <MealSelect items={allOther} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select snack..." />
                   </div>
-                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (<React.Fragment>
-                    <button onClick={function(){var tk="wk_track_"+slotKey;var cv=defs[tk];saveDef(tk,cv==="eaten"?"":"eaten","individual");}} style={{ border: "none", background: (defs["wk_track_"+slotKey])==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: (defs["wk_track_"+slotKey])==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{(defs["wk_track_"+slotKey])==="eaten" ? "✅" : "✔"}</button>
-                    <button onClick={function(){var tk="wk_track_"+slotKey;var cv=defs[tk];saveDef(slotKey, "", "individual");}} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
-                    {n > 1 && <button onClick={function() { saveDef(slotKey, "", "individual"); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
-                  </React.Fragment>)}
+                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
+                    <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={{ border: "none", background: "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, color: "#94a3b8" }} title="Clear">✕</button>
+                  )}
                 </div>);
               })}
-              <button onClick={function() { var next = 1; while (defs["o" + next]) next++; saveDef("o" + next, "__placeholder__", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginTop: 4 }}>⏳ Plan New</button>
+              <button onClick={function() { var next = 1; while (defs["o" + next]) next++; saveDef("o" + next, "__placeholder__", "individual"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", marginTop: 4 }}>➕ Add New</button>
               {addingNew && addingSource === "defaults" && addingCategory === "snack" && (<div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 4, border: "1px solid #bfdbfe" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}><span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a5f" }}>Add New Snack Item</span><button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: "2px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#475569", cursor: "pointer", lineHeight: 1 }}>Cancel</button></div><div style={{ display: "flex", gap: 6, marginBottom: 6 }}><input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, minWidth: 0, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} /><label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label></div><button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ width: "100%", padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button><div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type food name or scan a product with or without a short description to add with nutritional information</div></div>)}
             </div>
             </div>
@@ -4045,20 +4013,18 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   { label: "Drinks", prefix: "dr", items: allDrinks, multi: false },
                   { label: "Snacks", prefix: "o", items: allOther, multi: false }
                 ];
-                var dayTotalPlanned = 0; var dayTotalConsumed = 0;
-                var dayProtPlanned = 0; var dayProtConsumed = 0;
-                var dayFatPlanned = 0; var dayFatConsumed = 0;
-                var daySfatPlanned = 0; var daySfatConsumed = 0;
-                var dayCarbsPlanned = 0; var dayCarbsConsumed = 0;
-                var dayFibPlanned = 0; var dayFibConsumed = 0;
-                var daySaltPlanned = 0; var daySaltConsumed = 0;
+                var dayTotalConsumed = 0;
+                var dayProtConsumed = 0;
+                var dayFatConsumed = 0;
+                var daySfatConsumed = 0;
+                var dayCarbsConsumed = 0;
+                var dayFibConsumed = 0;
+                var daySaltConsumed = 0;
                 var rows = cats.map(function(cat) {
                   var catItems = [];
                   for (var si = 1; si <= 10; si++) {
                     var sk = cat.multi ? (si === 1 ? cat.prefix : cat.prefix + si) : cat.prefix + si;
                     var val = getMeal(eatDay, sk);
-                    if (!val || val === "__empty__") continue;
-                    var found = cat.items.find(function(it) { return it.id === val; });
                     if (!found) continue;
                     var kcal = found[kf] || 0;
                     var prot = found[pf] || found.protein || 0;
@@ -4067,17 +4033,13 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     var carbs = found.carbs || 0;
                     var fibre = found.fibre || 0;
                     var salt = found.salt || 0;
-                    var track = getTrack(eatDay, sk);
-                    var status = track === "eaten" ? "consumed" : track === "skipped" ? "skipped" : "planned";
-                    if (status === "consumed") { dayTotalConsumed += kcal; dayProtConsumed += prot; daySfatConsumed += sfat; dayCarbsConsumed += carbs; dayFibConsumed += fibre; daySaltConsumed += salt; }
-                    dayTotalPlanned += kcal; dayProtPlanned += prot; daySfatPlanned += sfat; dayCarbsPlanned += carbs; dayFibPlanned += fibre; daySaltPlanned += salt;
-                    catItems.push({ name: found.name, kcal: kcal, prot: prot, fat: fat, sfat: sfat, carbs: carbs, fibre: fibre, salt: salt, status: status, rating: found.rating || '' });
+                    dayTotalConsumed += kcal; dayProtConsumed += prot; daySfatConsumed += sfat; dayCarbsConsumed += carbs; dayFibConsumed += fibre; daySaltConsumed += salt;
+                    catItems.push({ name: found.name, kcal: kcal, prot: prot, fat: fat, sfat: sfat, carbs: carbs, fibre: fibre, salt: salt, rating: found.rating || '' });
                   }
                   return { label: cat.label, items: catItems };
                 });
                 return (<div>
                   <div style={{ overflowX: "auto", width: "100%", boxSizing: "border-box" }}><table style={{ width: "100%", fontSize: 10, borderCollapse: "collapse", tableLayout: "fixed" }}>
-                    <colgroup><col style={{ width: "30%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "8%" }} /><col style={{ width: "8%" }} /><col style={{ width: "14%" }} /></colgroup>
                     <thead>
                       <tr style={{ borderBottom: "2px solid #e2e8f0", textAlign: "left" }}>
                         <th style={{ padding: "4px 2px", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Item</th>
@@ -4087,7 +4049,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         <th style={{ padding: "4px 2px", color: "#64748b", textAlign: "right" }}>carbs</th>
                         <th style={{ padding: "4px 2px", color: "#64748b", textAlign: "right" }}>fib</th>
                         <th style={{ padding: "4px 2px", color: "#64748b", textAlign: "right" }}>salt</th>
-                        <th style={{ padding: "4px 2px", color: "#64748b", textAlign: "center" }}>Status</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -4096,9 +4057,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         var catKcal = 0; var catProt = 0; var catFat = 0; var catSfat = 0; var catCarbs = 0; var catFib = 0; var catSalt = 0;
                         cat.items.forEach(function(it) { catKcal += it.kcal; catProt += it.prot; catFat += it.fat; catSfat += it.sfat; catCarbs += it.carbs; catFib += it.fibre; catSalt += it.salt; });
                         return (<React.Fragment key={cat.label}>
-                          <tr><td colSpan={8} style={{ padding: "6px 2px 2px", fontWeight: 700, color: "#0f172a", fontSize: 11 }}>{cat.label}</td></tr>
                           {cat.items.map(function(it, ii) {
-                            return (<tr key={ii} style={{ borderBottom: "1px solid #f1f5f9", opacity: it.status === "skipped" ? 0.4 : 1 }}>
+                            return (<tr key={ii} style={{ borderBottom: "1px solid #f1f5f9" }}>
                               <td style={{ padding: "3px 2px", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", marginRight: 4, background: it.rating === "RED" ? "#dc2626" : it.rating === "AMBER" ? "#f59e0b" : it.rating === "GREAT" ? "#16a34a" : "#cbd5e1", verticalAlign: "middle" }}></span>{it.name}</td>
                               <td style={{ padding: "3px 2px", textAlign: "right" }}>{it.kcal}</td>
                               <td style={{ padding: "3px 2px", textAlign: "right" }}>{it.prot || "-"}</td>
@@ -4106,33 +4066,21 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                               <td style={{ padding: "3px 2px", textAlign: "right" }}>{it.carbs || "-"}</td>
                               <td style={{ padding: "3px 2px", textAlign: "right" }}>{it.fibre || "-"}</td>
                               <td style={{ padding: "3px 2px", textAlign: "right" }}>{it.salt || "-"}</td>
-                              <td style={{ padding: "3px 2px", textAlign: "center" }}>{it.status === "consumed" ? "\u2705" : it.status === "skipped" ? "\u274c" : "\u23f3"}</td>
                             </tr>);
                           })}
-                          <tr style={{ borderBottom: "1px solid #cbd5e1" }}><td style={{ padding: "3px 2px", fontWeight: 600, fontSize: 9, color: "#475569" }}>{cat.label} total</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{catKcal}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{catProt || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{catSfat || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{catCarbs || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{catFib || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{catSalt || "-"}</td><td></td></tr>
+                          <tr style={{ borderBottom: "1px solid #cbd5e1" }}><td style={{ padding: "3px 2px", fontWeight: 600, fontSize: 9, color: "#475569" }}>{cat.label} total</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{catKcal}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{catProt || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{catSfat || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{catCarbs || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{catFib || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{catSalt || "-"}</td></tr>
                         </React.Fragment>);
                       })}
                     </tbody>
                     <tfoot>
-                      <tr style={{ borderTop: "2px solid #0f172a" }}>
-                        <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Day Planned</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11 }}>{dayTotalPlanned}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11 }}>{dayProtPlanned || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11 }}>{daySfatPlanned || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11 }}>{dayCarbsPlanned || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11 }}>{dayFibPlanned || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11 }}>{daySaltPlanned || "-"}</td>
-                        <td></td>
-                      </tr>
-                      <tr style={{ background: "#dcfce7" }}>
-                        <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 11, color: "#166534", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Consumed</td>
+                      <tr style={{ background: "#dcfce7", borderTop: "2px solid #0f172a" }}>
+                        <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 11, color: "#166534", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Total</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayTotalConsumed > (isJC ? 2200 : 1900) ? "#dc2626" : "#166534" }}>{dayTotalConsumed}</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayProtConsumed < (isJC ? 110 : 90) ? "#dc2626" : "#166534" }}>{dayProtConsumed || "-"}</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: daySfatConsumed > 20 ? "#dc2626" : "#166534" }}>{daySfatConsumed || "-"}</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayCarbsConsumed > (isJC ? 300 : 260) ? "#dc2626" : "#166534" }}>{dayCarbsConsumed || "-"}</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayFibConsumed < (isJC ? 30 : 25) ? "#dc2626" : "#166534" }}>{dayFibConsumed || "-"}</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: daySaltConsumed > 6 ? "#dc2626" : "#166534" }}>{daySaltConsumed || "-"}</td>
-                        <td></td>
                       </tr>
                     <tr style={{ background: "#f1f5f9" }}>
                         <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 10, color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Recommended</td>
@@ -4142,7 +4090,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{isJC ? "300" : "260"}</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{isJC ? "35" : "30"}</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>6</td>
-                        <td></td>
                       </tr>
                       {(function() {
                         var limKcal = isJC ? 2200 : 1900;
@@ -4171,7 +4118,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                           <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: carbsColor }}>{(dCarbs > 0 ? "+" : "") + dCarbs}</td>
                           <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: fibColor }}>{(dFib > 0 ? "+" : "") + dFib}</td>
                           <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: saltColor }}>{(dSalt > 0 ? "+" : "") + Math.round(dSalt*10)/10}</td>
-                          <td></td>
                         </tr>);
                       })()}
                     </tfoot>
@@ -4232,7 +4178,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               })()}
             </div>)}
 
-
             <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, marginBottom: 10, border: "1px solid #e2e8f0" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 10 }}>Daily Eating Tracker</div>
 
@@ -4245,19 +4190,15 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var slotKey = idx === 1 ? "b" : "b" + idx;
                   var _hasItem = allBfast.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
                   return (<div key={"b"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
-                    <div style={{ flex: 1, opacity: getTrack(eatDay, slotKey) ? 0.5 : 1, pointerEvents: getTrack(eatDay, slotKey) ? "none" : "auto" }}>
-                      <MealSelect items={allBfast} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); setTrack(eatDay, slotKey, ""); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
+                    <div style={{ flex: 1 }}>
+                      <MealSelect items={allBfast} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
                     </div>
-                    {_hasItem && (<React.Fragment>
-                      <button onClick={function(){setTrack(eatDay,slotKey,getTrack(eatDay,slotKey)==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,slotKey)==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay,slotKey)==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{getTrack(eatDay,slotKey)==="eaten" ? "\u2705" : "\u2714"}</button>
-                      <button onClick={function(){setTrack(eatDay, slotKey, getTrack(eatDay, slotKey) === "skipped" ? "" : "skipped");}} style={{ border: "none", background: getTrack(eatDay, slotKey) === "skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay, slotKey) === "skipped" ? 1 : 0.4 }} title="Not eaten">✘</button>
-                      {idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); setTrack(eatDay, slotKey, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
-                    </React.Fragment>)}
+                    {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
                   </div>);
                 });
               })()}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <button onClick={function() { var nk = 2; while (getMeal(eatDay, "b" + nk)) nk++; setMeal(eatDay, "b" + nk, "__empty__"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>⏳ Plan New</button>
+              <button onClick={function() { var nk = 2; while (getMeal(eatDay, "b" + nk)) nk++; setMeal(eatDay, "b" + nk, "__empty__"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>➕ Add New</button>
               <button onClick={function(){ setLogEatCat(logEatCat === "breakfast" ? "" : "breakfast"); setLogEatText(""); setLogEatPreview(null); }} style={{ padding: "4px 10px", background: logEatCat === "breakfast" ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (logEatCat === "breakfast" ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, color: logEatCat === "breakfast" ? "#fff" : "#475569", cursor: "pointer" }}>✅ Log New</button>
             </div>
             {logEatCat === "breakfast" && !logEatPreview && (<div style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #fde68a" }}>
@@ -4304,19 +4245,15 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var slotKey = idx === 1 ? "l" : "l" + idx;
                   var _hasItem = allLunch.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
                   return (<div key={"l"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
-                    <div style={{ flex: 1, opacity: getTrack(eatDay, slotKey) ? 0.5 : 1, pointerEvents: getTrack(eatDay, slotKey) ? "none" : "auto" }}>
-                      <MealSelect items={allLunch} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); setTrack(eatDay, slotKey, ""); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
+                    <div style={{ flex: 1 }}>
+                      <MealSelect items={allLunch} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
                     </div>
-                    {_hasItem && (<React.Fragment>
-                      <button onClick={function(){setTrack(eatDay,slotKey,getTrack(eatDay,slotKey)==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,slotKey)==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay,slotKey)==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{getTrack(eatDay,slotKey)==="eaten" ? "✅" : "✔"}</button>
-                      <button onClick={function(){setTrack(eatDay, slotKey, getTrack(eatDay, slotKey) === "skipped" ? "" : "skipped");}} style={{ border: "none", background: getTrack(eatDay, slotKey) === "skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay, slotKey) === "skipped" ? 1 : 0.4 }} title="Not eaten">✘</button>
-                      {idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); setTrack(eatDay, slotKey, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
-                    </React.Fragment>)}
+                    {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
                   </div>);
                 });
               })()}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <button onClick={function() { var nk = 2; while (getMeal(eatDay, "l" + nk)) nk++; setMeal(eatDay, "l" + nk, "__empty__"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>⏳ Plan New</button>
+              <button onClick={function() { var nk = 2; while (getMeal(eatDay, "l" + nk)) nk++; setMeal(eatDay, "l" + nk, "__empty__"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>➕ Add New</button>
               <button onClick={function(){ setLogEatCat(logEatCat === "lunch" ? "" : "lunch"); setLogEatText(""); setLogEatPreview(null); }} style={{ padding: "4px 10px", background: logEatCat === "lunch" ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (logEatCat === "lunch" ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, color: logEatCat === "lunch" ? "#fff" : "#475569", cursor: "pointer" }}>✅ Log New</button>
             </div>
             {logEatCat === "lunch" && !logEatPreview && (<div style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #fde68a" }}>
@@ -4363,19 +4300,15 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var slotKey = idx === 1 ? "d" : "d" + idx;
                   var _hasItem = allDinners.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
                   return (<div key={"d"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
-                    <div style={{ flex: 1, opacity: getTrack(eatDay, slotKey) ? 0.5 : 1, pointerEvents: getTrack(eatDay, slotKey) ? "none" : "auto" }}>
-                      <MealSelect items={allDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); setTrack(eatDay, slotKey, ""); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
+                    <div style={{ flex: 1 }}>
+                      <MealSelect items={allDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
                     </div>
-                    {_hasItem && (<React.Fragment>
-                      <button onClick={function(){setTrack(eatDay,slotKey,getTrack(eatDay,slotKey)==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,slotKey)==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay,slotKey)==="eaten" ? 1 : 0.4 }} title="Eaten as planned">{getTrack(eatDay,slotKey)==="eaten" ? "✅" : "✔"}</button>
-                      <button onClick={function(){setTrack(eatDay, slotKey, getTrack(eatDay, slotKey) === "skipped" ? "" : "skipped");}} style={{ border: "none", background: getTrack(eatDay, slotKey) === "skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "6px", fontSize: 12, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay, slotKey) === "skipped" ? 1 : 0.4 }} title="Not eaten">✘</button>
-                      {idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); setTrack(eatDay, slotKey, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
-                    </React.Fragment>)}
+                    {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
                   </div>);
                 });
               })()}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <button onClick={function() { var nk = 2; while (getMeal(eatDay, "d" + nk)) nk++; setMeal(eatDay, "d" + nk, "__empty__"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>⏳ Plan New</button>
+              <button onClick={function() { var nk = 2; while (getMeal(eatDay, "d" + nk)) nk++; setMeal(eatDay, "d" + nk, "__empty__"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>➕ Add New</button>
               <button onClick={function(){ setLogEatCat(logEatCat === "dinner" ? "" : "dinner"); setLogEatText(""); setLogEatPreview(null); }} style={{ padding: "4px 10px", background: logEatCat === "dinner" ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (logEatCat === "dinner" ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, color: logEatCat === "dinner" ? "#fff" : "#475569", cursor: "pointer" }}>✅ Log New</button>
             </div>
             {logEatCat === "dinner" && !logEatPreview && (<div style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #fde68a" }}>
@@ -4423,17 +4356,13 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ flex: 1 }}>
                       <MealSelect items={allDesserts} value={getMeal(eatDay, "ds" + idx) === "__empty__" ? "" : getMeal(eatDay, "ds" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults"); } else { setMeal(eatDay, "ds" + idx, e.target.value); } }} placeholder="Select dessert..." />
                     </div>
-                    {getMeal(eatDay, "ds" + idx) && (<React.Fragment>
-                      <button onClick={function(){setTrack(eatDay,"ds"+idx,getTrack(eatDay,"ds"+idx)==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,"ds"+idx)==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 11, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay,"ds"+idx)==="eaten" ? 1 : 0.4 }} title="Tracked">{getTrack(eatDay,"ds"+idx)==="eaten" ? "✅" : "✔"}</button>
-                      <button onClick={function(){setTrack(eatDay, "ds"+idx, getTrack(eatDay, "ds"+idx) === "skipped" ? "" : "skipped");}} style={{ border: "none", background: getTrack(eatDay, "ds"+idx) === "skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "6px", fontSize: 11, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay, "ds"+idx) === "skipped" ? 1 : 0.4 }} title="Not eaten">✘</button>
-                      <button onClick={function() { setMeal(eatDay, "ds" + idx, ""); setTrack(eatDay, "ds"+idx, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>
-                    </React.Fragment>)}
+                    {getMeal(eatDay, "ds" + idx) && <button onClick={function() { setMeal(eatDay, "ds" + idx, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
                   </div>);
                 });
               })()}
             </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <button onClick={function() { var nk = 1; while (getMeal(eatDay, "ds" + nk)) nk++; setMeal(eatDay, "ds" + nk, "__empty__"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>⏳ Plan New</button>
+              <button onClick={function() { var nk = 1; while (getMeal(eatDay, "ds" + nk)) nk++; setMeal(eatDay, "ds" + nk, "__empty__"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>➕ Add New</button>
               <button onClick={function(){ setLogEatCat(logEatCat === "dessert" ? "" : "dessert"); setLogEatText(""); setLogEatPreview(null); }} style={{ padding: "4px 10px", background: logEatCat === "dessert" ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (logEatCat === "dessert" ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, color: logEatCat === "dessert" ? "#fff" : "#475569", cursor: "pointer" }}>✅ Log New</button>
             </div>
             {logEatCat === "dessert" && !logEatPreview && (<div style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #fde68a" }}>
@@ -4455,7 +4384,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 <button onClick={function(){ setLogEatPreview(null); setLogEatText(""); }} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
               </div>
             </div>)}
-
 
             
             {addingNew && addingSource === "defaults" && addingCategory === "dessert" && (<div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 8, border: "1px solid #bfdbfe" }}>
@@ -4481,17 +4409,13 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ flex: 1 }}>
                       <MealSelect items={allDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults"); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Select drink..." />
                     </div>
-                    {getMeal(eatDay, "dr" + idx) && (<React.Fragment>
-                      <button onClick={function(){setTrack(eatDay,"dr"+idx,getTrack(eatDay,"dr"+idx)==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,"dr"+idx)==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 11, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay,"dr"+idx)==="eaten" ? 1 : 0.4 }} title="Tracked">{getTrack(eatDay,"dr"+idx)==="eaten" ? "✅" : "✔"}</button>
-                      <button onClick={function(){setTrack(eatDay, "dr"+idx, getTrack(eatDay, "dr"+idx) === "skipped" ? "" : "skipped");}} style={{ border: "none", background: getTrack(eatDay, "dr"+idx) === "skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "6px", fontSize: 11, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay, "dr"+idx) === "skipped" ? 1 : 0.4 }} title="Not eaten">✘</button>
-                      <button onClick={function() { setMeal(eatDay, "dr" + idx, ""); setTrack(eatDay, "dr"+idx, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>
-                    </React.Fragment>)}
+                    {getMeal(eatDay, "dr" + idx) && <button onClick={function() { setMeal(eatDay, "dr" + idx, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
                   </div>);
                 });
               })()}
             </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <button onClick={function() { var nk = 1; while (getMeal(eatDay, "dr" + nk)) nk++; setMeal(eatDay, "dr" + nk, "__empty__"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>⏳ Plan New</button>
+              <button onClick={function() { var nk = 1; while (getMeal(eatDay, "dr" + nk)) nk++; setMeal(eatDay, "dr" + nk, "__empty__"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>➕ Add New</button>
               <button onClick={function(){ setLogEatCat(logEatCat === "drink" ? "" : "drink"); setLogEatText(""); setLogEatPreview(null); }} style={{ padding: "4px 10px", background: logEatCat === "drink" ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (logEatCat === "drink" ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, color: logEatCat === "drink" ? "#fff" : "#475569", cursor: "pointer" }}>✅ Log New</button>
             </div>
             {logEatCat === "drink" && !logEatPreview && (<div style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #fde68a" }}>
@@ -4513,7 +4437,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 <button onClick={function(){ setLogEatPreview(null); setLogEatText(""); }} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
               </div>
             </div>)}
-
 
             
             {addingNew && addingSource === "defaults" && addingCategory === "drink" && (<div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 8, border: "1px solid #bfdbfe" }}>
@@ -4537,16 +4460,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 <div style={{ flex: 1 }}>
                   <MealSelect items={allOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults"); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Select snack..." />
                 </div>
-                {getMeal(eatDay, "o" + idx) && (<React.Fragment>
-                  <button onClick={function(){setTrack(eatDay,"o"+idx,getTrack(eatDay,"o"+idx)==="eaten"?"":"eaten");}} style={{ border: "none", background: getTrack(eatDay,"o"+idx)==="eaten" ? "#dcfce7" : "none", borderRadius: 4, padding: "6px", fontSize: 11, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay,"o"+idx)==="eaten" ? 1 : 0.4 }} title="Tracked">{getTrack(eatDay,"o"+idx)==="eaten" ? "✅" : "✔"}</button>
-                  <button onClick={function(){setTrack(eatDay, "o"+idx, getTrack(eatDay, "o"+idx) === "skipped" ? "" : "skipped");}} style={{ border: "none", background: getTrack(eatDay, "o"+idx) === "skipped" ? "#fef2f2" : "none", borderRadius: 4, padding: "6px", fontSize: 11, cursor: "pointer", lineHeight: 1, opacity: getTrack(eatDay, "o"+idx) === "skipped" ? 1 : 0.4 }} title="Not eaten">✘</button>
-                  <button onClick={function() { setMeal(eatDay, "o" + idx, ""); setTrack(eatDay, "o"+idx, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>
-                </React.Fragment>)}
+                {getMeal(eatDay, "o" + idx) && <button onClick={function() { setMeal(eatDay, "o" + idx, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
                 
               </div>);
             })}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <button onClick={function() { addOtherSlot(eatDay); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>⏳ Plan New</button>
+              <button onClick={function() { addOtherSlot(eatDay); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>➕ Add New</button>
               <button onClick={function(){ setLogEatCat(logEatCat === "snack" ? "" : "snack"); setLogEatText(""); setLogEatPreview(null); }} style={{ padding: "4px 10px", background: logEatCat === "snack" ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (logEatCat === "snack" ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, color: logEatCat === "snack" ? "#fff" : "#475569", cursor: "pointer" }}>✅ Log New</button>
             </div>
             {logEatCat === "snack" && !logEatPreview && (<div style={{ background: "#fef3c7", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #fde68a" }}>
@@ -4864,7 +4783,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {(p.healthLog || []).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12 }}>No health log entries yet</div>}
             </div>
           </div>)}
-
 
           {healthView === "vitals" && (<div>
             <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 12 }}>
@@ -5344,7 +5262,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         My Lifecare Companion · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.281.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.282.0
       </div>
 
       {/* Floating Ask a Question button */}
@@ -5381,7 +5299,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
     </div>
   );
 }
-
 
     ReactDOM.createRoot(document.getElementById("root")).render(<Dashboard />);
   </script>
