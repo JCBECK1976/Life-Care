@@ -4025,6 +4025,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   for (var si = 1; si <= 10; si++) {
                     var sk = cat.multi ? (si === 1 ? cat.prefix : cat.prefix + si) : cat.prefix + si;
                     var val = getMeal(eatDay, sk);
+                    if (!val || val === "__empty__") continue;
+                    var found = cat.items.find(function(it) { return it.id === val; });
                     if (!found) continue;
                     var kcal = found[kf] || 0;
                     var prot = found[pf] || found.protein || 0;
