@@ -3628,18 +3628,20 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               <div style={{ maxHeight: 200, overflowY: "auto", marginBottom: 8 }}>
                 {(function() {
                   var weeks = [];
-                  for (var wi = -4; wi <= 12; wi++) {
+                  var todayNow = new Date(); todayNow.setHours(0,0,0,0);
+                  var currentWeekOff = Math.floor((todayNow - baseStart) / (7*24*60*60*1000));
+                  var startOff = currentWeekOff + 1;
+                  for (var wi = startOff; wi <= startOff + 12; wi++) {
                     if (wi === weekOff) continue;
                     var ws = new Date(baseStart); ws.setDate(ws.getDate() + (wi * 7));
                     var wd = getWeekDates(ws);
                     var label = fmtDate(wd[0]) + " – " + fmtDate(wd[6]);
-                    var isPast = ws < new Date() && wi < weekOff;
-                    weeks.push({ off: wi, label: label, isPast: isPast });
+                    weeks.push({ off: wi, label: label });
                   }
                   return weeks.map(function(w) {
                     return (<label key={w.off} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, cursor: "pointer", padding: "6px 8px", background: copyWeekTargets[w.off] ? "#ddd6fe" : (w.off % 2 === 0 ? "#fff" : "#f8fafc"), border: "1px solid " + (copyWeekTargets[w.off] ? "#7c3aed" : "transparent"), borderRadius: 4, marginBottom: 2 }}>
                       <input type="checkbox" checked={!!copyWeekTargets[w.off]} onChange={function(){ var o = w.off; setCopyWeekTargets(function(prev){ var n = Object.assign({}, prev); n[o] = !n[o]; return n; }); }} style={{ margin: 0 }} />
-                      <span style={{ color: w.isPast ? "#94a3b8" : "#0f172a" }}>{w.label}</span>
+                      <span style={{ color: "#0f172a" }}>{w.label}</span>
                     </label>);
                   });
                 })()}
@@ -5516,7 +5518,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         My Lifecare Companion · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.287.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.287.1
       </div>
 
       {/* Floating Ask a Question button */}
