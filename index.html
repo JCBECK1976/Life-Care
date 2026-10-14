@@ -1048,6 +1048,11 @@ function Dashboard() {
   const [logEatText, setLogEatText] = useState("");
   const [logEatLoading, setLogEatLoading] = useState(false);
   const [logEatPreview, setLogEatPreview] = useState(null);
+  const [portionSlot, setPortionSlot] = useState("");
+  const [portionLoading, setPortionLoading] = useState(false);
+  const [portionResult, setPortionResult] = useState(null);
+  const [portionPlanned, setPortionPlanned] = useState(null);
+  const [portionOverrides, setPortionOverrides] = useState({});
   const [eatDayEyeOpen, setEatDayEyeOpen] = useState(false);
   const [eatDayChartOpen, setEatDayChartOpen] = useState(false);
   const [eatWeekEyeOpen, setEatWeekEyeOpen] = useState(false);
@@ -1276,6 +1281,7 @@ function Dashboard() {
     const cdr = await sGet("custom_drinks"); if (cdr) setCustomDrinks(JSON.parse(cdr));
     const cde = await sGet("custom_desserts"); if (cde) setCustomDesserts(JSON.parse(cde));
     const mt = await sGet("meal_tracking:" + activeTab); if (mt) setMealTracking(JSON.parse(mt));
+    const po = await sGet("portion_overrides:" + activeTab); if (po) setPortionOverrides(JSON.parse(po));
     const cb = await sGet("custom_breakfasts"); if (cb) setCustomBreakfasts(JSON.parse(cb));
     const cl = await sGet("custom_lunches"); if (cl) setCustomLunches(JSON.parse(cl));
     const md = await sGet("meal_defaults"); if (md) setMealDefaults(JSON.parse(md));
@@ -3224,6 +3230,63 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           // States moved to component top level
           var sk = mealKey(weekStart) + ":" + activeTab;
 
+          var portionAnalyze = async function(slotKey, file, itemsList) {
+            setPortionSlot(slotKey);
+            setPortionLoading(true);
+            setPortionResult(null);
+            var val = getMeal(eatDay, slotKey);
+            var planned = itemsList.find(function(it) { return it.id === val; });
+            if (planned) {
+              var isJC2 = activeTab === "jc";
+              setPortionPlanned({ name: planned.name, kcal: isJC2 ? (planned.jcKcal || planned.kcal || 0) : (planned.beckKcal || planned.kcal || 0), protein: planned.protein || 0, fat: planned.fat || 0, satFat: planned.satFat || 0, carbs: planned.carbs || 0, fibre: planned.fibre || 0, salt: planned.salt || 0 });
+            }
+            try {
+              var reader = new FileReader();
+              var base64 = await new Promise(function(res, rej) { reader.onload = function() { res(reader.result.split(",")[1]); }; reader.onerror = function() { rej(new Error("Read failed")); }; reader.readAsDataURL(file); });
+              var mediaType = file.type || "image/jpeg";
+              var apiKey = await window.ensureApiKey();
+              var isJC3 = activeTab === "jc";
+              var plannedName = planned ? planned.name : "unknown food";
+              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 600, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Analyze this food portion. The planned meal was: " + plannedName + ". Estimate the ACTUAL portion shown. Return ONLY JSON: {\"name\":\"what you see\",\"matchesPlanned\":true/false,\"kcal\":calories,\"protein\":grams,\"fat\":total_fat,\"satFat\":sat_fat,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED\",\"portionNote\":\"ONE sentence comparing portion size to standard\"}" }] }] }) });
+              var result = await resp.json();
+              var apiErr = handleApiError(result);
+              if (apiErr) throw new Error(apiErr);
+              var txt = "";
+              if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
+              var jsonStr = txt.replace(/```json|```/g, "").trim();
+              var jm = jsonStr.match(/{[\s\S]*}/);
+              if (!jm) throw new Error("No JSON");
+              var info = JSON.parse(jm[0]);
+              setPortionResult(info);
+            } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 120)); setTimeout(function(){setFormMsg("");},10000); setPortionSlot(""); }
+            setPortionLoading(false);
+          };
+
+          var confirmPortion = async function() {
+            if (!portionResult || !portionSlot) return;
+            var newOverrides = Object.assign({}, portionOverrides);
+            if (!newOverrides[eatDay]) newOverrides[eatDay] = {};
+            newOverrides[eatDay][portionSlot] = { kcal: portionResult.kcal || 0, protein: portionResult.protein || 0, fat: portionResult.fat || 0, satFat: portionResult.satFat || 0, carbs: portionResult.carbs || 0, fibre: portionResult.fibre || 0, salt: portionResult.salt || 0, name: portionResult.name || "" };
+            setPortionOverrides(newOverrides);
+            await sSet("portion_overrides:" + activeTab, JSON.stringify(newOverrides));
+            setFormMsg("Portion logged ✓");
+            setPortionSlot("");
+            setPortionResult(null);
+            setPortionPlanned(null);
+            setTimeout(function(){setFormMsg("");}, 3000);
+          };
+
+          var cancelPortion = function() {
+            setPortionSlot("");
+            setPortionResult(null);
+            setPortionPlanned(null);
+          };
+
+          var getEffective = function(dayKey, slotKey, item) {
+            if (portionOverrides[dayKey] && portionOverrides[dayKey][slotKey]) return portionOverrides[dayKey][slotKey];
+            return null;
+          };
+
           var getMeal = function(dayKey, slot) { var m = meals[dayKey]; if (!m) return ""; return m[slot] || ""; };
           var setMeal = function(dayKey, slot, val) { var n = Object.assign({}, meals); if (!n[dayKey]) n[dayKey] = {}; n[dayKey][slot] = val; setMeals(n); saveMeals(n); };
           
@@ -4196,10 +4259,29 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ flex: 1 }}>
                       <MealSelect items={allBfast} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
                     </div>
+                    {_hasItem && (<label style={{ padding: "4px 6px", background: portionSlot === slotKey ? "#ddd6fe" : "#f0f9ff", border: "1px solid " + (portionSlot === slotKey ? "#7c3aed" : "#bae6fd"), borderRadius: 4, fontSize: 11, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex", alignItems: "center" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳" : "📷"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allBfast); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
+                    {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#7c3aed", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
+              {portionSlot && portionSlot.match(/^b\d*$/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
+                {portionLoading && <div style={{ fontSize: 11, color: "#7c3aed", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
+                {portionResult && portionPlanned && (<div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+                    <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
+                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#166534", fontWeight: 600 }}>{portionResult.kcal}</div>
+                    <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
+                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#166534", fontWeight: 600 }}>{portionResult.satFat}g</div>
+                  </div>
+                  {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Confirm Portion</button>
+                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>
+                </div>)}
+              </div>)}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <button onClick={function() { var nk = 2; while (getMeal(eatDay, "b" + nk)) nk++; setMeal(eatDay, "b" + nk, "__empty__"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>➕ Add New</button>
               <button onClick={function(){ setLogEatCat(logEatCat === "breakfast" ? "" : "breakfast"); setLogEatText(""); setLogEatPreview(null); }} style={{ padding: "4px 10px", background: logEatCat === "breakfast" ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (logEatCat === "breakfast" ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, color: logEatCat === "breakfast" ? "#fff" : "#475569", cursor: "pointer" }}>✅ Log New</button>
@@ -4251,10 +4333,29 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ flex: 1 }}>
                       <MealSelect items={allLunch} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
                     </div>
+                    {_hasItem && (<label style={{ padding: "4px 6px", background: portionSlot === slotKey ? "#ddd6fe" : "#f0f9ff", border: "1px solid " + (portionSlot === slotKey ? "#7c3aed" : "#bae6fd"), borderRadius: 4, fontSize: 11, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex", alignItems: "center" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳" : "📷"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allLunch); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
+                    {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#7c3aed", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
+              {portionSlot && portionSlot.match(/^l\d*$/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
+                {portionLoading && <div style={{ fontSize: 11, color: "#7c3aed", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
+                {portionResult && portionPlanned && (<div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+                    <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
+                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#166534", fontWeight: 600 }}>{portionResult.kcal}</div>
+                    <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
+                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#166534", fontWeight: 600 }}>{portionResult.satFat}g</div>
+                  </div>
+                  {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Confirm Portion</button>
+                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>
+                </div>)}
+              </div>)}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <button onClick={function() { var nk = 2; while (getMeal(eatDay, "l" + nk)) nk++; setMeal(eatDay, "l" + nk, "__empty__"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>➕ Add New</button>
               <button onClick={function(){ setLogEatCat(logEatCat === "lunch" ? "" : "lunch"); setLogEatText(""); setLogEatPreview(null); }} style={{ padding: "4px 10px", background: logEatCat === "lunch" ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (logEatCat === "lunch" ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, color: logEatCat === "lunch" ? "#fff" : "#475569", cursor: "pointer" }}>✅ Log New</button>
@@ -4306,10 +4407,29 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ flex: 1 }}>
                       <MealSelect items={allDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
                     </div>
+                    {_hasItem && (<label style={{ padding: "4px 6px", background: portionSlot === slotKey ? "#ddd6fe" : "#f0f9ff", border: "1px solid " + (portionSlot === slotKey ? "#7c3aed" : "#bae6fd"), borderRadius: 4, fontSize: 11, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex", alignItems: "center" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳" : "📷"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allDinners); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
+                    {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#7c3aed", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
+              {portionSlot && portionSlot.match(/^d\d*$/) && !portionSlot.match(/^d[sr]/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
+                {portionLoading && <div style={{ fontSize: 11, color: "#7c3aed", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
+                {portionResult && portionPlanned && (<div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+                    <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
+                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#166534", fontWeight: 600 }}>{portionResult.kcal}</div>
+                    <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
+                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#166534", fontWeight: 600 }}>{portionResult.satFat}g</div>
+                  </div>
+                  {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Confirm Portion</button>
+                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>
+                </div>)}
+              </div>)}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <button onClick={function() { var nk = 2; while (getMeal(eatDay, "d" + nk)) nk++; setMeal(eatDay, "d" + nk, "__empty__"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>➕ Add New</button>
               <button onClick={function(){ setLogEatCat(logEatCat === "dinner" ? "" : "dinner"); setLogEatText(""); setLogEatPreview(null); }} style={{ padding: "4px 10px", background: logEatCat === "dinner" ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (logEatCat === "dinner" ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, color: logEatCat === "dinner" ? "#fff" : "#475569", cursor: "pointer" }}>✅ Log New</button>
@@ -4359,10 +4479,29 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ flex: 1 }}>
                       <MealSelect items={allDesserts} value={getMeal(eatDay, "ds" + idx) === "__empty__" ? "" : getMeal(eatDay, "ds" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults"); } else { setMeal(eatDay, "ds" + idx, e.target.value); } }} placeholder="Select dessert..." />
                     </div>
+                    {getMeal(eatDay, "ds" + idx) && getMeal(eatDay, "ds" + idx) !== "__empty__" && (<label style={{ padding: "4px 6px", background: portionSlot === ("ds" + idx) ? "#ddd6fe" : "#f0f9ff", border: "1px solid " + (portionSlot === ("ds" + idx) ? "#7c3aed" : "#bae6fd"), borderRadius: 4, fontSize: 11, cursor: portionLoading && portionSlot === ("ds" + idx) ? "wait" : "pointer", display: "flex", alignItems: "center" }} title="Portion check">{portionLoading && portionSlot === ("ds" + idx) ? "⏳" : "📷"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("ds" + idx, e.target.files[0], allDesserts); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {getMeal(eatDay, "ds" + idx) && <button onClick={function() { setMeal(eatDay, "ds" + idx, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
+                    {portionOverrides[eatDay] && portionOverrides[eatDay]["ds" + idx] && (<span style={{ fontSize: 9, color: "#7c3aed", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
+              {portionSlot && portionSlot.match(/^ds/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
+                {portionLoading && <div style={{ fontSize: 11, color: "#7c3aed", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
+                {portionResult && portionPlanned && (<div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+                    <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
+                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#166534", fontWeight: 600 }}>{portionResult.kcal}</div>
+                    <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
+                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#166534", fontWeight: 600 }}>{portionResult.satFat}g</div>
+                  </div>
+                  {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Confirm Portion</button>
+                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>
+                </div>)}
+              </div>)}
             </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <button onClick={function() { var nk = 1; while (getMeal(eatDay, "ds" + nk)) nk++; setMeal(eatDay, "ds" + nk, "__empty__"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>➕ Add New</button>
@@ -4412,10 +4551,29 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ flex: 1 }}>
                       <MealSelect items={allDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults"); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Select drink..." />
                     </div>
+                    {getMeal(eatDay, "dr" + idx) && getMeal(eatDay, "dr" + idx) !== "__empty__" && (<label style={{ padding: "4px 6px", background: portionSlot === ("dr" + idx) ? "#ddd6fe" : "#f0f9ff", border: "1px solid " + (portionSlot === ("dr" + idx) ? "#7c3aed" : "#bae6fd"), borderRadius: 4, fontSize: 11, cursor: portionLoading && portionSlot === ("dr" + idx) ? "wait" : "pointer", display: "flex", alignItems: "center" }} title="Portion check">{portionLoading && portionSlot === ("dr" + idx) ? "⏳" : "📷"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("dr" + idx, e.target.files[0], allDrinks); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {getMeal(eatDay, "dr" + idx) && <button onClick={function() { setMeal(eatDay, "dr" + idx, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
+                    {portionOverrides[eatDay] && portionOverrides[eatDay]["dr" + idx] && (<span style={{ fontSize: 9, color: "#7c3aed", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
+              {portionSlot && portionSlot.match(/^dr/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
+                {portionLoading && <div style={{ fontSize: 11, color: "#7c3aed", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
+                {portionResult && portionPlanned && (<div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+                    <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
+                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#166534", fontWeight: 600 }}>{portionResult.kcal}</div>
+                    <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
+                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#166534", fontWeight: 600 }}>{portionResult.satFat}g</div>
+                  </div>
+                  {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Confirm Portion</button>
+                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>
+                </div>)}
+              </div>)}
             </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <button onClick={function() { var nk = 1; while (getMeal(eatDay, "dr" + nk)) nk++; setMeal(eatDay, "dr" + nk, "__empty__"); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>➕ Add New</button>
@@ -4463,10 +4621,28 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 <div style={{ flex: 1 }}>
                   <MealSelect items={allOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults"); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Select snack..." />
                 </div>
+                {getMeal(eatDay, "o" + idx) && getMeal(eatDay, "o" + idx) !== "__empty__" && (<label style={{ padding: "4px 6px", background: portionSlot === ("o" + idx) ? "#ddd6fe" : "#f0f9ff", border: "1px solid " + (portionSlot === ("o" + idx) ? "#7c3aed" : "#bae6fd"), borderRadius: 4, fontSize: 11, cursor: portionLoading && portionSlot === ("o" + idx) ? "wait" : "pointer", display: "flex", alignItems: "center" }} title="Portion check">{portionLoading && portionSlot === ("o" + idx) ? "⏳" : "📷"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("o" + idx, e.target.files[0], allOther); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                 {getMeal(eatDay, "o" + idx) && <button onClick={function() { setMeal(eatDay, "o" + idx, ""); }} style={{ fontSize: 10, color: "#fff", background: "#dc2626", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 4, fontWeight: 600, lineHeight: 1 }}>Del</button>}
-                
+                {portionOverrides[eatDay] && portionOverrides[eatDay]["o" + idx] && (<span style={{ fontSize: 9, color: "#7c3aed", fontWeight: 600 }} title="Portion verified">✓</span>)}
               </div>);
             })}
+            {portionSlot && portionSlot.match(/^o/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
+                {portionLoading && <div style={{ fontSize: 11, color: "#7c3aed", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
+                {portionResult && portionPlanned && (<div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+                    <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
+                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#166534", fontWeight: 600 }}>{portionResult.kcal}</div>
+                    <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
+                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#166534", fontWeight: 600 }}>{portionResult.satFat}g</div>
+                  </div>
+                  {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Confirm Portion</button>
+                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>
+                </div>)}
+              </div>)}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <button onClick={function() { addOtherSlot(eatDay); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>➕ Add New</button>
               <button onClick={function(){ setLogEatCat(logEatCat === "snack" ? "" : "snack"); setLogEatText(""); setLogEatPreview(null); }} style={{ padding: "4px 10px", background: logEatCat === "snack" ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (logEatCat === "snack" ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, color: logEatCat === "snack" ? "#fff" : "#475569", cursor: "pointer" }}>✅ Log New</button>
@@ -5265,7 +5441,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         My Lifecare Companion · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.282.2
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.283.0
       </div>
 
       {/* Floating Ask a Question button */}
