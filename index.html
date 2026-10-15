@@ -1543,7 +1543,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       const who = prof.name + " (" + (prof.sex || "") + ", " + (calcAge(prof.dob) || prof.age || "") + ", " + (prof.height || "") + ", ideal " + (prof.idealWeight || "") + ", " + (prof.bodyType || "") + ". " + (prof.notes || "") + ")";
       // Health log
       let healthContext = ""; if (p.vitals && p.vitals.length > 0) { var lv = p.vitals[p.vitals.length-1]; healthContext += "\nVitals(" + lv.date + "): " + (lv.bp ? "BP:" + lv.bp + " " : "") + (lv.hr ? "HR:" + lv.hr + " " : "") + (lv.spo2 ? "SpO2:" + lv.spo2 + "% " : ""); } if (p.healthProfile) healthContext += "\nHealth profile: " + p.healthProfile;
-      if (p.healthLog && p.healthLog.length > 0) {
+      if (Array.isArray(p.healthLog) && p.healthLog.length > 0) {
         healthContext = "\nRecent health updates: " + p.healthLog.slice(-5).map(h => h.date + ": " + h.note).join("; ") + ".";
       }
       // Blood results
@@ -2074,7 +2074,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       var who = (prof.name || activeTab) + " (" + (prof.sex || "") + ", " + (calcAge(prof.dob) || prof.age || "") + ")";
       var mealCtx = "", healthCtx = "", bloodCtx = "", medsCtx = "";
       try { var mr = await sGet(sk); if (mr) { var mp = JSON.parse(mr); var parts = []; for (var di = 0; di < MEAL_DAYS.length; di++) { var dd = MEAL_DAYS[di]; var entry = mp[dd.key]; var isO = entry && typeof entry === "object"; var din = isO ? entry.d : entry; var ml = null; for (var mi = 0; mi < allDinners.length; mi++) { if (allDinners[mi].id === din) { ml = allDinners[mi]; break; } } var dn = isO && entry._note ? entry._note : ""; parts.push(dd.label + ": " + (ml ? ml.name : "none") + (dn ? " (" + dn + ")" : "")); } mealCtx = "\nMeals: " + parts.join(", "); } } catch(me) {}
-      if (p.healthLog && p.healthLog.length > 0) { var hp = []; for (var hi = Math.max(0, p.healthLog.length - 5); hi < p.healthLog.length; hi++) hp.push(p.healthLog[hi].date + ": " + p.healthLog[hi].note); healthCtx = "\nHealth: " + hp.join("; "); }
+      if (Array.isArray(p.healthLog) && p.healthLog.length > 0) { var hp = []; for (var hi = Math.max(0, p.healthLog.length - 5); hi < p.healthLog.length; hi++) hp.push(p.healthLog[hi].date + ": " + p.healthLog[hi].note); healthCtx = "\nHealth: " + hp.join("; "); }
       if (p.bloods && p.bloods.length > 0) { var lat = p.bloods[p.bloods.length - 1]; var bp = []; var bk = Object.keys(lat.tests); for (var bi = 0; bi < bk.length; bi++) bp.push(bk[bi] + "=" + lat.tests[bk[bi]]); bloodCtx = "\nBloods: " + bp.join(", "); }
       if (p.meds && p.meds.length > 0) { var mp2 = []; for (var mmi = 0; mmi < p.meds.length; mmi++) { if (p.meds[mmi].active) mp2.push(p.meds[mmi].name + " " + (p.meds[mmi].dosage || "")); } medsCtx = "\nMeds: " + mp2.join(", "); }
       var attCtx = "";
@@ -5217,10 +5217,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
                 <input type="date" value={bloodInputs.healthDate || ""} onChange={function(e) { setBloodInputs(Object.assign({}, bloodInputs, { healthDate: e.target.value })); }} style={{ padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12, boxSizing: "border-box" }} />
                 <input value={healthComment} onChange={function(e) { setHealthComment(e.target.value); }} placeholder="Health note..." style={{ flex: 1, padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12, boxSizing: "border-box" }} />
-                <button onClick={async function() { if (!healthComment.trim()) return; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].healthLog) nd[activeTab].healthLog = []; nd[activeTab].healthLog.push({ date: bloodInputs.healthDate || new Date().toISOString().split("T")[0], note: healthComment.trim() }); await saveData(nd); setHealthComment(""); }} style={{ padding: "8px 14px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>Add</button>
+                <button onClick={async function() { if (!healthComment.trim()) return; var nd = JSON.parse(JSON.stringify(data)); if (!Array.isArray(nd[activeTab].healthLog)) nd[activeTab].healthLog = []; nd[activeTab].healthLog.push({ date: bloodInputs.healthDate || new Date().toISOString().split("T")[0], note: healthComment.trim() }); await saveData(nd); setHealthComment(""); }} style={{ padding: "8px 14px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>Add</button>
               </div>
-              {(p.healthLog || []).slice().reverse().map(function(h, i) { return (<div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f1f5f9", fontSize: 12 }}><span><span style={{ fontWeight: 600, color: "#475569" }}>{h.date}</span> <span style={{ color: "#334155" }}>{h.note}</span></span><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthLog.splice(nd[activeTab].healthLog.length - 1 - i, 1); await saveData(nd); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", minWidth: 24, flexShrink: 0 }}>✕</button></div>); })}
-              {(p.healthLog || []).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12 }}>No health log entries yet</div>}
+              {(Array.isArray(p.healthLog) ? p.healthLog : []).slice().reverse().map(function(h, i) { return (<div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f1f5f9", fontSize: 12 }}><span><span style={{ fontWeight: 600, color: "#475569" }}>{h.date}</span> <span style={{ color: "#334155" }}>{h.note}</span></span><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthLog.splice(nd[activeTab].healthLog.length - 1 - i, 1); await saveData(nd); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", minWidth: 24, flexShrink: 0 }}>✕</button></div>); })}
+              {(Array.isArray(p.healthLog) ? p.healthLog : []).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12 }}>No health log entries yet</div>}
             </div>
             {/* Medical Priorities */}
             {isJC ? <div style={{ background: "#dbeafe", borderRadius: 10, padding: 12, fontSize: 12, color: "#1e40af", lineHeight: 1.5, marginTop: 12 }}>Medical priority: TSH stabilisation → unlocks statin effectiveness → lipid improvement. HbA1c monitoring — thyroid normalisation expected to help.</div>
@@ -5336,7 +5336,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             var who = (p.profile && p.profile.name) || activeTab;
             var hp = p.healthProfile || "Not recorded";
             var hn = p.healthNotes || "None";
-            var hl = (p.healthLog || []).slice(-10).map(function(h) { return h.date + ": " + h.note; }).join("; ") || "None";
+            var hl = (Array.isArray(p.healthLog) ? p.healthLog : []).slice(-10).map(function(h) { return h.date + ": " + h.note; }).join("; ") || "None";
             var mi = activeMeds.map(function(m) { return m.name + " " + (m.dose || "") + " " + (m.freq || "") + (m.notes ? " (" + m.notes + ")" : ""); }).join(", ") || "None";
             var bi = "";
             if (p.bloods && p.bloods.length > 0) { var lat = p.bloods[p.bloods.length - 1]; bi = "Latest (" + lat.date + "): " + Object.entries(lat.tests).map(function(e) { var def = allTests.find(function(t) { return t.key === e[0]; }); return (def ? def.name : e[0]) + "=" + e[1] + (def ? def.unit : ""); }).join(", "); }
@@ -5723,7 +5723,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         My Lifecare Companion · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.289.2
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.289.3
       </div>
 
       {/* Floating Ask a Question button */}
