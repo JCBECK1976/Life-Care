@@ -2675,17 +2675,20 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             </div>
             <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
               {bodyView === "data" && (<div>
-          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-            <button onClick={() => { setShowBodyForm(true); setBodyInputs({ weight: "", bodyFat: "", muscleMass: "", muscleRate: "", skeletalMuscle: "", visceralFat: "", subcutFat: "", bmr: "", bodyWater: "", boneMass: "", bodyAge: "", bmi: "", week: String(calcWeek(data.config.trainingStart)) }); }} style={{ padding: "4px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer" }}>📋 Record Body Comp</button>
-            <label style={{ display: "inline-flex", alignItems: "center", padding: "4px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>
-              📷 Image Upload
-              <input type="file" accept="image/*" onChange={async function(e) {
+          {showBodyForm && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Body Composition</div>
+            <div style={{ marginBottom: 10 }}><label style={labelStyle}>Week</label><input type="number" value={bodyInputs.week} onChange={e => setBodyInputs(q => ({ ...q, week: e.target.value }))} style={{ ...inputStyle, width: 80 }} /></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {[["weight","Weight (stone)"],["bodyFat","Body Fat %"],["muscleMass","Muscle Mass"],["muscleRate","Muscle Rate %"],["skeletalMuscle","Skeletal Muscle %"],["visceralFat","Visceral Fat"],["subcutFat","Subcut Fat %"],["bmr","BMR (kcal)"],["bodyWater","Body Water %"],["boneMass","Bone Mass"],["bodyAge","Body Age"],["bmi","BMI"]].map(([k,l]) => (<div key={k}><label style={labelStyle}>{l}</label><input value={bodyInputs[k]} onChange={e => setBodyInputs(q => ({ ...q, [k]: e.target.value }))} style={inputStyle} /></div>))}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}><button onClick={saveBodyComp} style={{ ...btnP(!!bodyInputs.week), flex: 1 }}>Save</button><button onClick={() => setShowBodyForm(false)} style={btnS}>Cancel</button></div>
+          </div>)}
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>My Body Stats</span><div style={{ display: "flex", gap: 4 }}><button onClick={() => { setShowBodyForm(true); setBodyInputs({ weight: "", bodyFat: "", muscleMass: "", muscleRate: "", skeletalMuscle: "", visceralFat: "", subcutFat: "", bmr: "", bodyWater: "", boneMass: "", bodyAge: "", bmi: "", week: String(calcWeek(data.config.trainingStart)) }); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", gap: 3 }}>📋 Record</button><label style={{ display: "inline-flex", alignItems: "center", padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer", fontWeight: 600, gap: 3 }}>📷 Upload<input type="file" accept="image/*" onChange={async function(e) {
                 var file = e.target.files ? e.target.files[0] : null;
                 if (!file) return;
                 setFormMsg("Reading image...");
                 try {
                   var rawB64 = await new Promise(function(res, rej) { var r = new FileReader(); r.onload = function() { res(r.result); }; r.onerror = function() { rej("fail"); }; r.readAsDataURL(file); });
-                  // Resize to max 800px to prevent API overload
                   var b64 = await new Promise(function(resolve) {
                     var img = new Image();
                     img.onload = function() {
@@ -2706,7 +2709,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   if (txt) {
                     try {
                       var parsed = JSON.parse(txt.replace(/```json|```/g, "").trim());
-                      // Store weight as-is from Fitdays (e.g. 14.87 = 14st 8.7lb)
                       parsed.week = String(calcWeek(data.config.trainingStart));
                       setBodyInputs(function(prev) { return Object.assign({}, prev, parsed); });
                       setShowBodyForm(true);
@@ -2716,18 +2718,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 } catch(err) { setFormMsg("Error: " + String(err).substring(0, 100)); setTimeout(function() { setFormMsg(""); }, 8000); }
                 setTimeout(function() { setFormMsg(""); }, 5000);
                 e.target.value = "";
-              }} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)", border: 0 }} />
-            </label>
-          </div>
-          {showBodyForm && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Body Composition</div>
-            <div style={{ marginBottom: 10 }}><label style={labelStyle}>Week</label><input type="number" value={bodyInputs.week} onChange={e => setBodyInputs(q => ({ ...q, week: e.target.value }))} style={{ ...inputStyle, width: 80 }} /></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {[["weight","Weight (stone)"],["bodyFat","Body Fat %"],["muscleMass","Muscle Mass"],["muscleRate","Muscle Rate %"],["skeletalMuscle","Skeletal Muscle %"],["visceralFat","Visceral Fat"],["subcutFat","Subcut Fat %"],["bmr","BMR (kcal)"],["bodyWater","Body Water %"],["boneMass","Bone Mass"],["bodyAge","Body Age"],["bmi","BMI"]].map(([k,l]) => (<div key={k}><label style={labelStyle}>{l}</label><input value={bodyInputs[k]} onChange={e => setBodyInputs(q => ({ ...q, [k]: e.target.value }))} style={inputStyle} /></div>))}
-            </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 12 }}><button onClick={saveBodyComp} style={{ ...btnP(!!bodyInputs.week), flex: 1 }}>Save</button><button onClick={() => setShowBodyForm(false)} style={btnS}>Cancel</button></div>
-          </div>)}
-          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>My Body Stats</span><div style={{ display: "flex", gap: 4 }}><button onClick={() => { setBodyMetricShowAll(!bodyMetricShowAll); setBodyMetricOpen(bodyMetricShowAll ? null : "weight"); }} style={{ padding: "4px 10px", background: bodyMetricShowAll ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (bodyMetricShowAll ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", color: bodyMetricShowAll ? "#fff" : "#475569", display: "flex", alignItems: "center", gap: 3 }}>{bodyMetricShowAll ? "✕" : "👁 Progress"}</button></div></div>
+              }} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)", border: 0 }} /></label></div></div>
           <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
             <BodyCard label="Weight" value={wtStr} rating="High" trend={wtDelta ? (wtSign === "-" ? "-" : "+") + wtDelta.split("lb")[0] + "lb" : ""} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "weight" ? null : "weight"); }} eyeOpen={bodyMetricOpen === "weight"} />
@@ -5883,7 +5874,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         My Lifecare Companion · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.298.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.299.0
       </div>
 
       {/* Floating Ask a Question button */}
