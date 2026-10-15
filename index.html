@@ -1626,7 +1626,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           return { name: ex.name, current: ex.current, reps: ex.reps, status: ex.status, target: ex.target || "", notes: ex.notes || "", prev: prev ? prev.w + " " + prev.r + " Wk" + prev.wk : "", weeksTracked: ex.prog ? ex.prog.length : 0 };
         });
       }
-      const prompt = "You are the user's Lifecare Companion reviewing Week" + data.config.week + " for " + who + ". Give integrated analysis. "+TONE_RULES+"\n\nExercises: " + JSON.stringify(exSummary) + "\nBody: " + JSON.stringify(p.body) + "\nMeasurements: " + JSON.stringify(p.measurements) + mealSummary + exComments + healthContext + bloodContext + medsContext + attachCtx + photoCtx + activityCtx + prevContext + getCrossSectionCtx(tab, "home") + "\n\nRules: EACH point must be ONE short sentence (max 20 words). Reference specific numbers. MEDICATION: Check drug interactions between active meds AND with diet/exercise. Label [OFFICIAL] (NICE/BNF/NHS/manufacturer) vs [ANECDOTAL] (forums/user reports). Never recommend stopping medication. Return ONLY JSON:\n{\"good\":[\"short point\",\"short point\",\"short point\"],\"opportunities\":[\"short point\",\"short point\"],\"focus\":[\"one sentence focus for next 2 weeks\"]}";
+      const prompt = "You are " + (prof.name || "the user") + "'s Lifecare Companion — a trusted, knowledgeable friend giving your integrated Week " + data.config.week + " review. You know " + (prof.name || "them") + " well: " + who + ".\n\nCOMMUNICATION STYLE: Speak directly to " + (prof.name || "the user") + " using 'you' and 'your' throughout — NEVER use their name in the third person (never '" + (prof.name || "user") + " does X' or '" + (prof.name || "user") + " should'). You are their trusted friend reviewing the week together, not an assessor writing a report about them. Be pragmatic, warm, non-judgemental and direct like a mate who genuinely cares.\n\n" + TONE_RULES + "\n\nExercises: " + JSON.stringify(exSummary) + "\nBody: " + JSON.stringify(p.body) + "\nMeasurements: " + JSON.stringify(p.measurements) + mealSummary + exComments + healthContext + bloodContext + medsContext + medsHistCtx + measCommCtx + qaCtx + attachCtx + photoCtx + activityCtx + getOnboardingCtx(tab) + prevContext + getCrossSectionCtx(tab, "home") + "\n\nRules: EACH point must be ONE short sentence (max 20 words). Address the user as 'you' throughout — never third person. Reference specific numbers. MEDICATION: Check drug interactions between active meds AND with diet/exercise. Label [OFFICIAL] (NICE/BNF/NHS/manufacturer) vs [ANECDOTAL] (forums/user reports). Never recommend stopping medication. Return ONLY JSON:\n{\"good\":[\"short point\",\"short point\",\"short point\"],\"opportunities\":[\"short point\",\"short point\"],\"focus\":[\"one sentence focus for next 2 weeks\"]}";
       const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
       if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Feedback API", status: response.status, statusText: response.statusText }].concat(prev).slice(0, 20); });
       const result = await response.json();
@@ -1775,7 +1775,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         (bodyCtx ? "Body comp: " + bodyCtx + "\n" : "") +
         (exCtx ? "Exercise programme: " + exCtx + "\n" : "") +
         (actCtx ? "Recent activity: " + actCtx + "\n" : "") +
-        prevCtx + prevActCtx + getCrossSectionCtx(tab, "eating") + "\n\n" +
+        prevCtx + prevActCtx + getOnboardingCtx(tab) + getCrossSectionCtx(tab, "eating") + "\n\n" +
         TONE_RULES + "\n\n" +
         "RULES FOR RESPONSE:\n" +
         "1. 'wins': 2-4 things that went well — specific good decisions, smart food choices, patterns improving vs previous feedback. Reference actual items and numbers.\n" +
@@ -1906,7 +1906,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         (bodyCtx ? "Body comp: " + bodyCtx + "\n" : "") +
         (exCtx ? "Exercise programme: " + exCtx + "\n" : "") +
         (actCtx ? "Recent activity: " + actCtx + "\n" : "") +
-        prevCtx + prevActCtx + getCrossSectionCtx(tab, "eating") + "\n\n" +
+        prevCtx + prevActCtx + getOnboardingCtx(tab) + getCrossSectionCtx(tab, "eating") + "\n\n" +
         TONE_RULES + "\n\n" +
         "RULES FOR RESPONSE:\n" +
         "1. 'wins': 3-5 things that went well across the WHOLE WEEK — patterns, consistency, smart choices, improvements from previous weeks. Reference actual items, numbers and trends across days.\n" +
@@ -1967,6 +1967,67 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     if (excludeSection !== "bodycomp") addThreadSummary("Body comp", bodyFeedback);
     if (excludeSection !== "meas") addThreadSummary("Measurements", measFeedback);
     return lines.length > 0 ? "\n\nCROSS-SECTION CONTEXT (recent conversations from other feedback areas — use to connect the dots):\n" + lines.join("\n") : "";
+  };
+
+  // ─── ONBOARDING/PROFILE CONTEXT FOR AI FEEDBACK ───
+  const getOnboardingCtx = function(tab) {
+    var p = tab === "jc" ? data.jc : data.becks;
+    if (!p) return "";
+    var ob = p.onboarding || {};
+    var prof = p.profile || {};
+    var parts = [];
+    // Personality & motivation
+    if (ob.personalityType) parts.push("Personality: " + ob.personalityType);
+    if (ob.motivationStyle) parts.push("Motivation style: " + ob.motivationStyle);
+    if (ob.whatDerails) parts.push("What derails them: " + ob.whatDerails);
+    if (ob.accountabilityPref) parts.push("Accountability preference: " + ob.accountabilityPref);
+    if (ob.neurodiversity) parts.push("Neurodiversity: " + ob.neurodiversity);
+    // Lifestyle & work
+    if (ob.occupation) parts.push("Occupation: " + ob.occupation);
+    if (ob.workPattern) parts.push("Work pattern: " + ob.workPattern);
+    if (ob.workHours) parts.push("Work hours: " + ob.workHours);
+    if (ob.commute) parts.push("Commute: " + ob.commute);
+    // Living situation
+    if (ob.livingSituation) parts.push("Living situation: " + ob.livingSituation);
+    if (ob.familyHistory) parts.push("Family health history: " + ob.familyHistory);
+    // Goals & activity
+    if (ob.goals) parts.push("Goals: " + ob.goals);
+    if (ob.activity) parts.push("Current activity level: " + ob.activity);
+    if (ob.equipment) parts.push("Equipment: " + ob.equipment);
+    // Eating habits
+    if (ob.cookingConfidence) parts.push("Cooking confidence: " + ob.cookingConfidence);
+    if (ob.eatingOutFreq) parts.push("Eating out frequency: " + ob.eatingOutFreq);
+    if (ob.whoCooks) parts.push("Who cooks: " + ob.whoCooks);
+    if (ob.mealRegularity) parts.push("Meal regularity: " + ob.mealRegularity);
+    if (ob.emotionalEating) parts.push("Emotional eating: " + ob.emotionalEating);
+    if (ob.waterIntake) parts.push("Water intake: " + ob.waterIntake);
+    if (ob.caffeineDaily) parts.push("Daily caffeine: " + ob.caffeineDaily);
+    if (ob.alcoholFrequency) parts.push("Alcohol frequency: " + ob.alcoholFrequency);
+    // Wellbeing
+    if (ob.sleepHours) parts.push("Sleep: " + ob.sleepHours + "hrs");
+    if (ob.sleepQuality) parts.push("Sleep quality: " + ob.sleepQuality + "/5");
+    if (ob.sleepIssues) parts.push("Sleep issues: " + ob.sleepIssues);
+    if (ob.screensBed) parts.push("Screens before bed: " + ob.screensBed);
+    if (ob.caffeineCutoff) parts.push("Caffeine cutoff: " + ob.caffeineCutoff);
+    if (ob.stressLevel) parts.push("Stress level: " + ob.stressLevel + "/5");
+    if (ob.mainStressors) parts.push("Main stressors: " + ob.mainStressors);
+    if (ob.copingStrategies) parts.push("Coping strategies: " + ob.copingStrategies);
+    if (ob.mentalHealth) parts.push("Mental health: " + ob.mentalHealth);
+    if (ob.currentSupport) parts.push("Current support: " + ob.currentSupport);
+    // Health setup
+    if (ob.conditions) parts.push("Health conditions: " + ob.conditions);
+    if (ob.injuries) parts.push("Injuries: " + ob.injuries);
+    if (ob.painAreas) parts.push("Pain areas: " + ob.painAreas);
+    if (ob.weightHighest) parts.push("Highest weight: " + ob.weightHighest);
+    if (ob.weightLowest) parts.push("Lowest adult weight: " + ob.weightLowest);
+    if (ob.previousDiets) parts.push("Previous diets: " + ob.previousDiets);
+    // Body analysis
+    if (p.bodyAnalysis) parts.push("Body type assessment: " + JSON.stringify(p.bodyAnalysis));
+    // Profile notes
+    if (prof.notes) parts.push("Profile notes: " + prof.notes);
+    if (prof.bodyType) parts.push("Body type: " + prof.bodyType);
+    if (prof.fibreType) parts.push("Fibre type: " + prof.fibreType);
+    return parts.length > 0 ? "\n\nPERSONAL PROFILE CONTEXT (use to personalise advice — reference personality, lifestyle, sleep, stress, and wellbeing factors where relevant):\n" + parts.join(". ") + "." : "";
   };
 
   // ─── FEEDBACK THREAD REPLY ───
@@ -2176,10 +2237,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         {/* HOME */}
         {section === "overview" && (<div>
           {/* Profile */}
-          {(() => { const prof = p.profile || {}; const hasBaseline = p.body && p.body.weight && p.body.weight.length > 0; return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginTop: 14, marginBottom: 14, overflow: "hidden" }}>
-            <div onClick={() => { if (!showOnboarding) { var ob = p.onboarding || {}; setOnboardInputs(Object.assign({ conditions: "", medications: "", neurodiversity: "", bloods: "", goals: "", activity: "", equipment: "", dietary: "", allergies: "", livingSituation: "", familyHistory: "", personalityType: "", motivationStyle: "", whatDerails: "", accountabilityPref: "", occupation: "", workPattern: "", workHours: "", commute: "", sleepHours: "", sleepQuality: "", sleepIssues: "", screensBed: "", caffeineCutoff: "", cookingConfidence: "", eatingOutFreq: "", whoCooks: "", mealRegularity: "", emotionalEating: "", waterIntake: "", caffeineDaily: "", alcoholFrequency: "", stressLevel: "", mainStressors: "", copingStrategies: "", mentalHealth: "", currentSupport: "", injuries: "", painAreas: "", weightHighest: "", weightLowest: "", previousDiets: "" }, ob, { name: ob.name || prof.name || "", dob: ob.dob || prof.dob || "", sex: ob.sex || prof.sex || "", height: ob.height || prof.height || "" })); setSetupTab("profile"); } setShowOnboarding(!showOnboarding); }} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 14, cursor: "pointer", borderBottom: showOnboarding ? "1px solid #e2e8f0" : "none" }}>
-              <div style={{ fontSize: 14, fontWeight: 700 }}>{prof.name || "New User"}</div>
-              <span style={{ fontSize: 11, color: "#94a3b8" }}>{showOnboarding ? "▲ Hide" : "▼ My Profile"}</span>
+          {(() => { const prof = p.profile || {}; const hasBaseline = p.body && p.body.weight && p.body.weight.length > 0; var welcomeMsgs = ["Ready to make today count?", "Let's keep the momentum going!", "Small steps, big results — let's go!", "Your future self will thank you for today.", "Consistency beats perfection — you've got this!", "Every healthy choice adds up. What's first today?", "Welcome back — let's pick up where you left off!", "Progress isn't always visible, but it's always happening.", "You're building something great here — one day at a time.", "Let's check in and keep things moving forward."]; var welcomeIdx = Math.floor((new Date().getHours() * 60 + new Date().getMinutes()) / 144) % welcomeMsgs.length; var firstName = (prof.name || "").split(" ")[0]; var greetHour = new Date().getHours(); var greetWord = greetHour < 12 ? "Good morning" : greetHour < 17 ? "Good afternoon" : "Good evening"; return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginTop: 14, marginBottom: 14, overflow: "hidden" }}>
+            <div style={{ padding: 14, borderBottom: showOnboarding ? "1px solid #e2e8f0" : "none" }}>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>{firstName ? greetWord + ", " + firstName : "New User"}</div>
+              {!showOnboarding && <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{welcomeMsgs[welcomeIdx]}</div>}
             </div>
 
             {/* ONBOARDING QUESTIONNAIRE — TABBED */}
@@ -2286,7 +2347,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     setGenPlanLoading(true); setFormMsg("Generating recommendations...");
                     try {
                       var obd = p.onboarding || onboardInputs;
-                      var prompt = "Based on this person's information, generate a comprehensive assessment and recommendations. " + (obd.name || "") + ", age " + (calcAge(obd.dob || prof.dob) || obd.age || prof.age || "") + ", " + (obd.sex || prof.sex || "") + ", " + (obd.height || prof.height || "") + ". Conditions: " + (obd.conditions || "none stated") + ". Medications: " + (obd.medications || "none") + ". Neurodiversity: " + (obd.neurodiversity || "none") + ". Activity: " + (obd.activity || "unknown") + ". Goals: " + (obd.goals || "general health") + ". Living: " + (obd.livingSituation || "not stated") + ". Work: " + (obd.occupation || "") + " " + (obd.workPattern || "") + ". Sleep: " + (obd.sleepHours || "") + "hrs, quality " + (obd.sleepQuality || "?") + "/5. Stress: " + (obd.stressLevel || "?") + "/5. " + (p.bodyAnalysis ? "Photo analysis: " + JSON.stringify(p.bodyAnalysis) : "") + ". Return ONLY JSON: {\"bodyType\":\"e.g. Compact meso-endomorph\",\"fibreType\":\"e.g. Fast-twitch dominant\",\"idealWeight\":\"e.g. 13st 6lb\",\"notes\":\"key notes about this person\",\"assessment\":\"3-4 sentence assessment of current position and realistic expectations over 6-12 months\",\"priorities\":[\"priority 1\",\"priority 2\",\"priority 3\"],\"targets\":{\"calories\":\"e.g. 2000-2200\",\"protein\":\"e.g. 110-130g\",\"satFat\":\"e.g. under 20g\",\"sugar\":\"e.g. under 25g\",\"fibre\":\"e.g. 30-35g\",\"targetWeight\":\"e.g. 82kg\",\"targetBodyFat\":\"e.g. 18-22%\",\"targetWaist\":\"e.g. under 94cm\"}}";
+                      var prompt = "You are " + (obd.name || "the user") + "'s Lifecare Companion — a trusted, knowledgeable friend generating personalised recommendations. Speak directly to them using 'you' and 'your' in the assessment — NEVER use their name in the third person.\n\n" + TONE_RULES + "\n\nYour profile: " + (obd.name || "") + ", age " + (calcAge(obd.dob || prof.dob) || obd.age || prof.age || "") + ", " + (obd.sex || prof.sex || "") + ", " + (obd.height || prof.height || "") + ". Conditions: " + (obd.conditions || "none stated") + ". Medications: " + (obd.medications || "none") + ". Neurodiversity: " + (obd.neurodiversity || "none") + ". Activity: " + (obd.activity || "unknown") + ". Goals: " + (obd.goals || "general health") + ". Living: " + (obd.livingSituation || "not stated") + ". Work: " + (obd.occupation || "") + " " + (obd.workPattern || "") + ". Sleep: " + (obd.sleepHours || "") + "hrs, quality " + (obd.sleepQuality || "?") + "/5. Stress: " + (obd.stressLevel || "?") + "/5. Personality: " + (obd.personalityType || "not stated") + ". Motivation: " + (obd.motivationStyle || "not stated") + ". What derails: " + (obd.whatDerails || "not stated") + ". Cooking confidence: " + (obd.cookingConfidence || "not stated") + ". Emotional eating: " + (obd.emotionalEating || "not stated") + ". " + (p.bodyAnalysis ? "Photo analysis: " + JSON.stringify(p.bodyAnalysis) : "") + ". Return ONLY JSON: {\"bodyType\":\"e.g. Compact meso-endomorph\",\"fibreType\":\"e.g. Fast-twitch dominant\",\"idealWeight\":\"e.g. 13st 6lb\",\"notes\":\"key notes — use 'you/your' not third person\",\"assessment\":\"3-4 sentence assessment speaking directly to the user with 'you' — current position and realistic expectations over 6-12 months\",\"priorities\":[\"priority 1\",\"priority 2\",\"priority 3\"],\"targets\":{\"calories\":\"e.g. 2000-2200\",\"protein\":\"e.g. 110-130g\",\"satFat\":\"e.g. under 20g\",\"sugar\":\"e.g. under 25g\",\"fibre\":\"e.g. 30-35g\",\"targetWeight\":\"e.g. 82kg\",\"targetBodyFat\":\"e.g. 18-22%\",\"targetWaist\":\"e.g. under 94cm\"}}";
                       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
                       if (txt) {
@@ -2405,7 +2466,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       setGenPlanLoading(true); setFormMsg("Analysing body type...");
                       try {
                         var obd = p.onboarding || onboardInputs;
-                        var prompt = "Based on this person's information, generate a body profile. " + (obd.name || "") + ", age " + (calcAge(obd.dob || prof.dob) || obd.age || prof.age || "") + ", " + (obd.sex || prof.sex || "") + ", " + (obd.height || prof.height || "") + ". Conditions: " + (obd.conditions || "none stated") + ". Medications: " + (obd.medications || "none") + ". Neurodiversity: " + (obd.neurodiversity || "none") + ". Activity: " + (obd.activity || "unknown") + ". Goals: " + (obd.goals || "general health") + ". Living: " + (obd.livingSituation || "not stated") + ". Work: " + (obd.occupation || "") + " " + (obd.workPattern || "") + ". Sleep: " + (obd.sleepHours || "") + "hrs, quality " + (obd.sleepQuality || "?") + "/5. Stress: " + (obd.stressLevel || "?") + "/5. " + (p.bodyAnalysis ? "Photo analysis: " + JSON.stringify(p.bodyAnalysis) : "") + ". Return ONLY JSON: {\"bodyType\":\"e.g. Compact meso-endomorph\",\"fibreType\":\"e.g. Fast-twitch dominant\",\"idealWeight\":\"e.g. 13st 6lb\",\"notes\":\"key notes about this person\",\"assessment\":\"3-4 sentence assessment of current position and realistic expectations over 6-12 months\",\"priorities\":[\"priority 1\",\"priority 2\",\"priority 3\"]}";
+                        var prompt = "You are " + (obd.name || "the user") + "'s Lifecare Companion — a trusted, knowledgeable friend analysing their body type. Speak directly using 'you' and 'your' — NEVER use their name in the third person.\n\n" + TONE_RULES + "\n\nYour profile: " + (obd.name || "") + ", age " + (calcAge(obd.dob || prof.dob) || obd.age || prof.age || "") + ", " + (obd.sex || prof.sex || "") + ", " + (obd.height || prof.height || "") + ". Conditions: " + (obd.conditions || "none stated") + ". Medications: " + (obd.medications || "none") + ". Neurodiversity: " + (obd.neurodiversity || "none") + ". Activity: " + (obd.activity || "unknown") + ". Goals: " + (obd.goals || "general health") + ". Living: " + (obd.livingSituation || "not stated") + ". Work: " + (obd.occupation || "") + " " + (obd.workPattern || "") + ". Sleep: " + (obd.sleepHours || "") + "hrs, quality " + (obd.sleepQuality || "?") + "/5. Stress: " + (obd.stressLevel || "?") + "/5. Personality: " + (obd.personalityType || "not stated") + ". " + (p.bodyAnalysis ? "Photo analysis: " + JSON.stringify(p.bodyAnalysis) : "") + ". Return ONLY JSON: {\"bodyType\":\"e.g. Compact meso-endomorph\",\"fibreType\":\"e.g. Fast-twitch dominant\",\"idealWeight\":\"e.g. 13st 6lb\",\"notes\":\"key notes — use 'you/your' not third person\",\"assessment\":\"3-4 sentence assessment speaking directly to the user with 'you' — current position and realistic expectations over 6-12 months\",\"priorities\":[\"priority 1\",\"priority 2\",\"priority 3\"]}";
                         var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: prompt }] }) });
                         var result = await resp.json(); var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
                         if (txt) {
@@ -2555,6 +2616,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].profile = profileInputs; await saveData(nd); setShowProfile(false); setFormMsg("✓ Profile updated"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(), marginTop: 8 }}>Save Profile</button>
             </div>)}
 
+            <div style={{ textAlign: "center", padding: showOnboarding ? "8px 14px 10px" : "0 14px 10px", borderTop: showOnboarding ? "1px solid #e2e8f0" : "none" }}>
+              <button onClick={() => { if (!showOnboarding) { var ob2 = p.onboarding || {}; setOnboardInputs(Object.assign({ conditions: "", medications: "", neurodiversity: "", bloods: "", goals: "", activity: "", equipment: "", dietary: "", allergies: "", livingSituation: "", familyHistory: "", personalityType: "", motivationStyle: "", whatDerails: "", accountabilityPref: "", occupation: "", workPattern: "", workHours: "", commute: "", sleepHours: "", sleepQuality: "", sleepIssues: "", screensBed: "", caffeineCutoff: "", cookingConfidence: "", eatingOutFreq: "", whoCooks: "", mealRegularity: "", emotionalEating: "", waterIntake: "", caffeineDaily: "", alcoholFrequency: "", stressLevel: "", mainStressors: "", copingStrategies: "", mentalHealth: "", currentSupport: "", injuries: "", painAreas: "", weightHighest: "", weightLowest: "", previousDiets: "" }, ob2, { name: ob2.name || prof.name || "", dob: ob2.dob || prof.dob || "", sex: ob2.sex || prof.sex || "", height: ob2.height || prof.height || "" })); setSetupTab("profile"); } setShowOnboarding(!showOnboarding); }} style={{ background: "none", border: "none", fontSize: 11, color: "#94a3b8", cursor: "pointer", padding: "4px 12px" }}>{showOnboarding ? "▲ Hide Profile" : "▼ My Profile"}</button>
+            </div>
           </div>); })()}
 
           {/* Home summary cards — new features coming soon */}
@@ -2714,7 +2778,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   (prevEntries ? prevEntries + "\n" : "") +
                   (allBodyTrends ? "BODY TRENDS: " + allBodyTrends + "\n" : "") +
                   (measSum ? "MEASUREMENTS: " + measSum + "\n" : "") +
-                  prevBodyCtx + getCrossSectionCtx(activeTab, "bodycomp") + "\n\n" +
+                  (function(){ var hp = p.healthProfile; var mn = ""; if (p.meds && p.meds.length > 0) mn = "Meds: " + p.meds.filter(function(m){return m.active;}).map(function(m){return m.name+" "+(m.dose||m.dosage||"");}).join(", ") + ". "; var bl = ""; if (p.bloods && p.bloods.length > 0) { var lb = p.bloods[p.bloods.length-1]; bl = "Latest bloods(" + lb.date + "): " + Object.entries(lb.tests).map(function(e){return e[0]+"="+e[1];}).join(", ") + ". "; } return (hp ? "Health: " + hp + ". " : "") + mn + bl; })() +
+                  getOnboardingCtx(activeTab) + prevBodyCtx + getCrossSectionCtx(activeTab, "bodycomp") + "\n\n" +
                   "RULES FOR RESPONSE:\n" +
                   "1. 'wins': 3-5 things going well — weight direction, body comp improvements, consistency, positive trends across metrics. Reference actual numbers and week-on-week changes.\n" +
                   "2. 'tweaks': 2-4 constructive suggestions for the next period. NEVER say 'you need to fix this'. Instead: 'If you [specific action] over the next 4 weeks, expect to see [specific body comp outcome]'. Always translate the suggestion into a real-world outcome they care about.\n" +
@@ -2825,7 +2890,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   "CURRENT MEASUREMENTS: " + measSum + "\n" +
                   (measTrends ? "MEASUREMENT TRENDS: " + measTrends + "\n" : "") +
                   (bodySum ? "BODY COMP CONTEXT: " + bodySum + "\n" : "") +
-                  prevMeasCtx + getCrossSectionCtx(activeTab, "meas") + "\n\n" +
+                  (function(){ var hp = p.healthProfile; var mn = ""; if (p.meds && p.meds.length > 0) mn = "Meds: " + p.meds.filter(function(m){return m.active;}).map(function(m){return m.name+" "+(m.dose||m.dosage||"");}).join(", ") + ". "; var bl = ""; if (p.bloods && p.bloods.length > 0) { var lb = p.bloods[p.bloods.length-1]; bl = "Latest bloods(" + lb.date + "): " + Object.entries(lb.tests).map(function(e){return e[0]+"="+e[1];}).join(", ") + ". "; } return (hp ? "Health: " + hp + ". " : "") + mn + bl; })() +
+                  getOnboardingCtx(activeTab) + prevMeasCtx + getCrossSectionCtx(activeTab, "meas") + "\n\n" +
                   "RULES FOR RESPONSE:\n" +
                   "1. ‘wins’: 3-5 things the measurements show going well — positive size changes, body recomposition evidence, consistency of measuring, meaningful trends. Reference actual numbers and changes.\n" +
                   "2. ‘tweaks’: 2-4 constructive suggestions. NEVER say ‘you need to fix this’. Instead: ‘If you [specific action] over the next 4 weeks, expect to see [specific measurement outcome]’. Always connect measurement changes to training, nutrition or lifestyle factors.\n" +
@@ -3241,7 +3307,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         "COMMUNICATION STYLE: You are speaking adult-to-adult, like a knowledgeable mate who happens to be a strength coach. Be pragmatic, warm, non-judgemental and direct. Give your honest opinions based on experience. NEVER be preachy or lecture them about consistency. If they had a rough session, assume there was a good reason. Instead of criticising, show how a small adjustment would help next time. Frame every improvement as a choice they can make, not a standard they failed. If someone is holding weight deliberately, respect that — they know their body.\n\n" +
                         TONE_RULES + "\n\n" +
                         "Exercises: " + daySummary + "\n" +
-                        prevSfbCtx + getCrossSectionCtx(activeTab, "session") + "\n\n" +
+                        (function(){ var hp = p.healthProfile; var mn = ""; if (p.meds && p.meds.length > 0) mn = "Meds: " + p.meds.filter(function(m){return m.active;}).map(function(m){return m.name+" "+(m.dose||m.dosage||"");}).join(", ") + ". "; return (hp ? "Health: " + hp + ". " : "") + mn; })() +
+                        getOnboardingCtx(activeTab) + prevSfbCtx + getCrossSectionCtx(activeTab, "session") + "\n\n" +
                         "DATA & PROGRESSION RULES:\n" +
                         "1) USE THE LATEST LOGGED DATA AND HISTORY for each exercise — this is the actual recorded data. Do NOT use card display values which may reflect targets, not actuals. If notes mention holding, injury, pain, protection, concern, or any reason for caution, respect that decision and do NOT recommend increasing weight. A deliberate hold means MAINTAINING status, not building. If a hold has lasted several weeks and notes suggest recovery, you MAY gently suggest a cautious attempt, but acknowledge the concern.\n" +
                         "2) If current autoStatus seems wrong based on data and notes, set newStatus to what it SHOULD be and explain why in the verdict.\n" +
@@ -5339,7 +5406,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             var bi = "";
             if (p.bloods && p.bloods.length > 0) { var lat = p.bloods[p.bloods.length - 1]; bi = "Latest (" + lat.date + "): " + Object.entries(lat.tests).map(function(e) { var def = allTests.find(function(t) { return t.key === e[0]; }); return (def ? def.name : e[0]) + "=" + e[1] + (def ? def.unit : ""); }).join(", "); }
             var bdi = ""; if (p.body && p.body.weight && p.body.weight.length > 0) { bdi = "Weight: " + p.body.weight[p.body.weight.length-1].v + (p.body.bodyFat && p.body.bodyFat.length > 0 ? ", BF: " + p.body.bodyFat[p.body.bodyFat.length-1].v + "%" : "") + (p.body.visceralFat && p.body.visceralFat.length > 0 ? ", Visceral: " + p.body.visceralFat[p.body.visceralFat.length-1].v : ""); }
-            var prompt = "You are the user's Lifecare Companion — a trusted, knowledgeable friend reviewing " + who + ". Be direct and specific. "+TONE_RULES+" Reference actual numbers.\n\nHealth profile: " + hp + "\nCurrent health: " + hn + "\nRecent log: " + hl + "\nMedications: " + mi + "\nBloods: " + bi + "\nBody: " + bdi + "\n\nRules: Keep each item under 20 words. Check drug interactions. Label sources [OFFICIAL] or [ANECDOTAL]. Never recommend stopping meds.\nReturn ONLY compact JSON: {\"summary\":\"1-2 sentences\",\"concerns\":[\"short item\"],\"positives\":[\"short item\"],\"actions\":[\"short item\"],\"meds\":\"brief interaction notes\"}";
+            var prompt = "You are " + who + "'s Lifecare Companion — a trusted, knowledgeable friend reviewing your health data together. Speak directly to " + who + " using 'you' and 'your' throughout — NEVER use their name in the third person. You are their trusted friend, not an assessor writing a report.\n\nCOMMUNICATION STYLE: Be pragmatic, warm, non-judgemental and direct like a mate who happens to have clinical knowledge. NEVER be preachy. Frame concerns as information they can act on, not alarms. " + TONE_RULES + " Reference actual numbers.\n\nHealth profile: " + hp + "\nCurrent health: " + hn + "\nRecent log: " + hl + "\nMedications: " + mi + "\nBloods: " + bi + "\nBody: " + bdi + getOnboardingCtx(activeTab) + getCrossSectionCtx(activeTab, "health") + "\n\nRules: Keep each item under 20 words. Address the user as 'you' throughout — never third person. Check drug interactions. Label sources [OFFICIAL] or [ANECDOTAL]. Never recommend stopping meds.\nReturn ONLY compact JSON: {\"summary\":\"1-2 sentences\",\"concerns\":[\"short item\"],\"positives\":[\"short item\"],\"actions\":[\"short item\"],\"meds\":\"brief interaction notes\"}";
             try {
               var bodyStr = JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] });
               var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: bodyStr });
@@ -5721,7 +5788,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         My Lifecare Companion · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.291.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.292.0
       </div>
 
       {/* Floating Ask a Question button */}
