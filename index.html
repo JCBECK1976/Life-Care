@@ -1333,6 +1333,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
   // ─── WEIGHT LOGGING ───
   const [prevComment, setPrevComment] = useState("");
+  const [editingHealthLog, setEditingHealthLog] = useState(null);
+  const [editHealthText, setEditHealthText] = useState("");
   React.useEffect(function() {
     if (!logEx) return;
     var ex = data[activeTab] && data[activeTab].exercises && data[activeTab].exercises[logEx.day] ? data[activeTab].exercises[logEx.day][logEx.idx] : null;
@@ -3344,7 +3346,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         }
                     } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: { exercises: [], summary: "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
                     setSessionFbLoading(false);
-                  }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{sessionFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "📊 My Companion Session Feedback"}</button>
+                  }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{sessionFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Session Feedback"}</button>
                   <button onClick={function(){setFbExpanded(!fbExpanded);}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#64748b",cursor:"pointer",marginTop:4}}>{fbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>
                   {fbExpanded && sessionFeedback && sessionFeedback[activeTab + "_" + day] && (<div style={{ marginTop: 10 }}>
                     {sessionFeedback[activeTab + "_" + day]._generatedAt && <div style={{ fontSize: 9, color: "#94a3b8", marginBottom: 4 }}>Generated: {sessionFeedback[activeTab + "_" + day]._generatedAt}</div>}
@@ -4426,6 +4428,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               ); })()}
             </div>
 
+            {/* Shopping instruction */}
+            <div style={{ textAlign: "center", padding: "10px 0 6px", fontSize: 11, color: "#64748b", lineHeight: 1.4 }}>Go to <b>My Shop</b> once your week is planned to generate your shopping list.</div>
+
           </div>)}
 
           {/* Day content */}
@@ -4958,6 +4963,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             
 
             
+            {/* Shopping instruction */}
+            <div style={{ textAlign: "center", padding: "10px 0 6px", fontSize: 11, color: "#64748b", lineHeight: 1.4 }}>Go to <b>My Shop</b> once your week is planned to generate your shopping list.</div>
+
             {/* Help Me with What to Eat */}
             <div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 10, marginBottom: 10, border: "1px solid #bfdbfe" }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", marginBottom: 4 }}>🍽 Help Me with What to Eat</div>
@@ -5128,14 +5136,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             <button onClick={function() { setWeekOff(function(o) { return o + 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&rsaquo;</button>
           </div>
 
-          {/* Choose my Supermarket container */}
-          <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: "10px 14px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Choose my Supermarket</div>
-            <select value={supermarket} onChange={async (e) => { setSupermarket(e.target.value); await sSet("supermarket_pref", e.target.value); }} style={{ padding: "6px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11, background: "#f8fafc" }}>
-              {["Aldi", "Tesco", "Asda", "Sainsbury's", "Morrisons", "Lidl", "Waitrose", "M&S", "Co-op", "Iceland", "Any"].map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          
+          {/* White container wrapping all Shop content */}
+          <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12 }}>
           {/* Grey sub-container for Food Checker */}
           <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0", marginBottom: 14 }}>
           <div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, border: "1px solid #bfdbfe" }}>
@@ -5239,9 +5241,20 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             </div>
           </div>{/* end Food Checker grey sub-container */}
 
+          {/* Choose my Supermarket — styled like Food Checker */}
+          <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0", marginBottom: 14, marginTop: 14 }}>
+            <div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, border: "1px solid #bfdbfe" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>🛒 Choose My Supermarket</div>
+              <select value={supermarket} onChange={async (e) => { setSupermarket(e.target.value); await sSet("supermarket_pref", e.target.value); }} style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, background: "#fff" }}>
+                {["Aldi", "Tesco", "Asda", "Sainsbury's", "Morrisons", "Lidl", "Waitrose", "M&S", "Co-op", "Iceland", "Any"].map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Shopping list suggestions will be tailored to your chosen supermarket</div>
+            </div>
+          </div>
+
           {/* My Companion Shopping Generator */}
           <button onClick={async () => {
-            if (planned === 0) { setFormMsg("Add meals to the Eating tab first"); setTimeout(() => setFormMsg(""), 10000); return; }
+            if (planned === 0) { setFormMsg("Plan your week food choices in 'My Eating' to get your shopping list suggestions"); setTimeout(() => setFormMsg(""), 10000); return; }
             setShopLoading(true);
             try {
               var allItems = [].concat(BREAKFASTS, LUNCHES, DINNERS, SNACKS, customMeals);
@@ -5275,7 +5288,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               setGeneratedShop(shopData);
             } catch(shopErr) { setFormMsg("Error: " + String(shopErr).substring(0, 100)); setTimeout(() => setFormMsg(""), 10000); }
             setShopLoading(false);
-          }} disabled={shopLoading} style={{ ...btnP(!shopLoading), marginBottom: 14, background: shopLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", opacity: shopLoading ? 0.7 : 1 }}>{shopLoading ? <span>Generating<span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Shopping Generator"}</button>
+          }} disabled={shopLoading} style={{ ...btnP(!shopLoading), marginBottom: 6, background: shopLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", opacity: shopLoading ? 0.7 : 1 }}>{shopLoading ? <span>Generating<span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Shopping Generator"}</button>
+          <div style={{ textAlign: "center", fontSize: 10, color: "#94a3b8", marginBottom: 14, lineHeight: 1.4 }}>Plan your week food choices in <b>'My Eating'</b> to get your shopping list suggestions</div>
           {/* Shopping List — grey sub-container */}
           <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0", marginBottom: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Shopping List</div>
@@ -5286,13 +5300,15 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             var zones = isZoned ? generatedShop : [{ zone: "All Items", items: generatedShop.map(function(x) { return typeof x === "string" ? x : (x.item || x.name || JSON.stringify(x)); }) }];
             var toggleDefault = async function(itemText) { var cur = [].concat(shopDefaults); var idx = cur.indexOf(itemText); if (idx >= 0) { cur.splice(idx, 1); } else { cur.push(itemText); } setShopDefaults(cur); await sSet("shop_defaults", JSON.stringify(cur)); };
             var removeItem = function(zi, ii) { setGeneratedShop(function(prev) { if (!isZoned) return prev.filter(function(_, idx) { return idx !== ii; }); var nz = prev.map(function(z, zIdx) { if (zIdx !== zi) return z; return { zone: z.zone, items: z.items.filter(function(_, idx) { return idx !== ii; }) }; }).filter(function(z) { return z.items.length > 0; }); return nz; }); };
+            var editItem = function(zi, ii, newText) { setGeneratedShop(function(prev) { if (!isZoned) return prev.map(function(x, idx) { return idx === ii ? newText : x; }); return prev.map(function(z, zIdx) { if (zIdx !== zi) return z; return { zone: z.zone, items: z.items.map(function(x, idx) { return idx === ii ? newText : x; }) }; }); }); };
             return (<div style={{ marginBottom: 10 }}>
               {zones.map(function(zone, zi) { return (<div key={zi} style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 8, overflow: "hidden" }}>
                 <div style={{ padding: "8px 12px", background: "#f1f5f9", borderBottom: "1px solid #e2e8f0", fontSize: 11, fontWeight: 700, color: "#475569" }}>{zone.zone}</div>
-                {(zone.items || []).map(function(item, ii) { var itemText = typeof item === "string" ? item : (item.item || item.name || JSON.stringify(item)); var isDef = shopDefaults.indexOf(itemText) >= 0; return (<div key={ii} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: ii < zone.items.length - 1 ? "1px solid #f1f5f9" : "none" }}>
-                  <span style={{ fontSize: 12, flex: 1 }}>{itemText}</span>
+                {(zone.items || []).map(function(item, ii) { var itemText = typeof item === "string" ? item : (item.item || item.name || JSON.stringify(item)); var isDef = shopDefaults.indexOf(itemText) >= 0; var editKey2 = "shop_" + zi + "_" + ii; var isEditing2 = editingHealthLog === editKey2; return (<div key={ii} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: ii < zone.items.length - 1 ? "1px solid #f1f5f9" : "none" }}>
+                  {isEditing2 ? (<div style={{ flex: 1, display: "flex", gap: 4, marginRight: 4 }}><input value={editHealthText} onChange={function(e) { setEditHealthText(e.target.value); }} style={{ flex: 1, padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} onKeyDown={function(e) { if (e.key === "Enter") { editItem(zi, ii, editHealthText.trim()); setEditingHealthLog(null); setFormMsg("Updated ✓"); setTimeout(function(){setFormMsg("");}, 2000); } }} /><button onClick={function() { editItem(zi, ii, editHealthText.trim()); setEditingHealthLog(null); setFormMsg("Updated ✓"); setTimeout(function(){setFormMsg("");}, 2000); }} style={{ padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Save</button><button onClick={function() { setEditingHealthLog(null); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>Cancel</button></div>) : (<span style={{ fontSize: 12, flex: 1 }}>{itemText}</span>)}
                   <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                     <button onClick={function() { toggleDefault(itemText); }} style={{ padding: "4px 8px", background: isDef ? "#dbeafe" : "#f1f5f9", border: "1px solid " + (isDef ? "#93c5fd" : "#e2e8f0"), borderRadius: 6, fontSize: 10, color: isDef ? "#1d4ed8" : "#475569", cursor: "pointer", fontWeight: isDef ? 700 : 400 }}>{isDef ? "✓ Default" : "Default"}</button>
+                    {!isEditing2 && <button onClick={function() { setEditingHealthLog(editKey2); setEditHealthText(itemText); }} style={{ fontSize: 9, color: "#2563eb", background: "none", border: "1px solid #e2e8f0", borderRadius: 4, padding: "2px 6px", cursor: "pointer" }}>Edit</button>}
                     <button onClick={function() { removeItem(zi, ii); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>✕</button>
                   </div>
                 </div>); })}
@@ -5301,24 +5317,16 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           })()}
           {!generatedShop && shopList.length > 0 && (<div style={{ marginBottom: 10 }}>{(() => {
             var toggleDefault2 = async function(itemText) { var cur = [].concat(shopDefaults); var idx = cur.indexOf(itemText); if (idx >= 0) { cur.splice(idx, 1); } else { cur.push(itemText); } setShopDefaults(cur); await sSet("shop_defaults", JSON.stringify(cur)); };
-            return (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", overflow: "hidden" }}>{shopList.map(([it, ct], i) => { var isDef = shopDefaults.indexOf(it) >= 0; return (<div key={it} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderBottom: i < shopList.length - 1 ? "1px solid #f1f5f9" : "none" }}><span style={{ fontSize: 12, flex: 1 }}>{it}</span><div style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>{ct > 1 && <span style={{ fontSize: 10, fontWeight: 600, color: "#3b82f6", background: "#eff6ff", padding: "2px 6px", borderRadius: 10 }}>×{ct}</span>}<button onClick={function() { toggleDefault2(it); }} style={{ padding: "4px 8px", background: isDef ? "#dbeafe" : "#f1f5f9", border: "1px solid " + (isDef ? "#93c5fd" : "#e2e8f0"), borderRadius: 6, fontSize: 10, color: isDef ? "#1d4ed8" : "#475569", cursor: "pointer", fontWeight: isDef ? 700 : 400 }}>{isDef ? "✓ Default" : "Default"}</button></div></div>); })}</div>);
+            return (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", overflow: "hidden" }}>{shopList.map(([it, ct], i) => { var isDef = shopDefaults.indexOf(it) >= 0; var editKey3 = "shopAuto_" + i; var isEditing3 = editingHealthLog === editKey3; return (<div key={it} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderBottom: i < shopList.length - 1 ? "1px solid #f1f5f9" : "none" }}>{isEditing3 ? (<div style={{ flex: 1, display: "flex", gap: 4, marginRight: 4 }}><input value={editHealthText} onChange={function(e) { setEditHealthText(e.target.value); }} style={{ flex: 1, padding: "4px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} onKeyDown={function(e) { if (e.key === "Enter") { setEditingHealthLog(null); setFormMsg("Updated ✓"); setTimeout(function(){setFormMsg("");}, 2000); } }} /><button onClick={function() { setEditingHealthLog(null); setFormMsg("Updated ✓"); setTimeout(function(){setFormMsg("");}, 2000); }} style={{ padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Save</button><button onClick={function() { setEditingHealthLog(null); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>Cancel</button></div>) : (<span style={{ fontSize: 12, flex: 1 }}>{it}</span>)}<div style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>{ct > 1 && <span style={{ fontSize: 10, fontWeight: 600, color: "#3b82f6", background: "#eff6ff", padding: "2px 6px", borderRadius: 10 }}>×{ct}</span>}<button onClick={function() { toggleDefault2(it); }} style={{ padding: "4px 8px", background: isDef ? "#dbeafe" : "#f1f5f9", border: "1px solid " + (isDef ? "#93c5fd" : "#e2e8f0"), borderRadius: 6, fontSize: 10, color: isDef ? "#1d4ed8" : "#475569", cursor: "pointer", fontWeight: isDef ? 700 : 400 }}>{isDef ? "✓ Default" : "Default"}</button>{!isEditing3 && <button onClick={function() { setEditingHealthLog(editKey3); setEditHealthText(it); }} style={{ fontSize: 9, color: "#2563eb", background: "none", border: "1px solid #e2e8f0", borderRadius: 4, padding: "2px 6px", cursor: "pointer" }}>Edit</button>}<button onClick={function() { setFormMsg("This item is auto-generated from your eating plan"); setTimeout(function(){setFormMsg("");}, 3000); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>✕</button></div></div>); })}</div>);
           })()}</div>)}
-          {!generatedShop && shopList.length === 0 && <div style={{ textAlign: "center", padding: "16px 12px", color: "#94a3b8", fontSize: 12, background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 10 }}>Plan meals on the Eating tab first, then generate your shop.</div>}
-          {/* Add button — matches Eating style */}
-          <button onClick={function() { var item = prompt("Add item to shopping list:"); if (item && item.trim()) { if (generatedShop && Array.isArray(generatedShop)) { var isZoned = generatedShop.length > 0 && typeof generatedShop[0] === "object" && generatedShop[0].zone; if (isZoned) { var ZONE_ORDER = ["Fruit & Veg","Bakery & Bread","Meat & Poultry","Fish","Dairy & Eggs","Chilled","Frozen","Tinned & Packets","Rice Pasta & Noodles","Cooking Oils & Sauces","Cereals & Porridge","Snacks & Bars","Drinks","Health & Free From","Household"]; var bestZone = "Household"; setGeneratedShop(function(prev) { var found = false; var nz = prev.map(function(z) { if (z.zone === bestZone) { found = true; return { zone: z.zone, items: [].concat(z.items, [item.trim()]).sort() }; } return z; }); if (!found) nz.push({ zone: bestZone, items: [item.trim()] }); return nz; }); } else { setGeneratedShop(function(prev) { return [].concat(prev, [item.trim()]).sort(); }); } } else { setFormMsg("Generate a shopping list first, then add items"); setTimeout(function(){setFormMsg("");}, 3000); } } }} style={{ width: "100%", padding: "8px 12px", background: "#f1f5f9", border: "1px dashed #cbd5e1", borderRadius: 8, fontSize: 11, fontWeight: 600, color: "#64748b", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>+ Add</button>
+          {/* Add item input */}
+          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+            <input id="shopAddInput" placeholder="Add item to shopping list..." style={{ flex: 1, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11, background: "#fff" }} onKeyDown={function(e) { if (e.key === "Enter") { document.getElementById("shopAddBtn").click(); } }} />
+            <button id="shopAddBtn" onClick={function() { var input = document.getElementById("shopAddInput"); var item = input.value.trim(); if (!item) return; if (generatedShop && Array.isArray(generatedShop)) { var isZoned = generatedShop.length > 0 && typeof generatedShop[0] === "object" && generatedShop[0].zone; if (isZoned) { var bestZone = "Household"; setGeneratedShop(function(prev) { var found = false; var nz = prev.map(function(z) { if (z.zone === bestZone) { found = true; return { zone: z.zone, items: [].concat(z.items, [item]) }; } return z; }); if (!found) nz.push({ zone: bestZone, items: [item] }); return nz; }); } else { setGeneratedShop(function(prev) { return [].concat(prev, [item]); }); } } else { setGeneratedShop([{ zone: "Household", items: [item] }]); } input.value = ""; setFormMsg("Added ✓"); setTimeout(function(){setFormMsg("");}, 2000); }} style={{ padding: "8px 14px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>+ Add</button>
+          </div>
           </div>{/* end Shopping List grey sub-container */}
+          </div>{/* end white container wrapper */}
 
-          {/* Weekly Staples — grey sub-container */}
-          <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Weekly Staples</div>
-          <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, fontSize: 12, color: "#475569", lineHeight: 1.8 }}>
-            <div style={{ fontWeight: 600, color: "#0c4a6e", marginBottom: 4 }}>Portfolio Diet</div>Brooklea Cholesterol Drink (Beck) · ProActiv · Morrisons Oats · Pumpkin seeds · Sunflower seeds · Frozen berries
-            <div style={{ fontWeight: 600, color: "#1e293b", marginTop: 8, marginBottom: 4 }}>Protein & Dairy</div>Chicken breast strips · Eggs · Half-fat cheddar · Fromage frais · Skimmed milk · Alpro almond (JC) · Babybel Light
-            <div style={{ fontWeight: 600, color: "#1e293b", marginTop: 8, marginBottom: 4 }}>Snacks</div>Brooklea protein mousses · Lindahls Kvarg · Popcorn · Snack-a-Jacks · Trek/Nakd bars · Aldi porridge pots (JC)
-            <div style={{ fontWeight: 600, color: "#1e293b", marginTop: 8, marginBottom: 4 }}>Veg</div>Frozen peas · Sweetcorn · Broccoli · Carrots · Courgette · Cucumber · Tomatoes · Salad · Bananas (Beck)
-            <div style={{ fontWeight: 600, color: "#1e293b", marginTop: 8, marginBottom: 4 }}>Bread & Carbs</div>Aldi Super Seeded (138 kcal/slice) · Wholemeal wraps · Wholemeal pitta
-          </div>
-          </div>
         </div>)}
 
         {/* TARGETS */}
@@ -5332,15 +5340,18 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           var stoppedMeds = medsList.filter(function(m) { return m.active === false; });
           var allTests = BLOOD_TESTS.flatMap(function(g) { return g.tests; }).concat(customBloodTests);
           var tabs = [{ id: "general", l: "General" }, { id: "vitals", l: "Vitals" }, { id: "meds", l: "Medications" }, { id: "bloods", l: "Bloods" }];
-          return (<div key={"hl-"+activeTab}>          {/* Section header — centred like Eating */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
-            <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}>Health</div></div>
+          return (<div key={"hl-"+activeTab}>          {/* Week header — centred like Eating */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <button onClick={function() { setWeekOff(function(o) { return o - 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&lsaquo;</button>
+            <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800 }}>Week {calcWeek(data.config.trainingStart)}</div><div style={{ fontSize: 10, color: "#64748b" }}>{weekLabel}</div></div>
+            <button onClick={function() { setWeekOff(function(o) { return o + 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&rsaquo;</button>
           </div>
-          <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: 8, padding: 2, marginBottom: 14 }}>
+          <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2, marginBottom: 0 }}>
             {tabs.map(function(t) { return (<button key={t.id} onClick={function() { setHealthView(t.id); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: healthView === t.id ? "#fff" : "transparent", color: healthView === t.id ? "#0f172a" : "#94a3b8" }}>{t.l}</button>); })}
           </div>
 
-          {healthView === "general" && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
+          {healthView === "general" && (<div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
+            <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
             <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Personal Health Profile</div>
               <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Lasting information — smoker/non-smoker, alcohol intake, allergies, neurodiversities, disabilities, family health history, menopause status</div>
@@ -5353,20 +5364,21 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             </div>
             <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Health Log</div>
-              <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-                <input type="date" value={bloodInputs.healthDate || ""} onChange={function(e) { setBloodInputs(Object.assign({}, bloodInputs, { healthDate: e.target.value })); }} style={{ padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12, boxSizing: "border-box" }} />
-                <input value={healthComment} onChange={function(e) { setHealthComment(e.target.value); }} placeholder="Health note..." style={{ flex: 1, padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12, boxSizing: "border-box" }} />
-                <button onClick={async function() { if (!healthComment.trim()) return; var nd = JSON.parse(JSON.stringify(data)); if (!Array.isArray(nd[activeTab].healthLog)) nd[activeTab].healthLog = []; nd[activeTab].healthLog.push({ date: bloodInputs.healthDate || new Date().toISOString().split("T")[0], note: healthComment.trim() }); await saveData(nd); setHealthComment(""); }} style={{ padding: "8px 14px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>Add</button>
+              <textarea value={healthComment} onChange={function(e) { setHealthComment(e.target.value); }} placeholder="Log a health note — symptoms, observations, changes, appointments..." rows={3} style={Object.assign({}, inputStyle, { minHeight: 70, resize: "vertical", fontFamily: "inherit", width: "100%", boxSizing: "border-box", marginBottom: 8 })} />
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button onClick={async function() { if (!healthComment.trim()) return; var nd = JSON.parse(JSON.stringify(data)); if (!Array.isArray(nd[activeTab].healthLog)) nd[activeTab].healthLog = []; nd[activeTab].healthLog.push({ date: new Date().toISOString().split("T")[0], note: healthComment.trim() }); await saveData(nd); setHealthComment(""); setFormMsg("Logged ✓"); setTimeout(function(){setFormMsg("");}, 2000); }} style={{ padding: "8px 16px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>📋 Log</button>
               </div>
-              {(Array.isArray(p.healthLog) ? p.healthLog : []).slice().reverse().map(function(h, i) { return (<div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f1f5f9", fontSize: 12 }}><span><span style={{ fontWeight: 600, color: "#475569" }}>{h.date}</span> <span style={{ color: "#334155" }}>{h.note}</span></span><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthLog.splice(nd[activeTab].healthLog.length - 1 - i, 1); await saveData(nd); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", minWidth: 24, flexShrink: 0 }}>✕</button></div>); })}
+              {(Array.isArray(p.healthLog) ? p.healthLog : []).slice().reverse().map(function(h, i) { var editKey = "healthLog_" + i; var isEditing = editingHealthLog === editKey; return (<div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "8px 0", borderBottom: "1px solid #f1f5f9", fontSize: 12 }}>{isEditing ? (<div style={{ flex: 1, marginRight: 6 }}><textarea value={editHealthText} onChange={function(e) { setEditHealthText(e.target.value); }} rows={2} style={Object.assign({}, inputStyle, { minHeight: 50, resize: "vertical", fontFamily: "inherit", width: "100%", boxSizing: "border-box", marginBottom: 4 })} /><div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var realIdx = nd[activeTab].healthLog.length - 1 - i; nd[activeTab].healthLog[realIdx].note = editHealthText.trim(); await saveData(nd); setEditingHealthLog(null); setFormMsg("Updated ✓"); setTimeout(function(){setFormMsg("");}, 2000); }} style={{ padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Save</button><button onClick={function() { setEditingHealthLog(null); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>Cancel</button></div></div>) : (<span style={{ flex: 1 }}><span style={{ fontWeight: 600, color: "#475569" }}>{h.date}</span> <span style={{ color: "#334155" }}>{h.note}</span></span>)}<div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: 4 }}>{!isEditing && <button onClick={function() { setEditingHealthLog(editKey); setEditHealthText(h.note); }} style={{ fontSize: 9, color: "#2563eb", background: "none", border: "1px solid #e2e8f0", borderRadius: 4, padding: "2px 6px", cursor: "pointer" }}>Edit</button>}<button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthLog.splice(nd[activeTab].healthLog.length - 1 - i, 1); await saveData(nd); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", minWidth: 24 }}>✕</button></div></div>); })}
               {(Array.isArray(p.healthLog) ? p.healthLog : []).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12 }}>No health log entries yet</div>}
             </div>
             {/* Medical Priorities */}
             {isJC ? <div style={{ background: "#dbeafe", borderRadius: 10, padding: 12, fontSize: 12, color: "#1e40af", lineHeight: 1.5, marginTop: 12 }}>Medical priority: TSH stabilisation → unlocks statin effectiveness → lipid improvement. HbA1c monitoring — thyroid normalisation expected to help.</div>
             : <div style={{ background: "#ede9fe", borderRadius: 10, padding: 12, fontSize: 12, color: "#5b21b6", lineHeight: 1.5, marginTop: 12 }}>Medical priority: Lipid clinic referral → statin + ezetimibe, FH genetic confirmation. Menopause review. Atorvastatin fatigue at GP review. Portfolio Diet at ~70-75% coverage.</div>}
+          </div>
           </div>)}
 
-          {healthView === "vitals" && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
+          {healthView === "vitals" && (<div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
+            <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
             <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 10 }}>Record Vitals</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
@@ -5404,9 +5416,11 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>);
               })}
             </div>
+          </div>
           </div>)}
 
-{healthView === "meds" && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
+{healthView === "meds" && (<div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
+            <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
             <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Active Medications</div>
@@ -5442,9 +5456,11 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 <button onClick={function(){ setShowMedForm(false); }} style={{ padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" }}>Cancel</button>
               </div>
             </div>)}
+          </div>
           </div>)}
 
-          {healthView === "bloods" && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
+          {healthView === "bloods" && (<div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
+            <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
             <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Blood Results</div>
@@ -5465,9 +5481,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             </div>)}
             {(p.bloods || []).slice().reverse().map(function(b, bi) { return (<div key={bi} style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 8 }}><div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>{b.date}</div>{Object.entries(b.tests).map(function(entry) { var k = entry[0]; var v = entry[1]; var def = allTests.find(function(t) { return t.key === k; }); var name = def ? def.name : k; var unit = def ? def.unit : ""; var flag = ""; var flagColor = "#16a34a"; if (def && def.lo !== undefined) { if (v < def.lo) { flag = " Low"; flagColor = "#dc2626"; } else if (v > def.hi) { flag = " High"; flagColor = "#dc2626"; } else { flag = " OK"; } } return (<div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "4px 0", borderBottom: "1px solid #f1f5f9" }}><span style={{ color: "#334155", fontWeight: 500 }}>{name}</span><span><span style={{ fontWeight: 600 }}>{v}</span> <span style={{ color: "#94a3b8" }}>{unit}</span><span style={{ color: flagColor, fontWeight: 600 }}>{flag}</span></span></div>); })}</div>); })}
             {(p.bloods || []).length === 0 && <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", fontSize: 11, color: "#94a3b8", textAlign: "center" }}>No blood results recorded yet</div>}
+          </div>
           </div>)}
 
-        
+
 
           {/* GENERATE HEALTH FEEDBACK */}
           <button onClick={async function() {
@@ -5862,7 +5879,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         My Lifecare Companion · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.296.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.297.0
       </div>
 
       {/* Floating Ask a Question button */}
