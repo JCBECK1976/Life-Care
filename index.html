@@ -2308,6 +2308,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               };
 
               return (<div style={{ marginTop: 0, padding: "0 14px 14px" }}>
+                {/* Grey sub-container for My Profile content */}
+                <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
                 {/* Tab bar — double row grey pills */}
                 <div style={{ marginBottom: 10 }}>
                   <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: 8, padding: 2, marginBottom: 2 }}>
@@ -2604,6 +2606,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   <div style={{ fontWeight: 700, fontSize: 11, color: "#1e40af", marginBottom: 4 }}>🔒 Your information is private</div>
                   Your data is used solely by your Lifecare Companion to tailor recommendations, feedback and support to work best with you and achieve the best possible outcome. No information is shared with third parties. Any AI-generated content is processed without linking it to any identifiable individual. You choose what information to share — more detail helps your Companion provide better, more personalised guidance, but every field is optional.
                 </div>
+                </div>{/* end grey sub-container */}
               </div>);
             })()}
 
@@ -2655,7 +2658,12 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         {section === "body" && (<div>
           {/* BODY COMPOSITION CARD */}
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>Body Composition - Week {calcWeek(data.config.trainingStart)}</div>
+            {/* Week header — centred like Eating */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <div style={{ width: 36 }}></div>
+              <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800 }}>Week {calcWeek(data.config.trainingStart)}</div><div style={{ fontSize: 10, color: "#64748b" }}>{weekLabel}</div></div>
+              <div style={{ width: 36 }}></div>
+            </div>
             <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2 }}>
               {[{ k: "data", l: "Weigh In" }, { k: "measurements", l: "Measurements" }].map(function(tab) {
                 return (<button key={tab.k} onClick={function() { setBodyView(tab.k); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: bodyView === tab.k ? "#fff" : "transparent", color: bodyView === tab.k ? "#0f172a" : "#94a3b8" }}>{tab.l}</button>);
@@ -2715,6 +2723,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 12 }}><button onClick={saveBodyComp} style={{ ...btnP(!!bodyInputs.week), flex: 1 }}>Save</button><button onClick={() => setShowBodyForm(false)} style={btnS}>Cancel</button></div>
           </div>)}
+          <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
             <BodyCard label="Weight" value={wtStr} rating="High" trend={wtDelta ? (wtSign === "-" ? "-" : "+") + wtDelta.split("lb")[0] + "lb" : ""} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "weight" ? null : "weight"); }} eyeOpen={bodyMetricOpen === "weight"} />
             <BodyCard label="Body Fat %" value={p.body.bodyFat?.[p.body.bodyFat.length-1]?.v} rating={isJC ? "Acceptable" : "Too High"} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "bodyFat" ? null : "bodyFat"); }} eyeOpen={bodyMetricOpen === "bodyFat"} />
@@ -2745,7 +2754,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             </div>)}
             {(function() { var chartData = (bodyMetricOpen === "weight" ? wt : mArr).map(function(d) { return { wk: d.wk, v: typeof d.v === "number" ? d.v : parseFloat(d.v), note: d.note }; }).filter(function(d) { return !isNaN(d.v); }); var chartColors = { weight: accent, bodyFat: "#ef4444", muscleMass: "#22c55e", muscleRate: "#22c55e", visceralFat: "#f97316", subcutFat: "#f97316", bodyWater: "#3b82f6", boneMass: "#8b5cf6", bmr: "#3b82f6", bodyAge: "#d97706", skeletalMuscle: "#22c55e" }; var chartRefs = { weight: idealSt, bodyFat: isJC ? 18 : 28 }; if (chartData.length >= 2) return <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}><FullChart title={metricLabels[bodyMetricOpen] || bodyMetricOpen} series={[{ label: metricLabels[bodyMetricOpen] || bodyMetricOpen, color: chartColors[bodyMetricOpen] || accent, data: chartData }]} refLine={chartRefs[bodyMetricOpen]} height={120} /></div>; if (mArr.length > 0 && chartData.length < 2) return <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}><div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12 }}>Need 2+ entries for chart</div></div>; return null; })()}
           </div>); })()}
-          {!isJC && <div style={{ background: "#fef3c7", borderRadius: 10, padding: 12, fontSize: 12, color: "#92400e", lineHeight: 1.5 }}>Ideal weight and obesity classification don't account for Becks' exceptional muscle density. Track body fat % and visceral fat as primary metrics.</div>}
+          {!isJC && <div style={{ background: "#fef3c7", borderRadius: 10, padding: 12, fontSize: 12, color: "#92400e", lineHeight: 1.5, marginTop: 10 }}>Ideal weight and obesity classification don't account for Becks' exceptional muscle density. Track body fat % and visceral fat as primary metrics.</div>}
+          </div>{/* end grey sub-container */}
 
           {/* Weigh-In Companion Feedback */}
           <div style={{ marginTop: 14 }}>
@@ -2820,7 +2830,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   <label style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" }}>📸 Progress Photo <input type="file" accept="image/*" multiple onChange={async function(e) { var files = Array.from(e.target.files); if (!files.length) return; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].progressPhotos) nd[activeTab].progressPhotos = []; for (var fi = 0; fi < files.length; fi++) { var reader = new FileReader(); await new Promise(function(resolve) { reader.onload = function(ev) { nd[activeTab].progressPhotos.push({ data: ev.target.result, date: new Date().toLocaleDateString("en-GB"), week: calcWeek(data.config.trainingStart) }); resolve(); }; reader.readAsDataURL(files[fi]); }); } await saveData(nd); setFormMsg("📸 Photo saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ display: "none" }} /></label>
                 </div>
                 {p.progressPhotos && p.progressPhotos.length > 0 && (<div style={{ marginBottom: 12 }}><div style={{ fontSize: 12, fontWeight: 600, color: "#334155", marginBottom: 6 }}>Progress Photos</div><div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>{p.progressPhotos.map(function(ph, phi) { return (<div key={phi} style={{ position: "relative", flexShrink: 0 }}><img src={ph.data} style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8 }} /><div style={{ fontSize: 9, color: "#94a3b8", textAlign: "center" }}>Wk{ph.week}</div><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].progressPhotos.splice(phi, 1); await saveData(nd); }} style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: "#dc2626", color: "#fff", border: "none", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button></div>); })}</div></div>)}
-          <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0" }}>
+          <div style={{ background: "#f8fafc", borderRadius: 8, padding: 14, border: "1px solid #e2e8f0" }}>
             {Object.entries(p.measurements).map(function(pair, mi) { var k = pair[0]; var d = pair[1]; var latest = d.length > 0 ? d[d.length - 1] : null; var prev = d.length > 1 ? d[d.length - 2] : null; var delta = (latest && prev && typeof latest.v === "number" && typeof prev.v === "number") ? (latest.v - prev.v).toFixed(1) : null; var measColors = ["#2563eb","#7c3aed","#059669","#d97706","#dc2626","#0891b2","#ec4899"]; return (<div key={k}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #f1f5f9", fontSize: 13 }}>
                 <span style={{ fontWeight: 500, color: "#334155", flex: 1 }}>{k.charAt(0).toUpperCase() + k.slice(1)}</span>
@@ -3002,12 +3012,11 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             setSelectedEx(null);
           };
           return (<div key={"ex-"+activeTab}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}>Week {currentWeek}</div>
-            <div style={{ display: "flex", gap: 4 }}>
-              
-              
-            </div>
+          {/* Week header — centred like Eating */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <div style={{ width: 36 }}></div>
+            <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800 }}>Week {currentWeek}</div><div style={{ fontSize: 10, color: "#64748b" }}>{weekLabel}</div></div>
+            <div style={{ width: 36 }}></div>
           </div>
           
           
@@ -3024,8 +3033,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             var dv = dayView[day] || "activity";
             var setDv = function(v) { setDayView(function(prev) { var n = Object.assign({}, prev); n[day] = v; return n; }); };
             return (<div key={day} style={{ marginBottom: 16 }}>
-              
                                           <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", overflow: "hidden" }}>
+                <div style={{ padding: "8px 12px 0", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{label}</div>
                 {/* ACTIVITY TAB */}
                 {dv === "activity" && (<div>
                 <div style={{ background: "#f8fafc", borderRadius: 8, padding: "4px 12px 12px", margin: 8, border: "1px solid #e2e8f0" }}>
@@ -5110,14 +5119,24 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
         </div>); } catch(eatErr) { return (<div style={{ padding: 20, color: "#dc2626" }}>Eating section error: {String(eatErr)}</div>); } })()}
 
         {section === "shop" && (<div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}><button onClick={function() { setWeekOff(function(o) { return o - 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&lsaquo;</button><div style={{ flex: 1, textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 700 }}>Shopping — {weekLabel}</div><div style={{ fontSize: 11, color: "#64748b" }}>{planned}/7 dinners · {shopList.length} items</div></div><button onClick={function() { setWeekOff(function(o) { return o + 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&rsaquo;</button></div>
-            <select value={supermarket} onChange={async (e) => { setSupermarket(e.target.value); await sSet("supermarket_pref", e.target.value); }} style={{ padding: "6px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11, background: "#fff" }}>
+          {/* Week header — centred like Eating */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <button onClick={function() { setWeekOff(function(o) { return o - 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&lsaquo;</button>
+            <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800 }}>Week {calcWeek(data.config.trainingStart)}</div><div style={{ fontSize: 10, color: "#64748b" }}>{weekLabel}</div><div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>{planned}/7 dinners · {shopList.length} items</div></div>
+            <button onClick={function() { setWeekOff(function(o) { return o + 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&rsaquo;</button>
+          </div>
+
+          {/* Choose my Supermarket container */}
+          <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: "10px 14px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Choose my Supermarket</div>
+            <select value={supermarket} onChange={async (e) => { setSupermarket(e.target.value); await sSet("supermarket_pref", e.target.value); }} style={{ padding: "6px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 11, background: "#f8fafc" }}>
               {["Aldi", "Tesco", "Asda", "Sainsbury's", "Morrisons", "Lidl", "Waitrose", "M&S", "Co-op", "Iceland", "Any"].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           
-          <div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginBottom: 10, border: "1px solid #bfdbfe" }}>
+          {/* Grey sub-container for Food Checker */}
+          <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0", marginBottom: 14 }}>
+          <div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, border: "1px solid #bfdbfe" }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>📷 Food Checker</div>
               {!foodCheckerPreview ? (<div>
                 <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
@@ -5198,8 +5217,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>)}
               </div>)}
             </div>
+          </div>{/* end Food Checker grey sub-container */}
 
-          <div style={{ height: 14 }} />
+          {/* My Companion Shopping Generator */}
           <button onClick={async () => {
             if (planned === 0) { setFormMsg("Add meals to the Eating tab first"); setTimeout(() => setFormMsg(""), 10000); return; }
             setShopLoading(true);
@@ -5234,21 +5254,36 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               setGeneratedShop(shopData);
             } catch(shopErr) { setFormMsg("Error: " + String(shopErr).substring(0, 100)); setTimeout(() => setFormMsg(""), 10000); }
             setShopLoading(false);
-          }} disabled={shopLoading} style={{ ...btnP(!shopLoading), marginBottom: 14, background: shopLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", opacity: shopLoading ? 0.7 : 1 }}>{shopLoading ? <span>Generating<span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🛒 Generate " + supermarket + " Shop"}</button>
-          {generatedShop && Array.isArray(generatedShop) && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 14, overflow: "hidden" }}>
-            {generatedShop.map(function(item, ii) { return (<div key={ii} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderBottom: ii < generatedShop.length - 1 ? "1px solid #f1f5f9" : "none" }}>
-              <span style={{ fontSize: 13 }}>{typeof item === "string" ? item : (item.item || item.name || JSON.stringify(item))}</span>
+          }} disabled={shopLoading} style={{ ...btnP(!shopLoading), marginBottom: 14, background: shopLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", opacity: shopLoading ? 0.7 : 1 }}>{shopLoading ? <span>Generating<span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Shopping Generator"}</button>
+          {/* Shopping List — grey sub-container */}
+          <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0", marginBottom: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Shopping List</div>
+            <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Select 'Default' to automatically apply to each week.</div>
+          {generatedShop && Array.isArray(generatedShop) && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 10, overflow: "hidden" }}>
+            {generatedShop.map(function(item, ii) { var itemText = typeof item === "string" ? item : (item.item || item.name || JSON.stringify(item)); return (<div key={ii} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: ii < generatedShop.length - 1 ? "1px solid #f1f5f9" : "none" }}>
+              <span style={{ fontSize: 12, flex: 1 }}>{itemText}</span>
+              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                <button style={{ padding: "4px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>Default</button>
+                <button onClick={function() { setGeneratedShop(function(prev) { return prev.filter(function(_, idx) { return idx !== ii; }); }); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>✕</button>
+              </div>
             </div>); })}
           </div>)}
-          {!generatedShop && shopList.length > 0 && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 14 }}>{shopList.map(([it, ct], i) => (<div key={it} style={{ display: "flex", justifyContent: "space-between", padding: "10px 12px", borderBottom: i < shopList.length - 1 ? "1px solid #f1f5f9" : "none" }}><span style={{ fontSize: 13 }}>{it}</span>{ct > 1 && <span style={{ fontSize: 11, fontWeight: 600, color: "#3b82f6", background: "#eff6ff", padding: "2px 8px", borderRadius: 10 }}>×{ct}</span>}</div>))}</div>)}
-          {!generatedShop && shopList.length === 0 && <div style={{ textAlign: "center", padding: "16px 12px", color: "#94a3b8", fontSize: 12 }}>Plan meals on the Eating tab first, then generate your shop.</div>}
-          <div style={{ fontSize: 13, fontWeight: 700, marginTop: 8, marginBottom: 8 }}>Weekly Staples</div>
+          {!generatedShop && shopList.length > 0 && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 10 }}>{shopList.map(([it, ct], i) => (<div key={it} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderBottom: i < shopList.length - 1 ? "1px solid #f1f5f9" : "none" }}><span style={{ fontSize: 12, flex: 1 }}>{it}</span><div style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>{ct > 1 && <span style={{ fontSize: 10, fontWeight: 600, color: "#3b82f6", background: "#eff6ff", padding: "2px 6px", borderRadius: 10 }}>×{ct}</span>}<button style={{ padding: "4px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>Default</button></div></div>))}</div>)}
+          {!generatedShop && shopList.length === 0 && <div style={{ textAlign: "center", padding: "16px 12px", color: "#94a3b8", fontSize: 12, background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 10 }}>Plan meals on the Eating tab first, then generate your shop.</div>}
+          {/* Add button — matches Eating style */}
+          <button onClick={function() { var item = prompt("Add item to shopping list:"); if (item && item.trim()) { if (generatedShop && Array.isArray(generatedShop)) { setGeneratedShop(function(prev) { return [].concat(prev, [item.trim()]).sort(); }); } else { setFormMsg("Generate a shopping list first, then add items"); setTimeout(function(){setFormMsg("");}, 3000); } } }} style={{ width: "100%", padding: "8px 12px", background: "#f1f5f9", border: "1px dashed #cbd5e1", borderRadius: 8, fontSize: 11, fontWeight: 600, color: "#64748b", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>+ Add</button>
+          </div>{/* end Shopping List grey sub-container */}
+
+          {/* Weekly Staples — grey sub-container */}
+          <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Weekly Staples</div>
           <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12, fontSize: 12, color: "#475569", lineHeight: 1.8 }}>
             <div style={{ fontWeight: 600, color: "#0c4a6e", marginBottom: 4 }}>Portfolio Diet</div>Brooklea Cholesterol Drink (Beck) · ProActiv · Morrisons Oats · Pumpkin seeds · Sunflower seeds · Frozen berries
             <div style={{ fontWeight: 600, color: "#1e293b", marginTop: 8, marginBottom: 4 }}>Protein & Dairy</div>Chicken breast strips · Eggs · Half-fat cheddar · Fromage frais · Skimmed milk · Alpro almond (JC) · Babybel Light
             <div style={{ fontWeight: 600, color: "#1e293b", marginTop: 8, marginBottom: 4 }}>Snacks</div>Brooklea protein mousses · Lindahls Kvarg · Popcorn · Snack-a-Jacks · Trek/Nakd bars · Aldi porridge pots (JC)
             <div style={{ fontWeight: 600, color: "#1e293b", marginTop: 8, marginBottom: 4 }}>Veg</div>Frozen peas · Sweetcorn · Broccoli · Carrots · Courgette · Cucumber · Tomatoes · Salad · Bananas (Beck)
             <div style={{ fontWeight: 600, color: "#1e293b", marginTop: 8, marginBottom: 4 }}>Bread & Carbs</div>Aldi Super Seeded (138 kcal/slice) · Wholemeal wraps · Wholemeal pitta
+          </div>
           </div>
         </div>)}
 
@@ -5263,12 +5298,15 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           var stoppedMeds = medsList.filter(function(m) { return m.active === false; });
           var allTests = BLOOD_TESTS.flatMap(function(g) { return g.tests; }).concat(customBloodTests);
           var tabs = [{ id: "general", l: "General" }, { id: "vitals", l: "Vitals" }, { id: "meds", l: "Medications" }, { id: "bloods", l: "Bloods" }];
-          return (<div key={"hl-"+activeTab}>          <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 10 }}>Health</div>
+          return (<div key={"hl-"+activeTab}>          {/* Section header — centred like Eating */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+            <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}>Health</div></div>
+          </div>
           <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: 8, padding: 2, marginBottom: 14 }}>
             {tabs.map(function(t) { return (<button key={t.id} onClick={function() { setHealthView(t.id); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: healthView === t.id ? "#fff" : "transparent", color: healthView === t.id ? "#0f172a" : "#94a3b8" }}>{t.l}</button>); })}
           </div>
 
-          {healthView === "general" && (<div>
+          {healthView === "general" && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
             <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Personal Health Profile</div>
               <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Lasting information — smoker/non-smoker, alcohol intake, allergies, neurodiversities, disabilities, family health history, menopause status</div>
@@ -5294,7 +5332,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             : <div style={{ background: "#ede9fe", borderRadius: 10, padding: 12, fontSize: 12, color: "#5b21b6", lineHeight: 1.5, marginTop: 12 }}>Medical priority: Lipid clinic referral → statin + ezetimibe, FH genetic confirmation. Menopause review. Atorvastatin fatigue at GP review. Portfolio Diet at ~70-75% coverage.</div>}
           </div>)}
 
-          {healthView === "vitals" && (<div>
+          {healthView === "vitals" && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
             <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 10 }}>Record Vitals</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
@@ -5334,7 +5372,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             </div>
           </div>)}
 
-{healthView === "meds" && (<div>
+{healthView === "meds" && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
             <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Active Medications</div>
@@ -5372,7 +5410,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             </div>)}
           </div>)}
 
-          {healthView === "bloods" && (<div>
+          {healthView === "bloods" && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
             <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Blood Results</div>
@@ -5790,7 +5828,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         My Lifecare Companion · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.294.3
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.295.0
       </div>
 
       {/* Floating Ask a Question button */}
