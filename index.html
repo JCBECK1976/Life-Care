@@ -2273,7 +2273,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 </div>
 
                 {/* Save Setup button - always visible */}
-                <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; var ob = onboardInputs; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; if (ob.conditions) { nd[activeTab].healthProfile = (nd[activeTab].healthProfile ? nd[activeTab].healthProfile + "\n" : "") + ob.conditions; } if (ob.medications) { var meds = nd[activeTab].meds || []; var newMeds = ob.medications.split(",").map(function(m){return m.trim();}).filter(function(m){return m && !meds.some(function(em){return (em.name||em) === m;});}); newMeds.forEach(function(m){ meds.push({name:m,dose:"",freq:"",started:new Date().toISOString().slice(0,10)}); }); nd[activeTab].meds = meds; } if (ob.bloods) { var bl = nd[activeTab].bloods || []; bl.push({date:new Date().toISOString().slice(0,10),notes:ob.bloods,source:"setup"}); nd[activeTab].bloods = bl; } await saveData(nd); setSetupDirty(false); setFormMsg("✓ Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} disabled={!setupDirty} style={{ width: "100%", marginBottom: 10, padding: 10, color: setupDirty ? "#fff" : "#94a3b8", border: setupDirty ? "none" : "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: setupDirty ? "pointer" : "default", background: setupDirty ? "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" : "#f1f5f9" }}>{setupDirty ? "Save Setup" : "✓ Saved"}</button>
+                <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; var ob = onboardInputs; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; if (ob.conditions) { nd[activeTab].healthProfile = (nd[activeTab].healthProfile ? nd[activeTab].healthProfile + "\n" : "") + ob.conditions; } if (ob.painAreas) { nd[activeTab].healthNotes = (nd[activeTab].healthNotes ? nd[activeTab].healthNotes + "\n" : "") + ob.painAreas; } if (ob.medications) { var meds = Array.isArray(nd[activeTab].meds) ? nd[activeTab].meds : []; var newMeds = ob.medications.split(",").map(function(m){return m.trim();}).filter(function(m){return m && !meds.some(function(em){return (em.name||em) === m;});}); newMeds.forEach(function(m){ meds.push({name:m,dose:"",freq:"",started:new Date().toISOString().slice(0,10),active:true}); }); nd[activeTab].meds = meds; } if (ob.bloods) { var bl = nd[activeTab].bloods || []; bl.push({date:new Date().toISOString().slice(0,10),notes:ob.bloods,source:"setup"}); nd[activeTab].bloods = bl; } await saveData(nd); setSetupDirty(false); setFormMsg("✓ Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} disabled={!setupDirty} style={{ width: "100%", marginBottom: 10, padding: 10, color: setupDirty ? "#fff" : "#94a3b8", border: setupDirty ? "none" : "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: setupDirty ? "pointer" : "default", background: setupDirty ? "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" : "#f1f5f9" }}>{setupDirty ? "Save Setup" : "✓ Saved"}</button>
 
                 {/* ═══ MY PROFILE (read-only generated) ═══ */}
                 {setupTab === "profile" && (<div>
@@ -2539,8 +2539,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     ["conditions", "Medical conditions", "ta", "e.g. Thyroid, high cholesterol, diabetes, PCOS, heart conditions..."],
                     ["medications", "Current medications and supplements", "ta", "e.g. Atorvastatin 20mg, Levothyroxine 200mcg, Vitamin D..."],
                     ["bloods", "Recent blood results (if known)", "ta", "e.g. LDL 3.4, TSH 14.2, HbA1c 43..."],
-                    ["injuries", "Current or past injuries", "ta", "e.g. RSI in wrists, bad knee, lower back pain..."],
-                    ["painAreas", "Current pain or discomfort areas", "ta", "e.g. Lower back, knees, shoulders — what aggravates it..."],
+                    ["injuries", "Previous health issues or past injuries", "ta", "e.g. RSI in wrists, bad knee, lower back pain..."],
+                    ["painAreas", "Current health or injuries", "ta", "e.g. Lower back pain, recovering from cold, current niggles..."],
                     ["weightHighest", "Highest adult weight", "text", "e.g. 15st 2lb, 96kg..."],
                     ["weightLowest", "Lowest adult weight", "text", "e.g. 11st, 70kg..."],
                     ["previousDiets", "Previous diets or weight loss attempts", "ta", "e.g. Calorie counting, keto, Slimming World, none..."]
@@ -5723,7 +5723,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         My Lifecare Companion · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.289.3
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.289.4
       </div>
 
       {/* Floating Ask a Question button */}
