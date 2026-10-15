@@ -3039,17 +3039,19 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         <button onClick={function() { setEditExercise(null); }} style={btnS}>Cancel</button>
                       </div>
                     ) : (<>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-                        <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer" }} onClick={function() { setEditExercise({ day: day, idx: i }); }}>{ex.name} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span></div>
-                        <span style={{ fontSize: 9, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap" }}>{sLabel(ex.status)}</span>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "stretch" }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 3 }} onClick={function() { setEditExercise({ day: day, idx: i }); }}>{ex.name} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span></div>
+                          <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>{ex.current} · {ex.reps}</div>
+                          {ex.target && <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 600, marginTop: 3 }}>{ex._userOverride && <span onClick={function(){alert("User override: this target was set by your notes, not the AI recommendation.");}} style={{cursor:"pointer",marginRight:4}}>⚠️</span>}{ex._from ? ex._from + " → " : ""}{ex.target}</div>}
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, marginLeft: 10, justifyContent: "space-between" }}>
+                          <span style={{ fontSize: 9, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap" }}>{sLabel(ex.status)}</span>
+                          <button onClick={function(){setSelectedEx({day:day,idx:i});openLogForm(day,i);}} style={{padding:"2px 6px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:4,fontSize:8,cursor:"pointer",fontWeight:600,color:"#94a3b8",display:"flex",alignItems:"center",gap:2,whiteSpace:"nowrap"}}>📋 Log</button>
+                          <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} style={{padding:"2px 5px",background:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#7c3aed":"#f1f5f9",border:"1px solid "+(selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#7c3aed":"#e2e8f0"),borderRadius:4,fontSize:8,cursor:"pointer",fontWeight:600,color:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#fff":"#94a3b8",display:"flex",alignItems:"center",gap:2,whiteSpace:"nowrap"}}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕":"👁 Progress"}</button>
+                        </div>
                       </div>
-                      <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>{ex.current} · {ex.reps}</div>
-                      {ex.target && <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 600, marginTop: 3 }}>{ex._userOverride && <span onClick={function(){alert("User override: this target was set by your notes, not the AI recommendation.");}} style={{cursor:"pointer",marginRight:4}}>⚠️</span>}{ex._from ? ex._from + " → " : ""}{ex.target}</div>}
-                      {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 3 }}>📋 {ex.notes}</div>}
-                      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10, marginTop: 6 }}>
-                        <button onClick={function(){setSelectedEx({day:day,idx:i});openLogForm(day,i);}} style={{padding:"2px 6px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:4,fontSize:8,cursor:"pointer",fontWeight:600,color:"#94a3b8",display:"flex",alignItems:"center",gap:2,whiteSpace:"nowrap"}}>📋 Log</button>
-                        <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} style={{padding:"2px 5px",background:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#7c3aed":"#f1f5f9",border:"1px solid "+(selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#7c3aed":"#e2e8f0"),borderRadius:4,fontSize:8,cursor:"pointer",fontWeight:600,color:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#fff":"#94a3b8",display:"flex",alignItems:"center",gap:2,whiteSpace:"nowrap"}}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕":"👁 Progress"}</button>
-                      </div>
+                      {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 6 }}>📋 {ex.notes}</div>}
                     
                     {selectedEx&&selectedEx.day===day&&selectedEx.idx===i&&(<div style={{marginTop:10,padding:12,background:"#f8fafc",borderRadius:8,border:"1px solid #e2e8f0",width:"100%"}}>
                       <button onClick={function() { openLogForm(day, i); }} style={{ padding: "6px 14px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, fontWeight: 600, color: "#475569", cursor: "pointer" }}>📋 Log {ex.name}</button>
@@ -5788,7 +5790,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         My Lifecare Companion · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.294.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.294.2
       </div>
 
       {/* Floating Ask a Question button */}
