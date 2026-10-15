@@ -1018,6 +1018,7 @@ function Dashboard() {
   const [supermarket, setSupermarket] = useState("Aldi");
   const [shopLoading, setShopLoading] = useState(false);
   const [generatedShop, setGeneratedShop] = useState(null);
+  const [shopDefaults, setShopDefaults] = useState([]);
   const [showAddPerson, setShowAddPerson] = useState(false);
   const [newPersonName, setNewPersonName] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -1295,6 +1296,7 @@ function Dashboard() {
     const cmn = await sGet("custom_med_names"); if (cmn) setCustomMedNames(JSON.parse(cmn));
     const cbt = await sGet("custom_blood_tests"); if (cbt) setCustomBloodTests(JSON.parse(cbt));
     const sm = await sGet("supermarket_pref"); if (sm) setSupermarket(sm);
+    const sd = await sGet("shop_defaults"); if (sd) setShopDefaults(JSON.parse(sd));
     const cmt = await sGet("custom_meas_types"); if (cmt) setCustomMeasTypes(JSON.parse(cmt));
     
     // Load saved session feedback
@@ -5199,6 +5201,24 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Add to which list?</div>
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 6 }}>
                     {["breakfast","lunch","dinner","snack","drink","dessert"].map(function(cat) { return (<button key={cat} onClick={function(){setFoodCheckerCategory(cat);}} style={{ padding: "6px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, cursor: "pointer", textTransform: "capitalize" }}>{cat}</button>); })}
+                    <button onClick={async function() {
+                      var cp = foodCheckerPreview;
+                      var itemText = cp.name + " (" + cp.kcal + " kcal)";
+                      if (generatedShop && Array.isArray(generatedShop)) {
+                        var isZoned = generatedShop.length > 0 && typeof generatedShop[0] === "object" && generatedShop[0].zone;
+                        if (isZoned) {
+                          var bestZone = "Health & Free From";
+                          setGeneratedShop(function(prev) { var found = false; var nz = prev.map(function(z) { if (z.zone === bestZone) { found = true; return { zone: z.zone, items: [].concat(z.items, [itemText]).sort() }; } return z; }); if (!found) nz.push({ zone: bestZone, items: [itemText] }); return nz; });
+                        } else {
+                          setGeneratedShop(function(prev) { return [].concat(prev, [itemText]).sort(); });
+                        }
+                      } else {
+                        setGeneratedShop([{ zone: "Health & Free From", items: [itemText] }]);
+                      }
+                      setFormMsg("Added " + cp.name + " to shopping list");
+                      setFoodCheckerPreview(null); setFoodCheckerCategory(""); setFoodCheckerText("");
+                      setTimeout(function(){setFormMsg("");}, 3000);
+                    }} style={{ padding: "6px 12px", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 6, fontSize: 11, cursor: "pointer", color: "#15803d", fontWeight: 600 }}>🛒 Shopping List</button>
                   </div>
                   <button onClick={function() { setFoodCheckerPreview(null); setFoodCheckerText(""); }} style={{ width: "100%", padding: 8, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" }}>Cancel</button>
                 </div>) : (<div style={{ display: "flex", gap: 6 }}>
@@ -5237,7 +5257,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var pDays = MEAL_DAYS.map(function(d) { var dk = DAY_MAP[d.key] || d.key; var entry = pMeals[dk]; if (!entry || typeof entry !== "object") return null; var parts = []; if (entry.b) parts.push("B:" + lookupName(entry.b)); if (entry.l) parts.push("L:" + lookupName(entry.l)); if (entry.d) parts.push("D:" + lookupName(entry.d)); for (var oi = 1; oi <= 7; oi++) { if (entry["o" + oi] && entry["o" + oi] !== "__placeholder__" && entry["o" + oi] !== "__empty__") parts.push("S:" + lookupName(entry["o" + oi])); } return parts.length > 0 ? d.label + ": " + parts.join(", ") : null; }).filter(Boolean).join("; ");
                 if (pDays) mealNames += pName + ": " + pDays + ". ";
               }
-              const prompt = "Generate a shopping list for this week meals at " + supermarket + " (UK). Meals: " + mealNames + ". Include meal ingredients plus weekly staples. Return ONLY a JSON array of strings, each being one shopping item with quantity. Example: [\"2x chicken breast\",\"1x oats 1kg\",\"6x eggs\"]";
+              var defaultItems = shopDefaults.length > 0 ? " Always include these default items: " + shopDefaults.join(", ") + "." : "";
+              const prompt = "Generate a shopping list for this week meals at " + supermarket + " (UK). Meals: " + mealNames + "." + defaultItems + " Include meal ingredients plus weekly staples. Group items by supermarket aisle zone. Return ONLY a JSON array of objects: [{\"zone\":\"Fruit & Veg\",\"items\":[\"2x bananas\",\"1x broccoli\"]},{\"zone\":\"Meat & Poultry\",\"items\":[\"2x chicken breast\"]}]. Use these zones in order: Fruit & Veg, Bakery & Bread, Meat & Poultry, Fish, Dairy & Eggs, Chilled, Frozen, Tinned & Packets, Rice Pasta & Noodles, Cooking Oils & Sauces, Cereals & Porridge, Snacks & Bars, Drinks, Health & Free From, Household. Only include zones that have items.";
               const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
               if (!response.ok) throw new Error("HTTP " + response.status);
               const result = await response.json();
@@ -5259,19 +5280,32 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0", marginBottom: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Shopping List</div>
             <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Select 'Default' to automatically apply to each week.</div>
-          {generatedShop && Array.isArray(generatedShop) && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 10, overflow: "hidden" }}>
-            {generatedShop.map(function(item, ii) { var itemText = typeof item === "string" ? item : (item.item || item.name || JSON.stringify(item)); return (<div key={ii} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: ii < generatedShop.length - 1 ? "1px solid #f1f5f9" : "none" }}>
-              <span style={{ fontSize: 12, flex: 1 }}>{itemText}</span>
-              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                <button style={{ padding: "4px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>Default</button>
-                <button onClick={function() { setGeneratedShop(function(prev) { return prev.filter(function(_, idx) { return idx !== ii; }); }); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>✕</button>
-              </div>
-            </div>); })}
-          </div>)}
-          {!generatedShop && shopList.length > 0 && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 10 }}>{shopList.map(([it, ct], i) => (<div key={it} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderBottom: i < shopList.length - 1 ? "1px solid #f1f5f9" : "none" }}><span style={{ fontSize: 12, flex: 1 }}>{it}</span><div style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>{ct > 1 && <span style={{ fontSize: 10, fontWeight: 600, color: "#3b82f6", background: "#eff6ff", padding: "2px 6px", borderRadius: 10 }}>×{ct}</span>}<button style={{ padding: "4px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>Default</button></div></div>))}</div>)}
+          {generatedShop && Array.isArray(generatedShop) && (() => {
+            /* Render zone-grouped format: [{zone, items}] or flat strings */
+            var isZoned = generatedShop.length > 0 && typeof generatedShop[0] === "object" && generatedShop[0].zone;
+            var zones = isZoned ? generatedShop : [{ zone: "All Items", items: generatedShop.map(function(x) { return typeof x === "string" ? x : (x.item || x.name || JSON.stringify(x)); }) }];
+            var toggleDefault = async function(itemText) { var cur = [].concat(shopDefaults); var idx = cur.indexOf(itemText); if (idx >= 0) { cur.splice(idx, 1); } else { cur.push(itemText); } setShopDefaults(cur); await sSet("shop_defaults", JSON.stringify(cur)); };
+            var removeItem = function(zi, ii) { setGeneratedShop(function(prev) { if (!isZoned) return prev.filter(function(_, idx) { return idx !== ii; }); var nz = prev.map(function(z, zIdx) { if (zIdx !== zi) return z; return { zone: z.zone, items: z.items.filter(function(_, idx) { return idx !== ii; }) }; }).filter(function(z) { return z.items.length > 0; }); return nz; }); };
+            return (<div style={{ marginBottom: 10 }}>
+              {zones.map(function(zone, zi) { return (<div key={zi} style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 8, overflow: "hidden" }}>
+                <div style={{ padding: "8px 12px", background: "#f1f5f9", borderBottom: "1px solid #e2e8f0", fontSize: 11, fontWeight: 700, color: "#475569" }}>{zone.zone}</div>
+                {(zone.items || []).map(function(item, ii) { var itemText = typeof item === "string" ? item : (item.item || item.name || JSON.stringify(item)); var isDef = shopDefaults.indexOf(itemText) >= 0; return (<div key={ii} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: ii < zone.items.length - 1 ? "1px solid #f1f5f9" : "none" }}>
+                  <span style={{ fontSize: 12, flex: 1 }}>{itemText}</span>
+                  <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                    <button onClick={function() { toggleDefault(itemText); }} style={{ padding: "4px 8px", background: isDef ? "#dbeafe" : "#f1f5f9", border: "1px solid " + (isDef ? "#93c5fd" : "#e2e8f0"), borderRadius: 6, fontSize: 10, color: isDef ? "#1d4ed8" : "#475569", cursor: "pointer", fontWeight: isDef ? 700 : 400 }}>{isDef ? "✓ Default" : "Default"}</button>
+                    <button onClick={function() { removeItem(zi, ii); }} style={{ fontSize: 9, color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>✕</button>
+                  </div>
+                </div>); })}
+              </div>); })}
+            </div>);
+          })()}
+          {!generatedShop && shopList.length > 0 && (<div style={{ marginBottom: 10 }}>{(() => {
+            var toggleDefault2 = async function(itemText) { var cur = [].concat(shopDefaults); var idx = cur.indexOf(itemText); if (idx >= 0) { cur.splice(idx, 1); } else { cur.push(itemText); } setShopDefaults(cur); await sSet("shop_defaults", JSON.stringify(cur)); };
+            return (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", overflow: "hidden" }}>{shopList.map(([it, ct], i) => { var isDef = shopDefaults.indexOf(it) >= 0; return (<div key={it} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderBottom: i < shopList.length - 1 ? "1px solid #f1f5f9" : "none" }}><span style={{ fontSize: 12, flex: 1 }}>{it}</span><div style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>{ct > 1 && <span style={{ fontSize: 10, fontWeight: 600, color: "#3b82f6", background: "#eff6ff", padding: "2px 6px", borderRadius: 10 }}>×{ct}</span>}<button onClick={function() { toggleDefault2(it); }} style={{ padding: "4px 8px", background: isDef ? "#dbeafe" : "#f1f5f9", border: "1px solid " + (isDef ? "#93c5fd" : "#e2e8f0"), borderRadius: 6, fontSize: 10, color: isDef ? "#1d4ed8" : "#475569", cursor: "pointer", fontWeight: isDef ? 700 : 400 }}>{isDef ? "✓ Default" : "Default"}</button></div></div>); })}</div>);
+          })()}</div>)}
           {!generatedShop && shopList.length === 0 && <div style={{ textAlign: "center", padding: "16px 12px", color: "#94a3b8", fontSize: 12, background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 10 }}>Plan meals on the Eating tab first, then generate your shop.</div>}
           {/* Add button — matches Eating style */}
-          <button onClick={function() { var item = prompt("Add item to shopping list:"); if (item && item.trim()) { if (generatedShop && Array.isArray(generatedShop)) { setGeneratedShop(function(prev) { return [].concat(prev, [item.trim()]).sort(); }); } else { setFormMsg("Generate a shopping list first, then add items"); setTimeout(function(){setFormMsg("");}, 3000); } } }} style={{ width: "100%", padding: "8px 12px", background: "#f1f5f9", border: "1px dashed #cbd5e1", borderRadius: 8, fontSize: 11, fontWeight: 600, color: "#64748b", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>+ Add</button>
+          <button onClick={function() { var item = prompt("Add item to shopping list:"); if (item && item.trim()) { if (generatedShop && Array.isArray(generatedShop)) { var isZoned = generatedShop.length > 0 && typeof generatedShop[0] === "object" && generatedShop[0].zone; if (isZoned) { var ZONE_ORDER = ["Fruit & Veg","Bakery & Bread","Meat & Poultry","Fish","Dairy & Eggs","Chilled","Frozen","Tinned & Packets","Rice Pasta & Noodles","Cooking Oils & Sauces","Cereals & Porridge","Snacks & Bars","Drinks","Health & Free From","Household"]; var bestZone = "Household"; setGeneratedShop(function(prev) { var found = false; var nz = prev.map(function(z) { if (z.zone === bestZone) { found = true; return { zone: z.zone, items: [].concat(z.items, [item.trim()]).sort() }; } return z; }); if (!found) nz.push({ zone: bestZone, items: [item.trim()] }); return nz; }); } else { setGeneratedShop(function(prev) { return [].concat(prev, [item.trim()]).sort(); }); } } else { setFormMsg("Generate a shopping list first, then add items"); setTimeout(function(){setFormMsg("");}, 3000); } } }} style={{ width: "100%", padding: "8px 12px", background: "#f1f5f9", border: "1px dashed #cbd5e1", borderRadius: 8, fontSize: 11, fontWeight: 600, color: "#64748b", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>+ Add</button>
           </div>{/* end Shopping List grey sub-container */}
 
           {/* Weekly Staples — grey sub-container */}
@@ -5828,7 +5862,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         My Lifecare Companion · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.295.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.296.0
       </div>
 
       {/* Floating Ask a Question button */}
