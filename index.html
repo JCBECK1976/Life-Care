@@ -2176,14 +2176,11 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         {/* HOME */}
         {section === "overview" && (<div>
           {/* Profile */}
-          {(() => { const prof = p.profile || {}; const hasBaseline = p.body && p.body.weight && p.body.weight.length > 0; return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          {(() => { const prof = p.profile || {}; const hasBaseline = p.body && p.body.weight && p.body.weight.length > 0; return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginTop: 14, marginBottom: 14, overflow: "hidden" }}>
+            <div onClick={() => { if (!showOnboarding) { var ob = p.onboarding || {}; setOnboardInputs(Object.assign({ conditions: "", medications: "", neurodiversity: "", bloods: "", goals: "", activity: "", equipment: "", dietary: "", allergies: "", livingSituation: "", familyHistory: "", personalityType: "", motivationStyle: "", whatDerails: "", accountabilityPref: "", occupation: "", workPattern: "", workHours: "", commute: "", sleepHours: "", sleepQuality: "", sleepIssues: "", screensBed: "", caffeineCutoff: "", cookingConfidence: "", eatingOutFreq: "", whoCooks: "", mealRegularity: "", emotionalEating: "", waterIntake: "", caffeineDaily: "", alcoholFrequency: "", stressLevel: "", mainStressors: "", copingStrategies: "", mentalHealth: "", currentSupport: "", injuries: "", painAreas: "", weightHighest: "", weightLowest: "", previousDiets: "" }, ob, { name: ob.name || prof.name || "", dob: ob.dob || prof.dob || "", sex: ob.sex || prof.sex || "", height: ob.height || prof.height || "" })); setSetupTab("profile"); } setShowOnboarding(!showOnboarding); }} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 14, cursor: "pointer", borderBottom: showOnboarding ? "1px solid #e2e8f0" : "none" }}>
               <div style={{ fontSize: 14, fontWeight: 700 }}>{prof.name || "New User"}</div>
-              <div style={{ display: "flex", gap: 4 }}>
-                <button onClick={() => { if (!showOnboarding) { var ob = p.onboarding || {}; setOnboardInputs(Object.assign({ conditions: "", medications: "", neurodiversity: "", bloods: "", goals: "", activity: "", equipment: "", dietary: "", allergies: "", livingSituation: "", familyHistory: "", personalityType: "", motivationStyle: "", whatDerails: "", accountabilityPref: "", occupation: "", workPattern: "", workHours: "", commute: "", sleepHours: "", sleepQuality: "", sleepIssues: "", screensBed: "", caffeineCutoff: "", cookingConfidence: "", eatingOutFreq: "", whoCooks: "", mealRegularity: "", emotionalEating: "", waterIntake: "", caffeineDaily: "", alcoholFrequency: "", stressLevel: "", mainStressors: "", copingStrategies: "", mentalHealth: "", currentSupport: "", injuries: "", painAreas: "", weightHighest: "", weightLowest: "", previousDiets: "" }, ob, { name: ob.name || prof.name || "", dob: ob.dob || prof.dob || "", sex: ob.sex || prof.sex || "", height: ob.height || prof.height || "" })); setSetupTab("profile"); } setShowOnboarding(!showOnboarding); }} style={{ fontSize: 10, color: "#475569", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, padding: "3px 8px", cursor: "pointer" }}>{showOnboarding ? "✕ Close" : "✏️ Edit My Profile"}</button>
-              </div>
+              <span style={{ fontSize: 11, color: "#94a3b8" }}>{showOnboarding ? "▲ Hide" : "▼ My Profile"}</span>
             </div>
-            {!showOnboarding && null}
 
             {/* ONBOARDING QUESTIONNAIRE — TABBED */}
             {showOnboarding && (() => {
@@ -2249,7 +2246,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 setFormMsg("✓ Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000);
               };
 
-              return (<div style={{ marginTop: 8 }}>
+              return (<div style={{ marginTop: 0, padding: "0 14px 14px" }}>
                 {/* Tab bar — double row grey pills */}
                 <div style={{ marginBottom: 10 }}>
                   <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: 8, padding: 2, marginBottom: 2 }}>
@@ -2265,15 +2262,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     })}
                   </div>
                 </div>
-
-                {/* Privacy notice */}
-                <div style={{ padding: 10, background: "linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)", borderRadius: 8, border: "1px solid #bfdbfe", marginBottom: 10, fontSize: 10, color: "#475569", lineHeight: 1.6 }}>
-                  <div style={{ fontWeight: 700, fontSize: 11, color: "#1e40af", marginBottom: 4 }}>🔒 Your information is private</div>
-                  Your data is used solely by your Lifecare Companion to tailor recommendations, feedback and support to work best with you and achieve the best possible outcome. No information is shared with third parties. Any AI-generated content is processed without linking it to any identifiable individual. You choose what information to share — more detail helps your Companion provide better, more personalised guidance, but every field is optional.
-                </div>
-
-                {/* Save Setup button - always visible */}
-                <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; var ob = onboardInputs; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; if (ob.conditions) { nd[activeTab].healthProfile = ob.conditions; } if (ob.painAreas) { nd[activeTab].healthNotes = ob.painAreas; } if (ob.medications) { if (!Array.isArray(nd[activeTab].meds)) nd[activeTab].meds = []; var newMeds = ob.medications.split(",").map(function(m){return m.trim();}).filter(function(m){return m && !nd[activeTab].meds.some(function(em){return (em.name||em).toLowerCase() === m.toLowerCase();});}); newMeds.forEach(function(m){ nd[activeTab].meds.push({name:m,dose:"",freq:"",time:"",notes:"",started:new Date().toISOString().slice(0,10),active:true}); }); } if (ob.bloods) { var bl = nd[activeTab].bloods || []; bl.push({date:new Date().toISOString().slice(0,10),notes:ob.bloods,source:"setup"}); nd[activeTab].bloods = bl; } await saveData(nd); setSetupDirty(false); setFormMsg("✓ Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} disabled={!setupDirty} style={{ width: "100%", marginBottom: 10, padding: 10, color: setupDirty ? "#fff" : "#94a3b8", border: setupDirty ? "none" : "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: setupDirty ? "pointer" : "default", background: setupDirty ? "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" : "#f1f5f9" }}>{setupDirty ? "Save Setup" : "✓ Saved"}</button>
 
                 {/* ═══ MY PROFILE (read-only generated) ═══ */}
                 {setupTab === "profile" && (<div>
@@ -2546,11 +2534,20 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     ["previousDiets", "Previous diets or weight loss attempts", "ta", "e.g. Calorie counting, keto, Slimming World, none..."]
                   ])}
                 </div>)}
+
+                {/* Save Setup button - below form */}
+                <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; var ob = onboardInputs; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; if (ob.conditions) { nd[activeTab].healthProfile = ob.conditions; } if (ob.painAreas) { nd[activeTab].healthNotes = ob.painAreas; } if (ob.medications) { if (!Array.isArray(nd[activeTab].meds)) nd[activeTab].meds = []; var newMeds = ob.medications.split(",").map(function(m){return m.trim();}).filter(function(m){return m && !nd[activeTab].meds.some(function(em){return (em.name||em).toLowerCase() === m.toLowerCase();});}); newMeds.forEach(function(m){ nd[activeTab].meds.push({name:m,dose:"",freq:"",time:"",notes:"",started:new Date().toISOString().slice(0,10),active:true}); }); } if (ob.bloods) { var bl = nd[activeTab].bloods || []; bl.push({date:new Date().toISOString().slice(0,10),notes:ob.bloods,source:"setup"}); nd[activeTab].bloods = bl; } await saveData(nd); setSetupDirty(false); setFormMsg("✓ Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} disabled={!setupDirty} style={{ width: "100%", marginTop: 12, marginBottom: 10, padding: 10, color: setupDirty ? "#fff" : "#94a3b8", border: setupDirty ? "none" : "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: setupDirty ? "pointer" : "default", background: setupDirty ? "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" : "#f1f5f9" }}>{setupDirty ? "Save Setup" : "✓ Saved"}</button>
+
+                {/* Privacy notice */}
+                <div style={{ padding: 10, background: "linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)", borderRadius: 8, border: "1px solid #bfdbfe", marginBottom: 10, fontSize: 10, color: "#475569", lineHeight: 1.6 }}>
+                  <div style={{ fontWeight: 700, fontSize: 11, color: "#1e40af", marginBottom: 4 }}>🔒 Your information is private</div>
+                  Your data is used solely by your Lifecare Companion to tailor recommendations, feedback and support to work best with you and achieve the best possible outcome. No information is shared with third parties. Any AI-generated content is processed without linking it to any identifiable individual. You choose what information to share — more detail helps your Companion provide better, more personalised guidance, but every field is optional.
+                </div>
               </div>);
             })()}
 
             {/* EDIT PROFILE (simple mode) */}
-            {showProfile && !showOnboarding && (<div style={{ marginTop: 8 }}>
+            {showProfile && !showOnboarding && (<div style={{ marginTop: 8, padding: "0 14px 14px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {[["name","Name"],["age","Age"],["sex","Sex"],["height","Height"],["bodyType","Body Type"],["fibreType","Fibre Type"],["idealWeight","Ideal Weight"]].map(function(pair) { return (<div key={pair[0]}><label style={labelStyle}>{pair[1]}</label><input value={profileInputs[pair[0]] || ""} onChange={function(e) { setProfileInputs(function(q) { var n = Object.assign({}, q); n[pair[0]] = e.target.value; return n; }); }} style={inputStyle} /></div>); })}
               </div>
@@ -5304,10 +5301,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 <button onClick={function(){ setShowMedForm(false); }} style={{ padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" }}>Cancel</button>
               </div>
             </div>)}
-            {p.medsHistory && p.medsHistory.length > 0 && (<div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 6 }}>History</div>
-              {p.medsHistory.slice(-10).reverse().map(function(h, i) { return (<div key={i} style={{ fontSize: 11, color: "#64748b", padding: "4px 0", borderBottom: "1px solid #f1f5f9" }}><span style={{ fontWeight: 600, color: "#475569" }}>{h.date}</span> — {h.snapshot}</div>); })}
-            </div>)}
           </div>)}
 
           {healthView === "bloods" && (<div>
@@ -5728,7 +5721,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         My Lifecare Companion · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.290.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.291.0
       </div>
 
       {/* Floating Ask a Question button */}
