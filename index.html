@@ -3041,7 +3041,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 {/* ACTIVITY TAB */}
                 {dv === "activity" && (<div>
                 <div style={{ background: "#f8fafc", borderRadius: 8, padding: "4px 12px 12px", margin: 8, border: "1px solid #e2e8f0" }}>
-                  {exList.map(function(ex, i) { return (<div key={i} id={"ex-" + day + "-" + i} style={{ padding: "10px 12px", borderBottom: i < exList.length - 1 ? "1px solid #e2e8f0" : "none" }}>
+                  {exList.map(function(ex, i) { return (<div key={i} id={"ex-" + day + "-" + i} style={{ padding: "10px 6px", borderBottom: i < exList.length - 1 ? "1px solid #e2e8f0" : "none", position: "relative" }}>
                     {editExercise && editExercise.day === day && editExercise.idx === i ? (
                       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                         <select value={ex.name} onChange={function(e) { renameExercise(day, i, e.target.value); }} style={{ ...inputStyle, flex: 1 }}>
@@ -3051,17 +3051,14 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         <button onClick={function() { setEditExercise(null); }} style={btnS}>Cancel</button>
                       </div>
                     ) : (<>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "stretch" }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 3 }} onClick={function() { setEditExercise({ day: day, idx: i }); }}>{ex.name} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span></div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div style={{ flex: 1, minWidth: 0, paddingRight: 50 }}>
+                          <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }} onClick={function() { setEditExercise({ day: day, idx: i }); }}>{ex.name} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span> <span style={{ fontSize: 9, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap" }}>{sLabel(ex.status)}</span></div>
                           <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>{ex.current} · {ex.reps}</div>
                           {ex.target && <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 600, marginTop: 3 }}>{ex._userOverride && <span onClick={function(){alert("User override: this target was set by your notes, not the AI recommendation.");}} style={{cursor:"pointer",marginRight:4}}>⚠️</span>}{ex._from ? ex._from + " → " : ""}{ex.target}</div>}
                         </div>
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, marginLeft: 10, justifyContent: "space-between" }}>
-                          <span style={{ fontSize: 9, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap" }}>{sLabel(ex.status)}</span>
-                          <button onClick={function(){setSelectedEx({day:day,idx:i});openLogForm(day,i);}} style={{padding:"2px 6px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:4,fontSize:8,cursor:"pointer",fontWeight:600,color:"#94a3b8",display:"flex",alignItems:"center",gap:2,whiteSpace:"nowrap"}}>📋 Log</button>
-                          <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} style={{padding:"2px 5px",background:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#7c3aed":"#f1f5f9",border:"1px solid "+(selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#7c3aed":"#e2e8f0"),borderRadius:4,fontSize:8,cursor:"pointer",fontWeight:600,color:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#fff":"#94a3b8",display:"flex",alignItems:"center",gap:2,whiteSpace:"nowrap"}}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕":"👁 Progress"}</button>
-                        </div>
+                        <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} style={{position:"absolute",top:10,right:6,padding:"4px 8px",background:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#7c3aed":"#f1f5f9",border:"1px solid "+(selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#7c3aed":"#e2e8f0"),borderRadius:6,fontSize:10,cursor:"pointer",fontWeight:600,color:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#fff":"#94a3b8",display:"flex",alignItems:"center",gap:2,whiteSpace:"nowrap"}}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕":"👁"}</button>
+                        <button onClick={function(){setSelectedEx({day:day,idx:i});openLogForm(day,i);}} style={{position:"absolute",bottom:10,right:6,padding:"4px 8px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:6,fontSize:10,cursor:"pointer",fontWeight:600,color:"#94a3b8",display:"flex",alignItems:"center",gap:2,whiteSpace:"nowrap"}}>📋</button>
                       </div>
                       {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 6 }}>📋 {ex.notes}</div>}
                     
