@@ -746,7 +746,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.302.3
+// STANDARD BUTTON STYLES v1.302.4
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -756,6 +756,8 @@ const btnEdit = { padding: "4px 10px", background: "#eff6ff", border: "1px solid
 const btnPortion = { padding: "4px 10px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 6, fontSize: 10, color: "#2563eb", cursor: "pointer", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3 };
 const btnStop = { padding: "4px 10px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 6, fontSize: 10, color: "#dc2626", cursor: "pointer", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3 };
 const btnDelete = { padding: "4px 10px", background: "#dc2626", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 3 };
+// Muted (grey, inside content cards — matches Activities Log/Progress style)
+const btnMuted = { padding: "4px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, cursor: "pointer", fontWeight: 600, color: "#94a3b8", display: "inline-flex", alignItems: "center", gap: 2 };
 // Close/Clear
 const btnClose = { padding: "4px 10px", background: "#7c3aed", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 3 };
 const btnClear = { padding: "4px 10px", background: "#dc2626", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 3 };
@@ -3857,7 +3859,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               <button onClick={function() { setEatList("default"); }} style={{ padding: "4px 10px", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: eatList === "default" ? "#fff" : "transparent", color: eatList === "default" ? "#0f172a" : "#94a3b8" }}>Generic Eating Lists</button>
             </div>
             <button onClick={function(){ setManageListsOpen(!manageListsOpen); }} style={{ marginLeft: "auto", padding: "6px 10px", background: manageListsOpen ? "#eff6ff" : "#f1f5f9", border: "1px solid " + (manageListsOpen ? "#bfdbfe" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, color: manageListsOpen ? "#1e3a5f" : "#475569", cursor: "pointer" }}>{manageListsOpen ? "✕ Close" : "Update My Eating Lists"}</button>
-            <button onClick={clearWeek} style={btnClear}>🗑 Clear Week</button>
+            <button onClick={clearWeek} style={btnClear}>Clear Week</button>
           </div>
 
           {/* My Eating Lists — collapsible */}
@@ -4448,7 +4450,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           {/* Day content */}
           {eatDay !== "week" && <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyDayOpen(!copyDayOpen); setCopyDayTargets({}); }} style={{ padding: "4px 10px", background: copyDayOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (copyDayOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, cursor: "pointer", color: copyDayOpen ? "#fff" : "#475569", display: "flex", alignItems: "center", gap: 3 }}>{copyDayOpen ? "✕" : <span>📋 Copy Day</span>}</button><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);}} style={{ padding: "4px 10px", background: eatDayEyeOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (eatDayEyeOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", color: eatDayEyeOpen ? "#fff" : "#475569", display: "flex", alignItems: "center", gap: 3 }}>{eatDayEyeOpen ? "✕" : "👁 Progress"}</button></div></div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyDayOpen(!copyDayOpen); setCopyDayTargets({}); }} style={Object.assign({},copyDayOpen?btnClose:btnAction)}>{copyDayOpen ? "✕ Close" : "📋 Copy Day"}</button><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);}} style={Object.assign({},eatDayEyeOpen?btnClose:btnAction)}>{eatDayEyeOpen ? "✕ Close" : "👁 Progress"}</button></div></div>
 
             {copyDayOpen && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 10, marginBottom: 10, border: "1px solid #e2e8f0" }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Copy {eatDay.charAt(0).toUpperCase() + eatDay.slice(1)}'s selections to:</div>
@@ -4705,7 +4707,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>)}
               </div>)}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <button onClick={function() { var nk = 2; while (getMeal(eatDay, "b" + nk)) nk++; setMeal(eatDay, "b" + nk, "__empty__"); }} style={btnAction}>+ Add New</button>
+              <button onClick={function() { var nk = 2; while (getMeal(eatDay, "b" + nk)) nk++; setMeal(eatDay, "b" + nk, "__empty__"); }} style={btnMuted}>+ Add New</button>
             </div>
             </div>
 
@@ -4759,7 +4761,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>)}
               </div>)}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <button onClick={function() { var nk = 2; while (getMeal(eatDay, "l" + nk)) nk++; setMeal(eatDay, "l" + nk, "__empty__"); }} style={btnAction}>+ Add New</button>
+              <button onClick={function() { var nk = 2; while (getMeal(eatDay, "l" + nk)) nk++; setMeal(eatDay, "l" + nk, "__empty__"); }} style={btnMuted}>+ Add New</button>
             </div>
             </div>
 
@@ -4813,7 +4815,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>)}
               </div>)}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <button onClick={function() { var nk = 2; while (getMeal(eatDay, "d" + nk)) nk++; setMeal(eatDay, "d" + nk, "__empty__"); }} style={btnAction}>+ Add New</button>
+              <button onClick={function() { var nk = 2; while (getMeal(eatDay, "d" + nk)) nk++; setMeal(eatDay, "d" + nk, "__empty__"); }} style={btnMuted}>+ Add New</button>
             </div>
             </div>
 
@@ -4866,7 +4868,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               </div>)}
             </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <button onClick={function() { var nk = 1; while (getMeal(eatDay, "ds" + nk)) nk++; setMeal(eatDay, "ds" + nk, "__empty__"); }} style={btnAction}>+ Add New</button>
+              <button onClick={function() { var nk = 1; while (getMeal(eatDay, "ds" + nk)) nk++; setMeal(eatDay, "ds" + nk, "__empty__"); }} style={btnMuted}>+ Add New</button>
             </div>
 
             
@@ -4918,7 +4920,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               </div>)}
             </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <button onClick={function() { var nk = 1; while (getMeal(eatDay, "dr" + nk)) nk++; setMeal(eatDay, "dr" + nk, "__empty__"); }} style={btnAction}>+ Add New</button>
+              <button onClick={function() { var nk = 1; while (getMeal(eatDay, "dr" + nk)) nk++; setMeal(eatDay, "dr" + nk, "__empty__"); }} style={btnMuted}>+ Add New</button>
             </div>
 
             
@@ -4966,7 +4968,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>)}
               </div>)}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <button onClick={function() { addOtherSlot(eatDay); }} style={btnAction}>+ Add New</button>
+              <button onClick={function() { addOtherSlot(eatDay); }} style={btnMuted}>+ Add New</button>
             </div>
             </div>
 
@@ -5382,7 +5384,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Health Log</div>
               <textarea value={healthComment} onChange={function(e) { setHealthComment(e.target.value); }} placeholder="Log a health note — symptoms, observations, changes, appointments..." rows={3} style={Object.assign({}, inputStyle, { minHeight: 70, resize: "vertical", fontFamily: "inherit", width: "100%", boxSizing: "border-box", marginBottom: 8 })} />
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button onClick={async function() { if (!healthComment.trim()) return; var nd = JSON.parse(JSON.stringify(data)); if (!Array.isArray(nd[activeTab].healthLog)) nd[activeTab].healthLog = []; nd[activeTab].healthLog.push({ date: new Date().toISOString().split("T")[0], note: healthComment.trim() }); await saveData(nd); setHealthComment(""); setFormMsg("Logged ✓"); setTimeout(function(){setFormMsg("");}, 2000); }} style={{ padding: "8px 16px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>📋 Log</button>
+                <button onClick={async function() { if (!healthComment.trim()) return; var nd = JSON.parse(JSON.stringify(data)); if (!Array.isArray(nd[activeTab].healthLog)) nd[activeTab].healthLog = []; nd[activeTab].healthLog.push({ date: new Date().toISOString().split("T")[0], note: healthComment.trim() }); await saveData(nd); setHealthComment(""); setFormMsg("Logged ✓"); setTimeout(function(){setFormMsg("");}, 2000); }} style={btnMuted}>📋 Log</button>
               </div>
               {(Array.isArray(p.healthLog) ? p.healthLog : []).slice().reverse().map(function(h, i) { var editKey = "healthLog_" + i; var isEditing = editingHealthLog === editKey; return (<div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "8px 0", borderBottom: "1px solid #f1f5f9", fontSize: 12 }}>{isEditing ? (<div style={{ flex: 1, marginRight: 6 }}><textarea value={editHealthText} onChange={function(e) { setEditHealthText(e.target.value); }} rows={2} style={Object.assign({}, inputStyle, { minHeight: 50, resize: "vertical", fontFamily: "inherit", width: "100%", boxSizing: "border-box", marginBottom: 4 })} /><div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var realIdx = nd[activeTab].healthLog.length - 1 - i; nd[activeTab].healthLog[realIdx].note = editHealthText.trim(); await saveData(nd); setEditingHealthLog(null); setFormMsg("Updated ✓"); setTimeout(function(){setFormMsg("");}, 2000); }} style={{ padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Save</button><button onClick={function() { setEditingHealthLog(null); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>Cancel</button></div></div>) : (<span style={{ flex: 1 }}><span style={{ fontWeight: 600, color: "#475569" }}>{h.date}</span> <span style={{ color: "#334155" }}>{h.note}</span></span>)}<div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: 4 }}>{!isEditing && <button onClick={function() { setEditingHealthLog(editKey); setEditHealthText(h.note); }} style={btnEdit}>✎ Edit</button>}<button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthLog.splice(nd[activeTab].healthLog.length - 1 - i, 1); await saveData(nd); }} style={btnDelete}>🗑 Del</button></div></div>); })}
               {(Array.isArray(p.healthLog) ? p.healthLog : []).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12 }}>No health log entries yet</div>}
@@ -5894,8 +5896,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       </div>
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
-        Lifecare Companion™ App · Created by Companion Apps Studio™ · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.302.3
+        Lifecare Companion™ · Created by Companion Apps Studio™ · © Jan-Christian Zaluski 2026</div>
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.302.4
       </div>
 
       {/* Floating Ask a Question button */}
