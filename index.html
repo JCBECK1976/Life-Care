@@ -685,7 +685,7 @@ function FullChart({ series, height = 160, title, refLine }) {
 // ═══════════════════════════════════════════════════
 function BodyCard({ label, value, rating, trend, onEye, eyeOpen }) {
   const rc = rating === "Excellent" || rating === "Acceptable" ? "#16a34a" : rating === "Standard" ? "#2563eb" : rating === "High" || rating === "Too High" ? "#dc2626" : rating === "Low" ? "#d97706" : "#64748b";
-  return (<div style={{ background: "#fff", borderRadius: 10, padding: "10px 12px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 3, position: "relative" }}><div style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>{label}</div><div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", lineHeight: 1.1 }}>{value != null ? value : "—"}</div>{rating && <div style={{ fontSize: 10, fontWeight: 600, color: rc, textTransform: "uppercase" }}>{rating}</div>}{trend && <div style={{ fontSize: 10, color: String(trend).startsWith("-") ? "#16a34a" : String(trend).startsWith("+") ? "#dc2626" : "#64748b" }}>{trend}</div>}{onEye && <button onClick={onEye} style={{ position: "absolute", bottom: 5, right: 5, padding: "2px 5px", background: eyeOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (eyeOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 4, cursor: "pointer", fontSize: 8, fontWeight: 600, color: eyeOpen ? "#fff" : "#94a3b8", lineHeight: 1, display: "flex", alignItems: "center", gap: 2, whiteSpace: "nowrap" }} title={"View " + label + " detail"}>{eyeOpen ? "✕" : "👁 Progress"}</button>}</div>);
+  return (<div style={{ background: "#fff", borderRadius: 10, padding: "10px 12px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 3, position: "relative" }}><div style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>{label}</div><div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", lineHeight: 1.1 }}>{value != null ? value : "—"}</div>{rating && <div style={{ fontSize: 10, fontWeight: 600, color: rc, textTransform: "uppercase" }}>{rating}</div>}{trend && <div style={{ fontSize: 10, color: String(trend).startsWith("-") ? "#16a34a" : String(trend).startsWith("+") ? "#dc2626" : "#64748b" }}>{trend}</div>}{onEye && <button onClick={onEye} style={{ position: "absolute", bottom: 5, right: 5, padding: "2px 5px", background: eyeOpen ? "#1e3a5f" : "#f1f5f9", border: "1px solid " + (eyeOpen ? "#1e3a5f" : "#e2e8f0"), borderRadius: 4, cursor: "pointer", fontSize: 8, fontWeight: 600, color: eyeOpen ? "#fff" : "#94a3b8", lineHeight: 1, display: "flex", alignItems: "center", gap: 2, whiteSpace: "nowrap" }} title={"View " + label + " detail"}>{eyeOpen ? "✕" : "👁 Progress"}</button>}</div>);
 }
 
 function ExTable({ exercises, day, showHistory, onLog }) {
@@ -746,7 +746,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.304.0
+// STANDARD BUTTON STYLES v1.305.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -2846,9 +2846,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           </div>
               </div>)}
               {bodyView === "measurements" && (<div>
-                <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                  <label style={{...btnActionLg, display: "flex"}}>📸 Progress Photo <input type="file" accept="image/*" multiple onChange={async function(e) { var files = Array.from(e.target.files); if (!files.length) return; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].progressPhotos) nd[activeTab].progressPhotos = []; for (var fi = 0; fi < files.length; fi++) { var reader = new FileReader(); await new Promise(function(resolve) { reader.onload = function(ev) { nd[activeTab].progressPhotos.push({ data: ev.target.result, date: new Date().toLocaleDateString("en-GB"), week: calcWeek(data.config.trainingStart) }); resolve(); }; reader.readAsDataURL(files[fi]); }); } await saveData(nd); setFormMsg("📸 Photo saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ display: "none" }} /></label>
-                </div>
+                <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>My Body Measurements</span><div style={{ display: "flex", gap: 4 }}><label style={{...btnAction, display: "inline-flex"}}>📸 Progress Photo<input type="file" accept="image/*" multiple onChange={async function(e) { var files = Array.from(e.target.files); if (!files.length) return; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].progressPhotos) nd[activeTab].progressPhotos = []; for (var fi = 0; fi < files.length; fi++) { var reader = new FileReader(); await new Promise(function(resolve) { reader.onload = function(ev) { nd[activeTab].progressPhotos.push({ data: ev.target.result, date: new Date().toLocaleDateString("en-GB"), week: calcWeek(data.config.trainingStart) }); resolve(); }; reader.readAsDataURL(files[fi]); }); } await saveData(nd); setFormMsg("📸 Photo saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ display: "none" }} /></label></div></div>
                 {p.progressPhotos && p.progressPhotos.length > 0 && (<div style={{ marginBottom: 12 }}><div style={{ fontSize: 12, fontWeight: 600, color: "#334155", marginBottom: 6 }}>Progress Photos</div><div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>{p.progressPhotos.map(function(ph, phi) { return (<div key={phi} style={{ position: "relative", flexShrink: 0 }}><img src={ph.data} style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8 }} /><div style={{ fontSize: 9, color: "#94a3b8", textAlign: "center" }}>Wk{ph.week}</div><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].progressPhotos.splice(phi, 1); await saveData(nd); }} style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: "#dc2626", color: "#fff", border: "none", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button></div>); })}</div></div>)}
           <div style={{ background: "#f8fafc", borderRadius: 8, padding: 14, border: "1px solid #e2e8f0" }}>
             {Object.entries(p.measurements).map(function(pair, mi) { var k = pair[0]; var d = pair[1]; var latest = d.length > 0 ? d[d.length - 1] : null; var prev = d.length > 1 ? d[d.length - 2] : null; var delta = (latest && prev && typeof latest.v === "number" && typeof prev.v === "number") ? (latest.v - prev.v).toFixed(1) : null; var measColors = ["#2563eb","#7c3aed","#059669","#d97706","#dc2626","#0891b2","#ec4899"]; return (<div key={k}>
@@ -3858,7 +3856,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               <button onClick={function() { setEatList("own"); }} style={{ padding: "4px 10px", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: eatList === "own" ? "#fff" : "transparent", color: eatList === "own" ? "#0f172a" : "#94a3b8" }}>My Eating Lists</button>
               <button onClick={function() { setEatList("default"); }} style={{ padding: "4px 10px", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: eatList === "default" ? "#fff" : "transparent", color: eatList === "default" ? "#0f172a" : "#94a3b8" }}>Generic Eating Lists</button>
             </div>
-            <button onClick={function(){ setManageListsOpen(!manageListsOpen); }} style={{ marginLeft: "auto", padding: "6px 10px", background: manageListsOpen ? "#eff6ff" : "#f1f5f9", border: "1px solid " + (manageListsOpen ? "#bfdbfe" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, color: manageListsOpen ? "#1e3a5f" : "#475569", cursor: "pointer" }}>{manageListsOpen ? "✕ Close" : "Update My Eating Lists"}</button>
+            <button onClick={function(){ setManageListsOpen(!manageListsOpen); }} style={{ marginLeft: "auto", padding: "6px 10px", background: manageListsOpen ? "#eff6ff" : "#f1f5f9", border: "1px solid " + (manageListsOpen ? "#bfdbfe" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, color: manageListsOpen ? "#1e3a5f" : "#475569", cursor: "pointer" }}>{manageListsOpen ? "✕ Close" : <span style={{ textAlign: "center", lineHeight: 1.3 }}>Update<br/>Eating Lists</span>}</button>
             <button onClick={clearWeek} style={btnClear}>Clear Week</button>
           </div>
 
@@ -3954,14 +3952,14 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           
 
           {eatDay === "week" && (<div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ display: "flex", alignItems: "center", gap: 8 }}>My Week{(() => {
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "nowrap", gap: 6 }}><span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", minWidth: 0, flexShrink: 1 }}>My Week{(() => {
               var totalKcal2 = 0; var dayCount2 = 0;
               DAYS.forEach(function(d) { var dk = getDayKcal(d); if (dk > 0) { totalKcal2 += dk; dayCount2++; } });
               var avg2 = dayCount2 > 0 ? Math.round(totalKcal2 / dayCount2) : 0;
               var limit2 = isJC ? 2200 : 1900;
               var color2 = avg2 === 0 ? "#94a3b8" : avg2 > limit2 ? "#dc2626" : "#16a34a";
-              return avg2 > 0 ? (<span style={{ fontSize: 11, fontWeight: 600, color: color2 }}>— Avg {avg2} kcal/day</span>) : null;
-            })()}</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyWeekOpen(!copyWeekOpen); setCopyWeekTargets({}); }} style={{ padding: "4px 10px", background: copyWeekOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (copyWeekOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, cursor: "pointer", color: copyWeekOpen ? "#fff" : "#475569", display: "flex", alignItems: "center", gap: 3 }}>{copyWeekOpen ? "✕" : <span>📋 Copy Week</span>}</button><button onClick={function(){setEatWeekEyeOpen(!eatWeekEyeOpen);}} style={{ padding: "4px 10px", background: eatWeekEyeOpen ? "#7c3aed" : "#f1f5f9", border: "1px solid " + (eatWeekEyeOpen ? "#7c3aed" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", color: eatWeekEyeOpen ? "#fff" : "#475569", display: "flex", alignItems: "center", gap: 3 }}>{eatWeekEyeOpen ? "✕" : "👁 Progress"}</button></div></div>
+              return avg2 > 0 ? (<span style={{ fontSize: 11, fontWeight: 600, color: color2 }}> — Avg {avg2} kcal/day</span>) : null;
+            })()}</span><div style={{ display: "flex", gap: 4, flexShrink: 0 }}><button onClick={function(){ setCopyWeekOpen(!copyWeekOpen); setCopyWeekTargets({}); }} style={Object.assign({}, copyWeekOpen ? btnClose : btnAction)}>{copyWeekOpen ? "✕" : <span>📋 Copy Week</span>}</button><button onClick={function(){setEatWeekEyeOpen(!eatWeekEyeOpen);}} style={Object.assign({}, eatWeekEyeOpen ? btnClose : btnAction)}>{eatWeekEyeOpen ? "✕" : "👁 Progress"}</button></div></div>
 
             {copyWeekOpen && (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 10, marginBottom: 10, border: "1px solid #e2e8f0" }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Copy this week's day selections to:</div>
@@ -3979,7 +3977,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     weeks.push({ off: wi, label: label });
                   }
                   return weeks.map(function(w) {
-                    return (<label key={w.off} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, cursor: "pointer", padding: "6px 8px", background: copyWeekTargets[w.off] ? "#ddd6fe" : (w.off % 2 === 0 ? "#fff" : "#f8fafc"), border: "1px solid " + (copyWeekTargets[w.off] ? "#7c3aed" : "transparent"), borderRadius: 4, marginBottom: 2 }}>
+                    return (<label key={w.off} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, cursor: "pointer", padding: "6px 8px", background: copyWeekTargets[w.off] ? "#dbeafe" : (w.off % 2 === 0 ? "#fff" : "#f8fafc"), border: "1px solid " + (copyWeekTargets[w.off] ? "#1e3a5f" : "transparent"), borderRadius: 4, marginBottom: 2 }}>
                       <input type="checkbox" checked={!!copyWeekTargets[w.off]} onChange={function(){ var o = w.off; setCopyWeekTargets(function(prev){ var n = Object.assign({}, prev); n[o] = !n[o]; return n; }); }} style={{ margin: 0 }} />
                       <span style={{ color: "#0f172a" }}>{w.label}</span>
                     </label>);
@@ -4456,7 +4454,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Copy {eatDay.charAt(0).toUpperCase() + eatDay.slice(1)}'s selections to:</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
                 {DAYS.filter(function(d){ return d !== eatDay; }).map(function(d) {
-                  return (<label key={d} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, cursor: "pointer", padding: "4px 8px", background: copyDayTargets[d] ? "#ddd6fe" : "#f1f5f9", border: "1px solid " + (copyDayTargets[d] ? "#7c3aed" : "#e2e8f0"), borderRadius: 6 }}>
+                  return (<label key={d} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, cursor: "pointer", padding: "4px 8px", background: copyDayTargets[d] ? "#dbeafe" : "#f1f5f9", border: "1px solid " + (copyDayTargets[d] ? "#1e3a5f" : "#e2e8f0"), borderRadius: 6 }}>
                     <input type="checkbox" checked={!!copyDayTargets[d]} onChange={function(){ setCopyDayTargets(function(prev){ var n = Object.assign({}, prev); n[d] = !n[d]; return n; }); }} style={{ margin: 0 }} />
                     {DAY_LABELS[d]}
                   </label>);
@@ -4683,14 +4681,14 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ flex: 1 }}>
                       <MealSelect items={allBfast} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
                     </div>
-                    {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#ddd6fe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #7c3aed" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allBfast); e.target.value=""; }} style={{ display: "none" }} /></label>)}
+                    {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allBfast); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
-                    {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#7c3aed", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                    {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
               {portionSlot && portionSlot.match(/^b\d*$/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
-                {portionLoading && <div style={{ fontSize: 11, color: "#7c3aed", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
+                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
                 {portionResult && portionPlanned && (<div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
@@ -4737,14 +4735,14 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ flex: 1 }}>
                       <MealSelect items={allLunch} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
                     </div>
-                    {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#ddd6fe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #7c3aed" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allLunch); e.target.value=""; }} style={{ display: "none" }} /></label>)}
+                    {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allLunch); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
-                    {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#7c3aed", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                    {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
               {portionSlot && portionSlot.match(/^l\d*$/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
-                {portionLoading && <div style={{ fontSize: 11, color: "#7c3aed", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
+                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
                 {portionResult && portionPlanned && (<div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
@@ -4791,14 +4789,14 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ flex: 1 }}>
                       <MealSelect items={allDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
                     </div>
-                    {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#ddd6fe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #7c3aed" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allDinners); e.target.value=""; }} style={{ display: "none" }} /></label>)}
+                    {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allDinners); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
-                    {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#7c3aed", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                    {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
               {portionSlot && portionSlot.match(/^d\d*$/) && !portionSlot.match(/^d[sr]/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
-                {portionLoading && <div style={{ fontSize: 11, color: "#7c3aed", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
+                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
                 {portionResult && portionPlanned && (<div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
@@ -4843,14 +4841,14 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ flex: 1 }}>
                       <MealSelect items={allDesserts} value={getMeal(eatDay, "ds" + idx) === "__empty__" ? "" : getMeal(eatDay, "ds" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults"); } else { setMeal(eatDay, "ds" + idx, e.target.value); } }} placeholder="Select dessert..." />
                     </div>
-                    {getMeal(eatDay, "ds" + idx) && getMeal(eatDay, "ds" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("ds" + idx) ? "#ddd6fe" : btnPortion.background, border: portionSlot === ("ds" + idx) ? "1px solid #7c3aed" : btnPortion.border, cursor: portionLoading && portionSlot === ("ds" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("ds" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("ds" + idx, e.target.files[0], allDesserts); e.target.value=""; }} style={{ display: "none" }} /></label>)}
+                    {getMeal(eatDay, "ds" + idx) && getMeal(eatDay, "ds" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("ds" + idx) ? "#dbeafe" : btnPortion.background, border: portionSlot === ("ds" + idx) ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === ("ds" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("ds" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("ds" + idx, e.target.files[0], allDesserts); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {getMeal(eatDay, "ds" + idx) && <button onClick={function() { setMeal(eatDay, "ds" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
-                    {portionOverrides[eatDay] && portionOverrides[eatDay]["ds" + idx] && (<span style={{ fontSize: 9, color: "#7c3aed", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                    {portionOverrides[eatDay] && portionOverrides[eatDay]["ds" + idx] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
               {portionSlot && portionSlot.match(/^ds/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
-                {portionLoading && <div style={{ fontSize: 11, color: "#7c3aed", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
+                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
                 {portionResult && portionPlanned && (<div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
@@ -4895,14 +4893,14 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ flex: 1 }}>
                       <MealSelect items={allDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults"); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Select drink..." />
                     </div>
-                    {getMeal(eatDay, "dr" + idx) && getMeal(eatDay, "dr" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("dr" + idx) ? "#ddd6fe" : btnPortion.background, border: portionSlot === ("dr" + idx) ? "1px solid #7c3aed" : btnPortion.border, cursor: portionLoading && portionSlot === ("dr" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("dr" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("dr" + idx, e.target.files[0], allDrinks); e.target.value=""; }} style={{ display: "none" }} /></label>)}
+                    {getMeal(eatDay, "dr" + idx) && getMeal(eatDay, "dr" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("dr" + idx) ? "#dbeafe" : btnPortion.background, border: portionSlot === ("dr" + idx) ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === ("dr" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("dr" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("dr" + idx, e.target.files[0], allDrinks); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {getMeal(eatDay, "dr" + idx) && <button onClick={function() { setMeal(eatDay, "dr" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
-                    {portionOverrides[eatDay] && portionOverrides[eatDay]["dr" + idx] && (<span style={{ fontSize: 9, color: "#7c3aed", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                    {portionOverrides[eatDay] && portionOverrides[eatDay]["dr" + idx] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
               {portionSlot && portionSlot.match(/^dr/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
-                {portionLoading && <div style={{ fontSize: 11, color: "#7c3aed", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
+                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
                 {portionResult && portionPlanned && (<div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
@@ -4945,13 +4943,13 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 <div style={{ flex: 1 }}>
                   <MealSelect items={allOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults"); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Select snack..." />
                 </div>
-                {getMeal(eatDay, "o" + idx) && getMeal(eatDay, "o" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("o" + idx) ? "#ddd6fe" : btnPortion.background, border: portionSlot === ("o" + idx) ? "1px solid #7c3aed" : btnPortion.border, cursor: portionLoading && portionSlot === ("o" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("o" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("o" + idx, e.target.files[0], allOther); e.target.value=""; }} style={{ display: "none" }} /></label>)}
+                {getMeal(eatDay, "o" + idx) && getMeal(eatDay, "o" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("o" + idx) ? "#dbeafe" : btnPortion.background, border: portionSlot === ("o" + idx) ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === ("o" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("o" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("o" + idx, e.target.files[0], allOther); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                 {getMeal(eatDay, "o" + idx) && <button onClick={function() { setMeal(eatDay, "o" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
-                {portionOverrides[eatDay] && portionOverrides[eatDay]["o" + idx] && (<span style={{ fontSize: 9, color: "#7c3aed", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                {portionOverrides[eatDay] && portionOverrides[eatDay]["o" + idx] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
               </div>);
             })}
             {portionSlot && portionSlot.match(/^o/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
-                {portionLoading && <div style={{ fontSize: 11, color: "#7c3aed", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
+                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
                 {portionResult && portionPlanned && (<div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
@@ -5564,7 +5562,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             {healthFb.concerns && healthFb.concerns.length > 0 && (<div style={{ marginBottom: 6 }}><div style={{ fontSize: 11, fontWeight: 700, color: "#dc2626", marginBottom: 3 }}>Concerns</div>{healthFb.concerns.map(function(x, i) { return (<div key={i} style={{ fontSize: 11, color: "#475569", padding: "2px 0", paddingLeft: 8 }}>- {x}</div>); })}</div>)}
             {healthFb.positives && healthFb.positives.length > 0 && (<div style={{ marginBottom: 6 }}><div style={{ fontSize: 11, fontWeight: 700, color: "#16a34a", marginBottom: 3 }}>Positives</div>{healthFb.positives.map(function(x, i) { return (<div key={i} style={{ fontSize: 11, color: "#475569", padding: "2px 0", paddingLeft: 8 }}>- {x}</div>); })}</div>)}
             {healthFb.actions && healthFb.actions.length > 0 && (<div style={{ marginBottom: 6 }}><div style={{ fontSize: 11, fontWeight: 700, color: "#2563eb", marginBottom: 3 }}>Actions</div>{healthFb.actions.map(function(x, i) { return (<div key={i} style={{ fontSize: 11, color: "#475569", padding: "2px 0", paddingLeft: 8 }}>- {x}</div>); })}</div>)}
-            {(healthFb.meds || healthFb.medication_notes) && (<div><div style={{ fontSize: 11, fontWeight: 700, color: "#7c3aed", marginBottom: 3 }}>Medication Notes</div><div style={{ fontSize: 11, color: "#475569", paddingLeft: 8 }}>{healthFb.meds || healthFb.medication_notes}</div></div>)}
+            {(healthFb.meds || healthFb.medication_notes) && (<div><div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 3 }}>Medication Notes</div><div style={{ fontSize: 11, color: "#475569", paddingLeft: 8 }}>{healthFb.meds || healthFb.medication_notes}</div></div>)}
           </div>)}
 </div>); })()}
 
@@ -5922,7 +5920,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.304.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.305.0
       </div>
 
       {/* Floating Ask a Question button */}
