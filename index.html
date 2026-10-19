@@ -1598,16 +1598,23 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       // Gather meal plan
       let mealSummary = "";
       try { const mr = await sGet(sk); if (mr) { const mp = JSON.parse(mr); const dayInfo = MEAL_DAYS.map(d => { const entry = mp[d.key]; const isO = entry && typeof entry === "object"; const din = isO ? entry.d : entry; const ml = allDinners.find(m => m.id === din); const note = isO ? entry._note : ""; return d.label + ": " + (ml ? ml.name : "unplanned") + (note ? " (" + note + ")" : ""); }).join(", "); mealSummary = "\nThis week's meals: " + dayInfo + "."; } } catch {}
-      // Gather exercise comments
+      // Gather exercise comments \u2014 separated by current vs previous weeks
       let exComments = "";
       try {
         const keys = await firebase.database().ref("data").orderByKey().startAt("comment_" + tab + "_").endAt("comment_" + tab + "_\uf8ff").once("value").then(function(s) { return { keys: s.exists() ? Object.keys(s.val()) : [] }; });
         if (keys && keys.keys && keys.keys.length > 0) {
-          const comments = [];
+          const currentWkComments = [];
+          const prevWkComments = [];
+          var currentWeekStr = String(data.config.week);
           for (const k of keys.keys.slice(-10)) {
-            try { const v = await firebase.database().ref("data/" + k.replace(/[.#$/\[\]]/g, "_")).once("value").then(function(s) { return s.exists() ? { value: s.val() } : null; }); if (v && v.value) { const parts = k.split(":"); comments.push("Wk" + parts[3] + " " + parts[2] + ": " + v.value); } } catch {}
+            try { const v = await firebase.database().ref("data/" + k.replace(/[.#$/\[\]]/g, "_")).once("value").then(function(s) { return s.exists() ? { value: s.val() } : null; }); if (v && v.value) { const parts = k.split(":"); var commentWk = parts[3]; var formatted = "Wk" + commentWk + " " + parts[2] + ": " + v.value; if (commentWk === currentWeekStr) { currentWkComments.push(formatted); } else { prevWkComments.push(formatted); } } } catch {}
           }
-          if (comments.length > 0) exComments = "\nExercise log comments: " + comments.join(". ") + ".";
+          if (currentWkComments.length > 0 || prevWkComments.length > 0) {
+            exComments = "";
+            if (currentWkComments.length > 0) exComments += "\nCurrent week (Wk" + currentWeekStr + ") session notes: " + currentWkComments.join(". ") + ".";
+            if (prevWkComments.length > 0) exComments += "\nPrevious weeks session notes (HISTORICAL CONTEXT ONLY \u2014 do not treat as current): " + prevWkComments.join(". ") + ".";
+            if (currentWkComments.length === 0) exComments += "\nNote: No session notes logged yet for current week (Wk" + currentWeekStr + "). Previous notes above are historical context only \u2014 do not present them as this week.";
+          }
         }
       } catch {}
       // Previous feedback context
