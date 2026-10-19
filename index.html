@@ -746,7 +746,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.302.0
+// STANDARD BUTTON STYLES v1.302.1
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -3072,8 +3072,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                           <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>{ex.current} · {ex.reps}</div>
                           {ex.target && <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 600, marginTop: 3 }}>{ex._userOverride && <span onClick={function(){alert("User override: this target was set by your notes, not the AI recommendation.");}} style={{cursor:"pointer",marginRight:4}}>⚠️</span>}{ex._from ? ex._from + " → " : ""}{ex.target}</div>}
                         </div>
-                        <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} style={{position:"absolute",top:10,right:3,...(selectedEx&&selectedEx.day===day&&selectedEx.idx===i?btnClose:btnAction),whiteSpace:"nowrap",minWidth:80,justifyContent:"center"}}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕ Close":"👁 Progress"}</button>
-                        <button onClick={function(){setSelectedEx({day:day,idx:i});openLogForm(day,i);}} style={{position:"absolute",bottom:10,right:3,...btnAction,whiteSpace:"nowrap",minWidth:80,justifyContent:"center"}}>📋 Log</button>
+                        <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} style={{position:"absolute",top:10,right:3,padding:"4px 8px",background:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#7c3aed":"#f1f5f9",border:"1px solid "+(selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#7c3aed":"#e2e8f0"),borderRadius:6,fontSize:10,cursor:"pointer",fontWeight:600,color:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#fff":"#94a3b8",display:"flex",alignItems:"center",gap:2,whiteSpace:"nowrap"}}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕ Progress":"👁 Progress"}</button>
+                        <button onClick={function(){setSelectedEx({day:day,idx:i});openLogForm(day,i);}} style={{position:"absolute",bottom:10,right:3,padding:"4px 8px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:6,fontSize:10,cursor:"pointer",fontWeight:600,color:"#94a3b8",display:"flex",alignItems:"center",gap:2,whiteSpace:"nowrap"}}>📋 Log</button>
                       </div>
                       {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 6, marginRight: 90 }}>📋 {ex.notes}</div>}
                     
@@ -5893,7 +5893,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
       <div style={{ padding: "12px 16px 20px", textAlign: "center", fontSize: 10, color: "#94a3b8", borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
         Lifecare Companion™ App · Created by Companion Apps Studio™ · © Jan-Christian Zaluski 2026</div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.302.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.302.1
       </div>
 
       {/* Floating Ask a Question button */}
