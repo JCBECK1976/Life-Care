@@ -406,6 +406,31 @@ const DINNERS = [
   { id: "none", name: "— No dinner (eating out / other)", rating: "INFO", jcKcal: 0, beckKcal: 0, jcProt: 0, beckProt: 0, jcFat: 0, beckFat: 0, freq: "", time: 0, shop: [] },
 ];
 
+const POTATO_SIDES = [
+  { id: "baby_potatoes", name: "Baby Potatoes (boiled)", sideCategory: "potato", jcKcal: 130, beckKcal: 100, rating: "GREAT", shop: ["Baby potatoes"] },
+  { id: "jacket_potato", name: "Jacket Potato", sideCategory: "potato", jcKcal: 200, beckKcal: 160, rating: "GREAT", shop: ["Baking potatoes"] },
+  { id: "mashed_potato", name: "Mashed Potato", sideCategory: "potato", jcKcal: 180, beckKcal: 140, rating: "GREAT", shop: ["Potatoes", "Skimmed milk", "ProActiv spread"] },
+  { id: "new_potatoes", name: "New Potatoes", sideCategory: "potato", jcKcal: 130, beckKcal: 100, rating: "GREAT", shop: ["New potatoes"] },
+  { id: "roast_potatoes", name: "Roast Potatoes (spray oil)", sideCategory: "potato", jcKcal: 190, beckKcal: 150, rating: "GREAT", shop: ["Potatoes", "Cooking oil spray"] },
+  { id: "oven_chips", name: "Oven Chips", sideCategory: "potato", jcKcal: 220, beckKcal: 170, rating: "AMBER", shop: ["Oven chips"] },
+  { id: "sweet_potato", name: "Sweet Potato (baked)", sideCategory: "potato", jcKcal: 170, beckKcal: 130, rating: "GREAT", shop: ["Sweet potatoes"] },
+  { id: "potato_wedges", name: "Potato Wedges (spray oil)", sideCategory: "potato", jcKcal: 200, beckKcal: 160, rating: "GREAT", shop: ["Potatoes", "Cooking oil spray"] },
+  { id: "microwave_rice", name: "Microwave Rice", sideCategory: "potato", jcKcal: 230, beckKcal: 180, rating: "GREAT", shop: ["Microwave rice"] },
+];
+
+const VEG_SIDES = [
+  { id: "garden_salad", name: "Garden Salad", sideCategory: "veg", jcKcal: 40, beckKcal: 40, rating: "GREAT", shop: ["Mixed salad leaves", "Cucumber", "Tomatoes"] },
+  { id: "steamed_broccoli", name: "Steamed Broccoli", sideCategory: "veg", jcKcal: 55, beckKcal: 45, rating: "GREAT", shop: ["Broccoli"] },
+  { id: "mixed_veg", name: "Mixed Vegetables", sideCategory: "veg", jcKcal: 65, beckKcal: 55, rating: "GREAT", shop: ["Frozen mixed vegetables"] },
+  { id: "peas", name: "Garden Peas", sideCategory: "veg", jcKcal: 70, beckKcal: 55, rating: "GREAT", shop: ["Frozen peas"] },
+  { id: "green_beans", name: "Green Beans", sideCategory: "veg", jcKcal: 35, beckKcal: 30, rating: "GREAT", shop: ["Green beans"] },
+  { id: "sweetcorn", name: "Sweetcorn", sideCategory: "veg", jcKcal: 80, beckKcal: 65, rating: "GREAT", shop: ["Frozen sweetcorn"] },
+  { id: "coleslaw", name: "Coleslaw (light)", sideCategory: "veg", jcKcal: 70, beckKcal: 55, rating: "AMBER", shop: ["Light coleslaw"] },
+  { id: "side_salad_tom", name: "Tomato & Onion Salad", sideCategory: "veg", jcKcal: 35, beckKcal: 30, rating: "GREAT", shop: ["Tomatoes", "Red onion"] },
+  { id: "roasted_veg", name: "Roasted Mediterranean Veg", sideCategory: "veg", jcKcal: 90, beckKcal: 75, rating: "GREAT", shop: ["Courgette", "Peppers", "Red onion", "Cooking oil spray"] },
+  { id: "corn_on_cob", name: "Corn on the Cob", sideCategory: "veg", jcKcal: 90, beckKcal: 75, rating: "GREAT", shop: ["Corn on the cob"] },
+];
+
 const MEAL_DAYS = [
   { key: "sun", label: "Sun", full: "Sunday", context: "Session 1 · Substantial (45 min)" },
   { key: "mon", label: "Mon", full: "Monday", context: "Session 2 · Quick (20 min)" },
@@ -746,7 +771,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.306.1
+// STANDARD BUTTON STYLES v1.307.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -3630,7 +3655,25 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           };
 
           var getMeal = function(dayKey, slot) { var m = meals[dayKey]; if (!m) return ""; return m[slot] || ""; };
-          var setMeal = function(dayKey, slot, val) { var n = Object.assign({}, meals); if (!n[dayKey]) n[dayKey] = {}; n[dayKey][slot] = val; setMeals(n); saveMeals(n); };
+          var isPackagedDinner = function(dinnerId) { var allD = [].concat(DINNERS, customMeals); var found = allD.find(function(x){ return x.id === dinnerId; }); return found && found.itemType === "packaged"; };
+          var setMeal = function(dayKey, slot, val) {
+            var n = Object.assign({}, meals); if (!n[dayKey]) n[dayKey] = {};
+            n[dayKey][slot] = val;
+            // Auto-apply sides for packaged dinners
+            if (slot.match(/^d\d*$/) && !slot.match(/^d[pvsrc]/)) {
+              var sIdx = slot === "d" ? "" : slot.replace("d", "");
+              if (val && isPackagedDinner(val)) {
+                // Set default sides if not already set
+                if (!n[dayKey]["dp" + sIdx]) n[dayKey]["dp" + sIdx] = "baby_potatoes";
+                if (!n[dayKey]["dv" + sIdx]) n[dayKey]["dv" + sIdx] = "garden_salad";
+              } else {
+                // Clear sides when switching to non-packaged or clearing
+                delete n[dayKey]["dp" + sIdx];
+                delete n[dayKey]["dv" + sIdx];
+              }
+            }
+            setMeals(n); saveMeals(n);
+          };
           
           var getTrack = function(dayKey, slot) { var k = dayKey + ":" + slot; return (mealTracking || {})[k] || ""; };
           var setTrack = async function(dayKey, slot, status) { var n = Object.assign({}, mealTracking); var k = dayKey + ":" + slot; n[k] = status; setMealTracking(n); await sSet("meal_tracking:" + activeTab, JSON.stringify(n)); };
@@ -4038,6 +4081,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   { label: "Breakfast", prefix: "b", items: allBfast, multi: true },
                   { label: "Lunch", prefix: "l", items: allLunch, multi: true },
                   { label: "Dinner", prefix: "d", items: allDinners, multi: true },
+                  { label: "🥔 Sides", prefix: "dp", items: POTATO_SIDES, multi: true },
+                  { label: "🥗 Sides", prefix: "dv", items: VEG_SIDES, multi: true },
                   { label: "Desserts", prefix: "ds", items: allDesserts, multi: false },
                   { label: "Drinks", prefix: "dr", items: allDrinks, multi: false },
                   { label: "Snacks", prefix: "o", items: allOther, multi: false }
@@ -4503,6 +4548,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   { label: "Breakfast", prefix: "b", items: allBfast, multi: true },
                   { label: "Lunch", prefix: "l", items: allLunch, multi: true },
                   { label: "Dinner", prefix: "d", items: allDinners, multi: true },
+                  { label: "🥔 Sides", prefix: "dp", items: POTATO_SIDES, multi: true },
+                  { label: "🥗 Sides", prefix: "dv", items: VEG_SIDES, multi: true },
                   { label: "Desserts", prefix: "ds", items: allDesserts, multi: false },
                   { label: "Drinks", prefix: "dr", items: allDrinks, multi: false },
                   { label: "Snacks", prefix: "o", items: allOther, multi: false }
@@ -4793,14 +4840,37 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "d" : "d" + si; if (getMeal(eatDay, sk) || si <= 1) slots.push(si); }
                 return slots.map(function(idx) {
                   var slotKey = idx === 1 ? "d" : "d" + idx;
+                  var sIdx = slotKey === "d" ? "" : slotKey.replace("d", "");
                   var _hasItem = allDinners.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
-                  return (<div key={"d"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
+                  var _isPackaged = isPackagedDinner(getMeal(eatDay, slotKey));
+                  var dpKey = "dp" + sIdx;
+                  var dvKey = "dv" + sIdx;
+                  return (<div key={"d"+idx}>
+                    <div style={{ display: "flex", gap: 4, marginBottom: _isPackaged ? 2 : 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
                       <MealSelect items={allDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
                     </div>
                     {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allDinners); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
                     {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                    </div>
+                    {_isPackaged && (<div style={{ marginLeft: 12, marginBottom: 6, paddingLeft: 8, borderLeft: "2px solid #bfdbfe" }}>
+                      <div style={{ fontSize: 9, color: "#64748b", marginBottom: 2, fontWeight: 600 }}>📦 Sides for packaged product</div>
+                      <div style={{ display: "flex", gap: 4, marginBottom: 3, alignItems: "center" }}>
+                        <span style={{ fontSize: 9, color: "#475569", width: 44, flexShrink: 0 }}>🥔 Potato</span>
+                        <select value={getMeal(eatDay, dpKey) || ""} onChange={function(e){ setMeal(eatDay, dpKey, e.target.value); }} style={{ flex: 1, padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, background: "#fff" }}>
+                          <option value="">Select potato side...</option>
+                          {POTATO_SIDES.map(function(ps){ var kcal = isJC ? ps.jcKcal : ps.beckKcal; return <option key={ps.id} value={ps.id}>{ps.name} ({kcal} kcal)</option>; })}
+                        </select>
+                      </div>
+                      <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                        <span style={{ fontSize: 9, color: "#475569", width: 44, flexShrink: 0 }}>🥗 Veg</span>
+                        <select value={getMeal(eatDay, dvKey) || ""} onChange={function(e){ setMeal(eatDay, dvKey, e.target.value); }} style={{ flex: 1, padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, background: "#fff" }}>
+                          <option value="">Select veg/salad side...</option>
+                          {VEG_SIDES.map(function(vs){ var kcal = isJC ? vs.jcKcal : vs.beckKcal; return <option key={vs.id} value={vs.id}>{vs.name} ({kcal} kcal)</option>; })}
+                        </select>
+                      </div>
+                    </div>)}
                   </div>);
                 });
               })()}
@@ -5290,8 +5360,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             if (planned === 0) { setFormMsg("Plan your week food choices in 'My Eating' to get your shopping list suggestions"); setTimeout(() => setFormMsg(""), 10000); return; }
             setShopLoading(true);
             try {
-              var allItems = [].concat(BREAKFASTS, LUNCHES, DINNERS, SNACKS, customMeals);
+              var allItems = [].concat(BREAKFASTS, LUNCHES, DINNERS, SNACKS, customMeals, POTATO_SIDES, VEG_SIDES);
               var lookupName = function(id) { var found = allItems.find(function(x) { return x.id === id; }); return found ? found.name : id; };
+              var lookupShop = function(id) { var found = allItems.find(function(x) { return x.id === id; }); return found && found.shop ? found.shop : []; };
               var mealNames = "";
               var allPeople = Object.keys(data).filter(function(k) { return k !== "config"; });
               for (var pi = 0; pi < allPeople.length; pi++) {
@@ -5300,7 +5371,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var pSk = mealKey(weekStart) + ":" + pn;
                 var pRaw = await sGet(pSk);
                 var pMeals = pRaw ? JSON.parse(pRaw) : {};
-                var pDays = MEAL_DAYS.map(function(d) { var dk = DAY_MAP[d.key] || d.key; var entry = pMeals[dk]; if (!entry || typeof entry !== "object") return null; var parts = []; if (entry.b) parts.push("B:" + lookupName(entry.b)); if (entry.l) parts.push("L:" + lookupName(entry.l)); if (entry.d) parts.push("D:" + lookupName(entry.d)); for (var oi = 1; oi <= 7; oi++) { if (entry["o" + oi] && entry["o" + oi] !== "__placeholder__" && entry["o" + oi] !== "__empty__") parts.push("S:" + lookupName(entry["o" + oi])); } return parts.length > 0 ? d.label + ": " + parts.join(", ") : null; }).filter(Boolean).join("; ");
+                var pDays = MEAL_DAYS.map(function(d) { var dk = DAY_MAP[d.key] || d.key; var entry = pMeals[dk]; if (!entry || typeof entry !== "object") return null; var parts = []; if (entry.b) parts.push("B:" + lookupName(entry.b)); if (entry.l) parts.push("L:" + lookupName(entry.l)); if (entry.d) parts.push("D:" + lookupName(entry.d)); for (var di2 = 2; di2 <= 5; di2++) { if (entry["d" + di2]) parts.push("D:" + lookupName(entry["d" + di2])); } for (var sideKey of ["dp","dv","dp2","dv2","dp3","dv3","dp4","dv4"]) { if (entry[sideKey] && entry[sideKey] !== "__empty__") { var sShop = lookupShop(entry[sideKey]); if (sShop.length > 0) parts.push("Side:" + sShop.join(", ")); else parts.push("Side:" + lookupName(entry[sideKey])); } } for (var oi = 1; oi <= 7; oi++) { if (entry["o" + oi] && entry["o" + oi] !== "__placeholder__" && entry["o" + oi] !== "__empty__") parts.push("S:" + lookupName(entry["o" + oi])); } return parts.length > 0 ? d.label + ": " + parts.join(", ") : null; }).filter(Boolean).join("; ");
                 if (pDays) mealNames += pName + ": " + pDays + ". ";
               }
               var defaultItems = shopDefaults.length > 0 ? " Always include these default items: " + shopDefaults.join(", ") + "." : "";
@@ -5942,7 +6013,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.306.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.307.0
       </div>
 
       {/* Floating Ask a Question button */}
