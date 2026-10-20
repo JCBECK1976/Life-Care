@@ -649,7 +649,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.309.1
+// STANDARD BUTTON STYLES v1.309.2
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -3849,8 +3849,11 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         <button onClick={function() { setCameraPreview(function(prev) { return Object.assign({}, prev, { itemType: "ingredient" }); }); }} style={{ flex: 1, padding: "6px 8px", border: "1px solid " + (cameraPreview.itemType === "ingredient" ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: cameraPreview.itemType === "ingredient" ? "#eff6ff" : "#fff", color: cameraPreview.itemType === "ingredient" ? "#1e3a5f" : "#94a3b8" }}>🍳 Ingredient Prepared</button>
                       </div>
                     </div>
-                    {/* Ingredients display for ingredient type */}
-                    {cameraPreview.itemType === "ingredient" && cameraPreview.ingredients && cameraPreview.ingredients.length > 0 && <div style={{ fontSize: 10, color: "#475569", marginBottom: 8, lineHeight: 1.4 }}>🧾 Ingredients: {cameraPreview.ingredients.join(", ")}</div>}
+                    {/* Editable ingredients for ingredient-prepared type */}
+                    {cameraPreview.itemType === "ingredient" && (<div style={{ marginBottom: 8 }}>
+                      <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>🧾 Ingredients <span style={{ fontWeight: 400 }}>(edit to match your recipe)</span></div>
+                      <textarea value={(cameraPreview.ingredients || []).join(", ")} onChange={function(e) { setCameraPreview(function(prev) { return Object.assign({}, prev, { ingredients: e.target.value.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length > 0;}) }); }); }} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, minHeight: 50, resize: "vertical", boxSizing: "border-box", lineHeight: 1.4 }} placeholder="e.g. oats, milk, chia seeds, honey..." />
+                    </div>)}
                     {/* Category multi-select */}
                     <div style={{ marginBottom: 8 }}>
                       <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Add to categories</div>
@@ -3924,6 +3927,11 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         <button onClick={function() { setBulkReviewItems(function(prev) { var u = prev.slice(); u[bIdx] = Object.assign({}, u[bIdx], { itemType: u[bIdx].itemType === "packaged" ? "ingredient" : "packaged" }); return u; }); }} style={{ padding: "1px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 9, cursor: "pointer", background: "#f8fafc", color: "#475569" }}>{bItem.itemType === "packaged" ? "📦 Packaged" : "🍳 Ingredient"}</button>
                       </div>
                       {bItem.suitability && <div style={{ fontSize: 9, color: "#475569", fontStyle: "italic", lineHeight: 1.3, marginBottom: 4 }}>{bItem.suitability}</div>}
+                      {/* Editable ingredients for ingredient-prepared bulk items */}
+                      {bItem.itemType === "ingredient" && (<div style={{ marginBottom: 4 }}>
+                        <div style={{ fontSize: 8, fontWeight: 600, color: "#64748b", marginBottom: 2 }}>🧾 Ingredients <span style={{ fontWeight: 400 }}>(edit to match your recipe)</span></div>
+                        <textarea value={(bItem.ingredients || []).join(", ")} onChange={function(e) { var idx = bIdx; setBulkReviewItems(function(prev) { var u = prev.slice(); u[idx] = Object.assign({}, u[idx], { ingredients: e.target.value.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length > 0;}) }); return u; }); }} style={{ width: "100%", padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 9, minHeight: 36, resize: "vertical", boxSizing: "border-box", lineHeight: 1.3 }} placeholder="e.g. oats, milk, chia seeds, honey..." />
+                      </div>)}
                       {/* Category multi-select for each bulk item */}
                       <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
                         {["breakfast","lunch","dinner","snack","dessert","drink"].map(function(c) {
@@ -5999,7 +6007,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.309.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.309.2
       </div>
 
       {/* Floating Ask a Question button */}
@@ -6034,7 +6042,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       </div>}
 
       {/* Global review overlay — for day view add forms when manage lists is closed */}
-      {cameraPreview && !manageListsOpen && sec === "meals" && (<div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      {cameraPreview && !manageListsOpen && section === "meals" && (<div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
         <div style={{ background: "#f0fdf4", borderRadius: 12, padding: 14, border: "1px solid #86efac", maxWidth: 400, width: "100%", maxHeight: "80vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Review Item</div>
@@ -6061,7 +6069,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               <button onClick={function() { setCameraPreview(function(prev) { return Object.assign({}, prev, { itemType: "ingredient" }); }); }} style={{ flex: 1, padding: "6px 8px", border: "1px solid " + (cameraPreview.itemType === "ingredient" ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: cameraPreview.itemType === "ingredient" ? "#eff6ff" : "#fff", color: cameraPreview.itemType === "ingredient" ? "#1e3a5f" : "#94a3b8" }}>🍳 Ingredient Prepared</button>
             </div>
           </div>
-          {cameraPreview.itemType === "ingredient" && cameraPreview.ingredients && cameraPreview.ingredients.length > 0 && <div style={{ fontSize: 10, color: "#475569", marginBottom: 8, lineHeight: 1.4 }}>🧾 Ingredients: {cameraPreview.ingredients.join(", ")}</div>}
+          {cameraPreview.itemType === "ingredient" && (<div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>🧾 Ingredients <span style={{ fontWeight: 400 }}>(edit to match your recipe)</span></div>
+            <textarea value={(cameraPreview.ingredients || []).join(", ")} onChange={function(e) { setCameraPreview(function(prev) { return Object.assign({}, prev, { ingredients: e.target.value.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length > 0;}) }); }); }} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, minHeight: 50, resize: "vertical", boxSizing: "border-box", lineHeight: 1.4 }} placeholder="e.g. oats, milk, chia seeds, honey..." />
+          </div>)}
           <div style={{ marginBottom: 8 }}>
             <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Add to categories</div>
             <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
