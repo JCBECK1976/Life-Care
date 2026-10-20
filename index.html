@@ -36,6 +36,7 @@
 
   <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
   <script>
     // Firebase Config
@@ -648,7 +649,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.309.0
+// STANDARD BUTTON STYLES v1.309.1
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -3632,8 +3633,23 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             setNewItemLoading(true);
             setFormMsg("📄 Reading file...");
             try {
-              var text = await new Promise(function(res, rej) { var r = new FileReader(); r.onload = function() { res(r.result); }; r.onerror = function() { rej(new Error("Read failed")); }; r.readAsText(file); });
-              var lines = text.split(/[\n\r]+/).map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0 && l !== "---"; });
+              var lines = [];
+              var isExcel = /\.(xls|xlsx)$/i.test(file.name);
+              if (isExcel) {
+                var ab = await new Promise(function(res, rej) { var r = new FileReader(); r.onload = function() { res(r.result); }; r.onerror = function() { rej(new Error("Read failed")); }; r.readAsArrayBuffer(file); });
+                var wb = XLSX.read(ab, { type: "array" });
+                var ws = wb.Sheets[wb.SheetNames[0]];
+                var rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                for (var ri2 = 0; ri2 < rows.length; ri2++) {
+                  var row = rows[ri2];
+                  if (!row || row.length === 0) continue;
+                  var val = String(row[0] || "").trim();
+                  if (val.length > 0 && val !== "---" && val.toLowerCase() !== "item" && val.toLowerCase() !== "name" && val.toLowerCase() !== "food") lines.push(val);
+                }
+              } else {
+                var text = await new Promise(function(res, rej) { var r = new FileReader(); r.onload = function() { res(r.result); }; r.onerror = function() { rej(new Error("Read failed")); }; r.readAsText(file); });
+                lines = text.split(/[\n\r]+/).map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0 && l !== "---"; });
+              }
               if (lines.length === 0) { setFormMsg("No items found in file"); setNewItemLoading(false); return; }
               setFormMsg("🔍 Analysing " + lines.length + " item" + (lines.length > 1 ? "s" : "") + "... This uses more Companion Energy.");
               var isJC2 = activeTab === "jc";
@@ -3792,7 +3808,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       </label>
                       <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }} title="Import list of items from file">
                         📄
-                        <input type="file" accept=".txt,.csv,.tsv,text/plain,text/csv" onChange={function(e) { if (e.target.files && e.target.files[0]) bulkImportItems(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
+                        <input type="file" accept=".txt,.csv,.tsv,.xls,.xlsx,text/plain,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={function(e) { if (e.target.files && e.target.files[0]) bulkImportItems(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
                       </label>
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>
@@ -5983,7 +5999,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.309.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.309.1
       </div>
 
       {/* Floating Ask a Question button */}
