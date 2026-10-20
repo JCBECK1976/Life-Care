@@ -649,7 +649,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.312.0
+// STANDARD BUTTON STYLES v1.313.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -929,7 +929,6 @@ function Dashboard() {
   const [customSnacks, setCustomSnacks] = useState([]);
   const [customDrinks, setCustomDrinks] = useState([]);
   const [customDesserts, setCustomDesserts] = useState([]);
-  const [genericCache, setGenericCache] = useState([]);
   const [offSearchTerm, setOffSearchTerm] = useState("");
   const [offResults, setOffResults] = useState([]);
   const [offLoading, setOffLoading] = useState(false);
@@ -998,7 +997,6 @@ function Dashboard() {
   const [eatDay, setEatDay] = useState(function() { var ds = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"]; return ds[new Date().getDay()]; });
   const eatWeekResetRef = React.useRef(weekOff);
   React.useEffect(function() { if (eatWeekResetRef.current !== weekOff) { setEatDay("week"); eatWeekResetRef.current = weekOff; } }, [weekOff]);
-  const [eatList, setEatList] = useState("own");
   const [quickPrepMins, setQuickPrepMins] = useState(20);
   const [showDefaults, setShowDefaults] = useState(true);
   const [addingNew, setAddingNew] = useState(false);
@@ -1272,7 +1270,6 @@ function Dashboard() {
     const md = await sGet("meal_defaults"); if (md) setMealDefaults(JSON.parse(md));
     const cmn = await sGet("custom_med_names"); if (cmn) setCustomMedNames(JSON.parse(cmn));
     const cbt = await sGet("custom_blood_tests"); if (cbt) setCustomBloodTests(JSON.parse(cbt));
-    const gc = await sGet("generic_cache"); if (gc) setGenericCache(JSON.parse(gc));
     const sm = await sGet("supermarket_pref"); if (sm) setSupermarket(sm);
     const sd = await sGet("shop_defaults"); if (sd) setShopDefaults(JSON.parse(sd));
     const cmt = await sGet("custom_meas_types"); if (cmt) setCustomMeasTypes(JSON.parse(cmt));
@@ -3520,26 +3517,21 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
         {/* MEALS */}
         {section === "meals" && (() => { try {
-          var allBfast = [].concat(BREAKFASTS, customBreakfasts, DEFAULT_BREAKFASTS, genericCache.filter(function(g){return (g.categories||[]).indexOf("breakfast")>=0;}));
-          var allLunch = [].concat(LUNCHES, customLunches, DEFAULT_LUNCHES, genericCache.filter(function(g){return (g.categories||[]).indexOf("lunch")>=0;}));
-          var allDinners = [].concat(DINNERS, customMeals, DEFAULT_DINNERS_GB, genericCache.filter(function(g){return (g.categories||[]).indexOf("dinner")>=0;}));
-          var allOther = [].concat(SNACKS, customSnacks, genericCache.filter(function(g){return (g.categories||[]).indexOf("snack")>=0;}));
-          var allDrinks = [].concat(customDrinks, genericCache.filter(function(g){return (g.categories||[]).indexOf("drink")>=0;}));
-          var allDesserts = [].concat(customDesserts, genericCache.filter(function(g){return (g.categories||[]).indexOf("dessert")>=0;}));
+          var allBfast = [].concat(BREAKFASTS, customBreakfasts, DEFAULT_BREAKFASTS);
+          var allLunch = [].concat(LUNCHES, customLunches, DEFAULT_LUNCHES);
+          var allDinners = [].concat(DINNERS, customMeals, DEFAULT_DINNERS_GB);
+          var allOther = [].concat(SNACKS, customSnacks);
+          var allDrinks = [].concat(customDrinks);
+          var allDesserts = [].concat(customDesserts);
           var allItems = [].concat(allBfast, allLunch, allDinners, allOther);
-          // Display-filtered lists for MealSelect dropdowns (toggle generic vs custom)
-          var gcBfast = genericCache.filter(function(g){return (g.categories||[]).indexOf("breakfast")>=0;});
-          var gcLunch = genericCache.filter(function(g){return (g.categories||[]).indexOf("lunch")>=0;});
-          var gcDinner = genericCache.filter(function(g){return (g.categories||[]).indexOf("dinner")>=0;});
-          var gcSnack = genericCache.filter(function(g){return (g.categories||[]).indexOf("snack")>=0;});
-          var gcDrink = genericCache.filter(function(g){return (g.categories||[]).indexOf("drink")>=0;});
-          var gcDessert = genericCache.filter(function(g){return (g.categories||[]).indexOf("dessert")>=0;});
-          var dispBfast = eatList === "own" ? [...customBreakfasts] : [].concat(DEFAULT_BREAKFASTS, gcBfast);
-          var dispLunch = eatList === "own" ? [...customLunches] : [].concat(DEFAULT_LUNCHES, gcLunch);
-          var dispDinners = eatList === "own" ? [...customMeals] : [].concat(DEFAULT_DINNERS_GB, gcDinner);
-          var dispOther = eatList === "own" ? [...customSnacks] : [].concat(gcSnack);
-          var dispDrinks = eatList === "own" ? [...customDrinks] : [].concat(gcDrink);
-          var dispDesserts = eatList === "own" ? [...customDesserts] : [].concat(gcDessert);
+          // Display lists for MealSelect dropdowns — custom items + defaults (deduped)
+          var dedupe = function(customs, defaults) { var cNames = customs.map(function(c){return c.name.toLowerCase().trim();}); return [].concat(customs, defaults.filter(function(d){return cNames.indexOf(d.name.toLowerCase().trim()) < 0;})); };
+          var dispBfast = dedupe(customBreakfasts, DEFAULT_BREAKFASTS);
+          var dispLunch = dedupe(customLunches, DEFAULT_LUNCHES);
+          var dispDinners = dedupe(customMeals, DEFAULT_DINNERS_GB);
+          var dispOther = [...customSnacks];
+          var dispDrinks = [...customDrinks];
+          var dispDesserts = [...customDesserts];
           var currentWeek = calcWeek(data.config.trainingStart);
           var DAYS = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
           var DAY_LABELS = { monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu", friday: "Fri", saturday: "Sat", sunday: "Sun" };
@@ -3827,14 +3819,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             <button onClick={function() { setWeekOff(function(o) { return o + 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&rsaquo;</button>
           </div>
 
-          {/* List toggle + Update My List + Clear Week */}
+          {/* Update My List + Clear Week */}
           <div style={{ display: "flex", gap: 8, marginBottom: 0, alignItems: "center" }}>
-            <div style={{ display: "flex", borderRadius: 6, padding: 2, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>
-              <button onClick={function() { setEatList("own"); }} style={{ padding: "4px 8px", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: eatList === "own" ? "#fff" : "transparent", color: eatList === "own" ? "#1e3a5f" : "rgba(255,255,255,0.6)", textAlign: "center", lineHeight: 1.3 }}>My<br/>Eating List</button>
-              <button onClick={function() { setEatList("default"); }} style={{ padding: "4px 8px", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: eatList === "default" ? "#fff" : "transparent", color: eatList === "default" ? "#1e3a5f" : "rgba(255,255,255,0.6)", textAlign: "center", lineHeight: 1.3 }}>Generic<br/>Eating List</button>
-            </div>
-            <button onClick={function(){ setManageListsOpen(!manageListsOpen); }} style={Object.assign({}, manageListsOpen ? btnClose : btnAction, { marginLeft: "auto" })}>{manageListsOpen ? "✕ Close" : "Update Eating Lists"}</button>
-            <button onClick={clearWeek} style={btnClear}>Clear Week</button>
+            <button onClick={function(){ setManageListsOpen(!manageListsOpen); }} style={Object.assign({}, manageListsOpen ? btnClose : btnAction)}>{manageListsOpen ? "✕ Close" : "Update Eating Lists"}</button>
+            <button onClick={clearWeek} style={Object.assign({}, btnClear, { marginLeft: "auto" })}>Clear Week</button>
           </div>
 
           {/* My Eating Lists — collapsible */}
@@ -3848,7 +3836,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 {k:"drink",label:"Drinks",items:allDrinks,customs:customDrinks,setCustoms:setCustomDrinks,storageKey:"custom_drinks"}
               ].map(function(cat) {
                 return (<div key={cat.k} style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4 }}>{cat.label} ({cat.items.length} items — {cat.customs.length} custom, {genericCache.filter(function(g){return (g.categories||[]).indexOf(cat.k)>=0;}).length} generic)</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4 }}>{cat.label} ({cat.customs.length} item{cat.customs.length !== 1 ? "s" : ""})</div>
                   {cat.customs.slice().sort(function(a,b) { return a.name.localeCompare(b.name); }).map(function(item) {
                     var kcal = isJC ? item.jcKcal : item.beckKcal;
                     var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#0c4a6e";
@@ -3858,18 +3846,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     </div>);
                   })}
                   {cat.customs.length === 0 && <div style={{ fontSize: 10, color: "#94a3b8", padding: 4 }}>No custom items yet</div>}
-                  {/* Generic cache items (read-only) */}
-                  {(function() { var gcItems = genericCache.filter(function(g){return (g.categories||[]).indexOf(cat.k)>=0;}).slice().sort(function(a,b){return a.name.localeCompare(b.name);}); return gcItems.length > 0 ? (<div style={{ marginTop: 4 }}>
-                    <div style={{ fontSize: 9, color: "#64748b", fontWeight: 600, marginBottom: 2 }}>From Food Database ({gcItems.length})</div>
-                    {gcItems.map(function(gItem) {
-                      var gKcal = isJC ? gItem.jcKcal : gItem.beckKcal;
-                      var gColor = gItem.rating === "RED" ? "#dc2626" : gItem.rating === "AMBER" ? "#d97706" : "#0c4a6e";
-                      return (<div key={gItem.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 10 }}>
-                        <span style={{ flex: 1, color: gColor, opacity: 0.8 }}>🌐 {gItem.name} ({gKcal} kcal)</span>
-                        <button onClick={async function() { if(confirm("Remove " + gItem.name + " from your generic list?")) { var gcU = genericCache.filter(function(g){return g.id !== gItem.id;}); setGenericCache(gcU); await sSet("generic_cache", JSON.stringify(gcU)); setFormMsg("Removed " + gItem.name); setTimeout(function(){setFormMsg("");},2000); }}} style={{...btnDelete, fontSize: 8, padding: "2px 6px"}}>✕</button>
-                      </div>);
-                    })}
-                  </div>) : null; })()}
                 </div>);
               })}
 
@@ -3986,31 +3962,25 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         if (recMatch) { var recInfo = JSON.parse(recMatch[0]); cp = Object.assign({}, cp, { kcal: recInfo.kcal || cp.kcal, protein: recInfo.protein || cp.protein, fat: recInfo.fat || cp.fat, satFat: recInfo.satFat || cp.satFat, carbs: recInfo.carbs || cp.carbs, fibre: recInfo.fibre || cp.fibre, salt: recInfo.salt || cp.salt, rating: recInfo.rating || cp.rating }); }
                       } catch(re) { setFormMsg("⚠️ Could not recalculate — using original values"); await new Promise(function(r){setTimeout(r,1500);}); }
                     }
-                    var addedTo = [];
-                    if (cp.source === "openfoodfacts") {
-                      /* Save to genericCache instead of custom lists */
-                      var gcItem = { id: "off_" + (cp.barcode || Date.now()), name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, sugar: cp.sugar || 0, rating: cp.rating, itemType: cp.itemType || "packaged", ingredients: cp.ingredients || [], categories: cats, source: "openfoodfacts", barcode: cp.barcode || "", servingSize: cp.servingSize || "per 100g", freq: "Daily" };
-                      if (cats.indexOf("dinner") >= 0 && !reviewSideType) { gcItem.jcProt = cp.protein; gcItem.beckProt = cp.protein; gcItem.jcFat = cp.fat; gcItem.beckFat = cp.fat; gcItem.time = 30; gcItem.shop = [cp.name]; }
-                      if (cats.indexOf("dinner") >= 0 && reviewSideType) { gcItem.sideType = reviewSideType; }
-                      /* Check for duplicate barcode */
-                      var gcUpdated = genericCache.filter(function(g) { return g.barcode !== gcItem.barcode || !gcItem.barcode; }).concat([gcItem]);
-                      setGenericCache(gcUpdated); await sSet("generic_cache", JSON.stringify(gcUpdated));
-                      addedTo = cats;
-                    } else {
-                      for (var ci = 0; ci < cats.length; ci++) {
-                        var cat = cats[ci];
-                        var newItem = { id: "custom_" + Date.now() + "_" + ci, name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, rating: cp.rating, itemType: cp.itemType || "packaged", ingredients: cp.ingredients || [], freq: "Daily", isCustom: true };
-                        if (cat === "dinner" && !reviewSideType) { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = cp.itemType === "ingredient" ? (cp.ingredients || []) : [cp.name]; }
-                        if (cat === "dinner" && reviewSideType) { newItem.sideType = reviewSideType; }
-                        var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
-                        var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
-                        var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : cat === "drink" ? "custom_drinks" : cat === "dessert" ? "custom_desserts" : "custom_snacks";
-                        var u = [].concat(listItems, [newItem]); setList(u); await sSet(storageKey, JSON.stringify(u));
-                        addedTo.push(cat);
-                        listItems = u;
-                      }
+                    var addedTo = []; var dupeFound = [];
+                    for (var ci = 0; ci < cats.length; ci++) {
+                      var cat = cats[ci];
+                      var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
+                      /* Duplicate check — case-insensitive name match */
+                      var dupeName = cp.name.toLowerCase().trim();
+                      if (listItems.some(function(x) { return x.name.toLowerCase().trim() === dupeName; })) { dupeFound.push(cat); continue; }
+                      var newItem = { id: "custom_" + Date.now() + "_" + ci, name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, rating: cp.rating, itemType: cp.itemType || "packaged", ingredients: cp.ingredients || [], freq: "Daily", isCustom: true, source: cp.source || "manual", barcode: cp.barcode || "", servingSize: cp.servingSize || "" };
+                      if (cat === "dinner" && !reviewSideType) { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = cp.itemType === "ingredient" ? (cp.ingredients || []) : [cp.name]; }
+                      if (cat === "dinner" && reviewSideType) { newItem.sideType = reviewSideType; }
+                      var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
+                      var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : cat === "drink" ? "custom_drinks" : cat === "dessert" ? "custom_desserts" : "custom_snacks";
+                      var u = [].concat(listItems, [newItem]); setList(u); await sSet(storageKey, JSON.stringify(u));
+                      addedTo.push(cat);
+                      listItems = u;
                     }
-                    setFormMsg("✅ Added " + cp.name + " to " + addedTo.join(", "));
+                    if (dupeFound.length > 0 && addedTo.length === 0) { setFormMsg("⚠️ " + cp.name + " already exists in " + dupeFound.join(", ")); }
+                    else if (dupeFound.length > 0) { setFormMsg("✅ Added to " + addedTo.join(", ") + " (already in " + dupeFound.join(", ") + ")"); }
+                    else { setFormMsg("✅ Added " + cp.name + " to " + addedTo.join(", ")); }
                     setCameraPreview(null); setReviewCategories([]); setReviewSideType("");
                     setTimeout(function(){setFormMsg("");}, 4000);
                   }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: reviewCategories.length === 0 ? 0.5 : 1}}>✓ Confirm{reviewCategories.length > 1 ? " (" + reviewCategories.length + " lists)" : ""}</button>
@@ -6139,7 +6109,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.312.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.313.0
       </div>
 
       {/* Floating Ask a Question button */}
@@ -6240,29 +6210,25 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   if (recMatch) { var recInfo = JSON.parse(recMatch[0]); cp = Object.assign({}, cp, { kcal: recInfo.kcal || cp.kcal, protein: recInfo.protein || cp.protein, fat: recInfo.fat || cp.fat, satFat: recInfo.satFat || cp.satFat, carbs: recInfo.carbs || cp.carbs, fibre: recInfo.fibre || cp.fibre, salt: recInfo.salt || cp.salt, rating: recInfo.rating || cp.rating }); }
                 } catch(re) { setFormMsg("⚠️ Could not recalculate — using original values"); await new Promise(function(r){setTimeout(r,1500);}); }
               }
-              var addedTo = [];
-              if (cp.source === "openfoodfacts") {
-                var gcItem = { id: "off_" + (cp.barcode || Date.now()), name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, sugar: cp.sugar || 0, rating: cp.rating, itemType: cp.itemType || "packaged", ingredients: cp.ingredients || [], categories: cats, source: "openfoodfacts", barcode: cp.barcode || "", servingSize: cp.servingSize || "per 100g", freq: "Daily" };
-                if (cats.indexOf("dinner") >= 0 && !reviewSideType) { gcItem.jcProt = cp.protein; gcItem.beckProt = cp.protein; gcItem.jcFat = cp.fat; gcItem.beckFat = cp.fat; gcItem.time = 30; gcItem.shop = [cp.name]; }
-                if (cats.indexOf("dinner") >= 0 && reviewSideType) { gcItem.sideType = reviewSideType; }
-                var gcUpdated = genericCache.filter(function(g) { return g.barcode !== gcItem.barcode || !gcItem.barcode; }).concat([gcItem]);
-                setGenericCache(gcUpdated); await sSet("generic_cache", JSON.stringify(gcUpdated));
-                addedTo = cats;
-              } else {
-                for (var ci = 0; ci < cats.length; ci++) {
-                  var cat = cats[ci];
-                  var newItem = { id: "custom_" + Date.now() + "_" + ci, name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, rating: cp.rating, itemType: cp.itemType || "packaged", ingredients: cp.ingredients || [], freq: "Daily", isCustom: true };
-                  if (cat === "dinner" && !reviewSideType) { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = cp.itemType === "ingredient" ? (cp.ingredients || []) : [cp.name]; }
-                  if (cat === "dinner" && reviewSideType) { newItem.sideType = reviewSideType; }
-                  var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
-                  var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
-                  var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : cat === "drink" ? "custom_drinks" : cat === "dessert" ? "custom_desserts" : "custom_snacks";
-                  var u = [].concat(listItems, [newItem]); setList(u); await sSet(storageKey, JSON.stringify(u));
-                  addedTo.push(cat);
-                  listItems = u;
-                }
+              var addedTo = []; var dupeFound = [];
+              for (var ci = 0; ci < cats.length; ci++) {
+                var cat = cats[ci];
+                var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
+                /* Duplicate check — case-insensitive name match */
+                var dupeName = cp.name.toLowerCase().trim();
+                if (listItems.some(function(x) { return x.name.toLowerCase().trim() === dupeName; })) { dupeFound.push(cat); continue; }
+                var newItem = { id: "custom_" + Date.now() + "_" + ci, name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, rating: cp.rating, itemType: cp.itemType || "packaged", ingredients: cp.ingredients || [], freq: "Daily", isCustom: true, source: cp.source || "manual", barcode: cp.barcode || "", servingSize: cp.servingSize || "" };
+                if (cat === "dinner" && !reviewSideType) { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = cp.itemType === "ingredient" ? (cp.ingredients || []) : [cp.name]; }
+                if (cat === "dinner" && reviewSideType) { newItem.sideType = reviewSideType; }
+                var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
+                var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : cat === "drink" ? "custom_drinks" : cat === "dessert" ? "custom_desserts" : "custom_snacks";
+                var u = [].concat(listItems, [newItem]); setList(u); await sSet(storageKey, JSON.stringify(u));
+                addedTo.push(cat);
+                listItems = u;
               }
-              setFormMsg("✅ Added " + cp.name + " to " + addedTo.join(", "));
+              if (dupeFound.length > 0 && addedTo.length === 0) { setFormMsg("⚠️ " + cp.name + " already exists in " + dupeFound.join(", ")); }
+              else if (dupeFound.length > 0) { setFormMsg("✅ Added to " + addedTo.join(", ") + " (already in " + dupeFound.join(", ") + ")"); }
+              else { setFormMsg("✅ Added " + cp.name + " to " + addedTo.join(", ")); }
               setCameraPreview(null); setReviewCategories([]); setReviewSideType("");
               setTimeout(function(){setFormMsg("");}, 4000);
             }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: reviewCategories.length === 0 ? 0.5 : 1}}>✓ Confirm{reviewCategories.length > 1 ? " (" + reviewCategories.length + " lists)" : ""}</button>
