@@ -649,7 +649,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.313.0
+// STANDARD BUTTON STYLES v1.314.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -1051,7 +1051,7 @@ function Dashboard() {
     }, 400);
   };
 
-  const openAddForm = function(cat, source) { var scrollY = window.scrollY; setAddingNew(true); setAddingCategory(cat); setAddingSource(source || "defaults"); if(source === "manage"){ setTimeout(function(){var el=document.getElementById("add-item-form-manage");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});},150); } else { requestAnimationFrame(function(){ window.scrollTo(0, scrollY); }); } };
+  const openAddForm = function(cat, source, prefillText) { var scrollY = window.scrollY; setAddingNew(true); setAddingCategory(cat); setAddingSource(source || "defaults"); if (prefillText) { setNewItemName(prefillText); searchOFF(prefillText); } if(source === "manage"){ setTimeout(function(){var el=document.getElementById("add-item-form-manage");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});},150); } else { requestAnimationFrame(function(){ window.scrollTo(0, scrollY); }); } };
   const [addingCategory, setAddingCategory] = useState("other");
   const [newItemName, setNewItemName] = useState("");
   const [newItemLoading, setNewItemLoading] = useState(false);
@@ -3806,7 +3806,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <span>{item.name} ({kcal} kcal)</span>
                   
                 </div>); })}
-                <div onMouseDown={function(e){e.preventDefault();onChange({target:{value:"__add_new__"}});setOpen(false);setSearch("");}} style={{padding:"8px 10px",fontSize:11,fontWeight:600,color:accent,cursor:"pointer",borderTop:"1px solid #e2e8f0"}}>+ Add new item...</div>
+                <div onMouseDown={function(e){e.preventDefault();onChange({target:{value:"__add_new__", searchText: search}});setOpen(false);setSearch("");}} style={{padding:"8px 10px",fontSize:11,fontWeight:600,color:accent,cursor:"pointer",borderTop:"1px solid #e2e8f0"}}>+ Add new item...</div>
               </div>
             </div>);
           };
@@ -3854,30 +3854,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {addingNew && (addingSource === "top" || addingSource === "manage") && (<div id="add-item-form-manage" style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 6, marginBottom: 8, border: "1px solid #bfdbfe", overflow: "hidden" }}>
                 <div style={{ marginBottom: 4 }}><span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a5f" }}>Add New Item</span></div>
                 <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-                  <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
-                    <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); searchOFF(e.target.value); }} placeholder="e.g. Costa Rocky Road, Protein shake..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, boxSizing: "border-box" }} />
-                    {(offResults.length > 0 || offLoading) && newItemName.length >= 2 && !cameraPreview && (<div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 60, background: "#fff", border: "1px solid #e2e8f0", borderRadius: "0 0 8px 8px", maxHeight: 220, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}>
-                      {offLoading && <div style={{ padding: "8px 10px", fontSize: 10, color: "#94a3b8" }}>🔍 Searching Open Food Facts...</div>}
-                      {offResults.map(function(prod, pi) {
-                        var ragColor = calcRAG(prod) === "RED" ? "#dc2626" : calcRAG(prod) === "AMBER" ? "#d97706" : "#16a34a";
-                        return (<div key={pi} onClick={function() {
-                          var rating = calcRAG(prod);
-                          var ingArr = prod.ingredients ? prod.ingredients.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length>0;}) : [];
-                          setCameraPreview({ name: prod.name, kcal: prod.kcal, protein: prod.protein, fat: prod.fat, satFat: prod.satFat, carbs: prod.carbs, fibre: prod.fibre, salt: prod.salt, sugar: prod.sugar, rating: rating, itemType: "packaged", ingredients: ingArr, originalIngredients: ingArr.join(", "), barcode: prod.barcode, servingSize: prod.servingSize, source: "openfoodfacts", suitability: "per 100g · from Open Food Facts (UK)", category: addingCategory });
-                          setReviewCategories(addingCategory ? [addingCategory] : []);
-                          setOffResults([]); setOffSearchTerm("");
-                        }} style={{ padding: "6px 10px", cursor: "pointer", borderBottom: "1px solid #f1f5f9", fontSize: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }} onMouseOver={function(e){e.currentTarget.style.background="#f0f9ff";}} onMouseOut={function(e){e.currentTarget.style.background="#fff";}}>
-                          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prod.name}</span>
-                          <span style={{ display: "flex", gap: 6, flexShrink: 0, color: "#64748b" }}>
-                            <span><b>{prod.kcal}</b>kcal</span>
-                            <span><b>{prod.protein}g</b>prot</span>
-                            <span style={{ color: ragColor, fontWeight: 700 }}>{calcRAG(prod)}</span>
-                          </span>
-                        </div>);
-                      })}
-                      {offResults.length > 0 && <div style={{ padding: "4px 10px", fontSize: 8, color: "#94a3b8", textAlign: "center" }}>Data from Open Food Facts · Open Database License</div>}
-                    </div>)}
-                  </div>
+                  <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); searchOFF(e.target.value); }} placeholder="e.g. Costa Rocky Road, Protein shake..." style={{ flex: 1, minWidth: 0, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, boxSizing: "border-box" }} />
                   <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>
                     📷
                     <input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
@@ -3888,10 +3865,31 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   </label>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ flex: 1, padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? <span>Adding <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Add"}</button>
+                  <button onClick={function() { setOffResults([]); addNewItem(); }} disabled={newItemLoading || !newItemName.trim()} style={{ flex: 1, padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? <span>Adding <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Add"}</button>
                   <button onClick={function() { setAddingNew(false); setNewItemName(""); setOffResults([]); }} style={{ padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer", flexShrink: 0 }}>Cancel</button>
                 </div>
-                <div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type to search UK food products (auto-lookup) or describe a homemade dish. Select from results or click Add for AI lookup.</div>
+                <div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type to search UK food products or describe a homemade dish. Select a result below or click Add for AI lookup.</div>
+                {(offResults.length > 0 || offLoading) && newItemName.length >= 2 && !cameraPreview && (<div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, maxHeight: 180, overflowY: "auto", marginTop: 6, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
+                  {offLoading && <div style={{ padding: "8px 10px", fontSize: 10, color: "#94a3b8" }}>🔍 Searching Open Food Facts...</div>}
+                  {offResults.map(function(prod, pi) {
+                    var ragColor = calcRAG(prod) === "RED" ? "#dc2626" : calcRAG(prod) === "AMBER" ? "#d97706" : "#16a34a";
+                    return (<div key={pi} onClick={function() {
+                      var rating = calcRAG(prod);
+                      var ingArr = prod.ingredients ? prod.ingredients.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length>0;}) : [];
+                      setCameraPreview({ name: prod.name, kcal: prod.kcal, protein: prod.protein, fat: prod.fat, satFat: prod.satFat, carbs: prod.carbs, fibre: prod.fibre, salt: prod.salt, sugar: prod.sugar, rating: rating, itemType: "packaged", ingredients: ingArr, originalIngredients: ingArr.join(", "), barcode: prod.barcode, servingSize: prod.servingSize, source: "openfoodfacts", suitability: "per 100g · from Open Food Facts (UK)", category: addingCategory });
+                      setReviewCategories(addingCategory ? [addingCategory] : []);
+                      setOffResults([]); setOffSearchTerm(""); setNewItemName("");
+                    }} style={{ padding: "6px 10px", cursor: "pointer", borderBottom: "1px solid #f1f5f9", fontSize: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }} onMouseOver={function(e){e.currentTarget.style.background="#f0f9ff";}} onMouseOut={function(e){e.currentTarget.style.background="#fff";}}>
+                      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prod.name}</span>
+                      <span style={{ display: "flex", gap: 6, flexShrink: 0, color: "#64748b" }}>
+                        <span><b>{prod.kcal}</b>kcal</span>
+                        <span><b>{prod.protein}g</b>prot</span>
+                        <span style={{ color: ragColor, fontWeight: 700 }}>{calcRAG(prod)}</span>
+                      </span>
+                    </div>);
+                  })}
+                  {offResults.length > 0 && <div style={{ padding: "4px 10px", fontSize: 8, color: "#94a3b8", textAlign: "center" }}>Data from Open Food Facts · Open Database License</div>}
+                </div>)}
               </div>)}
 
               {/* Single review form — shown once after add */}
@@ -4407,7 +4405,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slotKey = n === 1 ? "b" : "b" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <MealSelect items={dispBfast} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select breakfast..." />
+                    <MealSelect items={dispBfast} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults", e.target.searchText); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select breakfast..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
                     <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
@@ -4429,7 +4427,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slotKey = n === 1 ? "l" : "l" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <MealSelect items={dispLunch} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select lunch..." />
+                    <MealSelect items={dispLunch} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults", e.target.searchText); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select lunch..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
                     <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
@@ -4451,7 +4449,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slotKey = n === 1 ? "d" : "d" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <MealSelect items={dispDinners} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select dinner..." />
+                    <MealSelect items={dispDinners} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults", e.target.searchText); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select dinner..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
                     <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
@@ -4473,7 +4471,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slotKey = n === 1 ? "ds" : "ds" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <MealSelect items={dispDesserts} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select dessert..." />
+                    <MealSelect items={dispDesserts} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults", e.target.searchText); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select dessert..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
                     <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
@@ -4496,7 +4494,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slotKey = n === 1 ? "dr" : "dr" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <MealSelect items={dispDrinks} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select drink..." />
+                    <MealSelect items={dispDrinks} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults", e.target.searchText); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select drink..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
                     <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
@@ -4518,7 +4516,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slotKey = "o" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <MealSelect items={dispOther} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select snack..." />
+                    <MealSelect items={dispOther} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults", e.target.searchText); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select snack..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
                     <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
@@ -4830,7 +4828,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var _hasItem = allBfast.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
                   return (<div key={"b"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={dispBfast} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
+                      <MealSelect items={dispBfast} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults", e.target.searchText); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
                     </div>
                     {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allBfast); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
@@ -4884,7 +4882,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var _hasItem = allLunch.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
                   return (<div key={"l"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={dispLunch} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
+                      <MealSelect items={dispLunch} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults", e.target.searchText); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
                     </div>
                     {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allLunch); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
@@ -4943,7 +4941,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   return (<div key={"d"+idx}>
                     <div style={{ display: "flex", gap: 4, marginBottom: _isPackaged ? 2 : 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={dispDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
+                      <MealSelect items={dispDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults", e.target.searchText); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
                     </div>
                     {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allDinners); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
@@ -5013,7 +5011,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 return slots.map(function(idx) {
                   return (<div key={"ds"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={dispDesserts} value={getMeal(eatDay, "ds" + idx) === "__empty__" ? "" : getMeal(eatDay, "ds" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults"); } else { setMeal(eatDay, "ds" + idx, e.target.value); } }} placeholder="Select dessert..." />
+                      <MealSelect items={dispDesserts} value={getMeal(eatDay, "ds" + idx) === "__empty__" ? "" : getMeal(eatDay, "ds" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults", e.target.searchText); } else { setMeal(eatDay, "ds" + idx, e.target.value); } }} placeholder="Select dessert..." />
                     </div>
                     {getMeal(eatDay, "ds" + idx) && getMeal(eatDay, "ds" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("ds" + idx) ? "#dbeafe" : btnPortion.background, border: portionSlot === ("ds" + idx) ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === ("ds" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("ds" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("ds" + idx, e.target.files[0], allDesserts); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {getMeal(eatDay, "ds" + idx) && <button onClick={function() { setMeal(eatDay, "ds" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
@@ -5065,7 +5063,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 return slots.map(function(idx) {
                   return (<div key={"dr"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={dispDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults"); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Select drink..." />
+                      <MealSelect items={dispDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults", e.target.searchText); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Select drink..." />
                     </div>
                     {getMeal(eatDay, "dr" + idx) && getMeal(eatDay, "dr" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("dr" + idx) ? "#dbeafe" : btnPortion.background, border: portionSlot === ("dr" + idx) ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === ("dr" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("dr" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("dr" + idx, e.target.files[0], allDrinks); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {getMeal(eatDay, "dr" + idx) && <button onClick={function() { setMeal(eatDay, "dr" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
@@ -5115,7 +5113,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             {otherSlots.map(function(idx) {
               return (<div key={idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                 <div style={{ flex: 1 }}>
-                  <MealSelect items={dispOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults"); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Select snack..." />
+                  <MealSelect items={dispOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults", e.target.searchText); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Select snack..." />
                 </div>
                 {getMeal(eatDay, "o" + idx) && getMeal(eatDay, "o" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("o" + idx) ? "#dbeafe" : btnPortion.background, border: portionSlot === ("o" + idx) ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === ("o" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("o" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("o" + idx, e.target.files[0], allOther); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                 {getMeal(eatDay, "o" + idx) && <button onClick={function() { setMeal(eatDay, "o" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
@@ -6109,7 +6107,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.313.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.314.0
       </div>
 
       {/* Floating Ask a Question button */}
