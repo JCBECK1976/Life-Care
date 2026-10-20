@@ -361,50 +361,7 @@ const DEFAULT_DATA = {
 // MEAL DATABASE
 // ═══════════════════════════════════════════════════
 
-const DINNERS = [
-  { id: "spag_bol", name: "Spag Bol (Turkey Mince)", rating: "GREAT", jcKcal: 476, beckKcal: 400, jcProt: 32, beckProt: 28, jcFat: 9, beckFat: 8, freq: "Weekly", time: 45, shop: ["Turkey mince 2%", "White spaghetti", "Passata"] },
-  { id: "turkey_lasagna", name: "Turkey Lasagna", rating: "GREAT", jcKcal: 703, beckKcal: 580, jcProt: 38, beckProt: 32, jcFat: 16, beckFat: 14, freq: "Weekly", time: 45, shop: ["Turkey mince 2%", "Brown pasta sheets", "Fromage frais", "Half-fat cheddar"] },
-  { id: "tomato_pasta_bake", name: "Tomato Pasta Bake", rating: "GREAT", jcKcal: 480, beckKcal: 427, jcProt: 28, beckProt: 22, jcFat: 10, beckFat: 8, freq: "Weekly", time: 30, shop: ["Chicken breast", "Brown pasta", "Fromage frais", "Passata"] },
-  { id: "spinach_ricotta", name: "Spinach & Ricotta Pasta + Chicken", rating: "GREAT", jcKcal: 600, beckKcal: 449, jcProt: 30, beckProt: 22, jcFat: 12, beckFat: 10, freq: "Fortnightly", time: 25, shop: ["Brown fusilli", "Half-fat cheddar", "Passata", "Chicken breast"] },
-  { id: "pesto_pasta", name: "Pesto Pasta + Chicken", rating: "AMBER", jcKcal: 540, beckKcal: 460, jcProt: 30, beckProt: 24, jcFat: 16, beckFat: 10, freq: "Fortnightly", time: 15, shop: ["Brown pasta", "Chicken breast", "Green pesto"] },
-  { id: "bbq_tuna_pasta", name: "BBQ Tuna Pasta Bake", rating: "GREAT", jcKcal: 480, beckKcal: 420, jcProt: 30, beckProt: 26, jcFat: 8, beckFat: 7, freq: "Fortnightly", time: 25, shop: ["Brown fusilli", "Tinned tuna", "Passata"] },
-  { id: "cajun_mash", name: "Cajun Chicken + Mash", rating: "GREAT", jcKcal: 444, beckKcal: 390, jcProt: 44, beckProt: 38, jcFat: 8, beckFat: 7, freq: "Weekly", time: 20, shop: ["Aldi Cajun fillets", "Baby potatoes", "Courgette"] },
-  { id: "sweet_chilli_mash", name: "Sweet Chilli Chicken + Mash", rating: "GREAT", jcKcal: 486, beckKcal: 430, jcProt: 46, beckProt: 40, jcFat: 9, beckFat: 8, freq: "Weekly", time: 20, shop: ["Aldi Sweet Chilli fillets", "Baby potatoes", "Courgette"] },
-  { id: "salt_chilli", name: "Salt & Chilli Chicken + Potatoes", rating: "GREAT", jcKcal: 483, beckKcal: 410, jcProt: 44, beckProt: 38, jcFat: 10, beckFat: 9, freq: "Weekly", time: 20, itemType: "packaged", shop: ["Aldi Salt & Chilli sizzler", "Baby potatoes"] },
-  { id: "lemon_chilli", name: "Lemon Chilli Chicken + Potatoes", rating: "GREAT", jcKcal: 501, beckKcal: 430, jcProt: 44, beckProt: 38, jcFat: 9, beckFat: 8, freq: "Weekly", time: 20, shop: ["Aldi Lemon Chilli fillets", "Baby potatoes", "Broccoli"] },
-  { id: "bbq_chicken", name: "BBQ Chicken + Potatoes", rating: "GREAT", jcKcal: 538, beckKcal: 465, jcProt: 48, beckProt: 42, jcFat: 11, beckFat: 10, freq: "Weekly", time: 20, shop: ["Aldi BBQ sizzler", "Baby potatoes", "Cauliflower", "Half-fat cheddar"] },
-  { id: "katsu", name: "Katsu Chicken + Potatoes", rating: "GREAT", jcKcal: 463, beckKcal: 390, jcProt: 44, beckProt: 38, jcFat: 8, beckFat: 7, freq: "Weekly", time: 20, shop: ["Aldi Katsu fillets", "Baby potatoes", "Broccoli"] },
-  { id: "coronation", name: "Coronation Chicken + Potatoes", rating: "GREAT", jcKcal: 514, beckKcal: 440, jcProt: 44, beckProt: 38, jcFat: 10, beckFat: 9, freq: "Weekly", time: 20, shop: ["Aldi Coronation sizzler", "Baby potatoes"] },
-  { id: "piri_piri", name: "Piri Piri Chicken + Potatoes", rating: "GREAT", jcKcal: 574, beckKcal: 500, jcProt: 56, beckProt: 48, jcFat: 12, beckFat: 10, freq: "Weekly", time: 20, shop: ["Aldi Piri Piri sizzler", "Baby potatoes"] },
-  { id: "mango_lime", name: "Mango & Lime Chicken + Potatoes", rating: "GREAT", jcKcal: 510, beckKcal: 430, jcProt: 48, beckProt: 42, jcFat: 4.7, beckFat: 4.5, freq: "Fortnightly", time: 20, shop: ["Aldi Mango & Lime fillets", "Baby potatoes"] },
-  { id: "mozz_balsamic", name: "Mozz Balsamic Chicken + Potatoes", rating: "GREAT", jcKcal: 510, beckKcal: 445, jcProt: 48, beckProt: 42, jcFat: 10, beckFat: 9, freq: "Fortnightly", time: 30, shop: ["Aldi Mozz Balsamic Chicken", "Baby potatoes"] },
-  { id: "mediterranean", name: "Mediterranean Chicken + Potatoes", rating: "GREAT", jcKcal: 510, beckKcal: 460, jcProt: 44, beckProt: 38, jcFat: 10, beckFat: 9, freq: "Fortnightly", time: 20, shop: ["Aldi Mediterranean sizzler", "Baby potatoes"] },
-  { id: "spinach_ricotta_chk", name: "Spinach & Ricotta Chicken + Potatoes", rating: "GREAT", jcKcal: 560, beckKcal: 490, jcProt: 48, beckProt: 42, jcFat: 12, beckFat: 10, freq: "Fortnightly", time: 20, shop: ["Aldi Spinach & Ricotta Chicken", "Baby potatoes"] },
-  { id: "chicken_risotto", name: "Chicken Risotto (Golden Rice)", rating: "GREAT", jcKcal: 460, beckKcal: 400, jcProt: 38, beckProt: 32, jcFat: 8, beckFat: 7, freq: "Weekly", time: 15, shop: ["Chicken breast strips", "Microwave golden rice", "Frozen peas"] },
-  { id: "stir_fry", name: "Stir Fry + Noodles", rating: "GREAT", jcKcal: 450, beckKcal: 380, jcProt: 36, beckProt: 30, jcFat: 10, beckFat: 8, freq: "Weekly", time: 15, shop: ["Chicken breast strips", "Wok noodles", "Beansprouts", "Teriyaki sauce"] },
-  { id: "fish_chips", name: "Home Fish & Chips (ActiFry)", rating: "GREAT", jcKcal: 480, beckKcal: 400, jcProt: 28, beckProt: 24, jcFat: 12, beckFat: 10, freq: "Weekly", time: 25, shop: ["Breaded fish fillets", "Baby potatoes", "Frozen peas"] },
-  { id: "chicken_white_sauce", name: "Chicken in White Sauce + Potatoes", rating: "GREAT", jcKcal: 450, beckKcal: 390, jcProt: 36, beckProt: 30, jcFat: 10, beckFat: 8, freq: "Weekly", time: 20, shop: ["Tinned chicken in white sauce", "Baby potatoes", "Frozen peas"] },
-  { id: "sausage_mash", name: "Sausage & Mash + Peas", rating: "GREAT", jcKcal: 500, beckKcal: 430, jcProt: 32, beckProt: 28, jcFat: 14, beckFat: 12, freq: "Weekly", time: 20, shop: ["Heck chicken sausages", "Baby potatoes", "Frozen peas"] },
-  { id: "turkey_mash", name: "Turkey Mince & Mash", rating: "GREAT", jcKcal: 470, beckKcal: 400, jcProt: 36, beckProt: 30, jcFat: 10, beckFat: 8, freq: "Weekly", time: 30, shop: ["Turkey mince 2%", "Baby potatoes", "Carrots", "Frozen peas"] },
-  { id: "parmigiana", name: "Parmigiana Chicken Traybake", rating: "GREAT", jcKcal: 520, beckKcal: 450, jcProt: 42, beckProt: 36, jcFat: 14, beckFat: 12, freq: "Fortnightly", time: 40, shop: ["Aldi Parmigiana Traybake", "Baby potatoes"] },
-  { id: "mayflower_curry", name: "Mayflower Chicken Curry + Rice", rating: "GREAT", jcKcal: 588, beckKcal: 480, jcProt: 45, beckProt: 38, jcFat: 11, beckFat: 9, freq: "Weekly", time: 25, itemType: "ingredient", shop: ["Chicken breast", "Mayflower curry powder", "Microwave rice"], ingredients: ["Chicken breast", "Mayflower curry powder", "Microwave rice", "Cooking oil spray", "Onion", "Water"] },
-  { id: "sw_tikka", name: "SW Tikka Chicken + Rice", rating: "GREAT", jcKcal: 520, beckKcal: 440, jcProt: 40, beckProt: 34, jcFat: 10, beckFat: 8, freq: "Weekly", time: 25, shop: ["Chicken breast", "SW Tikka sauce", "Microwave rice"] },
-  { id: "chicken_kiev", name: "Chicken Kiev + Mash", rating: "RED", jcKcal: 630, beckKcal: 630, jcProt: 32, beckProt: 28, jcFat: 32, beckFat: 30, freq: "Monthly", time: 25, shop: ["Aldi Chicken Kiev", "Baby potatoes", "Carrots"] },
-  { id: "garlic_curry", name: "Garlic Chicken Curry (Quark)", rating: "GREAT", jcKcal: 720, beckKcal: 580, jcProt: 44, beckProt: 36, jcFat: 12, beckFat: 10, freq: "Fortnightly", time: 40, shop: ["Chicken breast", "Quark", "RF soft cheese", "Brown rice", "Spices"] },
-  { id: "butter_chicken", name: "Butter Chicken (MAGGI) + Rice", rating: "GREAT", jcKcal: 720, beckKcal: 594, jcProt: 44, beckProt: 36, jcFat: 14, beckFat: 12, freq: "Fortnightly", time: 25, shop: ["Chicken breast", "MAGGI mix", "Rice"] },
-  { id: "home_roast", name: "Home Roast Lite (Bag Roast)", rating: "GREAT", jcKcal: 545, beckKcal: 545, jcProt: 38, beckProt: 34, jcFat: 12, beckFat: 11, freq: "Fortnightly", time: 60, shop: ["Whole chicken", "Mash potatoes", "Broccoli", "Cauliflower"] },
-  { id: "sausage_casserole", name: "Sausage Casserole (Heck + Colmans)", rating: "GREAT", jcKcal: 380, beckKcal: 340, jcProt: 30, beckProt: 26, jcFat: 10, beckFat: 9, freq: "Fortnightly", time: 35, shop: ["Heck chicken sausages", "Colmans casserole mix", "Broccoli", "Mash"] },
-  { id: "thai_curry", name: "Thai Green/Red Curry + Rice", rating: "AMBER", jcKcal: 520, beckKcal: 480, jcProt: 34, beckProt: 28, jcFat: 16, beckFat: 14, freq: "Monthly", time: 30, shop: ["Chicken", "Thai paste", "RF coconut milk", "Rice"] },
-  { id: "red_pesto", name: "Red Pesto Pasta + Chicken", rating: "AMBER", jcKcal: 560, beckKcal: 460, jcProt: 30, beckProt: 26, jcFat: 15, beckFat: 13, freq: "Monthly", time: 20, shop: ["Pasta", "Red pesto", "Chicken"] },
-  { id: "mac_cheese", name: "Macaroni Cheese + Turkey", rating: "RED", jcKcal: 520, beckKcal: 460, jcProt: 30, beckProt: 24, jcFat: 20, beckFat: 16, freq: "Monthly", time: 30, shop: ["Macaroni", "Half-fat cheddar", "Fromage frais", "Turkey mince"] },
-  { id: "indian_takeaway", name: "Indian Takeaway (Chicken Tikka)", rating: "RED", jcKcal: 1340, beckKcal: 900, jcProt: 44, beckProt: 36, jcFat: 55, beckFat: 30, freq: "Monthly", time: 0, shop: [] },
-  { id: "chinese_takeaway", name: "Chinese Takeaway", rating: "RED", jcKcal: 650, beckKcal: 650, jcProt: 28, beckProt: 28, jcFat: 18, beckFat: 18, freq: "Monthly", time: 0, shop: [] },
-  { id: "pub_grilled", name: "Pub Grilled Chicken/Fish", rating: "GREAT", jcKcal: 480, beckKcal: 480, jcProt: 42, beckProt: 42, jcFat: 10, beckFat: 10, freq: "Monthly", time: 0, shop: [] },
-  { id: "pub_fish_chips", name: "Pub Fish & Chips", rating: "AMBER", jcKcal: 750, beckKcal: 750, jcProt: 22, beckProt: 22, jcFat: 28, beckFat: 28, freq: "Monthly", time: 0, shop: [] },
-  { id: "italian_pasta", name: "Italian Restaurant (Tomato Pasta)", rating: "AMBER", jcKcal: 550, beckKcal: 550, jcProt: 18, beckProt: 18, jcFat: 8, beckFat: 8, freq: "Monthly", time: 0, shop: [] },
-  { id: "italian_pizza", name: "Italian Restaurant (Thin Base Pizza)", rating: "AMBER", jcKcal: 600, beckKcal: 600, jcProt: 28, beckProt: 28, jcFat: 14, beckFat: 14, freq: "Monthly", time: 0, shop: [] },
-  { id: "none", name: "— No dinner (eating out / other)", rating: "INFO", jcKcal: 0, beckKcal: 0, jcProt: 0, beckProt: 0, jcFat: 0, beckFat: 0, freq: "", time: 0, shop: [] },
-];
+const DINNERS = [];
 
 const POTATO_SIDES = [
   { id: "baby_potatoes", name: "Baby Potatoes (boiled)", sideCategory: "potato", jcKcal: 130, beckKcal: 100, rating: "GREAT", shop: ["Baby potatoes"] },
@@ -442,45 +399,8 @@ const MEAL_DAYS = [
 ];
 const DAY_MAP = { sun: "sunday", mon: "monday", tue: "tuesday", wed: "wednesday", thu: "thursday", fri: "friday", sat: "saturday" };
 
-const BREAKFASTS = [
-  { id: "overnight_oats", name: "Overnight Oats + Berries", jcKcal: 696, beckKcal: 440, rating: "GREAT", note: "Creatine in oats" },
-  { id: "porridge_berries", name: "Porridge + Berries", jcKcal: 696, beckKcal: 440, rating: "GREAT", note: "Morrisons Mighty/Creamy only" },
-  { id: "porridge_honey", name: "Porridge + Honey", jcKcal: 696, beckKcal: 380, rating: "GREAT", note: "" },
-  { id: "weetabix", name: "Weetabix + Berries", jcKcal: 360, beckKcal: 380, rating: "GREAT", note: "Beck max 1×/week" },
-  { id: "toast_eggs", name: "Toast + Eggs", jcKcal: 450, beckKcal: 380, rating: "GREAT", note: "Super Seeded 138kcal/slice" },
-  { id: "cornflakes", name: "Cornflakes", jcKcal: 360, beckKcal: 320, rating: "GREAT", note: "Max 1×/week (high GI)" },
-  { id: "office_oats", name: "Office Porridge Pot", jcKcal: 360, beckKcal: 0, rating: "GREAT", note: "JC London days only" },
-  { id: "porridge_seeds", name: "Porridge + Seeds", jcKcal: 430, beckKcal: 335, rating: "GREAT" },
-  { id: "porridge_apple", name: "Porridge + Stewed Apple + Cinnamon", jcKcal: 420, beckKcal: 325, rating: "GREAT" },
-  { id: "porridge_toast", name: "Porridge + 2 Toast + ProActiv", jcKcal: 696, beckKcal: 0, rating: "GREAT" },
-  { id: "oats_sisters", name: "Sisters Overnight Oats (Full)", jcKcal: 476, beckKcal: 476, rating: "GREAT" },
-  { id: "porridge_almond", name: "Porridge — Almond Milk + Honey", jcKcal: 360, beckKcal: 0, rating: "GREAT" },
-  { id: "bacon_egg_beans", name: "Bacon + Egg + Beans on Toast", jcKcal: 520, beckKcal: 480, rating: "AMBER" },
-  { id: "full_cooked", name: "Eggs + Sausages + Hash Browns + Toast", jcKcal: 720, beckKcal: 650, rating: "RED" },
-];
-const LUNCHES = [
-  { id: "jacket_tuna", name: "Jacket Potato + Tuna + Cheese + Eggs", jcKcal: 580, beckKcal: 400, rating: "GREAT", note: "JC office template 1" },
-  { id: "cajun_salad", name: "Cajun Chicken Salad + Seeds", jcKcal: 580, beckKcal: 400, rating: "GREAT", note: "JC office template 2" },
-  { id: "wrap_chicken", name: "Chicken Wrap + Salad", jcKcal: 400, beckKcal: 360, rating: "GREAT", note: "" },
-  { id: "soup_bread", name: "Soup + Bread", jcKcal: 350, beckKcal: 320, rating: "GREAT", note: "" },
-  { id: "sandwich", name: "Sandwich (Super Seeded)", jcKcal: 400, beckKcal: 360, rating: "GREAT", note: "" },
-  { id: "salad_protein", name: "Salad + Protein", jcKcal: 380, beckKcal: 340, rating: "GREAT", note: "" },
-  { id: "leftovers", name: "Leftovers", jcKcal: 450, beckKcal: 400, rating: "GREAT", note: "" },
-  { id: "pitta_hummus", name: "Pitta + Hummus + Chicken", jcKcal: 420, beckKcal: 370, rating: "GREAT", note: "" },
-  { id: "pulled_chicken", name: "Roosters Pulled Chicken Sandwich", jcKcal: 650, beckKcal: 650, rating: "GREAT" },
-  { id: "flame_grilled", name: "Roosters Flame Grilled Sandwich", jcKcal: 648, beckKcal: 648, rating: "GREAT" },
-  { id: "tuna_sandwich", name: "Tuna Sandwich (Super Seeded)", jcKcal: 636, beckKcal: 636, rating: "GREAT" },
-  { id: "egg_sandwich", name: "Egg Sandwich (Super Seeded)", jcKcal: 656, beckKcal: 645, rating: "GREAT" },
-  { id: "tuna_pasta_salad", name: "Tuna Pasta Salad (Prep Ahead)", jcKcal: 380, beckKcal: 380, rating: "GREAT" },
-  { id: "soup_cheese_toast", name: "Tinned Soup + Cheese Toast", jcKcal: 340, beckKcal: 340, rating: "GREAT" },
-  { id: "sat_jacket", name: "Saturday Jacket Potato (Treat)", jcKcal: 520, beckKcal: 0, rating: "GREAT" },
-  { id: "work_teriyaki", name: "Work — Teriyaki Chicken Stir Fry", jcKcal: 568, beckKcal: 0, rating: "GREAT" },
-  { id: "work_shawarma", name: "Work — Chicken Shawarma", jcKcal: 606, beckKcal: 0, rating: "GREAT" },
-  { id: "work_curry", name: "Work — Chicken Curry (Mayflower)", jcKcal: 588, beckKcal: 0, rating: "GREAT" },
-  { id: "work_jacket", name: "Work — Baked Potato + Eggs + Seeds", jcKcal: 650, beckKcal: 0, rating: "GREAT" },
-  { id: "work_thai", name: "Work — Thai Chicken (Pad Thai)", jcKcal: 550, beckKcal: 0, rating: "AMBER" },
-  { id: "work_fajita", name: "Work — Chicken Fajita", jcKcal: 480, beckKcal: 0, rating: "AMBER" },
-];
+const BREAKFASTS = [];
+const LUNCHES = [];
 const SNACK_TEMPLATES = {
   home: { label: "Home Day", jcKcal: 565, beckKcal: 340, items: "Snack bar after lunch · Porridge pot ~4pm · Protein dessert · Snack bar before bed" },
   office: { label: "Office Day", jcKcal: 350, beckKcal: 290, items: "Porridge pot afternoon only · Protein dessert after dinner" },
@@ -488,50 +408,7 @@ const SNACK_TEMPLATES = {
 };
 const DAY_TYPE = { sun: "home", mon: "home", tue: "home", wed: "office", thu: "office", fri: "home", sat: "sat" };
 
-const SNACKS = [
-  { id: "porridge_pot", name: "Aldi Porridge Pot", jcKcal: 200, beckKcal: 200, rating: "GREAT", freq: "Daily" },
-  { id: "snack_bar_80", name: "Snack Bar (80 kcal)", jcKcal: 80, beckKcal: 80, rating: "GREAT", freq: "Daily" },
-  { id: "protein_mousse", name: "Brooklea Protein Mousse", jcKcal: 85, beckKcal: 85, rating: "GREAT", freq: "Daily" },
-  { id: "kvarg", name: "Lindahls Kvarg", jcKcal: 140, beckKcal: 140, rating: "GREAT", freq: "Daily" },
-  { id: "protein_shake", name: "Protein Shake", jcKcal: 120, beckKcal: 120, rating: "GREAT", freq: "Training days" },
-  { id: "trek_bar", name: "Trek/Nakd Bar", jcKcal: 150, beckKcal: 150, rating: "GREAT", freq: "Weekly" },
-  { id: "popcorn", name: "Popcorn", jcKcal: 100, beckKcal: 100, rating: "GREAT", freq: "Weekly" },
-  { id: "snack_a_jacks", name: "Snack-a-Jacks", jcKcal: 100, beckKcal: 100, rating: "GREAT", freq: "Weekly" },
-  { id: "grenade_bar", name: "Grenade Carb Killa Bar", jcKcal: 220, beckKcal: 220, rating: "AMBER", freq: "Occasional" },
-  { id: "barebells", name: "Barebells Protein Bar", jcKcal: 200, beckKcal: 200, rating: "AMBER", freq: "Occasional" },
-  { id: "bounce_ball", name: "Bounce Peanut Protein Ball", jcKcal: 140, beckKcal: 140, rating: "AMBER", freq: "Occasional" },
-  { id: "babybel", name: "Babybel Light", jcKcal: 42, beckKcal: 42, rating: "GREAT", freq: "Daily" },
-  { id: "banana", name: "Banana", jcKcal: 90, beckKcal: 90, rating: "GREAT", freq: "Daily" },
-  { id: "fruit", name: "Fruit Portion", jcKcal: 60, beckKcal: 60, rating: "GREAT", freq: "Daily" },
-  { id: "none_snack", name: "— None", jcKcal: 0, beckKcal: 0, rating: "INFO", freq: "" },
-  { id: "brooklea_choc_pud", name: "Brooklea Choc Protein Pudding", jcKcal: 150, beckKcal: 150, rating: "GREAT", freq: "Daily" },
-  { id: "brooklea_caramel", name: "Brooklea Caramel Protein Pudding", jcKcal: 150, beckKcal: 150, rating: "GREAT", freq: "Daily" },
-  { id: "brooklea_sc_cheese", name: "Brooklea SC Protein Soft Cheese", jcKcal: 160, beckKcal: 160, rating: "GREAT", freq: "Daily" },
-  { id: "brooklea_light_pots", name: "Brooklea Light Choc Pots", jcKcal: 80, beckKcal: 80, rating: "GREAT", freq: "Daily" },
-  { id: "brooklea_light_yogurt", name: "Brooklea Light Vanilla Yogurt", jcKcal: 80, beckKcal: 80, rating: "GREAT", freq: "Daily" },
-  { id: "muller_light", name: "Muller Light (All Flavours)", jcKcal: 95, beckKcal: 95, rating: "GREAT", freq: "Daily" },
-  { id: "lindahls_pro", name: "Lindahls Pro+ Banoffee", jcKcal: 130, beckKcal: 130, rating: "GREAT", freq: "Daily" },
-  { id: "strawberries_ic", name: "Strawberries + Vanilla Ice Cream", jcKcal: 195, beckKcal: 195, rating: "GREAT", freq: "Weekly" },
-  { id: "boiled_egg_snack", name: "Boiled Egg (Snack)", jcKcal: 75, beckKcal: 75, rating: "GREAT", freq: "Daily" },
-  { id: "bbq_lentil", name: "Aldi BBQ Lentil Crisps", jcKcal: 71, beckKcal: 71, rating: "GREAT", freq: "Daily" },
-  { id: "watsits", name: "Watsits Cheese Puffs", jcKcal: 90, beckKcal: 90, rating: "AMBER", freq: "2-3x/wk" },
-  { id: "rich_tea", name: "Rich Tea Biscuits", jcKcal: 95, beckKcal: 95, rating: "GREAT", freq: "Daily" },
-  { id: "oaties", name: "Oaties (McVities)", jcKcal: 115, beckKcal: 115, rating: "GREAT", freq: "Daily" },
-  { id: "bourbon", name: "Bourbon Creams", jcKcal: 125, beckKcal: 125, rating: "AMBER", freq: "1-2 daily" },
-  { id: "starbar_light", name: "Starbar Light / Choc Orange", jcKcal: 85, beckKcal: 85, rating: "GREAT", freq: "Daily" },
-  { id: "kitkat", name: "Kitkat 2-Finger", jcKcal: 107, beckKcal: 107, rating: "AMBER", freq: "2-3x/wk" },
-  { id: "kinder_bueno", name: "Kinder Bueno (1 Bar)", jcKcal: 230, beckKcal: 230, rating: "AMBER", freq: "Weekly" },
-  { id: "twirl", name: "Twirl", jcKcal: 230, beckKcal: 230, rating: "AMBER", freq: "Weekly" },
-  { id: "crunchie", name: "Crunchie Bar", jcKcal: 185, beckKcal: 185, rating: "AMBER", freq: "Weekly" },
-  { id: "galaxy", name: "Galaxy Chocolate", jcKcal: 215, beckKcal: 215, rating: "RED", freq: "Monthly" },
-  { id: "dairy_milk", name: "Dairy Milk (Shared)", jcKcal: 260, beckKcal: 260, rating: "RED", freq: "Monthly" },
-  { id: "almond_croissant", name: "Almond Croissant (Nero)", jcKcal: 420, beckKcal: 0, rating: "AMBER", freq: "Weekly" },
-  { id: "rocky_road", name: "Rocky Road (Costa Sat)", jcKcal: 380, beckKcal: 0, rating: "AMBER", freq: "Weekly" },
-  { id: "oat_banana_bread", name: "Becks Oat & Banana Bread", jcKcal: 130, beckKcal: 130, rating: "GREAT", freq: "Daily" },
-  { id: "protein_ball_co", name: "Protein Ball Co Whey PB Ball", jcKcal: 160, beckKcal: 160, rating: "AMBER", freq: "Occasional" },
-  { id: "harvest_morn_choc", name: "Harvest Morn Choc Protein Pot", jcKcal: 200, beckKcal: 200, rating: "GREAT", freq: "Daily" },
-  { id: "harvest_morn_syrup", name: "Harvest Morn Golden Syrup Pot", jcKcal: 200, beckKcal: 200, rating: "GREAT", freq: "Daily" },
-];
+const SNACKS = [];
 
 const DEFAULT_EXERCISES = [
   "Leg Extension", "Standing Calf Raise", "Single Leg Calf Raise", "Squat Row",
@@ -771,7 +648,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.307.0
+// STANDARD BUTTON STYLES v1.308.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -3591,6 +3468,13 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           var allDrinks = [...customDrinks];
           var allDesserts = [...customDesserts];
           var allItems = [].concat(allBfast, allLunch, allDinners, allOther);
+          // Display-filtered lists for MealSelect dropdowns (toggle generic vs custom)
+          var dispBfast = eatList === "own" ? [...customBreakfasts] : [...BREAKFASTS];
+          var dispLunch = eatList === "own" ? [...customLunches] : [...LUNCHES];
+          var dispDinners = eatList === "own" ? [...customMeals] : [...DINNERS];
+          var dispOther = eatList === "own" ? [...customSnacks] : [...SNACKS];
+          var dispDrinks = eatList === "own" ? [...customDrinks] : [];
+          var dispDesserts = eatList === "own" ? [...customDesserts] : [];
           var currentWeek = calcWeek(data.config.trainingStart);
           var DAYS = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
           var DAY_LABELS = { monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu", friday: "Fri", saturday: "Sat", sunday: "Sun" };
@@ -3901,10 +3785,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           {/* List toggle + Update My List + Clear Week */}
           <div style={{ display: "flex", gap: 8, marginBottom: 0, alignItems: "center" }}>
             <div style={{ display: "flex", background: "#e2e8f0", borderRadius: 6, padding: 2 }}>
-              <button onClick={function() { setEatList("own"); }} style={{ padding: "4px 10px", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: eatList === "own" ? "#fff" : "transparent", color: eatList === "own" ? "#0f172a" : "#94a3b8" }}>My Eating Lists</button>
-              <button onClick={function() { setEatList("default"); }} style={{ padding: "4px 10px", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: eatList === "default" ? "#fff" : "transparent", color: eatList === "default" ? "#0f172a" : "#94a3b8" }}>Generic Eating Lists</button>
+              <button onClick={function() { setEatList("own"); }} style={{ padding: "4px 8px", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: eatList === "own" ? "#fff" : "transparent", color: eatList === "own" ? "#0f172a" : "#94a3b8", textAlign: "center", lineHeight: 1.3 }}>My<br/>Eating List</button>
+              <button onClick={function() { setEatList("default"); }} style={{ padding: "4px 8px", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: eatList === "default" ? "#fff" : "transparent", color: eatList === "default" ? "#0f172a" : "#94a3b8", textAlign: "center", lineHeight: 1.3 }}>Generic<br/>Eating List</button>
             </div>
-            <button onClick={function(){ setManageListsOpen(!manageListsOpen); }} style={{ marginLeft: "auto", padding: "6px 10px", background: manageListsOpen ? "#eff6ff" : "#f1f5f9", border: "1px solid " + (manageListsOpen ? "#bfdbfe" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, color: manageListsOpen ? "#1e3a5f" : "#475569", cursor: "pointer" }}>{manageListsOpen ? "✕ Close" : <span style={{ textAlign: "center", lineHeight: 1.3 }}>Update<br/>Eating Lists</span>}</button>
+            <button onClick={function(){ setManageListsOpen(!manageListsOpen); }} style={{ marginLeft: "auto", padding: "6px 8px", background: manageListsOpen ? "#eff6ff" : "#f1f5f9", border: "1px solid " + (manageListsOpen ? "#bfdbfe" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, color: manageListsOpen ? "#1e3a5f" : "#475569", cursor: "pointer", textAlign: "center", lineHeight: 1.3 }}>{manageListsOpen ? "✕ Close" : <span>Update<br/>Eating Lists</span>}</button>
             <button onClick={clearWeek} style={btnClear}>Clear Week</button>
           </div>
 
@@ -4312,7 +4196,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slotKey = n === 1 ? "b" : "b" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <MealSelect items={allBfast} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select breakfast..." />
+                    <MealSelect items={dispBfast} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select breakfast..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
                     <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
@@ -4334,7 +4218,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slotKey = n === 1 ? "l" : "l" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <MealSelect items={allLunch} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select lunch..." />
+                    <MealSelect items={dispLunch} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select lunch..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
                     <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
@@ -4356,7 +4240,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slotKey = n === 1 ? "d" : "d" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <MealSelect items={allDinners} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select dinner..." />
+                    <MealSelect items={dispDinners} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select dinner..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
                     <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
@@ -4378,7 +4262,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slotKey = n === 1 ? "ds" : "ds" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <MealSelect items={allDesserts} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select dessert..." />
+                    <MealSelect items={dispDesserts} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select dessert..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
                     <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
@@ -4401,7 +4285,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slotKey = n === 1 ? "dr" : "dr" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <MealSelect items={allDrinks} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select drink..." />
+                    <MealSelect items={dispDrinks} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select drink..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
                     <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
@@ -4423,7 +4307,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slotKey = "o" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <MealSelect items={allOther} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select snack..." />
+                    <MealSelect items={dispOther} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults"); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select snack..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
                     <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
@@ -4735,7 +4619,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var _hasItem = allBfast.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
                   return (<div key={"b"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={allBfast} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
+                      <MealSelect items={dispBfast} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
                     </div>
                     {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allBfast); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
@@ -4789,7 +4673,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var _hasItem = allLunch.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
                   return (<div key={"l"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={allLunch} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
+                      <MealSelect items={dispLunch} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
                     </div>
                     {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allLunch); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
@@ -4848,7 +4732,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   return (<div key={"d"+idx}>
                     <div style={{ display: "flex", gap: 4, marginBottom: _isPackaged ? 2 : 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={allDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
+                      <MealSelect items={dispDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults"); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
                     </div>
                     {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allDinners); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
@@ -4918,7 +4802,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 return slots.map(function(idx) {
                   return (<div key={"ds"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={allDesserts} value={getMeal(eatDay, "ds" + idx) === "__empty__" ? "" : getMeal(eatDay, "ds" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults"); } else { setMeal(eatDay, "ds" + idx, e.target.value); } }} placeholder="Select dessert..." />
+                      <MealSelect items={dispDesserts} value={getMeal(eatDay, "ds" + idx) === "__empty__" ? "" : getMeal(eatDay, "ds" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults"); } else { setMeal(eatDay, "ds" + idx, e.target.value); } }} placeholder="Select dessert..." />
                     </div>
                     {getMeal(eatDay, "ds" + idx) && getMeal(eatDay, "ds" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("ds" + idx) ? "#dbeafe" : btnPortion.background, border: portionSlot === ("ds" + idx) ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === ("ds" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("ds" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("ds" + idx, e.target.files[0], allDesserts); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {getMeal(eatDay, "ds" + idx) && <button onClick={function() { setMeal(eatDay, "ds" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
@@ -4970,7 +4854,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 return slots.map(function(idx) {
                   return (<div key={"dr"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={allDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults"); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Select drink..." />
+                      <MealSelect items={dispDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults"); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Select drink..." />
                     </div>
                     {getMeal(eatDay, "dr" + idx) && getMeal(eatDay, "dr" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("dr" + idx) ? "#dbeafe" : btnPortion.background, border: portionSlot === ("dr" + idx) ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === ("dr" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("dr" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("dr" + idx, e.target.files[0], allDrinks); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {getMeal(eatDay, "dr" + idx) && <button onClick={function() { setMeal(eatDay, "dr" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
@@ -5020,7 +4904,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             {otherSlots.map(function(idx) {
               return (<div key={idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                 <div style={{ flex: 1 }}>
-                  <MealSelect items={allOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults"); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Select snack..." />
+                  <MealSelect items={dispOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults"); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Select snack..." />
                 </div>
                 {getMeal(eatDay, "o" + idx) && getMeal(eatDay, "o" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("o" + idx) ? "#dbeafe" : btnPortion.background, border: portionSlot === ("o" + idx) ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === ("o" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("o" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("o" + idx, e.target.files[0], allOther); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                 {getMeal(eatDay, "o" + idx) && <button onClick={function() { setMeal(eatDay, "o" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
@@ -6013,7 +5897,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.307.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.308.0
       </div>
 
       {/* Floating Ask a Question button */}
