@@ -746,7 +746,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.305.1
+// STANDARD BUTTON STYLES v1.305.2
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -5346,7 +5346,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 } else if (shopList.length > 0) {
                   shopList.forEach(function(pair) { allItems.push(pair[0] + (pair[1] > 1 ? " x" + pair[1] : "")); });
                 }
-                var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: "Categorise these shopping items into UK supermarket aisle zones. Items: " + allItems.join(", ") + ". Return ONLY a JSON array: [{\"zone\":\"Fruit & Veg\",\"items\":[...]},{\"zone\":\"Bakery & Bread\",\"items\":[...]}]. Use zones in order: Fruit & Veg, Bakery & Bread, Meat & Poultry, Fish, Dairy & Eggs, Chilled, Frozen, Tinned & Packets, Rice Pasta & Noodles, Cooking Oils & Sauces, Cereals & Porridge, Snacks & Bars, Drinks, Health & Free From, Household. Only include zones that have items. Keep item names exactly as given." }] }) });
+                var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: "Sort ONLY these exact items into UK supermarket aisle zones. Do NOT add, remove, expand or generate any new items — just categorise what is given. Items: " + allItems.join(", ") + ". Return ONLY a JSON array: [{\"zone\":\"Fruit & Veg\",\"items\":[...]},{\"zone\":\"Bakery & Bread\",\"items\":[...]}]. Use zones in order: Fruit & Veg, Bakery & Bread, Meat & Poultry, Fish, Dairy & Eggs, Chilled, Frozen, Tinned & Packets, Rice Pasta & Noodles, Cooking Oils & Sauces, Cereals & Porridge, Snacks & Bars, Drinks, Health & Free From, Household. Only include zones that have items. Keep item names exactly as given. Output must contain the same number of items as input — no additions." }] }) });
                 var result = await resp.json();
                 var text = (result.content || []).map(function(blk) { return blk.text || ""; }).join("");
                 var clean = text.replace(/```json|```/g, "").trim();
@@ -5924,7 +5924,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.305.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.305.2
       </div>
 
       {/* Floating Ask a Question button */}
