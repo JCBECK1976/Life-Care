@@ -649,7 +649,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.309.2
+// STANDARD BUTTON STYLES v1.310.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -3621,7 +3621,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               if (txt) {
                 var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
                 setCameraPreview({ name: info.name || newItemName, kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0, rating: info.rating || "AMBER", itemType: info.itemType || "packaged", ingredients: info.ingredients || [], suitability: info.suitability || "", category: addingCategory });
-                setReviewCategories([addingCategory]);
+                setReviewCategories(addingCategory ? [addingCategory] : []);
                 setReviewSideType("");
               }
             } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); setTimeout(function() { setFormMsg(""); }, 5000); }
@@ -3797,110 +3797,106 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     </div>);
                   })}
                   {cat.customs.length === 0 && <div style={{ fontSize: 10, color: "#94a3b8", padding: 4 }}>No custom items yet</div>}
-                  <button onClick={function(){ openAddForm(cat.k, "top"); }} style={{...btnMuted, marginTop: 4}}>+ Add {cat.label.toLowerCase()} item</button>
-                  {addingNew && addingSource === "top" && addingCategory === cat.k && (<div id="add-item-form-top" style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 6, marginBottom: 8, border: "1px solid #bfdbfe", overflow: "hidden" }}>
-                    <div style={{ marginBottom: 4 }}><span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a5f" }}>Add New {addingCategory.charAt(0).toUpperCase() + addingCategory.slice(1)} Item</span></div>
-                    <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-                      <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. Costa Rocky Road, Protein shake..." style={{ flex: 1, minWidth: 0, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
-                      <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>
-                        📷
-                        <input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
-                      </label>
-                      <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }} title="Import list of items from file">
-                        📄
-                        <input type="file" accept=".txt,.csv,.tsv,.xls,.xlsx,text/plain,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={function(e) { if (e.target.files && e.target.files[0]) bulkImportItems(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
-                      </label>
-                    </div>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ flex: 1, padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? <span>Adding <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Add"}</button>
-                      <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer", flexShrink: 0 }}>Cancel</button>
-                    </div>
-                    <div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type a food name or scan a product, with or without a short description, to add with nutritional information. Include ingredients if homemade.</div>
-                  </div>)}
-                  {cameraPreview && (<div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, marginTop: 6, border: "1px solid #86efac" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Review Item</div>
-                      <button onClick={function() { setCameraPreview(null); }} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
-                    </div>
-                    {/* Editable name */}
-                    <div style={{ marginBottom: 6 }}>
-                      <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 2 }}>Name</div>
-                      <input value={cameraPreview.name} onChange={function(e) { setCameraPreview(function(prev) { return Object.assign({}, prev, { name: e.target.value }); }); }} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, boxSizing: "border-box" }} />
-                    </div>
-                    {/* Nutrition row */}
-                    <div style={{ display: "flex", gap: 8, marginBottom: 6, fontSize: 10, flexWrap: "wrap" }}>
-                      <span><b>{cameraPreview.kcal}</b> kcal</span>
-                      <span><b>{cameraPreview.protein}g</b> prot</span>
-                      <span><b>{cameraPreview.fat}g</b> fat</span>
-                      {cameraPreview.satFat > 0 && <span><b>{cameraPreview.satFat}g</b> s/fat</span>}
-                      {cameraPreview.carbs > 0 && <span><b>{cameraPreview.carbs}g</b> carbs</span>}
-                      {cameraPreview.fibre > 0 && <span><b>{cameraPreview.fibre}g</b> fibre</span>}
-                    </div>
-                    {/* Rating badge */}
-                    <div style={{ display: "flex", gap: 4, marginBottom: 8, flexWrap: "wrap" }}>
-                      <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, background: cameraPreview.rating === "RED" ? "#fef2f2" : cameraPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: cameraPreview.rating === "RED" ? "#dc2626" : cameraPreview.rating === "AMBER" ? "#d97706" : "#0c4a6e", border: "1px solid " + (cameraPreview.rating === "RED" ? "#fecaca" : cameraPreview.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{cameraPreview.rating}</div>
-                    </div>
-                    {cameraPreview.suitability && <div style={{ fontSize: 10, color: "#475569", fontStyle: "italic", lineHeight: 1.4, marginBottom: 8 }}>{cameraPreview.suitability}</div>}
-                    {/* Packaged / Ingredient Prepared toggle */}
-                    <div style={{ marginBottom: 8 }}>
-                      <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Type</div>
-                      <div style={{ display: "flex", gap: 4 }}>
-                        <button onClick={function() { setCameraPreview(function(prev) { return Object.assign({}, prev, { itemType: "packaged" }); }); }} style={{ flex: 1, padding: "6px 8px", border: "1px solid " + (cameraPreview.itemType === "packaged" ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: cameraPreview.itemType === "packaged" ? "#eff6ff" : "#fff", color: cameraPreview.itemType === "packaged" ? "#1e3a5f" : "#94a3b8" }}>📦 Packaged</button>
-                        <button onClick={function() { setCameraPreview(function(prev) { return Object.assign({}, prev, { itemType: "ingredient" }); }); }} style={{ flex: 1, padding: "6px 8px", border: "1px solid " + (cameraPreview.itemType === "ingredient" ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: cameraPreview.itemType === "ingredient" ? "#eff6ff" : "#fff", color: cameraPreview.itemType === "ingredient" ? "#1e3a5f" : "#94a3b8" }}>🍳 Ingredient Prepared</button>
-                      </div>
-                    </div>
-                    {/* Editable ingredients for ingredient-prepared type */}
-                    {cameraPreview.itemType === "ingredient" && (<div style={{ marginBottom: 8 }}>
-                      <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>🧾 Ingredients <span style={{ fontWeight: 400 }}>(edit to match your recipe)</span></div>
-                      <textarea value={(cameraPreview.ingredients || []).join(", ")} onChange={function(e) { setCameraPreview(function(prev) { return Object.assign({}, prev, { ingredients: e.target.value.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length > 0;}) }); }); }} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, minHeight: 50, resize: "vertical", boxSizing: "border-box", lineHeight: 1.4 }} placeholder="e.g. oats, milk, chia seeds, honey..." />
-                    </div>)}
-                    {/* Category multi-select */}
-                    <div style={{ marginBottom: 8 }}>
-                      <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Add to categories</div>
-                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                        {["breakfast","lunch","dinner","snack","dessert","drink"].map(function(c) {
-                          var sel = reviewCategories.indexOf(c) >= 0;
-                          return (<button key={c} onClick={function() { setReviewCategories(function(prev) { return sel ? prev.filter(function(x){return x!==c;}) : prev.concat([c]); }); }} style={{ padding: "5px 10px", border: "1px solid " + (sel ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: sel ? "#eff6ff" : "#fff", color: sel ? "#1e3a5f" : "#94a3b8", textTransform: "capitalize" }}>{sel ? "✓ " : ""}{c}</button>);
-                        })}
-                      </div>
-                    </div>
-                    {/* Side type selector — shown when dinner is selected */}
-                    {reviewCategories.indexOf("dinner") >= 0 && (<div style={{ marginBottom: 8 }}>
-                      <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Is this a dinner side dish?</div>
-                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                        {[{k:"",label:"No — main dish"},{k:"potato",label:"🥔 Potato side"},{k:"veg",label:"🥦 Veg side"},{k:"salad",label:"🥗 Salad side"}].map(function(st) {
-                          var sel = reviewSideType === st.k;
-                          return (<button key={st.k} onClick={function() { setReviewSideType(st.k); }} style={{ padding: "5px 8px", border: "1px solid " + (sel ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: sel ? "#eff6ff" : "#fff", color: sel ? "#1e3a5f" : "#94a3b8" }}>{st.label}</button>);
-                        })}
-                      </div>
-                    </div>)}
-                    {/* Confirm / Cancel */}
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button disabled={reviewCategories.length === 0} onClick={async function() {
-                        var cp = cameraPreview;
-                        var cats = reviewCategories;
-                        var addedTo = [];
-                        for (var ci = 0; ci < cats.length; ci++) {
-                          var cat = cats[ci];
-                          var newItem = { id: "custom_" + Date.now() + "_" + ci, name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, rating: cp.rating, itemType: cp.itemType || "packaged", ingredients: cp.ingredients || [], freq: "Daily", isCustom: true };
-                          if (cat === "dinner" && !reviewSideType) { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = cp.itemType === "ingredient" ? (cp.ingredients || []) : [cp.name]; }
-                          if (cat === "dinner" && reviewSideType) { newItem.sideType = reviewSideType; }
-                          var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
-                          var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
-                          var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : cat === "drink" ? "custom_drinks" : cat === "dessert" ? "custom_desserts" : "custom_snacks";
-                          var u = [].concat(listItems, [newItem]); setList(u); await sSet(storageKey, JSON.stringify(u));
-                          addedTo.push(cat);
-                          listItems = u;
-                        }
-                        setFormMsg("✅ Added " + cp.name + " to " + addedTo.join(", "));
-                        setCameraPreview(null); setReviewCategories([]); setReviewSideType("");
-                        setTimeout(function(){setFormMsg("");}, 4000);
-                      }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: reviewCategories.length === 0 ? 0.5 : 1}}>✓ Confirm{reviewCategories.length > 1 ? " (" + reviewCategories.length + " lists)" : ""}</button>
-                      <button onClick={function() { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); }} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
-                    </div>
-                  </div>)}
                 </div>);
               })}
+
+              {/* Single add item section for manage lists */}
+              <button onClick={function(){ openAddForm("", "manage"); }} style={{...btnMuted, marginTop: 4}}>+ Add New Item to Lists</button>
+              {addingNew && (addingSource === "top" || addingSource === "manage") && (<div id="add-item-form-manage" style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 6, marginBottom: 8, border: "1px solid #bfdbfe", overflow: "hidden" }}>
+                <div style={{ marginBottom: 4 }}><span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a5f" }}>Add New Item</span></div>
+                <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                  <input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); }} placeholder="e.g. Costa Rocky Road, Protein shake..." style={{ flex: 1, minWidth: 0, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
+                  <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>
+                    📷
+                    <input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
+                  </label>
+                  <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }} title="Import list of items from file">
+                    📄
+                    <input type="file" accept=".txt,.csv,.tsv,.xls,.xlsx,text/plain,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={function(e) { if (e.target.files && e.target.files[0]) bulkImportItems(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
+                  </label>
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ flex: 1, padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? <span>Adding <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Add"}</button>
+                  <button onClick={function() { setAddingNew(false); setNewItemName(""); }} style={{ padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer", flexShrink: 0 }}>Cancel</button>
+                </div>
+                <div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type a food name or scan a product, with or without a short description, to add with nutritional information. Include ingredients if homemade.</div>
+              </div>)}
+
+              {/* Single review form — shown once after add */}
+              {cameraPreview && (<div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, marginTop: 6, border: "1px solid #86efac" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Review Item</div>
+                  <button onClick={function() { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); }} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
+                </div>
+                <div style={{ marginBottom: 6 }}>
+                  <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 2 }}>Name</div>
+                  <input value={cameraPreview.name} onChange={function(e) { setCameraPreview(function(prev) { return Object.assign({}, prev, { name: e.target.value }); }); }} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, boxSizing: "border-box" }} />
+                </div>
+                <div style={{ display: "flex", gap: 8, marginBottom: 6, fontSize: 10, flexWrap: "wrap" }}>
+                  <span><b>{cameraPreview.kcal}</b> kcal</span>
+                  <span><b>{cameraPreview.protein}g</b> prot</span>
+                  <span><b>{cameraPreview.fat}g</b> fat</span>
+                  {cameraPreview.satFat > 0 && <span><b>{cameraPreview.satFat}g</b> s/fat</span>}
+                  {cameraPreview.carbs > 0 && <span><b>{cameraPreview.carbs}g</b> carbs</span>}
+                  {cameraPreview.fibre > 0 && <span><b>{cameraPreview.fibre}g</b> fibre</span>}
+                </div>
+                <div style={{ display: "flex", gap: 4, marginBottom: 8, flexWrap: "wrap" }}>
+                  <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, background: cameraPreview.rating === "RED" ? "#fef2f2" : cameraPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: cameraPreview.rating === "RED" ? "#dc2626" : cameraPreview.rating === "AMBER" ? "#d97706" : "#0c4a6e", border: "1px solid " + (cameraPreview.rating === "RED" ? "#fecaca" : cameraPreview.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{cameraPreview.rating}</div>
+                </div>
+                {cameraPreview.suitability && <div style={{ fontSize: 10, color: "#475569", fontStyle: "italic", lineHeight: 1.4, marginBottom: 8 }}>{cameraPreview.suitability}</div>}
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Type</div>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={function() { setCameraPreview(function(prev) { return Object.assign({}, prev, { itemType: "packaged" }); }); }} style={{ flex: 1, padding: "6px 8px", border: "1px solid " + (cameraPreview.itemType === "packaged" ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: cameraPreview.itemType === "packaged" ? "#eff6ff" : "#fff", color: cameraPreview.itemType === "packaged" ? "#1e3a5f" : "#94a3b8" }}>📦 Packaged</button>
+                    <button onClick={function() { setCameraPreview(function(prev) { return Object.assign({}, prev, { itemType: "ingredient" }); }); }} style={{ flex: 1, padding: "6px 8px", border: "1px solid " + (cameraPreview.itemType === "ingredient" ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: cameraPreview.itemType === "ingredient" ? "#eff6ff" : "#fff", color: cameraPreview.itemType === "ingredient" ? "#1e3a5f" : "#94a3b8" }}>🍳 Ingredient Prepared</button>
+                  </div>
+                </div>
+                {cameraPreview.itemType === "ingredient" && (<div style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>🧾 Ingredients <span style={{ fontWeight: 400 }}>(edit to match your recipe)</span></div>
+                  <textarea value={(cameraPreview.ingredients || []).join(", ")} onChange={function(e) { setCameraPreview(function(prev) { return Object.assign({}, prev, { ingredients: e.target.value.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length > 0;}) }); }); }} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, minHeight: 50, resize: "vertical", boxSizing: "border-box", lineHeight: 1.4 }} placeholder="e.g. oats, milk, chia seeds, honey..." />
+                </div>)}
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Add to categories</div>
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    {["breakfast","lunch","dinner","snack","dessert","drink"].map(function(c) {
+                      var sel = reviewCategories.indexOf(c) >= 0;
+                      return (<button key={c} onClick={function() { setReviewCategories(function(prev) { return sel ? prev.filter(function(x){return x!==c;}) : prev.concat([c]); }); }} style={{ padding: "5px 10px", border: "1px solid " + (sel ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: sel ? "#eff6ff" : "#fff", color: sel ? "#1e3a5f" : "#94a3b8", textTransform: "capitalize" }}>{sel ? "✓ " : ""}{c}</button>);
+                    })}
+                  </div>
+                </div>
+                {reviewCategories.indexOf("dinner") >= 0 && (<div style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Is this a dinner side dish?</div>
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    {[{k:"",label:"No — main dish"},{k:"potato",label:"🥔 Potato side"},{k:"veg",label:"🥦 Veg side"},{k:"salad",label:"🥗 Salad side"}].map(function(st) {
+                      var sel = reviewSideType === st.k;
+                      return (<button key={st.k} onClick={function() { setReviewSideType(st.k); }} style={{ padding: "5px 8px", border: "1px solid " + (sel ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: sel ? "#eff6ff" : "#fff", color: sel ? "#1e3a5f" : "#94a3b8" }}>{st.label}</button>);
+                    })}
+                  </div>
+                </div>)}
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button disabled={reviewCategories.length === 0} onClick={async function() {
+                    var cp = cameraPreview;
+                    var cats = reviewCategories;
+                    var addedTo = [];
+                    for (var ci = 0; ci < cats.length; ci++) {
+                      var cat = cats[ci];
+                      var newItem = { id: "custom_" + Date.now() + "_" + ci, name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, rating: cp.rating, itemType: cp.itemType || "packaged", ingredients: cp.ingredients || [], freq: "Daily", isCustom: true };
+                      if (cat === "dinner" && !reviewSideType) { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = cp.itemType === "ingredient" ? (cp.ingredients || []) : [cp.name]; }
+                      if (cat === "dinner" && reviewSideType) { newItem.sideType = reviewSideType; }
+                      var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
+                      var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
+                      var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : cat === "drink" ? "custom_drinks" : cat === "dessert" ? "custom_desserts" : "custom_snacks";
+                      var u = [].concat(listItems, [newItem]); setList(u); await sSet(storageKey, JSON.stringify(u));
+                      addedTo.push(cat);
+                      listItems = u;
+                    }
+                    setFormMsg("✅ Added " + cp.name + " to " + addedTo.join(", "));
+                    setCameraPreview(null); setReviewCategories([]); setReviewSideType("");
+                    setTimeout(function(){setFormMsg("");}, 4000);
+                  }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: reviewCategories.length === 0 ? 0.5 : 1}}>✓ Confirm{reviewCategories.length > 1 ? " (" + reviewCategories.length + " lists)" : ""}</button>
+                  <button onClick={function() { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); }} style={{ padding: "8px 16px", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
+                </div>
+              </div>)}
 
               {/* Bulk import review */}
               {bulkReviewItems && (<div style={{ background: "#fffbeb", borderRadius: 8, padding: 12, marginTop: 10, border: "1px solid #fcd34d" }}>
@@ -6007,7 +6003,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.309.2
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.310.0
       </div>
 
       {/* Floating Ask a Question button */}
