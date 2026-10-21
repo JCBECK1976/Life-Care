@@ -663,7 +663,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.320.0
+// STANDARD BUTTON STYLES v1.321.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -1379,6 +1379,48 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     if (ex.notes) setPrevComment(function(prev) { return prev ? prev + "\n" + ex.notes : ex.notes; });
     if (last && last.note) setPrevComment(function(prev) { return prev ? prev + "\nPrev session: " + last.note : last.note; });
   }, [activeTab]);
+
+  // Auto-refresh companion energy on app load
+  const checkCompanionEnergy = useCallback(async function() {
+    setEnergyLoading(true);
+    try {
+      var ak = await window.ensureApiKey();
+      if (!ak) { setCompanionEnergy({ balance: 0, pct: 0, keyStatus: "no_key", initial: 5, spent: 0 }); setEnergyLoading(false); return; }
+      var pingResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": ak, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1, messages: [{ role: "user", content: "hi" }] }) });
+      var stored = await sGet("companion_energy");
+      if (pingResp.ok) {
+        if (stored) {
+          var parsed = JSON.parse(stored);
+          parsed.keyStatus = "active";
+          setCompanionEnergy(parsed);
+          await sSet("companion_energy", JSON.stringify(parsed));
+        } else {
+          var fresh = { balance: 5.00, initial: 5.00, pct: 100, keyStatus: "active", spent: 0 };
+          setCompanionEnergy(fresh);
+          await sSet("companion_energy", JSON.stringify(fresh));
+        }
+      } else {
+        var errData = null; try { errData = await pingResp.json(); } catch(e2) {}
+        var errType = errData && errData.error ? errData.error.type : "unknown";
+        var status = errType === "authentication_error" ? "invalid_key" : errType === "rate_limit_error" ? "rate_limited" : pingResp.status === 400 ? "active" : "error";
+        if (stored) {
+          var parsed2 = JSON.parse(stored);
+          parsed2.keyStatus = status;
+          if (status === "invalid_key") { parsed2.balance = 0; parsed2.pct = 0; }
+          setCompanionEnergy(parsed2);
+          await sSet("companion_energy", JSON.stringify(parsed2));
+        } else {
+          var bal2 = status === "invalid_key" ? 0 : 5;
+          var en = { balance: bal2, initial: 5, pct: status === "invalid_key" ? 0 : 100, keyStatus: status, spent: 0 };
+          setCompanionEnergy(en);
+          await sSet("companion_energy", JSON.stringify(en));
+        }
+      }
+    } catch(e) { setCompanionEnergy({ balance: 0, pct: 0, keyStatus: "error", initial: 5, spent: 0 }); }
+    setEnergyLoading(false);
+  }, []);
+  useEffect(() => { checkCompanionEnergy(); }, []);
+
   const openLogForm = (day, idx) => {
     window._dualLogState = null;
 
@@ -2699,56 +2741,15 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           {/* ── COMPANION ENERGY ── */}
           {(() => {
             var pct = companionEnergy ? companionEnergy.pct : 0;
-            var bal = companionEnergy ? companionEnergy.balance : 0;
-            var initialBal = companionEnergy ? (companionEnergy.initial || 5) : 5;
             var hasEnergy = companionEnergy !== null;
-            var barColor = pct > 75 ? "#22c55e" : pct > 50 ? "#84cc16" : pct > 25 ? "#eab308" : pct > 10 ? "#f97316" : "#ef4444";
-            var segCount = 10;
-            var filledSegs = hasEnergy ? Math.round(pct / 10) : 0;
             var keyStatus = companionEnergy ? companionEnergy.keyStatus : null;
+            var segCount = 20;
+            var filledSegs = hasEnergy ? Math.round(pct / 5) : 0;
+            var emptySegs = segCount - filledSegs;
 
-            var checkEnergy = async function() {
-              setEnergyLoading(true);
-              try {
-                var ak = await window.ensureApiKey();
-                if (!ak) { setCompanionEnergy({ balance: 0, pct: 0, keyStatus: "no_key" }); setEnergyLoading(false); return; }
-                /* Tiny API ping to verify key is active */
-                var pingResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": ak, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1, messages: [{ role: "user", content: "hi" }] }) });
-                var stored = await sGet("companion_energy");
-                if (pingResp.ok) {
-                  if (stored) {
-                    var parsed = JSON.parse(stored);
-                    parsed.keyStatus = "active";
-                    setCompanionEnergy(parsed);
-                    await sSet("companion_energy", JSON.stringify(parsed));
-                  } else {
-                    var fresh = { balance: 5.00, initial: 5.00, pct: 100, keyStatus: "active", spent: 0 };
-                    setCompanionEnergy(fresh);
-                    await sSet("companion_energy", JSON.stringify(fresh));
-                  }
-                } else {
-                  var errData = null; try { errData = await pingResp.json(); } catch(e2) {}
-                  var errType = errData && errData.error ? errData.error.type : "unknown";
-                  var status = errType === "authentication_error" ? "invalid_key" : errType === "rate_limit_error" ? "rate_limited" : pingResp.status === 400 ? "active" : "error";
-                  if (stored) {
-                    var parsed2 = JSON.parse(stored);
-                    parsed2.keyStatus = status;
-                    if (status === "invalid_key") { parsed2.balance = 0; parsed2.pct = 0; }
-                    setCompanionEnergy(parsed2);
-                    await sSet("companion_energy", JSON.stringify(parsed2));
-                  } else {
-                    var bal2 = status === "invalid_key" ? 0 : 5;
-                    var en = { balance: bal2, initial: 5, pct: status === "invalid_key" ? 0 : 100, keyStatus: status, spent: 0 };
-                    setCompanionEnergy(en);
-                    await sSet("companion_energy", JSON.stringify(en));
-                  }
-                }
-              } catch(e) { setCompanionEnergy({ balance: 0, pct: 0, keyStatus: "error", initial: 5, spent: 0 }); }
-              setEnergyLoading(false);
-            };
-
-            var statusLabel = !hasEnergy ? "—" : keyStatus === "no_key" ? "No API key" : keyStatus === "invalid_key" ? "Invalid key" : keyStatus === "rate_limited" ? "Rate limited" : keyStatus === "error" ? "Connection error" : pct > 75 ? "Fully charged" : pct > 50 ? "Good energy" : pct > 25 ? "Getting low" : pct > 10 ? "Running low" : "Critical — recharge soon";
+            var statusLabel = !hasEnergy ? "—" : keyStatus === "no_key" ? "No API key" : keyStatus === "invalid_key" ? "Invalid key" : keyStatus === "rate_limited" ? "Rate limited" : keyStatus === "error" ? "Connection error" : pct > 50 ? "Good energy" : pct > 20 ? "Getting low" : pct > 0 ? "Running low" : "Empty — recharge needed";
             var statusEmoji = !hasEnergy ? "" : keyStatus === "active" ? "✓ " : keyStatus === "no_key" || keyStatus === "invalid_key" ? "✗ " : "";
+            var pctColor = pct > 20 ? "#22c55e" : pct > 0 ? "#f59e0b" : "#ef4444";
 
             return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "12px 16px", marginBottom: 14 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
@@ -2756,18 +2757,20 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   <span style={{ fontSize: 16 }}>⚡</span>
                   <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Companion Energy</span>
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: hasEnergy ? barColor : "#94a3b8" }}>{energyLoading ? "Checking..." : hasEnergy ? "$" + bal.toFixed(2) : "—"}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: hasEnergy ? pctColor : "#94a3b8" }}>{energyLoading ? "Checking..." : hasEnergy ? Math.round(pct) + "%" : "—"}</div>
               </div>
-              <div style={{ display: "flex", gap: 2, marginBottom: 6 }}>
+              <div style={{ display: "flex", gap: 1, marginBottom: 6 }}>
                 {Array.from({ length: segCount }).map(function(_, i) {
-                  var segFilled = hasEnergy && i < filledSegs;
-                  var segColor = segFilled ? (i < 3 ? "#ef4444" : i < 5 ? "#f97316" : i < 7 ? "#eab308" : i < 9 ? "#84cc16" : "#22c55e") : "#f1f5f9";
-                  return (<div key={i} style={{ flex: 1, height: 8, borderRadius: 2, background: segFilled ? segColor : "#f1f5f9", transition: "background 0.3s ease" }} />);
+                  var isGreen = i < filledSegs && pct > 20;
+                  var isAmber = i < filledSegs && pct <= 20 && pct > 0;
+                  var isEmpty = i >= filledSegs;
+                  var segColor = isEmpty ? "#ef4444" : isAmber ? "#f59e0b" : "#22c55e";
+                  return (<div key={i} style={{ flex: 1, height: 8, borderRadius: i === 0 ? "4px 0 0 4px" : i === segCount - 1 ? "0 4px 4px 0" : 0, background: hasEnergy ? segColor : "#f1f5f9", transition: "background 0.3s ease" }} />);
                 })}
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ fontSize: 10, color: "#94a3b8" }}>{statusEmoji}{statusLabel}</div>
-                <button onClick={checkEnergy} disabled={energyLoading} style={{ background: "none", border: "none", fontSize: 10, color: "#2563eb", cursor: energyLoading ? "not-allowed" : "pointer", padding: "2px 6px" }}>{hasEnergy ? "↻ Refresh" : "⚡ Check"}</button>
+                <button onClick={checkCompanionEnergy} disabled={energyLoading} style={{ background: "none", border: "none", fontSize: 10, color: "#2563eb", cursor: energyLoading ? "not-allowed" : "pointer", padding: "2px 6px" }}>↻ Refresh</button>
               </div>
             </div>);
           })()}
@@ -6395,7 +6398,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.320.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.321.0
       </div>
 
       {/* Floating Ask a Question button */}
