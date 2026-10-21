@@ -661,7 +661,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.315.1
+// STANDARD BUTTON STYLES v1.316.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -985,6 +985,7 @@ function Dashboard() {
   const [userMood, setUserMood] = useState(null);
   const [companionEnergy, setCompanionEnergy] = useState(null);
   const [energyLoading, setEnergyLoading] = useState(false);
+  const [showMyDay, setShowMyDay] = useState(true);
   const [helpEatCat, setHelpEatCat] = useState("");
   const [helpEatText, setHelpEatText] = useState("");
   const [helpEatLoading, setHelpEatLoading] = useState(false);
@@ -2231,28 +2232,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           <button onClick={() => setShowAddPerson(false)} style={{ padding: "8px 10px", background: "transparent", color: "#64748b", border: "1px solid #475569", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>Cancel</button>
         </div>)}
       </div>
-      {/* ── COMPANION ENERGY METER ── */}
-      <div style={{ background: "#fff", padding: "6px 16px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", whiteSpace: "nowrap" }}>⚡ Companion Energy</div>
-        <div style={{ flex: 1, height: 6, background: "#e2e8f0", borderRadius: 3, overflow: "hidden", position: "relative" }}>
-          {companionEnergy !== null && (<div style={{ height: "100%", borderRadius: 3, background: companionEnergy.pct > 50 ? "linear-gradient(90deg, #22c55e, #10b981)" : companionEnergy.pct > 20 ? "linear-gradient(90deg, #eab308, #f59e0b)" : "linear-gradient(90deg, #ef4444, #f97316)", width: companionEnergy.pct + "%", transition: "width 0.5s ease" }} />)}
-        </div>
-        <div style={{ fontSize: 10, fontWeight: 600, color: companionEnergy === null ? "#94a3b8" : companionEnergy.pct > 50 ? "#10b981" : companionEnergy.pct > 20 ? "#f59e0b" : "#ef4444", whiteSpace: "nowrap", minWidth: 40, textAlign: "right" }}>
-          {energyLoading ? "..." : companionEnergy !== null ? "$" + companionEnergy.balance.toFixed(2) : "—"}
-        </div>
-        {companionEnergy === null && !energyLoading && (<button onClick={async function() {
-          setEnergyLoading(true);
-          try {
-            var ak = await window.ensureApiKey();
-            if (!ak) { setCompanionEnergy({ balance: 0, pct: 0 }); setEnergyLoading(false); return; }
-            // Anthropic doesn't have a public balance API, so we'll track usage locally
-            var stored = await sGet("companion_energy");
-            if (stored) { setCompanionEnergy(JSON.parse(stored)); }
-            else { setCompanionEnergy({ balance: 5.00, pct: 100, note: "Set your credit balance in settings" }); await sSet("companion_energy", JSON.stringify({ balance: 5.00, pct: 100 })); }
-          } catch(e) { setCompanionEnergy({ balance: 0, pct: 0 }); }
-          setEnergyLoading(false);
-        }} style={{ fontSize: 9, color: "#64748b", background: "none", border: "1px solid #e2e8f0", borderRadius: 4, padding: "2px 6px", cursor: "pointer", whiteSpace: "nowrap" }}>Check</button>)}
-      </div>
       <div style={{ display: "flex", gap: 0, padding: "0 4px", background: "#fff", borderBottom: "1px solid #e2e8f0", overflowX: "auto" }}>
         {SECS.map(s => (<button key={s.id} onClick={() => { setSection(s.id); setShowOnboarding(false); setSetupTab("profile"); setFbExpanded(false); setEatFbExpanded(false); setHomeFbExpanded(false); setHealthFbExpanded(false); }} style={{ padding: "10px 8px", border: "none", borderBottom: section === s.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 11, fontWeight: section === s.id ? 700 : 500, color: section === s.id ? accent : "#64748b", cursor: "pointer", whiteSpace: "nowrap" }}>{s.l}</button>))}
       </div>
@@ -2263,7 +2242,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         {section === "overview" && (<div>
           {/* Profile */}
           {(() => { const prof = p.profile || {}; const hasBaseline = p.body && p.body.weight && p.body.weight.length > 0; var welcomeMsgs = ["Ready to make today count?", "Let's keep the momentum going!", "Small steps, big results — let's go!", "Your future self will thank you for today.", "Consistency beats perfection — you've got this!", "Every healthy choice adds up. What's first today?", "Welcome back — let's pick up where you left off!", "Progress isn't always visible, but it's always happening.", "You're building something great here — one day at a time.", "Let's check in and keep things moving forward."]; var welcomeIdx = Math.floor((new Date().getHours() * 60 + new Date().getMinutes()) / 144) % welcomeMsgs.length; var firstName = (prof.name || "").split(" ")[0]; var greetHour = new Date().getHours(); var greetWord = greetHour < 12 ? "Good morning" : greetHour < 17 ? "Good afternoon" : "Good evening"; return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginTop: 14, marginBottom: 14, overflow: "hidden" }}>
-            <div style={{ padding: "18px 16px", borderBottom: showOnboarding ? "1px solid #e2e8f0" : "none", background: "linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%)" }}>
+            <div style={{ padding: "18px 16px", borderBottom: showOnboarding ? "1px solid #e2e8f0" : "none" }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em" }}>{firstName ? greetWord + ", " + firstName : "New User"}</div>
               {!showOnboarding && <div style={{ fontSize: 13, color: "#64748b", marginTop: 6, lineHeight: 1.4, fontStyle: "italic" }}>{welcomeMsgs[welcomeIdx]}</div>}
             </div>
@@ -2649,20 +2628,60 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             </div>
           </div>); })()}
 
+          {/* ── COMPANION ENERGY ── */}
+          {(() => {
+            var pct = companionEnergy ? companionEnergy.pct : 0;
+            var bal = companionEnergy ? companionEnergy.balance : 0;
+            var hasEnergy = companionEnergy !== null;
+            var barColor = pct > 75 ? "#22c55e" : pct > 50 ? "#84cc16" : pct > 25 ? "#eab308" : pct > 10 ? "#f97316" : "#ef4444";
+            var segCount = 10;
+            var filledSegs = hasEnergy ? Math.round(pct / 10) : 0;
+            return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "12px 16px", marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 16 }}>⚡</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Companion Energy</span>
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: hasEnergy ? barColor : "#94a3b8" }}>{energyLoading ? "Checking..." : hasEnergy ? "$" + bal.toFixed(2) : "—"}</div>
+              </div>
+              <div style={{ display: "flex", gap: 2, marginBottom: 6 }}>
+                {Array.from({ length: segCount }).map(function(_, i) {
+                  var segFilled = hasEnergy && i < filledSegs;
+                  var segColor = segFilled ? (i < 3 ? "#ef4444" : i < 5 ? "#f97316" : i < 7 ? "#eab308" : i < 9 ? "#84cc16" : "#22c55e") : "#f1f5f9";
+                  return (<div key={i} style={{ flex: 1, height: 8, borderRadius: 2, background: segFilled ? segColor : "#f1f5f9", transition: "background 0.3s ease" }} />);
+                })}
+              </div>
+              {!hasEnergy && !energyLoading && (<button onClick={async function() {
+                setEnergyLoading(true);
+                try {
+                  var ak = await window.ensureApiKey();
+                  if (!ak) { setCompanionEnergy({ balance: 0, pct: 0 }); setEnergyLoading(false); return; }
+                  var stored = await sGet("companion_energy");
+                  if (stored) { setCompanionEnergy(JSON.parse(stored)); }
+                  else { setCompanionEnergy({ balance: 5.00, pct: 100 }); await sSet("companion_energy", JSON.stringify({ balance: 5.00, pct: 100 })); }
+                } catch(e) { setCompanionEnergy({ balance: 0, pct: 0 }); }
+                setEnergyLoading(false);
+              }} style={{ ...btnMuted, width: "100%", justifyContent: "center", gap: 4 }}>⚡ Check Energy</button>)}
+              {hasEnergy && <div style={{ fontSize: 10, color: "#94a3b8", textAlign: "center" }}>{pct > 75 ? "Fully charged" : pct > 50 ? "Good energy" : pct > 25 ? "Getting low" : pct > 10 ? "Running low" : "Critical — recharge soon"}</div>}
+            </div>);
+          })()}
+
           {/* ── MY MOOD ── */}
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "14px 16px", marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 10 }}>My Mood</div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 4 }}>
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "10px 16px", marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Mood</div>
+              {userMood !== null && <div style={{ fontSize: 10, color: MOOD_COLORS[userMood], fontWeight: 600 }}>{MOOD_LABELS[userMood]}</div>}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 3, marginTop: 6 }}>
               {MOOD_EMOJIS.map(function(emoji, idx) {
                 var isSelected = userMood === idx;
                 return (<button key={idx} onClick={async function() {
                   var newMood = userMood === idx ? null : idx;
                   setUserMood(newMood);
                   await sSet("user_mood_" + activeTab, JSON.stringify(newMood));
-                }} title={MOOD_LABELS[idx]} style={{ flex: 1, padding: "8px 0", border: isSelected ? "2px solid " + MOOD_COLORS[idx] : "2px solid transparent", borderRadius: 10, background: isSelected ? MOOD_COLORS[idx] + "18" : "#f8fafc", fontSize: 22, cursor: "pointer", transition: "all 0.2s ease", transform: isSelected ? "scale(1.1)" : "scale(1)", filter: (userMood !== null && !isSelected) ? "grayscale(0.6) opacity(0.5)" : "none" }}>{emoji}</button>);
+                }} title={MOOD_LABELS[idx]} style={{ flex: 1, padding: "4px 0", border: isSelected ? "2px solid " + MOOD_COLORS[idx] : "2px solid transparent", borderRadius: 8, background: isSelected ? MOOD_COLORS[idx] + "18" : "#f8fafc", fontSize: 16, cursor: "pointer", transition: "all 0.2s ease", transform: isSelected ? "scale(1.08)" : "scale(1)", filter: (userMood !== null && !isSelected) ? "grayscale(0.5) opacity(0.5)" : "none" }}>{emoji}</button>);
               })}
             </div>
-            {userMood !== null && <div style={{ fontSize: 11, color: MOOD_COLORS[userMood], fontWeight: 600, textAlign: "center", marginTop: 8 }}>{MOOD_LABELS[userMood]}</div>}
           </div>
 
           {/* ── MY DAY ── */}
@@ -2673,39 +2692,85 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             var todayKey = dayKeys[todayIdx];
             var todayFull = dayFullKeys[todayIdx];
             var todayLabel = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][todayIdx];
-            var todayMeal = null;
-            try {
-              var mk = mealKey(weekStart) + ":" + activeTab;
-              var stored = meals;
-              if (stored && stored[todayKey]) {
-                var entry = stored[todayKey];
-                var dinId = typeof entry === "object" ? entry.d : entry;
-                var allD = allDinners || [];
-                var found = allD.find(function(m) { return m.id === dinId; });
-                todayMeal = found ? found.name : dinId;
-              }
-            } catch(e) {}
+
+            /* ── Eating data ── */
+            var dayMealsObj = (typeof meals[todayKey] === "object" && meals[todayKey] !== null) ? meals[todayKey] : (meals[todayKey] ? { d: meals[todayKey] } : {});
+            var allBfHome = [].concat(BREAKFASTS, customBreakfasts);
+            var allLuHome = [].concat(LUNCHES, customLunches);
+            var allDinHome = [].concat(DINNERS, customMeals);
+            var allSnHome = [].concat(SNACKS, customSnacks);
+            var allDrHome = [].concat(customDrinks);
+            var allDeHome = [].concat(customDesserts);
+            var allFoodHome = [].concat(allBfHome, allLuHome, allDinHome, allSnHome, allDrHome, allDeHome);
+            var findFood = function(id) { if (!id || id === "__empty__") return null; var f = allFoodHome.find(function(x) { return x.id === id; }); return f ? f.name : id; };
+
+            var bfName = findFood(dayMealsObj.b);
+            var luName = findFood(dayMealsObj.l);
+            var dinName = findFood(dayMealsObj.d);
+            var snackNames = [];
+            for (var oi = 1; oi <= 20; oi++) { var sn = findFood(dayMealsObj["o" + oi]); if (sn) snackNames.push(sn); }
+            var drinkNames = [];
+            var drId = findFood(dayMealsObj.dr);
+            if (drId) drinkNames.push(drId);
+            for (var dri = 2; dri <= 5; dri++) { var drn = findFood(dayMealsObj["dr" + dri]); if (drn) drinkNames.push(drn); }
+
+            var eatSlots = [
+              { label: "Breakfast", value: bfName },
+              { label: "Lunch", value: luName },
+              { label: "Dinner", value: dinName },
+              { label: "Snacks", value: snackNames.length > 0 ? snackNames.join(", ") : null },
+              { label: "Drinks", value: drinkNames.length > 0 ? drinkNames.join(", ") : null }
+            ];
+
+            /* ── Exercise data ── */
             var todayExercises = p.exercises && p.exercises[todayFull] ? p.exercises[todayFull] : [];
-            var hasContent = todayMeal || todayExercises.length > 0;
-            return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "14px 16px", marginBottom: 14 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 2 }}>My Day</div>
-              <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10 }}>{todayLabel}</div>
-              {!hasContent && <div style={{ fontSize: 12, color: "#94a3b8", fontStyle: "italic", padding: "8px 0" }}>No meals or exercises planned for today</div>}
-              {todayMeal && (<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: todayExercises.length > 0 ? "1px solid #f1f5f9" : "none" }}>
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Dinner</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginTop: 2 }}>{todayMeal}</div>
+            var sessionNum = todayFull === "sunday" ? "1" : todayFull === "monday" ? "2" : todayFull === "friday" ? "3" : null;
+
+            /* ── Render My Eating sub-panel ── */
+            var renderEating = function() {
+              return (<div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", padding: "8px 10px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", borderRadius: "8px 8px 0 0" }}>My Eating</div>
+                <div style={{ padding: "6px 10px" }}>
+                  {eatSlots.map(function(slot) {
+                    return (<div key={slot.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0", borderBottom: "1px solid #f8fafc" }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 55 }}>{slot.label}</div>
+                      <div style={{ fontSize: 11, color: slot.value ? "#334155" : "#cbd5e1", fontStyle: slot.value ? "normal" : "italic", flex: 1, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{slot.value || "—"}</div>
+                    </div>);
+                  })}
+                  <button onClick={function() { setSection("eating"); setEatDay(todayFull); }} style={{ ...btnMuted, width: "100%", justifyContent: "center", marginTop: 6, gap: 4, fontSize: 11 }}><span style={{ fontSize: 11 }}>📋</span> Open</button>
                 </div>
-                <button onClick={function() { setSection("eating"); setEatDay(todayFull); }} style={{ ...btnMuted, gap: 3 }}>
-                  <span style={{ fontSize: 12 }}>→</span> Go
-                </button>
-              </div>)}
-              {todayExercises.length > 0 && (<div style={{ padding: "8px 0" }}>
-                <div style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Exercise — Session {todayFull === "sunday" ? "1" : todayFull === "monday" ? "2" : todayFull === "friday" ? "3" : ""}</div>
-                <div style={{ fontSize: 12, color: "#334155" }}>{todayExercises.length} exercise{todayExercises.length !== 1 ? "s" : ""} planned</div>
-                <button onClick={function() { setSection("exercise"); setExerciseDay(todayFull); }} style={{ ...btnMuted, marginTop: 6, gap: 3 }}>
-                  <span style={{ fontSize: 12 }}>→</span> Go
-                </button>
+              </div>);
+            };
+
+            /* ── Render My Exercises sub-panel ── */
+            var renderExercises = function() {
+              return (<div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", padding: "8px 10px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", borderRadius: "8px 8px 0 0" }}>My Exercises</div>
+                <div style={{ padding: "6px 10px" }}>
+                  {todayExercises.length === 0 && <div style={{ fontSize: 11, color: "#cbd5e1", fontStyle: "italic", padding: "4px 0" }}>No exercises planned</div>}
+                  {sessionNum && todayExercises.length > 0 && <div style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", padding: "2px 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Session {sessionNum}</div>}
+                  {todayExercises.slice(0, 5).map(function(ex, i) {
+                    return (<div key={i} style={{ fontSize: 11, color: "#334155", padding: "3px 0", borderBottom: "1px solid #f8fafc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ex.name || ex}</div>);
+                  })}
+                  {todayExercises.length > 5 && <div style={{ fontSize: 10, color: "#94a3b8", padding: "2px 0" }}>+{todayExercises.length - 5} more</div>}
+                  <button onClick={function() { setSection("exercise"); setExerciseDay(todayFull); }} style={{ ...btnMuted, width: "100%", justifyContent: "center", marginTop: 6, gap: 4, fontSize: 11 }}><span style={{ fontSize: 11 }}>🏋️</span> Open</button>
+                </div>
+              </div>);
+            };
+
+            return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginBottom: 14, overflow: "hidden" }}>
+              <button onClick={function() { setShowMyDay(!showMyDay); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", background: "none", border: "none", cursor: "pointer" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>My Day</span>
+                  <span style={{ fontSize: 11, color: "#94a3b8" }}>{todayLabel}</span>
+                </div>
+                <span style={{ fontSize: 11, color: "#94a3b8" }}>{showMyDay ? "▲" : "▼"}</span>
+              </button>
+              {showMyDay && (<div style={{ borderTop: "1px solid #e2e8f0" }}>
+                <div style={{ display: "flex", gap: 0 }}>
+                  <div style={{ flex: 1, borderRight: "1px solid #e2e8f0" }}>{renderEating()}</div>
+                  <div style={{ flex: 1 }}>{renderExercises()}</div>
+                </div>
               </div>)}
             </div>);
           })()}
@@ -6206,7 +6271,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.315.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.316.0
       </div>
 
       {/* Floating Ask a Question button */}
