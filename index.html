@@ -697,6 +697,42 @@ window.ensureApiKey = async function() {
   if (ak) { window._anthropicKey = ak; return ak; }
   return "";
 };
+
+/* Track API usage cost against companion energy balance */
+window.trackApiUsage = async function(inputTokens, outputTokens) {
+  try {
+    /* Claude Sonnet 4.6 pricing: $3/M input, $15/M output */
+    var cost = (inputTokens * 3 / 1000000) + (outputTokens * 15 / 1000000);
+    var stored = await sGet("companion_energy");
+    if (!stored) return;
+    var energy = JSON.parse(stored);
+    energy.spent = (energy.spent || 0) + cost;
+    energy.balance = Math.max(0, (energy.initial || 5) - energy.spent);
+    energy.pct = energy.initial > 0 ? Math.round((energy.balance / energy.initial) * 100) : 0;
+    energy.lastUsed = new Date().toISOString();
+    await sSet("companion_energy", JSON.stringify(energy));
+    /* Update state if the app component can see it */
+    if (window._setCompanionEnergy) window._setCompanionEnergy(energy);
+  } catch(e) {}
+};
+
+/* Intercept all Anthropic API calls to track usage automatically */
+var _origFetch = window.fetch;
+window.fetch = function() {
+  var url = arguments[0];
+  if (typeof url === "string" && url.indexOf("api.anthropic.com") !== -1) {
+    return _origFetch.apply(this, arguments).then(function(resp) {
+      var cloned = resp.clone();
+      cloned.json().then(function(data) {
+        if (data && data.usage) {
+          window.trackApiUsage(data.usage.input_tokens || 0, data.usage.output_tokens || 0);
+        }
+      }).catch(function() {});
+      return resp;
+    });
+  }
+  return _origFetch.apply(this, arguments);
+};
 }
 
 // ═══════════════════════════════════════════════════
@@ -984,6 +1020,7 @@ function Dashboard() {
   const [foodCheckerText, setFoodCheckerText] = useState("");
   const [userMood, setUserMood] = useState(null);
   const [companionEnergy, setCompanionEnergy] = useState(null);
+  window._setCompanionEnergy = setCompanionEnergy;
   const [energyLoading, setEnergyLoading] = useState(false);
   const [showMyDay, setShowMyDay] = useState(true);
   const [helpEatCat, setHelpEatCat] = useState("");
@@ -2632,10 +2669,56 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           {(() => {
             var pct = companionEnergy ? companionEnergy.pct : 0;
             var bal = companionEnergy ? companionEnergy.balance : 0;
+            var initialBal = companionEnergy ? (companionEnergy.initial || 5) : 5;
             var hasEnergy = companionEnergy !== null;
             var barColor = pct > 75 ? "#22c55e" : pct > 50 ? "#84cc16" : pct > 25 ? "#eab308" : pct > 10 ? "#f97316" : "#ef4444";
             var segCount = 10;
             var filledSegs = hasEnergy ? Math.round(pct / 10) : 0;
+            var keyStatus = companionEnergy ? companionEnergy.keyStatus : null;
+
+            var checkEnergy = async function() {
+              setEnergyLoading(true);
+              try {
+                var ak = await window.ensureApiKey();
+                if (!ak) { setCompanionEnergy({ balance: 0, pct: 0, keyStatus: "no_key" }); setEnergyLoading(false); return; }
+                /* Tiny API ping to verify key is active */
+                var pingResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": ak, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1, messages: [{ role: "user", content: "hi" }] }) });
+                var stored = await sGet("companion_energy");
+                if (pingResp.ok) {
+                  if (stored) {
+                    var parsed = JSON.parse(stored);
+                    parsed.keyStatus = "active";
+                    setCompanionEnergy(parsed);
+                    await sSet("companion_energy", JSON.stringify(parsed));
+                  } else {
+                    var fresh = { balance: 5.00, initial: 5.00, pct: 100, keyStatus: "active", spent: 0 };
+                    setCompanionEnergy(fresh);
+                    await sSet("companion_energy", JSON.stringify(fresh));
+                  }
+                } else {
+                  var errData = null; try { errData = await pingResp.json(); } catch(e2) {}
+                  var errType = errData && errData.error ? errData.error.type : "unknown";
+                  var status = errType === "authentication_error" ? "invalid_key" : errType === "rate_limit_error" ? "rate_limited" : pingResp.status === 400 ? "active" : "error";
+                  if (stored) {
+                    var parsed2 = JSON.parse(stored);
+                    parsed2.keyStatus = status;
+                    if (status === "invalid_key") { parsed2.balance = 0; parsed2.pct = 0; }
+                    setCompanionEnergy(parsed2);
+                    await sSet("companion_energy", JSON.stringify(parsed2));
+                  } else {
+                    var bal2 = status === "invalid_key" ? 0 : 5;
+                    var en = { balance: bal2, initial: 5, pct: status === "invalid_key" ? 0 : 100, keyStatus: status, spent: 0 };
+                    setCompanionEnergy(en);
+                    await sSet("companion_energy", JSON.stringify(en));
+                  }
+                }
+              } catch(e) { setCompanionEnergy({ balance: 0, pct: 0, keyStatus: "error", initial: 5, spent: 0 }); }
+              setEnergyLoading(false);
+            };
+
+            var statusLabel = !hasEnergy ? "—" : keyStatus === "no_key" ? "No API key" : keyStatus === "invalid_key" ? "Invalid key" : keyStatus === "rate_limited" ? "Rate limited" : keyStatus === "error" ? "Connection error" : pct > 75 ? "Fully charged" : pct > 50 ? "Good energy" : pct > 25 ? "Getting low" : pct > 10 ? "Running low" : "Critical — recharge soon";
+            var statusEmoji = !hasEnergy ? "" : keyStatus === "active" ? "✓ " : keyStatus === "no_key" || keyStatus === "invalid_key" ? "✗ " : "";
+
             return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "12px 16px", marginBottom: 14 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -2651,18 +2734,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   return (<div key={i} style={{ flex: 1, height: 8, borderRadius: 2, background: segFilled ? segColor : "#f1f5f9", transition: "background 0.3s ease" }} />);
                 })}
               </div>
-              {!hasEnergy && !energyLoading && (<button onClick={async function() {
-                setEnergyLoading(true);
-                try {
-                  var ak = await window.ensureApiKey();
-                  if (!ak) { setCompanionEnergy({ balance: 0, pct: 0 }); setEnergyLoading(false); return; }
-                  var stored = await sGet("companion_energy");
-                  if (stored) { setCompanionEnergy(JSON.parse(stored)); }
-                  else { setCompanionEnergy({ balance: 5.00, pct: 100 }); await sSet("companion_energy", JSON.stringify({ balance: 5.00, pct: 100 })); }
-                } catch(e) { setCompanionEnergy({ balance: 0, pct: 0 }); }
-                setEnergyLoading(false);
-              }} style={{ ...btnMuted, width: "100%", justifyContent: "center", gap: 4 }}>⚡ Check Energy</button>)}
-              {hasEnergy && <div style={{ fontSize: 10, color: "#94a3b8", textAlign: "center" }}>{pct > 75 ? "Fully charged" : pct > 50 ? "Good energy" : pct > 25 ? "Getting low" : pct > 10 ? "Running low" : "Critical — recharge soon"}</div>}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ fontSize: 10, color: "#94a3b8" }}>{statusEmoji}{statusLabel}</div>
+                <button onClick={checkEnergy} disabled={energyLoading} style={{ background: "none", border: "none", fontSize: 10, color: "#2563eb", cursor: energyLoading ? "not-allowed" : "pointer", padding: "2px 6px" }}>{hasEnergy ? "↻ Refresh" : "⚡ Check"}</button>
+              </div>
             </div>);
           })()}
 
