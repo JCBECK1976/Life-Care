@@ -2731,31 +2731,35 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
             /* ── Render My Eating sub-panel ── */
             var renderEating = function() {
-              return (<div style={{ flex: 1, minWidth: 0 }}>
+              return (<div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", padding: "8px 10px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", borderRadius: "8px 8px 0 0" }}>My Eating</div>
-                <div style={{ padding: "6px 10px" }}>
+                <div style={{ padding: "6px 10px", flex: 1, display: "flex", flexDirection: "column" }}>
+                  <div style={{ flex: 1 }}>
                   {eatSlots.map(function(slot) {
                     return (<div key={slot.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0", borderBottom: "1px solid #f8fafc" }}>
                       <div style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 55 }}>{slot.label}</div>
                       <div style={{ fontSize: 11, color: slot.value ? "#334155" : "#cbd5e1", fontStyle: slot.value ? "normal" : "italic", flex: 1, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{slot.value || "—"}</div>
                     </div>);
                   })}
-                  <button onClick={function() { setSection("meals"); setEatDay(todayFull); }} style={{ ...btnMuted, width: "100%", justifyContent: "center", marginTop: 6, gap: 4, fontSize: 11 }}><span style={{ fontSize: 11 }}>📋</span> Open</button>
+                  </div>
+                  <button onClick={function() { setSection("meals"); setEatDay(todayFull); }} style={{ ...btnMuted, width: "100%", justifyContent: "center", marginTop: 6, gap: 4, fontSize: 11 }}><span style={{ fontSize: 11 }}>🍽️</span> Open</button>
                 </div>
               </div>);
             };
 
             /* ── Render My Exercises sub-panel ── */
             var renderExercises = function() {
-              return (<div style={{ flex: 1, minWidth: 0 }}>
+              return (<div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", padding: "8px 10px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", borderRadius: "8px 8px 0 0" }}>My Exercises</div>
-                <div style={{ padding: "6px 10px" }}>
+                <div style={{ padding: "6px 10px", flex: 1, display: "flex", flexDirection: "column" }}>
+                  <div style={{ flex: 1 }}>
                   {todayExercises.length === 0 && <div style={{ fontSize: 11, color: "#cbd5e1", fontStyle: "italic", padding: "4px 0" }}>No exercises planned</div>}
                   {sessionNum && todayExercises.length > 0 && <div style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", padding: "2px 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Session {sessionNum}</div>}
                   {todayExercises.slice(0, 5).map(function(ex, i) {
                     return (<div key={i} style={{ fontSize: 11, color: "#334155", padding: "3px 0", borderBottom: "1px solid #f8fafc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ex.name || ex}</div>);
                   })}
                   {todayExercises.length > 5 && <div style={{ fontSize: 10, color: "#94a3b8", padding: "2px 0" }}>+{todayExercises.length - 5} more</div>}
+                  </div>
                   <button onClick={function() { setSection("weights"); setExerciseDay(todayFull); }} style={{ ...btnMuted, width: "100%", justifyContent: "center", marginTop: 6, gap: 4, fontSize: 11 }}><span style={{ fontSize: 11 }}>🏋️</span> Open</button>
                 </div>
               </div>);
