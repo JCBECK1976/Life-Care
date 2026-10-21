@@ -762,7 +762,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.325.0
+// STANDARD BUTTON STYLES v1.325.1
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -2916,7 +2916,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             var allDrHome = [].concat(customDrinks);
             var allDeHome = [].concat(customDesserts);
             var allFoodHome = [].concat(allBfHome, allLuHome, allDinHome, allSnHome, allDrHome, allDeHome);
-            var findFood = function(id) { if (!id || id === "__empty__") return null; var f = allFoodHome.find(function(x) { return x.id === id; }); return f ? f.name : id; };
+            var findFood = function(id) { if (!id || id === "__empty__") return null; var f = allFoodHome.find(function(x) { return x.id === id; }); if (f) return f.name; /* Format raw IDs: replace underscores, title case */ return id.replace(/_/g, " ").replace(/\b\w/g, function(c) { return c.toUpperCase(); }); };
 
             var bfName = findFood(dayMealsObj.b);
             var luName = findFood(dayMealsObj.l);
@@ -3312,7 +3312,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         {section === "weights" && (() => {
           const allExNames = [...DEFAULT_EXERCISES, ...customExercises].sort();
           const days = Object.keys(p.exercises);
-          const dayLabels = { sunday: "Sunday — Legs / Calves / Row", monday: "Monday — Back / Chest / Shoulders / Core", friday: "Friday — Arms / Core" };
+          const dayLabels = { sunday: "Sunday", monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday", thursday: "Thursday", friday: "Friday", saturday: "Saturday" };
           const currentWeek = calcWeek(data.config.trainingStart);
           const addExerciseToDay = async (day, name) => {
             const nd = JSON.parse(JSON.stringify(data));
@@ -3676,7 +3676,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   ) : (
                     /* ---- SEARCH/SELECT LIST ---- */
                     <div style={{padding:8,background:"#f8fafc",borderRadius:8,border:"1px solid #e2e8f0"}}>
-                      <div style={{fontSize:11,fontWeight:700,marginBottom:6}}>Add Exercise to {dayLabels[day] || day}</div>
+                      <div style={{fontSize:11,fontWeight:700,marginBottom:6}}>Add Exercise</div>
                       <input value={addExSearch} onChange={function(e){setAddExSearch(e.target.value);}} placeholder="Search exercises or type new name..." style={{width:"100%",padding:"6px 8px",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,marginBottom:6,boxSizing:"border-box"}} autoFocus />
                       {addExSearch && (() => {
                         var term = addExSearch.toLowerCase();
@@ -6647,7 +6647,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.325.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.325.1
       </div>
 
       {/* Floating Ask a Question button */}
