@@ -425,14 +425,113 @@ const DAY_TYPE = { sun: "home", mon: "home", tue: "home", wed: "office", thu: "o
 
 const SNACKS = [];
 
-const DEFAULT_EXERCISES = [
-  "Leg Extension", "Standing Calf Raise", "Single Leg Calf Raise", "Squat Row",
-  "Cable Crunch", "Chest Press", "Lat Pulldown", "Shoulder Press",
-  "Seated Cable Row", "Butterfly", "Lateral Raise", "Bicep Curl",
-  "Tricep Pushdown", "Face Pull", "Upright Row", "Single Arm Curl",
-  "Leg Press", "Leg Curl", "Seated Calf Raise", "Reverse Fly",
-  "Cable Crossover", "Hammer Curl", "Overhead Tricep Extension",
+// Exercise type definitions: each type has its own metrics and labels
+const EXERCISE_TYPES = {
+  weights: { label: "Weights", metric1: "weight", metric1Label: "Weight (kg)", metric2: "reps", metric2Label: "Reps", hasSets: true, defaultSets: 3, defaultM1: "0kg", defaultM2: "10", progKey: "w", progKey2: "r", chartLabel1: "Weight (kg)", chartLabel2: "Set Total (kg)" },
+  bodyweight: { label: "Bodyweight", metric1: "none", metric1Label: "", metric2: "reps", metric2Label: "Reps", hasSets: true, defaultSets: 3, defaultM1: "BW", defaultM2: "10", progKey: "w", progKey2: "r", chartLabel1: "Reps per set", chartLabel2: "Total reps" },
+  timed_hold: { label: "Timed Hold", metric1: "none", metric1Label: "", metric2: "duration", metric2Label: "Duration (sec)", hasSets: true, defaultSets: 3, defaultM1: "BW", defaultM2: "30", progKey: "w", progKey2: "r", chartLabel1: "Hold (sec)", chartLabel2: "Total (sec)" },
+  cardio: { label: "Cardio", metric1: "duration", metric1Label: "Duration (min)", metric2: "distance", metric2Label: "Distance (km)", hasSets: false, defaultSets: 1, defaultM1: "20", defaultM2: "0", progKey: "w", progKey2: "r", chartLabel1: "Duration (min)", chartLabel2: "Distance (km)" },
+  walking: { label: "Walking", metric1: "duration", metric1Label: "Duration (min)", metric2: "distance", metric2Label: "Distance (km)", hasSets: false, defaultSets: 1, defaultM1: "30", defaultM2: "0", progKey: "w", progKey2: "r", chartLabel1: "Duration (min)", chartLabel2: "Distance (km)" },
+  sports: { label: "Sports/Activity", metric1: "duration", metric1Label: "Duration (min)", metric2: "none", metric2Label: "", hasSets: false, defaultSets: 1, defaultM1: "60", defaultM2: "", progKey: "w", progKey2: "r", chartLabel1: "Duration (min)", chartLabel2: "" },
+  stretching: { label: "Stretching/Mobility", metric1: "none", metric1Label: "", metric2: "duration", metric2Label: "Duration (sec)", hasSets: true, defaultSets: 3, defaultM1: "BW", defaultM2: "30", progKey: "w", progKey2: "r", chartLabel1: "Hold (sec)", chartLabel2: "Total (sec)" }
+};
+
+// Comprehensive exercise database with type metadata
+const EXERCISE_DATABASE = [
+  // Weights — Machine/Cable
+  { name: "Leg Extension", type: "weights", category: "Legs" },
+  { name: "Leg Press", type: "weights", category: "Legs" },
+  { name: "Leg Curl", type: "weights", category: "Legs" },
+  { name: "Standing Calf Raise", type: "weights", category: "Calves" },
+  { name: "Single Leg Calf Raise", type: "weights", category: "Calves" },
+  { name: "Seated Calf Raise", type: "weights", category: "Calves" },
+  { name: "Squat Row", type: "weights", category: "Compound" },
+  { name: "Cable Crunch", type: "weights", category: "Core" },
+  { name: "Chest Press", type: "weights", category: "Chest" },
+  { name: "Lat Pulldown", type: "weights", category: "Back" },
+  { name: "Shoulder Press", type: "weights", category: "Shoulders" },
+  { name: "Seated Cable Row", type: "weights", category: "Back" },
+  { name: "Butterfly", type: "weights", category: "Chest" },
+  { name: "Lateral Raise", type: "weights", category: "Shoulders" },
+  { name: "Bicep Curl", type: "weights", category: "Arms" },
+  { name: "Tricep Pushdown", type: "weights", category: "Arms" },
+  { name: "Face Pull", type: "weights", category: "Back" },
+  { name: "Upright Row", type: "weights", category: "Shoulders" },
+  { name: "Single Arm Curl", type: "weights", category: "Arms" },
+  { name: "Reverse Fly", type: "weights", category: "Back" },
+  { name: "Cable Crossover", type: "weights", category: "Chest" },
+  { name: "Hammer Curl", type: "weights", category: "Arms" },
+  { name: "Overhead Tricep Extension", type: "weights", category: "Arms" },
+  // Weights — Free weights
+  { name: "Dumbbell Bench Press", type: "weights", category: "Chest" },
+  { name: "Dumbbell Row", type: "weights", category: "Back" },
+  { name: "Dumbbell Shoulder Press", type: "weights", category: "Shoulders" },
+  { name: "Dumbbell Lateral Raise", type: "weights", category: "Shoulders" },
+  { name: "Dumbbell Bicep Curl", type: "weights", category: "Arms" },
+  { name: "Barbell Squat", type: "weights", category: "Legs" },
+  { name: "Barbell Deadlift", type: "weights", category: "Compound" },
+  { name: "Barbell Row", type: "weights", category: "Back" },
+  // Bodyweight
+  { name: "Push Up", type: "bodyweight", category: "Chest" },
+  { name: "Pull Up", type: "bodyweight", category: "Back" },
+  { name: "Chin Up", type: "bodyweight", category: "Back" },
+  { name: "Dip", type: "bodyweight", category: "Arms" },
+  { name: "Bodyweight Squat", type: "bodyweight", category: "Legs" },
+  { name: "Lunge", type: "bodyweight", category: "Legs" },
+  { name: "Step Up", type: "bodyweight", category: "Legs" },
+  { name: "Glute Bridge", type: "bodyweight", category: "Legs" },
+  { name: "Crunch", type: "bodyweight", category: "Core" },
+  { name: "Sit Up", type: "bodyweight", category: "Core" },
+  { name: "Leg Raise", type: "bodyweight", category: "Core" },
+  { name: "Mountain Climber", type: "bodyweight", category: "Core" },
+  { name: "Burpee", type: "bodyweight", category: "Compound" },
+  { name: "Jumping Jack", type: "bodyweight", category: "Cardio" },
+  // Timed holds
+  { name: "Plank", type: "timed_hold", category: "Core" },
+  { name: "Side Plank", type: "timed_hold", category: "Core" },
+  { name: "Wall Sit", type: "timed_hold", category: "Legs" },
+  { name: "Dead Hang", type: "timed_hold", category: "Back" },
+  { name: "Hollow Hold", type: "timed_hold", category: "Core" },
+  // Cardio
+  { name: "Running", type: "cardio", category: "Cardio" },
+  { name: "Cycling", type: "cardio", category: "Cardio" },
+  { name: "Rowing Machine", type: "cardio", category: "Cardio" },
+  { name: "Cross Trainer", type: "cardio", category: "Cardio" },
+  { name: "Stair Climber", type: "cardio", category: "Cardio" },
+  { name: "Skipping Rope", type: "cardio", category: "Cardio" },
+  { name: "Swimming", type: "cardio", category: "Cardio" },
+  // Walking
+  { name: "Walking", type: "walking", category: "Walking" },
+  { name: "Dog Walking", type: "walking", category: "Walking" },
+  { name: "Hiking", type: "walking", category: "Walking" },
+  // Sports
+  { name: "Football", type: "sports", category: "Sports" },
+  { name: "Tennis", type: "sports", category: "Sports" },
+  { name: "Badminton", type: "sports", category: "Sports" },
+  { name: "Basketball", type: "sports", category: "Sports" },
+  { name: "Golf", type: "sports", category: "Sports" },
+  { name: "Yoga", type: "sports", category: "Sports" },
+  { name: "Pilates", type: "sports", category: "Sports" },
+  // Stretching/Mobility
+  { name: "Hamstring Stretch", type: "stretching", category: "Stretching" },
+  { name: "Quad Stretch", type: "stretching", category: "Stretching" },
+  { name: "Hip Flexor Stretch", type: "stretching", category: "Stretching" },
+  { name: "Shoulder Stretch", type: "stretching", category: "Stretching" },
+  { name: "Cat-Cow Stretch", type: "stretching", category: "Stretching" },
+  { name: "Foam Rolling", type: "stretching", category: "Stretching" }
 ];
+
+// Backwards-compatible: extract just names for existing code that uses allExNames
+const DEFAULT_EXERCISES = EXERCISE_DATABASE.map(function(e) { return e.name; });
+
+// Helper: look up exercise type from database or custom exercises
+function getExerciseType(name) {
+  var found = EXERCISE_DATABASE.find(function(e) { return e.name === name; });
+  return found ? found.type : "weights"; // default to weights for legacy exercises
+}
+function getExerciseTypeConfig(typeName) {
+  return EXERCISE_TYPES[typeName] || EXERCISE_TYPES.weights;
+}
 
 const DEFAULT_MEDS = [
   "Levothyroxine", "Atorvastatin", "Simvastatin", "Rosuvastatin", "Citalopram",
@@ -663,7 +762,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.323.0
+// STANDARD BUTTON STYLES v1.324.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -1016,6 +1115,7 @@ function Dashboard() {
   const [addExOpen, setAddExOpen] = useState(false);
   const [addExLoading, setAddExLoading] = useState(false);
   const [addExSearch, setAddExSearch] = useState("");
+  const [addExConfirm, setAddExConfirm] = useState(null); // {name, type, sets, m1, m2, progression, notes, isCustom}
   const [foodCheckerPreview, setFoodCheckerPreview] = useState(null);
   const [foodCheckerLoading, setFoodCheckerLoading] = useState(false);
   const [foodCheckerCategory, setFoodCheckerCategory] = useState("");
@@ -3314,8 +3414,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     ) : (<>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }} onClick={function() { setEditExercise({ day: day, idx: i }); }}>{ex.name} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span> <span style={{ fontSize: 9, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap" }}>{sLabel(ex.status)}</span></div>
-                          <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>{ex.current} · {ex.reps}</div>
+                          <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }} onClick={function() { var curType=ex.exType||getExerciseType(ex.name);var tc=getExerciseTypeConfig(curType);var curM2=(ex.reps||tc.defaultM2).replace(/x\d+$/,"");setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:ex.current||tc.defaultM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});setAddExOpen(false); }}>{ex.name} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span> <span style={{ fontSize: 9, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap" }}>{sLabel(ex.status)}</span></div>
+                          <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>{ex.current} · {ex.reps}{ex.exType && ex.exType !== "weights" && <span style={{fontSize:9,color:"#94a3b8",marginLeft:6}}>{EXERCISE_TYPES[ex.exType] ? EXERCISE_TYPES[ex.exType].label : ""}</span>}</div>
                           {ex.target && <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 600, marginTop: 3 }}>{ex._userOverride && <span onClick={function(){alert("User override: this target was set by your notes, not the AI recommendation.");}} style={{cursor:"pointer",marginRight:4}}>⚠️</span>}{ex._from ? ex._from + " → " : ""}{ex.target}</div>}
                         </div>
                         <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0,alignItems:"flex-end"}}>
@@ -3340,8 +3440,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               </div>)}
               {prev && <button onClick={() => { setEditPrev(!editPrev); if (!editPrev) { setLogSets([{ w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[0]||"") }, { w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[1]||"") }, { w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[2]||"") }]); setLogWeek(String(prev.wk)); } else { setLogSets([{ w: prev.w.replace("kg",""), r: "" }, { w: prev.w.replace("kg",""), r: "" }, { w: prev.w.replace("kg",""), r: "" }]); (function() { var mwk = 0; var cex = data[activeTab].exercises[logEx.day][logEx.idx]; if (cex && cex.prog) { for (var mi = 0; mi < cex.prog.length; mi++) { if (cex.prog[mi].wk > mwk) mwk = cex.prog[mi].wk; } } setLogWeek(String(mwk > 0 ? mwk + 1 : calcWeek(data.config.trainingStart))); })(); } }} style={{ ...btnS, marginBottom: 8, fontSize: 11, background: editPrev ? "#fef3c7" : "#f1f5f9" }}>{editPrev ? "Cancel Edit — Log New Instead" : "Edit Previous Entry"}</button>}
               <div style={{ marginBottom: 8 }}><label style={labelStyle}>Week</label><input type="number" value={logWeek} onChange={e => setLogWeek(e.target.value)} style={{ ...inputStyle, width: 80 }} /></div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Sets (weight kg x reps)</div>
-              {logSets.map((s, i) => (<div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}><span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", width: 20 }}>S{i + 1}</span><input type="number" placeholder="kg" value={s.w} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], w: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} /><span style={{ color: "#94a3b8" }}>×</span><input type="number" placeholder="reps" value={s.r} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], r: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} /></div>))}
+              {(() => { var exTypeName = ex.exType || getExerciseType(ex.name); var etc = getExerciseTypeConfig(exTypeName); var numSets = ex.sets || 3; var showM1 = etc.metric1 !== "none"; var m1ph = etc.metric1Label ? etc.metric1Label.replace(/\s*\(.*\)/,"") : "value"; var m2ph = etc.metric2Label ? etc.metric2Label.replace(/\s*\(.*\)/,"") : "value"; var showM2 = etc.metric2 !== "none"; var setsLabel = etc.hasSets ? "Sets" : "Log"; return (<div><div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>{etc.hasSets ? setsLabel + " (" + (showM1 ? m1ph : "") + (showM1 && showM2 ? " × " : "") + (showM2 ? m2ph : "") + ")" : "Log (" + (showM1 ? m1ph : "") + (showM1 && showM2 ? " / " : "") + (showM2 ? m2ph : "") + ")"}</div>
+              {logSets.slice(0, etc.hasSets ? numSets : 1).map((s, i) => (<div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}>{etc.hasSets && <span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", width: 20 }}>S{i + 1}</span>}{showM1 && <input type="number" placeholder={m1ph} value={s.w} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], w: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} />}{showM1 && showM2 && <span style={{ color: "#94a3b8" }}>×</span>}{showM2 && <input type="number" placeholder={m2ph} value={s.r} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], r: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} />}</div>))}</div>); })()}
               
               <div style={{ marginTop: 8 }}>
                 <label style={labelStyle}>Progression</label>
@@ -3425,9 +3525,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       <span style={{ fontSize: 10, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 8px", borderRadius: 20 }}>{sLabel(ex.status)}</span>
                     </div>
                     {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "4px 8px", borderRadius: 4, marginBottom: 6 }}>{ex.notes}</div>}
-                    <div style={{ display: "flex", gap: 6, padding: "3px 0", marginBottom: 2, fontSize: 9, color: "#94a3b8", fontWeight: 600 }}>
-                      <span style={{ width: 40 }}>WEEK</span><span style={{ width: 55 }}>WEIGHT</span><span style={{ width: 65 }}>REPS</span><span style={{ flex: 1 }}>NOTES</span><span style={{ width: 20 }}></span>
-                    </div>
+                    {(() => { var _etc = getExerciseTypeConfig(ex.exType || getExerciseType(ex.name)); var _h1 = _etc.metric1 !== "none" ? _etc.metric1Label.replace(/\s*\(.*\)/,"").toUpperCase() : ""; var _h2 = _etc.metric2 !== "none" ? _etc.metric2Label.replace(/\s*\(.*\)/,"").toUpperCase() : ""; return (<div style={{ display: "flex", gap: 6, padding: "3px 0", marginBottom: 2, fontSize: 9, color: "#94a3b8", fontWeight: 600 }}>
+                      <span style={{ width: 40 }}>WEEK</span>{_h1 && <span style={{ width: 55 }}>{_h1}</span>}{_h2 && <span style={{ width: 65 }}>{_h2}</span>}<span style={{ flex: 1 }}>NOTES</span><span style={{ width: 20 }}></span>
+                    </div>); })()}
                     {ex.prog && ex.prog.slice().reverse().slice(0, selectedEx && selectedEx.showAll ? 999 : 4).map(function(pr, pi) { var realPi = ex.prog.length - 1 - pi; return (<div key={pi} style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
                       <input defaultValue={pr.wk} onBlur={function(e) { updateProg(day, exIdx, realPi, "wk", parseInt(e.target.value) || pr.wk); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
                       <input defaultValue={pr.w} onBlur={function(e) { updateProg(day, exIdx, realPi, "w", e.target.value); }} style={{ width: 55, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
@@ -3442,10 +3542,32 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
                     
                     {ex.prog && ex.prog.length >= 2 && (() => {
+                      var _chartTC = getExerciseTypeConfig(ex.exType || getExerciseType(ex.name));
+                      var _numSets = ex.sets || 3;
                       var repData = ex.prog.map(function(pr) { var w = parseFloat(pr.w) || 0; return { wk: pr.wk, v: w }; });
-                      var setData = ex.prog.map(function(pr) { var w = parseFloat(pr.w) || 0; var sets = 3; return { wk: pr.wk, v: w * sets }; });
+                      var chartSeries = [];
+                      if (_chartTC.metric1 !== "none") {
+                        chartSeries.push({ label: _chartTC.chartLabel1, color: accent, data: repData });
+                        if (_chartTC.hasSets && _numSets > 1) {
+                          var setData = ex.prog.map(function(pr) { var w = parseFloat(pr.w) || 0; return { wk: pr.wk, v: w * _numSets }; });
+                          chartSeries.push({ label: _chartTC.chartLabel2, color: "#f59e0b", data: setData });
+                        }
+                      }
+                      if (_chartTC.metric2 !== "none" && _chartTC.metric1 === "none") {
+                        var m2Data = ex.prog.map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r }; });
+                        chartSeries.push({ label: _chartTC.chartLabel1, color: accent, data: m2Data });
+                        if (_chartTC.hasSets && _numSets > 1) {
+                          var totalData = ex.prog.map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r * _numSets }; });
+                          chartSeries.push({ label: _chartTC.chartLabel2, color: "#f59e0b", data: totalData });
+                        }
+                      }
+                      if (_chartTC.chartLabel2 && _chartTC.metric1 !== "none" && _chartTC.metric2 !== "none" && !_chartTC.hasSets) {
+                        var m2Data2 = ex.prog.map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r }; });
+                        chartSeries.push({ label: _chartTC.chartLabel2, color: "#f59e0b", data: m2Data2 });
+                      }
+                      if (chartSeries.length === 0) return null;
                       return (<div style={{ marginTop: 12 }}>
-                        <FullChart title={ex.name + " Progress"} series={[{ label: "Rep Weight (kg)", color: accent, data: repData }, { label: "Set Total (kg)", color: "#f59e0b", data: setData }]} height={140} />
+                        <FullChart title={ex.name + " Progress"} series={chartSeries} height={140} />
                       </div>);
                     })()}
                     {ex.prog && ex.prog.length < 2 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12, marginTop: 8 }}>Need 2+ weeks of data to show chart</div>}
@@ -3456,7 +3578,14 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     <div style={{marginTop:12,paddingTop:8,borderTop:"1px solid #e2e8f0"}}>
                       <div style={{fontSize:11,fontWeight:700,color:"#0f172a",marginBottom:6}}>Exercise Settings</div>
                       <div style={{display:"flex",gap:6}}>
-                        <button onClick={function(){var newName=prompt("Rename exercise:",ex.name);if(newName&&newName.trim()){var nd=JSON.parse(JSON.stringify(data));var exs=nd[activeTab].exercises[day];if(exs&&exs[i]){exs[i].name=newName.trim();saveData(nd);}}}} style={{...btnEdit,flex:1}}>✎ Rename</button>
+                        <button onClick={function(){
+                          var curType = ex.exType || getExerciseType(ex.name);
+                          var tc = getExerciseTypeConfig(curType);
+                          var curM1 = ex.current || tc.defaultM1;
+                          var curM2 = (ex.reps || tc.defaultM2).replace(/x\d+$/,"");
+                          setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:curM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});
+                          setAddExOpen(false);
+                        }} style={{...btnEdit,flex:1}}>✎ Edit</button>
                         <button onClick={async function(){if(confirm("Delete "+ex.name+"?\n\nThis will permanently remove this exercise and all its progress history. This cannot be undone.")){var nd=JSON.parse(JSON.stringify(data));var exs=nd[activeTab].exercises[day];if(exs){exs.splice(i,1);await saveData(nd);setSelectedEx(null);setLogEx(null);}}}} style={{...btnDelete,flex:1}}>🗑 Delete</button>
                       </div>
                     </div>
@@ -3470,41 +3599,144 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
                 
                 <div style={{padding:"8px 0",borderTop:"1px solid #e2e8f0"}}>
-                  {!addExOpen ? (
-                    <button onClick={function(){setAddExOpen(true);setAddExSearch("");}} style={{...btnActionLg,width:"100%",borderRadius:8}}>+ Add Exercise</button>
+                  {!addExOpen && !addExConfirm ? (
+                    <button onClick={function(){setAddExOpen(true);setAddExSearch("");setAddExConfirm(null);}} style={{...btnActionLg,width:"100%",borderRadius:8}}>+ Add Exercise</button>
+                  ) : addExConfirm ? (
+                    /* ---- CONFIRMATION FORM ---- */
+                    <div style={{padding:10,background:"#fff",borderRadius:10,border:"2px solid "+accent}}>
+                      <div style={{fontSize:11,fontWeight:700,color:accent,marginBottom:2}}>{(p.profile && p.profile.name) || activeTab}</div>
+                      <div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Confirm: {addExConfirm.name}</div>
+                      {addExLoading && <div style={{fontSize:11,color:"#64748b",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Getting AI recommendations...</div>}
+                      <div style={{display:"flex",gap:8,marginBottom:8}}>
+                        <div style={{flex:1}}>
+                          <label style={labelStyle}>Type</label>
+                          <select value={addExConfirm.type} onChange={function(e){var tc=getExerciseTypeConfig(e.target.value);setAddExConfirm(Object.assign({},addExConfirm,{type:e.target.value,sets:tc.defaultSets,m1:tc.defaultM1,m2:tc.defaultM2}));}} style={{...inputStyle,width:"100%"}}>
+                            {Object.keys(EXERCISE_TYPES).map(function(t){return <option key={t} value={t}>{EXERCISE_TYPES[t].label}</option>;})}
+                          </select>
+                        </div>
+                        <div style={{width:70}}>
+                          <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].hasSets ? "Sets" : "Sessions"}</label>
+                          <input type="number" value={addExConfirm.sets} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{sets:parseInt(e.target.value)||1}));}} style={{...inputStyle,width:"100%"}} min="1" max="10" />
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:8,marginBottom:8}}>
+                        {EXERCISE_TYPES[addExConfirm.type].metric1 !== "none" && (
+                          <div style={{flex:1}}>
+                            <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].metric1Label}</label>
+                            <input value={addExConfirm.m1} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{m1:e.target.value}));}} style={{...inputStyle,width:"100%"}} />
+                          </div>
+                        )}
+                        {EXERCISE_TYPES[addExConfirm.type].metric2 !== "none" && (
+                          <div style={{flex:1}}>
+                            <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].metric2Label}</label>
+                            <input value={addExConfirm.m2} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{m2:e.target.value}));}} style={{...inputStyle,width:"100%"}} />
+                          </div>
+                        )}
+                      </div>
+                      <div style={{marginBottom:8}}>
+                        <label style={labelStyle}>Progression Rules</label>
+                        <textarea value={addExConfirm.progression} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{progression:e.target.value}));}} style={{...inputStyle,width:"100%",minHeight:60,resize:"vertical",boxSizing:"border-box"}} />
+                      </div>
+                      <div style={{marginBottom:10}}>
+                        <label style={labelStyle}>Equipment / Form Notes</label>
+                        <textarea value={addExConfirm.notes||""} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{notes:e.target.value}));}} placeholder="Optional notes..." style={{...inputStyle,width:"100%",minHeight:40,resize:"vertical",boxSizing:"border-box"}} />
+                      </div>
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={async function(){
+                          var c = addExConfirm; var tc = getExerciseTypeConfig(c.type);
+                          var nd = JSON.parse(JSON.stringify(data));
+                          var m1Val = tc.metric1 === "none" ? (tc.label === "Bodyweight" || tc.label === "Timed Hold" || tc.label === "Stretching/Mobility" ? "BW" : "") : c.m1;
+                          var repsStr = c.sets > 1 ? c.m2 + "x" + c.sets : c.m2;
+                          if (c._editMode) {
+                            // Edit existing exercise — preserve prog data
+                            var editDay = c._editDay; var editIdx = c._editIdx;
+                            var existingEx = nd[activeTab].exercises[editDay][editIdx];
+                            existingEx.name = c.name; existingEx.exType = c.type; existingEx.current = m1Val; existingEx.reps = repsStr; existingEx.progressionNotes = c.progression; existingEx.notes = c.notes || ""; existingEx.sets = c.sets;
+                            await saveData(nd);
+                            setFormMsg("✓ " + c.name + " updated"); setTimeout(function(){setFormMsg("");},3000);
+                          } else {
+                            // Add new exercise
+                            if(!nd[activeTab].exercises) nd[activeTab].exercises={};
+                            if(!nd[activeTab].exercises[day]) nd[activeTab].exercises[day]=[];
+                            nd[activeTab].exercises[day].push({name:c.name, exType:c.type, current:m1Val, reps:repsStr, status:"building", prog:[], progressionNotes:c.progression, notes:c.notes||"", sets:c.sets});
+                            if(c.isCustom){var updated=[].concat(customExercises,[c.name]);setCustomExercises(updated);await sSet("custom_exercises",JSON.stringify(updated));}
+                            await saveData(nd);
+                            var newIdx = nd[activeTab].exercises[day].length - 1;
+                            setSelectedEx({day:day,idx:newIdx});
+                            setFormMsg("✓ " + c.name + " added"); setTimeout(function(){setFormMsg("");},3000);
+                          }
+                          setAddExConfirm(null); setAddExOpen(false); setAddExSearch("");
+                        }} style={{...btnP(true),flex:1}}>{addExConfirm && addExConfirm._editMode ? "Save Changes" : "Add Exercise"}</button>
+                        {!addExConfirm._editMode && <button onClick={function(){setAddExConfirm(null);setAddExOpen(true);}} style={btnS}>Back</button>}
+                        <button onClick={function(){setAddExConfirm(null);setAddExOpen(false);setAddExSearch("");}} style={btnS}>Cancel</button>
+                      </div>
+                    </div>
                   ) : (
+                    /* ---- SEARCH/SELECT LIST ---- */
                     <div style={{padding:8,background:"#f8fafc",borderRadius:8,border:"1px solid #e2e8f0"}}>
                       <div style={{fontSize:11,fontWeight:700,marginBottom:6}}>Add Exercise to {dayLabels[day] || day}</div>
                       <input value={addExSearch} onChange={function(e){setAddExSearch(e.target.value);}} placeholder="Search exercises or type new name..." style={{width:"100%",padding:"6px 8px",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,marginBottom:6,boxSizing:"border-box"}} autoFocus />
-                      {addExSearch && allExNames.filter(function(n){return n.toLowerCase().indexOf(addExSearch.toLowerCase())>=0;}).slice(0,5).map(function(n){return (<div key={n} onClick={function(){addExerciseToDay(day,n);setAddExOpen(false);setAddExSearch("");}} style={{padding:"6px 8px",fontSize:11,cursor:"pointer",borderBottom:"1px solid #f1f5f9",color:"#0f172a"}}>{n}</div>);})}
-                      <button disabled={addExLoading} onClick={async function(){
-                        var name = addExSearch.trim(); if(!name){return;}
+                      {addExSearch && (() => {
+                        var term = addExSearch.toLowerCase();
+                        var dbMatches = EXERCISE_DATABASE.filter(function(e){return e.name.toLowerCase().indexOf(term)>=0;});
+                        var customMatches = customExercises.filter(function(n){return n.toLowerCase().indexOf(term)>=0 && !dbMatches.find(function(d){return d.name===n;});});
+                        var allMatches = dbMatches.map(function(e){return {name:e.name,type:e.type,cat:e.category,isCustom:false};}).concat(customMatches.map(function(n){return {name:n,type:"weights",cat:"Custom",isCustom:true};}));
+                        var openConfirmForm = function(match) {
+                          var tc = getExerciseTypeConfig(match.type);
+                          setAddExConfirm({name:match.name,type:match.type,sets:tc.defaultSets,m1:tc.defaultM1,m2:tc.defaultM2,progression:"Loading AI recommendation...",notes:"",isCustom:match.isCustom});
+                          setAddExOpen(false);
+                          // Call AI for personalised defaults
+                          setAddExLoading(true);
+                          (async function(){
+                            try {
+                              var isJC2 = activeTab === "jc";
+                              var profileInfo = isJC2 ? "Male, 49, 89kg, 5ft11, meso-endomorph, upper-body dominant, ADHD, thyroid TSH issues, Marcy HG5000 home multi gym" : "Female, 48, 5ft4, compact meso-endomorph, fast-twitch dominant, lower-body dominant, RSI in wrists (uses Bear Grip straps, J Bryant cuffs, tricep rope), exceptional natural lower body, Marcy HG5000 home multi gym";
+                              var typeCfg = getExerciseTypeConfig(match.type);
+                              var prompt2 = "Exercise: " + match.name + " (type: " + typeCfg.label + "). Person: " + profileInfo + ".\nReturn ONLY JSON: {\"sets\":" + tc.defaultSets + ",\"metric1\":\"recommended starting " + (typeCfg.metric1Label||"value") + " e.g. " + tc.defaultM1 + "\",\"metric2\":\"recommended starting " + (typeCfg.metric2Label||"value") + " e.g. " + tc.defaultM2 + "\",\"progressionNotes\":\"specific progression rules for this exercise for this person\",\"equipmentNotes\":\"any equipment or form notes specific to this person\"}";
+                              var resp2 = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{"Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:400,messages:[{role:"user",content:prompt2}]})});
+                              var result2 = await resp2.json();
+                              var txt2 = ""; if(result2.content){for(var ri=0;ri<result2.content.length;ri++){if(result2.content[ri].text)txt2+=result2.content[ri].text;}}
+                              var info2 = JSON.parse(txt2.replace(/```json|```/g,"").trim());
+                              setAddExConfirm(function(prev){if(!prev||prev.name!==match.name)return prev;return Object.assign({},prev,{sets:info2.sets||prev.sets,m1:info2.metric1||prev.m1,m2:info2.metric2||prev.m2,progression:info2.progressionNotes||"Double progression: build reps to target then increase weight.",notes:info2.equipmentNotes||""});});
+                            } catch(ae) {
+                              setAddExConfirm(function(prev){if(!prev||prev.name!==match.name)return prev;return Object.assign({},prev,{progression:"Double progression: build reps to target then increase weight. User defines increment method and ranges."});});
+                            }
+                            setAddExLoading(false);
+                          })();
+                        };
+                        return (<div style={{maxHeight:200,overflowY:"auto"}}>
+                          {allMatches.slice(0,8).map(function(m){return (<div key={m.name} onClick={function(){openConfirmForm(m);}} style={{padding:"6px 8px",fontSize:11,cursor:"pointer",borderBottom:"1px solid #f1f5f9",color:"#0f172a",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <span>{m.name}</span>
+                            <span style={{fontSize:9,color:"#94a3b8",background:"#f1f5f9",padding:"1px 6px",borderRadius:10}}>{EXERCISE_TYPES[m.type] ? EXERCISE_TYPES[m.type].label : m.type}{m.cat ? " · " + m.cat : ""}</span>
+                          </div>);})}
+                          {allMatches.length === 0 && addExSearch.trim() && (
+                            <div style={{padding:"8px",fontSize:11,color:"#64748b",textAlign:"center"}}>No matches found</div>
+                          )}
+                        </div>);
+                      })()}
+                      {addExSearch.trim() && (<button onClick={function(){
+                        var name = addExSearch.trim();
+                        var tc = getExerciseTypeConfig("weights");
+                        setAddExConfirm({name:name,type:"weights",sets:tc.defaultSets,m1:tc.defaultM1,m2:tc.defaultM2,progression:"Loading AI recommendation...",notes:"",isCustom:true});
+                        setAddExOpen(false);
                         setAddExLoading(true);
-                        try {
-                          var isJC2 = activeTab === "jc";
-                          var profileInfo = isJC2 ? "Male, 49, 89kg, 5ft11, meso-endomorph, upper-body dominant, ADHD, thyroid TSH issues" : "Female, 48, 5ft4, compact meso-endomorph, fast-twitch dominant, lower-body dominant, RSI in wrists (uses Bear Grip straps, J Bryant cuffs, tricep rope), exceptional natural lower body";
-                          var prompt2 = "New exercise: " + name + ". Person: " + profileInfo + ". Return ONLY JSON: {\"name\":\"" + name + "\",\"startWeight\":\"recommended starting weight for this person e.g. 16kg or BW\",\"startReps\":\"recommended starting reps e.g. 12x3\",\"progressionNotes\":\"specific progression rules for this exercise for this person including weight increment range\",\"equipmentNotes\":\"any equipment or form notes specific to this person\"}";
-                          var resp2 = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{"Content-Type":"application/json","x-api-key":window._anthropicKey||"","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:400,messages:[{role:"user",content:prompt2}]})});
-                          var result2 = await resp2.json();
-                          var txt2 = ""; if(result2.content){for(var ri=0;ri<result2.content.length;ri++){if(result2.content[ri].text)txt2+=result2.content[ri].text;}}
-                          var info2 = JSON.parse(txt2.replace(/```json|```/g,"").trim());
-                          var nd = JSON.parse(JSON.stringify(data));
-                          if(!nd[activeTab].exercises) nd[activeTab].exercises={};
-                          if(!nd[activeTab].exercises[day]) nd[activeTab].exercises[day]=[];
-                          nd[activeTab].exercises[day].push({name:info2.name||name,current:info2.startWeight||"BW",reps:info2.startReps||"10x3",status:"building",prog:[],progressionNotes:info2.progressionNotes||"Double progression: build 12-15 reps then increase weight.",notes:info2.equipmentNotes||""});
-                          await saveData(nd);
-                          setFormMsg("Added: " + (info2.name||name) + " at " + (info2.startWeight||"BW") + " " + (info2.startReps||"10x3"));
-                        } catch(ae) { 
-                          var nd = JSON.parse(JSON.stringify(data));
-                          if(!nd[activeTab].exercises) nd[activeTab].exercises={};
-                          if(!nd[activeTab].exercises[day]) nd[activeTab].exercises[day]=[];
-                          nd[activeTab].exercises[day].push({name:name,current:"BW",reps:"10x3",status:"building",prog:[],progressionNotes:"Double progression: build 12-15 reps then increase weight.",notes:""});
-                          await saveData(nd);
-                          setFormMsg("Added: " + name + " (AI unavailable, defaults applied)");
-                        }
-                        setAddExLoading(false); setAddExOpen(false); setAddExSearch("");
-                        setTimeout(function(){setFormMsg("");},3000);
-                      }} style={{width:"100%",padding:8,background:addExLoading?"#94a3b8":"linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",color:"#fff",border:"none",borderRadius:8,fontSize:11,fontWeight:600,cursor:addExLoading?"not-allowed":"pointer",marginTop:4}}>{addExLoading ? "Adding..." : "Add New: " + (addExSearch||"...")}</button>
+                        (async function(){
+                          try {
+                            var isJC2 = activeTab === "jc";
+                            var profileInfo = isJC2 ? "Male, 49, 89kg, 5ft11, meso-endomorph, upper-body dominant, ADHD, thyroid TSH issues, Marcy HG5000 home multi gym" : "Female, 48, 5ft4, compact meso-endomorph, fast-twitch dominant, lower-body dominant, RSI in wrists (uses Bear Grip straps, J Bryant cuffs, tricep rope), exceptional natural lower body, Marcy HG5000 home multi gym";
+                            var prompt2 = "New exercise: " + name + ". Person: " + profileInfo + ".\nDetermine the exercise type from: weights, bodyweight, timed_hold, cardio, walking, sports, stretching.\nReturn ONLY JSON: {\"exerciseType\":\"one of weights|bodyweight|timed_hold|cardio|walking|sports|stretching\",\"sets\":3,\"metric1\":\"recommended starting value\",\"metric2\":\"recommended starting value\",\"progressionNotes\":\"specific progression rules\",\"equipmentNotes\":\"any equipment or form notes\"}";
+                            var resp2 = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{"Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:400,messages:[{role:"user",content:prompt2}]})});
+                            var result2 = await resp2.json();
+                            var txt2 = ""; if(result2.content){for(var ri=0;ri<result2.content.length;ri++){if(result2.content[ri].text)txt2+=result2.content[ri].text;}}
+                            var info2 = JSON.parse(txt2.replace(/```json|```/g,"").trim());
+                            var detectedType = info2.exerciseType && EXERCISE_TYPES[info2.exerciseType] ? info2.exerciseType : "weights";
+                            setAddExConfirm(function(prev){if(!prev||prev.name!==name)return prev;return Object.assign({},prev,{type:detectedType,sets:info2.sets||prev.sets,m1:info2.metric1||prev.m1,m2:info2.metric2||prev.m2,progression:info2.progressionNotes||"Double progression: build reps to target then increase weight.",notes:info2.equipmentNotes||""});});
+                          } catch(ae) {
+                            setAddExConfirm(function(prev){if(!prev)return prev;return Object.assign({},prev,{progression:"Double progression: build reps to target then increase weight."});});
+                          }
+                          setAddExLoading(false);
+                        })();
+                      }} style={{width:"100%",padding:8,background:"linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",color:"#fff",border:"none",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer",marginTop:4}}>Add Custom: {addExSearch}</button>)}
                       <button onClick={function(){setAddExOpen(false);setAddExSearch("");}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:10,color:"#64748b",cursor:"pointer",marginTop:4}}>Cancel</button>
                     </div>
                   )}
@@ -6398,7 +6630,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.323.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.324.0
       </div>
 
       {/* Floating Ask a Question button */}
