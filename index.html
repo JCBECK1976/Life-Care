@@ -663,7 +663,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.321.0
+// STANDARD BUTTON STYLES v1.322.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -2334,6 +2334,43 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       <div style={{ padding: 16 }}>
         {/* HOME */}
         {section === "overview" && (<div>
+          {/* ── COMPANION ENERGY ── */}
+          {(() => {
+            var pct = companionEnergy ? companionEnergy.pct : 0;
+            var hasEnergy = companionEnergy !== null;
+            var keyStatus = companionEnergy ? companionEnergy.keyStatus : null;
+            var segCount = 20;
+            var filledSegs = hasEnergy ? Math.round(pct / 5) : 0;
+            var emptySegs = segCount - filledSegs;
+
+            var statusLabel = !hasEnergy ? "—" : keyStatus === "no_key" ? "No API key" : keyStatus === "invalid_key" ? "Invalid key" : keyStatus === "rate_limited" ? "Rate limited" : keyStatus === "error" ? "Connection error" : pct > 50 ? "Good energy" : pct > 20 ? "Getting low" : pct > 0 ? "Running low" : "Empty — recharge needed";
+            var statusEmoji = !hasEnergy ? "" : keyStatus === "active" ? "✓ " : keyStatus === "no_key" || keyStatus === "invalid_key" ? "✗ " : "";
+            var pctColor = pct > 20 ? "#22c55e" : pct > 0 ? "#f59e0b" : "#ef4444";
+
+            return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "9px 16px", marginBottom: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <span style={{ fontSize: 13 }}>⚡</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#0f172a" }}>Companion Energy</span>
+                </div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: hasEnergy ? pctColor : "#94a3b8" }}>{energyLoading ? "Checking..." : hasEnergy ? Math.round(pct) + "%" : "—"}</div>
+              </div>
+              <div style={{ display: "flex", gap: 1, marginBottom: 4 }}>
+                {Array.from({ length: segCount }).map(function(_, i) {
+                  var isGreen = i < filledSegs && pct > 20;
+                  var isAmber = i < filledSegs && pct <= 20 && pct > 0;
+                  var isEmpty = i >= filledSegs;
+                  var segColor = isEmpty ? "#ef4444" : isAmber ? "#f59e0b" : "#22c55e";
+                  return (<div key={i} style={{ flex: 1, height: 6, borderRadius: i === 0 ? "3px 0 0 3px" : i === segCount - 1 ? "0 3px 3px 0" : 0, background: hasEnergy ? segColor : "#f1f5f9", transition: "background 0.3s ease" }} />);
+                })}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ fontSize: 9, color: "#94a3b8" }}>{statusEmoji}{statusLabel}</div>
+                <button onClick={checkCompanionEnergy} disabled={energyLoading} style={{ background: "none", border: "none", fontSize: 9, color: "#2563eb", cursor: energyLoading ? "not-allowed" : "pointer", padding: "2px 6px" }}>↻ Refresh</button>
+              </div>
+            </div>);
+          })()}
+
           {/* Profile */}
           {(() => { const prof = p.profile || {}; const hasBaseline = p.body && p.body.weight && p.body.weight.length > 0; var welcomeMsgs = ["Ready to make today count?", "Let's keep the momentum going!", "Small steps, big results — let's go!", "Your future self will thank you for today.", "Consistency beats perfection — you've got this!", "Every healthy choice adds up. What's first today?", "Welcome back — let's pick up where you left off!", "Progress isn't always visible, but it's always happening.", "You're building something great here — one day at a time.", "Let's check in and keep things moving forward."]; var welcomeIdx = Math.floor((new Date().getHours() * 60 + new Date().getMinutes()) / 144) % welcomeMsgs.length; var firstName = (prof.name || "").split(" ")[0]; var greetHour = new Date().getHours(); var greetWord = greetHour < 12 ? "Good morning" : greetHour < 17 ? "Good afternoon" : "Good evening"; return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginTop: 14, marginBottom: 14, overflow: "hidden" }}>
             <div style={{ padding: "18px 16px", borderBottom: showOnboarding ? "1px solid #e2e8f0" : "none" }}>
@@ -2737,43 +2774,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               <button onClick={() => { if (!showOnboarding) { var ob2 = p.onboarding || {}; setOnboardInputs(Object.assign({ conditions: "", medications: "", neurodiversity: "", bloods: "", goals: "", activity: "", equipment: "", dietary: "", allergies: "", livingSituation: "", familyHistory: "", personalityType: "", motivationStyle: "", whatDerails: "", accountabilityPref: "", occupation: "", workPattern: "", workHours: "", commute: "", sleepHours: "", sleepQuality: "", sleepIssues: "", screensBed: "", caffeineCutoff: "", cookingConfidence: "", eatingOutFreq: "", whoCooks: "", mealRegularity: "", emotionalEating: "", waterIntake: "", caffeineDaily: "", alcoholFrequency: "", stressLevel: "", mainStressors: "", copingStrategies: "", mentalHealth: "", currentSupport: "", injuries: "", painAreas: "", weightHighest: "", weightLowest: "", previousDiets: "" }, ob2, { name: ob2.name || prof.name || "", dob: ob2.dob || prof.dob || "", sex: ob2.sex || prof.sex || "", height: ob2.height || prof.height || "" })); setSetupTab("profile"); } setShowOnboarding(!showOnboarding); }} style={{ background: "none", border: "none", fontSize: 11, color: "#94a3b8", cursor: "pointer", padding: "4px 12px" }}>{showOnboarding ? "▲ Hide Profile" : "▼ My Profile"}</button>
             </div>
           </div>); })()}
-
-          {/* ── COMPANION ENERGY ── */}
-          {(() => {
-            var pct = companionEnergy ? companionEnergy.pct : 0;
-            var hasEnergy = companionEnergy !== null;
-            var keyStatus = companionEnergy ? companionEnergy.keyStatus : null;
-            var segCount = 20;
-            var filledSegs = hasEnergy ? Math.round(pct / 5) : 0;
-            var emptySegs = segCount - filledSegs;
-
-            var statusLabel = !hasEnergy ? "—" : keyStatus === "no_key" ? "No API key" : keyStatus === "invalid_key" ? "Invalid key" : keyStatus === "rate_limited" ? "Rate limited" : keyStatus === "error" ? "Connection error" : pct > 50 ? "Good energy" : pct > 20 ? "Getting low" : pct > 0 ? "Running low" : "Empty — recharge needed";
-            var statusEmoji = !hasEnergy ? "" : keyStatus === "active" ? "✓ " : keyStatus === "no_key" || keyStatus === "invalid_key" ? "✗ " : "";
-            var pctColor = pct > 20 ? "#22c55e" : pct > 0 ? "#f59e0b" : "#ef4444";
-
-            return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "12px 16px", marginBottom: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 16 }}>⚡</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Companion Energy</span>
-                </div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: hasEnergy ? pctColor : "#94a3b8" }}>{energyLoading ? "Checking..." : hasEnergy ? Math.round(pct) + "%" : "—"}</div>
-              </div>
-              <div style={{ display: "flex", gap: 1, marginBottom: 6 }}>
-                {Array.from({ length: segCount }).map(function(_, i) {
-                  var isGreen = i < filledSegs && pct > 20;
-                  var isAmber = i < filledSegs && pct <= 20 && pct > 0;
-                  var isEmpty = i >= filledSegs;
-                  var segColor = isEmpty ? "#ef4444" : isAmber ? "#f59e0b" : "#22c55e";
-                  return (<div key={i} style={{ flex: 1, height: 8, borderRadius: i === 0 ? "4px 0 0 4px" : i === segCount - 1 ? "0 4px 4px 0" : 0, background: hasEnergy ? segColor : "#f1f5f9", transition: "background 0.3s ease" }} />);
-                })}
-              </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ fontSize: 10, color: "#94a3b8" }}>{statusEmoji}{statusLabel}</div>
-                <button onClick={checkCompanionEnergy} disabled={energyLoading} style={{ background: "none", border: "none", fontSize: 10, color: "#2563eb", cursor: energyLoading ? "not-allowed" : "pointer", padding: "2px 6px" }}>↻ Refresh</button>
-              </div>
-            </div>);
-          })()}
 
           {/* ── MY MOOD ── */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "10px 16px", marginBottom: 14 }}>
@@ -6398,7 +6398,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.321.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.322.0
       </div>
 
       {/* Floating Ask a Question button */}
