@@ -17,6 +17,9 @@
       50% { opacity: 1; }
       80%, 100% { opacity: 0.3; }
     }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
     .loading-dots span { animation: dotPulse 1.4s infinite; font-size: 18px; }
     .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
     .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
@@ -762,7 +765,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.328.0
+// STANDARD BUTTON STYLES v1.329.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -1232,6 +1235,123 @@ function Dashboard() {
   const [googleToken, setGoogleToken] = useState(null);
   const [googleConnected, setGoogleConnected] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
+  const [ragRecalcLoading, setRagRecalcLoading] = useState(false);
+  const [ragRecalcMsg, setRagRecalcMsg] = useState("");
+  const [healthDataHash, setHealthDataHash] = useState("");
+
+  // Build person health context for dynamic RAG evaluation
+  var buildPersonHealthCtx = function(personData) {
+    if (!personData) return "";
+    var prof = personData.profile || {};
+    var parts = [];
+    parts.push((prof.name || "User") + ", " + (prof.sex || "") + ", age " + (calcAge(prof.dob) || prof.age || "unknown"));
+    parts.push("Height: " + (prof.height || "unknown") + ", Body type: " + (prof.bodyType || "unknown"));
+    if (prof.notes) parts.push("Notes: " + prof.notes);
+    // Calorie/macro targets
+    if (prof.dailyKcal || prof.kcalTarget) parts.push("Kcal target: " + (prof.dailyKcal || prof.kcalTarget));
+    // Blood results
+    if (personData.bloods && personData.bloods.length > 0) {
+      var latest = personData.bloods[personData.bloods.length - 1];
+      parts.push("Latest bloods (" + latest.date + "): " + Object.entries(latest.tests).map(function(e) { return e[0] + "=" + e[1]; }).join(", "));
+    }
+    // Medications
+    if (personData.meds && personData.meds.length > 0) {
+      parts.push("Medications: " + personData.meds.filter(function(m) { return m.active; }).map(function(m) { return m.name + " " + (m.dosage || "") + " (" + (m.timing || "") + ")"; }).join(", "));
+    }
+    // Health profile
+    if (personData.healthProfile) parts.push("Health profile: " + personData.healthProfile);
+    // Health log recent
+    if (Array.isArray(personData.healthLog) && personData.healthLog.length > 0) {
+      parts.push("Recent health: " + personData.healthLog.slice(-3).map(function(h) { return h.date + ": " + h.note; }).join("; "));
+    }
+    // Body data — latest weight, body fat
+    if (personData.body) {
+      if (personData.body.weight && personData.body.weight.length > 0) {
+        var lw = personData.body.weight[personData.body.weight.length - 1];
+        parts.push("Current weight: " + lw.v + "kg");
+      }
+      if (personData.body.bodyFat && personData.body.bodyFat.length > 0) {
+        var lbf = personData.body.bodyFat[personData.body.bodyFat.length - 1];
+        parts.push("Body fat: " + lbf.v + "%");
+      }
+    }
+    // Exercise data summary
+    if (personData.exercises && personData.exercises.length > 0) {
+      parts.push("Exercise: " + personData.exercises.length + " exercises programmed, training " + (personData.exercises.filter(function(e2) { return e2.session; }).length > 0 ? "active" : "not yet started"));
+    }
+    // Vitals
+    if (personData.vitals && personData.vitals.length > 0) {
+      var lv = personData.vitals[personData.vitals.length - 1];
+      parts.push("Vitals(" + lv.date + "): " + (lv.bp ? "BP:" + lv.bp : "") + (lv.hr ? " HR:" + lv.hr : ""));
+    }
+    return parts.join(". ") + ".";
+  };
+
+  // Hash health-relevant data to detect changes
+  var computeHealthHash = function(personData) {
+    if (!personData) return "";
+    var parts = [];
+    if (personData.bloods) parts.push(JSON.stringify(personData.bloods));
+    if (personData.meds) parts.push(JSON.stringify(personData.meds.filter(function(m) { return m.active; })));
+    if (personData.healthProfile) parts.push(personData.healthProfile);
+    if (personData.body && personData.body.weight && personData.body.weight.length > 0) parts.push(String(personData.body.weight[personData.body.weight.length - 1].v));
+    if (personData.body && personData.body.bodyFat && personData.body.bodyFat.length > 0) parts.push(String(personData.body.bodyFat[personData.body.bodyFat.length - 1].v));
+    // Simple string hash
+    var str = parts.join("|");
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) { hash = ((hash << 5) - hash) + str.charCodeAt(i); hash |= 0; }
+    return String(hash);
+  };
+
+  // Dynamic RAG recalculation — batch evaluate items against guidelines + health profile
+  var recalculateRagForList = async function(items, category, personCtx, personKey) {
+    if (!items || items.length === 0) return { updated: [], changes: 0 };
+    // Build item list for AI evaluation
+    var itemList = items.map(function(it) {
+      return it.id + ":" + it.name + " [current:" + (it.rating || "GREAT") + "] (kcal:" + (it.jcKcal || it.kcal || 0) + ",prot:" + (it.protein || it.jcProt || 0) + "g,fat:" + (it.fat || it.jcFat || 0) + "g,satFat:" + (it.satFat || 0) + "g,carbs:" + (it.carbs || 0) + "g,fibre:" + (it.fibre || 0) + "g,salt:" + (it.salt || 0) + "g)";
+    }).join("; ");
+    var prompt = "You are a clinical dietitian evaluating food items for a RAG (Red/Amber/Green) traffic light system.\n\n" +
+      "PATIENT PROFILE: " + personCtx + "\n\n" +
+      "EVALUATION FRAMEWORK — use recognised dietary guidelines (NHS Eatwell, BDA, NICE, WHO) as baseline, then personalise based on the patient's specific conditions:\n" +
+      "- GREEN/GREAT: Safe for daily consumption given this person's health profile. Meets nutritional guidelines. Low risk.\n" +
+      "- AMBER: Limit to once per week. Moderate concerns for this person — could be sat fat, sugar, sodium, calorie density, or specific contraindication with their conditions/medications.\n" +
+      "- RED: Limit to once per month. Significant concerns — high sat fat (especially critical if high cholesterol/FH), very high calories, high sodium with hypertension, high sugar with prediabetes/diabetes, or direct conflict with medications.\n\n" +
+      "CONDITION-SPECIFIC ADJUSTMENTS:\n" +
+      "- High cholesterol/FH: Stricter sat fat limits (<6g per meal ideal), penalise high-cholesterol foods more heavily\n" +
+      "- Prediabetes/HbA1c elevated: Penalise high GI, high added sugar items more heavily\n" +
+      "- Thyroid issues: Consider iodine, goitrogen content where relevant\n" +
+      "- Statin use: Note grapefruit interaction, liver-loading foods\n" +
+      "- Perimenopausal: Consider calcium, vitamin D, phytoestrogen value\n" +
+      "- Kidney function (low eGFR): Consider protein load, potassium, phosphorus\n\n" +
+      "CATEGORY: " + category + "\n" +
+      "ITEMS TO EVALUATE:\n" + itemList + "\n\n" +
+      "Return ONLY a JSON array of objects: [{\"id\":\"item_id\",\"rating\":\"GREAT or AMBER or RED\",\"reason\":\"one-line clinical rationale\"}]\n" +
+      "Evaluate EVERY item. Use the patient's specific health data to adjust ratings from baseline guidelines. Be evidence-based.";
+    try {
+      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
+      var result = await resp.json();
+      var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+      var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
+      var jsonStr = txt.replace(/```json|```/g, "").trim();
+      var jsonMatch = jsonStr.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error("No JSON array found");
+      var ratings = JSON.parse(jsonMatch[0]);
+      // Apply ratings to items
+      var changes = 0;
+      var updated = items.map(function(it) {
+        var match = ratings.find(function(r) { return r.id === it.id; });
+        if (match && match.rating && match.rating !== it.rating) {
+          changes++;
+          return Object.assign({}, it, { prevRating: it.rating, rating: match.rating, ragReason: match.reason || "", _ragChanged: true, _ragChangedSeen: false });
+        }
+        return it;
+      });
+      return { updated: updated, changes: changes };
+    } catch(e) {
+      console.error("RAG recalc error for " + category + ":", e);
+      return { updated: items, changes: 0 };
+    }
+  };
 
   // Google Health Connect - OAuth + Fitness API
   const GOOGLE_CLIENT_ID = "464885753789-a8flgh64f1u9qeocktt6uljvjvsd0sf2.apps.googleusercontent.com";
@@ -1440,6 +1560,88 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     const savedMood = await sGet("user_mood_" + activeTab); if (savedMood) setUserMood(JSON.parse(savedMood));
     const cen = await sGet("companion_energy"); if (cen) setCompanionEnergy(JSON.parse(cen));
   })(); }, []);
+
+  // Check for health data changes and prompt RAG recalculation
+  useEffect(function() {
+    if (!data || !data[activeTab]) return;
+    var newHash = computeHealthHash(data[activeTab]);
+    if (newHash && healthDataHash && newHash !== healthDataHash) {
+      // Health data has changed — check if RAG recalc needed
+      var hasCustomItems = customBreakfasts.length > 0 || customLunches.length > 0 || customMeals.length > 0 || customSnacks.length > 0 || customDrinks.length > 0 || customDesserts.length > 0;
+      if (hasCustomItems) {
+        setRagRecalcMsg("Health data updated — dietary ratings may need recalculating");
+      }
+    }
+    if (newHash) setHealthDataHash(newHash);
+  }, [data, activeTab]);
+
+  // Full RAG recalculation across all custom lists
+  var recalculateAllRag = async function() {
+    if (!data || !data[activeTab]) return;
+    setRagRecalcLoading(true);
+    setRagRecalcMsg("Recalculating dietary ratings...");
+    try {
+      var personData = data[activeTab];
+      var personCtx = buildPersonHealthCtx(personData);
+      var isJC = activeTab === "jc";
+      // Add known targets from project context
+      if (isJC) { personCtx += " Targets: 2000-2200 kcal/day, 110-130g protein, under 20g sat fat, under 25g added sugar, 30-35g fibre. TSH 14.2 (poorly controlled), LDL 3.4, HbA1c 43 (prediabetic range), Cholesterol Ratio 6.3. Levothyroxine 200mcg, Statin 20mg."; }
+      else { personCtx += " Targets: 1700-1900 kcal/day, 90-110g protein, under 20g sat fat (critical), under 25g added sugar, 25-30g fibre. Suspected FH. Total Cholesterol 9.6, LDL 7.2, Triglycerides 2.62, HDL 1.2, Ratio 8.0, Non-HDL 8.4. HbA1c 40, eGFR 67. Perimenopausal. Citalopram. Atorvastatin. Portfolio Diet framework."; }
+      var totalChanges = 0;
+      // Recalculate each category
+      if (customBreakfasts.length > 0) {
+        setRagRecalcMsg("Evaluating breakfasts (" + customBreakfasts.length + " items)...");
+        var bfResult = await recalculateRagForList(customBreakfasts, "breakfast", personCtx, activeTab);
+        if (bfResult.changes > 0) { setCustomBreakfasts(bfResult.updated); await sSet("custom_breakfasts", JSON.stringify(bfResult.updated)); totalChanges += bfResult.changes; }
+      }
+      if (customLunches.length > 0) {
+        setRagRecalcMsg("Evaluating lunches (" + customLunches.length + " items)...");
+        var luResult = await recalculateRagForList(customLunches, "lunch", personCtx, activeTab);
+        if (luResult.changes > 0) { setCustomLunches(luResult.updated); await sSet("custom_lunches", JSON.stringify(luResult.updated)); totalChanges += luResult.changes; }
+      }
+      if (customMeals.length > 0) {
+        setRagRecalcMsg("Evaluating dinners (" + customMeals.length + " items)...");
+        var dinResult = await recalculateRagForList(customMeals, "dinner", personCtx, activeTab);
+        if (dinResult.changes > 0) { setCustomMeals(dinResult.updated); await sSet("custom_meals", JSON.stringify(dinResult.updated)); totalChanges += dinResult.changes; }
+      }
+      if (customSnacks.length > 0) {
+        setRagRecalcMsg("Evaluating snacks (" + customSnacks.length + " items)...");
+        var snResult = await recalculateRagForList(customSnacks, "snack", personCtx, activeTab);
+        if (snResult.changes > 0) { setCustomSnacks(snResult.updated); await sSet("custom_snacks", JSON.stringify(snResult.updated)); totalChanges += snResult.changes; }
+      }
+      if (customDrinks.length > 0) {
+        setRagRecalcMsg("Evaluating drinks (" + customDrinks.length + " items)...");
+        var drResult = await recalculateRagForList(customDrinks, "drink", personCtx, activeTab);
+        if (drResult.changes > 0) { setCustomDrinks(drResult.updated); await sSet("custom_drinks", JSON.stringify(drResult.updated)); totalChanges += drResult.changes; }
+      }
+      if (customDesserts.length > 0) {
+        setRagRecalcMsg("Evaluating desserts (" + customDesserts.length + " items)...");
+        var deResult = await recalculateRagForList(customDesserts, "dessert", personCtx, activeTab);
+        if (deResult.changes > 0) { setCustomDesserts(deResult.updated); await sSet("custom_desserts", JSON.stringify(deResult.updated)); totalChanges += deResult.changes; }
+      }
+      // Save health hash so we don't re-prompt
+      setHealthDataHash(computeHealthHash(personData));
+      await sSet("rag_health_hash_" + activeTab, computeHealthHash(personData));
+      if (totalChanges > 0) {
+        setRagRecalcMsg("✅ " + totalChanges + " item" + (totalChanges !== 1 ? "s" : "") + " updated based on your health profile");
+      } else {
+        setRagRecalcMsg("✅ All ratings confirmed — no changes needed");
+      }
+      setTimeout(function() { setRagRecalcMsg(""); }, 5000);
+    } catch(e) {
+      setRagRecalcMsg("Error: " + String(e).substring(0, 100));
+      setTimeout(function() { setRagRecalcMsg(""); }, 6000);
+    }
+    setRagRecalcLoading(false);
+  };
+
+  // Load saved health hash on startup
+  useEffect(function() {
+    (async function() {
+      var savedHash = await sGet("rag_health_hash_" + activeTab);
+      if (savedHash) setHealthDataHash(savedHash);
+    })();
+  }, [activeTab]);
 
   // Meal data
   const baseStart = new Date(2026, 6, 19); // Training start - Sun-Sat weeks
@@ -4405,9 +4607,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             return (<div style={{position:"relative"}}>
               <input ref={inputRef} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Type to search..." style={{width:"100%",padding:"8px 10px",border:"1px solid "+accent,borderRadius:6,fontSize:11,background:"#fff",boxSizing:"border-box"}} onBlur={function(){setTimeout(function(){setOpen(false);},200);}} />
               <div style={{position:"absolute",top:"100%",left:0,right:0,zIndex:50,background:"#fff",border:"1px solid #e2e8f0",borderRadius:6,maxHeight:200,overflowY:"auto",boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}>
-                {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var isAdded = item._isCustom !== false; var color = isAdded ? (item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#0c4a6e") : "#94a3b8"; return (<div key={item.id} onMouseDown={function(e){e.preventDefault();onChange({target:{value:item.id}});setOpen(false);setSearch("");}} style={{padding:"6px 10px",fontSize:11,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f8fafc",color:color}}>
-                  <span>{item.name} ({kcal} kcal){!isAdded ? " — not added" : ""}</span>
-                  
+                {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var isAdded = item._isCustom !== false; var color = isAdded ? (item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#0c4a6e") : "#94a3b8"; var hasRagChange = item._ragChanged && !item._ragChangedSeen; return (<div key={item.id} onMouseDown={function(e){e.preventDefault();onChange({target:{value:item.id}});setOpen(false);setSearch("");}} style={{padding:"6px 10px",fontSize:11,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f8fafc",color:color}}>
+                  <span>{hasRagChange ? "🔄 " : ""}{item.name} ({kcal} kcal){!isAdded ? " — not added" : ""}{hasRagChange ? " (was " + item.prevRating + ")" : ""}</span>
+
                 </div>); })}
                 <div onMouseDown={function(e){e.preventDefault();onChange({target:{value:"__add_new__", searchText: search}});setOpen(false);setSearch("");}} style={{padding:"8px 10px",fontSize:11,fontWeight:600,color:accent,cursor:"pointer",borderTop:"1px solid #e2e8f0"}}>+ Add new item...</div>
               </div>
@@ -4422,11 +4624,19 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             <button onClick={function() { setWeekOff(function(o) { return o + 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&rsaquo;</button>
           </div>
 
-          {/* Update My List + Clear Week */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 0, alignItems: "center" }}>
+          {/* Update My List + Recalculate RAG + Clear Week */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 0, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={function(){ setManageListsOpen(!manageListsOpen); }} style={Object.assign({}, manageListsOpen ? btnClose : btnAction)}>{manageListsOpen ? "✕ Close" : "Update Eating Lists"}</button>
+            <button onClick={recalculateAllRag} disabled={ragRecalcLoading} style={Object.assign({}, btnMuted, { fontSize: 10, padding: "6px 10px", opacity: ragRecalcLoading ? 0.6 : 1 })}>{ragRecalcLoading ? "⏳ Recalculating..." : "🔄 Re-evaluate Ratings"}</button>
             <button onClick={clearWeek} style={Object.assign({}, btnClear, { marginLeft: "auto" })}>Clear Week</button>
           </div>
+
+          {/* RAG recalculation notification banner */}
+          {ragRecalcMsg && (<div style={{ background: ragRecalcMsg.startsWith("✅") ? "#f0fdf4" : ragRecalcMsg.startsWith("Error") ? "#fef2f2" : "#eff6ff", border: "1px solid " + (ragRecalcMsg.startsWith("✅") ? "#86efac" : ragRecalcMsg.startsWith("Error") ? "#fecaca" : "#93c5fd"), borderRadius: 8, padding: "8px 12px", marginTop: 8, fontSize: 11, color: ragRecalcMsg.startsWith("✅") ? "#166534" : ragRecalcMsg.startsWith("Error") ? "#dc2626" : "#1e40af", display: "flex", alignItems: "center", gap: 8 }}>
+            {ragRecalcLoading && <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid #93c5fd", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />}
+            <span>{ragRecalcMsg}</span>
+            {!ragRecalcLoading && <button onClick={function(){ setRagRecalcMsg(""); }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "#94a3b8", marginLeft: "auto", padding: 0 }}>✕</button>}
+          </div>)}
 
           {/* My Eating Lists — collapsible */}
           {manageListsOpen && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 14, marginTop: 8, marginBottom: 10 }}>
@@ -4443,8 +4653,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   {cat.customs.slice().sort(function(a,b) { return a.name.localeCompare(b.name); }).map(function(item) {
                     var kcal = isJC ? item.jcKcal : item.beckKcal;
                     var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#0c4a6e";
+                    var hasRagChange = item._ragChanged && !item._ragChangedSeen;
                     return (<div key={item.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
-                      <span style={{ flex: 1, color: color }}>{item.name} ({kcal} kcal)</span>
+                      <span style={{ flex: 1, color: color }}>{hasRagChange && <span onClick={function(){alert("Rating changed from " + (item.prevRating || "?") + " to " + item.rating + (item.ragReason ? ".\n\nReason: " + item.ragReason : "") + "\n\nBased on your current health profile and dietary guidelines.");var u=cat.customs.map(function(x){return x.id===item.id?Object.assign({},x,{_ragChangedSeen:true}):x;});cat.setCustoms(u);sSet(cat.storageKey,JSON.stringify(u));}} style={{cursor:"pointer"}} title={"Changed from " + (item.prevRating || "?")}>🔄 </span>}{item.name} ({kcal} kcal)</span>
                       <button onClick={function() { setEditingItem(editingItem === item.id ? null : item.id); }} style={{...btnEdit, fontSize: 9, marginRight: 4}}>{editingItem === item.id ? "Cancel" : "✎ Update"}</button><button onClick={async function() { if(confirm("Delete " + item.name + "?")) { var u = cat.customs.filter(function(x){return x.id !== item.id;}); cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u)); setFormMsg("Deleted " + item.name); setTimeout(function(){setFormMsg("");},2000); }}} style={{...btnDelete, fontSize: 9}}>🗑 Del</button>
                     </div>);
                   })}
@@ -5488,10 +5699,13 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var slotKey = idx === 1 ? "b" : "b" + idx;
                   var _hasItem = allBfast.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
                   var _ragWarn = checkRagFrequency(getMeal(eatDay, slotKey), eatDay, slotKey);
+                  var _slotItem = allItemsLookup[getMeal(eatDay, slotKey)];
+                  var _ragChg = _slotItem && _slotItem._ragChanged && !_slotItem._ragChangedSeen;
                   return (<div key={"b"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
                       <MealSelect items={dispBfast} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
                     </div>
+                    {_ragChg && <span onClick={function(){alert("Rating changed from " + (_slotItem.prevRating || "?") + " to " + _slotItem.rating + (_slotItem.ragReason ? ".\n\nReason: " + _slotItem.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem.prevRating||"?") + " → " + _slotItem.rating}>🔄</span>}
                     {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
                     {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allBfast); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
@@ -5544,10 +5758,13 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var slotKey = idx === 1 ? "l" : "l" + idx;
                   var _hasItem = allLunch.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
                   var _ragWarn = checkRagFrequency(getMeal(eatDay, slotKey), eatDay, slotKey);
+                  var _slotItem2 = allItemsLookup[getMeal(eatDay, slotKey)];
+                  var _ragChg2 = _slotItem2 && _slotItem2._ragChanged && !_slotItem2._ragChangedSeen;
                   return (<div key={"l"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
                       <MealSelect items={dispLunch} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
                     </div>
+                    {_ragChg2 && <span onClick={function(){alert("Rating changed from " + (_slotItem2.prevRating || "?") + " to " + _slotItem2.rating + (_slotItem2.ragReason ? ".\n\nReason: " + _slotItem2.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem2.prevRating||"?") + " → " + _slotItem2.rating}>🔄</span>}
                     {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
                     {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allLunch); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
@@ -5602,6 +5819,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var _hasItem = allDinners.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
                   var _isPackaged = isPackagedDinner(getMeal(eatDay, slotKey));
                   var _ragWarn = checkRagFrequency(getMeal(eatDay, slotKey), eatDay, slotKey);
+                  var _slotItem3 = allItemsLookup[getMeal(eatDay, slotKey)];
+                  var _ragChg3 = _slotItem3 && _slotItem3._ragChanged && !_slotItem3._ragChangedSeen;
                   var dpKey = "dp" + sIdx;
                   var dvKey = "dv" + sIdx;
                   return (<div key={"d"+idx}>
@@ -5609,6 +5828,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ flex: 1 }}>
                       <MealSelect items={dispDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
                     </div>
+                    {_ragChg3 && <span onClick={function(){alert("Rating changed from " + (_slotItem3.prevRating || "?") + " to " + _slotItem3.rating + (_slotItem3.ragReason ? ".\n\nReason: " + _slotItem3.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem3.prevRating||"?") + " → " + _slotItem3.rating}>🔄</span>}
                     {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
                     {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allDinners); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
@@ -6774,7 +6994,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.328.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.329.0
       </div>
 
       {/* Floating Ask a Question button */}
