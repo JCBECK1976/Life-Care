@@ -762,7 +762,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.327.0
+// STANDARD BUTTON STYLES v1.327.1
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -5183,10 +5183,16 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               var lunchList = genLu.map(function(l) { return l.id + ":" + l.name + "[" + (l.rating||"GREAT") + "]"; }).join(";");
               /* Build past weeks history for RED monthly limit checking */
               var pastHistory = "";
+              /* AMBER: already used this week — do not reuse */
+              var weekIds = thisWeekIds();
+              var amberUsed = weekIds.filter(function(id) { var it = allItemsLookup[id]; return it && it.rating === "AMBER"; });
+              if (amberUsed.length > 0) { pastHistory += " AMBER items already selected this week (DO NOT reuse — max once per week): " + amberUsed.filter(function(v, i, a) { return a.indexOf(v) === i; }).join(",") + "."; }
+              /* RED: used in past 4 weeks — do not reuse */
               if (pastWeeksMeals.length > 0) {
                 var pastIds = pastMonthIds();
-                var pastRedUsed = pastIds.filter(function(id) { var it = allItemsLookup[id]; return it && it.rating === "RED"; });
-                if (pastRedUsed.length > 0) { pastHistory = " RED items used in past 4 weeks (DO NOT reuse): " + pastRedUsed.filter(function(v, i, a) { return a.indexOf(v) === i; }).join(",") + "."; }
+                var allRedIds = weekIds.concat(pastIds);
+                var pastRedUsed = allRedIds.filter(function(id) { var it = allItemsLookup[id]; return it && it.rating === "RED"; });
+                if (pastRedUsed.length > 0) { pastHistory += " RED items used in past 4 weeks (DO NOT reuse — max once per month): " + pastRedUsed.filter(function(v, i, a) { return a.indexOf(v) === i; }).join(",") + "."; }
               }
               var fmt = '{"monday":{"b":"id","l":"id","d":"id"},"tuesday":{"b":"id","l":"id","d":"id"},"wednesday":{"b":"id","l":"id","d":"id"},"thursday":{"b":"id","l":"id","d":"id"},"friday":{"b":"id","l":"id","d":"id"},"saturday":{"b":"id","l":"id","d":"id"},"sunday":{"b":"id","l":"id","d":"id"}}';
               var prompt = "Generate a week of meals for " + (prof.name || "user") + " (" + (isJC ? "2000-2200 kcal" : "1700-1900 kcal") + " target). Only fill EMPTY slots - keep existing selections. CRITICAL: You MUST ONLY use item IDs from the lists below - never invent new IDs. FREQUENCY RULES based on RAG rating: GREAT items can appear every day, AMBER items maximum once per week, RED items maximum once per month. Each item shows its rating in [brackets]. Respect these limits strictly." + pastHistory + " Current: " + JSON.stringify(meals) + ". Breakfasts: " + bfastList + ". Lunches: " + lunchList + ". Dinners: " + dinnerList + ". Vary daily. Return ONLY JSON: " + fmt;
@@ -6765,7 +6771,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.327.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.327.1
       </div>
 
       {/* Floating Ask a Question button */}
