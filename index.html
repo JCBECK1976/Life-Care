@@ -762,7 +762,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.325.2
+// STANDARD BUTTON STYLES v1.326.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -4049,8 +4049,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           var allDrinks = [].concat(customDrinks);
           var allDesserts = [].concat(customDesserts);
           var allItems = [].concat(allBfast, allLunch, allDinners, allOther);
-          // Display lists for MealSelect dropdowns — custom items + defaults (deduped)
-          var dedupe = function(customs, defaults) { var cNames = customs.map(function(c){return c.name.toLowerCase().trim();}); return [].concat(customs, defaults.filter(function(d){return cNames.indexOf(d.name.toLowerCase().trim()) < 0;})); };
+          // Display lists for MealSelect dropdowns — custom items (RAG colored) + defaults (uncolored, not yet added)
+          var markCustom = function(items) { return items.map(function(it) { return Object.assign({}, it, { _isCustom: true }); }); };
+          var markDefault = function(items) { return items.map(function(it) { return Object.assign({}, it, { _isCustom: false }); }); };
+          var dedupe = function(customs, defaults) { var cNames = customs.map(function(c){return c.name.toLowerCase().trim();}); return [].concat(markCustom(customs), markDefault(defaults.filter(function(d){return cNames.indexOf(d.name.toLowerCase().trim()) < 0;}))); };
           var dispBfast = dedupe(customBreakfasts, DEFAULT_BREAKFASTS);
           var dispLunch = dedupe(customLunches, DEFAULT_LUNCHES);
           var dispDinners = dedupe(customMeals, DEFAULT_DINNERS_GB);
@@ -4329,8 +4331,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             return (<div style={{position:"relative"}}>
               <input ref={inputRef} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Type to search..." style={{width:"100%",padding:"8px 10px",border:"1px solid "+accent,borderRadius:6,fontSize:11,background:"#fff",boxSizing:"border-box"}} onBlur={function(){setTimeout(function(){setOpen(false);},200);}} />
               <div style={{position:"absolute",top:"100%",left:0,right:0,zIndex:50,background:"#fff",border:"1px solid #e2e8f0",borderRadius:6,maxHeight:200,overflowY:"auto",boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}>
-                {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#0c4a6e"; return (<div key={item.id} onMouseDown={function(e){e.preventDefault();onChange({target:{value:item.id}});setOpen(false);setSearch("");}} style={{padding:"6px 10px",fontSize:11,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f8fafc",color:color}}>
-                  <span>{item.name} ({kcal} kcal)</span>
+                {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var isAdded = item._isCustom !== false; var color = isAdded ? (item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#0c4a6e") : "#94a3b8"; return (<div key={item.id} onMouseDown={function(e){e.preventDefault();onChange({target:{value:item.id}});setOpen(false);setSearch("");}} style={{padding:"6px 10px",fontSize:11,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f8fafc",color:color}}>
+                  <span>{item.name} ({kcal} kcal){!isAdded ? " — not added" : ""}</span>
                   
                 </div>); })}
                 <div onMouseDown={function(e){e.preventDefault();onChange({target:{value:"__add_new__", searchText: search}});setOpen(false);setSearch("");}} style={{padding:"8px 10px",fontSize:11,fontWeight:600,color:accent,cursor:"pointer",borderTop:"1px solid #e2e8f0"}}>+ Add new item...</div>
@@ -5071,13 +5073,22 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             </div>
 
             <button onClick={async function() {
+            /* Only use custom items (user-added with RAG status) for meal generation */
+            var genBf = customBreakfasts.filter(function(it) { return it.rating; });
+            var genLu = customLunches.filter(function(it) { return it.rating; });
+            var genDin = customMeals.filter(function(it) { return it.rating; });
+            if (genBf.length < 3 || genLu.length < 3 || genDin.length < 3) {
+              setFormMsg("Please use 'Update Eating Lists' to add your choice of food items. Once added, the food items will be colour coded for use by the meal generator and yourself.");
+              setTimeout(function() { setFormMsg(""); }, 8000);
+              return;
+            }
             await applyDefaults();
             setGenerating(true); setFormMsg("Applying defaults and generating meals...");
             try {
               var prof = p.profile || {};
-              var dinnerList = allDinners.filter(function(d2) { return d2.id !== "none"; }).map(function(d2) { return d2.id + ":" + d2.name + "[" + (d2.rating||"GREAT") + "](" + (isJC ? d2.jcKcal : d2.beckKcal) + "kcal," + d2.time + "min)"; }).join(";");
-              var bfastList = allBfast.map(function(b) { return b.id + ":" + b.name + "[" + (b.rating||"GREAT") + "]"; }).join(";");
-              var lunchList = allLunch.map(function(l) { return l.id + ":" + l.name + "[" + (l.rating||"GREAT") + "]"; }).join(";");
+              var dinnerList = genDin.filter(function(d2) { return d2.id !== "none"; }).map(function(d2) { return d2.id + ":" + d2.name + "[" + (d2.rating||"GREAT") + "](" + (isJC ? d2.jcKcal : d2.beckKcal) + "kcal," + (d2.time||30) + "min)"; }).join(";");
+              var bfastList = genBf.map(function(b) { return b.id + ":" + b.name + "[" + (b.rating||"GREAT") + "]"; }).join(";");
+              var lunchList = genLu.map(function(l) { return l.id + ":" + l.name + "[" + (l.rating||"GREAT") + "]"; }).join(";");
               var fmt = '{"monday":{"b":"id","l":"id","d":"id"},"tuesday":{"b":"id","l":"id","d":"id"},"wednesday":{"b":"id","l":"id","d":"id"},"thursday":{"b":"id","l":"id","d":"id"},"friday":{"b":"id","l":"id","d":"id"},"saturday":{"b":"id","l":"id","d":"id"},"sunday":{"b":"id","l":"id","d":"id"}}';
               var prompt = "Generate a week of meals for " + (prof.name || "user") + " (" + (isJC ? "2000-2200 kcal" : "1700-1900 kcal") + " target). Only fill EMPTY slots - keep existing selections. CRITICAL FREQUENCY RULES based on RAG rating: GREAT items can appear every day, AMBER items maximum once per week, RED items maximum once per month (so usually 0 in a given week unless none have appeared recently). Each item shows its rating in [brackets]. Respect these limits strictly. Current: " + JSON.stringify(meals) + ". Breakfasts: " + bfastList + ". Lunches: " + lunchList + ". Dinners: " + dinnerList + ". Vary daily. Return ONLY JSON: " + fmt;
               var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }) });
@@ -6649,7 +6660,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.325.2
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.326.0
       </div>
 
       {/* Floating Ask a Question button */}
