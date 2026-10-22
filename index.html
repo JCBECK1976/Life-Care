@@ -762,7 +762,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.326.0
+// STANDARD BUTTON STYLES v1.327.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -1449,6 +1449,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const FIRST_KEY = "mealplan:2026-08-23";
   const FIRST_DEF = { sun: "spag_bol", mon: "sweet_chilli_mash", tue: "chicken_risotto", wed: "fish_chips", thu: "pesto_pasta", _notes: { wed: "JC at parents — Fish & Chips for Beck + boys", thu: "JC: work lunch + McFlurry with Evan. Session 3 moved to Thu." } };
 
+  const [pastWeeksMeals, setPastWeeksMeals] = useState([]);
   useEffect(() => {
     setMealLoading(true);
     (async () => {
@@ -1456,6 +1457,15 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       if (raw) setMeals(JSON.parse(raw));
       else if (sk === FIRST_KEY) { setMeals(FIRST_DEF); await sSet(sk, JSON.stringify(FIRST_DEF)); }
       else setMeals({});
+      /* Load past 4 weeks for RED frequency checking */
+      var past = [];
+      for (var pw = 1; pw <= 4; pw++) {
+        var pws = new Date(weekStart); pws.setDate(pws.getDate() - (pw * 7));
+        var psk = mealKey(pws) + ":" + activeTab;
+        var praw = await sGet(psk);
+        if (praw) past.push(JSON.parse(praw));
+      }
+      setPastWeeksMeals(past);
       setMealLoading(false);
     })();
   }, [sk]);
@@ -4059,6 +4069,67 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           var dispOther = [...customSnacks];
           var dispDrinks = [...customDrinks];
           var dispDesserts = [...customDesserts];
+          /* ── RAG frequency checking ── */
+          /* Build lookup of all items by id for rating check */
+          var allItemsLookup = {};
+          [].concat(dispBfast, dispLunch, dispDinners, dispOther, dispDrinks, dispDesserts).forEach(function(it) { allItemsLookup[it.id] = it; });
+          /* Collect all meal IDs used this week (current meals state) */
+          var thisWeekIds = function() {
+            var ids = [];
+            var DAYS_CK = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+            DAYS_CK.forEach(function(d) {
+              var dm = meals[d]; if (!dm) return;
+              ["b","l","d"].forEach(function(s) { if (dm[s] && dm[s] !== "__empty__") ids.push(dm[s]); });
+              for (var i = 2; i <= 10; i++) { if (dm["b"+i]) ids.push(dm["b"+i]); if (dm["l"+i]) ids.push(dm["l"+i]); if (dm["d"+i]) ids.push(dm["d"+i]); }
+            });
+            return ids;
+          };
+          /* Collect all meal IDs used in past 4 weeks (for RED monthly check) */
+          var pastMonthIds = function() {
+            var ids = [];
+            pastWeeksMeals.forEach(function(wk) {
+              if (!wk) return;
+              Object.keys(wk).forEach(function(d) {
+                if (d.startsWith("_")) return;
+                var dm = wk[d]; if (!dm || typeof dm !== "object") return;
+                ["b","l","d"].forEach(function(s) { if (dm[s] && dm[s] !== "__empty__") ids.push(dm[s]); });
+                for (var i = 2; i <= 10; i++) { if (dm["b"+i]) ids.push(dm["b"+i]); if (dm["l"+i]) ids.push(dm["l"+i]); if (dm["d"+i]) ids.push(dm["d"+i]); }
+              });
+            });
+            return ids;
+          };
+          /* Check if selecting itemId in a slot would breach RAG rules.
+             excludeDay/excludeSlot: the slot being set (exclude its current value from count).
+             Returns null if OK, or a warning string if breached. */
+          var checkRagFrequency = function(itemId, excludeDay, excludeSlot) {
+            if (!itemId || itemId === "__empty__") return null;
+            var item = allItemsLookup[itemId];
+            if (!item || !item.rating || !item._isCustom) return null;
+            if (item.rating === "GREAT") return null;
+            if (item.rating === "AMBER") {
+              /* Max once per week — check if already used elsewhere this week */
+              var weekIds = thisWeekIds();
+              /* Remove the current slot's existing value from count */
+              if (excludeDay && excludeSlot) {
+                var curVal = meals[excludeDay] && meals[excludeDay][excludeSlot];
+                if (curVal === itemId) return null; /* Same item already there */
+              }
+              var count = weekIds.filter(function(id) { return id === itemId; }).length;
+              /* If already present, warn */
+              if (count > 0) return "Not recommended — already selected this week (AMBER: max once per week)";
+            }
+            if (item.rating === "RED") {
+              /* Max once per month — check current week + past 4 weeks */
+              var allIds = thisWeekIds().concat(pastMonthIds());
+              if (excludeDay && excludeSlot) {
+                var curVal2 = meals[excludeDay] && meals[excludeDay][excludeSlot];
+                if (curVal2 === itemId) return null;
+              }
+              var countAll = allIds.filter(function(id) { return id === itemId; }).length;
+              if (countAll > 0) return "Not recommended — already selected within the past month (RED: max once per month)";
+            }
+            return null;
+          };
           var currentWeek = calcWeek(data.config.trainingStart);
           var DAYS = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
           var DAY_LABELS = { monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu", friday: "Fri", saturday: "Sat", sunday: "Sun" };
@@ -5082,6 +5153,27 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               setTimeout(function() { setFormMsg(""); }, 8000);
               return;
             }
+            /* Check items can logically fill 7 days following RAG rules:
+               GREEN = every day, AMBER = max 1/week, RED = max 1/month.
+               Need enough GREEN items to cover days not filled by AMBER/RED */
+            var checkCanFill = function(items, label) {
+              var greens = items.filter(function(it) { return it.rating === "GREAT" || it.rating === "GREEN"; }).length;
+              var ambers = items.filter(function(it) { return it.rating === "AMBER"; }).length;
+              var reds = items.filter(function(it) { return it.rating === "RED"; }).length;
+              /* Worst case: 1 amber + 1 red = 2 non-green slots, need greens to cover remaining 5 */
+              /* But greens can repeat, so even 1 green is enough if user is OK with repetition */
+              /* Real constraint: if ALL items are amber/red, can't fill 7 days */
+              var maxNonGreen = Math.min(ambers, 1) + Math.min(reds, 1); /* max usable non-green per week */
+              var greenDays = 7 - maxNonGreen;
+              if (greens === 0 && greenDays > 0) return label;
+              return null;
+            };
+            var failCat = checkCanFill(genBf, "breakfasts") || checkCanFill(genLu, "lunches") || checkCanFill(genDin, "dinners");
+            if (failCat) {
+              setFormMsg("Please use 'Update Eating Lists' to add your choice of food items. Once added, the food items will be colour coded for use by the meal generator and yourself.");
+              setTimeout(function() { setFormMsg(""); }, 8000);
+              return;
+            }
             await applyDefaults();
             setGenerating(true); setFormMsg("Applying defaults and generating meals...");
             try {
@@ -5089,8 +5181,15 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               var dinnerList = genDin.filter(function(d2) { return d2.id !== "none"; }).map(function(d2) { return d2.id + ":" + d2.name + "[" + (d2.rating||"GREAT") + "](" + (isJC ? d2.jcKcal : d2.beckKcal) + "kcal," + (d2.time||30) + "min)"; }).join(";");
               var bfastList = genBf.map(function(b) { return b.id + ":" + b.name + "[" + (b.rating||"GREAT") + "]"; }).join(";");
               var lunchList = genLu.map(function(l) { return l.id + ":" + l.name + "[" + (l.rating||"GREAT") + "]"; }).join(";");
+              /* Build past weeks history for RED monthly limit checking */
+              var pastHistory = "";
+              if (pastWeeksMeals.length > 0) {
+                var pastIds = pastMonthIds();
+                var pastRedUsed = pastIds.filter(function(id) { var it = allItemsLookup[id]; return it && it.rating === "RED"; });
+                if (pastRedUsed.length > 0) { pastHistory = " RED items used in past 4 weeks (DO NOT reuse): " + pastRedUsed.filter(function(v, i, a) { return a.indexOf(v) === i; }).join(",") + "."; }
+              }
               var fmt = '{"monday":{"b":"id","l":"id","d":"id"},"tuesday":{"b":"id","l":"id","d":"id"},"wednesday":{"b":"id","l":"id","d":"id"},"thursday":{"b":"id","l":"id","d":"id"},"friday":{"b":"id","l":"id","d":"id"},"saturday":{"b":"id","l":"id","d":"id"},"sunday":{"b":"id","l":"id","d":"id"}}';
-              var prompt = "Generate a week of meals for " + (prof.name || "user") + " (" + (isJC ? "2000-2200 kcal" : "1700-1900 kcal") + " target). Only fill EMPTY slots - keep existing selections. CRITICAL FREQUENCY RULES based on RAG rating: GREAT items can appear every day, AMBER items maximum once per week, RED items maximum once per month (so usually 0 in a given week unless none have appeared recently). Each item shows its rating in [brackets]. Respect these limits strictly. Current: " + JSON.stringify(meals) + ". Breakfasts: " + bfastList + ". Lunches: " + lunchList + ". Dinners: " + dinnerList + ". Vary daily. Return ONLY JSON: " + fmt;
+              var prompt = "Generate a week of meals for " + (prof.name || "user") + " (" + (isJC ? "2000-2200 kcal" : "1700-1900 kcal") + " target). Only fill EMPTY slots - keep existing selections. CRITICAL: You MUST ONLY use item IDs from the lists below - never invent new IDs. FREQUENCY RULES based on RAG rating: GREAT items can appear every day, AMBER items maximum once per week, RED items maximum once per month. Each item shows its rating in [brackets]. Respect these limits strictly." + pastHistory + " Current: " + JSON.stringify(meals) + ". Breakfasts: " + bfastList + ". Lunches: " + lunchList + ". Dinners: " + dinnerList + ". Vary daily. Return ONLY JSON: " + fmt;
               var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }) });
               var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
               var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
@@ -5379,10 +5478,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 return slots.map(function(idx) {
                   var slotKey = idx === 1 ? "b" : "b" + idx;
                   var _hasItem = allBfast.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
+                  var _ragWarn = checkRagFrequency(getMeal(eatDay, slotKey), eatDay, slotKey);
                   return (<div key={"b"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
                       <MealSelect items={dispBfast} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
                     </div>
+                    {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
                     {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allBfast); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
                     {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
@@ -5433,10 +5534,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 return slots.map(function(idx) {
                   var slotKey = idx === 1 ? "l" : "l" + idx;
                   var _hasItem = allLunch.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
+                  var _ragWarn = checkRagFrequency(getMeal(eatDay, slotKey), eatDay, slotKey);
                   return (<div key={"l"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
                       <MealSelect items={dispLunch} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
                     </div>
+                    {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
                     {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allLunch); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
                     {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
@@ -5489,6 +5592,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var sIdx = slotKey === "d" ? "" : slotKey.replace("d", "");
                   var _hasItem = allDinners.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
                   var _isPackaged = isPackagedDinner(getMeal(eatDay, slotKey));
+                  var _ragWarn = checkRagFrequency(getMeal(eatDay, slotKey), eatDay, slotKey);
                   var dpKey = "dp" + sIdx;
                   var dvKey = "dv" + sIdx;
                   return (<div key={"d"+idx}>
@@ -5496,6 +5600,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ flex: 1 }}>
                       <MealSelect items={dispDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
                     </div>
+                    {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
                     {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allDinners); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
                     {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
@@ -6660,7 +6765,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.326.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.327.0
       </div>
 
       {/* Floating Ask a Question button */}
