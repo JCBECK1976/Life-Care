@@ -777,7 +777,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.337.2
+// STANDARD BUTTON STYLES v1.338.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -2666,7 +2666,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         </div>)}
       </div>
       <div style={{ display: "flex", gap: 0, padding: "0 4px", background: "#fff", borderBottom: "1px solid #e2e8f0", overflowX: "auto" }}>
-        {SECS.map(s => (<button key={s.id} onClick={() => { setSection(s.id); setShowOnboarding(false); setSetupTab("profile"); setFbExpanded(false); setEatFbExpanded(false); setHomeFbExpanded(false); setHealthFbExpanded(false); setLogEx(null); setSelectedEx(null); }} style={{ padding: "10px 8px", border: "none", borderBottom: section === s.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 11, fontWeight: section === s.id ? 700 : 500, color: section === s.id ? accent : "#64748b", cursor: "pointer", whiteSpace: "nowrap" }}>{s.l}</button>))}
+        {SECS.map(s => (<button key={s.id} onClick={() => { setSection(s.id); setShowOnboarding(false); setSetupTab("profile"); setFbExpanded(false); setEatFbExpanded(false); setHomeFbExpanded(false); setHealthFbExpanded(false); setLogEx(null); setSelectedEx(null); setBodyView("data"); }} style={{ padding: "10px 8px", border: "none", borderBottom: section === s.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 11, fontWeight: section === s.id ? 700 : 500, color: section === s.id ? accent : "#64748b", cursor: "pointer", whiteSpace: "nowrap" }}>{s.l}</button>))}
       </div>
       {formMsg && <div style={{ margin: "8px 16px 0", padding: 10, borderRadius: 8, background: formMsg.startsWith("✓") ? "#e0f2fe" : "#fee2e2", color: formMsg.startsWith("✓") ? "#0c4a6e" : "#991b1b", fontSize: 12, fontWeight: 600 }}>{formMsg}</div>}
 
@@ -3346,11 +3346,11 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             {mArr.length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 16 }}>No progress data yet</div>}
             {mArr.length > 0 && (<div>
               <div style={{ display: "flex", gap: 6, padding: "2px 0", fontSize: 9, color: "#94a3b8", fontWeight: 600 }}><span style={{ width: 40 }}>WK</span><span style={{ width: 60 }}>VALUE</span><span style={{ flex: 1 }}>NOTES</span><span style={{ width: 20 }}></span></div>
-              {mArr.slice(0, bodyMetricShowAll ? 999 : 4).map(function(entry, ei) { return (<div key={ei} style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
+              {mArr.slice().reverse().slice(0, bodyMetricShowAll ? 999 : 4).map(function(entry, pi) { var ei = mArr.length - 1 - pi; return (<div key={pi} style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
                 <input defaultValue={entry.wk} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[bodyMetricOpen][ei].wk = parseInt(e.target.value) || entry.wk; await saveData(nd); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
                 <input defaultValue={entry.v} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[bodyMetricOpen][ei].v = parseFloat(e.target.value) || entry.v; await saveData(nd); }} style={{ width: 60, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
                 <input defaultValue={entry.note || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[bodyMetricOpen][ei].note = e.target.value; await saveData(nd); }} placeholder="..." style={{ flex: 1, minWidth: 0, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
-                <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[bodyMetricOpen].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{...btnDelete, fontSize: 9, minWidth: 24, flexShrink: 0}}>✕</button>
+                <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[bodyMetricOpen].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{...btnDelete, fontSize: 11, minWidth: 24, flexShrink: 0}}>🗑 Del</button>
               </div>); })}
               {mArr.length > 4 && <button onClick={function() { setBodyMetricShowAll(!bodyMetricShowAll); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: accent, cursor: "pointer", marginTop: 6 }}>{bodyMetricShowAll ? "▲ Show less" : "▼ View more (" + (mArr.length - 4) + " entries)"}</button>}
             </div>)}
@@ -3460,11 +3460,11 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 {d.length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 16 }}>No progress data yet</div>}
                 {d.length > 0 && (<div>
                   <div style={{ display: "flex", gap: 6, padding: "2px 0", fontSize: 9, color: "#94a3b8", fontWeight: 600 }}><span style={{ width: 40 }}>WK</span><span style={{ width: 60 }}>CM</span><span style={{ flex: 1 }}>NOTES</span><span style={{ width: 20 }}></span></div>
-                  {d.slice(0, measMetricShowAll ? 999 : 4).map(function(entry, ei) { return (<div key={ei} style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
+                  {d.slice().reverse().slice(0, measMetricShowAll ? 999 : 4).map(function(entry, pi) { var ei = d.length - 1 - pi; return (<div key={pi} style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
                     <input defaultValue={entry.wk} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].wk = parseInt(e.target.value) || entry.wk; await saveData(nd); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
                     <input defaultValue={entry.v} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].v = parseFloat(e.target.value) || entry.v; await saveData(nd); }} style={{ width: 60, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
                     <input defaultValue={entry.note || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].note = e.target.value; await saveData(nd); }} placeholder="..." style={{ flex: 1, minWidth: 0, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
-                    <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{...btnDelete, fontSize: 9, minWidth: 24, flexShrink: 0}}>✕</button>
+                    <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{...btnDelete, fontSize: 11, minWidth: 24, flexShrink: 0}}>🗑 Del</button>
                   </div>); })}
                   {d.length > 4 && <button onClick={function() { setMeasMetricShowAll(!measMetricShowAll); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: accent, cursor: "pointer", marginTop: 6 }}>{measMetricShowAll ? "▲ Show less" : "▼ View more (" + (d.length - 4) + " entries)"}</button>}
                 </div>)}
@@ -3865,6 +3865,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       <div style={{fontSize:11,fontWeight:700,color:"#0f172a",marginBottom:4}}>Progression Rules</div>
                       <textarea value={ex.progressionNotes || "Progression: build reps to target then increase weight. User defines increment method and ranges."} onChange={async function(e) { var nd=JSON.parse(JSON.stringify(data)); var exs=nd[activeTab].exercises[day]; if(exs&&exs[i]) { exs[i].progressionNotes=e.target.value; await saveData(nd); }}} style={{width:"100%",padding:8,border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#475569",background:"#fff",minHeight:60,resize:"vertical",lineHeight:1.4,boxSizing:"border-box"}} />
                     </div>
+                    </div>)}
                     <div style={{marginTop:12,paddingTop:8,borderTop:"1px solid #e2e8f0"}}>
                       <div style={{fontSize:11,fontWeight:700,color:"#0f172a",marginBottom:6}}>Exercise Settings</div>
                       <div style={{display:"flex",gap:6}}>
@@ -3880,7 +3881,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         <button onClick={async function(){if(confirm("Delete "+ex.name+"?\n\nThis will permanently remove this exercise and all its progress history. This cannot be undone.")){var nd=JSON.parse(JSON.stringify(data));var exs=nd[activeTab].exercises[day];if(exs){exs.splice(i,1);await saveData(nd);setSelectedEx(null);setLogEx(null);}}}} style={{...btnDelete,flex:1}}>🗑 Delete</button>
                       </div>
                     </div>
-                    </div>)}
                     {/* Inline edit form when editing this exercise */}
                     {addExConfirm && addExConfirm._editMode && addExConfirm._editDay===day && addExConfirm._editIdx===i && (
                     <div style={{marginTop:12,padding:10,background:"#fff",borderRadius:10,border:"2px solid "+accent}}>
@@ -6730,7 +6730,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       {v.spo2 && <span>SpO2: <span style={{ fontWeight: 700, color: spo2Color }}>{v.spo2}%</span></span>}
                     </div>
                   </div>
-                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].vitals.splice(nd[activeTab].vitals.length - 1 - vi, 1); await saveData(nd); }} style={{...btnDelete, fontSize: 9, minWidth: 24, flexShrink: 0}}>✕</button>
+                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].vitals.splice(nd[activeTab].vitals.length - 1 - vi, 1); await saveData(nd); }} style={{...btnDelete, fontSize: 11, minWidth: 24, flexShrink: 0}}>🗑 Del</button>
                 </div>);
               })}
             </div>
@@ -7202,7 +7202,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.337.2
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.338.0
       </div>
 
       {/* Floating Ask a Question button */}
