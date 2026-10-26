@@ -765,7 +765,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.331.0
+// STANDARD BUTTON STYLES v1.332.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -3832,6 +3832,12 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       <div style={{fontSize:11,color:"#15803d",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{ex.exerciseGuide}</div>
                     </div>
                     )}
+                    {ex.prePostGuide && (
+                    <div style={{marginTop:12,padding:10,background:"#eff6ff",borderRadius:8,border:"1px solid #bfdbfe"}}>
+                      <div style={{fontSize:10,fontWeight:700,color:"#1e40af",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.5px"}}>🧘 Pre & Post Exercise</div>
+                      <div style={{fontSize:11,color:"#1d4ed8",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{ex.prePostGuide}</div>
+                    </div>
+                    )}
 <div style={{marginTop:12}}>
                       <div style={{fontSize:11,fontWeight:700,color:"#0f172a",marginBottom:4}}>Progression Rules</div>
                       <textarea value={ex.progressionNotes || "Progression: build reps to target then increase weight. User defines increment method and ranges."} onChange={async function(e) { var nd=JSON.parse(JSON.stringify(data)); var exs=nd[activeTab].exercises[day]; if(exs&&exs[i]) { exs[i].progressionNotes=e.target.value; await saveData(nd); }}} style={{width:"100%",padding:8,border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#475569",background:"#fff",minHeight:60,resize:"vertical",lineHeight:1.4,boxSizing:"border-box"}} />
@@ -3844,7 +3850,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                           var tc = getExerciseTypeConfig(curType);
                           var curM1 = ex.current || tc.defaultM1;
                           var curM2 = (ex.reps || tc.defaultM2).replace(/x\d+$/,"");
-                          setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:curM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",exerciseGuide:ex.exerciseGuide||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});
+                          setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:curM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",exerciseGuide:ex.exerciseGuide||"",prePostGuide:ex.prePostGuide||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});
                           setAddExOpen(false);
                         }} style={{...btnEdit,flex:1}}>✎ Edit</button>
                         <button onClick={async function(){if(confirm("Delete "+ex.name+"?\n\nThis will permanently remove this exercise and all its progress history. This cannot be undone.")){var nd=JSON.parse(JSON.stringify(data));var exs=nd[activeTab].exercises[day];if(exs){exs.splice(i,1);await saveData(nd);setSelectedEx(null);setLogEx(null);}}}} style={{...btnDelete,flex:1}}>🗑 Delete</button>
@@ -3909,6 +3915,13 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         <div style={{fontSize:9,color:"#86efac",marginTop:4,fontStyle:"italic"}}>AI-generated — review for accuracy</div>
                       </div>
                       )}
+                      {addExConfirm.prePostGuide && (
+                      <div style={{marginBottom:10,padding:10,background:"#eff6ff",borderRadius:8,border:"1px solid #bfdbfe"}}>
+                        <div style={{fontSize:10,fontWeight:700,color:"#1e40af",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.5px"}}>🧘 Pre & Post Exercise</div>
+                        <div style={{fontSize:11,color:"#1d4ed8",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{addExConfirm.prePostGuide}</div>
+                        <div style={{fontSize:9,color:"#93c5fd",marginTop:4,fontStyle:"italic"}}>AI-generated — review for accuracy</div>
+                      </div>
+                      )}
                       <div style={{display:"flex",gap:8}}>
                         <button onClick={async function(){
                           var c = addExConfirm; var tc = getExerciseTypeConfig(c.type);
@@ -3919,14 +3932,14 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                             // Edit existing exercise — preserve prog data
                             var editDay = c._editDay; var editIdx = c._editIdx;
                             var existingEx = nd[activeTab].exercises[editDay][editIdx];
-                            existingEx.name = c.name; existingEx.exType = c.type; existingEx.current = m1Val; existingEx.reps = repsStr; existingEx.progressionNotes = c.progression; existingEx.notes = c.notes || ""; existingEx.sets = c.sets; if (c.exerciseGuide) existingEx.exerciseGuide = c.exerciseGuide;
+                            existingEx.name = c.name; existingEx.exType = c.type; existingEx.current = m1Val; existingEx.reps = repsStr; existingEx.progressionNotes = c.progression; existingEx.notes = c.notes || ""; existingEx.sets = c.sets; if (c.exerciseGuide) existingEx.exerciseGuide = c.exerciseGuide; if (c.prePostGuide) existingEx.prePostGuide = c.prePostGuide;
                             await saveData(nd);
                             setFormMsg("✓ " + c.name + " updated"); setTimeout(function(){setFormMsg("");},3000);
                           } else {
                             // Add new exercise
                             if(!nd[activeTab].exercises) nd[activeTab].exercises={};
                             if(!nd[activeTab].exercises[day]) nd[activeTab].exercises[day]=[];
-                            nd[activeTab].exercises[day].push({name:c.name, exType:c.type, current:m1Val, reps:repsStr, status:"building", prog:[], progressionNotes:c.progression, notes:c.notes||"", sets:c.sets, exerciseGuide:c.exerciseGuide||""});
+                            nd[activeTab].exercises[day].push({name:c.name, exType:c.type, current:m1Val, reps:repsStr, status:"building", prog:[], progressionNotes:c.progression, notes:c.notes||"", sets:c.sets, exerciseGuide:c.exerciseGuide||"", prePostGuide:c.prePostGuide||""});
                             if(c.isCustom){var updated=[].concat(customExercises,[c.name]);setCustomExercises(updated);await sSet("custom_exercises",JSON.stringify(updated));}
                             await saveData(nd);
                             var newIdx = nd[activeTab].exercises[day].length - 1;
@@ -3951,7 +3964,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         var allMatches = dbMatches.map(function(e){return {name:e.name,type:e.type,cat:e.category,isCustom:false};}).concat(customMatches.map(function(n){return {name:n,type:"weights",cat:"Custom",isCustom:true};}));
                         var openConfirmForm = function(match) {
                           var tc = getExerciseTypeConfig(match.type);
-                          setAddExConfirm({name:match.name,type:match.type,sets:tc.defaultSets,m1:tc.defaultM1,m2:tc.defaultM2,progression:"Loading AI recommendation...",notes:"",exerciseGuide:"",isCustom:match.isCustom});
+                          setAddExConfirm({name:match.name,type:match.type,sets:tc.defaultSets,m1:tc.defaultM1,m2:tc.defaultM2,progression:"Loading AI recommendation...",notes:"",exerciseGuide:"",prePostGuide:"",isCustom:match.isCustom});
                           setAddExOpen(false);
                           // Call AI for personalised defaults
                           setAddExLoading(true);
@@ -3960,14 +3973,14 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                               var isJC2 = activeTab === "jc";
                               var profileInfo = isJC2 ? "Male, 49, 89kg, 5ft11, meso-endomorph, upper-body dominant, ADHD, thyroid TSH issues, Marcy HG5000 home multi gym" : "Female, 48, 5ft4, compact meso-endomorph, fast-twitch dominant, lower-body dominant, RSI in wrists (uses Bear Grip straps, J Bryant cuffs, tricep rope), exceptional natural lower body, Marcy HG5000 home multi gym";
                               var typeCfg = getExerciseTypeConfig(match.type);
-                              var prompt2 = "Exercise: " + match.name + " (type: " + typeCfg.label + "). Person: " + profileInfo + ".\nReturn ONLY JSON: {\"sets\":" + tc.defaultSets + ",\"metric1\":\"recommended starting " + (typeCfg.metric1Label||"value") + " e.g. " + tc.defaultM1 + "\",\"metric2\":\"recommended starting " + (typeCfg.metric2Label||"value") + " e.g. " + tc.defaultM2 + "\",\"progressionNotes\":\"specific progression rules for this exercise for this person\",\"equipmentNotes\":\"any equipment or form notes specific to this person\",\"exerciseGuide\":\"A concise how-to guide for performing this exercise correctly. Cover: starting position, movement execution with emphasis on full range of motion, breathing pattern, tempo recommendation (e.g. 3-second eccentric), and the most common mistakes to avoid. Write in direct 2nd person. 3-5 short sentences.\"}";
-                              var resp2 = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{"Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,messages:[{role:"user",content:prompt2}]})});
+                              var prompt2 = "Exercise: " + match.name + " (type: " + typeCfg.label + "). Person: " + profileInfo + ".\nReturn ONLY JSON: {\"sets\":" + tc.defaultSets + ",\"metric1\":\"recommended starting " + (typeCfg.metric1Label||"value") + " e.g. " + tc.defaultM1 + "\",\"metric2\":\"recommended starting " + (typeCfg.metric2Label||"value") + " e.g. " + tc.defaultM2 + "\",\"progressionNotes\":\"specific progression rules for this exercise for this person\",\"equipmentNotes\":\"any equipment or form notes specific to this person\",\"exerciseGuide\":\"A concise how-to guide for performing this exercise correctly. Cover: starting position, movement execution with emphasis on full range of motion, breathing pattern, tempo recommendation (e.g. 3-second eccentric), and the most common mistakes to avoid. Write in direct 2nd person. 3-5 short sentences.\",\"prePostGuide\":\"Recommended warm-up stretches and preparation BEFORE this specific exercise, and cool-down stretches AFTER it. Customise to the muscle groups this exercise targets and this person's profile. Format as: PRE: 2-3 specific stretches/movements with brief instruction. POST: 2-3 specific stretches with brief instruction. Write in direct 2nd person. Keep each stretch to one sentence.\"}";
+                              var resp2 = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{"Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:900,messages:[{role:"user",content:prompt2}]})});
                               var result2 = await resp2.json();
                               var txt2 = ""; if(result2.content){for(var ri=0;ri<result2.content.length;ri++){if(result2.content[ri].text)txt2+=result2.content[ri].text;}}
                               var info2 = JSON.parse(txt2.replace(/```json|```/g,"").trim());
-                              setAddExConfirm(function(prev){if(!prev||prev.name!==match.name)return prev;return Object.assign({},prev,{sets:info2.sets||prev.sets,m1:info2.metric1||prev.m1,m2:info2.metric2||prev.m2,progression:info2.progressionNotes||"Double progression: build reps to target then increase weight.",notes:info2.equipmentNotes||"",exerciseGuide:info2.exerciseGuide||""});});
+                              setAddExConfirm(function(prev){if(!prev||prev.name!==match.name)return prev;return Object.assign({},prev,{sets:info2.sets||prev.sets,m1:info2.metric1||prev.m1,m2:info2.metric2||prev.m2,progression:info2.progressionNotes||"Double progression: build reps to target then increase weight.",notes:info2.equipmentNotes||"",exerciseGuide:info2.exerciseGuide||"",prePostGuide:info2.prePostGuide||""});});
                             } catch(ae) {
-                              setAddExConfirm(function(prev){if(!prev||prev.name!==match.name)return prev;return Object.assign({},prev,{progression:"Double progression: build reps to target then increase weight. User defines increment method and ranges.",exerciseGuide:""});});
+                              setAddExConfirm(function(prev){if(!prev||prev.name!==match.name)return prev;return Object.assign({},prev,{progression:"Double progression: build reps to target then increase weight. User defines increment method and ranges.",exerciseGuide:"",prePostGuide:""});});
                             }
                             setAddExLoading(false);
                           })();
@@ -7045,7 +7058,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.331.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.332.0
       </div>
 
       {/* Floating Ask a Question button */}
