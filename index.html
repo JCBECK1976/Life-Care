@@ -118,7 +118,7 @@ const DEFAULT_DATA = {
       bodyAge: [{ wk: 4, v: 52 }, { wk: 5, v: 52 }],
       bmi: [{ wk: 4, v: 27.9 }, { wk: 5, v: 27.8 }],
     },
-    measurements: { bicep: [{ wk: 6, v: 39.5 }], forearm: [], calf: [{ wk: 6, v: 41 }], quad: [{ wk: 6, v: 54 }], chest: [{ wk: 6, v: 110 }], waist: [{ wk: 6, v: 106 }], shoulders: [{ wk: 6, v: 125 }] },
+    measurements: { fullBody: [], bicep: [{ wk: 6, v: 39.5 }], forearm: [], calf: [{ wk: 6, v: 41 }], quad: [{ wk: 6, v: 54 }], chest: [{ wk: 6, v: 110 }], waist: [{ wk: 6, v: 106 }], shoulders: [{ wk: 6, v: 125 }] },
     bloods: [
       { date: "2026-04", tests: { tsh: 14.2, ldl: 3.4, hba1c: 43, cholRatio: 6.3 } },
       { date: "2026-08", tests: { tsh: 0.06, freeT4: 20.1, freeT3: 4.8, totalChol: 3.8, ldl: 1.4, hdl: 1.7, triglycerides: 1.46, cholRatio: 2.2, nonHdl: 2.1, hba1c: 45 } },
@@ -264,7 +264,7 @@ const DEFAULT_DATA = {
       bodyAge: [{ wk: 1, v: 56 }, { wk: 4, v: 55 }, { wk: 5, v: 55 }],
       bmi: [{ wk: 1, v: 35.3 }, { wk: 4, v: 34.8 }, { wk: 5, v: 34.9 }],
     },
-    measurements: { bicep: [{ wk: 6, v: 39 }], forearm: [], calf: [{ wk: 6, v: 40 }], quad: [{ wk: 6, v: 61 }], chest: [{ wk: 6, v: 114 }], waist: [{ wk: 6, v: 108 }], shoulders: [{ wk: 6, v: 114 }] },
+    measurements: { fullBody: [], bicep: [{ wk: 6, v: 39 }], forearm: [], calf: [{ wk: 6, v: 40 }], quad: [{ wk: 6, v: 61 }], chest: [{ wk: 6, v: 114 }], waist: [{ wk: 6, v: 108 }], shoulders: [{ wk: 6, v: 114 }] },
     bloods: [
       { date: "2026-04", tests: { totalChol: 9.6, ldl: 7.2, hdl: 1.2, triglycerides: 2.62, cholRatio: 8.0, nonHdl: 8.4, hba1c: 40, egfr: 67 } },
     ],
@@ -1245,6 +1245,10 @@ function Dashboard() {
   const [measMetricShowAll, setMeasMetricShowAll] = useState(false);
   const [measLogKey, setMeasLogKey] = useState(null);
   const [measLogInputs, setMeasLogInputs] = useState({ week: "", value: "", note: "" });
+  const [addMeasOpen, setAddMeasOpen] = useState(false);
+  const [addMeasName, setAddMeasName] = useState("");
+  const [editMeasKey, setEditMeasKey] = useState(null);
+  const [editMeasName, setEditMeasName] = useState("");
   const [assessment, setAssessment] = useState(null);
   const [assessmentExpanded, setAssessmentExpanded] = useState(false);
   const [googleToken, setGoogleToken] = useState(null);
@@ -1530,8 +1534,10 @@ function Dashboard() {
       const raw = await sGet("dashboard:data");
       if (raw) {
         const d = JSON.parse(raw);
-        // Migrate to shared storage
-        await sSet("dashboard:data", JSON.stringify(d));
+        // Migrate: ensure fullBody measurement exists for all users
+        var migrated = false;
+        Object.keys(d).forEach(function(uk) { if (uk !== "config" && d[uk].measurements && !d[uk].measurements.fullBody) { d[uk].measurements = Object.assign({ fullBody: [] }, d[uk].measurements); migrated = true; } });
+        if (migrated) await sSet("dashboard:data", JSON.stringify(d));
         setData(d);
       } else {
         setData(DEFAULT_DATA);
@@ -3430,60 +3436,92 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           </div>
               </div>)}
               {bodyView === "measurements" && (<div>
-                <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>My Body Measurements</span><div style={{ display: "flex", gap: 4 }}><label style={{...btnAction, display: "inline-flex"}}>📸 Progress Photo<input type="file" accept="image/*" multiple onChange={async function(e) { var files = Array.from(e.target.files); if (!files.length) return; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].progressPhotos) nd[activeTab].progressPhotos = []; for (var fi = 0; fi < files.length; fi++) { var reader = new FileReader(); await new Promise(function(resolve) { reader.onload = function(ev) { nd[activeTab].progressPhotos.push({ data: ev.target.result, date: new Date().toLocaleDateString("en-GB"), week: calcWeek(data.config.trainingStart) }); resolve(); }; reader.readAsDataURL(files[fi]); }); } await saveData(nd); setFormMsg("📸 Photo saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ display: "none" }} /></label></div></div>
-                {p.progressPhotos && p.progressPhotos.length > 0 && (<div style={{ marginBottom: 12 }}><div style={{ fontSize: 12, fontWeight: 600, color: "#334155", marginBottom: 6 }}>Progress Photos</div><div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>{p.progressPhotos.map(function(ph, phi) { return (<div key={phi} style={{ position: "relative", flexShrink: 0 }}><img src={ph.data} style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8 }} /><div style={{ fontSize: 9, color: "#94a3b8", textAlign: "center" }}>Wk{ph.week}</div><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].progressPhotos.splice(phi, 1); await saveData(nd); }} style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: "#dc2626", color: "#fff", border: "none", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button></div>); })}</div></div>)}
+                <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a" }}>My Body Measurements</div>
           <div style={{ background: "#f8fafc", borderRadius: 8, padding: "4px 12px 12px", border: "1px solid #e2e8f0" }}>
             {Object.entries(p.measurements).map(function(pair, mi) { var k = pair[0]; var d = pair[1]; var latest = d.length > 0 ? d[d.length - 1] : null; var prev = d.length > 1 ? d[d.length - 2] : null; var delta = (latest && prev && typeof latest.v === "number" && typeof prev.v === "number") ? (latest.v - prev.v).toFixed(1) : null; var measColors = ["#2563eb","#7c3aed","#059669","#d97706","#dc2626","#0891b2","#ec4899"]; return (<div key={k} style={{ padding: "10px 3px", borderBottom: mi < Object.entries(p.measurements).length - 1 ? "1px solid #e2e8f0" : "none", position: "relative" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>{k.charAt(0).toUpperCase() + k.slice(1)} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span></div>
+                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>{k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})} <span onClick={function(e) { e.stopPropagation(); setMeasMetricOpen(k); setEditMeasKey(k); setEditMeasName(k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})); }} style={{ fontSize: 9, color: "#94a3b8", cursor: "pointer" }}>✎</span></div>
                   <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>
                     {latest ? <><span>{latest.v}{typeof latest.v === "number" ? "cm" : ""}</span>{delta && <span style={{ fontSize: 10, color: parseFloat(delta) > 0 ? "#16a34a" : parseFloat(delta) < 0 ? "#dc2626" : "#64748b", marginLeft: 6 }}>{parseFloat(delta) > 0 ? "+" : ""}{delta}cm</span>}{latest.wk && <span style={{ fontSize: 10, color: "#94a3b8", marginLeft: 6 }}>Wk {latest.wk}</span>}</> : <span style={{ fontSize: 11, color: "#94a3b8" }}>No data yet</span>}
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0, alignItems: "flex-end" }}>
                   <button onClick={function(){ if (measMetricOpen === k) { setMeasMetricOpen(null); setMeasLogKey(null); } else { setMeasMetricOpen(k); setMeasMetricShowAll(false); setMeasLogKey(null); } }} style={{ padding: "4px 8px", background: measMetricOpen === k ? "#1e3a5f" : "#f1f5f9", border: "1px solid " + (measMetricOpen === k ? "#1e3a5f" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", color: measMetricOpen === k ? "#fff" : "#94a3b8", display: "flex", alignItems: "center", gap: 2, whiteSpace: "nowrap" }}>{measMetricOpen === k ? "✕ Progress" : "👁 Progress"}</button>
-                  <button onClick={function(){ if (measLogKey === k) { setMeasLogKey(null); } else { setMeasMetricOpen(k); setMeasLogKey(k); setMeasLogInputs({ week: calcWeek(data.config.trainingStart), value: "", note: "" }); } }} style={{ padding: "4px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, cursor: "pointer", fontWeight: 600, color: "#94a3b8", display: "flex", alignItems: "center", gap: 2, whiteSpace: "nowrap" }}>📋 Log</button>
+                  <button onClick={function(){ if (measLogKey === k) { setMeasLogKey(null); } else { setMeasMetricOpen(k); setMeasLogKey(k); setMeasLogInputs({ week: calcWeek(data.config.trainingStart), value: "", note: "", image: null }); } }} style={{ padding: "4px 8px", background: measLogKey === k ? "#1e3a5f" : "#f1f5f9", border: "1px solid " + (measLogKey === k ? "#1e3a5f" : "#e2e8f0"), borderRadius: 6, fontSize: 10, cursor: "pointer", fontWeight: 600, color: measLogKey === k ? "#fff" : "#94a3b8", display: "flex", alignItems: "center", gap: 2, whiteSpace: "nowrap" }}>📋 Log</button>
                 </div>
               </div>
               {measMetricOpen === k && (<div style={{ marginTop: 10, padding: 12, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0", width: "100%" }}>
-                <button onClick={function(){ if (measLogKey === k) { setMeasLogKey(null); } else { setMeasLogKey(k); setMeasLogInputs({ week: calcWeek(data.config.trainingStart), value: "", note: "" }); } }} style={btnActionLg}>📋 Log {k.charAt(0).toUpperCase() + k.slice(1)}</button>
+                <button onClick={function(){ if (measLogKey === k) { setMeasLogKey(null); } else { setMeasLogKey(k); setMeasLogInputs({ week: calcWeek(data.config.trainingStart), value: "", note: "", image: null }); } }} style={btnActionLg}>📋 Log {k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})}</button>
                 {measLogKey === k && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginTop: 10, marginBottom: 14 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: accent, marginBottom: 2 }}>{(p.profile && p.profile.name) || activeTab}</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Log: {k.charAt(0).toUpperCase() + k.slice(1)}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Log: {k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})}</div>
                   <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Previous: {latest ? latest.v + "cm (Wk " + latest.wk + ")" : "No data"}</div>
                   <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
                     <div><label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 2 }}>Week</label><input type="number" value={measLogInputs.week} onChange={function(e){ setMeasLogInputs(Object.assign({}, measLogInputs, { week: e.target.value })); }} style={{ width: 50, padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12 }} /></div>
                     <div><label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 2 }}>cm</label><input type="number" step="0.5" value={measLogInputs.value} onChange={function(e){ setMeasLogInputs(Object.assign({}, measLogInputs, { value: e.target.value })); }} style={{ width: 60, padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12 }} placeholder={latest ? "was " + latest.v : "cm"} /></div>
+                    <label style={{ padding: "4px 8px", background: measLogInputs.image ? "#dcfce7" : "#f1f5f9", border: "1px solid " + (measLogInputs.image ? "#86efac" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", color: measLogInputs.image ? "#16a34a" : "#94a3b8", display: "flex", alignItems: "center", gap: 2, alignSelf: "flex-end" }}>{measLogInputs.image ? "✓ Photo" : "📷"}<input type="file" accept="image/*" onChange={function(e) { var file = e.target.files[0]; if (!file) return; var reader = new FileReader(); reader.onload = function(ev) { setMeasLogInputs(Object.assign({}, measLogInputs, { image: ev.target.result })); }; reader.readAsDataURL(file); e.target.value = ""; }} style={{ display: "none" }} /></label>
                   </div>
+                  {measLogInputs.image && (<div style={{ marginTop: 8, position: "relative", display: "inline-block" }}><img src={measLogInputs.image} style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} /><button onClick={function() { setMeasLogInputs(Object.assign({}, measLogInputs, { image: null })); }} style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: "#dc2626", color: "#fff", border: "none", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button></div>)}
                   <div style={{ marginTop: 8 }}><label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 2 }}>Note</label><input type="text" value={measLogInputs.note} onChange={function(e){ setMeasLogInputs(Object.assign({}, measLogInputs, { note: e.target.value })); }} style={{ width: "100%", padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, boxSizing: "border-box" }} placeholder="optional" /></div>
                   <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                    <button onClick={async function(){ var wk = parseInt(measLogInputs.week); var v = parseFloat(measLogInputs.value); if (!wk || isNaN(v)) return; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].measurements[k]) nd[activeTab].measurements[k] = []; var ei = nd[activeTab].measurements[k].findIndex(function(e){ return e.wk === wk; }); if (ei >= 0) { nd[activeTab].measurements[k][ei].v = v; if (measLogInputs.note) nd[activeTab].measurements[k][ei].note = measLogInputs.note; } else { nd[activeTab].measurements[k].push({ wk: wk, v: v, note: measLogInputs.note || "" }); } nd[activeTab].measurements[k].sort(function(a,b){ return a.wk - b.wk; }); nd.config.week = calcWeek(nd.config.trainingStart); nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); await saveData(nd); setMeasLogKey(null); setFormMsg("✓ " + k.charAt(0).toUpperCase() + k.slice(1) + " saved"); setTimeout(function(){ setFormMsg(""); }, 3000); }} style={{ ...btnP(!!measLogInputs.value), flex: 1 }}>Save</button>
+                    <button onClick={async function(){ var wk = parseInt(measLogInputs.week); var v = parseFloat(measLogInputs.value); if (!wk || isNaN(v)) return; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].measurements[k]) nd[activeTab].measurements[k] = []; var ei = nd[activeTab].measurements[k].findIndex(function(e){ return e.wk === wk; }); if (ei >= 0) { nd[activeTab].measurements[k][ei].v = v; if (measLogInputs.note) nd[activeTab].measurements[k][ei].note = measLogInputs.note; if (measLogInputs.image) nd[activeTab].measurements[k][ei].img = measLogInputs.image; } else { var newEntry = { wk: wk, v: v, note: measLogInputs.note || "" }; if (measLogInputs.image) newEntry.img = measLogInputs.image; nd[activeTab].measurements[k].push(newEntry); } nd[activeTab].measurements[k].sort(function(a,b){ return a.wk - b.wk; }); nd.config.week = calcWeek(nd.config.trainingStart); nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); await saveData(nd); setMeasLogKey(null); setFormMsg("✓ " + k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();}) + " saved"); setTimeout(function(){ setFormMsg(""); }, 3000); }} style={{ ...btnP(!!measLogInputs.value), flex: 1 }}>Save</button>
                     <button onClick={function(){ setMeasLogKey(null); }} style={btnS}>Cancel</button>
                   </div>
                   <p style={{ fontSize: 9, color: "#94a3b8", textAlign: "center", margin: "8px 0 0", fontStyle: "italic", lineHeight: 1.3 }}>Track accurate measurements for your companion to give you the most appropriate feedback</p>
                 </div>)}
                 <div style={{ marginTop: 16, padding: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{k.charAt(0).toUpperCase() + k.slice(1)}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})}</div>
                   </div>
                   {d.length === 0 && <div style={{ fontSize: 10, color: "#94a3b8" }}>No progression data yet</div>}
                   {d.length > 0 && (<div>
                     <div style={{ display: "flex", gap: 6, padding: "3px 0", marginBottom: 2, fontSize: 9, color: "#94a3b8", fontWeight: 600 }}><span style={{ width: 40 }}>WEEK</span><span style={{ width: 60 }}>CM</span><span style={{ flex: 1 }}>NOTES</span><span style={{ width: 20 }}></span></div>
-                    {d.slice().reverse().slice(0, measMetricShowAll ? 999 : 4).map(function(entry, pi) { var ei = d.length - 1 - pi; return (<div key={pi} style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
-                      <input defaultValue={entry.wk} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].wk = parseInt(e.target.value) || entry.wk; await saveData(nd); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
-                      <input defaultValue={entry.v} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].v = parseFloat(e.target.value) || entry.v; await saveData(nd); }} style={{ width: 60, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
-                      <input defaultValue={entry.note || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].note = e.target.value; await saveData(nd); }} placeholder="..." style={{ flex: 1, minWidth: 0, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
-                      <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{...btnDelete, fontSize: 11, minWidth: 24, flexShrink: 0}}>🗑 Del</button>
+                    {d.slice().reverse().slice(0, measMetricShowAll ? 999 : 4).map(function(entry, pi) { var ei = d.length - 1 - pi; return (<div key={pi}>
+                      <div style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: entry.img ? "none" : "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
+                        <input defaultValue={entry.wk} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].wk = parseInt(e.target.value) || entry.wk; await saveData(nd); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
+                        <input defaultValue={entry.v} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].v = parseFloat(e.target.value) || entry.v; await saveData(nd); }} style={{ width: 60, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
+                        <input defaultValue={entry.note || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].note = e.target.value; await saveData(nd); }} placeholder="..." style={{ flex: 1, minWidth: 0, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
+                        {entry.img && <span style={{ fontSize: 9, color: "#16a34a", flexShrink: 0 }}>📷</span>}
+                        <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{...btnDelete, fontSize: 11, minWidth: 24, flexShrink: 0}}>🗑 Del</button>
+                      </div>
+                      {entry.img && (<div style={{ padding: "4px 0 6px 44px", borderBottom: "1px solid #f8fafc" }}><img src={entry.img} onClick={function() { window.open(entry.img, "_blank"); }} style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 6, border: "1px solid #e2e8f0", cursor: "pointer" }} title="Click to view full size" /></div>)}
                     </div>); })}
                     {d.length > 4 && <button onClick={function() { setMeasMetricShowAll(!measMetricShowAll); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: accent, cursor: "pointer", marginTop: 6 }}>{measMetricShowAll ? "▲ Show less" : "▼ View more (" + (d.length - 4) + " entries)"}</button>}
                   </div>)}
-                  {(function() { var chartData = d.map(function(e) { return { wk: e.wk, v: typeof e.v === "number" ? e.v : parseFloat(e.v), note: e.note }; }).filter(function(e) { return !isNaN(e.v); }); if (chartData.length >= 2) return <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}><FullChart title={k.charAt(0).toUpperCase() + k.slice(1) + " (cm)"} series={[{ label: k, color: measColors[mi % 7], data: chartData }]} height={120} /></div>; if (d.length > 0 && chartData.length < 2) return <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}><div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12 }}>Need 2+ entries for chart</div></div>; return null; })()}
+                  {(function() { var chartData = d.map(function(e) { return { wk: e.wk, v: typeof e.v === "number" ? e.v : parseFloat(e.v), note: e.note }; }).filter(function(e) { return !isNaN(e.v); }); if (chartData.length >= 2) return <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}><FullChart title={k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();}) + " (cm)"} series={[{ label: k, color: measColors[mi % 7], data: chartData }]} height={120} /></div>; if (d.length > 0 && chartData.length < 2) return <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}><div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12 }}>Need 2+ entries for chart</div></div>; return null; })()}
+                </div>
+                <div style={{marginTop:12,paddingTop:8,borderTop:"1px solid #e2e8f0"}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#0f172a",marginBottom:6}}>Measurement Settings</div>
+                  {editMeasKey === k ? (<div style={{ background: "#fff", borderRadius: 8, border: "1px solid #e2e8f0", padding: 10, marginBottom: 6 }}>
+                    <label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 2 }}>Rename measurement</label>
+                    <input type="text" value={editMeasName} onChange={function(e) { setEditMeasName(e.target.value); }} style={{ width: "100%", padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, boxSizing: "border-box", marginBottom: 6 }} />
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={async function() { var newKey = editMeasName.trim().toLowerCase().replace(/\s+(.)/g, function(m, c) { return c.toUpperCase(); }); if (!newKey || newKey === k) { setEditMeasKey(null); return; } var nd = JSON.parse(JSON.stringify(data)); if (nd[activeTab].measurements[newKey]) { setFormMsg("⚠️ Name already exists"); setTimeout(function() { setFormMsg(""); }, 3000); return; } nd[activeTab].measurements[newKey] = nd[activeTab].measurements[k]; delete nd[activeTab].measurements[k]; await saveData(nd); setEditMeasKey(null); setMeasMetricOpen(newKey); setFormMsg("✓ Renamed to " + editMeasName.trim()); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(!!editMeasName.trim()), flex: 1, fontSize: 11 }}>Save</button>
+                      <button onClick={function() { setEditMeasKey(null); }} style={{...btnS, fontSize: 11}}>Cancel</button>
+                    </div>
+                  </div>) : (<div style={{display:"flex",gap:6}}>
+                    <button onClick={function(){ setEditMeasKey(k); setEditMeasName(k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})); }} style={{...btnEdit,flex:1}}>✎ Edit</button>
+                    <button onClick={async function(){ if (!confirm("Delete " + k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();}) + " and all its data?")) return; var nd = JSON.parse(JSON.stringify(data)); delete nd[activeTab].measurements[k]; await saveData(nd); setMeasMetricOpen(null); setFormMsg("✓ Deleted"); setTimeout(function(){ setFormMsg(""); }, 2000); }} style={{...btnDelete,flex:1}}>🗑 Delete</button>
+                  </div>)}
                 </div>
               </div>)}
             </div>); })}
           </div>
                 <div style={{ background: accentLight, borderRadius: 10, padding: 12, marginTop: 12, fontSize: 12, color: "#334155", lineHeight: 1.5 }}>Re-check measurements every 4 weeks. Chest at nipple level. Waist at midpoint between lowest rib and hip bone.</div>
+
+                <div style={{ marginTop: 12 }}>
+                  {!addMeasOpen ? (<button onClick={function() { setAddMeasOpen(true); setAddMeasName(""); }} style={{...btnActionLg, width: "100%", justifyContent: "center"}}>+ Add Body Measurement</button>)
+                  : (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Add Body Measurement</div>
+                    <div><label style={{ fontSize: 10, color: "#64748b", display: "block", marginBottom: 2 }}>Measurement name</label><input type="text" value={addMeasName} onChange={function(e) { setAddMeasName(e.target.value); }} placeholder="e.g. Hips, Neck, Thigh" style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, boxSizing: "border-box" }} /></div>
+                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                      <button onClick={async function() { var name = addMeasName.trim().toLowerCase().replace(/\s+(.)/g, function(m, c) { return c.toUpperCase(); }); if (!name) return; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].measurements) nd[activeTab].measurements = {}; if (nd[activeTab].measurements[name]) { setFormMsg("⚠️ " + addMeasName + " already exists"); setTimeout(function() { setFormMsg(""); }, 3000); return; } nd[activeTab].measurements[name] = []; await saveData(nd); setAddMeasOpen(false); setAddMeasName(""); setFormMsg("✓ " + addMeasName + " added"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(!!addMeasName.trim()), flex: 1 }}>Add</button>
+                      <button onClick={function() { setAddMeasOpen(false); setAddMeasName(""); }} style={btnS}>Cancel</button>
+                    </div>
+                    <p style={{ fontSize: 9, color: "#94a3b8", textAlign: "center", margin: "8px 0 0", fontStyle: "italic" }}>Add any body part you'd like to track over time</p>
+                  </div>)}
+                </div>
 
           {/* Measurement Companion Feedback */}
           <div style={{ marginTop: 14 }}>
