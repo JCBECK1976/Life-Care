@@ -777,7 +777,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.335.0
+// STANDARD BUTTON STYLES v1.336.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -2209,9 +2209,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         prevCtx + prevActCtx + getOnboardingCtx(tab) + getCrossSectionCtx(tab, "eating") + "\n\n" +
         TONE_RULES + getMoodContext(userMood) + "\n\n" +
         "RULES FOR RESPONSE:\n" +
-        "1. 'wins': 2-4 things that went well — specific good decisions, smart food choices, patterns improving vs previous feedback. Reference actual items and numbers.\n" +
-        "2. 'tweaks': 1-3 constructive alternatives. NEVER say 'cut it out'. Instead: 'If you'd done [specific small change], the saving of Xg sat fat per week over 3 months would reduce [material health benefit like visceral fat, LDL impact, etc]'. Always translate the nutritional number into a real-world health outcome they care about.\n" +
-        "3. 'outlook': One sentence — the honest but encouraging big picture for the day. Frame it as a mate who's proud of the effort.\n\n" +
+        "1. 'wins': 2-3 things that went well — specific good decisions, smart food choices, patterns improving vs previous feedback. Reference actual items and numbers.\n" +
+        "2. 'tweaks': 1-2 constructive alternatives. NEVER say 'cut it out'. Instead: 'If you'd done [specific small change], the saving of Xg sat fat per week over 3 months would reduce [material health benefit like visceral fat, LDL impact, etc]'. Always translate the nutritional number into a real-world health outcome they care about.\n" +
+        "3. 'outlook': One sentence — the honest but encouraging big picture for the day. Frame it as a mate who's proud of the effort.\n" +
+        "Keep it tight — similar length to the home page companion feedback. Quality over quantity.\n\n" +
         "Return ONLY valid JSON: {\"wins\":[\"point\",\"point\"],\"tweaks\":[\"point\",\"point\"],\"outlook\":\"one sentence\"}";
 
       const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }) });
@@ -2343,12 +2344,13 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         prevCtx + prevActCtx + getOnboardingCtx(tab) + getCrossSectionCtx(tab, "eating") + "\n\n" +
         TONE_RULES + getMoodContext(userMood) + "\n\n" +
         "RULES FOR RESPONSE:\n" +
-        "1. 'wins': 3-5 things that went well across the WHOLE WEEK — patterns, consistency, smart choices, improvements from previous weeks. Reference actual items, numbers and trends across days.\n" +
-        "2. 'tweaks': 2-4 constructive alternatives for the week ahead. NEVER say 'cut it out'. Instead: 'If you swapped [X] for [Y] on [days], the weekly saving of Xg sat fat over 3 months would [material health benefit]'. Always translate the nutritional number into a real-world health outcome they care about.\n" +
-        "3. 'outlook': One sentence — the honest but encouraging big picture for the week. Frame it as a mate who's proud of the effort and can see the trajectory.\n\n" +
+        "1. 'wins': 2-3 things that went well across the WHOLE WEEK — patterns, consistency, smart choices, improvements from previous weeks. Reference actual items, numbers and trends across days.\n" +
+        "2. 'tweaks': 1-2 constructive alternatives for the week ahead. NEVER say 'cut it out'. Instead: 'If you swapped [X] for [Y] on [days], the weekly saving of Xg sat fat over 3 months would [material health benefit]'. Always translate the nutritional number into a real-world health outcome they care about.\n" +
+        "3. 'outlook': One sentence — the honest but encouraging big picture for the week. Frame it as a mate who's proud of the effort and can see the trajectory.\n" +
+        "Keep it tight — similar length to the home page companion feedback. Quality over quantity.\n\n" +
         "Return ONLY valid JSON: {\"wins\":[\"point\",\"point\"],\"tweaks\":[\"point\",\"point\"],\"outlook\":\"one sentence\"}";
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
+      const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1200, messages: [{ role: "user", content: prompt }] }) });
       if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "WeekEatFeedback API", status: response.status }].concat(prev).slice(0, 20); });
       const result = await response.json();
       var apiErr = handleApiError(result);
@@ -2544,7 +2546,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         thread.map(function(m, i) {
           var isUser = m.role === "user";
           return React.createElement("div", { key: i, style: { display: "flex", flexDirection: "column", alignItems: isUser ? "flex-end" : "flex-start", marginBottom: 6 } },
-            React.createElement("div", { style: { maxWidth: "85%", padding: "8px 12px", borderRadius: isUser ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: isUser ? "#eff6ff" : "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", border: isUser ? "1px solid #bfdbfe" : "none", color: isUser ? "#1e3a5f" : "#fff", fontSize: 12, lineHeight: 1.5 } }, m.text),
+            React.createElement("div", { style: { maxWidth: "85%", padding: "8px 12px", borderRadius: isUser ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: isUser ? "#f1f5f9" : "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", border: isUser ? "1px solid #cbd5e1" : "none", color: isUser ? "#334155" : "#fff", fontSize: 12, lineHeight: 1.5 } }, m.text),
             React.createElement("div", { style: { fontSize: 9, color: "#94a3b8", marginTop: 2, paddingLeft: 4, paddingRight: 4 } }, isUser ? "You" : "Companion", m.when ? " · " + m.when : "")
           );
         })
@@ -3410,18 +3412,18 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             {bodyFbExpanded && bodyFeedback && bodyFeedback._at && (function() { var bfb = bodyFeedback; return React.createElement("div", { style: { marginBottom: 10 } },
               React.createElement("div", { style: { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" } },
                 bfb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", bfb._when, " for ", isJC ? "JC" : "Becks"),
-                React.createElement("div", { style: { padding: "8px 14px", borderBottom: "1px solid #e2e8f0" } }, React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f" } }, "My Companion Feedback")),
-                React.createElement("div", { style: { padding: "12px 14px", background: "#e0f2fe", borderBottom: "1px solid #bae6fd" } },
+                React.createElement("div", { style: { padding: "8px 14px", borderBottom: "1px solid #e2e8f0" } }, React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6 } }, React.createElement("span", { style: { fontSize: 14 } }, "⚖️"), React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f" } }, "Body Companion Check-in"))),
+                React.createElement("div", { style: { padding: "12px 14px", borderBottom: "1px solid #e2e8f0" } },
                   React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#0c4a6e" } }, "What’s going well"),
-                  (bfb.wins || bfb.good || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#0c4a6e", marginTop: 4 } }, "✓ ", w); })
+                  (bfb.wins || bfb.good || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#334155", marginTop: 4 } }, "✓ ", w); })
                 ),
-                React.createElement("div", { style: { padding: "12px 14px", background: "#fef3c7", borderBottom: "1px solid #fcd34d" } },
+                React.createElement("div", { style: { padding: "12px 14px", borderBottom: "1px solid #e2e8f0" } },
                   React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#92400e" } }, "Tweaks for next period"),
-                  (bfb.tweaks || bfb.watch || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#92400e", marginTop: 4 } }, "→ ", t); })
+                  (bfb.tweaks || bfb.watch || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#334155", marginTop: 4 } }, "→ ", t); })
                 ),
-                React.createElement("div", { style: { padding: "12px 14px", background: "#dbeafe" } },
+                React.createElement("div", { style: { padding: "12px 14px" } },
                   React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#1e40af" } }, "Body comp outlook"),
-                  React.createElement("div", { style: { fontSize: 12, color: "#1e40af", marginTop: 4 } }, "★ ", bfb.outlook)
+                  React.createElement("div", { style: { fontSize: 12, color: "#334155", marginTop: 4 } }, "★ ", bfb.outlook)
                 )
               ),
               renderThread(bfb, "bodycomp", activeTab, updateBodyFb, activeTab)
@@ -3506,11 +3508,12 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   (function(){ var ac = ""; if (p.activity && p.activity.length > 0) { ac = "Recent activity: " + p.activity.slice(-5).map(function(a){return a.date+": "+(a.steps||"")+"steps "+(a.activity||"");}).join(", ") + ". "; } return ac; })() +
                   getOnboardingCtx(activeTab) + prevMeasCtx + getCrossSectionCtx(activeTab, "meas") + "\n\n" +
                   "RULES FOR RESPONSE:\n" +
-                  "1. ‘wins’: 3-5 things the measurements show going well — positive size changes, body recomposition evidence, consistency of measuring, meaningful trends. Reference actual numbers and changes.\n" +
-                  "2. ‘tweaks’: 2-4 constructive suggestions. NEVER say ‘you need to fix this’. Instead: ‘If you [specific action] over the next 4 weeks, expect to see [specific measurement outcome]’. Always connect measurement changes to training, nutrition or lifestyle factors.\n" +
-                  "3. ‘outlook’: One sentence — the honest but encouraging trajectory shown by the tape. Frame it as a mate who can read the measurements and see the recomposition story.\n\n" +
+                  "1. ‘wins’: 2-3 things the measurements show going well — positive size changes, body recomposition evidence, meaningful trends. Reference actual numbers and changes.\n" +
+                  "2. ‘tweaks’: 1-2 constructive suggestions. NEVER say ‘you need to fix this’. Instead: ‘If you [specific action] over the next 4 weeks, expect to see [specific measurement outcome]’. Always connect measurement changes to training, nutrition or lifestyle factors.\n" +
+                  "3. ‘outlook’: One sentence — the honest but encouraging trajectory shown by the tape. Frame it as a mate who can read the measurements and see the recomposition story.\n" +
+                  "Keep it tight — similar length to the home page companion feedback. Quality over quantity.\n\n" +
                   "Return ONLY valid JSON: {\"wins\":[\"point\",\"point\"],\"tweaks\":[\"point\",\"point\"],\"outlook\":\"one sentence\"}";
-                var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
+                var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1200, messages: [{ role: "user", content: prompt }] }) });
                 var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                 var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
                 if (txt) { var mfParsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); mfParsed._at = new Date().toLocaleString("en-GB"); mfParsed._when = new Date().toLocaleString("en-GB"); setMeasFeedback(mfParsed); sSet("meas_feedback", JSON.stringify(Object.assign({}, measFbAll || {}, { [activeTab]: mfParsed }))); }
@@ -3522,18 +3525,18 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             {measFbExpanded2 && measFeedback && measFeedback._at && (function() { var mfb = measFeedback; return React.createElement("div", { style: { marginBottom: 10 } },
               React.createElement("div", { style: { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" } },
                 mfb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", mfb._when, " for ", isJC ? "JC" : "Becks"),
-                React.createElement("div", { style: { padding: "8px 14px", borderBottom: "1px solid #e2e8f0" } }, React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f" } }, "My Companion Feedback")),
-                React.createElement("div", { style: { padding: "12px 14px", background: "#e0f2fe", borderBottom: "1px solid #bae6fd" } },
+                React.createElement("div", { style: { padding: "8px 14px", borderBottom: "1px solid #e2e8f0" } }, React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6 } }, React.createElement("span", { style: { fontSize: 14 } }, "📏"), React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f" } }, "Measurement Companion Check-in"))),
+                React.createElement("div", { style: { padding: "12px 14px", borderBottom: "1px solid #e2e8f0" } },
                   React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#0c4a6e" } }, "What’s going well"),
-                  (mfb.wins || mfb.good || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#0c4a6e", marginTop: 4 } }, "✓ ", w); })
+                  (mfb.wins || mfb.good || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#334155", marginTop: 4 } }, "✓ ", w); })
                 ),
-                React.createElement("div", { style: { padding: "12px 14px", background: "#fef3c7", borderBottom: "1px solid #fcd34d" } },
+                React.createElement("div", { style: { padding: "12px 14px", borderBottom: "1px solid #e2e8f0" } },
                   React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#92400e" } }, "Tweaks for next period"),
-                  (mfb.tweaks || mfb.watch || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#92400e", marginTop: 4 } }, "→ ", t); })
+                  (mfb.tweaks || mfb.watch || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#334155", marginTop: 4 } }, "→ ", t); })
                 ),
-                React.createElement("div", { style: { padding: "12px 14px", background: "#dbeafe" } },
+                React.createElement("div", { style: { padding: "12px 14px" } },
                   React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#1e40af" } }, "Measurement outlook"),
-                  React.createElement("div", { style: { fontSize: 12, color: "#1e40af", marginTop: 4 } }, "★ ", mfb.outlook)
+                  React.createElement("div", { style: { fontSize: 12, color: "#334155", marginTop: 4 } }, "★ ", mfb.outlook)
                 )
               ),
               renderThread(mfb, "meas", activeTab, updateMeasFb, activeTab)
@@ -4262,9 +4265,12 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{sessionFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Session Feedback"}</button>
                   <button onClick={function(){setFbExpanded(!fbExpanded);}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#64748b",cursor:"pointer",marginTop:4}}>{fbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>
                   {fbExpanded && sessionFeedback && sessionFeedback[activeTab + "_" + day] && (<div style={{ marginTop: 10 }}>
-                    {sessionFeedback[activeTab + "_" + day]._generatedAt && <div style={{ fontSize: 9, color: "#94a3b8", marginBottom: 4 }}>Generated: {sessionFeedback[activeTab + "_" + day]._generatedAt}</div>}
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>My Companion Feedback</div>
-                    {sessionFeedback[activeTab + "_" + day].summary && (<div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderRadius: 8, padding: 10, marginTop: 8 }}><div style={{ fontSize: 12, color: "#fff" }}>{sessionFeedback[activeTab + "_" + day].summary}</div>{sessionFeedback[activeTab + "_" + day].nextSession && <div style={{ fontSize: 12, color: "#fbbf24", fontWeight: 600, marginTop: 4 }}>Next: {sessionFeedback[activeTab + "_" + day].nextSession}</div>}</div>)}
+                    <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 8 }}>
+                    {sessionFeedback[activeTab + "_" + day]._generatedAt && <div style={{ padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" }}>Generated {sessionFeedback[activeTab + "_" + day]._generatedAt} for {isJC ? "JC" : "Becks"}</div>}
+                    <div style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0" }}><div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 14 }}>🏋️</span><span style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f" }}>Session Companion Check-in</span></div></div>
+                    {sessionFeedback[activeTab + "_" + day].summary && (<div style={{ padding: "12px 14px", borderBottom: sessionFeedback[activeTab + "_" + day].nextSession ? "1px solid #e2e8f0" : "none" }}><div style={{ fontSize: 12, color: "#334155", lineHeight: 1.5 }}>{sessionFeedback[activeTab + "_" + day].summary}</div></div>)}
+                    {sessionFeedback[activeTab + "_" + day].nextSession && <div style={{ padding: "12px 14px" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#1e40af" }}>Next session</div><div style={{ fontSize: 12, color: "#334155", marginTop: 4 }}>★ {sessionFeedback[activeTab + "_" + day].nextSession}</div></div>}
+                    </div>
                     {sessionFeedback[activeTab + "_" + day].exercises && (function() { var decKey2 = activeTab + "_" + day; var totalRecs2 = sessionFeedback[decKey2].exercises.filter(function(ex){return ex.newStatus||ex.recommendation;}).length; var decidedCount2 = sessionFeedback[decKey2].exercises.filter(function(ex){return ex._decision;}).length; var pendingCount2 = totalRecs2 - decidedCount2; return (<div><button onClick={function(){setDecisionsExpanded(function(prev){return Object.assign({},prev,{[decKey2]:!prev[decKey2]});});}} style={{width:"100%",padding:"8px 12px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:8,fontSize:11,fontWeight:600,color:"#475569",cursor:"pointer",marginTop:8,marginBottom:decisionsExpanded[decKey2]?6:0,textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}><span>{decisionsExpanded[decKey2]?"▲":"▼"} Exercise Feedback{totalRecs2>0?" & Recommendations":""}</span>{totalRecs2>0&&pendingCount2>0?<span style={{fontSize:9,background:"#fff7ed",color:"#ea580c",padding:"2px 8px",borderRadius:10,fontWeight:700}}>{pendingCount2} pending</span>:decidedCount2>0?<span style={{fontSize:9,background:"#e0f2fe",color:"#0c4a6e",padding:"2px 8px",borderRadius:10,fontWeight:700}}>All reviewed</span>:null}</button></div>); })()}
                     {decisionsExpanded[activeTab + "_" + day] && sessionFeedback[activeTab + "_" + day].exercises && sessionFeedback[activeTab + "_" + day].exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc", alignItems: "center" }}><span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{fbIcon(ex.icon)}</span><div><div style={{ fontSize: 12, fontWeight: 700 }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div>{(ex.newStatus || ex.recommendation) && (<div id={"rec-" + ei + "-" + day} style={{ marginTop: 4, padding: 8, background: ex._decision === "accepted" ? "#e0f2fe" : ex._decision === "declined" ? "#f1f5f9" : "#fff7ed", borderRadius: 6, border: "1px solid " + (ex._decision === "accepted" ? "#86efac" : ex._decision === "declined" ? "#e2e8f0" : "#fed7aa") }}>
                       {ex._decision ? (<div style={{ fontSize: 11, fontWeight: 600, color: ex._decision === "accepted" ? "#0c4a6e" : "#64748b", padding: 4 }}>{ex._decision === "accepted" ? "Accepted — " + ex.name + " updated" + (ex._userNote ? " — " + ex._userNote : "") : "Declined — no changes made" + (ex._userNote ? " — " + ex._userNote : "")}</div>) : (<div><div style={{ fontSize: 10, color: "#ea580c", fontWeight: 600, marginBottom: 4 }}>{ex.recommendation || ("Recommendation: " + ex.newStatus)}</div>
@@ -5644,18 +5650,18 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {eatFbExpanded && (eatFbResults[activeTab] || {})["week"] && (function() { var efb = eatFbResults[activeTab]["week"]; return React.createElement("div", { style: { marginBottom: 10 } },
                 React.createElement("div", { style: { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" } },
                   efb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", efb._when, " for ", isJC ? "JC" : "Becks"),
-                  React.createElement("div", { style: { padding: "8px 14px", borderBottom: "1px solid #e2e8f0" } }, React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f" } }, "My Companion Feedback")),
-                  React.createElement("div", { style: { padding: "12px 14px", background: "#e0f2fe", borderBottom: "1px solid #bae6fd" } },
+                  React.createElement("div", { style: { padding: "8px 14px", borderBottom: "1px solid #e2e8f0" } }, React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6 } }, React.createElement("span", { style: { fontSize: 14 } }, "🍽️"), React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f" } }, "Eating Companion Check-in — Weekly"))),
+                  React.createElement("div", { style: { padding: "12px 14px", borderBottom: "1px solid #e2e8f0" } },
                     React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#0c4a6e" } }, "What went well this week"),
-                    (efb.wins || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#0c4a6e", marginTop: 4 } }, "✓ ", w); })
+                    (efb.wins || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#334155", marginTop: 4 } }, "✓ ", w); })
                   ),
-                  React.createElement("div", { style: { padding: "12px 14px", background: "#fef3c7", borderBottom: "1px solid #fcd34d" } },
+                  React.createElement("div", { style: { padding: "12px 14px", borderBottom: "1px solid #e2e8f0" } },
                     React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#92400e" } }, "Tweaks for next week"),
-                    (efb.tweaks || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#92400e", marginTop: 4 } }, "→ ", t); })
+                    (efb.tweaks || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#334155", marginTop: 4 } }, "→ ", t); })
                   ),
-                  React.createElement("div", { style: { padding: "12px 14px", background: "#dbeafe" } },
+                  React.createElement("div", { style: { padding: "12px 14px" } },
                     React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#1e40af" } }, "Weekly outlook"),
-                    React.createElement("div", { style: { fontSize: 12, color: "#1e40af", marginTop: 4 } }, "★ ", efb.outlook)
+                    React.createElement("div", { style: { fontSize: 12, color: "#334155", marginTop: 4 } }, "★ ", efb.outlook)
                   ),
                 ),
                 renderThread(efb, "eatweek", activeTab, updateEatWeekFb, "week")
@@ -6383,18 +6389,18 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {eatFbExpanded && (eatFbResults[activeTab] || {})[eatDay] && (function() { var efb = eatFbResults[activeTab][eatDay]; return React.createElement("div", { style: { marginBottom: 10 } },
                 React.createElement("div", { style: { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" } },
                   efb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", efb._when, " for ", isJC ? "JC" : "Becks"),
-                  React.createElement("div", { style: { padding: "8px 14px", borderBottom: "1px solid #e2e8f0" } }, React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f" } }, "My Companion Feedback")),
-                  React.createElement("div", { style: { padding: "12px 14px", background: "#e0f2fe", borderBottom: "1px solid #bae6fd" } },
+                  React.createElement("div", { style: { padding: "8px 14px", borderBottom: "1px solid #e2e8f0" } }, React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6 } }, React.createElement("span", { style: { fontSize: 14 } }, "🍽️"), React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f" } }, "Eating Companion Check-in — Daily"))),
+                  React.createElement("div", { style: { padding: "12px 14px", borderBottom: "1px solid #e2e8f0" } },
                     React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#0c4a6e" } }, "What went well"),
-                    (efb.wins || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#0c4a6e", marginTop: 4 } }, "✓ ", w); })
+                    (efb.wins || []).map(function(w, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#334155", marginTop: 4 } }, "✓ ", w); })
                   ),
-                  React.createElement("div", { style: { padding: "12px 14px", background: "#fef3c7", borderBottom: "1px solid #fcd34d" } },
+                  React.createElement("div", { style: { padding: "12px 14px", borderBottom: "1px solid #e2e8f0" } },
                     React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#92400e" } }, "Could be even better"),
-                    (efb.tweaks || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#92400e", marginTop: 4 } }, "→ ", t); })
+                    (efb.tweaks || []).map(function(t, i) { return React.createElement("div", { key: i, style: { fontSize: 12, color: "#334155", marginTop: 4 } }, "→ ", t); })
                   ),
-                  React.createElement("div", { style: { padding: "12px 14px", background: "#dbeafe" } },
+                  React.createElement("div", { style: { padding: "12px 14px" } },
                     React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#1e40af" } }, "Outlook"),
-                    React.createElement("div", { style: { fontSize: 12, color: "#1e40af", marginTop: 4 } }, "★ ", efb.outlook)
+                    React.createElement("div", { style: { fontSize: 12, color: "#334155", marginTop: 4 } }, "★ ", efb.outlook)
                   ),
                 ),
                 renderThread(efb, "eatday", activeTab + "-" + eatDay, function(updatedFb) { updateEatDayFb(updatedFb, eatDay); }, eatDay)
@@ -6831,14 +6837,16 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           }} disabled={healthFbLoading} style={{ width: "100%", padding: 12, marginTop: 14, background: healthFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: healthFbLoading ? "default" : "pointer" }}>{healthFbLoading ? <span>Generating<span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Health Feedback"}</button>
                   <button onClick={function(){setHealthFbExpanded(!healthFbExpanded);}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#64748b",cursor:"pointer",marginTop:4}}>{healthFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>
 
-          {healthFbExpanded && healthFb && (<div style={{ marginTop: 10, padding: 12, background: "#f0fdf4", borderRadius: 8, border: "1px solid #86efac" }}>
-            <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Generated: {healthFb._generatedAt}</div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>My Companion Feedback</div>
-            <div style={{ fontSize: 12, color: "#0f172a", marginBottom: 8 }}>{healthFb.summary}</div>
-            {healthFb.concerns && healthFb.concerns.length > 0 && (<div style={{ marginBottom: 6 }}><div style={{ fontSize: 11, fontWeight: 700, color: "#dc2626", marginBottom: 3 }}>Concerns</div>{healthFb.concerns.map(function(x, i) { return (<div key={i} style={{ fontSize: 11, color: "#475569", padding: "2px 0", paddingLeft: 8 }}>- {x}</div>); })}</div>)}
-            {healthFb.positives && healthFb.positives.length > 0 && (<div style={{ marginBottom: 6 }}><div style={{ fontSize: 11, fontWeight: 700, color: "#16a34a", marginBottom: 3 }}>Positives</div>{healthFb.positives.map(function(x, i) { return (<div key={i} style={{ fontSize: 11, color: "#475569", padding: "2px 0", paddingLeft: 8 }}>- {x}</div>); })}</div>)}
-            {healthFb.actions && healthFb.actions.length > 0 && (<div style={{ marginBottom: 6 }}><div style={{ fontSize: 11, fontWeight: 700, color: "#2563eb", marginBottom: 3 }}>Actions</div>{healthFb.actions.map(function(x, i) { return (<div key={i} style={{ fontSize: 11, color: "#475569", padding: "2px 0", paddingLeft: 8 }}>- {x}</div>); })}</div>)}
-            {(healthFb.meds || healthFb.medication_notes) && (<div><div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 3 }}>Medication Notes</div><div style={{ fontSize: 11, color: "#475569", paddingLeft: 8 }}>{healthFb.meds || healthFb.medication_notes}</div></div>)}
+          {healthFbExpanded && healthFb && (<div style={{ marginTop: 10, marginBottom: 10 }}>
+            <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" }}>
+              <div style={{ padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" }}>Generated {healthFb._generatedAt} for {isJC ? "JC" : "Becks"}</div>
+              <div style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0" }}><div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 14 }}>🩺</span><span style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f" }}>Health Companion Check-in</span></div></div>
+              {healthFb.summary && <div style={{ padding: "12px 14px", borderBottom: "1px solid #e2e8f0" }}><div style={{ fontSize: 12, color: "#334155", lineHeight: 1.5 }}>{healthFb.summary}</div></div>}
+              {healthFb.positives && healthFb.positives.length > 0 && <div style={{ padding: "12px 14px", borderBottom: "1px solid #e2e8f0" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#0c4a6e", marginBottom: 4 }}>What's going well</div>{healthFb.positives.map(function(x, i) { return (<div key={i} style={{ fontSize: 12, color: "#334155", marginTop: 4 }}>✓ {x}</div>); })}</div>}
+              {healthFb.concerns && healthFb.concerns.length > 0 && <div style={{ padding: "12px 14px", borderBottom: "1px solid #e2e8f0" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 4 }}>Concerns</div>{healthFb.concerns.map(function(x, i) { return (<div key={i} style={{ fontSize: 12, color: "#334155", marginTop: 4 }}>→ {x}</div>); })}</div>}
+              {healthFb.actions && healthFb.actions.length > 0 && <div style={{ padding: "12px 14px", borderBottom: "1px solid #e2e8f0" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#1e40af", marginBottom: 4 }}>Actions</div>{healthFb.actions.map(function(x, i) { return (<div key={i} style={{ fontSize: 12, color: "#334155", marginTop: 4 }}>★ {x}</div>); })}</div>}
+              {(healthFb.meds || healthFb.medication_notes) && <div style={{ padding: "12px 14px" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", marginBottom: 4 }}>Medication Notes</div><div style={{ fontSize: 12, color: "#334155", lineHeight: 1.5 }}>{healthFb.meds || healthFb.medication_notes}</div></div>}
+            </div>
           </div>)}
 </div>); })()}
 
@@ -7196,7 +7204,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.335.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.336.0
       </div>
 
       {/* Floating Ask a Question button */}
