@@ -765,7 +765,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.333.0
+// STANDARD BUTTON STYLES v1.334.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -1112,6 +1112,7 @@ function Dashboard() {
   const [dayView, setDayView] = useState({});
   const [exerciseDay, setExerciseDay] = useState(function() { var ds = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"]; return ds[new Date().getDay()]; });
   const [selectedEx, setSelectedEx] = useState(null);
+  const [exInfoOpen, setExInfoOpen] = useState(false);
   const [fbExpanded, setFbExpanded] = useState(false);
   const [homeFbExpanded, setHomeFbExpanded] = useState(false);
   const [healthFbExpanded, setHealthFbExpanded] = useState(false);
@@ -3640,7 +3641,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     ) : (<>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }} onClick={function() { var curType=ex.exType||getExerciseType(ex.name);var tc=getExerciseTypeConfig(curType);var curM2=(ex.reps||tc.defaultM2).replace(/x\d+$/,"");setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:ex.current||tc.defaultM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});setAddExOpen(false); }}>{ex.name} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span> <span style={{ fontSize: 9, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap" }}>{sLabel(ex.status)}</span></div>
+                          <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }} onClick={function() { var curType=ex.exType||getExerciseType(ex.name);var tc=getExerciseTypeConfig(curType);var curM2=(ex.reps||tc.defaultM2).replace(/x\d+$/,"");setSelectedEx({day:day,idx:i});setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:ex.current||tc.defaultM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",exerciseGuide:ex.exerciseGuide||"",prePostGuide:ex.prePostGuide||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});setAddExOpen(false); }}>{ex.name} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span> <span style={{ fontSize: 9, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap" }}>{sLabel(ex.status)}</span></div>
                           <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>{ex.current} · {ex.reps}{ex.exType && ex.exType !== "weights" && <span style={{fontSize:9,color:"#94a3b8",marginLeft:6}}>{EXERCISE_TYPES[ex.exType] ? EXERCISE_TYPES[ex.exType].label : ""}</span>}</div>
                           {ex.target && <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 600, marginTop: 3 }}>{ex._userOverride && <span onClick={function(){alert("User override: this target was set by your notes, not the AI recommendation.");}} style={{cursor:"pointer",marginRight:4}}>⚠️</span>}{ex._from ? ex._from + " → " : ""}{ex.target}</div>}
                         </div>
@@ -3827,6 +3828,13 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       </div>);
                     })()}
                     {ex.prog && ex.prog.length < 2 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12, marginTop: 8 }}>Need 2+ weeks of data to show chart</div>}
+                    <div style={{marginTop:12}}>
+                      <button onClick={function(){setExInfoOpen(!exInfoOpen);}} style={{background:"none",border:"1px solid #e2e8f0",borderRadius:6,padding:"6px 10px",fontSize:11,fontWeight:600,color:"#475569",cursor:"pointer",width:"100%",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <span>ℹ️ Exercise Information</span>
+                        <span style={{fontSize:9,color:"#94a3b8"}}>{exInfoOpen ? "▲" : "▼"}</span>
+                      </button>
+                    </div>
+                    {exInfoOpen && (<div>
                     {ex.exerciseGuide && (
                     <div style={{marginTop:12,padding:10,background:"#f0fdf4",borderRadius:8,border:"1px solid #bbf7d0"}}>
                       <div style={{fontSize:10,fontWeight:700,color:"#166534",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.5px"}}>📖 Exercise Guide</div>
@@ -3851,12 +3859,105 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                           var tc = getExerciseTypeConfig(curType);
                           var curM1 = ex.current || tc.defaultM1;
                           var curM2 = (ex.reps || tc.defaultM2).replace(/x\d+$/,"");
+                          setSelectedEx({day:day,idx:i});
                           setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:curM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",exerciseGuide:ex.exerciseGuide||"",prePostGuide:ex.prePostGuide||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});
                           setAddExOpen(false);
                         }} style={{...btnEdit,flex:1}}>✎ Edit</button>
                         <button onClick={async function(){if(confirm("Delete "+ex.name+"?\n\nThis will permanently remove this exercise and all its progress history. This cannot be undone.")){var nd=JSON.parse(JSON.stringify(data));var exs=nd[activeTab].exercises[day];if(exs){exs.splice(i,1);await saveData(nd);setSelectedEx(null);setLogEx(null);}}}} style={{...btnDelete,flex:1}}>🗑 Delete</button>
                       </div>
                     </div>
+                    </div>)}
+                    {/* Inline edit form when editing this exercise */}
+                    {addExConfirm && addExConfirm._editMode && addExConfirm._editDay===day && addExConfirm._editIdx===i && (
+                    <div style={{marginTop:12,padding:10,background:"#fff",borderRadius:10,border:"2px solid "+accent}}>
+                      <div style={{fontSize:11,fontWeight:700,color:accent,marginBottom:2}}>{(p.profile && p.profile.name) || activeTab}</div>
+                      <div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Edit: {addExConfirm.name}</div>
+                      {addExLoading && <div style={{fontSize:11,color:"#64748b",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Getting AI recommendations...</div>}
+                      <div style={{display:"flex",gap:8,marginBottom:8}}>
+                        <div style={{flex:1}}>
+                          <label style={labelStyle}>Type</label>
+                          <select value={addExConfirm.type} onChange={function(e){var tc=getExerciseTypeConfig(e.target.value);setAddExConfirm(Object.assign({},addExConfirm,{type:e.target.value,sets:tc.defaultSets,m1:tc.defaultM1,m2:tc.defaultM2}));}} style={{...inputStyle,width:"100%"}}>
+                            {Object.keys(EXERCISE_TYPES).map(function(t){return <option key={t} value={t}>{EXERCISE_TYPES[t].label}</option>;})}
+                          </select>
+                        </div>
+                        <div style={{width:70}}>
+                          <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].hasSets ? "Sets" : "Sessions"}</label>
+                          <input type="number" value={addExConfirm.sets} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{sets:parseInt(e.target.value)||1}));}} style={{...inputStyle,width:"100%"}} min="1" max="10" />
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:8,marginBottom:8}}>
+                        {EXERCISE_TYPES[addExConfirm.type].metric1 !== "none" && (
+                          <div style={{flex:1}}>
+                            <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].metric1Label}</label>
+                            <input value={addExConfirm.m1} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{m1:e.target.value}));}} style={{...inputStyle,width:"100%"}} />
+                          </div>
+                        )}
+                        {EXERCISE_TYPES[addExConfirm.type].metric2 !== "none" && (
+                          <div style={{flex:1}}>
+                            <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].metric2Label}</label>
+                            <input value={addExConfirm.m2} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{m2:e.target.value}));}} style={{...inputStyle,width:"100%"}} />
+                          </div>
+                        )}
+                      </div>
+                      <div style={{marginBottom:8}}>
+                        <label style={labelStyle}>Progression Rules</label>
+                        <textarea value={addExConfirm.progression} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{progression:e.target.value}));}} style={{...inputStyle,width:"100%",minHeight:60,resize:"vertical",boxSizing:"border-box"}} />
+                      </div>
+                      <div style={{marginBottom:10}}>
+                        <label style={labelStyle}>Equipment / Form Notes</label>
+                        <textarea value={addExConfirm.notes||""} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{notes:e.target.value}));}} placeholder="Optional notes..." style={{...inputStyle,width:"100%",minHeight:40,resize:"vertical",boxSizing:"border-box"}} />
+                      </div>
+                      <div style={{marginBottom:10}}>
+                        <button onClick={async function(){
+                          setAddExLoading(true);
+                          try {
+                            var isJC3 = activeTab === "jc";
+                            var profileInfo3 = isJC3 ? "Male, 49, 89kg, 5ft11, meso-endomorph, upper-body dominant, ADHD, thyroid TSH issues, Marcy HG5000 home multi gym" : "Female, 48, 5ft4, compact meso-endomorph, fast-twitch dominant, lower-body dominant, RSI in wrists (uses Bear Grip straps, J Bryant cuffs, tricep rope), exceptional natural lower body, Marcy HG5000 home multi gym";
+                            var typeCfg3 = getExerciseTypeConfig(addExConfirm.type);
+                            var prompt3 = "Exercise: " + addExConfirm.name + " (type: " + typeCfg3.label + "). Person: " + profileInfo3 + ".\nReturn ONLY JSON: {\"exerciseGuide\":\"A concise how-to guide for performing this exercise correctly. Cover: starting position, movement execution with emphasis on full range of motion, breathing pattern, tempo recommendation (e.g. 3-second eccentric), and the most common mistakes to avoid. Write in direct 2nd person. 3-5 short sentences.\",\"prePostGuide\":\"Recommended warm-up stretches and preparation BEFORE this specific exercise, and cool-down stretches AFTER it. Customise to the muscle groups this exercise targets and this person's profile. Format as: PRE: 2-3 specific stretches/movements with brief instruction. POST: 2-3 specific stretches with brief instruction. Write in direct 2nd person. Keep each stretch to one sentence.\"}";
+                            var resp3 = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{"Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,messages:[{role:"user",content:prompt3}]})});
+                            var result3 = await resp3.json();
+                            var txt3 = ""; if(result3.content){for(var ri3=0;ri3<result3.content.length;ri3++){if(result3.content[ri3].text)txt3+=result3.content[ri3].text;}}
+                            var info3 = JSON.parse(txt3.replace(/```json|```/g,"").trim());
+                            setAddExConfirm(function(prev){if(!prev)return prev;return Object.assign({},prev,{exerciseGuide:info3.exerciseGuide||prev.exerciseGuide||"",prePostGuide:info3.prePostGuide||prev.prePostGuide||""});});
+                          } catch(ae3) { console.error("Guide update failed:", ae3); }
+                          setAddExLoading(false);
+                        }} disabled={addExLoading} style={{...btnAction,width:"100%",fontSize:11,padding:"6px 0"}}>
+                          {addExLoading ? "⟳ Generating..." : "🔄 Generate / Update Guides"}
+                        </button>
+                        {!addExConfirm.exerciseGuide && !addExConfirm.prePostGuide && <div style={{fontSize:9,color:"#94a3b8",textAlign:"center",marginTop:4,fontStyle:"italic"}}>This exercise was added before guides were available — tap above to generate them</div>}
+                      </div>
+                      {addExConfirm.exerciseGuide && (
+                      <div style={{marginBottom:10,padding:10,background:"#f0fdf4",borderRadius:8,border:"1px solid #bbf7d0"}}>
+                        <div style={{fontSize:10,fontWeight:700,color:"#166534",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.5px"}}>📖 Exercise Guide</div>
+                        <div style={{fontSize:11,color:"#15803d",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{addExConfirm.exerciseGuide}</div>
+                        <div style={{fontSize:9,color:"#86efac",marginTop:4,fontStyle:"italic"}}>AI-generated — review for accuracy</div>
+                      </div>
+                      )}
+                      {addExConfirm.prePostGuide && (
+                      <div style={{marginBottom:10,padding:10,background:"#eff6ff",borderRadius:8,border:"1px solid #bfdbfe"}}>
+                        <div style={{fontSize:10,fontWeight:700,color:"#1e40af",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.5px"}}>🧘 Pre & Post Exercise</div>
+                        <div style={{fontSize:11,color:"#1d4ed8",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{addExConfirm.prePostGuide}</div>
+                        <div style={{fontSize:9,color:"#93c5fd",marginTop:4,fontStyle:"italic"}}>AI-generated — review for accuracy</div>
+                      </div>
+                      )}
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={async function(){
+                          var c = addExConfirm; var tc = getExerciseTypeConfig(c.type);
+                          var nd = JSON.parse(JSON.stringify(data));
+                          var m1Val = tc.metric1 === "none" ? (tc.label === "Bodyweight" || tc.label === "Timed Hold" || tc.label === "Stretching/Mobility" ? "BW" : "") : c.m1;
+                          var repsStr = c.sets > 1 ? c.m2 + "x" + c.sets : c.m2;
+                          var editDay = c._editDay; var editIdx = c._editIdx;
+                          var existingEx = nd[activeTab].exercises[editDay][editIdx];
+                          existingEx.name = c.name; existingEx.exType = c.type; existingEx.current = m1Val; existingEx.reps = repsStr; existingEx.progressionNotes = c.progression; existingEx.notes = c.notes || ""; existingEx.sets = c.sets; if (c.exerciseGuide) existingEx.exerciseGuide = c.exerciseGuide; if (c.prePostGuide) existingEx.prePostGuide = c.prePostGuide;
+                          await saveData(nd);
+                          setFormMsg("✓ " + c.name + " updated"); setTimeout(function(){setFormMsg("");},3000);
+                          setAddExConfirm(null); setAddExOpen(false); setAddExSearch("");
+                        }} style={{...btnP(true),flex:1}}>Save Changes</button>
+                        <button onClick={function(){setAddExConfirm(null);setAddExOpen(false);setAddExSearch("");}} style={btnS}>Cancel</button>
+                      </div>
+                    </div>
+                    )}
                   </div>); })}
                 </div>
                       </div>
@@ -3867,9 +3968,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
                 
                 <div style={{padding:"8px 0",borderTop:"1px solid #e2e8f0"}}>
-                  {!addExOpen && !addExConfirm ? (
+                  {!addExOpen && (!addExConfirm || addExConfirm._editMode) ? (
                     <button onClick={function(){setAddExOpen(true);setAddExSearch("");setAddExConfirm(null);}} style={{...btnActionLg,width:"100%",borderRadius:8}}>+ Add Exercise</button>
-                  ) : addExConfirm ? (
+                  ) : addExConfirm && !addExConfirm._editMode ? (
                     /* ---- CONFIRMATION FORM ---- */
                     <div style={{padding:10,background:"#fff",borderRadius:10,border:"2px solid "+accent}}>
                       <div style={{fontSize:11,fontWeight:700,color:accent,marginBottom:2}}>{(p.profile && p.profile.name) || activeTab}</div>
@@ -3926,7 +4027,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                             setAddExConfirm(function(prev){if(!prev)return prev;return Object.assign({},prev,{exerciseGuide:info3.exerciseGuide||prev.exerciseGuide||"",prePostGuide:info3.prePostGuide||prev.prePostGuide||""});});
                           } catch(ae3) { console.error("Guide update failed:", ae3); }
                           setAddExLoading(false);
-                        }} disabled={addExLoading} style={{...btnMuted,width:"100%",fontSize:11,padding:"6px 0"}}>
+                        }} disabled={addExLoading} style={{...btnAction,width:"100%",fontSize:11,padding:"6px 0"}}>
                           {addExLoading ? "⟳ Generating..." : "🔄 Generate / Update Guides"}
                         </button>
                         {!addExConfirm.exerciseGuide && !addExConfirm.prePostGuide && <div style={{fontSize:9,color:"#94a3b8",textAlign:"center",marginTop:4,fontStyle:"italic"}}>This exercise was added before guides were available — tap above to generate them</div>}
@@ -7083,7 +7184,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.333.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.334.0
       </div>
 
       {/* Floating Ask a Question button */}
