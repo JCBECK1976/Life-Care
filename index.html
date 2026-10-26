@@ -2672,7 +2672,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         </div>)}
       </div>
       <div style={{ display: "flex", gap: 0, padding: "0 4px", background: "#fff", borderBottom: "1px solid #e2e8f0", overflowX: "auto" }}>
-        {SECS.map(s => (<button key={s.id} onClick={() => { setSection(s.id); setShowOnboarding(false); setSetupTab("profile"); setFbExpanded(false); setEatFbExpanded(false); setHomeFbExpanded(false); setHealthFbExpanded(false); setLogEx(null); setSelectedEx(null); setBodyView("data"); }} style={{ padding: "10px 8px", border: "none", borderBottom: section === s.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 11, fontWeight: section === s.id ? 700 : 500, color: section === s.id ? accent : "#64748b", cursor: "pointer", whiteSpace: "nowrap" }}>{s.l}</button>))}
+        {SECS.map(s => (<button key={s.id} onClick={() => { setSection(s.id); setShowOnboarding(false); setSetupTab("profile"); setFbExpanded(false); setEatFbExpanded(false); setHomeFbExpanded(false); setHealthFbExpanded(false); setLogEx(null); setSelectedEx(null); setBodyView("data"); setShowBodyForm(false); setBodyMetricOpen(null); setMeasMetricOpen(null); setMeasLogKey(null); setEditMeasKey(null); setAddMeasOpen(false); }} style={{ padding: "10px 8px", border: "none", borderBottom: section === s.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 11, fontWeight: section === s.id ? 700 : 500, color: section === s.id ? accent : "#64748b", cursor: "pointer", whiteSpace: "nowrap" }}>{s.l}</button>))}
       </div>
       {formMsg && <div style={{ margin: "8px 16px 0", padding: 10, borderRadius: 8, background: formMsg.startsWith("✓") ? "#e0f2fe" : "#fee2e2", color: formMsg.startsWith("✓") ? "#0c4a6e" : "#991b1b", fontSize: 12, fontWeight: 600 }}>{formMsg}</div>}
 
@@ -3282,7 +3282,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             </div>
             <div style={{ display: "flex", gap: 0, background: "#e2e8f0", borderRadius: "8px 8px 0 0", padding: 2 }}>
               {[{ k: "data", l: "Weigh In" }, { k: "measurements", l: "Measurements" }].map(function(tab) {
-                return (<button key={tab.k} onClick={function() { setBodyView(tab.k); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: bodyView === tab.k ? "#fff" : "transparent", color: bodyView === tab.k ? "#0f172a" : "#94a3b8" }}>{tab.l}</button>);
+                return (<button key={tab.k} onClick={function() { setBodyView(tab.k); setShowBodyForm(false); setBodyMetricOpen(null); setMeasMetricOpen(null); setMeasLogKey(null); setEditMeasKey(null); setAddMeasOpen(false); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: bodyView === tab.k ? "#fff" : "transparent", color: bodyView === tab.k ? "#0f172a" : "#94a3b8" }}>{tab.l}</button>);
               })}
             </div>
             <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
