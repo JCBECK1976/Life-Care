@@ -777,7 +777,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.343.0
+// STANDARD BUTTON STYLES v1.343.1
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -837,11 +837,12 @@ window.trackApiUsage = async function(inputTokens, outputTokens) {
 
 /* Intercept all Anthropic API calls to track usage and block when empty */
 var _origFetch = window.fetch;
+window._origFetch = _origFetch;
 window.fetch = function() {
   var url = arguments[0];
   if (typeof url === "string" && url.indexOf("api.anthropic.com") !== -1) {
     /* Block if energy is empty */
-    if (window._companionEnergyPct !== undefined && window._companionEnergyPct <= 0 && window._companionEnergyStatus === "active") {
+    if (window._companionEnergyPct !== undefined && window._companionEnergyPct <= 5 && window._companionEnergyStatus === "active") {
       return Promise.reject(new Error("ENERGY_EMPTY"));
     }
     return _origFetch.apply(this, arguments).then(function(resp) {
@@ -1734,12 +1735,19 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     try {
       var ak = await window.ensureApiKey();
       if (!ak) { window._setCompanionEnergy({ balance: 0, pct: 0, keyStatus: "no_key", initial: 5, spent: 0 }); setEnergyLoading(false); return; }
-      var pingResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": ak, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1, messages: [{ role: "user", content: "hi" }] }) });
+      var pingResp = await window._origFetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": ak, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1, messages: [{ role: "user", content: "hi" }] }) });
       var stored = await sGet("companion_energy");
       if (pingResp.ok) {
         if (stored) {
           var parsed = JSON.parse(stored);
           parsed.keyStatus = "active";
+          /* Top-up detection: if ping succeeds but energy shows depleted/very low,
+             the user has topped up their Anthropic credits externally — reset tracking */
+          if (parsed.pct <= 5 || parsed.balance <= 0) {
+            parsed.spent = 0;
+            parsed.balance = parsed.initial || 5;
+            parsed.pct = 100;
+          }
           window._setCompanionEnergy(parsed);
           await sSet("companion_energy", JSON.stringify(parsed));
         } else {
@@ -1764,7 +1772,16 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           await sSet("companion_energy", JSON.stringify(en));
         }
       }
-    } catch(e) { window._setCompanionEnergy({ balance: 0, pct: 0, keyStatus: "error", initial: 5, spent: 0 }); }
+    } catch(e) {
+      /* If error is ENERGY_EMPTY (shouldn't happen now with _origFetch bypass), try loading stored data */
+      if (window.isEnergyEmpty && window.isEnergyEmpty(e)) {
+        var storedFallback = await sGet("companion_energy");
+        if (storedFallback) { var pf = JSON.parse(storedFallback); pf.keyStatus = "active"; window._setCompanionEnergy(pf); }
+        else { window._setCompanionEnergy({ balance: 0, pct: 0, keyStatus: "error", initial: 5, spent: 0 }); }
+      } else {
+        window._setCompanionEnergy({ balance: 0, pct: 0, keyStatus: "error", initial: 5, spent: 0 });
+      }
+    }
     setEnergyLoading(false);
   }, []);
   useEffect(() => { checkCompanionEnergy(); }, []);
@@ -2693,7 +2710,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         {section === "overview" && (<div>
           {/* ── COMPANION ENERGY ── */}
           {(() => {
-            var pct = companionEnergy ? companionEnergy.pct : 0;
+            var rawPct = companionEnergy ? companionEnergy.pct : 0;
+            var pct = rawPct <= 5 ? 0 : rawPct; /* Show 0% when 5% or less remaining */
             var hasEnergy = companionEnergy !== null;
             var keyStatus = companionEnergy ? companionEnergy.keyStatus : null;
             var segCount = 20;
@@ -7351,7 +7369,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.343.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.343.1
       </div>
 
       {/* Floating Ask a Question button */}
