@@ -854,7 +854,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.348.4
+// STANDARD BUTTON STYLES v1.348.5
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -3360,7 +3360,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginBottom: 14, overflow: "hidden" }}>
               <button onClick={function() { setShowMyDay(!showMyDay); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", background: "none", border: "none", cursor: "pointer" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>My Day</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Day</span>
                   <span style={{ fontSize: 11, color: "#94a3b8" }}>{todayLabel}</span>
                 </div>
                 <span style={{ fontSize: 11, color: "#94a3b8" }}>{showMyDay ? "▲" : "▼"}</span>
@@ -3378,7 +3378,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginBottom: 14, overflow: "hidden" }}>
             <div style={{ padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>My Journal</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Journal</span>
                 <span style={{ fontSize: 10, color: "#94a3b8" }}>{(() => { var todayEntries = journalEntries.filter(function(e) { return e.date === new Date().toISOString().split("T")[0]; }); return todayEntries.length > 0 ? todayEntries.length + " today" : ""; })()}</span>
               </div>
             </div>
@@ -3561,7 +3561,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           </div>
           {bodyMetricOpen && (function() { var metricLabels = { weight: "Weight (st)", bodyFat: "Body Fat %", muscleMass: "Muscle Mass", muscleRate: "Muscle Rate %", visceralFat: "Visceral Fat", subcutFat: "Subcut Fat %", bodyWater: "Body Water %", boneMass: "Bone Mass", bmr: "BMR (kcal)", bodyAge: "Body Age", skeletalMuscle: "Skeletal Muscle %" }; var mArr = p.body[bodyMetricOpen] || []; return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>👁 {metricLabels[bodyMetricOpen] || bodyMetricOpen} Progress</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>👁 {metricLabels[bodyMetricOpen] || bodyMetricOpen} Progress</div>
               <button onClick={() => setBodyMetricOpen(null)} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
             </div>
             {mArr.length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 16 }}>No progress data yet</div>}
@@ -3943,7 +3943,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             var setDv = function(v) { setDayView(function(prev) { var n = Object.assign({}, prev); n[day] = v; return n; }); };
             return (<div key={day} style={{ marginBottom: 16 }}>
                                           <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", overflow: "hidden" }}>
-                <div style={{ padding: "8px 12px 0", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{label}</div>
+                <div style={{ padding: "8px 12px 0", fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{label}</div>
                 {/* ACTIVITY TAB */}
                 {dv === "activity" && (<div>
                 <div style={{ background: "#f8fafc", borderRadius: 8, padding: "4px 12px 12px", margin: 8, border: "1px solid #e2e8f0" }}>
@@ -6247,7 +6247,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             </div>)}
 
             <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, marginBottom: 10, border: "1px solid #e2e8f0" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 10 }}>Daily Eating Tracker</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 10 }}>Daily Eating Tracker</div>
 
             {/* Breakfast */}
             <div style={{ marginBottom: 8 }}>
@@ -6667,7 +6667,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>)}
               </div>) : (<div>
                 <div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, border: "1px solid #86efac", marginBottom: 6 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🍽 {helpEatResult.name}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🍽 {helpEatResult.name}</div>
                   <div style={{ display: "flex", gap: 10, marginBottom: 6, fontSize: 11, flexWrap: "wrap" }}>
                     <span><b>{helpEatResult.kcal}</b> kcal</span>
                     <span><b>{helpEatResult.protein}g</b> prot</span>
@@ -6839,7 +6839,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 <div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type a food name or scan a product, with or without a short description, to check nutritional information</div>
               </div>) : (<div>
                 <div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, border: "1px solid #86efac", marginBottom: 6 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 {foodCheckerPreview.name}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 {foodCheckerPreview.name}</div>
                   <div style={{ display: "flex", gap: 10, marginBottom: 6, fontSize: 11 }}>
                     <span><b>{foodCheckerPreview.kcal}</b> kcal</span>
                     <span><b>{foodCheckerPreview.protein}g</b> prot</span>
@@ -7138,7 +7138,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 <button onClick={function(){ setShowBloodForm(false); }} style={{ padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" }}>Cancel</button>
               </div>
             </div>)}
-            {(p.bloods || []).length > 0 && (function() { var reversed = (p.bloods || []).slice().reverse(); var latest = reversed[0]; var older = reversed.slice(1); var renderEntry = function(b, bi) { return (<div key={bi} style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 8 }}><div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>{b.date}</div>{Object.entries(b.tests).map(function(entry) { var k = entry[0]; var v = entry[1]; var def = allTests.find(function(t) { return t.key === k; }); var name = def ? def.name : k; var unit = def ? def.unit : ""; var flag = ""; var flagColor = "#16a34a"; if (def && def.lo !== undefined) { if (v < def.lo) { flag = " Low"; flagColor = "#dc2626"; } else if (v > def.hi) { flag = " High"; flagColor = "#dc2626"; } else { flag = " OK"; } } return (<div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "4px 0", borderBottom: "1px solid #f1f5f9" }}><span style={{ color: "#334155", fontWeight: 500 }}>{name}</span><span><span style={{ fontWeight: 600 }}>{v}</span> <span style={{ color: "#94a3b8" }}>{unit}</span><span style={{ color: flagColor, fontWeight: 600 }}>{flag}</span></span></div>); })}</div>); }; return (<div>
+            {(p.bloods || []).length > 0 && (function() { var reversed = (p.bloods || []).slice().reverse(); var latest = reversed[0]; var older = reversed.slice(1); var renderEntry = function(b, bi) { return (<div key={bi} style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 8 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>{b.date}</div>{Object.entries(b.tests).map(function(entry) { var k = entry[0]; var v = entry[1]; var def = allTests.find(function(t) { return t.key === k; }); var name = def ? def.name : k; var unit = def ? def.unit : ""; var flag = ""; var flagColor = "#16a34a"; if (def && def.lo !== undefined) { if (v < def.lo) { flag = " Low"; flagColor = "#dc2626"; } else if (v > def.hi) { flag = " High"; flagColor = "#dc2626"; } else { flag = " OK"; } } return (<div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "4px 0", borderBottom: "1px solid #f1f5f9" }}><span style={{ color: "#334155", fontWeight: 500 }}>{name}</span><span><span style={{ fontWeight: 600 }}>{v}</span> <span style={{ color: "#94a3b8" }}>{unit}</span><span style={{ color: flagColor, fontWeight: 600 }}>{flag}</span></span></div>); })}</div>); }; return (<div>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#64748b", marginBottom: 6 }}>Latest Results</div>
               {renderEntry(latest, 0)}
               {older.length > 0 && (<div>
@@ -7205,7 +7205,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           {/* Google Health Connect */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid " + (googleConnected ? "#86efac" : "#e2e8f0"), padding: 14, marginTop: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📱 Google Health Connect</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📱 Google Health Connect</div>
             <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.5, marginBottom: 8 }}>
               <strong>Android Only</strong> — Syncs body composition and activity data from your phone via Google Health Connect.<br/>
               <strong>Setup:</strong> 1) Download <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata" target="_blank" style={{ color: "#2563eb" }}>Google Health Connect</a> from Play Store. 2) Open it and connect your Fitdays / health apps. 3) Tap Connect below.
@@ -7223,7 +7223,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           {/* File Attachments */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📎 Attachments</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📎 Attachments</div>
             <div style={{ fontSize: 11, color: "#64748b", marginBottom: 10 }}>Upload files, images, or documents as data points for My Companion Feedback and Ask a Question.</div>
             <label style={{ display: "block", width: "100%", padding: 14, background: "#f8fafc", border: "2px dashed #cbd5e1", borderRadius: 8, textAlign: "center", cursor: "pointer", fontSize: 12, color: "#64748b", marginBottom: 8 }}>
               📄 Tap to upload file (PDF, image, document)
@@ -7279,7 +7279,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           {/* API Key */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🔑 API Keys</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🔑 API Keys</div>
             <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.5, marginBottom: 8 }}>Required for AI features. Get your Claude key from <strong>console.anthropic.com</strong> → API Keys.</div>
             <label style={labelStyle}>Claude API Key</label>
             <input type="password" id="api-key-input" defaultValue="" placeholder="sk-ant-api03-..." style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, fontFamily: "monospace", boxSizing: "border-box", marginBottom: 6 }} />
@@ -7300,7 +7300,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           {/* Debug Mode */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>🔧 Debug Mode</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>🔧 Debug Mode</div>
               <button onClick={function() { setDebugMode(!debugMode); if (!debugMode) setDebugLog([]); }} style={{ padding: "6px 14px", background: debugMode ? "#dc2626" : "#f1f5f9", color: debugMode ? "#fff" : "#475569", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{debugMode ? "ON — Turn Off" : "Turn On"}</button>
             </div>
             {debugMode && (<div style={{ marginTop: 10 }}>
@@ -7551,7 +7551,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.348.4
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.348.5
       </div>
 
       {/* Floating Ask a Question button */}
