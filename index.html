@@ -854,7 +854,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.348.3
+// STANDARD BUTTON STYLES v1.348.4
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -2940,7 +2940,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
                 {/* ═══ MY PROFILE (read-only generated) ═══ */}
                 {setupTab === "profile" && (<div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>My Profile</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>My Profile</div>
                   <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Auto-generated from your setup information. Complete the other tabs then generate your profile below.</div>
 
                   {/* Read-only profile summary */}
@@ -3064,7 +3064,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
                 {/* ═══ MY DETAILS ═══ */}
                 {setupTab === "details" && (<div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>My Details</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>My Details</div>
                   <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Your basic personal information.</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     {rf([["name", "Name"], ["dob", "Date of Birth", "date"]])}
@@ -3133,7 +3133,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
                 {/* ═══ MY FAMILY ═══ */}
                 {setupTab === "family" && (<div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>My Family</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>My Family</div>
                   <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Who you live with and relevant family health history.</div>
                   {rf([
                     ["livingSituation", "Living situation", "ta", "e.g. Live with partner and 2 children, dog..."],
@@ -3143,7 +3143,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
                 {/* ═══ MY PERSONALITY ═══ */}
                 {setupTab === "personality" && (<div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>My Personality</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>My Personality</div>
                   <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Understanding your personality helps tailor motivation strategies and habit formation approaches.</div>
                   {rf([
                     ["personalityType", "Personality type or profile", "ta", "e.g. Yellow/Red Insights, INTJ, Type A, introvert..."],
@@ -3155,7 +3155,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
                 {/* ═══ MY LIFESTYLE ═══ */}
                 {setupTab === "lifestyle" && (<div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>My Lifestyle</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>My Lifestyle</div>
                   <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Your daily routines, work pattern, and current activity level.</div>
                   {rf([
                     ["occupation", "Occupation", "text", "e.g. Software engineer, nurse, teacher, retired..."],
@@ -3173,7 +3173,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
                 {/* ═══ MY EATING & DRINKING ═══ */}
                 {setupTab === "eating" && (<div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>My Eating & Drinking</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>My Eating & Drinking</div>
                   <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Your current eating habits and relationship with food help us build a sustainable plan.</div>
                   {rf([
                     ["dietary", "Dietary preferences, restrictions, or allergies", "ta", "e.g. Vegetarian, gluten-free, nut allergy, low sodium..."],
@@ -3190,7 +3190,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
                 {/* ═══ MY WELLBEING ═══ */}
                 {setupTab === "wellbeing" && (<div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>My Wellbeing</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>My Wellbeing</div>
                   <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Sleep, mental health and neurodiversity inform how we approach habit formation and support.</div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4, marginTop: 8 }}>Sleep</div>
                   {rf([
@@ -3213,7 +3213,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
                 {/* ═══ MY HEALTH ═══ */}
                 {setupTab === "health" && (<div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>My Health</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>My Health</div>
                   <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Medical history and current health status. This helps your Companion understand your starting point.</div>
                   {rf([
                     ["conditions", "Medical conditions", "ta", "e.g. Thyroid, high cholesterol, diabetes, PCOS, heart conditions..."],
@@ -6935,7 +6935,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           <div style={{ textAlign: "center", fontSize: 10, color: "#94a3b8", marginBottom: 14, lineHeight: 1.4 }}>Plan your week food choices in <b>'My Eating'</b> to get your shopping list suggestions</div>
           {/* Shopping List — grey sub-container */}
           <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0", marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>My Shopping List</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 8 }}>My Shopping List</div>
             <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Select 'Default' to automatically apply to each week.</div>
           {generatedShop && Array.isArray(generatedShop) && (() => {
             /* Render zone-grouped format: [{zone, items}] or flat strings */
@@ -7551,7 +7551,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.348.3
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.348.4
       </div>
 
       {/* Floating Ask a Question button */}
