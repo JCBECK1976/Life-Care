@@ -854,7 +854,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.347.1
+// STANDARD BUTTON STYLES v1.347.2
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -3392,11 +3392,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 setJournalEntries(updated);
                 setJournalText("");
                 await sSet("journal_" + activeTab, JSON.stringify(updated));
-                /* Consume the mood face — reset dailyMood to blank */
-                setDailyMood(null);
-                setUserMood(null);
-                await sSet("daily_mood_" + activeTab, JSON.stringify(null));
-                await sSet("user_mood_" + activeTab, JSON.stringify(null));
+                /* Mood face persists — NOT consumed on journal add. Resets only on new day or user tap. */
                 setFormMsg("✓ Journal entry added");
                 setTimeout(function() { setFormMsg(""); }, 3000);
               }} disabled={!journalText.trim()} style={{ width: "100%", padding: "8px 0", marginTop: 8, border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: journalText.trim() ? "pointer" : "not-allowed", background: journalText.trim() ? "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" : "#e2e8f0", color: journalText.trim() ? "#fff" : "#94a3b8", transition: "all 0.2s ease" }}>Add Journal Entry</button>
@@ -3420,10 +3416,11 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>{dateLabel}{timeLabel ? " · " + timeLabel : ""}</span>
                       </div>
                       <button onClick={async function() {
+                        if (!window.confirm("Delete this journal entry? This can't be undone.")) return;
                         var updated = journalEntries.filter(function(e) { return e.id !== entry.id; });
                         setJournalEntries(updated);
                         await sSet("journal_" + activeTab, JSON.stringify(updated));
-                      }} style={{ background: "none", border: "none", fontSize: 11, color: "#94a3b8", cursor: "pointer", padding: "2px 4px" }} title="Delete entry">🗑</button>
+                      }} style={{ background: "none", border: "none", fontSize: 11, color: "#ef4444", cursor: "pointer", padding: "2px 4px", fontWeight: 600 }} title="Delete entry">🗑 Del</button>
                     </div>
                     <div style={{ fontSize: 12, lineHeight: 1.5, color: "#334155", whiteSpace: "pre-wrap" }}>{entry.text}</div>
                   </div>);
@@ -7556,7 +7553,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.347.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.347.2
       </div>
 
       {/* Floating Ask a Question button */}
