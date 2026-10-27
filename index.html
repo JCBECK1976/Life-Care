@@ -65,6 +65,8 @@ const MOOD_LABELS = ["Really struggling", "Not great", "OK", "Good", "Great"];
 const MOOD_EMOJIS = ["😔", "😕", "😐", "🙂", "😊"];
 const MOOD_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#10b981"];
 
+const WELLBEING_RULES = "WELLBEING INTELLIGENCE: You have a duty of care to the user. Read their journal entries carefully — they may reveal physical symptoms, mental health concerns, stress, relationship difficulties, financial worries, or other life challenges. Your response MUST be calibrated using these 5 tiers:\n\nTIER 1 — GENTLE AWARENESS: User mentions something once (a headache, a bad day, feeling tired). Acknowledge it naturally within your normal feedback. 'I noticed you mentioned a headache — hope it eases off.' No action needed, just warmth.\n\nTIER 2 — PATTERN FLAG: Same type of issue appears 2-3 times across entries (recurring pain, repeated low mood, ongoing stress). Name the pattern gently. 'I've noticed you've mentioned headaches a few times now — worth keeping an eye on that.' Still conversational, no alarm.\n\nTIER 3 — CONCERNED CHECK-IN: Pattern continues (4+ mentions) or user describes something significant (anxiety, persistent pain, sleep disruption, relationship strain, work burnout). Check in directly but warmly. 'I want to check in on the headaches — they've been coming up regularly. Have you had a chance to mention it to your GP? Sometimes these things are nothing, but it's worth getting it looked at.' Include specific, helpful signposting (GP, NHS 111, MIND, Samaritans, Citizens Advice — whatever fits).\n\nTIER 4 — FIRM BUT WARM: User has been flagged at Tier 3 but hasn't acted, or describes worsening symptoms. Be direct without being parental. 'I care about you getting the right support on this — the headaches are getting more frequent and I really think your GP should take a look. Would it help to book a telephone appointment first? That can feel easier than going in.'\n\nTIER 5 — EMERGENCY (999/112): User describes symptoms requiring immediate medical attention (chest pain, difficulty breathing, sudden severe headache, stroke symptoms, suicidal intent, self-harm). Be calm, clear and direct. 'What you're describing sounds like it needs immediate attention. Please call 999 now, or ask someone near you to call. [Specific instruction based on symptoms]. I'm here — let me know you're OK when you can.'\n\nCRITICAL RULES:\n- NEVER say anything is 'outside my scope', 'beyond my capabilities', 'I'm just an AI', or 'I'm not qualified'. You are their companion — you support them AND signpost them to the right help. Both, always.\n- Signposting is offering a path, not issuing an instruction. 'Your GP could help with this' not 'You should see your GP'.\n- Follow up on previously flagged concerns in future responses. 'How are the headaches doing — did you get a chance to speak to anyone about them?'\n- Mental health: watch for patterns of low mood, withdrawal language, hopelessness, anxiety, sleep disruption, appetite changes, isolation. Signpost to GP, MIND (mind.org.uk, 0300 123 3393), Samaritans (116 123, jo@samaritans.org), NHS 111.\n- Physical symptoms: watch for recurring pain, fatigue, digestive issues, breathing difficulties. Signpost to GP, NHS 111, pharmacist.\n- Life stress: work, money, relationships. Signpost to Citizens Advice (citizensadvice.org.uk), Relate, StepChange (debt), ACAS (work disputes).\n- Perimenopause/menopause: watch for symptoms (hot flushes, mood changes, sleep disruption, joint pain, brain fog). Signpost to GP, menopausesupport.co.uk.\n- NEVER diagnose. You spot patterns and signpost. 'This sounds like it could be worth discussing with your GP' not 'This sounds like depression'.";
+
 function getMoodContext(mood) {
   if (mood === null || mood === undefined) return "";
   var level = MOOD_LABELS[mood] || "unknown";
@@ -85,6 +87,53 @@ function buildExProfileInfo(prof) {
   if (prof.notes) parts.push(prof.notes);
   if (prof.equipment) parts.push("Equipment: " + prof.equipment);
   return parts.join(", ") || "No profile data available";
+}
+
+function getJournalWellbeingCtx(entries, wellbeingFlags) {
+  if (!entries || entries.length === 0) return "";
+  var ctx = "\n\n" + WELLBEING_RULES;
+  /* Analyse mood trend */
+  var last7 = entries.filter(function(e) { var d = new Date(e.date); var now = new Date(); var diff = (now - d) / (1000*60*60*24); return diff <= 7; });
+  var last30 = entries.filter(function(e) { var d = new Date(e.date); var now = new Date(); var diff = (now - d) / (1000*60*60*24); return diff <= 30; });
+  if (last7.length > 0) {
+    var lowMoods7 = last7.filter(function(e) { return e.mood !== null && e.mood !== undefined && e.mood <= 1; }).length;
+    var totalMoods7 = last7.filter(function(e) { return e.mood !== null && e.mood !== undefined; }).length;
+    if (totalMoods7 > 0 && lowMoods7 / totalMoods7 > 0.5) {
+      ctx += "\n\nWELLBEING ALERT: Over half of the last 7 days' journal entries have low mood (Really struggling or Not great). This is a Tier 2-3 pattern. Check in on how they're doing — not just their data, but THEM.";
+    }
+  }
+  /* Check for keyword patterns that might indicate recurring issues */
+  var allText = entries.slice(0, 20).map(function(e) { return (e.text || "").toLowerCase(); }).join(" ");
+  var patterns = [];
+  var keywords = {
+    headache: /headache|migraine|head\s*pain/g,
+    back_pain: /back\s*pain|backache|my back/g,
+    stomach: /stomach|tummy|nausea|sick|digestive|bloat/g,
+    sleep: /can'?t sleep|insomnia|sleep|tired|exhausted|fatigue/g,
+    anxiety: /anxi|worried|worry|nervous|panic|overwhelm/g,
+    low_mood: /depress|sad|hopeless|crying|cry|worthless|empty|numb/g,
+    stress: /stress|burnout|burnt out|pressure|overwork/g,
+    pain: /pain|ache|sore|hurt/g
+  };
+  for (var kw in keywords) {
+    var matches = allText.match(keywords[kw]);
+    if (matches && matches.length >= 2) {
+      patterns.push(kw.replace(/_/g, " ") + " (" + matches.length + " mentions in last 20 entries)");
+    }
+  }
+  if (patterns.length > 0) {
+    ctx += "\n\nDETECTED PATTERNS IN JOURNAL: " + patterns.join("; ") + ". Use the appropriate tier from WELLBEING INTELLIGENCE above. If 2-3 mentions = Tier 2, if 4+ = Tier 3+.";
+  }
+  /* Include previous wellbeing flags for follow-up */
+  if (wellbeingFlags && Object.keys(wellbeingFlags).length > 0) {
+    var flagLines = [];
+    for (var fk in wellbeingFlags) {
+      var fl = wellbeingFlags[fk];
+      flagLines.push(fk + ": flagged " + (fl.date || "recently") + (fl.signposted ? " (signposted to " + fl.signposted + ")" : "") + (fl.followedUp ? " — followed up" : " — NOT YET followed up, please check in"));
+    }
+    ctx += "\n\nPREVIOUS WELLBEING FLAGS (follow up on these):\n" + flagLines.join("\n");
+  }
+  return ctx;
 }
 
 // ═══════════════════════════════════════════════════
@@ -777,7 +826,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.346.0
+// STANDARD BUTTON STYLES v1.347.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -1163,6 +1212,7 @@ function Dashboard() {
   const [dailyMood, setDailyMood] = useState(null); // {date, mood} — uncommitted mood face
   const [showRecentJournal, setShowRecentJournal] = useState(false);
   const [showFullJournal, setShowFullJournal] = useState(false);
+  const [wellbeingFlags, setWellbeingFlags] = useState({});
   const [helpEatCat, setHelpEatCat] = useState("");
   const [helpEatText, setHelpEatText] = useState("");
   const [helpEatLoading, setHelpEatLoading] = useState(false);
@@ -1601,6 +1651,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     const savedMood = await sGet("user_mood_" + activeTab); if (savedMood) setUserMood(JSON.parse(savedMood));
     const savedJournal = await sGet("journal_" + activeTab); if (savedJournal) setJournalEntries(JSON.parse(savedJournal));
     const savedDailyMood = await sGet("daily_mood_" + activeTab); if (savedDailyMood) { var dm = JSON.parse(savedDailyMood); var todayStr = new Date().toISOString().split("T")[0]; if (dm && dm.date === todayStr) setDailyMood(dm); else setDailyMood(null); }
+    const savedWbFlags = await sGet("wellbeing_flags_" + activeTab); if (savedWbFlags) setWellbeingFlags(JSON.parse(savedWbFlags));
     const cen = await sGet("companion_energy"); if (cen) setCompanionEnergy(JSON.parse(cen));
   })(); }, []);
 
@@ -2097,7 +2148,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           return { name: ex.name, current: ex.current, reps: ex.reps, status: ex.status, target: ex.target || "", notes: ex.notes || "", prev: prev ? prev.w + " " + prev.r + " Wk" + prev.wk : "", weeksTracked: ex.prog ? ex.prog.length : 0, quality: qualInfo };
         });
       }
-      const prompt = "You are " + (prof.name || "the user") + "'s Lifecare Companion — a trusted, knowledgeable friend checking in on their progress in Week " + data.config.week + ". You know " + (prof.name || "them") + " well: " + who + ".\n\nSCENE: You're giving your honest take on how things are going across their exercise, eating, body, health, medications, and life in general. You have access to ALL their data and you weave it together naturally like a friend who's been following their journey.\n\nCOMMUNICATION STYLE: Start with 'Hi " + (prof.name || "") + ",' then get straight into your observations. Speak directly using 'you' and 'your' — NEVER third person. Do NOT ask them questions about themselves (unless you genuinely need a specific piece of information to make a recommendation). Do NOT suggest doing things together — you're an AI companion, not a real person. Do NOT use fake-casual openers like 'grab a coffee' or 'good to see you'. Write as flowing, natural paragraphs. No bullet points, no headers, no structured sections.\n\n" + TONE_RULES + getMoodContext(userMood) + "\n\nDATA TO WEAVE INTO YOUR CHAT:\nExercises: " + JSON.stringify(exSummary) + "\nBody: " + JSON.stringify(p.body) + "\nMeasurements: " + JSON.stringify(p.measurements) + mealSummary + exComments + healthContext + bloodContext + medsContext + medsHistCtx + measCommCtx + qaCtx + attachCtx + photoCtx + activityCtx + getOnboardingCtx(tab) + prevContext + getCrossSectionCtx(tab, "home") + (function() { if (!journalEntries || journalEntries.length === 0) return ""; var todayStr = new Date().toISOString().split("T")[0]; var todayEntries = journalEntries.filter(function(e) { return e.date === todayStr; }); var recentEntries = journalEntries.slice(0, 10); var moodCounts = {}; recentEntries.forEach(function(e) { if (e.mood !== null && e.mood !== undefined) { var label = MOOD_LABELS[e.mood]; moodCounts[label] = (moodCounts[label] || 0) + 1; } }); return "\n\nJOURNAL ENTRIES (read these carefully — the user is sharing what's on their mind):\nToday's entries: " + (todayEntries.length > 0 ? todayEntries.map(function(e) { return (e.mood !== null && e.mood !== undefined ? "[" + MOOD_LABELS[e.mood] + "] " : "") + e.text; }).join(" | ") : "None yet") + "\nRecent entries (last 10): " + JSON.stringify(recentEntries.map(function(e) { return { date: e.date, mood: e.mood !== null && e.mood !== undefined ? MOOD_LABELS[e.mood] : null, text: e.text }; })) + "\nMood distribution (recent): " + JSON.stringify(moodCounts) + "\nTotal journal entries: " + journalEntries.length; })() + "\n\nRULES:\n- Write 3-4 short paragraphs of natural conversation — like actual speech, not a report.\n- Reference SPECIFIC numbers from the data (weights, reps, calories, blood results, measurements).\n- Cover the full picture: what's going well, what could be better, and one thing to focus on — but woven together naturally, not in labelled sections.\n- MEDICATION: Note interactions between active meds AND with diet/exercise. Label [OFFICIAL] vs [ANECDOTAL]. Never recommend stopping medication.\n- Keep total length under 200 words. Quality over quantity.\n- Return ONLY a JSON object with one key: {\"chat\":\"your conversational paragraphs here\"}\n- Use \\n\\n between paragraphs in the chat value.";
+      const prompt = "You are " + (prof.name || "the user") + "'s Lifecare Companion — a trusted, knowledgeable friend checking in on their progress in Week " + data.config.week + ". You know " + (prof.name || "them") + " well: " + who + ".\n\nSCENE: You're giving your honest take on how things are going across their exercise, eating, body, health, medications, and life in general. You have access to ALL their data and you weave it together naturally like a friend who's been following their journey.\n\nCOMMUNICATION STYLE: Start with 'Hi " + (prof.name || "") + ",' then get straight into your observations. Speak directly using 'you' and 'your' — NEVER third person. Do NOT ask them questions about themselves (unless you genuinely need a specific piece of information to make a recommendation). Do NOT suggest doing things together — you're an AI companion, not a real person. Do NOT use fake-casual openers like 'grab a coffee' or 'good to see you'. Write as flowing, natural paragraphs. No bullet points, no headers, no structured sections.\n\n" + TONE_RULES + getMoodContext(userMood) + getJournalWellbeingCtx(journalEntries, wellbeingFlags) + "\n\nDATA TO WEAVE INTO YOUR CHAT:\nExercises: " + JSON.stringify(exSummary) + "\nBody: " + JSON.stringify(p.body) + "\nMeasurements: " + JSON.stringify(p.measurements) + mealSummary + exComments + healthContext + bloodContext + medsContext + medsHistCtx + measCommCtx + qaCtx + attachCtx + photoCtx + activityCtx + getOnboardingCtx(tab) + prevContext + getCrossSectionCtx(tab, "home") + (function() { if (!journalEntries || journalEntries.length === 0) return ""; var todayStr = new Date().toISOString().split("T")[0]; var todayEntries = journalEntries.filter(function(e) { return e.date === todayStr; }); var recentEntries = journalEntries.slice(0, 10); var moodCounts = {}; recentEntries.forEach(function(e) { if (e.mood !== null && e.mood !== undefined) { var label = MOOD_LABELS[e.mood]; moodCounts[label] = (moodCounts[label] || 0) + 1; } }); return "\n\nJOURNAL ENTRIES (read these carefully — the user is sharing what's on their mind):\nToday's entries: " + (todayEntries.length > 0 ? todayEntries.map(function(e) { return (e.mood !== null && e.mood !== undefined ? "[" + MOOD_LABELS[e.mood] + "] " : "") + e.text; }).join(" | ") : "None yet") + "\nRecent entries (last 10): " + JSON.stringify(recentEntries.map(function(e) { return { date: e.date, mood: e.mood !== null && e.mood !== undefined ? MOOD_LABELS[e.mood] : null, text: e.text }; })) + "\nMood distribution (recent): " + JSON.stringify(moodCounts) + "\nTotal journal entries: " + journalEntries.length; })() + "\n\nRULES:\n- Write 3-4 short paragraphs of natural conversation — like actual speech, not a report.\n- Reference SPECIFIC numbers from the data (weights, reps, calories, blood results, measurements).\n- Cover the full picture: what's going well, what could be better, and one thing to focus on — but woven together naturally, not in labelled sections.\n- MEDICATION: Note interactions between active meds AND with diet/exercise. Label [OFFICIAL] vs [ANECDOTAL]. Never recommend stopping medication.\n- Keep total length under 200 words. Quality over quantity.\n- Return ONLY a JSON object: {\"chat\":\"your conversational paragraphs here\", \"wellbeingFlags\":{}} where wellbeingFlags is OPTIONAL — only include it if you are flagging a wellbeing concern at Tier 2+. Format: {\"concern_key\":{\"tier\":2,\"concern\":\"recurring headaches\",\"signposted\":\"GP\",\"date\":\"" + new Date().toISOString().split("T")[0] + "\"}}. Use snake_case keys like 'headaches', 'low_mood', 'work_stress'. Omit wellbeingFlags entirely if no concerns at Tier 2+.\n- Use \\n\\n between paragraphs in the chat value.";
       const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1200, messages: [{ role: "user", content: prompt }] }) });
       if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Feedback API", status: response.status, statusText: response.statusText }].concat(prev).slice(0, 20); });
       const result = await response.json();
@@ -2108,6 +2159,12 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       if (!text && result.error) throw new Error(result.error.message || JSON.stringify(result.error));
       const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
       const newFb = { chat: parsed.chat || "", good: parsed.good || [], opportunities: parsed.opportunities || [], focus: parsed.focus || [], _when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) };
+      /* Save wellbeing flags if companion flagged concerns */
+      if (parsed.wellbeingFlags && typeof parsed.wellbeingFlags === "object" && Object.keys(parsed.wellbeingFlags).length > 0) {
+        var mergedFlags = Object.assign({}, wellbeingFlags, parsed.wellbeingFlags);
+        setWellbeingFlags(mergedFlags);
+        await sSet("wellbeing_flags_" + tab, JSON.stringify(mergedFlags));
+      }
       // Archive previous to history
       if (prev && prev._when && prev._when !== "failed") {
         const hist = Object.assign({}, feedbackHistory);
@@ -2538,7 +2595,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       if (fbObj.outlook) fbContext += "Outlook: " + fbObj.outlook + ". ";
       if (fbObj.summary) fbContext += "Summary: " + fbObj.summary + ". ";
       if (fbObj.exercises) fbContext += "Exercises: " + fbObj.exercises.map(function(ex) { return ex.name + " — " + ex.verdict + (ex._decision ? " (" + ex._decision + (ex._userNote ? ": " + ex._userNote : "") + ")" : ""); }).join("; ") + ". ";
-      var prompt = "You are the user's Lifecare Companion continuing a conversation about feedback you gave. You are their trusted, knowledgeable friend — imagine you're still on the same video call about this topic. Mirror and match their energy, be warm, empathetic and honest. Keep responses conversational — 2-4 sentences max unless they ask for detail. "+TONE_RULES+getMoodContext(userMood)+"\n\nOriginal feedback: " + fbContext + "\n\nConversation so far:\n" + convoHistory + "\n\nRespond naturally to their latest message. If they're pushing back, respect it — they know their situation better than you. If they're asking for detail, give it with specific numbers. If they're sharing context, acknowledge it and adjust your advice. Return ONLY your response text, no JSON, no formatting.";
+      var wellbeingCtx = (fbType === "home" && journalEntries && journalEntries.length > 0) ? "\n\n" + WELLBEING_RULES + (wellbeingFlags && Object.keys(wellbeingFlags).length > 0 ? "\nActive wellbeing flags: " + JSON.stringify(wellbeingFlags) : "") + "\nRecent journal: " + journalEntries.slice(0, 5).map(function(e) { return e.date + ": " + (e.text || "").substring(0, 100); }).join(" | ") : "";
+      var prompt = "You are the user's Lifecare Companion continuing a conversation about feedback you gave. You are their trusted, knowledgeable friend — imagine you're still on the same video call about this topic. Mirror and match their energy, be warm, empathetic and honest. Keep responses conversational — 2-4 sentences max unless they ask for detail. "+TONE_RULES+getMoodContext(userMood)+wellbeingCtx+"\n\nOriginal feedback: " + fbContext + "\n\nConversation so far:\n" + convoHistory + "\n\nRespond naturally to their latest message. If they're pushing back, respect it — they know their situation better than you. If they're asking for detail, give it with specific numbers. If they're sharing context, acknowledge it and adjust your advice. If they share something concerning about their health or wellbeing, support them warmly and signpost appropriate help — never say it's outside your scope. Return ONLY your response text, no JSON, no formatting.";
       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: prompt }] }) });
       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
       var replyTxt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) replyTxt += result.content[ci].text; } }
@@ -2705,7 +2763,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         <div style={{ display: "flex", gap: 4, marginTop: 14, background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 4, border: "1px solid rgba(255,255,255,0.08)", overflowX: "auto" }}>
           {Object.keys(data).filter(k => k !== "config").map((k, i) => {
             const label = data[k].profile ? data[k].profile.name : k;
-            return (<button key={k} onClick={() => { setActiveTab(k); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); setCopyDayOpen(false); setCopyWeekOpen(false); setHomeFbExpanded(false); setFbExpanded(false); setEatFbExpanded(false); setHealthFbExpanded(false); setBodyFbExpanded(false); setMeasFbExpanded2(false); if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); sGet("meal_tracking:" + k).then(function(mt) { if (mt) setMealTracking(JSON.parse(mt)); else setMealTracking({}); }); sGet("user_mood_" + k).then(function(m) { if (m) setUserMood(JSON.parse(m)); else setUserMood(null); }); sGet("journal_" + k).then(function(j) { if (j) setJournalEntries(JSON.parse(j)); else setJournalEntries([]); }); sGet("daily_mood_" + k).then(function(dm) { if (dm) { var parsed = JSON.parse(dm); var todayStr = new Date().toISOString().split("T")[0]; if (parsed && parsed.date === todayStr) setDailyMood(parsed); else setDailyMood(null); } else setDailyMood(null); }); setJournalText(""); setShowRecentJournal(false); setShowFullJournal(false); }} style={{ flex: 1, padding: "10px 0", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? "rgba(255,255,255,0.95)" : "transparent", color: activeTab === k ? "#0f172a" : "rgba(255,255,255,0.45)", minWidth: 50, letterSpacing: activeTab === k ? "0.02em" : "0", transition: "all 0.2s ease" }}>{label}</button>);
+            return (<button key={k} onClick={() => { setActiveTab(k); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); setCopyDayOpen(false); setCopyWeekOpen(false); setHomeFbExpanded(false); setFbExpanded(false); setEatFbExpanded(false); setHealthFbExpanded(false); setBodyFbExpanded(false); setMeasFbExpanded2(false); if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); sGet("meal_tracking:" + k).then(function(mt) { if (mt) setMealTracking(JSON.parse(mt)); else setMealTracking({}); }); sGet("user_mood_" + k).then(function(m) { if (m) setUserMood(JSON.parse(m)); else setUserMood(null); }); sGet("journal_" + k).then(function(j) { if (j) setJournalEntries(JSON.parse(j)); else setJournalEntries([]); }); sGet("daily_mood_" + k).then(function(dm) { if (dm) { var parsed = JSON.parse(dm); var todayStr = new Date().toISOString().split("T")[0]; if (parsed && parsed.date === todayStr) setDailyMood(parsed); else setDailyMood(null); } else setDailyMood(null); }); sGet("wellbeing_flags_" + k).then(function(wf) { if (wf) setWellbeingFlags(JSON.parse(wf)); else setWellbeingFlags({}); }); setJournalText(""); setShowRecentJournal(false); setShowFullJournal(false); }} style={{ flex: 1, padding: "10px 0", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? "rgba(255,255,255,0.95)" : "transparent", color: activeTab === k ? "#0f172a" : "rgba(255,255,255,0.45)", minWidth: 50, letterSpacing: activeTab === k ? "0.02em" : "0", transition: "all 0.2s ease" }}>{label}</button>);
           })}
           <button onClick={() => setShowAddPerson(true)} style={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: "transparent", color: "rgba(255,255,255,0.3)", transition: "all 0.2s ease" }}>+</button>
         </div>
@@ -7470,7 +7528,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.346.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.347.0
       </div>
 
       {/* Floating Ask a Question button */}
