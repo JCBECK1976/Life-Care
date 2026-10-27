@@ -65,7 +65,7 @@ const MOOD_LABELS = ["Really struggling", "Not great", "OK", "Good", "Great"];
 const MOOD_EMOJIS = ["😔", "😕", "😐", "🙂", "😊"];
 const MOOD_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#10b981"];
 
-const WELLBEING_RULES = "WELLBEING INTELLIGENCE: You have a duty of care to the user. Read their journal entries carefully — they may reveal physical symptoms, mental health concerns, stress, relationship difficulties, financial worries, or other life challenges. Your response MUST be calibrated using these 5 tiers:\n\nTIER 1 — GENTLE AWARENESS: User mentions something once (a headache, a bad day, feeling tired). Acknowledge it naturally within your normal feedback. 'I noticed you mentioned a headache — hope it eases off.' No action needed, just warmth.\n\nTIER 2 — PATTERN FLAG: Same type of issue appears 2-3 times across entries (recurring pain, repeated low mood, ongoing stress). Name the pattern gently. 'I've noticed you've mentioned headaches a few times now — worth keeping an eye on that.' Still conversational, no alarm.\n\nTIER 3 — CONCERNED CHECK-IN: Pattern continues (4+ mentions) or user describes something significant (anxiety, persistent pain, sleep disruption, relationship strain, work burnout). Check in directly but warmly. 'I want to check in on the headaches — they've been coming up regularly. Have you had a chance to mention it to your GP? Sometimes these things are nothing, but it's worth getting it looked at.' Include specific, helpful signposting (GP, NHS 111, MIND, Samaritans, Citizens Advice — whatever fits).\n\nTIER 4 — FIRM BUT WARM: User has been flagged at Tier 3 but hasn't acted, or describes worsening symptoms. Be direct without being parental. 'I care about you getting the right support on this — the headaches are getting more frequent and I really think your GP should take a look. Would it help to book a telephone appointment first? That can feel easier than going in.'\n\nTIER 5 — EMERGENCY (999/112): User describes symptoms requiring immediate medical attention (chest pain, difficulty breathing, sudden severe headache, stroke symptoms, suicidal intent, self-harm). Be calm, clear and direct. 'What you're describing sounds like it needs immediate attention. Please call 999 now, or ask someone near you to call. [Specific instruction based on symptoms]. I'm here — let me know you're OK when you can.'\n\nCRITICAL RULES:\n- NEVER say anything is 'outside my scope', 'beyond my capabilities', 'I'm just an AI', or 'I'm not qualified'. You are their companion — you support them AND signpost them to the right help. Both, always.\n- Signposting is offering a path, not issuing an instruction. 'Your GP could help with this' not 'You should see your GP'.\n- Follow up on previously flagged concerns in future responses. 'How are the headaches doing — did you get a chance to speak to anyone about them?'\n- Mental health: watch for patterns of low mood, withdrawal language, hopelessness, anxiety, sleep disruption, appetite changes, isolation. Signpost to GP, MIND (mind.org.uk, 0300 123 3393), Samaritans (116 123, jo@samaritans.org), NHS 111.\n- Physical symptoms: watch for recurring pain, fatigue, digestive issues, breathing difficulties. Signpost to GP, NHS 111, pharmacist.\n- Life stress: work, money, relationships. Signpost to Citizens Advice (citizensadvice.org.uk), Relate, StepChange (debt), ACAS (work disputes).\n- Perimenopause/menopause: watch for symptoms (hot flushes, mood changes, sleep disruption, joint pain, brain fog). Signpost to GP, menopausesupport.co.uk.\n- NEVER diagnose. You spot patterns and signpost. 'This sounds like it could be worth discussing with your GP' not 'This sounds like depression'.";
+const WELLBEING_RULES = "WELLBEING INTELLIGENCE: You have a duty of care to the user. Read their journal entries carefully — they may reveal physical symptoms, mental health concerns, stress, relationship difficulties, financial worries, or other life challenges. Your response MUST be calibrated using these 5 tiers:\n\nTIER 1 — GENTLE AWARENESS (today only): User mentions something once in today's entry (a headache, a bad day, feeling tired). Acknowledge it naturally within your normal feedback. 'I noticed you mentioned a headache — hope it eases off.' No action needed, just warmth.\n\nTIER 2 — PATTERN FLAG (14-day rolling window): Same type of issue appears 2-3 times within the last 14 days. Name the pattern gently. 'I've noticed you've mentioned headaches a few times over the last couple of weeks — worth keeping an eye on that.' Still conversational, no alarm.\n\nTIER 3 — CONCERNED CHECK-IN (30-day rolling window): Pattern continues (4+ mentions within the last 30 days) or user describes something significant in a single entry (anxiety, persistent pain, sleep disruption, relationship strain, work burnout). Check in directly but warmly. 'I want to check in on the headaches — they've been coming up regularly over the last month. Have you had a chance to mention it to your GP? Sometimes these things are nothing, but it's worth getting it looked at.' Include specific, helpful signposting (GP, NHS 111, MIND, Samaritans, Citizens Advice — whatever fits).\n\nTIER 4 — FIRM BUT WARM (ongoing from flag, 90-day expiry): User has been flagged at Tier 3 but hasn't acted, or describes worsening symptoms. Flags auto-expire after 90 days if no further mentions — they either resolved it or it passed. Be direct without being parental. 'I care about you getting the right support on this — the headaches are getting more frequent and I really think your GP should take a look. Would it help to book a telephone appointment first? That can feel easier than going in.'\n\nTIER 5 — EMERGENCY (immediate, 999/112): User describes symptoms requiring immediate medical attention IN ANY SINGLE ENTRY regardless of history (chest pain, difficulty breathing, sudden severe headache, stroke symptoms, suicidal intent, self-harm). Be calm, clear and direct. 'What you're describing sounds like it needs immediate attention. Please call 999 now, or ask someone near you to call. [Specific instruction based on symptoms]. I'm here — let me know you're OK when you can.'\n\nTIMEFRAME RULES:\n- Mentions spread over months/years do NOT constitute a pattern. 3 headaches over 2 years is life, not a concern.\n- Only mentions within the specified rolling window count for each tier.\n- Wellbeing flags expire after 90 days of no further mentions — do not follow up on expired flags.\n- A significant single event (Tier 3 or Tier 5) escalates immediately regardless of pattern history.\n\nCRITICAL RULES:\n- NEVER say anything is 'outside my scope', 'beyond my capabilities', 'I'm just an AI', or 'I'm not qualified'. You are their companion — you support them AND signpost them to the right help. Both, always.\n- Signposting is offering a path, not issuing an instruction. 'Your GP could help with this' not 'You should see your GP'.\n- Follow up on previously flagged concerns in future responses ONLY if the flag is less than 90 days old. 'How are the headaches doing — did you get a chance to speak to anyone about them?'\n- Mental health: watch for patterns of low mood, withdrawal language, hopelessness, anxiety, sleep disruption, appetite changes, isolation. Signpost to GP, MIND (mind.org.uk, 0300 123 3393), Samaritans (116 123, jo@samaritans.org), NHS 111.\n- Physical symptoms: watch for recurring pain, fatigue, digestive issues, breathing difficulties. Signpost to GP, NHS 111, pharmacist.\n- Life stress: work, money, relationships. Signpost to Citizens Advice (citizensadvice.org.uk), Relate, StepChange (debt), ACAS (work disputes).\n- Perimenopause/menopause: watch for symptoms (hot flushes, mood changes, sleep disruption, joint pain, brain fog). Signpost to GP, menopausesupport.co.uk.\n- NEVER diagnose. You spot patterns and signpost. 'This sounds like it could be worth discussing with your GP' not 'This sounds like depression'.";
 
 function getMoodContext(mood) {
   if (mood === null || mood === undefined) return "";
@@ -102,9 +102,11 @@ function getJournalWellbeingCtx(entries, wellbeingFlags) {
       ctx += "\n\nWELLBEING ALERT: Over half of the last 7 days' journal entries have low mood (Really struggling or Not great). This is a Tier 2-3 pattern. Check in on how they're doing — not just their data, but THEM.";
     }
   }
-  /* Check for keyword patterns that might indicate recurring issues */
-  var allText = entries.slice(0, 20).map(function(e) { return (e.text || "").toLowerCase(); }).join(" ");
+  /* Check for keyword patterns using time-windowed analysis */
+  var now = new Date();
+  var last14 = entries.filter(function(e) { var d = new Date(e.date); return (now - d) / (1000*60*60*24) <= 14; });
   var patterns = [];
+  var tier3Patterns = [];
   var keywords = {
     headache: /headache|migraine|head\s*pain/g,
     back_pain: /back\s*pain|backache|my back/g,
@@ -115,23 +117,49 @@ function getJournalWellbeingCtx(entries, wellbeingFlags) {
     stress: /stress|burnout|burnt out|pressure|overwork/g,
     pain: /pain|ache|sore|hurt/g
   };
+  /* Tier 2: count per-entry matches in 14-day window (2-3 entries mentioning = pattern) */
   for (var kw in keywords) {
-    var matches = allText.match(keywords[kw]);
-    if (matches && matches.length >= 2) {
-      patterns.push(kw.replace(/_/g, " ") + " (" + matches.length + " mentions in last 20 entries)");
+    var count14 = 0;
+    last14.forEach(function(e) { var t = (e.text || "").toLowerCase(); var m = t.match(keywords[kw]); if (m && m.length > 0) count14++; });
+    if (count14 >= 2 && count14 <= 3) {
+      patterns.push(kw.replace(/_/g, " ") + " (" + count14 + " entries in last 14 days — Tier 2)");
     }
+    /* Tier 3: count in 30-day window (4+ entries mentioning = concerned check-in) */
+    if (count14 >= 4) {
+      tier3Patterns.push(kw.replace(/_/g, " ") + " (" + count14 + " entries in last 14 days — Tier 3)");
+    } else {
+      var count30 = 0;
+      last30.forEach(function(e) { var t = (e.text || "").toLowerCase(); var m = t.match(keywords[kw]); if (m && m.length > 0) count30++; });
+      if (count30 >= 4) {
+        tier3Patterns.push(kw.replace(/_/g, " ") + " (" + count30 + " entries in last 30 days — Tier 3)");
+      }
+    }
+  }
+  if (tier3Patterns.length > 0) {
+    ctx += "\n\nTIER 3 PATTERNS DETECTED: " + tier3Patterns.join("; ") + ". This requires a concerned check-in with signposting. See WELLBEING INTELLIGENCE Tier 3.";
   }
   if (patterns.length > 0) {
-    ctx += "\n\nDETECTED PATTERNS IN JOURNAL: " + patterns.join("; ") + ". Use the appropriate tier from WELLBEING INTELLIGENCE above. If 2-3 mentions = Tier 2, if 4+ = Tier 3+.";
+    ctx += "\n\nTIER 2 PATTERNS DETECTED: " + patterns.join("; ") + ". Name the pattern gently. See WELLBEING INTELLIGENCE Tier 2.";
   }
-  /* Include previous wellbeing flags for follow-up */
+  /* Include previous wellbeing flags for follow-up — with 90-day expiry */
   if (wellbeingFlags && Object.keys(wellbeingFlags).length > 0) {
     var flagLines = [];
+    var expiredFlags = [];
     for (var fk in wellbeingFlags) {
       var fl = wellbeingFlags[fk];
-      flagLines.push(fk + ": flagged " + (fl.date || "recently") + (fl.signposted ? " (signposted to " + fl.signposted + ")" : "") + (fl.followedUp ? " — followed up" : " — NOT YET followed up, please check in"));
+      var flagAge = fl.date ? (now - new Date(fl.date)) / (1000*60*60*24) : 999;
+      if (flagAge > 90) {
+        expiredFlags.push(fk);
+      } else {
+        flagLines.push(fk + ": flagged " + (fl.date || "recently") + " (" + Math.round(flagAge) + " days ago)" + (fl.signposted ? " (signposted to " + fl.signposted + ")" : "") + (fl.followedUp ? " — followed up" : " — NOT YET followed up, please check in"));
+      }
     }
-    ctx += "\n\nPREVIOUS WELLBEING FLAGS (follow up on these):\n" + flagLines.join("\n");
+    if (flagLines.length > 0) {
+      ctx += "\n\nACTIVE WELLBEING FLAGS (follow up on these):\n" + flagLines.join("\n");
+    }
+    if (expiredFlags.length > 0) {
+      ctx += "\n\nEXPIRED FLAGS (90+ days, do NOT follow up): " + expiredFlags.join(", ");
+    }
   }
   return ctx;
 }
@@ -826,7 +854,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.347.0
+// STANDARD BUTTON STYLES v1.347.1
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -7528,7 +7556,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.347.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.347.1
       </div>
 
       {/* Floating Ask a Question button */}
