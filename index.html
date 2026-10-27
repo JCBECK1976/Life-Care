@@ -853,7 +853,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.352.0
+// STANDARD BUTTON STYLES v1.355.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -2763,6 +2763,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   if (loading || !data) return <div style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontFamily: "Inter, sans-serif" }}>Loading Lifecare Companion™...</div>;
 
   const isJC = activeTab === "jc";
+  const isAdmin = activeTab === "jc";
   const p = isJC ? data.jc : data.becks;
   const personKeys = Object.keys(data).filter(k => k !== "config");
   const personIdx = personKeys.indexOf(activeTab);
@@ -7225,64 +7226,18 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             )}
           </div>
 
-          {/* File Attachments */}
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📎 Attachments</div>
-            <div style={{ fontSize: 11, color: "#64748b", marginBottom: 10 }}>Upload files, images, or documents as data points for My Companion Feedback and Ask a Question.</div>
-            <label style={{ display: "block", width: "100%", padding: 14, background: "#f8fafc", border: "2px dashed #cbd5e1", borderRadius: 8, textAlign: "center", cursor: "pointer", fontSize: 12, color: "#64748b", marginBottom: 8 }}>
-              📄 Tap to upload file (PDF, image, document)
-              <input type="file" accept="image/*,.pdf,.doc,.docx,.txt,.csv" multiple onChange={async function(e) {
-                var files = e.target.files;
-                if (!files || files.length === 0) return;
-                var nd = JSON.parse(JSON.stringify(data));
-                if (!nd[activeTab].attachments) nd[activeTab].attachments = [];
-                for (var fi = 0; fi < files.length; fi++) {
-                  var file = files[fi];
-                  try {
-                    var b64 = await new Promise(function(res, rej) { var r = new FileReader(); r.onload = function() { res(r.result.split(",")[1]); }; r.onerror = function() { rej("fail"); }; r.readAsDataURL(file); });
-                    var entry = { name: file.name, type: file.type, size: file.size, date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), preview: b64.substring(0, 200) };
-                    // Try to extract text via Claude API
-                    try {
-                      var mediaType = file.type || "application/octet-stream";
-                      var isImage = mediaType.startsWith("image/");
-                      var isPdf = mediaType === "application/pdf";
-                      if (isImage || isPdf) {
-                        var contentBlock = isImage ? { type: "image", source: { type: "base64", media_type: mediaType, data: b64 } } : { type: "document", source: { type: "base64", media_type: "application/pdf", data: b64 } };
-                        var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: [contentBlock, { type: "text", text: "Extract all key health, fitness, nutrition, and medical data points from this document. Return a concise summary of the important facts, numbers, targets, and recommendations. Plain text, no markdown." }] }] }) });
-                        var result = await resp.json();
-                        var extracted = "";
-                        if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) extracted = extracted + result.content[ci].text; } }
-                        if (extracted) entry.extracted = extracted;
-                      }
-                    } catch(apiErr) { entry.extracted = window.isEnergyEmpty(apiErr) ? window.energyEmptyMsg : "Could not extract automatically — data will be stored for reference"; }
-                    nd[activeTab].attachments.push(entry);
-                  } catch(readErr) {}
-                }
-                if (nd[activeTab].attachments.length > 10) nd[activeTab].attachments = nd[activeTab].attachments.slice(-10);
-                await saveData(nd);
-                setFormMsg("✓ " + files.length + " file(s) attached"); setTimeout(function() { setFormMsg(""); }, 3000);
-                e.target.value = "";
-              }} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)", border: 0 }} />
-            </label>
-            <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 8 }}>Upload files to add as data points for My Companion Feedback and Ask a Question.</div>
-            {/* Show attached files */}
-            {p.attachments && p.attachments.length > 0 && (<div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Attached Files</div>
-              {p.attachments.map(function(att, ai) {
-                return (<div key={ai} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 600 }}>📄 {att.name}</div>
-                    <div style={{ fontSize: 10, color: "#94a3b8" }}>{att.date} · {att.size ? Math.round(att.size / 1024) + "KB" : ""}</div>
-                    {att.extracted && <div style={{ fontSize: 10, color: "#16a34a", marginTop: 2 }}>✓ Data extracted</div>}
-                  </div>
-                  <button onClick={async function() { if (!confirm("Remove this attachment? This cannot be undone.")) return; var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].attachments.splice(ai, 1); await saveData(nd); }} style={btnDelete}>🗑 Remove</button>
-                </div>);
-              })}
-            </div>)}
+          {/* Apple Health Integration */}
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14, opacity: 0.7 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🍎 Apple Health</div>
+            <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.5, marginBottom: 8 }}>
+              <strong>iOS Only</strong> — Syncs body composition, activity, and health data from Apple Health on your iPhone.<br/>
+              <strong>Status:</strong> Integration coming soon. Apple Health will sync steps, weight, body measurements, heart rate, and workout data.
+            </div>
+            <button disabled style={{ width: "100%", padding: 10, background: "#e2e8f0", color: "#94a3b8", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>🔗 Connect Apple Health — Coming Soon</button>
           </div>
 
-          {/* API Key */}
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
+          {/* API Key — Admin only */}
+          {isAdmin && (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🔑 API Keys</div>
             <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.5, marginBottom: 8 }}>Required for AI features. Get your Claude key from <strong>console.anthropic.com</strong> → API Keys.</div>
             <label style={labelStyle}>Claude API Key</label>
@@ -7292,17 +7247,17 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             <div style={{ fontSize: 10, color: "#64748b", marginBottom: 4 }}>From Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client ID</div>
             <input type="text" id="google-client-id-input" defaultValue="" placeholder="xxxx.apps.googleusercontent.com" style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, fontFamily: "monospace", boxSizing: "border-box", marginBottom: 6 }} />
             <button onClick={async function() { var gid = document.getElementById("google-client-id-input").value.trim(); if (!gid) return; await sSet("google_client_id", gid); setFormMsg("✓ Google Client ID saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(), width: "100%" }}>Save Google Client ID</button>
-          </div>
+          </div>)}
 
-          {/* Reset to Defaults */}
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
+          {/* Reset to Defaults — Admin only */}
+          {isAdmin && (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#dc2626", marginBottom: 6 }}>⚠ Reset Data</div>
             <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8 }}>Overwrites Firebase with the clean default data. Use if data has become corrupted from bugs. This cannot be undone.</div>
             <button onClick={async function() { if (!confirm("This will reset ALL data to defaults. Are you sure?")) return; await sSet("life_care_data", JSON.stringify(DEFAULT_DATA)); setFormMsg("✓ Data reset to defaults — reload the app"); setTimeout(function() { setFormMsg(""); }, 5000); }} style={{...btnDelete, width: "100%", padding: 10, borderRadius: 8, fontSize: 12, fontWeight: 700}}>⚠ Reset to Default Data</button>
-          </div>
+          </div>)}
 
-          {/* Debug Mode */}
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
+          {/* Debug Mode — Admin only */}
+          {isAdmin && (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>🔧 Debug Mode</div>
               <button onClick={function() { setDebugMode(!debugMode); if (!debugMode) setDebugLog([]); }} style={{ padding: "6px 14px", background: debugMode ? "#dc2626" : "#f1f5f9", color: debugMode ? "#fff" : "#475569", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{debugMode ? "ON — Turn Off" : "Turn On"}</button>
@@ -7322,7 +7277,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
               {debugLog.length > 0 && <div style={{ marginTop: 8 }}><button onClick={function() { setDebugLog([]); }} style={{...btnClear, fontSize: 10, marginTop: 4}}>🗑 Clear Log</button></div>}
             </div>)}
-          </div>
+          </div>)}
         </div>)}
 
 {section === "data" && (<div>
@@ -7571,7 +7526,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var deviceInfo = "";
                 try { deviceInfo = navigator.userAgent; } catch(e) { deviceInfo = "Unknown"; }
                 var screenInfo = window.screen ? window.screen.width + "x" + window.screen.height : "Unknown";
-                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.352.0";
+                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.355.0";
                 var emailSubject = encodeURIComponent("[Life Care " + (feedbackType === "bug" ? "Bug" : "Feature") + "] " + feedbackText.trim().substring(0, 50));
                 window.open("mailto:jc.zaluski@gmail.com?subject=" + emailSubject + "&body=" + emailBody, "_self");
                 setFeedbackOpen(false);
@@ -7588,7 +7543,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.352.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.355.0
       </div>
 
       {/* Floating Ask a Question button */}
