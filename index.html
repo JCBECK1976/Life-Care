@@ -806,6 +806,7 @@ async function sSet(key, val) {
   try {
     await firebase.database().ref("data/" + key.replace(/[.#$/\[\]]/g, "_")).set(val);
   } catch(e) {}
+}
 
 window.ensureApiKey = async function() {
   if (window._anthropicKey) return window._anthropicKey;
@@ -849,7 +850,6 @@ window.fetch = function() {
   }
   return _origFetch.apply(this, arguments);
 };
-}
 
 // ═══════════════════════════════════════════════════
 // MAIN
