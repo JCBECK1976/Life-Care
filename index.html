@@ -3637,11 +3637,11 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               var guideResult = await guideResp.json();
               var guideTxt = ""; if(guideResult.content){for(var gi=0;gi<guideResult.content.length;gi++){if(guideResult.content[gi].text)guideTxt+=guideResult.content[gi].text;}}
               var guideData = JSON.parse(guideTxt.replace(/```json|```/g,"").trim());
-              var nd3 = JSON.parse(JSON.stringify(data));
+              var nd3 = JSON.parse(JSON.stringify(updatedData));
               if (!nd3[targetTab].sessionGuides) nd3[targetTab].sessionGuides = {};
               nd3[targetTab].sessionGuides[targetDay] = { warmup: guideData.warmup || "", cooldown: guideData.cooldown || "" };
               await saveData(nd3);
-            } catch(rge) { console.error("Auto-regenerate guides failed:", rge); }
+            } catch(rge) { console.error("Auto-regenerate guides failed:", rge); setFormMsg("✗ Could not regenerate warm-up — check API key"); setTimeout(function() { setFormMsg(""); }, 4000); }
             setSessionGuideLoading(false);
           };
           const renameExercise = async (day, idx, newName) => {
@@ -4287,10 +4287,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                           if (!nd[activeTab].sessionGuides) nd[activeTab].sessionGuides = {};
                           nd[activeTab].sessionGuides[day] = { warmup: guideData.warmup || "", cooldown: guideData.cooldown || "" };
                           await saveData(nd);
-                        } catch(ge) { console.error("Session guide generation failed:", ge); }
+                        } catch(ge) { console.error("Session guide generation failed:", ge); setFormMsg("✗ Could not generate — check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
                         setSessionGuideLoading(false);
                       }} disabled={sessionGuideLoading} style={{ width: "100%", padding: "6px 0", background: sessionGuideLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, color: "#fff", cursor: sessionGuideLoading ? "not-allowed" : "pointer", opacity: sessionGuideLoading ? 0.7 : 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 4 }}>
-                        {sessionGuideLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : (p.sessionGuides && p.sessionGuides[day] ? "🔄 Regenerate Warm-Up & Cool-Down" : "🔥 Generate Warm-Up & Cool-Down")}
+                        {sessionGuideLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : (p.sessionGuides && p.sessionGuides[day] ? "🔄 Regenerate Warm-Up & Cool-Down" : "🔥 Generate Warm-Up & Cool-Down")}
                       </button>
                     </div>
                   )}
