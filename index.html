@@ -853,7 +853,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.350.0
+// STANDARD BUTTON STYLES v1.351.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -3655,7 +3655,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             {Object.entries(p.measurements).map(function(pair, mi) { var k = pair[0]; var d = pair[1]; var latest = d.length > 0 ? d[d.length - 1] : null; var prev = d.length > 1 ? d[d.length - 2] : null; var delta = (latest && prev && typeof latest.v === "number" && typeof prev.v === "number") ? (latest.v - prev.v).toFixed(1) : null; var measColors = ["#2563eb","#7c3aed","#059669","#d97706","#dc2626","#0891b2","#ec4899"]; return (<div key={k} style={{ padding: "10px 3px", borderBottom: mi < Object.entries(p.measurements).length - 1 ? "1px solid #e2e8f0" : "none", position: "relative" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>{k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})} <span onClick={function(e) { e.stopPropagation(); setMeasMetricOpen(k); setEditMeasKey(k); setEditMeasName(k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})); }} style={{ fontSize: 9, color: "#94a3b8", cursor: "pointer" }}>✎</span></div>
+                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>{k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})} <span onClick={function(e) { e.stopPropagation(); setMeasMetricOpen(k); setEditMeasKey(k); setEditMeasName(k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})); }} style={{ fontSize: 9, color: "#94a3b8", cursor: "pointer" }}>✎</span>{d.some(function(e){ return !!e.img; }) && <span onClick={function(){ setMeasMetricOpen(k); setMeasMetricShowAll(true); }} style={{ fontSize: 9, color: "#16a34a", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 2 }} title="View photos">📷 {d.filter(function(e){ return !!e.img; }).length}</span>}</div>
                   <div style={{ color: "#0f172a", fontSize: 12, fontWeight: 500 }}>
                     {latest ? <><span>{latest.v}{typeof latest.v === "number" ? "cm" : ""}</span>{delta && <span style={{ fontSize: 10, color: parseFloat(delta) > 0 ? "#16a34a" : parseFloat(delta) < 0 ? "#dc2626" : "#64748b", marginLeft: 6 }}>{parseFloat(delta) > 0 ? "+" : ""}{delta}cm</span>}{latest.wk && <span style={{ fontSize: 10, color: "#94a3b8", marginLeft: 6 }}>Wk {latest.wk}</span>}</> : <span style={{ fontSize: 11, color: "#94a3b8" }}>No data yet</span>}
                   </div>
@@ -7550,7 +7550,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.350.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.351.0
       </div>
 
       {/* Floating Ask a Question button */}
