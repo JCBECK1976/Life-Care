@@ -777,7 +777,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.341.2
+// STANDARD BUTTON STYLES v1.342.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -829,15 +829,21 @@ window.trackApiUsage = async function(inputTokens, outputTokens) {
     energy.lastUsed = new Date().toISOString();
     await sSet("companion_energy", JSON.stringify(energy));
     /* Update state if the app component can see it */
+    window._companionEnergyPct = energy.pct;
+    window._companionEnergyStatus = energy.keyStatus || "active";
     if (window._setCompanionEnergy) window._setCompanionEnergy(energy);
   } catch(e) {}
 };
 
-/* Intercept all Anthropic API calls to track usage automatically */
+/* Intercept all Anthropic API calls to track usage and block when empty */
 var _origFetch = window.fetch;
 window.fetch = function() {
   var url = arguments[0];
   if (typeof url === "string" && url.indexOf("api.anthropic.com") !== -1) {
+    /* Block if energy is empty */
+    if (window._companionEnergyPct !== undefined && window._companionEnergyPct <= 0 && window._companionEnergyStatus === "active") {
+      return Promise.reject(new Error("ENERGY_EMPTY"));
+    }
     return _origFetch.apply(this, arguments).then(function(resp) {
       var cloned = resp.clone();
       cloned.json().then(function(data) {
@@ -850,6 +856,11 @@ window.fetch = function() {
   }
   return _origFetch.apply(this, arguments);
 };
+
+/* Helper: detect ENERGY_EMPTY errors and return user-friendly message */
+window.isEnergyEmpty = function(e) { return e && (e.message === "ENERGY_EMPTY" || String(e).indexOf("ENERGY_EMPTY") !== -1); };
+window.energyEmptyMsg = "⚡ Companion Energy Empty. Please top up!";
+window.aiErrorMsg = function(e, fallback) { return window.isEnergyEmpty(e) ? window.energyEmptyMsg : (fallback || ("Error: " + String(e).substring(0, 100))); };
 
 // ═══════════════════════════════════════════════════
 // MAIN
@@ -1141,7 +1152,7 @@ function Dashboard() {
   const [foodCheckerText, setFoodCheckerText] = useState("");
   const [userMood, setUserMood] = useState(null);
   const [companionEnergy, setCompanionEnergy] = useState(null);
-  window._setCompanionEnergy = setCompanionEnergy;
+  window._setCompanionEnergy = function(e) { window._companionEnergyPct = e ? e.pct : 100; window._companionEnergyStatus = e ? (e.keyStatus || "active") : "active"; setCompanionEnergy(e); };
   const [energyLoading, setEnergyLoading] = useState(false);
   const [showMyDay, setShowMyDay] = useState(true);
   const [helpEatCat, setHelpEatCat] = useState("");
@@ -1722,18 +1733,18 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     setEnergyLoading(true);
     try {
       var ak = await window.ensureApiKey();
-      if (!ak) { setCompanionEnergy({ balance: 0, pct: 0, keyStatus: "no_key", initial: 5, spent: 0 }); setEnergyLoading(false); return; }
+      if (!ak) { window._setCompanionEnergy({ balance: 0, pct: 0, keyStatus: "no_key", initial: 5, spent: 0 }); setEnergyLoading(false); return; }
       var pingResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": ak, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1, messages: [{ role: "user", content: "hi" }] }) });
       var stored = await sGet("companion_energy");
       if (pingResp.ok) {
         if (stored) {
           var parsed = JSON.parse(stored);
           parsed.keyStatus = "active";
-          setCompanionEnergy(parsed);
+          window._setCompanionEnergy(parsed);
           await sSet("companion_energy", JSON.stringify(parsed));
         } else {
           var fresh = { balance: 5.00, initial: 5.00, pct: 100, keyStatus: "active", spent: 0 };
-          setCompanionEnergy(fresh);
+          window._setCompanionEnergy(fresh);
           await sSet("companion_energy", JSON.stringify(fresh));
         }
       } else {
@@ -1744,16 +1755,16 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           var parsed2 = JSON.parse(stored);
           parsed2.keyStatus = status;
           if (status === "invalid_key") { parsed2.balance = 0; parsed2.pct = 0; }
-          setCompanionEnergy(parsed2);
+          window._setCompanionEnergy(parsed2);
           await sSet("companion_energy", JSON.stringify(parsed2));
         } else {
           var bal2 = status === "invalid_key" ? 0 : 5;
           var en = { balance: bal2, initial: 5, pct: status === "invalid_key" ? 0 : 100, keyStatus: status, spent: 0 };
-          setCompanionEnergy(en);
+          window._setCompanionEnergy(en);
           await sSet("companion_energy", JSON.stringify(en));
         }
       }
-    } catch(e) { setCompanionEnergy({ balance: 0, pct: 0, keyStatus: "error", initial: 5, spent: 0 }); }
+    } catch(e) { window._setCompanionEnergy({ balance: 0, pct: 0, keyStatus: "error", initial: 5, spent: 0 }); }
     setEnergyLoading(false);
   }, []);
   useEffect(() => { checkCompanionEnergy(); }, []);
@@ -2084,7 +2095,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       await sSet("feedback_results", JSON.stringify(updated));
     } catch(fbErr) {
       if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Feedback Error", data: String(fbErr).substring(0, 300) }].concat(prev).slice(0, 20); });
-      const updated = Object.assign({}, feedbackResults); updated[tab] = { good: ["Error: " + String(fbErr).substring(0, 150)], opportunities: [], focus: ["Check debug log for details"], _when: "failed" };
+      const updated = Object.assign({}, feedbackResults); updated[tab] = { good: [window.isEnergyEmpty(fbErr) ? window.energyEmptyMsg : "Error: " + String(fbErr).substring(0, 150)], opportunities: [], focus: window.isEnergyEmpty(fbErr) ? [] : ["Check debug log for details"], _when: "failed" };
       setFeedbackResults(updated);
     }
     setFeedbackLoading(false);
@@ -2241,7 +2252,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "EatFeedback Error", data: String(err).substring(0, 300) }].concat(prev).slice(0, 20); });
       const updated = Object.assign({}, eatFbResults);
       if (!updated[tab]) updated[tab] = {};
-      updated[tab][dayKey] = { wins: ["Error: " + String(err).substring(0, 150)], tweaks: [], outlook: "Check debug log", _when: "failed" };
+      updated[tab][dayKey] = { wins: [window.isEnergyEmpty(err) ? window.energyEmptyMsg : "Error: " + String(err).substring(0, 150)], tweaks: [], outlook: window.isEnergyEmpty(err) ? "" : "Check debug log", _when: "failed" };
       setEatFbResults(updated);
     }
     setEatFbLoading(false);
@@ -2375,7 +2386,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "WeekEatFeedback Error", data: String(err).substring(0, 300) }].concat(prev).slice(0, 20); });
       const updated = Object.assign({}, eatFbResults);
       if (!updated[tab]) updated[tab] = {};
-      updated[tab]["week"] = { wins: ["Error: " + String(err).substring(0, 150)], tweaks: [], outlook: "Check debug log", _when: "failed" };
+      updated[tab]["week"] = { wins: [window.isEnergyEmpty(err) ? window.energyEmptyMsg : "Error: " + String(err).substring(0, 150)], tweaks: [], outlook: window.isEnergyEmpty(err) ? "" : "Check debug log", _when: "failed" };
       setEatFbResults(updated);
     }
     setEatFbLoading(false);
@@ -2506,7 +2517,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       delete updatedFb._comment; delete updatedFb._commentWhen;
       updateFn(updatedFb, saveKey);
       if (el) el.value = "";
-    } catch(e) { console.error("Thread reply error:", e); }
+    } catch(e) { console.error("Thread reply error:", e); if (window.isEnergyEmpty(e)) { setFormMsg(window.energyEmptyMsg); setTimeout(function() { setFormMsg(""); }, 4000); } }
     setThreadLoading(function(prev) { return Object.assign({}, prev, { [loadKey]: false }); });
   };
 
@@ -2855,7 +2866,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         if (gen.targets) setGeneratedTargets(gen.targets);
                         setFormMsg("✓ Recommendations generated"); setTimeout(function() { setFormMsg(""); }, 3000);
                       }
-                    } catch(e) { setFormMsg("✗ Could not generate — check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
+                    } catch(e) { setFormMsg(window.isEnergyEmpty(e) ? window.energyEmptyMsg : "✗ Could not generate — check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
                     setGenPlanLoading(false);
                   }} disabled={genPlanLoading} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: genPlanLoading ? "not-allowed" : "pointer", background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{genPlanLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Recommendations"}</button>
 
@@ -2981,7 +2992,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                           await saveData(nd); setAssessment(gen);
                           setFormMsg("\u2713 Body type check complete"); setTimeout(function() { setFormMsg(""); }, 3000);
                         }
-                      } catch(e) { setFormMsg("\u2717 Could not generate \u2014 check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
+                      } catch(e) { setFormMsg(window.isEnergyEmpty(e) ? window.energyEmptyMsg : "\u2717 Could not generate \u2014 check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
                       setGenPlanLoading(false);
                     }} disabled={genPlanLoading} style={{ width: "100%", padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: genPlanLoading ? "not-allowed" : "pointer", background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{genPlanLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "\ud83d\udd0d My Companion Body Type Check"}</button>
                   </div>
@@ -3328,7 +3339,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       setFormMsg("✓ Values extracted — review and save");
                     } catch(pe) { setFormMsg("Parse error: " + txt.substring(0, 80)); setTimeout(function() { setFormMsg(""); }, 8000); }
                   } else { setFormMsg("No data in response: " + JSON.stringify(result).substring(0, 100)); setTimeout(function() { setFormMsg(""); }, 8000); }
-                } catch(err) { setFormMsg("Error: " + String(err).substring(0, 100)); setTimeout(function() { setFormMsg(""); }, 8000); }
+                } catch(err) { setFormMsg(window.aiErrorMsg(err)); setTimeout(function() { setFormMsg(""); }, 8000); }
                 setTimeout(function() { setFormMsg(""); }, 5000);
                 e.target.value = "";
               }} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)", border: 0 }} /></label></div></div>
@@ -3410,7 +3421,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                 var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
                 if (txt) { var bfParsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); bfParsed._at = new Date().toLocaleString("en-GB"); bfParsed._when = new Date().toLocaleString("en-GB"); setBodyFeedback(bfParsed); sSet("body_feedback", JSON.stringify(Object.assign({}, bodyFbAll || {}, { [activeTab]: bfParsed }))); }
-              } catch(e) { setBodyFeedback({ wins: [], tweaks: ["Error: " + String(e).substring(0, 80)], outlook: "" }); }
+              } catch(e) { setBodyFeedback({ wins: [], tweaks: [window.isEnergyEmpty(e) ? window.energyEmptyMsg : "Error: " + String(e).substring(0, 80)], outlook: "" }); }
               setBodyFbLoading(false);
             }} disabled={bodyFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: bodyFbLoading ? "not-allowed" : "pointer", background: bodyFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", marginBottom: 6 }}>{bodyFbLoading ? React.createElement("span", null, "Generating, please wait ", React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })) : "My Companion Body Feedback"}</button>
             <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Reviews body comp and measurements — weight trends, body fat, muscle mass, tape measurements and more — cross-referenced with your eating, activity and health data.</div>
@@ -3566,7 +3577,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                 var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
                 if (txt) { var mfParsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); mfParsed._at = new Date().toLocaleString("en-GB"); mfParsed._when = new Date().toLocaleString("en-GB"); setMeasFeedback(mfParsed); sSet("meas_feedback", JSON.stringify(Object.assign({}, measFbAll || {}, { [activeTab]: mfParsed }))); }
-              } catch(e) { setMeasFeedback({ wins: [], tweaks: ["Error: " + String(e).substring(0, 80)], outlook: "" }); }
+              } catch(e) { setMeasFeedback({ wins: [], tweaks: [window.isEnergyEmpty(e) ? window.energyEmptyMsg : "Error: " + String(e).substring(0, 80)], outlook: "" }); }
               setMeasFbLoading(false);
             }} disabled={measFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: measFbLoading ? "not-allowed" : "pointer", background: measFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", marginBottom: 6 }}>{measFbLoading ? React.createElement("span", null, "Generating, please wait ", React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })) : "My Companion Measurement Feedback"}</button>
             <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Reviews tape measurements — size trends, recomposition evidence — cross-referenced with your body comp, eating, activity and health data.</div>
@@ -3641,7 +3652,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               if (!nd3[targetTab].sessionGuides) nd3[targetTab].sessionGuides = {};
               nd3[targetTab].sessionGuides[targetDay] = { warmup: guideData.warmup || "", cooldown: guideData.cooldown || "" };
               await saveData(nd3);
-            } catch(rge) { console.error("Auto-regenerate guides failed:", rge); setFormMsg("✗ Could not regenerate warm-up — check API key"); setTimeout(function() { setFormMsg(""); }, 4000); }
+            } catch(rge) { console.error("Auto-regenerate guides failed:", rge); setFormMsg(window.isEnergyEmpty(rge) ? window.energyEmptyMsg : "✗ Could not regenerate warm-up — check API key"); setTimeout(function() { setFormMsg(""); }, 4000); }
             setSessionGuideLoading(false);
           };
           const renameExercise = async (day, idx, newName) => {
@@ -4287,7 +4298,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                           if (!nd[activeTab].sessionGuides) nd[activeTab].sessionGuides = {};
                           nd[activeTab].sessionGuides[day] = { warmup: guideData.warmup || "", cooldown: guideData.cooldown || "" };
                           await saveData(nd);
-                        } catch(ge) { console.error("Session guide generation failed:", ge); setFormMsg("✗ Could not generate — check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
+                        } catch(ge) { console.error("Session guide generation failed:", ge); setFormMsg(window.isEnergyEmpty(ge) ? window.energyEmptyMsg : "✗ Could not generate — check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
                         setSessionGuideLoading(false);
                       }} disabled={sessionGuideLoading} style={{ width: "100%", padding: "6px 0", background: sessionGuideLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, color: "#fff", cursor: sessionGuideLoading ? "not-allowed" : "pointer", opacity: sessionGuideLoading ? 0.7 : 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 4 }}>
                         {sessionGuideLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : (p.sessionGuides && p.sessionGuides[day] ? "🔄 Regenerate Warm-Up & Cool-Down" : "🔥 Generate Warm-Up & Cool-Down")}
@@ -4393,7 +4404,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb })); var sfUpdate = Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb }); await sSet("session_feedback_all", JSON.stringify(sfUpdate));
                         // Recommendations shown to user - they accept/decline individually
                         }
-                    } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: { exercises: [], summary: "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
+                    } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: { exercises: [], summary: window.isEnergyEmpty(e) ? window.energyEmptyMsg : "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
                     setSessionFbLoading(false);
                   }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{sessionFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Session Feedback"}</button>
                   <button onClick={function(){setFbExpanded(!fbExpanded);}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#64748b",cursor:"pointer",marginTop:4}}>{fbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>
@@ -4710,7 +4721,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               if (!jm) throw new Error("No JSON");
               var info = JSON.parse(jm[0]);
               setPortionResult(info);
-            } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 120)); setTimeout(function(){setFormMsg("");},10000); setPortionSlot(""); }
+            } catch(ce) { setFormMsg(window.aiErrorMsg(ce)); setTimeout(function(){setFormMsg("");},10000); setPortionSlot(""); }
             setPortionLoading(false);
           };
 
@@ -4800,7 +4811,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var sTxt = ""; if (sResult.content) { for (var si=0;si<sResult.content.length;si++) { if(sResult.content[si].text) sTxt+=sResult.content[si].text; } }
                 setCameraPreview(function(prev) { return Object.assign({}, prev, { suitability: sTxt.trim() }); });
               } catch(se) {}
-            } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 80)); }
+            } catch(ce) { setFormMsg(window.aiErrorMsg(ce)); }
             setNewItemLoading(false);
             setTimeout(function() { setFormMsg(""); }, 4000);
           };
@@ -4821,7 +4832,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 setReviewCategories(addingCategory ? [addingCategory] : []);
                 setReviewSideType("");
               }
-            } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); setTimeout(function() { setFormMsg(""); }, 5000); }
+            } catch(e) { setFormMsg(window.aiErrorMsg(e)); setTimeout(function() { setFormMsg(""); }, 5000); }
             setNewItemName(""); setNewItemLoading(false);
           };
 
@@ -4867,7 +4878,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               setBulkReviewItems(reviewItems);
               setFormMsg("");
               setAddingNew(false);
-            } catch(e) { setFormMsg("Error: " + String(e).substring(0, 120)); setTimeout(function() { setFormMsg(""); }, 5000); }
+            } catch(e) { setFormMsg(window.aiErrorMsg(e)); setTimeout(function() { setFormMsg(""); }, 5000); }
             setNewItemLoading(false);
           };
 
@@ -5113,7 +5124,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         var recTxt = ""; if (recResult.content) { for (var ri3=0;ri3<recResult.content.length;ri3++) { if(recResult.content[ri3].text) recTxt+=recResult.content[ri3].text; } }
                         var recJson = recTxt.replace(/```json|```/g, "").trim(); var recMatch = recJson.match(/\{[\s\S]*\}/);
                         if (recMatch) { var recInfo = JSON.parse(recMatch[0]); cp = Object.assign({}, cp, { kcal: recInfo.kcal || cp.kcal, protein: recInfo.protein || cp.protein, fat: recInfo.fat || cp.fat, satFat: recInfo.satFat || cp.satFat, carbs: recInfo.carbs || cp.carbs, fibre: recInfo.fibre || cp.fibre, salt: recInfo.salt || cp.salt, rating: recInfo.rating || cp.rating }); }
-                      } catch(re) { setFormMsg("⚠️ Could not recalculate — using original values"); await new Promise(function(r){setTimeout(r,1500);}); }
+                      } catch(re) { setFormMsg(window.isEnergyEmpty(re) ? window.energyEmptyMsg : "⚠️ Could not recalculate — using original values"); await new Promise(function(r){setTimeout(r,1500);}); }
                     }
                     var addedTo = []; var dupeFound = [];
                     for (var ci = 0; ci < cats.length; ci++) {
@@ -5769,7 +5780,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 }
                 setFormMsg("Week meals generated (all people)");
               }
-            } catch(e) { setFormMsg("Error: " + String(e).substring(0, 80)); }
+            } catch(e) { setFormMsg(window.aiErrorMsg(e)); }
             setTimeout(function() { setFormMsg(""); }, 4000); setGenerating(false);
           }} disabled={generating} style={{ width: "100%", padding: 12, marginTop: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: generating ? "not-allowed" : "pointer", background: generating ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{generating ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Meals Generator"}</button>
           <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Applies your default choices where stated and generates recommended breakfast, lunch, and dinner slots where left empty. These can be updated on individual days if required.</div>
@@ -6424,7 +6435,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                           var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
                           var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
                           setHelpEatResult({ name: info.name || "Unknown", kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0, rating: info.rating || "AMBER", recommendation: info.recommendation || "", alternatives: info.alternatives || "", category: helpEatCat });
-                        } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 120)); setTimeout(function(){setFormMsg("");},10000); }
+                        } catch(ce) { setFormMsg(window.aiErrorMsg(ce)); setTimeout(function(){setFormMsg("");},10000); }
                         setHelpEatLoading(false);
                         e.target.value = "";
                       }} style={{ display: "none" }} />
@@ -6443,7 +6454,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
                         var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
                         setHelpEatResult({ name: info.name || helpEatText, kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0, rating: info.rating || "AMBER", itemType: info.itemType || "packaged", ingredients: info.ingredients || [], recommendation: info.recommendation || "", alternatives: info.alternatives || "", category: helpEatCat });
-                      } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 120)); setTimeout(function(){setFormMsg("");},10000); }
+                      } catch(ce) { setFormMsg(window.aiErrorMsg(ce)); setTimeout(function(){setFormMsg("");},10000); }
                       setHelpEatLoading(false);
                     }} disabled={helpEatLoading || !helpEatText.trim()} style={{ width: "100%", padding: "8px 12px", background: helpEatLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{helpEatLoading ? <span>Finding best options <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Find Best Option"}</button>
                 </div>)}
@@ -6598,7 +6609,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
                         var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
                         setFoodCheckerPreview({ name: info.name || foodCheckerText.trim() || "Unknown", kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, rating: info.rating || "AMBER", itemType: info.itemType || "packaged", ingredients: info.ingredients || [], suitability: info.suitability || "" });
-                      } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 120)); setTimeout(function(){setFormMsg("");},10000); }
+                      } catch(ce) { setFormMsg(window.aiErrorMsg(ce)); setTimeout(function(){setFormMsg("");},10000); }
                       setFoodCheckerLoading(false);
                       e.target.value = "";
                     }} style={{ display: "none" }} />
@@ -6615,7 +6626,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
                       var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
                       setFoodCheckerPreview({ name: info.name || foodCheckerText, kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, rating: info.rating || "AMBER", itemType: info.itemType || "packaged", ingredients: info.ingredients || [], suitability: info.suitability || "" });
-                    } catch(ce) { setFormMsg("Error: " + String(ce).substring(0, 120)); setTimeout(function(){setFormMsg("");},10000); }
+                    } catch(ce) { setFormMsg(window.aiErrorMsg(ce)); setTimeout(function(){setFormMsg("");},10000); }
                     setFoodCheckerLoading(false);
                   }} disabled={foodCheckerLoading || !foodCheckerText.trim()} style={{ width: "100%", padding: "8px 12px", background: foodCheckerLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{foodCheckerLoading ? <span>Checking <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Check"}</button>
                 <div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type a food name or scan a product, with or without a short description, to check nutritional information</div>
@@ -6763,7 +6774,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var grouped = JSON.parse(clean);
                 setGeneratedShop(grouped);
                 setFormMsg("Grouped by category ✓");
-              } catch(err) { setFormMsg("Error: " + String(err).substring(0, 80)); }
+              } catch(err) { setFormMsg(window.aiErrorMsg(err)); }
               setShopLoading(false);
               setTimeout(function(){setFormMsg("");}, 3000);
             }} disabled={shopLoading} style={{...btnActionLg, flex: 1, justifyContent: "center", fontSize: 11, opacity: shopLoading ? 0.85 : 1}}>{shopLoading ? <span>Grouping<span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Group by Aisle"}</button>
@@ -6878,7 +6889,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Active Medications</div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <label style={{...btnMuted, display: "inline-flex"}}>📄 Upload<input type="file" accept="image/*,.pdf" multiple style={{ display: "none" }} onChange={async function(e) { var files = Array.from(e.target.files); if (files.length === 0) return; setFormMsg("Reading files..."); var imgs = []; for (var fi = 0; fi < files.length; fi++) { var b64 = await new Promise(function(res) { var r = new FileReader(); r.onload = function() { res(r.result.split(",")[1]); }; r.readAsDataURL(files[fi]); }); imgs.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }); } setFormMsg("Extracting medications..."); try { var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: imgs.concat([{ type: "text", text: "Extract medications from these images. Return ONLY a JSON array of objects with name, dose, freq, time, notes fields." }]) }] }) }); var result = await resp.json(); var text = result.content.map(function(x) { return x.text || ""; }).join(""); var ext = JSON.parse(text.replace(/```json|```/g, "").trim()); if (Array.isArray(ext) && ext.length > 0) { var nd = JSON.parse(JSON.stringify(data)); for (var mi2 = 0; mi2 < ext.length; mi2++) { var med = ext[mi2]; nd[activeTab].meds.push({ name: med.name || "", dose: med.dose || "", freq: med.freq || "", time: med.time || "", notes: med.notes || "", active: true, started: new Date().toLocaleDateString("en-GB") }); } if (!nd[activeTab].medsHistory) { nd[activeTab].medsHistory = []; } nd[activeTab].medsHistory.push({ date: new Date().toLocaleDateString("en-GB"), snapshot: "Uploaded " + ext.length + " med(s)" }); await saveData(nd); setFormMsg("Added " + ext.length + " medication(s)"); } else { setFormMsg("No medications found"); } } catch(err) { setFormMsg("Error: " + String(err).substring(0, 60)); } setTimeout(function() { setFormMsg(""); }, 4000); e.target.value = ""; }} /></label>
+                  <label style={{...btnMuted, display: "inline-flex"}}>📄 Upload<input type="file" accept="image/*,.pdf" multiple style={{ display: "none" }} onChange={async function(e) { var files = Array.from(e.target.files); if (files.length === 0) return; setFormMsg("Reading files..."); var imgs = []; for (var fi = 0; fi < files.length; fi++) { var b64 = await new Promise(function(res) { var r = new FileReader(); r.onload = function() { res(r.result.split(",")[1]); }; r.readAsDataURL(files[fi]); }); imgs.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }); } setFormMsg("Extracting medications..."); try { var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: imgs.concat([{ type: "text", text: "Extract medications from these images. Return ONLY a JSON array of objects with name, dose, freq, time, notes fields." }]) }] }) }); var result = await resp.json(); var text = result.content.map(function(x) { return x.text || ""; }).join(""); var ext = JSON.parse(text.replace(/```json|```/g, "").trim()); if (Array.isArray(ext) && ext.length > 0) { var nd = JSON.parse(JSON.stringify(data)); for (var mi2 = 0; mi2 < ext.length; mi2++) { var med = ext[mi2]; nd[activeTab].meds.push({ name: med.name || "", dose: med.dose || "", freq: med.freq || "", time: med.time || "", notes: med.notes || "", active: true, started: new Date().toLocaleDateString("en-GB") }); } if (!nd[activeTab].medsHistory) { nd[activeTab].medsHistory = []; } nd[activeTab].medsHistory.push({ date: new Date().toLocaleDateString("en-GB"), snapshot: "Uploaded " + ext.length + " med(s)" }); await saveData(nd); setFormMsg("Added " + ext.length + " medication(s)"); } else { setFormMsg("No medications found"); } } catch(err) { setFormMsg(window.aiErrorMsg(err)); } setTimeout(function() { setFormMsg(""); }, 4000); e.target.value = ""; }} /></label>
                   <button onClick={function() { setShowMedForm(!showMedForm); }} style={showMedForm ? btnClose : btnMuted}>{showMedForm ? "✕ Close" : "+ Add"}</button>
                 </div>
               </div>
@@ -6919,7 +6930,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Blood Results</div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <label style={{...btnMuted, display: "inline-flex"}}>📄 Upload<input type="file" accept="image/*,.pdf" multiple style={{ display: "none" }} onChange={async function(e) { var files = Array.from(e.target.files); if (files.length === 0) return; setFormMsg("Reading files..."); var imgs = []; for (var fi = 0; fi < files.length; fi++) { var b64 = await new Promise(function(res) { var r = new FileReader(); r.onload = function() { res(r.result.split(",")[1]); }; r.readAsDataURL(files[fi]); }); imgs.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }); } setFormMsg("Extracting results..."); try { var tks = allTests.map(function(t) { return t.key + " " + t.name + " " + t.unit; }).join(", "); var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: imgs.concat([{ type: "text", text: "Extract blood test results from these images. Match to these test keys: " + tks + ". Return ONLY JSON object with date and tests fields." }]) }] }) }); var result = await resp.json(); var text = result.content.map(function(x) { return x.text || ""; }).join(""); var ext = JSON.parse(text.replace(/```json|```/g, "").trim()); var nb = Object.assign({}, bloodInputs); if (ext.date) { nb.date = ext.date; } if (ext.tests) { Object.keys(ext.tests).forEach(function(k) { nb[k] = String(ext.tests[k]); }); } setBloodInputs(nb); setShowBloodForm(true); setFormMsg("Extracted " + Object.keys(ext.tests || {}).length + " results - review and save"); } catch(err) { setFormMsg("Error: " + String(err).substring(0, 60)); } setTimeout(function() { setFormMsg(""); }, 4000); e.target.value = ""; }} /></label>
+                  <label style={{...btnMuted, display: "inline-flex"}}>📄 Upload<input type="file" accept="image/*,.pdf" multiple style={{ display: "none" }} onChange={async function(e) { var files = Array.from(e.target.files); if (files.length === 0) return; setFormMsg("Reading files..."); var imgs = []; for (var fi = 0; fi < files.length; fi++) { var b64 = await new Promise(function(res) { var r = new FileReader(); r.onload = function() { res(r.result.split(",")[1]); }; r.readAsDataURL(files[fi]); }); imgs.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }); } setFormMsg("Extracting results..."); try { var tks = allTests.map(function(t) { return t.key + " " + t.name + " " + t.unit; }).join(", "); var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: imgs.concat([{ type: "text", text: "Extract blood test results from these images. Match to these test keys: " + tks + ". Return ONLY JSON object with date and tests fields." }]) }] }) }); var result = await resp.json(); var text = result.content.map(function(x) { return x.text || ""; }).join(""); var ext = JSON.parse(text.replace(/```json|```/g, "").trim()); var nb = Object.assign({}, bloodInputs); if (ext.date) { nb.date = ext.date; } if (ext.tests) { Object.keys(ext.tests).forEach(function(k) { nb[k] = String(ext.tests[k]); }); } setBloodInputs(nb); setShowBloodForm(true); setFormMsg("Extracted " + Object.keys(ext.tests || {}).length + " results - review and save"); } catch(err) { setFormMsg(window.aiErrorMsg(err)); } setTimeout(function() { setFormMsg(""); }, 4000); e.target.value = ""; }} /></label>
                   <button onClick={function() { setShowBloodForm(!showBloodForm); }} style={showBloodForm ? btnClose : btnMuted}>{showBloodForm ? "✕ Close" : "+ Add"}</button>
                 </div>
               </div>
@@ -6964,7 +6975,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               fb._generatedAt = new Date().toLocaleString("en-GB");
               setHealthFb(fb); sSet("health_feedback", JSON.stringify(Object.assign({}, healthFbAll || {}, { [activeTab]: fb })));
               try { await sSet("health_fb_" + activeTab, JSON.stringify(fb)); } catch(se) {}
-            } catch(e) { setFormMsg("Error: " + String(e).substring(0, 120)); setTimeout(function() { setFormMsg(""); }, 10000); }
+            } catch(e) { setFormMsg(window.aiErrorMsg(e)); setTimeout(function() { setFormMsg(""); }, 10000); }
             setHealthFbLoading(false);
           }} disabled={healthFbLoading} style={{ width: "100%", padding: 12, marginTop: 14, background: healthFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: healthFbLoading ? "default" : "pointer" }}>{healthFbLoading ? <span>Generating<span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Health Feedback"}</button>
                   <button onClick={function(){setHealthFbExpanded(!healthFbExpanded);}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#64748b",cursor:"pointer",marginTop:4}}>{healthFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>
@@ -7035,7 +7046,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) extracted = extracted + result.content[ci].text; } }
                         if (extracted) entry.extracted = extracted;
                       }
-                    } catch(apiErr) { entry.extracted = "Could not extract automatically — data will be stored for reference"; }
+                    } catch(apiErr) { entry.extracted = window.isEnergyEmpty(apiErr) ? window.energyEmptyMsg : "Could not extract automatically — data will be stored for reference"; }
                     nd[activeTab].attachments.push(entry);
                   } catch(readErr) {}
                 }
@@ -7167,7 +7178,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               return k + " (" + typeof v + ")";
             });
             setFormMsg(summary.join("\n"));
-          } catch(e) { setFormMsg("Error: " + e.message); }
+          } catch(e) { setFormMsg(window.aiErrorMsg(e)); }
           setTimeout(function(){setFormMsg("");}, 30000);
         }} style={{ width: "100%", padding: 8, background: accent, color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Show All Firebase Keys</button>
       </div>
@@ -7208,7 +7219,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               });
             });
             setFormMsg(summary.join("\n"));
-          } catch(e) { setFormMsg("Error: " + e.message); }
+          } catch(e) { setFormMsg(window.aiErrorMsg(e)); }
           setTimeout(function(){setFormMsg("");}, 60000);
         }} style={{ width: "100%", padding: 8, background: "#d97706", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", marginBottom: 6 }}>Show Comment Data</button>
         <button onClick={async function() {
@@ -7253,7 +7264,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             } else {
               setFormMsg("No missing weeks found to restore.");
             }
-          } catch(e) { setFormMsg("Error: " + e.message); }
+          } catch(e) { setFormMsg(window.aiErrorMsg(e)); }
           setTimeout(function(){setFormMsg("");}, 30000);
         }} style={{ width: "100%", padding: 8, background: "#dc2626", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Restore Missing Weeks from Comments</button>
       </div>
@@ -7322,7 +7333,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             }
             await saveData(nd);
             setFormMsg("Restored " + restored + " missing progression entries. Reload the app to see all data.");
-          } catch(e) { setFormMsg("Error: " + e.message); }
+          } catch(e) { setFormMsg(window.aiErrorMsg(e)); }
           setTimeout(function(){setFormMsg("");}, 15000);
         }} style={{ width: "100%", padding: 10, background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Restore Data</button>
       </div>
@@ -7336,7 +7347,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.341.2
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.342.0
       </div>
 
       {/* Floating Ask a Question button */}
@@ -7435,7 +7446,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var recTxt = ""; if (recResult.content) { for (var ri3=0;ri3<recResult.content.length;ri3++) { if(recResult.content[ri3].text) recTxt+=recResult.content[ri3].text; } }
                   var recJson = recTxt.replace(/```json|```/g, "").trim(); var recMatch = recJson.match(/\{[\s\S]*\}/);
                   if (recMatch) { var recInfo = JSON.parse(recMatch[0]); cp = Object.assign({}, cp, { kcal: recInfo.kcal || cp.kcal, protein: recInfo.protein || cp.protein, fat: recInfo.fat || cp.fat, satFat: recInfo.satFat || cp.satFat, carbs: recInfo.carbs || cp.carbs, fibre: recInfo.fibre || cp.fibre, salt: recInfo.salt || cp.salt, rating: recInfo.rating || cp.rating }); }
-                } catch(re) { setFormMsg("⚠️ Could not recalculate — using original values"); await new Promise(function(r){setTimeout(r,1500);}); }
+                } catch(re) { setFormMsg(window.isEnergyEmpty(re) ? window.energyEmptyMsg : "⚠️ Could not recalculate — using original values"); await new Promise(function(r){setTimeout(r,1500);}); }
               }
               var addedTo = []; var dupeFound = [];
               for (var ci = 0; ci < cats.length; ci++) {
