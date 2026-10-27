@@ -854,7 +854,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.348.0
+// STANDARD BUTTON STYLES v1.348.1
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -3397,15 +3397,14 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 setFormMsg("✓ Journal entry added");
                 setTimeout(function() { setFormMsg(""); }, 3000);
               }} disabled={!journalText.trim()} style={{ width: "100%", padding: "8px 0", marginTop: 8, border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: journalText.trim() ? "pointer" : "not-allowed", background: journalText.trim() ? "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" : "#e2e8f0", color: journalText.trim() ? "#fff" : "#94a3b8", transition: "all 0.2s ease" }}>Add Journal Entry</button>
-            </div>
 
             {/* Recent entries (last 4) */}
-            {journalEntries.length > 0 && (<div style={{ borderTop: "1px solid #e2e8f0" }}>
-              <button onClick={function() { setShowRecentJournal(!showRecentJournal); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "none", border: "none", cursor: "pointer" }}>
+            {journalEntries.length > 0 && (<div style={{ borderTop: "1px solid #e2e8f0", marginTop: 10 }}>
+              <button onClick={function() { setShowRecentJournal(!showRecentJournal); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", background: "none", border: "none", cursor: "pointer" }}>
                 <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b" }}>Recent Entries</span>
                 <span style={{ fontSize: 10, color: "#94a3b8" }}>{showRecentJournal ? "▲" : "▼"}</span>
               </button>
-              {showRecentJournal && (<div style={{ padding: "0 16px 12px" }}>
+              {showRecentJournal && (<div>
                 {journalEntries.slice(0, 4).map(function(entry) {
                   var entryDate = new Date(entry.ts || entry.date);
                   var dateLabel = entryDate.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
@@ -3421,7 +3420,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         var updated = journalEntries.filter(function(e) { return e.id !== entry.id; });
                         setJournalEntries(updated);
                         await sSet("journal_" + activeTab, JSON.stringify(updated));
-                      }} style={{ background: "none", border: "none", fontSize: 11, color: "#ef4444", cursor: "pointer", padding: "2px 4px", fontWeight: 600 }} title="Delete entry">🗑 Del</button>
+                      }} style={btnDelete} title="Delete entry">🗑 Del</button>
                     </div>
                     <div style={{ fontSize: 12, lineHeight: 1.5, color: "#334155", whiteSpace: "pre-wrap" }}>{entry.text}</div>
                   </div>);
@@ -3431,16 +3430,16 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
             {/* Full history */}
             {journalEntries.length > 4 && (<div style={{ borderTop: "1px solid #e2e8f0" }}>
-              <button onClick={function() { setShowFullJournal(!showFullJournal); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "none", border: "none", cursor: "pointer" }}>
+              <button onClick={function() { setShowFullJournal(!showFullJournal); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", background: "none", border: "none", cursor: "pointer" }}>
                 <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b" }}>Full History ({journalEntries.length} entries)</span>
                 <span style={{ fontSize: 10, color: "#94a3b8" }}>{showFullJournal ? "▲" : "▼"}</span>
               </button>
-              {showFullJournal && (<div style={{ padding: "0 16px 12px", maxHeight: 400, overflowY: "auto" }}>
+              {showFullJournal && (<div style={{ maxHeight: 400, overflowY: "auto" }}>
                 {journalEntries.slice(4).map(function(entry) {
                   var entryDate = new Date(entry.ts || entry.date);
                   var dateLabel = entryDate.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
                   var timeLabel = entry.ts ? new Date(entry.ts).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
-                  return (<div key={entry.id} style={{ padding: "8px 10px", marginBottom: 6, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                  return (<div key={entry.id} style={{ padding: "8px 10px", marginBottom: 6, background: "#f1f5f9", borderRadius: 8, border: "1px solid #e2e8f0" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                       {entry.mood !== null && entry.mood !== undefined && <span style={{ fontSize: 13 }}>{MOOD_EMOJIS[entry.mood]}</span>}
                       <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600 }}>{dateLabel}{timeLabel ? " · " + timeLabel : ""}</span>
@@ -3450,6 +3449,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 })}
               </div>)}
             </div>)}
+            </div>
           </div>
 
           <button onClick={generateFeedback} disabled={feedbackLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: feedbackLoading ? "not-allowed" : "pointer", opacity: feedbackLoading ? 0.7 : 1, background: feedbackLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", marginBottom: 14 }}>{feedbackLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Feedback"}</button>
@@ -7021,18 +7021,18 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           {healthView === "general" && (<div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>My Health</div>
             <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
-            <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Personal Health Profile</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>Personal Health Profile</div>
               <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Lasting information — smoker/non-smoker, alcohol intake, allergies, neurodiversities, disabilities, family health history, menopause status</div>
+            <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 12 }}>
               <textarea value={p.healthProfile || ""} onChange={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthProfile = e.target.value; await saveData(nd); }} placeholder={"e.g. Non-smoker. Social drinker 4-6 units/week. ADHD diagnosed. Hay fever. Family history of high cholesterol."} rows={4} style={Object.assign({}, inputStyle, { minHeight: 80, resize: "vertical", fontFamily: "inherit" })} />
             </div>
-            <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>General Health Notes</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>General Health Notes</div>
               <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>Current or temporary health matters — recovering from a cold, injury, fatigue, stress, sleep issues, pain, symptoms to track</div>
+            <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 12 }}>
               <textarea value={p.healthNotes || ""} onChange={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthNotes = e.target.value; await saveData(nd); }} placeholder={"e.g. Pulled hip flexor last Sunday. Sleeping poorly this week. Energy levels low Wed/Thu."} rows={6} style={Object.assign({}, inputStyle, { minHeight: 120, resize: "vertical", fontFamily: "inherit" })} />
             </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Health Log</div>
             <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Health Log</div>
               <textarea value={healthComment} onChange={function(e) { setHealthComment(e.target.value); }} placeholder="Log a health note — symptoms, observations, changes, appointments..." rows={3} style={Object.assign({}, inputStyle, { minHeight: 70, resize: "vertical", fontFamily: "inherit", width: "100%", boxSizing: "border-box", marginBottom: 8 })} />
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <button onClick={async function() { if (!healthComment.trim()) return; var nd = JSON.parse(JSON.stringify(data)); if (!Array.isArray(nd[activeTab].healthLog)) nd[activeTab].healthLog = []; nd[activeTab].healthLog.push({ date: new Date().toISOString().split("T")[0], note: healthComment.trim() }); await saveData(nd); setHealthComment(""); setFormMsg("Logged ✓"); setTimeout(function(){setFormMsg("");}, 2000); }} style={btnMuted}>📋 Log</button>
@@ -7064,8 +7064,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               <button onClick={async function() { if (!vitalsInput.systolic && !vitalsInput.hr && !vitalsInput.spo2) return; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].vitals) nd[activeTab].vitals = []; var entry = { date: vitalsInput.date || new Date().toISOString().split("T")[0], time: vitalsInput.time || new Date().toTimeString().slice(0,5) }; if (vitalsInput.systolic) entry.bp = vitalsInput.systolic + "/" + vitalsInput.diastolic; if (vitalsInput.hr) entry.hr = parseInt(vitalsInput.hr); if (vitalsInput.spo2) entry.spo2 = parseInt(vitalsInput.spo2); nd[activeTab].vitals.push(entry); await saveData(nd); setVitalsInput({ date: "", time: "", systolic: "", diastolic: "", hr: "", spo2: "" }); setFormMsg("Vitals saved"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{ ...btnP(), width: "100%" }}>Save Vitals</button>
             </div>
 
-            <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>History</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8, marginTop: 12 }}>History</div>
               {(p.vitals || []).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12 }}>No vitals recorded yet</div>}
               {(p.vitals || []).slice().reverse().map(function(v, vi) {
                 var bpColor = "#16a34a";
@@ -7085,20 +7084,19 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <button onClick={async function() { if (!confirm("Delete this vitals entry? This cannot be undone.")) return; var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].vitals.splice(nd[activeTab].vitals.length - 1 - vi, 1); await saveData(nd); }} style={{...btnDelete, fontSize: 11, minWidth: 24, flexShrink: 0}}>🗑 Del</button>
                 </div>);
               })}
-            </div>
           </div>
           </div>)}
 
 {healthView === "meds" && (<div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a" }}>My Medications</div>
-            <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>Active Medications</div>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <label style={{...btnMuted, display: "inline-flex"}}>📄 Upload<input type="file" accept="image/*,.pdf" multiple style={{ display: "none" }} onChange={async function(e) { var files = Array.from(e.target.files); if (files.length === 0) return; setFormMsg("Reading files..."); var imgs = []; for (var fi = 0; fi < files.length; fi++) { var b64 = await new Promise(function(res) { var r = new FileReader(); r.onload = function() { res(r.result.split(",")[1]); }; r.readAsDataURL(files[fi]); }); imgs.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }); } setFormMsg("Extracting medications..."); try { var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: imgs.concat([{ type: "text", text: "Extract medications from these images. Return ONLY a JSON array of objects with name, dose, freq, time, notes fields." }]) }] }) }); var result = await resp.json(); var text = result.content.map(function(x) { return x.text || ""; }).join(""); var ext = JSON.parse(text.replace(/```json|```/g, "").trim()); if (Array.isArray(ext) && ext.length > 0) { var nd = JSON.parse(JSON.stringify(data)); for (var mi2 = 0; mi2 < ext.length; mi2++) { var med = ext[mi2]; nd[activeTab].meds.push({ name: med.name || "", dose: med.dose || "", freq: med.freq || "", time: med.time || "", notes: med.notes || "", active: true, started: new Date().toLocaleDateString("en-GB") }); } if (!nd[activeTab].medsHistory) { nd[activeTab].medsHistory = []; } nd[activeTab].medsHistory.push({ date: new Date().toLocaleDateString("en-GB"), snapshot: "Uploaded " + ext.length + " med(s)" }); await saveData(nd); setFormMsg("Added " + ext.length + " medication(s)"); } else { setFormMsg("No medications found"); } } catch(err) { setFormMsg(window.aiErrorMsg(err)); } setTimeout(function() { setFormMsg(""); }, 4000); e.target.value = ""; }} /></label>
-                  <button onClick={function() { setShowMedForm(!showMedForm); }} style={showMedForm ? btnClose : btnMuted}>{showMedForm ? "✕ Close" : "+ Add"}</button>
-                </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>My Medications</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <label style={{...btnAction, display: "inline-flex"}}>📄 Upload<input type="file" accept="image/*,.pdf" multiple style={{ display: "none" }} onChange={async function(e) { var files = Array.from(e.target.files); if (files.length === 0) return; setFormMsg("Reading files..."); var imgs = []; for (var fi = 0; fi < files.length; fi++) { var b64 = await new Promise(function(res) { var r = new FileReader(); r.onload = function() { res(r.result.split(",")[1]); }; r.readAsDataURL(files[fi]); }); imgs.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }); } setFormMsg("Extracting medications..."); try { var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: imgs.concat([{ type: "text", text: "Extract medications from these images. Return ONLY a JSON array of objects with name, dose, freq, time, notes fields." }]) }] }) }); var result = await resp.json(); var text = result.content.map(function(x) { return x.text || ""; }).join(""); var ext = JSON.parse(text.replace(/```json|```/g, "").trim()); if (Array.isArray(ext) && ext.length > 0) { var nd = JSON.parse(JSON.stringify(data)); for (var mi2 = 0; mi2 < ext.length; mi2++) { var med = ext[mi2]; nd[activeTab].meds.push({ name: med.name || "", dose: med.dose || "", freq: med.freq || "", time: med.time || "", notes: med.notes || "", active: true, started: new Date().toLocaleDateString("en-GB") }); } if (!nd[activeTab].medsHistory) { nd[activeTab].medsHistory = []; } nd[activeTab].medsHistory.push({ date: new Date().toLocaleDateString("en-GB"), snapshot: "Uploaded " + ext.length + " med(s)" }); await saveData(nd); setFormMsg("Added " + ext.length + " medication(s)"); } else { setFormMsg("No medications found"); } } catch(err) { setFormMsg(window.aiErrorMsg(err)); } setTimeout(function() { setFormMsg(""); }, 4000); e.target.value = ""; }} /></label>
+                <button onClick={function() { setShowMedForm(!showMedForm); }} style={showMedForm ? btnClose : btnAction}>{showMedForm ? "✕ Close" : "+ Add"}</button>
               </div>
+            </div>
+            <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 8 }}>Active Medications</div>
             <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 12 }}>
               {activeMeds.length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12 }}>No active medications</div>}
               {activeMeds.map(function(med, mi) { var realIdx = medsList.indexOf(med); var isEditing = editMedIdx === realIdx; return (<div key={mi} style={{ padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>{isEditing ? (<div style={{ background: "#f8fafc", borderRadius: 8, padding: 10 }}><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 6 }}><div><label style={labelStyle}>Name</label><input value={medInputs.name || ""} onChange={function(e){ setMedInputs(Object.assign({}, medInputs, {name: e.target.value})); }} style={inputStyle} /></div><div><label style={labelStyle}>Dose</label><input value={medInputs.dose || ""} onChange={function(e){ setMedInputs(Object.assign({}, medInputs, {dose: e.target.value})); }} placeholder="e.g. 200mcg" style={inputStyle} /></div></div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 6 }}><div><label style={labelStyle}>Frequency</label><input value={medInputs.freq || ""} onChange={function(e){ setMedInputs(Object.assign({}, medInputs, {freq: e.target.value})); }} placeholder="e.g. Daily" style={inputStyle} /></div><div><label style={labelStyle}>Time</label><input value={medInputs.time || ""} onChange={function(e){ setMedInputs(Object.assign({}, medInputs, {time: e.target.value})); }} placeholder="e.g. Evening" style={inputStyle} /></div></div><div style={{ marginBottom: 6 }}><label style={labelStyle}>Notes</label><input value={medInputs.notes || ""} onChange={function(e){ setMedInputs(Object.assign({}, medInputs, {notes: e.target.value})); }} placeholder="optional" style={inputStyle} /></div><div style={{ display: "flex", gap: 6 }}><button onClick={async function(){ var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].meds[realIdx] = Object.assign({}, nd[activeTab].meds[realIdx], { name: medInputs.name, dose: medInputs.dose, freq: medInputs.freq, time: medInputs.time, notes: medInputs.notes }); if (!nd[activeTab].medsHistory) nd[activeTab].medsHistory = []; nd[activeTab].medsHistory.push({ date: new Date().toLocaleDateString("en-GB"), snapshot: "Updated " + medInputs.name }); await saveData(nd); setEditMedIdx(null); }} style={{ ...btnP(), flex: 1, fontSize: 11 }}>Save</button><button onClick={function(){ setEditMedIdx(null); }} style={{ padding: "6px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#475569", cursor: "pointer" }}>Cancel</button></div></div>) : (<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{ flex: 1 }}><span style={{ fontWeight: 600, fontSize: 13, color: "#0f172a" }}>{med.name}</span>{(med.dose || med.freq || med.time) && <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{[med.dose, med.freq, med.time].filter(Boolean).join(" · ")}</div>}{med.notes && <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>{med.notes}</div>}</div><div style={{ display: "flex", gap: 4, flexShrink: 0 }}><button onClick={function(){ setEditMedIdx(realIdx); setMedInputs({ name: med.name || "", dose: med.dose || "", freq: med.freq || "", time: med.time || "", notes: med.notes || "" }); }} style={btnEdit}>✎ Edit</button><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].meds[realIdx].active = false; if (!nd[activeTab].medsHistory) nd[activeTab].medsHistory = []; nd[activeTab].medsHistory.push({ date: new Date().toLocaleDateString("en-GB"), snapshot: "Stopped " + med.name }); await saveData(nd); }} style={btnStop}>⏹ Stop</button></div></div>)}</div>); })}
@@ -7148,13 +7146,17 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 <button onClick={function(){ setShowBloodForm(false); }} style={{ padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" }}>Cancel</button>
               </div>
             </div>)}
-            {(p.bloods || []).length > 0 && (<div>
-              <button onClick={function() { setShowBloodResults(!showBloodResults); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", background: "none", border: "none", cursor: "pointer" }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b" }}>Results History ({(p.bloods || []).length} record{(p.bloods || []).length !== 1 ? "s" : ""})</span>
-                <span style={{ fontSize: 10, color: "#94a3b8" }}>{showBloodResults ? "▲" : "▼"}</span>
-              </button>
-              {showBloodResults && (p.bloods || []).slice().reverse().map(function(b, bi) { return (<div key={bi} style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 8 }}><div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>{b.date}</div>{Object.entries(b.tests).map(function(entry) { var k = entry[0]; var v = entry[1]; var def = allTests.find(function(t) { return t.key === k; }); var name = def ? def.name : k; var unit = def ? def.unit : ""; var flag = ""; var flagColor = "#16a34a"; if (def && def.lo !== undefined) { if (v < def.lo) { flag = " Low"; flagColor = "#dc2626"; } else if (v > def.hi) { flag = " High"; flagColor = "#dc2626"; } else { flag = " OK"; } } return (<div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "4px 0", borderBottom: "1px solid #f1f5f9" }}><span style={{ color: "#334155", fontWeight: 500 }}>{name}</span><span><span style={{ fontWeight: 600 }}>{v}</span> <span style={{ color: "#94a3b8" }}>{unit}</span><span style={{ color: flagColor, fontWeight: 600 }}>{flag}</span></span></div>); })}</div>); })}
-            </div>)}
+            {(p.bloods || []).length > 0 && (function() { var reversed = (p.bloods || []).slice().reverse(); var latest = reversed[0]; var older = reversed.slice(1); var renderEntry = function(b, bi) { return (<div key={bi} style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", marginBottom: 8 }}><div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>{b.date}</div>{Object.entries(b.tests).map(function(entry) { var k = entry[0]; var v = entry[1]; var def = allTests.find(function(t) { return t.key === k; }); var name = def ? def.name : k; var unit = def ? def.unit : ""; var flag = ""; var flagColor = "#16a34a"; if (def && def.lo !== undefined) { if (v < def.lo) { flag = " Low"; flagColor = "#dc2626"; } else if (v > def.hi) { flag = " High"; flagColor = "#dc2626"; } else { flag = " OK"; } } return (<div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "4px 0", borderBottom: "1px solid #f1f5f9" }}><span style={{ color: "#334155", fontWeight: 500 }}>{name}</span><span><span style={{ fontWeight: 600 }}>{v}</span> <span style={{ color: "#94a3b8" }}>{unit}</span><span style={{ color: flagColor, fontWeight: 600 }}>{flag}</span></span></div>); })}</div>); }; return (<div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#64748b", marginBottom: 6 }}>Latest Results</div>
+              {renderEntry(latest, 0)}
+              {older.length > 0 && (<div>
+                <button onClick={function() { setShowBloodResults(!showBloodResults); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", background: "none", border: "none", cursor: "pointer" }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b" }}>Older Results ({older.length} record{older.length !== 1 ? "s" : ""})</span>
+                  <span style={{ fontSize: 10, color: "#94a3b8" }}>{showBloodResults ? "▲" : "▼"}</span>
+                </button>
+                {showBloodResults && older.map(function(b, bi) { return renderEntry(b, bi + 1); })}
+              </div>)}
+            </div>); })()}
             {(p.bloods || []).length === 0 && <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #e2e8f0", fontSize: 11, color: "#94a3b8", textAlign: "center" }}>No blood results recorded yet</div>}
           </div>
           </div>)}
@@ -7557,7 +7559,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.348.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.348.1
       </div>
 
       {/* Floating Ask a Question button */}
