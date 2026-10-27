@@ -65,6 +65,17 @@ const MOOD_LABELS = ["Really struggling", "Not great", "OK", "Good", "Great"];
 const MOOD_EMOJIS = ["😔", "😕", "😐", "🙂", "😊"];
 const MOOD_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#10b981"];
 
+const COLOUR_THEMES = {
+  blue: { accent: "#2563eb", light: "#dbeafe", label: "Blue" },
+  purple: { accent: "#7c3aed", light: "#ede9fe", label: "Purple" },
+  green: { accent: "#059669", light: "#d1fae5", label: "Green" },
+  teal: { accent: "#0891b2", light: "#cffafe", label: "Teal" },
+  rose: { accent: "#e11d48", light: "#ffe4e6", label: "Rose" },
+  amber: { accent: "#d97706", light: "#fef3c7", label: "Amber" },
+  indigo: { accent: "#4f46e5", light: "#e0e7ff", label: "Indigo" },
+  slate: { accent: "#475569", light: "#f1f5f9", label: "Slate" }
+};
+
 const WELLBEING_RULES = "WELLBEING INTELLIGENCE: You have a duty of care to the user. Read their journal entries carefully — they may reveal physical symptoms, mental health concerns, stress, relationship difficulties, financial worries, or other life challenges. Your response MUST be calibrated using these 5 tiers:\n\nTIER 1 — GENTLE AWARENESS (today only): User mentions something once in today's entry (a headache, a bad day, feeling tired). Acknowledge it naturally within your normal feedback. 'I noticed you mentioned a headache — hope it eases off.' No action needed, just warmth.\n\nTIER 2 — PATTERN FLAG (14-day rolling window): Same type of issue appears 2-3 times within the last 14 days. Name the pattern gently. 'I've noticed you've mentioned headaches a few times over the last couple of weeks — worth keeping an eye on that.' Still conversational, no alarm.\n\nTIER 3 — CONCERNED CHECK-IN (30-day rolling window): Pattern continues (4+ mentions within the last 30 days) or user describes something significant in a single entry (anxiety, persistent pain, sleep disruption, relationship strain, work burnout). Check in directly but warmly. 'I want to check in on the headaches — they've been coming up regularly over the last month. Have you had a chance to mention it to your GP? Sometimes these things are nothing, but it's worth getting it looked at.' Include specific, helpful signposting (GP, NHS 111, MIND, Samaritans, Citizens Advice — whatever fits).\n\nTIER 4 — FIRM BUT WARM (ongoing from flag, 90-day expiry): User has been flagged at Tier 3 but hasn't acted, or describes worsening symptoms. Flags auto-expire after 90 days if no further mentions — they either resolved it or it passed. Be direct without being parental. 'I care about you getting the right support on this — the headaches are getting more frequent and I really think your GP should take a look. Would it help to book a telephone appointment first? That can feel easier than going in.'\n\nTIER 5 — EMERGENCY (immediate, 999/112): User describes symptoms requiring immediate medical attention IN ANY SINGLE ENTRY regardless of history (chest pain, difficulty breathing, sudden severe headache, stroke symptoms, suicidal intent, self-harm). Be calm, clear and direct. 'What you're describing sounds like it needs immediate attention. Please call 999 now, or ask someone near you to call. [Specific instruction based on symptoms]. I'm here — let me know you're OK when you can.'\n\nTIMEFRAME RULES:\n- Mentions spread over months/years do NOT constitute a pattern. 3 headaches over 2 years is life, not a concern.\n- Only mentions within the specified rolling window count for each tier.\n- Wellbeing flags expire after 90 days of no further mentions — do not follow up on expired flags.\n- A significant single event (Tier 3 or Tier 5) escalates immediately regardless of pattern history.\n\nCRITICAL RULES:\n- NEVER say anything is 'outside my scope', 'beyond my capabilities', 'I'm just an AI', or 'I'm not qualified'. You are their companion — you support them AND signpost them to the right help. Both, always.\n- Signposting is offering a path, not issuing an instruction. 'Your GP could help with this' not 'You should see your GP'.\n- Follow up on previously flagged concerns in future responses ONLY if the flag is less than 90 days old. 'How are the headaches doing — did you get a chance to speak to anyone about them?'\n- Mental health: watch for patterns of low mood, withdrawal language, hopelessness, anxiety, sleep disruption, appetite changes, isolation. Signpost to GP, MIND (mind.org.uk, 0300 123 3393), Samaritans (116 123, jo@samaritans.org), NHS 111.\n- Physical symptoms: watch for recurring pain, fatigue, digestive issues, breathing difficulties. Signpost to GP, NHS 111, pharmacist.\n- Life stress: work, money, relationships. Signpost to Citizens Advice (citizensadvice.org.uk), Relate, StepChange (debt), ACAS (work disputes).\n- Perimenopause/menopause: watch for symptoms (hot flushes, mood changes, sleep disruption, joint pain, brain fog). Signpost to GP, menopausesupport.co.uk.\n- NEVER diagnose. You spot patterns and signpost. 'This sounds like it could be worth discussing with your GP' not 'This sounds like depression'.";
 
 function getMoodContext(mood) {
@@ -689,8 +700,8 @@ function countStatus(ex) {
   const unique = all.filter(e => { if (seen.has(e.name)) return false; seen.add(e.name); return true; });
   return { movedUp: unique.filter(e => e.status === "moved up").length, ready: unique.filter(e => e.status === "ready to move").length, building: unique.filter(e => e.status === "building").length, consolidating: unique.filter(e => e.status === "consolidating").length, maintaining: unique.filter(e => e.status === "maintaining").length, reduce: unique.filter(e => e.status === "reduce").length, total: unique.length };
 }
-const sColor = s => s === "moved up" ? "#16a34a" : s === "ready to move" ? "#2563eb" : s === "building" ? "#7c3aed" : s === "consolidating" ? "#d97706" : s === "maintaining" ? "#0891b2" : s === "reduce" ? "#dc2626" : "#64748b";
-const sBg = s => s === "moved up" ? "#e0f2fe" : s === "ready to move" ? "#dbeafe" : s === "building" ? "#ede9fe" : s === "consolidating" ? "#fef3c7" : s === "maintaining" ? "#cffafe" : s === "reduce" ? "#fee2e2" : "#f1f5f9";
+const sColor = s => s === "moved up" ? "#16a34a" : s === "ready to move" ? "#2563eb" : s === "building" ? "#7c3aed" : s === "consolidating" ? "#be185d" : s === "maintaining" ? "#0891b2" : s === "reduce" ? "#dc2626" : "#64748b";
+const sBg = s => s === "moved up" ? "#e0f2fe" : s === "ready to move" ? "#dbeafe" : s === "building" ? "#ede9fe" : s === "consolidating" ? "#fce7f3" : s === "maintaining" ? "#cffafe" : s === "reduce" ? "#fee2e2" : "#f1f5f9";
 const sLabel = s => s === "moved up" ? "Moved Up" : s === "ready to move" ? "Ready to Move" : s === "building" ? "Building" : s === "consolidating" ? "Consolidating" : s === "maintaining" ? "Maintaining" : s === "reduce" ? "Reduce" : s;
 function parseReps(str) { if (!str) return []; const s = String(str); if (s.includes("×")) { const p = s.split("×"); return Array(parseInt(p[1])||3).fill(parseInt(p[0])||0); } return s.split("/").map(n => parseInt(n)||0); }
 function fmtReps(arr) { if (!arr || arr.length === 0) return ""; if (arr.every(r => r === arr[0])) return arr[0] + "×" + arr.length; return arr.join("/"); }
@@ -853,7 +864,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.355.0
+// STANDARD BUTTON STYLES v1.360.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -1167,6 +1178,7 @@ function Dashboard() {
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState(false);
+  const [userColour, setUserColour] = useState(null); // per-user colour key, null = default
   const [showBloodForm, setShowBloodForm] = useState(false);
   const [bloodInputs, setBloodInputs] = useState({ date: "" });
   const [showBloodResults, setShowBloodResults] = useState(false);
@@ -1684,6 +1696,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     const savedMood = await sGet("user_mood_" + activeTab); if (savedMood) setUserMood(JSON.parse(savedMood));
     const savedJournal = await sGet("journal_" + activeTab); if (savedJournal) setJournalEntries(JSON.parse(savedJournal));
     const savedDailyMood = await sGet("daily_mood_" + activeTab); if (savedDailyMood) { var dm = JSON.parse(savedDailyMood); var todayStr = new Date().toISOString().split("T")[0]; if (dm && dm.date === todayStr) setDailyMood(dm); else setDailyMood(null); }
+    const savedColour = await sGet("user_colour_" + activeTab); if (savedColour) setUserColour(savedColour);
     const savedWbFlags = await sGet("wellbeing_flags_" + activeTab); if (savedWbFlags) setWellbeingFlags(JSON.parse(savedWbFlags));
     const cen = await sGet("companion_energy"); if (cen) setCompanionEnergy(JSON.parse(cen));
   })(); }, []);
@@ -2768,8 +2781,11 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const personKeys = Object.keys(data).filter(k => k !== "config");
   const personIdx = personKeys.indexOf(activeTab);
   const accentCols = ["#2563eb", "#7c3aed", "#059669", "#d97706", "#dc2626", "#0891b2", "#e11d48"];
-  const accent = accentCols[personIdx >= 0 ? personIdx % accentCols.length : 0];
-  const accentLight = isJC ? "#dbeafe" : "#ede9fe";
+  const defaultAccent = accentCols[personIdx >= 0 ? personIdx % accentCols.length : 0];
+  const defaultAccentLight = isJC ? "#dbeafe" : "#ede9fe";
+  const userTheme = userColour && COLOUR_THEMES[userColour] ? COLOUR_THEMES[userColour] : null;
+  const accent = userTheme ? userTheme.accent : defaultAccent;
+  const accentLight = userTheme ? userTheme.light : defaultAccentLight;
   const stats = countStatus(p.exercises);
   const allDinners = [...DINNERS, ...customMeals];
   const shopItems = {}; MEAL_DAYS.forEach(d => { var _dk = DAY_MAP[d.key] || d.key; var _dm = meals[_dk] || {}; var _did = typeof _dm === "object" ? _dm.d : _dm; const m = allDinners.find(x => x.id === _did); if (m) m.shop?.forEach(it => { shopItems[it] = (shopItems[it] || 0) + 1; }); });
@@ -2857,7 +2873,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           {(() => { const prof = p.profile || {}; const hasBaseline = p.body && p.body.weight && p.body.weight.length > 0; var welcomeMsgs = ["Ready to make today count?", "Let's keep the momentum going!", "Small steps, big results — let's go!", "Your future self will thank you for today.", "Consistency beats perfection — you've got this!", "Every healthy choice adds up. What's first today?", "Welcome back — let's pick up where you left off!", "Progress isn't always visible, but it's always happening.", "You're building something great here — one day at a time.", "Let's check in and keep things moving forward."]; var welcomeIdx = Math.floor((new Date().getHours() * 60 + new Date().getMinutes()) / 144) % welcomeMsgs.length; var firstName = (prof.name || "").split(" ")[0]; var greetHour = new Date().getHours(); var greetWord = greetHour < 12 ? "Good morning" : greetHour < 17 ? "Good afternoon" : "Good evening"; return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginTop: 14, marginBottom: 14, overflow: "hidden" }}>
             <div style={{ padding: "18px 16px", borderBottom: showOnboarding ? "1px solid #e2e8f0" : "none" }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em" }}>{firstName ? greetWord + ", " + firstName : "New User"}</div>
-              {!showOnboarding && <div style={{ fontSize: 13, color: "#64748b", marginTop: 6, lineHeight: 1.4, fontStyle: "italic" }}>{welcomeMsgs[welcomeIdx]}</div>}
+              {!showOnboarding && <div style={{ fontSize: 13, color: accent, marginTop: 6, lineHeight: 1.4, fontStyle: "italic" }}>{welcomeMsgs[welcomeIdx]}</div>}
             </div>
 
             {/* ONBOARDING QUESTIONNAIRE — TABBED */}
@@ -3264,7 +3280,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Mood</div>
               {userMood !== null && <div style={{ fontSize: 10, color: MOOD_COLORS[userMood], fontWeight: 600 }}>{MOOD_LABELS[userMood]}</div>}
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 3, marginTop: 6 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 3, marginTop: 6, background: accentLight, borderRadius: 8, padding: 6, border: "1px solid #cbd5e1" }}>
               {MOOD_EMOJIS.map(function(emoji, idx) {
                 var currentMood = dailyMood ? dailyMood.mood : null;
                 var isSelected = currentMood === idx;
@@ -3276,7 +3292,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   setUserMood(newMood);
                   await sSet("daily_mood_" + activeTab, JSON.stringify(newDailyMood));
                   await sSet("user_mood_" + activeTab, JSON.stringify(newMood));
-                }} title={MOOD_LABELS[idx]} style={{ flex: 1, padding: "4px 0", border: isSelected ? "2px solid " + MOOD_COLORS[idx] : "2px solid transparent", borderRadius: 8, background: isSelected ? MOOD_COLORS[idx] + "18" : "#f8fafc", fontSize: 16, cursor: "pointer", transition: "all 0.2s ease", transform: isSelected ? "scale(1.08)" : "scale(1)", filter: (currentMood !== null && !isSelected) ? "grayscale(0.5) opacity(0.5)" : "none" }}>{emoji}</button>);
+                }} title={MOOD_LABELS[idx]} style={{ flex: 1, padding: "4px 0", border: isSelected ? "2px solid " + MOOD_COLORS[idx] : "2px solid transparent", borderRadius: 8, background: isSelected ? MOOD_COLORS[idx] + "18" : "transparent", fontSize: 16, cursor: "pointer", transition: "all 0.2s ease", transform: isSelected ? "scale(1.08)" : "scale(1)", filter: (currentMood !== null && !isSelected) ? "grayscale(0.5) opacity(0.5)" : "none" }}>{emoji}</button>);
               })}
             </div>
           </div>
@@ -3329,7 +3345,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             /* ── Render My Eating sub-panel ── */
             var renderEating = function() {
               return (<div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", padding: "8px 10px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", borderRadius: "8px 8px 0 0" }}>My Eating</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#334155", padding: "8px 10px", background: "transparent", borderBottom: "1px solid #cbd5e1", borderRadius: "8px 8px 0 0" }}>My Eating</div>
                 <div style={{ padding: "6px 10px", flex: 1, display: "flex", flexDirection: "column" }}>
                   <div style={{ flex: 1 }}>
                   {eatSlots.map(function(slot) {
@@ -3347,7 +3363,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             /* ── Render My Exercises sub-panel ── */
             var renderExercises = function() {
               return (<div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", padding: "8px 10px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", borderRadius: "8px 8px 0 0" }}>My Exercises</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#334155", padding: "8px 10px", background: "transparent", borderBottom: "1px solid #cbd5e1", borderRadius: "8px 8px 0 0" }}>My Exercises</div>
                 <div style={{ padding: "6px 10px", flex: 1, display: "flex", flexDirection: "column" }}>
                   <div style={{ flex: 1 }}>
                   {todayExercises.length === 0 && <div style={{ fontSize: 11, color: "#cbd5e1", fontStyle: "italic", padding: "4px 0" }}>No exercises planned</div>}
@@ -3372,8 +3388,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               </button>
               {showMyDay && (<div style={{ padding: "0 12px 12px" }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
-                  <div style={{ flex: 1, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden" }}>{renderEating()}</div>
-                  <div style={{ flex: 1, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflow: "hidden" }}>{renderExercises()}</div>
+                  <div style={{ flex: 1, background: accentLight, borderRadius: 8, border: "1px solid #cbd5e1", display: "flex", flexDirection: "column", overflow: "hidden" }}>{renderEating()}</div>
+                  <div style={{ flex: 1, background: accentLight, borderRadius: 8, border: "1px solid #cbd5e1", display: "flex", flexDirection: "column", overflow: "hidden" }}>{renderExercises()}</div>
                 </div>
               </div>)}
             </div>);
@@ -6797,7 +6813,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           {/* Grey sub-container for Food Checker */}
           <div style={{ background: "#f8fafc", borderRadius: 8, padding: 12, border: "1px solid #e2e8f0", marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>Just Browsing — Check your options</div>
           <div style={{ background: accentLight, borderRadius: 8, padding: 10, border: "1px solid #cbd5e1" }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 6 }}>📷 Food Checker</div>
               {!foodCheckerPreview ? (<div>
@@ -7206,6 +7221,18 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           
           
 
+          {/* Colour Theme Picker */}
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🎨 My Colour Theme</div>
+            <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10, lineHeight: 1.4 }}>Personalise your app with your chosen colour. This changes your highlighted tabs, info boxes, and accent colours throughout.</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {Object.entries(COLOUR_THEMES).map(function(pair) { var key = pair[0]; var theme = pair[1]; var isActive = userColour === key || (!userColour && ((isJC && key === "blue") || (!isJC && key === "purple"))); return (<button key={key} onClick={async function() { setUserColour(key); await sSet("user_colour_" + activeTab, key); }} style={{ width: 60, padding: "8px 0", borderRadius: 8, border: isActive ? "2px solid " + theme.accent : "2px solid #e2e8f0", background: theme.light, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "all 0.2s ease" }}>
+                <div style={{ width: 20, height: 20, borderRadius: "50%", background: theme.accent }} />
+                <div style={{ fontSize: 9, fontWeight: isActive ? 700 : 500, color: isActive ? theme.accent : "#64748b" }}>{theme.label}</div>
+              </button>); })}
+            </div>
+          </div>
+
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Data Admin</div>
 
           {/* Google Health Connect */}
@@ -7526,7 +7553,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var deviceInfo = "";
                 try { deviceInfo = navigator.userAgent; } catch(e) { deviceInfo = "Unknown"; }
                 var screenInfo = window.screen ? window.screen.width + "x" + window.screen.height : "Unknown";
-                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.355.0";
+                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.360.0";
                 var emailSubject = encodeURIComponent("[Life Care " + (feedbackType === "bug" ? "Bug" : "Feature") + "] " + feedbackText.trim().substring(0, 50));
                 window.open("mailto:jc.zaluski@gmail.com?subject=" + emailSubject + "&body=" + emailBody, "_self");
                 setFeedbackOpen(false);
@@ -7543,7 +7570,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.355.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.360.0
       </div>
 
       {/* Floating Ask a Question button */}
