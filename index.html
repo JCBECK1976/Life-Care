@@ -777,7 +777,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.340.0
+// STANDARD BUTTON STYLES v1.341.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -1119,6 +1119,7 @@ function Dashboard() {
   const [genMealsLoading, setGenMealsLoading] = useState(false);
   const [sessionFeedback, setSessionFeedback] = useState(null);
   const [sessionFbLoading, setSessionFbLoading] = useState(false);
+  const [sessionGuideLoading, setSessionGuideLoading] = useState(false);
   const [decisionsExpanded, setDecisionsExpanded] = useState({});
   const [exView, setExView] = useState("exercises");
   const [dayView, setDayView] = useState({});
@@ -3692,6 +3693,13 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 {/* ACTIVITY TAB */}
                 {dv === "activity" && (<div>
                 <div style={{ background: "#f8fafc", borderRadius: 8, padding: "4px 12px 12px", margin: 8, border: "1px solid #e2e8f0" }}>
+                  {/* Session Warm-Up */}
+                  {p.sessionGuides && p.sessionGuides[day] && p.sessionGuides[day].warmup && (
+                    <div style={{ padding: "8px 6px 10px", borderBottom: "1px solid #e2e8f0", marginBottom: 2 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "#ea580c", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>🔥 Warm-Up <span style={{ fontSize: 9, fontWeight: 400, color: "#94a3b8", textTransform: "none", letterSpacing: 0 }}>~3 min</span></div>
+                      <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{p.sessionGuides[day].warmup}</div>
+                    </div>
+                  )}
                   {exList.map(function(ex, i) { return (<div key={i} id={"ex-" + day + "-" + i} style={{ padding: "10px 3px", borderBottom: i < exList.length - 1 ? "1px solid #e2e8f0" : "none", position: "relative" }}>
                     {editExercise && editExercise.day === day && editExercise.idx === i ? (
                       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -4207,6 +4215,43 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         })();
                       }} style={{width:"100%",padding:8,background:"linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",color:"#fff",border:"none",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer",marginTop:4}}>Add Custom: {addExSearch}</button>)}
                       <button onClick={function(){setAddExOpen(false);setAddExSearch("");}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:10,color:"#64748b",cursor:"pointer",marginTop:4}}>Cancel</button>
+                    </div>
+                  )}
+                  {/* Session Cool-Down */}
+                  {p.sessionGuides && p.sessionGuides[day] && p.sessionGuides[day].cooldown && (
+                    <div style={{ padding: "10px 6px 8px", borderTop: "1px solid #e2e8f0", marginTop: 2 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "#2563eb", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>🧊 Cool-Down <span style={{ fontSize: 9, fontWeight: 400, color: "#94a3b8", textTransform: "none", letterSpacing: 0 }}>~3 min</span></div>
+                      <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{p.sessionGuides[day].cooldown}</div>
+                    </div>
+                  )}
+                  {/* Generate / Regenerate Warm-Up & Cool-Down */}
+                  {exList.length > 0 && (
+                    <div style={{ padding: "8px 6px 4px", borderTop: p.sessionGuides && p.sessionGuides[day] ? "none" : "1px solid #e2e8f0" }}>
+                      <button onClick={async function() {
+                        setSessionGuideLoading(true);
+                        try {
+                          var prof = p.profile || {};
+                          var profileInfo = buildExProfileInfo(prof);
+                          var healthCtx = "";
+                          if (p.bloods && p.bloods.length > 0) { var lb = p.bloods[p.bloods.length - 1]; healthCtx += " Bloods (" + lb.date + "): " + Object.keys(lb.tests).map(function(k){ return k + "=" + lb.tests[k]; }).join(", ") + "."; }
+                          if (p.meds) { var activeMeds = p.meds.filter(function(m){ return m.active; }); if (activeMeds.length > 0) healthCtx += " Medications: " + activeMeds.map(function(m){ return m.name + " " + m.dosage; }).join(", ") + "."; }
+                          if (p.body) { var bodyKeys = ["weight","bodyFat","muscleMass"]; bodyKeys.forEach(function(bk){ if (p.body[bk] && p.body[bk].length > 0) { var latest = p.body[bk][p.body[bk].length - 1]; healthCtx += " " + bk + ": " + latest.v + "."; } }); }
+                          if (p.measurements) { var measParts = []; Object.keys(p.measurements).forEach(function(mk){ if (p.measurements[mk] && p.measurements[mk].length > 0) { measParts.push(mk + ": " + p.measurements[mk][p.measurements[mk].length - 1].v + "cm"); } }); if (measParts.length > 0) healthCtx += " Measurements: " + measParts.join(", ") + "."; }
+                          var exerciseList = exList.map(function(ex) { return ex.name + " (" + (ex.exType || "weights") + ", " + ex.current + " " + ex.reps + ")"; }).join(", ");
+                          var guidePrompt = "Generate a warm-up and cool-down for this training session.\n\nPerson: " + profileInfo + "." + healthCtx + "\n\nSession exercises: " + exerciseList + "\n\nRules:\n- Warm-up: 3 minutes max. 3-4 activities. Tailored to the specific exercises in this session and this person's health profile.\n- Cool-down: 3 minutes max. 3-4 stretches. Target the muscle groups worked in this session. Consider any injuries, conditions, or medications.\n- Each line should be one activity with brief instruction (e.g. '1. Arm circles — 20 seconds each direction, loosen shoulders').\n- Number each line. Keep each to one short sentence.\n- Write in direct 2nd person.\n- Do NOT include any JSON formatting or labels — just the plain text.\n\nReturn ONLY JSON: {\"warmup\":\"numbered lines for warm-up\",\"cooldown\":\"numbered lines for cool-down\"}";
+                          var guideResp = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{"Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:500,messages:[{role:"user",content:guidePrompt}]})});
+                          var guideResult = await guideResp.json();
+                          var guideTxt = ""; if(guideResult.content){for(var gi=0;gi<guideResult.content.length;gi++){if(guideResult.content[gi].text)guideTxt+=guideResult.content[gi].text;}}
+                          var guideData = JSON.parse(guideTxt.replace(/```json|```/g,"").trim());
+                          var nd = JSON.parse(JSON.stringify(data));
+                          if (!nd[activeTab].sessionGuides) nd[activeTab].sessionGuides = {};
+                          nd[activeTab].sessionGuides[day] = { warmup: guideData.warmup || "", cooldown: guideData.cooldown || "" };
+                          await saveData(nd);
+                        } catch(ge) { console.error("Session guide generation failed:", ge); }
+                        setSessionGuideLoading(false);
+                      }} disabled={sessionGuideLoading} style={{ width: "100%", padding: "6px 0", background: sessionGuideLoading ? "#94a3b8" : "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, fontWeight: 600, color: sessionGuideLoading ? "#fff" : "#94a3b8", cursor: sessionGuideLoading ? "not-allowed" : "pointer", opacity: sessionGuideLoading ? 0.7 : 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 4 }}>
+                        {sessionGuideLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : (p.sessionGuides && p.sessionGuides[day] ? "🔄 Regenerate Warm-Up & Cool-Down" : "🔥 Generate Warm-Up & Cool-Down")}
+                      </button>
                     </div>
                   )}
                 </div>
@@ -7251,7 +7296,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.340.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.341.0
       </div>
 
       {/* Floating Ask a Question button */}
