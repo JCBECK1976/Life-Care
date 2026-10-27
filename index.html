@@ -777,7 +777,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.342.0
+// STANDARD BUTTON STYLES v1.343.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -3368,7 +3368,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                 <input defaultValue={entry.wk} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[bodyMetricOpen][ei].wk = parseInt(e.target.value) || entry.wk; await saveData(nd); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
                 <input defaultValue={entry.v} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[bodyMetricOpen][ei].v = parseFloat(e.target.value) || entry.v; await saveData(nd); }} style={{ width: 60, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
                 <input defaultValue={entry.note || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[bodyMetricOpen][ei].note = e.target.value; await saveData(nd); }} placeholder="..." style={{ flex: 1, minWidth: 0, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
-                <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[bodyMetricOpen].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{...btnDelete, fontSize: 11, minWidth: 24, flexShrink: 0}}>🗑 Del</button>
+                <button onClick={async function() { if (!confirm("Delete this entry? This cannot be undone.")) return; var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[bodyMetricOpen].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{...btnDelete, fontSize: 11, minWidth: 24, flexShrink: 0}}>🗑 Del</button>
               </div>); })}
               {mArr.length > 4 && <button onClick={function() { setBodyMetricShowAll(!bodyMetricShowAll); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: accent, cursor: "pointer", marginTop: 6 }}>{bodyMetricShowAll ? "▲ Show less" : "▼ View more (" + (mArr.length - 4) + " entries)"}</button>}
             </div>)}
@@ -3495,7 +3495,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         <input defaultValue={entry.v} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].v = parseFloat(e.target.value) || entry.v; await saveData(nd); }} style={{ width: 60, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
                         <input defaultValue={entry.note || ""} onBlur={async function(e) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k][ei].note = e.target.value; await saveData(nd); }} placeholder="..." style={{ flex: 1, minWidth: 0, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
                         {entry.img && <span style={{ fontSize: 9, color: "#16a34a", flexShrink: 0 }}>📷</span>}
-                        <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{...btnDelete, fontSize: 11, minWidth: 24, flexShrink: 0}}>🗑 Del</button>
+                        <button onClick={async function() { if (!confirm("Delete this measurement entry? This cannot be undone.")) return; var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].measurements[k].splice(ei, 1); await saveData(nd); setFormMsg("Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{...btnDelete, fontSize: 11, minWidth: 24, flexShrink: 0}}>🗑 Del</button>
                       </div>
                       {entry.img && (<div style={{ padding: "4px 0 6px 44px", borderBottom: "1px solid #f8fafc" }}><img src={entry.img} onClick={function() { window.open(entry.img, "_blank"); }} style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 6, border: "1px solid #e2e8f0", cursor: "pointer" }} title="Click to view full size" /></div>)}
                     </div>); })}
@@ -3662,6 +3662,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             regenerateSessionGuides(activeTab, day, nd);
           };
           const removeExercise = async (day, idx) => {
+            var exName = data[activeTab].exercises[day][idx] ? data[activeTab].exercises[day][idx].name : "this exercise";
+            if (!confirm("Remove " + exName + " from " + day + "? This cannot be undone.")) return;
             const nd = JSON.parse(JSON.stringify(data));
             nd[activeTab].exercises[day].splice(idx, 1);
             await saveData(nd); setFormMsg("✓ Removed"); setTimeout(() => setFormMsg(""), 3000);
@@ -4547,6 +4549,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             await saveMed(updated);
           };
           const removeMed = async (idx) => {
+            var medName = meds[idx] ? meds[idx].name : "this medication";
+            if (!confirm("Remove " + medName + "? This cannot be undone.")) return;
             const updated = meds.filter((_, i) => i !== idx);
             await saveMed(updated);
             setFormMsg("✓ Removed"); setTimeout(() => setFormMsg(""), 3000);
@@ -5589,7 +5593,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <MealSelect items={dispBfast} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults", e.target.searchText, slotKey); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select breakfast..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
-                    <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
+                    <button onClick={function(){ if (!confirm("Remove this default? This cannot be undone.")) return; saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
                   )}
                 </div>);
               })}
@@ -5611,7 +5615,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <MealSelect items={dispLunch} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults", e.target.searchText, slotKey); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select lunch..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
-                    <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
+                    <button onClick={function(){ if (!confirm("Remove this default? This cannot be undone.")) return; saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
                   )}
                 </div>);
               })}
@@ -5633,7 +5637,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <MealSelect items={dispDinners} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults", e.target.searchText, slotKey); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select dinner..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
-                    <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
+                    <button onClick={function(){ if (!confirm("Remove this default? This cannot be undone.")) return; saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
                   )}
                 </div>);
               })}
@@ -5655,7 +5659,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <MealSelect items={dispDesserts} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults", e.target.searchText, slotKey); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select dessert..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
-                    <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
+                    <button onClick={function(){ if (!confirm("Remove this default? This cannot be undone.")) return; saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
                   )}
                 </div>);
               })}
@@ -5678,7 +5682,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <MealSelect items={dispDrinks} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults", e.target.searchText, slotKey); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select drink..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
-                    <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
+                    <button onClick={function(){ if (!confirm("Remove this default? This cannot be undone.")) return; saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
                   )}
                 </div>);
               })}
@@ -5700,7 +5704,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <MealSelect items={dispOther} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults", e.target.searchText, slotKey); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select snack..." />
                   </div>
                   {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
-                    <button onClick={function(){ saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
+                    <button onClick={function(){ if (!confirm("Remove this default? This cannot be undone.")) return; saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
                   )}
                 </div>);
               })}
@@ -6060,7 +6064,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     {_ragChg && <span onClick={function(){alert("Rating changed from " + (_slotItem.prevRating || "?") + " to " + _slotItem.rating + (_slotItem.ragReason ? ".\n\nReason: " + _slotItem.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem.prevRating||"?") + " → " + _slotItem.rating}>🔄</span>}
                     {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
                     {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allBfast); e.target.value=""; }} style={{ display: "none" }} /></label>)}
-                    {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
+                    {_hasItem && idx > 1 && <button onClick={function() { if (!confirm("Remove this meal? This cannot be undone.")) return; setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
                     {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
@@ -6119,7 +6123,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     {_ragChg2 && <span onClick={function(){alert("Rating changed from " + (_slotItem2.prevRating || "?") + " to " + _slotItem2.rating + (_slotItem2.ragReason ? ".\n\nReason: " + _slotItem2.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem2.prevRating||"?") + " → " + _slotItem2.rating}>🔄</span>}
                     {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
                     {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allLunch); e.target.value=""; }} style={{ display: "none" }} /></label>)}
-                    {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
+                    {_hasItem && idx > 1 && <button onClick={function() { if (!confirm("Remove this meal? This cannot be undone.")) return; setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
                     {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
@@ -6183,7 +6187,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     {_ragChg3 && <span onClick={function(){alert("Rating changed from " + (_slotItem3.prevRating || "?") + " to " + _slotItem3.rating + (_slotItem3.ragReason ? ".\n\nReason: " + _slotItem3.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem3.prevRating||"?") + " → " + _slotItem3.rating}>🔄</span>}
                     {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
                     {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allDinners); e.target.value=""; }} style={{ display: "none" }} /></label>)}
-                    {_hasItem && idx > 1 && <button onClick={function() { setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
+                    {_hasItem && idx > 1 && <button onClick={function() { if (!confirm("Remove this meal? This cannot be undone.")) return; setMeal(eatDay, slotKey, ""); }} style={btnDelete}>🗑 Del</button>}
                     {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                     </div>
                     {_isPackaged && (<div style={{ marginLeft: 12, marginBottom: 6, paddingLeft: 8, borderLeft: "2px solid #bfdbfe" }}>
@@ -6253,7 +6257,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       <MealSelect items={dispDesserts} value={getMeal(eatDay, "ds" + idx) === "__empty__" ? "" : getMeal(eatDay, "ds" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults", e.target.searchText, "ds" + idx, eatDay); } else { setMeal(eatDay, "ds" + idx, e.target.value); } }} placeholder="Select dessert..." />
                     </div>
                     {getMeal(eatDay, "ds" + idx) && getMeal(eatDay, "ds" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("ds" + idx) ? "#dbeafe" : btnPortion.background, border: portionSlot === ("ds" + idx) ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === ("ds" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("ds" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("ds" + idx, e.target.files[0], allDesserts); e.target.value=""; }} style={{ display: "none" }} /></label>)}
-                    {getMeal(eatDay, "ds" + idx) && <button onClick={function() { setMeal(eatDay, "ds" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
+                    {getMeal(eatDay, "ds" + idx) && <button onClick={function() { if (!confirm("Remove this snack? This cannot be undone.")) return; setMeal(eatDay, "ds" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
                     {portionOverrides[eatDay] && portionOverrides[eatDay]["ds" + idx] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
@@ -6305,7 +6309,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       <MealSelect items={dispDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults", e.target.searchText, "dr" + idx, eatDay); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Select drink..." />
                     </div>
                     {getMeal(eatDay, "dr" + idx) && getMeal(eatDay, "dr" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("dr" + idx) ? "#dbeafe" : btnPortion.background, border: portionSlot === ("dr" + idx) ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === ("dr" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("dr" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("dr" + idx, e.target.files[0], allDrinks); e.target.value=""; }} style={{ display: "none" }} /></label>)}
-                    {getMeal(eatDay, "dr" + idx) && <button onClick={function() { setMeal(eatDay, "dr" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
+                    {getMeal(eatDay, "dr" + idx) && <button onClick={function() { if (!confirm("Remove this drink? This cannot be undone.")) return; setMeal(eatDay, "dr" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
                     {portionOverrides[eatDay] && portionOverrides[eatDay]["dr" + idx] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
@@ -6355,7 +6359,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <MealSelect items={dispOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults", e.target.searchText, "o" + idx, eatDay); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Select snack..." />
                 </div>
                 {getMeal(eatDay, "o" + idx) && getMeal(eatDay, "o" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("o" + idx) ? "#dbeafe" : btnPortion.background, border: portionSlot === ("o" + idx) ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === ("o" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("o" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("o" + idx, e.target.files[0], allOther); e.target.value=""; }} style={{ display: "none" }} /></label>)}
-                {getMeal(eatDay, "o" + idx) && <button onClick={function() { setMeal(eatDay, "o" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
+                {getMeal(eatDay, "o" + idx) && <button onClick={function() { if (!confirm("Remove this item? This cannot be undone.")) return; setMeal(eatDay, "o" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
                 {portionOverrides[eatDay] && portionOverrides[eatDay]["o" + idx] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
               </div>);
             })}
@@ -6735,7 +6739,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             var isZoned = generatedShop.length > 0 && typeof generatedShop[0] === "object" && generatedShop[0].zone;
             var zones = isZoned ? generatedShop : [{ zone: "All Items", items: generatedShop.map(function(x) { return typeof x === "string" ? x : (x.item || x.name || JSON.stringify(x)); }) }];
             var toggleDefault = async function(itemText) { var cur = [].concat(shopDefaults); var idx = cur.indexOf(itemText); if (idx >= 0) { cur.splice(idx, 1); } else { cur.push(itemText); } setShopDefaults(cur); await sSet("shop_defaults", JSON.stringify(cur)); };
-            var removeItem = function(zi, ii) { setGeneratedShop(function(prev) { if (!isZoned) return prev.filter(function(_, idx) { return idx !== ii; }); var nz = prev.map(function(z, zIdx) { if (zIdx !== zi) return z; return { zone: z.zone, items: z.items.filter(function(_, idx) { return idx !== ii; }) }; }).filter(function(z) { return z.items.length > 0; }); return nz; }); };
+            var removeItem = function(zi, ii) { if (!confirm("Remove this item from the shopping list?")) return; setGeneratedShop(function(prev) { if (!isZoned) return prev.filter(function(_, idx) { return idx !== ii; }); var nz = prev.map(function(z, zIdx) { if (zIdx !== zi) return z; return { zone: z.zone, items: z.items.filter(function(_, idx) { return idx !== ii; }) }; }).filter(function(z) { return z.items.length > 0; }); return nz; }); };
             var editItem = function(zi, ii, newText) { setGeneratedShop(function(prev) { if (!isZoned) return prev.map(function(x, idx) { return idx === ii ? newText : x; }); return prev.map(function(z, zIdx) { if (zIdx !== zi) return z; return { zone: z.zone, items: z.items.map(function(x, idx) { return idx === ii ? newText : x; }) }; }); }); };
             return (<div style={{ marginBottom: 10 }}>
               {zones.map(function(zone, zi) { return (<div key={zi} style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 8, overflow: "hidden" }}>
@@ -6830,7 +6834,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <button onClick={async function() { if (!healthComment.trim()) return; var nd = JSON.parse(JSON.stringify(data)); if (!Array.isArray(nd[activeTab].healthLog)) nd[activeTab].healthLog = []; nd[activeTab].healthLog.push({ date: new Date().toISOString().split("T")[0], note: healthComment.trim() }); await saveData(nd); setHealthComment(""); setFormMsg("Logged ✓"); setTimeout(function(){setFormMsg("");}, 2000); }} style={btnMuted}>📋 Log</button>
               </div>
-              {(Array.isArray(p.healthLog) ? p.healthLog : []).slice().reverse().map(function(h, i) { var editKey = "healthLog_" + i; var isEditing = editingHealthLog === editKey; return (<div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "8px 0", borderBottom: "1px solid #f1f5f9", fontSize: 12 }}>{isEditing ? (<div style={{ flex: 1, marginRight: 6 }}><textarea value={editHealthText} onChange={function(e) { setEditHealthText(e.target.value); }} rows={2} style={Object.assign({}, inputStyle, { minHeight: 50, resize: "vertical", fontFamily: "inherit", width: "100%", boxSizing: "border-box", marginBottom: 4 })} /><div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var realIdx = nd[activeTab].healthLog.length - 1 - i; nd[activeTab].healthLog[realIdx].note = editHealthText.trim(); await saveData(nd); setEditingHealthLog(null); setFormMsg("Updated ✓"); setTimeout(function(){setFormMsg("");}, 2000); }} style={{ padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Save</button><button onClick={function() { setEditingHealthLog(null); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>Cancel</button></div></div>) : (<span style={{ flex: 1 }}><span style={{ fontWeight: 600, color: "#475569" }}>{h.date}</span> <span style={{ color: "#334155" }}>{h.note}</span></span>)}<div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: 4 }}>{!isEditing && <button onClick={function() { setEditingHealthLog(editKey); setEditHealthText(h.note); }} style={btnEdit}>✎ Edit</button>}<button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthLog.splice(nd[activeTab].healthLog.length - 1 - i, 1); await saveData(nd); }} style={btnDelete}>🗑 Del</button></div></div>); })}
+              {(Array.isArray(p.healthLog) ? p.healthLog : []).slice().reverse().map(function(h, i) { var editKey = "healthLog_" + i; var isEditing = editingHealthLog === editKey; return (<div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "8px 0", borderBottom: "1px solid #f1f5f9", fontSize: 12 }}>{isEditing ? (<div style={{ flex: 1, marginRight: 6 }}><textarea value={editHealthText} onChange={function(e) { setEditHealthText(e.target.value); }} rows={2} style={Object.assign({}, inputStyle, { minHeight: 50, resize: "vertical", fontFamily: "inherit", width: "100%", boxSizing: "border-box", marginBottom: 4 })} /><div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}><button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var realIdx = nd[activeTab].healthLog.length - 1 - i; nd[activeTab].healthLog[realIdx].note = editHealthText.trim(); await saveData(nd); setEditingHealthLog(null); setFormMsg("Updated ✓"); setTimeout(function(){setFormMsg("");}, 2000); }} style={{ padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Save</button><button onClick={function() { setEditingHealthLog(null); }} style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#475569", cursor: "pointer" }}>Cancel</button></div></div>) : (<span style={{ flex: 1 }}><span style={{ fontWeight: 600, color: "#475569" }}>{h.date}</span> <span style={{ color: "#334155" }}>{h.note}</span></span>)}<div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: 4 }}>{!isEditing && <button onClick={function() { setEditingHealthLog(editKey); setEditHealthText(h.note); }} style={btnEdit}>✎ Edit</button>}<button onClick={async function() { if (!confirm("Delete this health log entry? This cannot be undone.")) return; var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].healthLog.splice(nd[activeTab].healthLog.length - 1 - i, 1); await saveData(nd); }} style={btnDelete}>🗑 Del</button></div></div>); })}
               {(Array.isArray(p.healthLog) ? p.healthLog : []).length === 0 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12 }}>No health log entries yet</div>}
             </div>
             {/* Medical Priorities */}
@@ -6875,7 +6879,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       {v.spo2 && <span>SpO2: <span style={{ fontWeight: 700, color: spo2Color }}>{v.spo2}%</span></span>}
                     </div>
                   </div>
-                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].vitals.splice(nd[activeTab].vitals.length - 1 - vi, 1); await saveData(nd); }} style={{...btnDelete, fontSize: 11, minWidth: 24, flexShrink: 0}}>🗑 Del</button>
+                  <button onClick={async function() { if (!confirm("Delete this vitals entry? This cannot be undone.")) return; var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].vitals.splice(nd[activeTab].vitals.length - 1 - vi, 1); await saveData(nd); }} style={{...btnDelete, fontSize: 11, minWidth: 24, flexShrink: 0}}>🗑 Del</button>
                 </div>);
               })}
             </div>
@@ -7067,7 +7071,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ fontSize: 10, color: "#94a3b8" }}>{att.date} · {att.size ? Math.round(att.size / 1024) + "KB" : ""}</div>
                     {att.extracted && <div style={{ fontSize: 10, color: "#16a34a", marginTop: 2 }}>✓ Data extracted</div>}
                   </div>
-                  <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].attachments.splice(ai, 1); await saveData(nd); }} style={btnDelete}>🗑 Remove</button>
+                  <button onClick={async function() { if (!confirm("Remove this attachment? This cannot be undone.")) return; var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].attachments.splice(ai, 1); await saveData(nd); }} style={btnDelete}>🗑 Remove</button>
                 </div>);
               })}
             </div>)}
@@ -7347,7 +7351,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.342.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.343.0
       </div>
 
       {/* Floating Ask a Question button */}
