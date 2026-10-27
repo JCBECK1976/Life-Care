@@ -777,7 +777,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.344.1
+// STANDARD BUTTON STYLES v1.345.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -1158,6 +1158,11 @@ function Dashboard() {
   window._setCompanionEnergy = function(e) { window._companionEnergyPct = e ? e.pct : 100; window._companionEnergyStatus = e ? (e.keyStatus || "active") : "active"; setCompanionEnergy(e); };
   const [energyLoading, setEnergyLoading] = useState(false);
   const [showMyDay, setShowMyDay] = useState(true);
+  const [journalEntries, setJournalEntries] = useState([]);
+  const [journalText, setJournalText] = useState("");
+  const [dailyMood, setDailyMood] = useState(null); // {date, mood} — uncommitted mood face
+  const [showRecentJournal, setShowRecentJournal] = useState(false);
+  const [showFullJournal, setShowFullJournal] = useState(false);
   const [helpEatCat, setHelpEatCat] = useState("");
   const [helpEatText, setHelpEatText] = useState("");
   const [helpEatLoading, setHelpEatLoading] = useState(false);
@@ -1594,6 +1599,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     const gt = await sGet("google_token_" + activeTab); if (gt) { setGoogleToken(gt); setGoogleConnected(true); }
     const qa = await sGet("qa_history"); if (qa) setQaHistory(JSON.parse(qa));
     const savedMood = await sGet("user_mood_" + activeTab); if (savedMood) setUserMood(JSON.parse(savedMood));
+    const savedJournal = await sGet("journal_" + activeTab); if (savedJournal) setJournalEntries(JSON.parse(savedJournal));
+    const savedDailyMood = await sGet("daily_mood_" + activeTab); if (savedDailyMood) { var dm = JSON.parse(savedDailyMood); var todayStr = new Date().toISOString().split("T")[0]; if (dm && dm.date === todayStr) setDailyMood(dm); else setDailyMood(null); }
     const cen = await sGet("companion_energy"); if (cen) setCompanionEnergy(JSON.parse(cen));
   })(); }, []);
 
@@ -2692,7 +2699,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         <div style={{ display: "flex", gap: 4, marginTop: 14, background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 4, border: "1px solid rgba(255,255,255,0.08)", overflowX: "auto" }}>
           {Object.keys(data).filter(k => k !== "config").map((k, i) => {
             const label = data[k].profile ? data[k].profile.name : k;
-            return (<button key={k} onClick={() => { setActiveTab(k); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); setCopyDayOpen(false); setCopyWeekOpen(false); setHomeFbExpanded(false); setFbExpanded(false); setEatFbExpanded(false); setHealthFbExpanded(false); setBodyFbExpanded(false); setMeasFbExpanded2(false); if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); sGet("meal_tracking:" + k).then(function(mt) { if (mt) setMealTracking(JSON.parse(mt)); else setMealTracking({}); }); sGet("user_mood_" + k).then(function(m) { if (m) setUserMood(JSON.parse(m)); else setUserMood(null); }); }} style={{ flex: 1, padding: "10px 0", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? "rgba(255,255,255,0.95)" : "transparent", color: activeTab === k ? "#0f172a" : "rgba(255,255,255,0.45)", minWidth: 50, letterSpacing: activeTab === k ? "0.02em" : "0", transition: "all 0.2s ease" }}>{label}</button>);
+            return (<button key={k} onClick={() => { setActiveTab(k); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); setCopyDayOpen(false); setCopyWeekOpen(false); setHomeFbExpanded(false); setFbExpanded(false); setEatFbExpanded(false); setHealthFbExpanded(false); setBodyFbExpanded(false); setMeasFbExpanded2(false); if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); sGet("meal_tracking:" + k).then(function(mt) { if (mt) setMealTracking(JSON.parse(mt)); else setMealTracking({}); }); sGet("user_mood_" + k).then(function(m) { if (m) setUserMood(JSON.parse(m)); else setUserMood(null); }); sGet("journal_" + k).then(function(j) { if (j) setJournalEntries(JSON.parse(j)); else setJournalEntries([]); }); sGet("daily_mood_" + k).then(function(dm) { if (dm) { var parsed = JSON.parse(dm); var todayStr = new Date().toISOString().split("T")[0]; if (parsed && parsed.date === todayStr) setDailyMood(parsed); else setDailyMood(null); } else setDailyMood(null); }); setJournalText(""); setShowRecentJournal(false); setShowFullJournal(false); }} style={{ flex: 1, padding: "10px 0", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? "rgba(255,255,255,0.95)" : "transparent", color: activeTab === k ? "#0f172a" : "rgba(255,255,255,0.45)", minWidth: 50, letterSpacing: activeTab === k ? "0.02em" : "0", transition: "all 0.2s ease" }}>{label}</button>);
           })}
           <button onClick={() => setShowAddPerson(true)} style={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: "transparent", color: "rgba(255,255,255,0.3)", transition: "all 0.2s ease" }}>+</button>
         </div>
@@ -2703,7 +2710,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         </div>)}
       </div>
       <div style={{ display: "flex", gap: 0, padding: "0 4px", background: "#fff", borderBottom: "1px solid #e2e8f0", overflowX: "auto" }}>
-        {SECS.map(s => (<button key={s.id} onClick={() => { setSection(s.id); setShowOnboarding(false); setSetupTab("profile"); setFbExpanded(false); setEatFbExpanded(false); setHomeFbExpanded(false); setHealthFbExpanded(false); setLogEx(null); setSelectedEx(null); setBodyView("data"); setShowBodyForm(false); setBodyMetricOpen(null); setMeasMetricOpen(null); setMeasLogKey(null); setEditMeasKey(null); setAddMeasOpen(false); setWarmUpOpen(false); setCoolDownOpen(false); }} style={{ padding: "10px 8px", border: "none", borderBottom: section === s.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 11, fontWeight: section === s.id ? 700 : 500, color: section === s.id ? accent : "#64748b", cursor: "pointer", whiteSpace: "nowrap" }}>{s.l}</button>))}
+        {SECS.map(s => (<button key={s.id} onClick={() => { setSection(s.id); setShowOnboarding(false); setSetupTab("profile"); setFbExpanded(false); setEatFbExpanded(false); setHomeFbExpanded(false); setHealthFbExpanded(false); setLogEx(null); setSelectedEx(null); setBodyView("data"); setShowBodyForm(false); setBodyMetricOpen(null); setMeasMetricOpen(null); setMeasLogKey(null); setEditMeasKey(null); setAddMeasOpen(false); setWarmUpOpen(false); setCoolDownOpen(false); setShowRecentJournal(false); setShowFullJournal(false); }} style={{ padding: "10px 8px", border: "none", borderBottom: section === s.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 11, fontWeight: section === s.id ? 700 : 500, color: section === s.id ? accent : "#64748b", cursor: "pointer", whiteSpace: "nowrap" }}>{s.l}</button>))}
       </div>
       {formMsg && <div style={{ margin: "8px 16px 0", padding: 10, borderRadius: 8, background: formMsg.startsWith("✓") ? "#e0f2fe" : "#fee2e2", color: formMsg.startsWith("✓") ? "#0c4a6e" : "#991b1b", fontSize: 12, fontWeight: 600 }}>{formMsg}</div>}
 
@@ -3161,12 +3168,17 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 3, marginTop: 6 }}>
               {MOOD_EMOJIS.map(function(emoji, idx) {
-                var isSelected = userMood === idx;
+                var currentMood = dailyMood ? dailyMood.mood : null;
+                var isSelected = currentMood === idx;
                 return (<button key={idx} onClick={async function() {
-                  var newMood = userMood === idx ? null : idx;
+                  var todayStr = new Date().toISOString().split("T")[0];
+                  var newMood = currentMood === idx ? null : idx;
+                  var newDailyMood = newMood !== null ? { date: todayStr, mood: newMood } : null;
+                  setDailyMood(newDailyMood);
                   setUserMood(newMood);
+                  await sSet("daily_mood_" + activeTab, JSON.stringify(newDailyMood));
                   await sSet("user_mood_" + activeTab, JSON.stringify(newMood));
-                }} title={MOOD_LABELS[idx]} style={{ flex: 1, padding: "4px 0", border: isSelected ? "2px solid " + MOOD_COLORS[idx] : "2px solid transparent", borderRadius: 8, background: isSelected ? MOOD_COLORS[idx] + "18" : "#f8fafc", fontSize: 16, cursor: "pointer", transition: "all 0.2s ease", transform: isSelected ? "scale(1.08)" : "scale(1)", filter: (userMood !== null && !isSelected) ? "grayscale(0.5) opacity(0.5)" : "none" }}>{emoji}</button>);
+                }} title={MOOD_LABELS[idx]} style={{ flex: 1, padding: "4px 0", border: isSelected ? "2px solid " + MOOD_COLORS[idx] : "2px solid transparent", borderRadius: 8, background: isSelected ? MOOD_COLORS[idx] + "18" : "#f8fafc", fontSize: 16, cursor: "pointer", transition: "all 0.2s ease", transform: isSelected ? "scale(1.08)" : "scale(1)", filter: (currentMood !== null && !isSelected) ? "grayscale(0.5) opacity(0.5)" : "none" }}>{emoji}</button>);
               })}
             </div>
           </div>
@@ -3268,6 +3280,87 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               </div>)}
             </div>);
           })()}
+
+          {/* ── MY JOURNAL ── */}
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginBottom: 14, overflow: "hidden" }}>
+            <div style={{ padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>My Journal</span>
+                <span style={{ fontSize: 10, color: "#94a3b8" }}>{(() => { var todayEntries = journalEntries.filter(function(e) { return e.date === new Date().toISOString().split("T")[0]; }); return todayEntries.length > 0 ? todayEntries.length + " today" : ""; })()}</span>
+              </div>
+              <span style={{ fontSize: 11 }}>📝</span>
+            </div>
+            <div style={{ padding: "0 16px 12px" }}>
+              <textarea value={journalText} onChange={function(e) { setJournalText(e.target.value); }} placeholder="How are you feeling? What's on your mind today..." style={{ width: "100%", minHeight: 60, padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, lineHeight: 1.5, color: "#334155", resize: "vertical", fontFamily: "inherit", boxSizing: "border-box", background: "#f8fafc" }} />
+              <button onClick={async function() {
+                if (!journalText.trim()) return;
+                var todayStr = new Date().toISOString().split("T")[0];
+                var newEntry = { id: Date.now().toString(), date: todayStr, text: journalText.trim(), mood: dailyMood ? dailyMood.mood : null, ts: new Date().toISOString() };
+                var updated = [newEntry].concat(journalEntries);
+                setJournalEntries(updated);
+                setJournalText("");
+                await sSet("journal_" + activeTab, JSON.stringify(updated));
+                /* Consume the mood face — reset dailyMood to blank */
+                setDailyMood(null);
+                setUserMood(null);
+                await sSet("daily_mood_" + activeTab, JSON.stringify(null));
+                await sSet("user_mood_" + activeTab, JSON.stringify(null));
+                setFormMsg("✓ Journal entry added");
+                setTimeout(function() { setFormMsg(""); }, 3000);
+              }} disabled={!journalText.trim()} style={{ width: "100%", padding: "8px 0", marginTop: 8, border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: journalText.trim() ? "pointer" : "not-allowed", background: journalText.trim() ? "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" : "#e2e8f0", color: journalText.trim() ? "#fff" : "#94a3b8", transition: "all 0.2s ease" }}>Add Journal Entry</button>
+            </div>
+
+            {/* Recent entries (last 4) */}
+            {journalEntries.length > 0 && (<div style={{ borderTop: "1px solid #e2e8f0" }}>
+              <button onClick={function() { setShowRecentJournal(!showRecentJournal); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "none", border: "none", cursor: "pointer" }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b" }}>Recent Entries</span>
+                <span style={{ fontSize: 10, color: "#94a3b8" }}>{showRecentJournal ? "▲" : "▼"}</span>
+              </button>
+              {showRecentJournal && (<div style={{ padding: "0 16px 12px" }}>
+                {journalEntries.slice(0, 4).map(function(entry) {
+                  var entryDate = new Date(entry.ts || entry.date);
+                  var dateLabel = entryDate.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+                  var timeLabel = entry.ts ? new Date(entry.ts).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
+                  return (<div key={entry.id} style={{ padding: "8px 10px", marginBottom: 6, background: "#eff6ff", borderRadius: 8, border: "1px solid #bfdbfe" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        {entry.mood !== null && entry.mood !== undefined && <span style={{ fontSize: 13 }}>{MOOD_EMOJIS[entry.mood]}</span>}
+                        <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>{dateLabel}{timeLabel ? " · " + timeLabel : ""}</span>
+                      </div>
+                      <button onClick={async function() {
+                        var updated = journalEntries.filter(function(e) { return e.id !== entry.id; });
+                        setJournalEntries(updated);
+                        await sSet("journal_" + activeTab, JSON.stringify(updated));
+                      }} style={{ background: "none", border: "none", fontSize: 11, color: "#94a3b8", cursor: "pointer", padding: "2px 4px" }} title="Delete entry">🗑</button>
+                    </div>
+                    <div style={{ fontSize: 12, lineHeight: 1.5, color: "#334155", whiteSpace: "pre-wrap" }}>{entry.text}</div>
+                  </div>);
+                })}
+              </div>)}
+            </div>)}
+
+            {/* Full history */}
+            {journalEntries.length > 4 && (<div style={{ borderTop: "1px solid #e2e8f0" }}>
+              <button onClick={function() { setShowFullJournal(!showFullJournal); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "none", border: "none", cursor: "pointer" }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b" }}>Full History ({journalEntries.length} entries)</span>
+                <span style={{ fontSize: 10, color: "#94a3b8" }}>{showFullJournal ? "▲" : "▼"}</span>
+              </button>
+              {showFullJournal && (<div style={{ padding: "0 16px 12px", maxHeight: 400, overflowY: "auto" }}>
+                {journalEntries.slice(4).map(function(entry) {
+                  var entryDate = new Date(entry.ts || entry.date);
+                  var dateLabel = entryDate.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+                  var timeLabel = entry.ts ? new Date(entry.ts).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
+                  return (<div key={entry.id} style={{ padding: "8px 10px", marginBottom: 6, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      {entry.mood !== null && entry.mood !== undefined && <span style={{ fontSize: 13 }}>{MOOD_EMOJIS[entry.mood]}</span>}
+                      <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600 }}>{dateLabel}{timeLabel ? " · " + timeLabel : ""}</span>
+                    </div>
+                    <div style={{ fontSize: 11, lineHeight: 1.5, color: "#64748b", whiteSpace: "pre-wrap" }}>{entry.text}</div>
+                  </div>);
+                })}
+              </div>)}
+            </div>)}
+          </div>
 
           <button onClick={generateFeedback} disabled={feedbackLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: feedbackLoading ? "not-allowed" : "pointer", opacity: feedbackLoading ? 0.7 : 1, background: feedbackLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", marginBottom: 14 }}>{feedbackLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Feedback"}</button>
           <button onClick={function(){setHomeFbExpanded(!homeFbExpanded);}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#64748b",cursor:"pointer",marginTop:4}}>{homeFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>
@@ -7371,7 +7464,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.344.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.345.0
       </div>
 
       {/* Floating Ask a Question button */}
