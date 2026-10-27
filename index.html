@@ -3608,15 +3608,53 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             if (!nd[activeTab].exercises) nd[activeTab].exercises = {}; if (!nd[activeTab].exercises[day]) nd[activeTab].exercises[day] = []; nd[activeTab].exercises[day].push({ name, current: "0kg", reps: "0×3", status: "building", prog: [] });
             await saveData(nd); setFormMsg("✓ " + name + " added"); setTimeout(() => setFormMsg(""), 3000);
           };
+          const regenerateSessionGuides = async (targetTab, targetDay, updatedData) => {
+            try {
+              var pd = updatedData[targetTab];
+              var dayExList = pd.exercises[targetDay] || [];
+              if (dayExList.length === 0) {
+                // No exercises left — clear guides
+                if (pd.sessionGuides && pd.sessionGuides[targetDay]) {
+                  var nd2 = JSON.parse(JSON.stringify(updatedData));
+                  delete nd2[targetTab].sessionGuides[targetDay];
+                  await saveData(nd2);
+                }
+                return;
+              }
+              // Only regenerate if guides already exist for this day
+              if (!pd.sessionGuides || !pd.sessionGuides[targetDay]) return;
+              setSessionGuideLoading(true);
+              var prof = pd.profile || {};
+              var profileInfo = buildExProfileInfo(prof);
+              var healthCtx = "";
+              if (pd.bloods && pd.bloods.length > 0) { var lb = pd.bloods[pd.bloods.length - 1]; healthCtx += " Bloods (" + lb.date + "): " + Object.keys(lb.tests).map(function(k){ return k + "=" + lb.tests[k]; }).join(", ") + "."; }
+              if (pd.meds) { var activeMeds = pd.meds.filter(function(m){ return m.active; }); if (activeMeds.length > 0) healthCtx += " Medications: " + activeMeds.map(function(m){ return m.name + " " + m.dosage; }).join(", ") + "."; }
+              if (pd.body) { ["weight","bodyFat","muscleMass"].forEach(function(bk){ if (pd.body[bk] && pd.body[bk].length > 0) { healthCtx += " " + bk + ": " + pd.body[bk][pd.body[bk].length - 1].v + "."; } }); }
+              if (pd.measurements) { var measParts = []; Object.keys(pd.measurements).forEach(function(mk){ if (pd.measurements[mk] && pd.measurements[mk].length > 0) { measParts.push(mk + ": " + pd.measurements[mk][pd.measurements[mk].length - 1].v + "cm"); } }); if (measParts.length > 0) healthCtx += " Measurements: " + measParts.join(", ") + "."; }
+              var exerciseList = dayExList.map(function(ex) { return ex.name + " (" + (ex.exType || "weights") + ", " + ex.current + " " + ex.reps + ")"; }).join(", ");
+              var guidePrompt = "Generate a warm-up and cool-down for this training session.\n\nPerson: " + profileInfo + "." + healthCtx + "\n\nSession exercises: " + exerciseList + "\n\nRules:\n- Warm-up: 3 minutes max. 3-4 activities. Tailored to the specific exercises in this session and this person's health profile.\n- Cool-down: 3 minutes max. 3-4 stretches. Target the muscle groups worked in this session. Consider any injuries, conditions, or medications.\n- Each line should be one activity with brief instruction (e.g. '1. Arm circles — 20 seconds each direction, loosen shoulders').\n- Number each line. Keep each to one short sentence.\n- Write in direct 2nd person.\n- Do NOT include any JSON formatting or labels — just the plain text.\n\nReturn ONLY JSON: {\"warmup\":\"numbered lines for warm-up\",\"cooldown\":\"numbered lines for cool-down\"}";
+              var guideResp = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{"Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:500,messages:[{role:"user",content:guidePrompt}]})});
+              var guideResult = await guideResp.json();
+              var guideTxt = ""; if(guideResult.content){for(var gi=0;gi<guideResult.content.length;gi++){if(guideResult.content[gi].text)guideTxt+=guideResult.content[gi].text;}}
+              var guideData = JSON.parse(guideTxt.replace(/```json|```/g,"").trim());
+              var nd3 = JSON.parse(JSON.stringify(data));
+              if (!nd3[targetTab].sessionGuides) nd3[targetTab].sessionGuides = {};
+              nd3[targetTab].sessionGuides[targetDay] = { warmup: guideData.warmup || "", cooldown: guideData.cooldown || "" };
+              await saveData(nd3);
+            } catch(rge) { console.error("Auto-regenerate guides failed:", rge); }
+            setSessionGuideLoading(false);
+          };
           const renameExercise = async (day, idx, newName) => {
             const nd = JSON.parse(JSON.stringify(data));
             nd[activeTab].exercises[day][idx].name = newName;
             await saveData(nd); setEditExercise(null); setFormMsg("✓ Renamed"); setTimeout(() => setFormMsg(""), 3000);
+            regenerateSessionGuides(activeTab, day, nd);
           };
           const removeExercise = async (day, idx) => {
             const nd = JSON.parse(JSON.stringify(data));
             nd[activeTab].exercises[day].splice(idx, 1);
             await saveData(nd); setFormMsg("✓ Removed"); setTimeout(() => setFormMsg(""), 3000);
+            regenerateSessionGuides(activeTab, day, nd);
           };
           const addSection = async (name) => {
             const key = name.toLowerCase().replace(/[^a-z0-9]/g, "_");
@@ -4142,6 +4180,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                             setSelectedEx({day:day,idx:newIdx});
                             setFormMsg("✓ " + c.name + " added"); setTimeout(function(){setFormMsg("");},3000);
                           }
+                          var triggerDay = c._editMode ? c._editDay : day;
+                          regenerateSessionGuides(activeTab, triggerDay, nd);
                           setAddExConfirm(null); setAddExOpen(false); setAddExSearch("");
                         }} style={{...btnP(true),flex:1}}>{addExConfirm && addExConfirm._editMode ? "Save Changes" : "Add Exercise"}</button>
                         {!addExConfirm._editMode && <button onClick={function(){setAddExConfirm(null);setAddExOpen(true);}} style={btnS}>Back</button>}
@@ -4440,7 +4480,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         }} style={{ padding: "5px 14px", background: "#e2e8f0", color: "#475569", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Decline</button>
                       </div></div>)}
                     </div>)}
-                    <div style={{textAlign:"right",marginTop:4}}><button onClick={async function(){if(!confirm("Remove "+ex.name+" from "+day+"?"))return;var nd=JSON.parse(JSON.stringify(data));nd[activeTab].exercises[day].splice(i,1);await saveData(nd);}} style={{...btnDelete,fontSize:9,background:"#fee2e2",color:"#dc2626",border:"none"}}>🗑 remove</button></div></div></div>); })}
+                    <div style={{textAlign:"right",marginTop:4}}><button onClick={async function(){if(!confirm("Remove "+ex.name+" from "+day+"?"))return;var nd=JSON.parse(JSON.stringify(data));nd[activeTab].exercises[day].splice(i,1);await saveData(nd);regenerateSessionGuides(activeTab,day,nd);}} style={{...btnDelete,fontSize:9,background:"#fee2e2",color:"#dc2626",border:"none"}}>🗑 remove</button></div></div></div>); })}
                     {renderThread(sessionFeedback[activeTab + "_" + day], "session", activeTab + "-" + day, function(updatedFb) { updateSessionFb(updatedFb, activeTab + "_" + day); }, activeTab + "_" + day)}
                   </div>)}
                 </div>
