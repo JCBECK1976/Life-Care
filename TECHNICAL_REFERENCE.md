@@ -1,7 +1,7 @@
 # Technical Reference — Life Care Companion
 
 > **Purpose**: Complete technical architecture reference for any developer continuing this project.  
-> **Version**: v1.344.1 | **File**: `index.html` (~7,522 lines, ~329KB)  
+> **Version**: v1.365.0 | **File**: `index.html` (~860KB)  
 > **Live**: https://jcbeck1976.github.io/Life-Care  
 > **Repo**: https://github.com/JCBECK1976/Life-Care
 
@@ -131,6 +131,8 @@ All state is in `useState` hooks inside the `Dashboard` component. There is no C
 - `googleToken`, `googleConnected` — Google Health Connect
 - `showOnboarding`, `setupTab` — onboarding flow
 - `ragRecalcLoading` — dynamic RAG recalculation
+- `userColour` — current user's selected colour theme key
+- `showPrivacy` — privacy policy overlay visibility
 
 ---
 
@@ -309,29 +311,53 @@ const resp = await fetch("https://api.anthropic.com/v1/messages", {
 
 ## 6. Design System
 
-### Button Styles (line 788–794)
+### Colour Theming (v1.345+)
+Users can choose from 8 colour themes: blue, purple, green, teal, rose, amber, indigo, slate. Each theme defines `accent` and `light` values. Per-user colour stored via `sGet/sSet("user_colour_" + activeTab)`.
+
+**Derived colour variables** (computed inside component from user's accent):
+| Variable | Derivation | Use |
+|----------|-----------|-----|
+| `accent` | From COLOUR_THEMES | Primary colour |
+| `accentLight` | From COLOUR_THEMES `.light` | Sub-section backgrounds |
+| `accentDark` | `accentVariant(accent, 25)` | Very dark elements |
+| `accentMid` | HSL S:30 L:40 | Muted dark tab backgrounds |
+| `accentBtnLight` | `accentVariant(accent, 93)` | Themed button backgrounds |
+| `accentBtnBorder` | `accentVariant(accent, 80)` | Themed button borders |
+| `accentChatUser` | `accentVariant(accent, 88)` | User chat bubbles |
+| `accentBorder` | `accentVariant(accent, 78)` | Section borders |
+
+**CRITICAL**: Top-level constants (`btnS`, `btnMuted`, `btnAction` etc.) MUST use static values only. Themed variants (`btnST`, `btnMT`) are computed inside the component using `Object.assign()`.
+
+### Button Styles
 | Constant | Use | Appearance |
 |----------|-----|------------|
-| `btnAction` | Outside content cards on white bg | Deep blue gradient `#1e3a5f → #2563eb`, white text |
-| `btnMuted` | Inside content cards | Light grey `#f1f5f9` bg, `#94a3b8` text, `#e2e8f0` border |
-| `btnClose` | Close/cancel buttons | Deep blue gradient, white text |
-| `btnClear` | Delete/clear actions | Red `#dc2626` bg, white text |
+| `btnAction` | Outside content cards | Deep blue gradient `#1e3a5f → #2563eb`, white text |
+| `btnMuted` | Inside content cards (static) | Light grey `#f1f5f9` bg, `#94a3b8` text |
+| `btnST` | Standard themed (computed) | `accentBtnLight` bg, `accentBtnBorder` border |
+| `btnMT` | Muted themed (computed) | `accentBtnLight` bg, `accentBtnBorder` border |
+| `btnDelete` | Delete actions | Red `#fee2e2` bg, `#dc2626` text |
 
-**CRITICAL RULE**: Inside main content cards = `btnMuted` (grey). Outside main content on white = `btnAction` (deep blue). Exercise Progress/Log buttons are always `btnMuted`.
+**CRITICAL RULE**: Inside main content cards = `btnMuted`/`btnMT` (grey/themed). Outside = `btnAction` (deep blue).
 
-### Loading State Pattern
-```javascript
-<LoadingBtn loading={isLoading} label="Save" onClick={handleSave} />
-// Grey bg (#94a3b8), opacity 0.7, cursor not-allowed, CSS animated dots
-```
+### Header Hierarchy (3 tiers)
+| Tier | fontSize | fontWeight | color |
+|------|----------|------------|-------|
+| 1 (main) | 13px | 800 | #0f172a |
+| 2 (sub) | 12px | 700 | #0f172a |
+| 3 (grey) | 11px | 700 | #475569 |
+
+### Container Hierarchy
+grey page bg → white section → `accentLight` sub-section → white user inputs ONLY
+
+### Info Box Standard
+`background: accentLight, color: #334155, fontSize: 12, border: 1px solid #cbd5e1`
 
 ### Colour Palette
 - Header: `#0f172a → #1e293b` gradient
-- Accent (JC): `#2563eb` (blue)
-- Accent (Beck): `#7c3aed` (purple) — NOTE: purple buttons replaced with deep blue, only 3 chart colour refs remain
+- Default accent (JC): `#2563eb` (blue), Default accent (Beck): `#7c3aed` (purple)
 - AI feature backgrounds: `#eff6ff` bg, `#bfdbfe` border
-- Feedback companion: dark grey `#334155` (not black gradient)
-- User thread messages: grey
+- Feedback companion messages: dark grey `#334155`
+- User thread messages: `accentChatUser` (L:88)
 - Success toast: `#e0f2fe` bg, `#0c4a6e` text
 - Error toast: `#fee2e2` bg, `#991b1b` text
 
