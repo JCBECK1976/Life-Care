@@ -2,7 +2,7 @@
 
 ## Context for Claude Code
 
-This document hands over the **Life Care Companion** app from its development phase in Claude Chat (Opus 4.6) to Claude Code for platform engineering and commercialisation. The app has been built iteratively across multiple chat sessions from approximately August–October 2026, totalling 344+ version increments. It is a working product in live daily use by its two founding users (JC and Beck).
+This document hands over the **Life Care Companion** app from its development phase in Claude Chat (Opus 4.6) to Claude Code for platform engineering and commercialisation. The app has been built iteratively across multiple chat sessions from approximately August–October 2026, totalling 365+ version increments. It is a working product in live daily use by its two founding users (JC and Beck).
 
 ---
 
@@ -16,7 +16,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 - **Single-file architecture**: One `index.html` containing all React JSX, compiled by Babel in the browser
 - **Deployed via GitHub API**: Claude pushes the file directly to GitHub Pages using the Contents API
 - **Iterative development**: One feature per version, one version per deploy, tested live after each push
-- **344+ versions** from v1.0.0 to v1.344.1, each individually versioned and deployed
+- **365+ versions** from v1.0.0 to v1.365.0, each individually versioned and deployed
 
 ### Key Milestones
 | Version | Feature |
@@ -33,6 +33,8 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v1.329 | Dynamic RAG rating system |
 | v1.338-340 | Body section redesign (measurement cards, image upload) |
 | v1.341-344 | Warm-up/cool-down, delete confirmations, energy meter fixes |
+| v1.345-361 | Design system alignment (colour theming, header hierarchy, container patterns, button audit) |
+| v1.362-365 | Per-user colour isolation, privacy policy, settings gear icon, legal links |
 
 ---
 
@@ -41,9 +43,9 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v1.344.1
+- **Version**: v1.365.0
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
-- **File size**: ~329KB single HTML file (approaching Babel mobile compilation limit of ~340KB)
+- **File size**: ~860KB single HTML file (Babel compiles but approaching practical limits)
 
 ### Technology Stack
 | Component | Technology |
@@ -82,7 +84,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 
 ### Critical Known Issues
 1. **Firebase security** — Database rules are wide open (see FIREBASE_SECURITY.md)
-2. **File size limit** — Single file at ~329KB, Babel fails on mobile at ~340KB+
+2. **File size limit** — Single file at ~860KB, Babel compilation on mobile increasingly slow
 3. **Silent Firebase errors** — `sGet()`/`sSet()` swallow permission errors, app loads defaults instead of showing error
 4. **GitHub PAT expiry** — Current token expires 4 December 2026
 5. **No error boundary** — A single JSX error causes blank screen (no graceful degradation)
@@ -220,22 +222,39 @@ try {
 A Babel syntax error = **blank screen** in production. No error boundary exists.
 
 ### Version Convention
-- Feature/layout change: increment major sub → `v1.345.0`
-- Bug fix: increment minor → `v1.344.2`
-- Always update version in both:
+- Feature/layout change: increment major sub → `v1.366.0`
+- Bug fix: increment minor → `v1.365.1`
+- Always update version in THREE places:
   1. Footer display text
   2. Button styles comment block near the top of the script
+  3. Feedback email body (App Version in emailBody string)
 
 ### Design System
 
+**Colour Theming (v1.345+)**:
+- `COLOUR_THEMES` constant: blue/purple/green/teal/rose/amber/indigo/slate — each has accent + light
+- Per-user colour stored via `sGet/sSet("user_colour_" + activeTab)`, reloaded on person switch
+- Derived variables: `accent`, `accentLight`, `accentDark` (L:25), `accentMid` (S:30 L:40), `accentBtnLight` (L:93), `accentBtnBorder` (L:80), `accentChatUser` (L:88), `accentBorder` (L:78)
+- `accentVariant(hex, lightness)` helper computes HSL variants from any hex
+- **CRITICAL**: Top-level button constants (`btnS`, `btnMuted`, `btnAction` etc.) use STATIC values only — themed variants (`btnST`, `btnMT`) computed inside component
+
+**Header Hierarchy**: Tier 1 (13px/800/#0f172a), Tier 2 (12px/700/#0f172a), Tier 3 (11px/700/#475569)
+
+**Container Pattern**: grey page bg → white section → `accentLight` sub-section → white user inputs ONLY
+
+**Info Boxes**: background `accentLight`, color #334155, fontSize 12, border 1px solid #cbd5e1
+
 | Context | Style | Constant |
 |---------|-------|----------|
-| Inside content cards | Grey/muted `#94a3b8` | `btnMuted` |
+| Inside content cards | Grey/muted `#94a3b8` | `btnMuted` (static) → `btnMT` (themed) |
 | Outside content on white bg | Deep blue gradient `#1e3a5f→#2563eb` | `btnAction` |
+| Themed standard | `accentBtnLight` bg, `accentBtnBorder` border | `btnST` (computed inside component) |
 | Close/cancel buttons | Deep blue outline | `btnClose` |
 | Clear/delete | Red text button | `btnClear` |
 | Loading state | Grey `#94a3b8`, opacity 0.7, animated dots | — |
 | AI features | Blue scheme `#eff6ff` bg, `#bfdbfe` border | — |
+
+**Settings**: Gear icon in top-right header (removed from bottom tab bar in v1.363.0)
 
 ### Established User Rules (MUST follow)
 - One feature per version — never bundle
@@ -248,7 +267,10 @@ A Babel syntax error = **blank screen** in production. No error boundary exists.
 - Honest tracking sentence on Eating Day tabs
 - No hardcoded user-specific data in AI prompts — only user-entered data
 - All AI openers must vary — no repetitive filler phrases
-- Conversation thread messages: user = grey, companion = dark grey (#334155)
+- Conversation thread messages: user = `accentChatUser` (L:88), companion = dark grey (#334155)
+- Per-user colour isolation — never let one user's colour change affect another
+- Privacy policy accessible via legal links row below feedback button
+- DO NOT go off scope — only change what is explicitly asked for
 
 ---
 
@@ -278,7 +300,7 @@ A Babel syntax error = **blank screen** in production. No error boundary exists.
 
 1. **Blank screen on syntax error** — No error boundary. One misplaced bracket = dead app for all users. Always Babel-check before deploy.
 2. **Firebase silent failures** — `sGet`/`sSet` return null on error. App treats null as "no data" and loads defaults. Users see their data vanish without warning.
-3. **Babel mobile limit** — File is at ~329KB. At ~340KB+ phones can't compile it. Vite migration is urgent.
+3. **Babel mobile limit** — File is at ~860KB. Vite migration is urgent for performance.
 4. **PAT expiry** — GitHub token expires 4 Dec 2026. New token needed before then.
 5. **No rollback** — Deployment overwrites. The only rollback is git revert via GitHub.
 6. **DEFAULT_DATA coupling** — The default data object serves as both a "safety net" when Firebase fails and as initial demo data. These two concerns need separating.
