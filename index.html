@@ -822,7 +822,7 @@ function ExTable({ exercises, day, showHistory, onLog }) {
           </div>
         </div>
         <div style={{ color: "#64748b", fontSize: 11, fontWeight: 500 }}>{ex.current} · {ex.reps}</div>
-        <div style={{ marginTop: 3 }}><span style={{ fontSize: 10, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap", border: "1px solid " + sColor(ex.status) + "40" }}>{sLabel(ex.status)}</span></div>
+        {ex.status && <div style={{ marginTop: 3 }}><span style={{ fontSize: 10, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap", border: "1px solid " + sColor(ex.status) + "40" }}>{sLabel(ex.status)}</span></div>}
                     {ex._userNote && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "2px 6px", borderRadius: 4, marginTop: 2 }}>{ex._userNote}</div>}
         {ex.status === "reduce" && <div style={{ fontSize: 11, color: "#dc2626", marginTop: 3 }}>Back protection — reduced load</div>}
         {showHistory && ex.prog && ex.prog.length > 0 && (
@@ -867,7 +867,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.362.0
+// STANDARD BUTTON STYLES v1.363.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -1699,7 +1699,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     const savedMood = await sGet("user_mood_" + activeTab); if (savedMood) setUserMood(JSON.parse(savedMood));
     const savedJournal = await sGet("journal_" + activeTab); if (savedJournal) setJournalEntries(JSON.parse(savedJournal));
     const savedDailyMood = await sGet("daily_mood_" + activeTab); if (savedDailyMood) { var dm = JSON.parse(savedDailyMood); var todayStr = new Date().toISOString().split("T")[0]; if (dm && dm.date === todayStr) setDailyMood(dm); else setDailyMood(null); }
-    const savedColour = await sGet("user_colour_" + activeTab); if (savedColour) setUserColour(savedColour);
+    const savedColour = await sGet("user_colour_" + activeTab); if (savedColour) setUserColour(savedColour); else setUserColour(null);
     const savedWbFlags = await sGet("wellbeing_flags_" + activeTab); if (savedWbFlags) setWellbeingFlags(JSON.parse(savedWbFlags));
     const cen = await sGet("companion_energy"); if (cen) setCompanionEnergy(JSON.parse(cen));
   })(); }, []);
@@ -2793,7 +2793,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const accentMid = (function() { var hsl = hexToHsl(accent); return hslToHex(hsl[0], Math.min(hsl[1], 30), 40); })();
   const accentBtnLight = accentVariant(accent, 93);
   const accentBtnBorder = accentVariant(accent, 80);
-  const accentChatUser = accentVariant(accent, 95);
+  const accentChatUser = accentVariant(accent, 88);
   const accentBorder = accentVariant(accent, 78);
   const btnST = Object.assign({}, btnS, { background: accentBtnLight, border: "1px solid " + accentBtnBorder });
   const btnMT = Object.assign({}, btnMuted, { background: accentBtnLight, border: "1px solid " + accentBtnBorder });
@@ -2802,7 +2802,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const shopItems = {}; MEAL_DAYS.forEach(d => { var _dk = DAY_MAP[d.key] || d.key; var _dm = meals[_dk] || {}; var _did = typeof _dm === "object" ? _dm.d : _dm; const m = allDinners.find(x => x.id === _did); if (m) m.shop?.forEach(it => { shopItems[it] = (shopItems[it] || 0) + 1; }); });
   const shopList = Object.entries(shopItems).sort((a, b) => a[0].localeCompare(b[0]));
   const planned = MEAL_DAYS.filter(d => meals[DAY_MAP[d.key] || d.key]).length;
-  const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "My Body" }, { id: "weights", l: "My Exercise" }, { id: "meals", l: "My Eating" }, { id: "shop", l: "My Shop" }, { id: "bloods", l: "My Health" }, { id: "admin", l: "⚙" }];
+  const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "My Body" }, { id: "weights", l: "My Exercise" }, { id: "meals", l: "My Eating" }, { id: "shop", l: "My Shop" }, { id: "bloods", l: "My Health" }];
   const wt = p.body.weight || [];
   const latestWt = wt.length > 0 ? wt[wt.length - 1] : null;
   const idealSt = isJC ? IDEALS.jc : IDEALS.becks;
@@ -2818,13 +2818,18 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   return (
     <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", background: "#f8fafc", minHeight: "100vh", color: "#0f172a", maxWidth: 520, margin: "0 auto" }}>
       <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", padding: "20px 16px 16px", color: "#fff" }}>
-        <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#94a3b8", marginBottom: 4 }}>Lifecare Companion™</div>
-        <div style={{ fontSize: 22, fontWeight: 800 }}>{Object.keys(data).filter(k => k !== "config").map(k => (data[k].profile ? data[k].profile.name : k)).join(" & ")}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#94a3b8", marginBottom: 4 }}>Lifecare Companion™</div>
+            <div style={{ fontSize: 22, fontWeight: 800 }}>{Object.keys(data).filter(k => k !== "config").map(k => (data[k].profile ? data[k].profile.name : k)).join(" & ")}</div>
+          </div>
+          <button onClick={() => { setSection("admin"); setShowOnboarding(false); setSetupTab("profile"); }} style={{ background: section === "admin" ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease", marginTop: 2 }} title="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+        </div>
         <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Week {calcWeek(data.config.trainingStart)} · Updated {data.config.lastUpdate}{saving ? " · Saving..." : ""}</div>
         <div style={{ display: "flex", gap: 4, marginTop: 14, background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 4, border: "1px solid rgba(255,255,255,0.08)", overflowX: "auto" }}>
           {Object.keys(data).filter(k => k !== "config").map((k, i) => {
             const label = data[k].profile ? data[k].profile.name : k;
-            return (<button key={k} onClick={() => { setActiveTab(k); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); setCopyDayOpen(false); setCopyWeekOpen(false); setHomeFbExpanded(false); setFbExpanded(false); setEatFbExpanded(false); setHealthFbExpanded(false); setBodyFbExpanded(false); setMeasFbExpanded2(false); if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); sGet("meal_tracking:" + k).then(function(mt) { if (mt) setMealTracking(JSON.parse(mt)); else setMealTracking({}); }); sGet("user_mood_" + k).then(function(m) { if (m) setUserMood(JSON.parse(m)); else setUserMood(null); }); sGet("journal_" + k).then(function(j) { if (j) setJournalEntries(JSON.parse(j)); else setJournalEntries([]); }); sGet("daily_mood_" + k).then(function(dm) { if (dm) { var parsed = JSON.parse(dm); var todayStr = new Date().toISOString().split("T")[0]; if (parsed && parsed.date === todayStr) setDailyMood(parsed); else setDailyMood(null); } else setDailyMood(null); }); sGet("wellbeing_flags_" + k).then(function(wf) { if (wf) setWellbeingFlags(JSON.parse(wf)); else setWellbeingFlags({}); }); setJournalText(""); setShowRecentJournal(false); setShowFullJournal(false); }} style={{ flex: 1, padding: "10px 0", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? "rgba(255,255,255,0.95)" : "transparent", color: activeTab === k ? "#0f172a" : "rgba(255,255,255,0.45)", minWidth: 50, letterSpacing: activeTab === k ? "0.02em" : "0", transition: "all 0.2s ease" }}>{label}</button>);
+            return (<button key={k} onClick={() => { setActiveTab(k); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); setCopyDayOpen(false); setCopyWeekOpen(false); setHomeFbExpanded(false); setFbExpanded(false); setEatFbExpanded(false); setHealthFbExpanded(false); setBodyFbExpanded(false); setMeasFbExpanded2(false); if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); sGet("meal_tracking:" + k).then(function(mt) { if (mt) setMealTracking(JSON.parse(mt)); else setMealTracking({}); }); sGet("user_mood_" + k).then(function(m) { if (m) setUserMood(JSON.parse(m)); else setUserMood(null); }); sGet("journal_" + k).then(function(j) { if (j) setJournalEntries(JSON.parse(j)); else setJournalEntries([]); }); sGet("daily_mood_" + k).then(function(dm) { if (dm) { var parsed = JSON.parse(dm); var todayStr = new Date().toISOString().split("T")[0]; if (parsed && parsed.date === todayStr) setDailyMood(parsed); else setDailyMood(null); } else setDailyMood(null); }); sGet("wellbeing_flags_" + k).then(function(wf) { if (wf) setWellbeingFlags(JSON.parse(wf)); else setWellbeingFlags({}); }); sGet("user_colour_" + k).then(function(uc) { if (uc) setUserColour(uc); else setUserColour(null); }); setJournalText(""); setShowRecentJournal(false); setShowFullJournal(false); }} style={{ flex: 1, padding: "10px 0", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? "rgba(255,255,255,0.95)" : "transparent", color: activeTab === k ? "#0f172a" : "rgba(255,255,255,0.45)", minWidth: 50, letterSpacing: activeTab === k ? "0.02em" : "0", transition: "all 0.2s ease" }}>{label}</button>);
           })}
           <button onClick={() => setShowAddPerson(true)} style={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: "transparent", color: "rgba(255,255,255,0.3)", transition: "all 0.2s ease" }}>+</button>
         </div>
@@ -4000,7 +4005,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }} onClick={function() { var curType=ex.exType||getExerciseType(ex.name);var tc=getExerciseTypeConfig(curType);var curM2=(ex.reps||tc.defaultM2).replace(/x\d+$/,"");setSelectedEx({day:day,idx:i});setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:ex.current||tc.defaultM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",exerciseGuide:ex.exerciseGuide||"",prePostGuide:ex.prePostGuide||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});setAddExOpen(false); }}>{ex.name} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span></div>
                           <div style={{ color: "#64748b", fontSize: 11, fontWeight: 500 }}>{ex.current} · {ex.reps}{ex.exType && ex.exType !== "weights" && <span style={{fontSize:9,color:"#94a3b8",marginLeft:6}}>{EXERCISE_TYPES[ex.exType] ? EXERCISE_TYPES[ex.exType].label : ""}</span>}</div>
-                          <div style={{ marginTop: 3 }}><span style={{ fontSize: 9, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap", border: "1px solid " + sColor(ex.status) + "40" }}>{sLabel(ex.status)}</span></div>
+                          {ex.status && <div style={{ marginTop: 3 }}><span style={{ fontSize: 9, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap", border: "1px solid " + sColor(ex.status) + "40" }}>{sLabel(ex.status)}</span></div>}
                         </div>
                         <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0,alignItems:"flex-end"}}>
                         <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} style={{padding:"4px 8px",background:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#1e3a5f":"#f1f5f9",border:"1px solid "+(selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#1e3a5f":"#e2e8f0"),borderRadius:6,fontSize:10,cursor:"pointer",fontWeight:600,color:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#fff":"#94a3b8",display:"flex",alignItems:"center",gap:2,whiteSpace:"nowrap"}}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕ Progress":"👁 Progress"}</button>
@@ -4136,7 +4141,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                   {exList.filter(function(x,xi){return xi===i;}).map(function(ex) { var exIdx = i; return (<div key={exIdx} style={{ marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid #e2e8f0" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{ex.name}</div>
-                      <span style={{ fontSize: 10, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 8px", borderRadius: 20, border: "1px solid " + sColor(ex.status) + "40" }}>{sLabel(ex.status)}</span>
+                      {ex.status && <span style={{ fontSize: 10, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 8px", borderRadius: 20, border: "1px solid " + sColor(ex.status) + "40" }}>{sLabel(ex.status)}</span>}
                     </div>
                     {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "4px 8px", borderRadius: 4, marginBottom: 6 }}>{ex.notes}</div>}
                     {(() => { var _etc = getExerciseTypeConfig(ex.exType || getExerciseType(ex.name)); var _h1 = _etc.metric1 !== "none" ? _etc.metric1Label.replace(/\s*\(.*\)/,"").toUpperCase() : ""; var _h2 = _etc.metric2 !== "none" ? _etc.metric2Label.replace(/\s*\(.*\)/,"").toUpperCase() : ""; return (<div style={{ display: "flex", gap: 6, padding: "3px 0", marginBottom: 2, fontSize: 9, color: "#94a3b8", fontWeight: 600 }}>
@@ -7555,7 +7560,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var deviceInfo = "";
                 try { deviceInfo = navigator.userAgent; } catch(e) { deviceInfo = "Unknown"; }
                 var screenInfo = window.screen ? window.screen.width + "x" + window.screen.height : "Unknown";
-                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.362.0";
+                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.363.0";
                 var emailSubject = encodeURIComponent("[Life Care " + (feedbackType === "bug" ? "Bug" : "Feature") + "] " + feedbackText.trim().substring(0, 50));
                 window.open("mailto:jc.zaluski@gmail.com?subject=" + emailSubject + "&body=" + emailBody, "_self");
                 setFeedbackOpen(false);
@@ -7572,7 +7577,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.362.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.363.0
       </div>
 
       {/* Floating Ask a Question button */}
