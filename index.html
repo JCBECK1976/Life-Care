@@ -867,7 +867,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.371.0
+// STANDARD BUTTON STYLES v1.371.1
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -4769,7 +4769,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         }} style={{ padding: "5px 14px", background: "#e2e8f0", color: "#475569", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Decline</button>
                       </div></div>)}
                     </div>)}
-                    <div style={{textAlign:"right",marginTop:4}}><button onClick={async function(){if(!confirm("Remove "+ex.name+" from "+day+"?"))return;var nd=JSON.parse(JSON.stringify(data));nd[activeTab].exercises[day].splice(i,1);await saveData(nd);regenerateSessionGuides(activeTab,day,nd);}} style={{...btnDelete,fontSize:9,background:"#fee2e2",color:"#dc2626",border:"none"}}>🗑 remove</button></div></div></div>); })}
+                    <div style={{textAlign:"right",marginTop:4}}><button onClick={async function(){if(!confirm("Remove "+ex.name+" from "+day+"?"))return;var nd=JSON.parse(JSON.stringify(data));var _rmIdx=nd[activeTab].exercises[day].findIndex(function(e){return e.name===ex.name;});if(_rmIdx<0){setFormMsg("Could not find "+ex.name+" on "+day);setTimeout(function(){setFormMsg("");},3000);return;}nd[activeTab].exercises[day].splice(_rmIdx,1);await saveData(nd);regenerateSessionGuides(activeTab,day,nd);}} style={{...btnDelete,fontSize:9,background:"#fee2e2",color:"#dc2626",border:"none"}}>🗑 remove</button></div></div></div>); })}
                     {renderThread(sessionFeedback[activeTab + "_" + day], "session", activeTab + "-" + day, function(updatedFb) { updateSessionFb(updatedFb, activeTab + "_" + day); }, activeTab + "_" + day)}
                   </div>)}
                 </div>
@@ -7618,7 +7618,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var deviceInfo = "";
                 try { deviceInfo = navigator.userAgent; } catch(e) { deviceInfo = "Unknown"; }
                 var screenInfo = window.screen ? window.screen.width + "x" + window.screen.height : "Unknown";
-                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.371.0";
+                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.371.1";
                 var emailSubject = encodeURIComponent("[Life Care " + (feedbackType === "bug" ? "Bug" : "Feature") + "] " + feedbackText.trim().substring(0, 50));
                 window.open("mailto:jc.zaluski@gmail.com?subject=" + emailSubject + "&body=" + emailBody, "_self");
                 setFeedbackOpen(false);
@@ -7717,7 +7717,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           <button onClick={function(){ setShowPrivacy(false); }} style={{ width: "100%", padding: "10px 0", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", marginTop: 8 }}>Close</button>
         </div>
       </div>)}
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.371.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.371.1
       </div>
 
       {/* Floating Ask a Question button */}
