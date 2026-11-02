@@ -1,7 +1,7 @@
 # Technical Reference — Life Care Companion
 
 > **Purpose**: Complete technical architecture reference for any developer continuing this project.  
-> **Version**: v1.372.0 | **File**: `index.html` (~860KB)  
+> **Version**: v1.373.0 | **File**: `index.html` (~860KB)  
 > **Live**: https://jcbeck1976.github.io/Life-Care  
 > **Repo**: https://github.com/JCBECK1976/Life-Care
 
@@ -530,6 +530,11 @@ Generates meal suggestions using only custom-added items (with RAG status), neve
 - New items store `suitability` (description).
 - Add box closes after add when `addingSource !== "manage"`.
 
+## 11b. Help & Chat
+- **💬 Chat** (`qaOpen`, `askQuestion`, Firebase `qa_history`) — questions about the person's own data; full data context in the prompt.
+- **❓ Help** (`helpOpen`, `askHelp`, Firebase `help_history`) — how to use the app. System prompt = rules + `APP_GUIDE.md` (fetched relative to index.html, cached in `window._appGuide`, sent with `cache_control: ephemeral`). Messages = last 6 Q/A pairs + "[I'm {name}, currently on the {tab} tab]" + question. `max_tokens` 800. Markdown stripped before saving.
+- Both panels share the conversation-thread look: user bubble `accentChatUser` + `accentBorder`, companion bubble `#334155`, reply box + Send pinned at the bottom. Floating buttons: ? at bottom 86px, 💬 at bottom 24px; both hide while either panel is open.
+
 ## 12. Deployment
 
 ### GitHub Pages via API
@@ -546,6 +551,7 @@ opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 ### Pre-Deploy Checklist
 1. ✅ Run Babel syntax check (see HANDOVER.md for script)
 1a. ✅ Run the scope check (HANDOVER.md §4) — catches functions used outside the block that defines them
+1b. ✅ Update APP_GUIDE.md for any user-visible change
 2. ✅ Update version in footer display text
 3. ✅ Update version in button styles comment block
 4. ✅ Never bundle multiple features in one version
