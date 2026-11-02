@@ -48,6 +48,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v1.371.0 | Companion chat panel restyled to match feedback conversation threads |
 | v1.371.1 | Fixed "Remove exercise from day" in session feedback (undefined index; removes by name) |
 | v1.372.0 | Companion Energy: exact per-call cost incl. cache, "Set balance" calibration, empty only when Anthropic says so |
+| v1.373.0 | ❓ Help button: Companion answers how-to questions from `APP_GUIDE.md` (replaces a user guide) |
 
 ---
 
@@ -56,7 +57,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v1.372.0 (2 November 2026)
+- **Version**: v1.373.0 (2 November 2026)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **File size**: ~860KB single HTML file (Babel compiles but approaching practical limits)
 
@@ -310,6 +311,7 @@ Abort the deploy if it reports anything. It also checks syntax, so it can replac
 - Recalculation failures must never add/save stale nutrition values
 - Stopped exercises are view-only, hidden under a "Stopped Exercises" toggle, restarted from Exercise Settings
 - GREAT-rated items display dark green (#15803d), never navy
+- Every feature change must also update APP_GUIDE.md (the Help companion reads it live)
 
 ---
 
@@ -321,6 +323,7 @@ Abort the deploy if it reports anything. It also checks syntax, so it can replac
 | `FIREBASE_SECURITY.md` | Firebase security requirements and implementation plan |
 | `HANDOVER.md` | This document — context, history, roadmap, development guide |
 | `index.html` | The entire application (single file) |
+| `APP_GUIDE.md` | **User-facing guide to every feature — the live source the ❓ Help companion answers from.** Update it in the same release as any UI change. Served by GitHub Pages next to index.html. |
 
 ### Memory Files (Claude memory system)
 - `/projects/.../dashboard.md` — Version history, roadmap, architecture notes, full backlog
@@ -382,3 +385,12 @@ The add-item flow had five patches (v1.365.1–5) that each failed. Every one ta
 1. Find where the failure actually happens before patching. Five patches to the wrong function cost a day.
 2. Babel passing proves nothing about runtime. Run the scope check.
 3. Ship each change as its own version and deploy, so a bad one can be identified and reverted.
+
+### Later the same night (v1.371.1 → v1.373.0)
+- **v1.371.1** — remove-exercise bug fixed (removes by name; feedback positions don't match the day list because stopped exercises are excluded). Scope check now runs with no exclusions.
+- **v1.372.0** — energy meter calibrated (see Critical Known Issues #8).
+- **APP_GUIDE.md** — written from an extraction of every on-screen label, button, placeholder and message (929 strings) plus code checks of rules (RAG frequency, statuses, moods, setup tabs, admin-only areas).
+- **v1.373.0 — ❓ Help.** A floating ? button (above 💬 Chat) opens "Help — using the app", styled like the feedback threads. `askHelp()` fetches `APP_GUIDE.md` once per session (`window._appGuide`), sends it as a **cached system prompt** (`cache_control: ephemeral`), with the last 6 exchanges and the current person and tab. Answers have markdown stripped (panel is plain text). History: Firebase `help_history` (per person, last 30). Tested end to end before release with three real questions: answers were accurate; first question in a session ≈ $0.04 (cache write of ~9.1k tokens), later ones ≈ $0.005 (cache read).
+
+### Ready for migration
+The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable. Next: the Vite migration (Section 3, Step 1). The Admin API cost endpoint for a live energy balance belongs in the post-migration backend.
