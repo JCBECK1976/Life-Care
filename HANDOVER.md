@@ -35,6 +35,17 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v1.341-344 | Warm-up/cool-down, delete confirmations, energy meter fixes |
 | v1.345-361 | Design system alignment (colour theming, header hierarchy, container patterns, button audit) |
 | v1.362-365 | Per-user colour isolation, privacy policy, settings gear icon, legal links |
+| v1.365.1-5 | Add-item flow patches (superseded — see Session Log 2 Nov 2026) |
+| v1.366.0 | Add-item feature rebuilt: shared confirm handler, paste-based bulk add (file import removed) |
+| v1.366.1 | **Root-cause fix**: removed client-side fetch gate that blocked all AI calls ("Energy Empty") |
+| v1.366.2 | Review Item overlay Confirm fixed (out-of-scope function); status shown inside panel; never add on failed recalc |
+| v1.366.3-5 | Add box closes after add from selection list; GREAT items dark green; day-tab guidance text |
+| v1.367.0 | Delete button on first day-tab meal row (clears, keeps box) |
+| v1.368.0 | Update Item panel in Update Eating Lists (nutrition, description, recalc flow) |
+| v1.368.1-2 | Log user switch loads colour; session feedback cut-off/error fixes |
+| v1.369.0-1 | Chat icon replaces ? button; exercise-log user switch makes that person fully active |
+| v1.370.0 | Stop / Restart Exercise with Stopped Exercises toggle |
+| v1.371.0 | Companion chat panel restyled to match feedback conversation threads |
 
 ---
 
@@ -43,7 +54,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v1.365.0
+- **Version**: v1.371.0 (2 November 2026)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **File size**: ~860KB single HTML file (Babel compiles but approaching practical limits)
 
@@ -90,6 +101,8 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 5. **No error boundary** — A single JSX error causes blank screen (no graceful degradation)
 6. **No automated tests** — All testing is manual via live deployment
 7. **Hardcoded default data** — DEFAULT_DATA object contains JC/Beck specific data that needs removing for multi-user
+8. **Energy meter is an estimate** — it prices tokens at fixed Sonnet rates and drifts from the real Anthropic balance. Since v1.366.1 it is display-only and never blocks calls. Making it accurate needs real usage data from Anthropic (backlog).
+9. **Known unfixed bug** — My Exercise "Remove [exercise] from [day]" button (in the exercise list, near the Progress panel) references an undefined variable `i` and will throw when pressed. Flagged by the scope check on 2 Nov 2026; left unfixed because it was out of scope that night.
 
 ### Data Architecture
 ```
@@ -221,6 +234,23 @@ try {
 
 A Babel syntax error = **blank screen** in production. No error boundary exists.
 
+### Scope Check (run before EVERY deploy, since v1.366.2)
+Babel only checks syntax. It does **not** catch a function called from a place where it isn't defined — that shipped a dead Confirm button on 2 Nov 2026. This check walks the compiled tree and lists any identifier used where nothing defines it:
+
+```javascript
+// check.js — run with: NODE_PATH=./node_modules node check.js
+const babel=require('@babel/core'),fs=require('fs'),traverse=require('@babel/traverse').default;
+const html=fs.readFileSync('index.html','utf8');
+const code=html.match(/<script type="text\/babel">([\s\S]*?)<\/script>/)[1];
+const ast=babel.parseSync(code,{presets:['@babel/preset-react'],filename:'t.jsx'});
+const known=new Set(Object.getOwnPropertyNames(globalThis).concat('window document React ReactDOM firebase XLSX navigator localStorage sessionStorage location alert confirm prompt FileReader Image Blob URL requestAnimationFrame getComputedStyle history screen Chart html2canvas jspdf google gapi Babel arguments undefined'.split(' ')));
+const miss={};
+traverse(ast,{ReferencedIdentifier(p){const n=p.node.name;if(p.isJSXIdentifier()&&/^[a-z]/.test(n))return;if(p.parentPath.isJSXMemberExpression())return;if(!p.scope.hasBinding(n)&&!known.has(n))(miss[n]=miss[n]||[]).push(p.node.loc.start.line);}});
+delete miss.i; // known pre-existing bug, see Critical Known Issues #9
+console.log(Object.keys(miss).length?'SCOPE ERRORS: '+JSON.stringify(miss):'CHECKS PASS');
+```
+Abort the deploy if it reports anything. It also checks syntax, so it can replace the Babel step.
+
 ### Version Convention
 - Feature/layout change: increment major sub → `v1.366.0`
 - Bug fix: increment minor → `v1.365.1`
@@ -271,6 +301,14 @@ A Babel syntax error = **blank screen** in production. No error boundary exists.
 - Per-user colour isolation — never let one user's colour change affect another
 - Privacy policy accessible via legal links row below feedback button
 - DO NOT go off scope — only change what is explicitly asked for
+- Each fix or feature is its own version AND its own deploy/commit
+- Warn JC before anything that will use a lot of tokens
+- Trace where a failure actually happens before patching — read the call path, don't patch the error handler blind
+- Modals/overlays must show their own status messages (page-level `formMsg` sits behind them)
+- Adding from a selection list closes the add box after Continue; Update Eating Lists keeps it open
+- Recalculation failures must never add/save stale nutrition values
+- Stopped exercises are view-only, hidden under a "Stopped Exercises" toggle, restarted from Exercise Settings
+- GREAT-rated items display dark green (#15803d), never navy
 
 ---
 
@@ -308,3 +346,38 @@ A Babel syntax error = **blank screen** in production. No error boundary exists.
 8. **AI cost** — Every feedback generation, food check, and guide generation calls the Anthropic API. The energy meter tracks this but costs can add up. Prompt optimisation needed for commercialisation.
 9. **No offline support** — App requires both Firebase and internet. No service worker, no caching.
 10. **Single-user assumption** — Many patterns assume max 2 users (JC/Beck person toggle). Multi-user needs a different approach.
+11. **Section-scoped functions** — Big sections (e.g. `section === "meals"`) render inside an IIFE. Functions defined there are invisible to markup outside it (e.g. the global Review Item overlay near the end of the file). Either define at component level or publish on `window` each render (pattern: `window._confirmReviewItem`). The scope check catches this.
+12. **Page messages behind modals** — `formMsg` renders at the top of the page; inside a fixed overlay the user never sees it. Render the message inside the panel too.
+13. **AI output limits** — JSON responses cut off at `max_tokens` fail to parse. Check `stop_reason === "max_tokens"` and show a retry message; store errors under the same key the UI reads (`activeTab + "_" + day`), or the failure is invisible.
+14. **Two user switches** — the top name tabs and the switch inside the exercise log both call `loadUserSettings(k)`. Any new per-user setting must be loaded there, not in the tab button.
+
+
+---
+
+## 7. Session Log — 2 November 2026 (v1.365.5 → v1.371.0)
+
+### What went wrong before this session
+The add-item flow had five patches (v1.365.1–5) that each failed. Every one targeted `handleApiError`. The real cause was elsewhere:
+
+- **"Companion Energy Empty" was false.** The `window.fetch` override rejected every Anthropic request *before sending it* once the app's own spend estimate (`companion_energy` in Firebase, priced at a hardcoded $5 ceiling) passed 95%. Requests never left the browser, so response-side error handling could never fix it. A `400` ping also kept the depleted percentage, re-arming the gate on reload. **Fix (v1.366.1):** gate removed; the meter is display-only; Anthropic's own `credit balance` error is the only source of "Energy Empty".
+- **Dead Confirm button.** The v1.366.0 rebuild moved the confirm logic into `confirmReviewItem`, defined inside the My Eating IIFE. The global overlay sits outside it, so Confirm threw a silent ReferenceError. Babel passed. **Fix (v1.366.2):** published as `window._confirmReviewItem`; scope check added to the deploy routine.
+- **Stale values could be added.** If the recalculation reply had no parseable JSON, the code fell through and added the item with old numbers. Now throws and stays on the form.
+
+### Add-item flow (current design)
+- **Single item** (any entry point, inline or overlay): AI lookup → Review Item panel → user edits ingredients → Confirm. If ingredients changed: recalculate, show "values updated", buttons become **✓ Continue — Add** / **Edit Again**. Unchanged: adds immediately. Failure: error shown in panel, retry or cancel, never adds.
+- **Bulk** (📋 Bulk in Update Eating Lists): paste items one per line or comma-separated, pick a category, **Upload Items**. AI calculates baseline nutrition and description; items auto-load with no per-item review; duplicates/unrecognised skipped with a count. User is told they can edit any item for accuracy.
+- **Update Item** (✎ Update in Update Eating Lists): green panel under the item with name, nutrition, rating, description, type, ingredients. Same confirm → recalc → Continue — Save / Edit Again flow.
+- Items now store `suitability` (description). Single-add items created before v1.368.0 have none.
+- Entry points preserved: MealSelect `__add_new__` (Week defaults and day tabs), Update Eating Lists, camera, Open Food Facts search.
+
+### Other changes
+- Day tabs: 🗑 Del on first breakfast/lunch/dinner row sets the slot to `"__empty__"` (clears, keeps the box).
+- Exercise log user switch now calls `loadUserSettings` (colour, mood, journal, meal tracking, wellbeing flags, feedback panels).
+- Session feedback: `max_tokens` 1000 → 2500, cut-off detection, errors stored under `activeTab + "_" + day`.
+- Exercises: `ex.stopped` / `ex.stoppedAt` fields. Stop applies to that day's entry only. Stopped exercises are hidden, listed under "Stopped Exercises (n)", view-only, excluded from session feedback, and blocked from logging (including dual logging).
+- Floating ? button → white chat bubble icon; panel retitled "Chat with your Companion" and restyled as a conversation thread (user = `accentChatUser`, companion = `#334155`, reply box + Send at the bottom).
+
+### Lessons for whoever picks this up
+1. Find where the failure actually happens before patching. Five patches to the wrong function cost a day.
+2. Babel passing proves nothing about runtime. Run the scope check.
+3. Ship each change as its own version and deploy, so a bad one can be identified and reverted.
