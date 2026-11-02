@@ -46,6 +46,8 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v1.369.0-1 | Chat icon replaces ? button; exercise-log user switch makes that person fully active |
 | v1.370.0 | Stop / Restart Exercise with Stopped Exercises toggle |
 | v1.371.0 | Companion chat panel restyled to match feedback conversation threads |
+| v1.371.1 | Fixed "Remove exercise from day" in session feedback (undefined index; removes by name) |
+| v1.372.0 | Companion Energy: exact per-call cost incl. cache, "Set balance" calibration, empty only when Anthropic says so |
 
 ---
 
@@ -54,7 +56,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v1.371.0 (2 November 2026)
+- **Version**: v1.372.0 (2 November 2026)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **File size**: ~860KB single HTML file (Babel compiles but approaching practical limits)
 
@@ -101,8 +103,8 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 5. **No error boundary** — A single JSX error causes blank screen (no graceful degradation)
 6. **No automated tests** — All testing is manual via live deployment
 7. **Hardcoded default data** — DEFAULT_DATA object contains JC/Beck specific data that needs removing for multi-user
-8. **Energy meter is an estimate** — it prices tokens at fixed Sonnet rates and drifts from the real Anthropic balance. Since v1.366.1 it is display-only and never blocks calls. Making it accurate needs real usage data from Anthropic (backlog).
-9. **Known unfixed bug** — My Exercise "Remove [exercise] from [day]" button (in the exercise list, near the Progress panel) references an undefined variable `i` and will throw when pressed. Flagged by the scope check on 2 Nov 2026; left unfixed because it was out of scope that night.
+8. **Energy meter is calibrated, not live** — no Anthropic API key can read the credit balance. Since v1.372.0 the user enters their real balance ("$ Set balance") and each call is priced exactly from the returned token usage. It drifts only if the same key is used by another app. A truly live figure needs the Admin API Cost endpoint (`/v1/organizations/cost_report`), which requires an organisation account and an **admin key that must live server-side** — planned for the post-migration backend, never the browser.
+9. ~~Remove-exercise bug~~ — fixed in v1.371.1.
 
 ### Data Architecture
 ```
@@ -246,7 +248,6 @@ const ast=babel.parseSync(code,{presets:['@babel/preset-react'],filename:'t.jsx'
 const known=new Set(Object.getOwnPropertyNames(globalThis).concat('window document React ReactDOM firebase XLSX navigator localStorage sessionStorage location alert confirm prompt FileReader Image Blob URL requestAnimationFrame getComputedStyle history screen Chart html2canvas jspdf google gapi Babel arguments undefined'.split(' ')));
 const miss={};
 traverse(ast,{ReferencedIdentifier(p){const n=p.node.name;if(p.isJSXIdentifier()&&/^[a-z]/.test(n))return;if(p.parentPath.isJSXMemberExpression())return;if(!p.scope.hasBinding(n)&&!known.has(n))(miss[n]=miss[n]||[]).push(p.node.loc.start.line);}});
-delete miss.i; // known pre-existing bug, see Critical Known Issues #9
 console.log(Object.keys(miss).length?'SCOPE ERRORS: '+JSON.stringify(miss):'CHECKS PASS');
 ```
 Abort the deploy if it reports anything. It also checks syntax, so it can replace the Babel step.
