@@ -867,7 +867,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.365.1
+// STANDARD BUTTON STYLES v1.365.2
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -5311,7 +5311,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>
                 <div style={{ marginBottom: 6 }}>
                   <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 2 }}>Name</div>
-                  <input value={cameraPreview.name} onChange={function(e) { setCameraPreview(function(prev) { return Object.assign({}, prev, { name: e.target.value }); }); }} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, boxSizing: "border-box" }} />
+                  <input id="review-item-name" defaultValue={cameraPreview.name} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, boxSizing: "border-box" }} />
                 </div>
                 <div style={{ display: "flex", gap: 8, marginBottom: 6, fontSize: 10, flexWrap: "wrap" }}>
                   <span><b>{cameraPreview.kcal}</b> kcal</span>
@@ -5334,7 +5334,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>
                 {cameraPreview.itemType === "ingredient" && (<div style={{ marginBottom: 8 }}>
                   <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>🧾 Ingredients <span style={{ fontWeight: 400 }}>(edit to match your recipe)</span></div>
-                  <textarea value={(cameraPreview.ingredients || []).join(", ")} onChange={function(e) { setCameraPreview(function(prev) { return Object.assign({}, prev, { ingredients: e.target.value.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length > 0;}) }); }); }} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, minHeight: 50, resize: "vertical", boxSizing: "border-box", lineHeight: 1.4 }} placeholder="e.g. oats, milk, chia seeds, honey..." />
+                  <textarea id="review-item-ingredients" defaultValue={(cameraPreview.ingredients || []).join(", ")} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, minHeight: 50, resize: "vertical", boxSizing: "border-box", lineHeight: 1.4 }} placeholder="e.g. oats, milk, chia seeds, honey..." />
                   <div style={{ fontSize: 8, color: "#64748b", marginTop: 3, fontStyle: "italic" }}>Any changes to ingredients or portions will update nutritional values when confirmed</div>
                 </div>)}
                 <div style={{ marginBottom: 8 }}>
@@ -5357,10 +5357,14 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>)}
                 <div style={{ display: "flex", gap: 6 }}>
                   <button disabled={reviewCategories.length === 0} onClick={async function() {
-                    var cp = cameraPreview;
+                    var nameEl = document.getElementById("review-item-name");
+                    var ingEl = document.getElementById("review-item-ingredients");
+                    var editedName = nameEl ? nameEl.value.trim() : cameraPreview.name;
+                    var editedIngredients = ingEl ? ingEl.value.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length > 0;}) : (cameraPreview.ingredients || []);
+                    var cp = Object.assign({}, cameraPreview, { name: editedName, ingredients: editedIngredients });
                     var cats = reviewCategories;
                     /* Recalculate nutrition if ingredients changed */
-                    if (cp.itemType === "ingredient" && cp.originalIngredients !== undefined && (cp.ingredients || []).join(", ") !== cp.originalIngredients) {
+                    if (cp.itemType === "ingredient" && cp.originalIngredients !== undefined && editedIngredients.join(", ") !== cp.originalIngredients) {
                       setFormMsg("🔄 Updating nutritional values for changed ingredients...");
                       try {
                         var recalcPrompt = "Calculate nutritional info for a homemade dish called \"" + cp.name + "\" with these specific ingredients and portions: " + (cp.ingredients || []).join(", ") + ". Return ONLY JSON: {\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\"}";
@@ -7561,7 +7565,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var deviceInfo = "";
                 try { deviceInfo = navigator.userAgent; } catch(e) { deviceInfo = "Unknown"; }
                 var screenInfo = window.screen ? window.screen.width + "x" + window.screen.height : "Unknown";
-                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.365.1";
+                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.365.2";
                 var emailSubject = encodeURIComponent("[Life Care " + (feedbackType === "bug" ? "Bug" : "Feature") + "] " + feedbackText.trim().substring(0, 50));
                 window.open("mailto:jc.zaluski@gmail.com?subject=" + emailSubject + "&body=" + emailBody, "_self");
                 setFeedbackOpen(false);
@@ -7660,7 +7664,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           <button onClick={function(){ setShowPrivacy(false); }} style={{ width: "100%", padding: "10px 0", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", marginTop: 8 }}>Close</button>
         </div>
       </div>)}
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.365.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.365.2
       </div>
 
       {/* Floating Ask a Question button */}
@@ -7703,7 +7707,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           </div>
           <div style={{ marginBottom: 6 }}>
             <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 2 }}>Name</div>
-            <input value={cameraPreview.name} onChange={function(e) { setCameraPreview(function(prev) { return Object.assign({}, prev, { name: e.target.value }); }); }} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, boxSizing: "border-box" }} />
+            <input id="review-item-name-overlay" defaultValue={cameraPreview.name} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, boxSizing: "border-box" }} />
           </div>
           <div style={{ display: "flex", gap: 8, marginBottom: 6, fontSize: 10, flexWrap: "wrap" }}>
             <span><b>{cameraPreview.kcal}</b> kcal</span><span><b>{cameraPreview.protein}g</b> prot</span><span><b>{cameraPreview.fat}g</b> fat</span>
@@ -7724,7 +7728,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           </div>
           {cameraPreview.itemType === "ingredient" && (<div style={{ marginBottom: 8 }}>
             <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>🧾 Ingredients <span style={{ fontWeight: 400 }}>(edit to match your recipe)</span></div>
-            <textarea value={(cameraPreview.ingredients || []).join(", ")} onChange={function(e) { setCameraPreview(function(prev) { return Object.assign({}, prev, { ingredients: e.target.value.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length > 0;}) }); }); }} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, minHeight: 50, resize: "vertical", boxSizing: "border-box", lineHeight: 1.4 }} placeholder="e.g. oats, milk, chia seeds, honey..." />
+            <textarea id="review-item-ingredients-overlay" defaultValue={(cameraPreview.ingredients || []).join(", ")} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, minHeight: 50, resize: "vertical", boxSizing: "border-box", lineHeight: 1.4 }} placeholder="e.g. oats, milk, chia seeds, honey..." />
             <div style={{ fontSize: 8, color: "#64748b", marginTop: 3, fontStyle: "italic" }}>Any changes to ingredients or portions will update nutritional values when confirmed</div>
           </div>)}
           <div style={{ marginBottom: 8 }}>
@@ -7747,10 +7751,14 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           </div>)}
           <div style={{ display: "flex", gap: 6 }}>
             <button disabled={reviewCategories.length === 0} onClick={async function() {
-              var cp = cameraPreview;
+              var nameEl = document.getElementById("review-item-name-overlay");
+              var ingEl = document.getElementById("review-item-ingredients-overlay");
+              var editedName = nameEl ? nameEl.value.trim() : cameraPreview.name;
+              var editedIngredients = ingEl ? ingEl.value.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length > 0;}) : (cameraPreview.ingredients || []);
+              var cp = Object.assign({}, cameraPreview, { name: editedName, ingredients: editedIngredients });
               var cats = reviewCategories;
               /* Recalculate nutrition if ingredients changed */
-              if (cp.itemType === "ingredient" && cp.originalIngredients !== undefined && (cp.ingredients || []).join(", ") !== cp.originalIngredients) {
+              if (cp.itemType === "ingredient" && cp.originalIngredients !== undefined && editedIngredients.join(", ") !== cp.originalIngredients) {
                 setFormMsg("🔄 Updating nutritional values for changed ingredients...");
                 try {
                   var recalcPrompt = "Calculate nutritional info for a homemade dish called \"" + cp.name + "\" with these specific ingredients and portions: " + (cp.ingredients || []).join(", ") + ". Return ONLY JSON: {\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\"}";
