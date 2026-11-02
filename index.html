@@ -867,7 +867,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.366.3
+// STANDARD BUTTON STYLES v1.366.4
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -5289,7 +5289,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             return (<div style={{position:"relative"}}>
               <input ref={inputRef} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Type to search..." style={{width:"100%",padding:"8px 10px",border:"1px solid "+accent,borderRadius:6,fontSize:11,background:"#fff",boxSizing:"border-box"}} onBlur={function(){setTimeout(function(){setOpen(false);},200);}} />
               <div style={{position:"absolute",top:"100%",left:0,right:0,zIndex:50,background:"#fff",border:"1px solid #e2e8f0",borderRadius:6,maxHeight:200,overflowY:"auto",boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}>
-                {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var isAdded = item._isCustom !== false; var color = isAdded ? (item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#0c4a6e") : "#94a3b8"; var hasRagChange = item._ragChanged && !item._ragChangedSeen; return (<div key={item.id} onMouseDown={function(e){e.preventDefault();onChange({target:{value:item.id}});setOpen(false);setSearch("");}} style={{padding:"6px 10px",fontSize:11,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f8fafc",color:color}}>
+                {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var isAdded = item._isCustom !== false; var color = isAdded ? (item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#15803d") : "#94a3b8"; var hasRagChange = item._ragChanged && !item._ragChangedSeen; return (<div key={item.id} onMouseDown={function(e){e.preventDefault();onChange({target:{value:item.id}});setOpen(false);setSearch("");}} style={{padding:"6px 10px",fontSize:11,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f8fafc",color:color}}>
                   <span>{hasRagChange ? "🔄 " : ""}{item.name} ({kcal} kcal){!isAdded ? " — not added" : ""}{hasRagChange ? " (was " + item.prevRating + ")" : ""}</span>
 
                 </div>); })}
@@ -5334,7 +5334,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4 }}>{cat.label} ({cat.customs.length} item{cat.customs.length !== 1 ? "s" : ""})</div>
                   {cat.customs.slice().sort(function(a,b) { return a.name.localeCompare(b.name); }).map(function(item) {
                     var kcal = isJC ? item.jcKcal : item.beckKcal;
-                    var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#0c4a6e";
+                    var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#15803d";
                     var hasRagChange = item._ragChanged && !item._ragChangedSeen;
                     return (<div key={item.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
                       <span style={{ flex: 1, color: color }}>{hasRagChange && <span onClick={function(){alert("Rating changed from " + (item.prevRating || "?") + " to " + item.rating + (item.ragReason ? ".\n\nReason: " + item.ragReason : "") + "\n\nBased on your current health profile and dietary guidelines.");var u=cat.customs.map(function(x){return x.id===item.id?Object.assign({},x,{_ragChangedSeen:true}):x;});cat.setCustoms(u);sSet(cat.storageKey,JSON.stringify(u));}} style={{cursor:"pointer"}} title={"Changed from " + (item.prevRating || "?")}>🔄 </span>}{item.name} ({kcal} kcal)</span>
@@ -5404,7 +5404,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   {cameraPreview.fibre > 0 && <span><b>{cameraPreview.fibre}g</b> fibre</span>}
                 </div>
                 <div style={{ display: "flex", gap: 4, marginBottom: 8, flexWrap: "wrap" }}>
-                  <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, background: cameraPreview.rating === "RED" ? "#fef2f2" : cameraPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: cameraPreview.rating === "RED" ? "#dc2626" : cameraPreview.rating === "AMBER" ? "#d97706" : "#0c4a6e", border: "1px solid " + (cameraPreview.rating === "RED" ? "#fecaca" : cameraPreview.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{cameraPreview.rating}</div>
+                  <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, background: cameraPreview.rating === "RED" ? "#fef2f2" : cameraPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: cameraPreview.rating === "RED" ? "#dc2626" : cameraPreview.rating === "AMBER" ? "#d97706" : "#15803d", border: "1px solid " + (cameraPreview.rating === "RED" ? "#fecaca" : cameraPreview.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{cameraPreview.rating}</div>
                 </div>
                 {cameraPreview.suitability && <div style={{ fontSize: 10, color: "#475569", fontStyle: "italic", lineHeight: 1.4, marginBottom: 8 }}>{cameraPreview.suitability}</div>}
                 <div style={{ marginBottom: 8 }}>
@@ -6678,7 +6678,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     {helpEatResult.fibre > 0 && <span><b>{helpEatResult.fibre}g</b> fib</span>}
                     {helpEatResult.salt > 0 && <span><b>{helpEatResult.salt}g</b> salt</span>}
                   </div>
-                  <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: helpEatResult.rating === "RED" ? "#fef2f2" : helpEatResult.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: helpEatResult.rating === "RED" ? "#dc2626" : helpEatResult.rating === "AMBER" ? "#d97706" : "#0c4a6e", border: "1px solid " + (helpEatResult.rating === "RED" ? "#fecaca" : helpEatResult.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{helpEatResult.rating}</div>
+                  <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: helpEatResult.rating === "RED" ? "#fef2f2" : helpEatResult.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: helpEatResult.rating === "RED" ? "#dc2626" : helpEatResult.rating === "AMBER" ? "#d97706" : "#15803d", border: "1px solid " + (helpEatResult.rating === "RED" ? "#fecaca" : helpEatResult.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{helpEatResult.rating}</div>
                   {helpEatResult.recommendation && <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.4, marginBottom: 4 }}>{helpEatResult.recommendation}</div>}
                   {helpEatResult.alternatives && <div style={{ fontSize: 10, color: "#64748b", fontStyle: "italic", lineHeight: 1.4 }}>Also consider: {helpEatResult.alternatives}</div>}
                 </div>
@@ -6846,7 +6846,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     {foodCheckerPreview.fibre > 0 && <span><b>{foodCheckerPreview.fibre}g</b> fib</span>}
                     {foodCheckerPreview.salt > 0 && <span><b>{foodCheckerPreview.salt}g</b> salt</span>}
                   </div>
-                  <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: foodCheckerPreview.rating === "RED" ? "#fef2f2" : foodCheckerPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: foodCheckerPreview.rating === "RED" ? "#dc2626" : foodCheckerPreview.rating === "AMBER" ? "#d97706" : "#0c4a6e", border: "1px solid " + (foodCheckerPreview.rating === "RED" ? "#fecaca" : foodCheckerPreview.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{foodCheckerPreview.rating}</div>
+                  <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: foodCheckerPreview.rating === "RED" ? "#fef2f2" : foodCheckerPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: foodCheckerPreview.rating === "RED" ? "#dc2626" : foodCheckerPreview.rating === "AMBER" ? "#d97706" : "#15803d", border: "1px solid " + (foodCheckerPreview.rating === "RED" ? "#fecaca" : foodCheckerPreview.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{foodCheckerPreview.rating}</div>
                   {foodCheckerPreview.suitability && <div style={{ fontSize: 11, color: "#475569", fontStyle: "italic", lineHeight: 1.4 }}>{foodCheckerPreview.suitability}</div>}
                 </div>
                 {!foodCheckerCategory ? (<div>
@@ -7524,7 +7524,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var deviceInfo = "";
                 try { deviceInfo = navigator.userAgent; } catch(e) { deviceInfo = "Unknown"; }
                 var screenInfo = window.screen ? window.screen.width + "x" + window.screen.height : "Unknown";
-                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.366.3";
+                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.366.4";
                 var emailSubject = encodeURIComponent("[Life Care " + (feedbackType === "bug" ? "Bug" : "Feature") + "] " + feedbackText.trim().substring(0, 50));
                 window.open("mailto:jc.zaluski@gmail.com?subject=" + emailSubject + "&body=" + emailBody, "_self");
                 setFeedbackOpen(false);
@@ -7623,7 +7623,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           <button onClick={function(){ setShowPrivacy(false); }} style={{ width: "100%", padding: "10px 0", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", marginTop: 8 }}>Close</button>
         </div>
       </div>)}
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.366.3
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.366.4
       </div>
 
       {/* Floating Ask a Question button */}
@@ -7675,7 +7675,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             {cameraPreview.fibre > 0 && <span><b>{cameraPreview.fibre}g</b> fibre</span>}
           </div>
           <div style={{ display: "flex", gap: 4, marginBottom: 8, flexWrap: "wrap" }}>
-            <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, background: cameraPreview.rating === "RED" ? "#fef2f2" : cameraPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: cameraPreview.rating === "RED" ? "#dc2626" : cameraPreview.rating === "AMBER" ? "#d97706" : "#0c4a6e", border: "1px solid " + (cameraPreview.rating === "RED" ? "#fecaca" : cameraPreview.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{cameraPreview.rating}</div>
+            <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, background: cameraPreview.rating === "RED" ? "#fef2f2" : cameraPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: cameraPreview.rating === "RED" ? "#dc2626" : cameraPreview.rating === "AMBER" ? "#d97706" : "#15803d", border: "1px solid " + (cameraPreview.rating === "RED" ? "#fecaca" : cameraPreview.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{cameraPreview.rating}</div>
           </div>
           {cameraPreview.suitability && <div style={{ fontSize: 10, color: "#475569", fontStyle: "italic", lineHeight: 1.4, marginBottom: 8 }}>{cameraPreview.suitability}</div>}
           <div style={{ marginBottom: 8 }}>
