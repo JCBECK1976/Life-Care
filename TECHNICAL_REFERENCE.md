@@ -1,7 +1,7 @@
 # Technical Reference — Life Care Companion
 
 > **Purpose**: Complete technical architecture reference for any developer continuing this project.  
-> **Version**: v1.371.0 | **File**: `index.html` (~860KB)  
+> **Version**: v1.372.0 | **File**: `index.html` (~860KB)  
 > **Live**: https://jcbeck1976.github.io/Life-Care  
 > **Repo**: https://github.com/JCBECK1976/Life-Care
 
@@ -250,13 +250,17 @@ window._anthropicKey     // Cached API key (set after first ensureApiKey call)
 
 ### Companion Energy System
 ```javascript
-window.trackApiUsage(inputTokens, outputTokens)
-// Calculates cost at Claude Sonnet 4.6 rates ($3/M in, $15/M out)
+window.trackApiUsage(usage, model)
+// Prices the response's usage object with window.API_PRICES[model] = [input, 5-min cache write, cache read, output] USD/MTok
+// Sonnet 4.6: [3, 3.75, 0.30, 15]. Add a row when a new model is used.
 // Deducts from energy balance stored in Firebase
 // Updates window._companionEnergyPct and window._companionEnergyStatus
 // Triggers UI update via window._setCompanionEnergy if available
-// DISPLAY ONLY since v1.366.1 — an estimate that drifts from the real Anthropic balance.
-// checkCompanionEnergy() resets a depleted ledger when the key pings OK (200 or 400).
+// DISPLAY ONLY — never blocks a call (v1.366.1).
+// companion_energy fields: initial, balance, spent, pct, keyStatus, depleted, needsCalibration, calibratedAt
+// "$ Set balance" on the Home energy card sets initial/balance to the user's real Console balance (v1.372.0).
+// depleted=true only when Anthropic returns a credit-balance error (handleApiError or the ping).
+// A working ping with an estimate at 0 sets needsCalibration (label asks the user to Set balance) — no silent resets.
 ```
 
 ### Fetch Interceptor
@@ -567,7 +571,7 @@ opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 9. **Wide-open Firebase rules** — see FIREBASE_SECURITY.md
 10. **Client-side API keys** — Anthropic key visible in browser DevTools
 11. **Section IIFEs** — functions defined inside a section's render block are invisible elsewhere; use `window._name` or component level (see HANDOVER.md risk #11)
-12. **Known bug** — My Exercise "Remove [exercise] from [day]" references undefined `i` (HANDOVER.md known issue #9)
+12. **Energy meter** — calibrated estimate; a live balance needs the Admin API from a server (see HANDOVER.md known issue #8)
 
 ---
 
