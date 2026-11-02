@@ -867,7 +867,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.371.1
+// STANDARD BUTTON STYLES v1.372.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -906,10 +906,13 @@ window.ensureApiKey = async function() {
 };
 
 /* Track API usage cost against companion energy balance */
-window.trackApiUsage = async function(inputTokens, outputTokens) {
+/* USD per million tokens: [input, 5-min cache write, cache read, output] — Anthropic list prices */
+window.API_PRICES = { "claude-sonnet-4-6": [3, 3.75, 0.30, 15] };
+window.trackApiUsage = async function(usage, model) {
   try {
-    /* Claude Sonnet 4.6 pricing: $3/M input, $15/M output */
-    var cost = (inputTokens * 3 / 1000000) + (outputTokens * 15 / 1000000);
+    usage = usage || {};
+    var pr = window.API_PRICES[model] || window.API_PRICES["claude-sonnet-4-6"];
+    var cost = ((usage.input_tokens || 0) * pr[0] + (usage.cache_creation_input_tokens || 0) * pr[1] + (usage.cache_read_input_tokens || 0) * pr[2] + (usage.output_tokens || 0) * pr[3]) / 1000000;
     var stored = await sGet("companion_energy");
     if (!stored) return;
     var energy = JSON.parse(stored);
@@ -941,7 +944,7 @@ window.fetch = function() {
       var cloned = resp.clone();
       cloned.json().then(function(data) {
         if (data && data.usage) {
-          window.trackApiUsage(data.usage.input_tokens || 0, data.usage.output_tokens || 0);
+          window.trackApiUsage(data.usage, data.model);
         }
       }).catch(function() {});
       return resp;
@@ -984,6 +987,8 @@ function handleApiError(result) {
     var msg = (result.error.message || "").toLowerCase();
     var errType = (result.error.type || "").toLowerCase();
     if (msg.indexOf("credit balance") >= 0 || msg.indexOf("billing") >= 0 || msg.indexOf("payment required") >= 0 || errType === "insufficient_quota") {
+      /* Anthropic says the account is out of credit — the only true "empty" signal */
+      sGet("companion_energy").then(function(st) { var en = st ? JSON.parse(st) : { initial: 5 }; en.balance = 0; en.pct = 0; en.spent = en.initial || 5; en.depleted = true; en.needsCalibration = false; en.keyStatus = "active"; sSet("companion_energy", JSON.stringify(en)); if (window._setCompanionEnergy) window._setCompanionEnergy(en); }).catch(function(){});
       return "ENERGY_EMPTY";
     }
     if (errType === "rate_limit_error" || msg.indexOf("rate limit") >= 0) {
@@ -1859,13 +1864,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         if (stored) {
           var parsed = JSON.parse(stored);
           parsed.keyStatus = "active";
-          /* Top-up detection: if ping succeeds but energy shows depleted/very low,
-             the user has topped up their Anthropic credits externally — reset tracking */
-          if (parsed.pct <= 5 || parsed.balance <= 0) {
-            parsed.spent = 0;
-            parsed.balance = parsed.initial || 5;
-            parsed.pct = 100;
-          }
+          /* A working ping means credit exists. If the estimate says empty, it is out of date
+             (topped up, or spend elsewhere) — ask the user to set the real balance, don't guess. */
+          parsed.depleted = false;
+          parsed.needsCalibration = (parsed.pct <= 0 || parsed.balance <= 0);
           window._setCompanionEnergy(parsed);
           await sSet("companion_energy", JSON.stringify(parsed));
         } else {
@@ -1876,17 +1878,13 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       } else {
         var errData = null; try { errData = await pingResp.json(); } catch(e2) {}
         var errType = errData && errData.error ? errData.error.type : "unknown";
-        var status = errType === "authentication_error" ? "invalid_key" : errType === "rate_limit_error" ? "rate_limited" : pingResp.status === 400 ? "active" : "error";
+        var status = handleApiError(errData) === "ENERGY_EMPTY" ? "empty" : errType === "authentication_error" ? "invalid_key" : errType === "rate_limit_error" ? "rate_limited" : pingResp.status === 400 ? "active" : "error";
         if (stored) {
           var parsed2 = JSON.parse(stored);
           parsed2.keyStatus = status;
           if (status === "invalid_key") { parsed2.balance = 0; parsed2.pct = 0; }
-          /* v1.366.1: a 400 means the key itself is fine (request shape complaint), so
-             treat it like a successful ping — reset a depleted ledger instead of leaving
-             it stuck at 0% forever. */
-          else if (status === "active" && (parsed2.pct <= 5 || parsed2.balance <= 0)) {
-            parsed2.spent = 0; parsed2.balance = parsed2.initial || 5; parsed2.pct = 100;
-          }
+          else if (status === "empty") { parsed2.balance = 0; parsed2.pct = 0; parsed2.depleted = true; parsed2.needsCalibration = false; parsed2.keyStatus = "active"; }
+          else if (status === "active") { parsed2.depleted = false; parsed2.needsCalibration = (parsed2.pct <= 0 || parsed2.balance <= 0); }
           window._setCompanionEnergy(parsed2);
           await sSet("companion_energy", JSON.stringify(parsed2));
         } else {
@@ -2868,14 +2866,14 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           {/* ── COMPANION ENERGY ── */}
           {(() => {
             var rawPct = companionEnergy ? companionEnergy.pct : 0;
-            var pct = rawPct <= 5 ? 0 : rawPct; /* Show 0% when 5% or less remaining */
+            var pct = rawPct <= 0 ? 0 : rawPct;
             var hasEnergy = companionEnergy !== null;
             var keyStatus = companionEnergy ? companionEnergy.keyStatus : null;
             var segCount = 20;
             var filledSegs = hasEnergy ? Math.round(pct / 5) : 0;
             var emptySegs = segCount - filledSegs;
 
-            var statusLabel = !hasEnergy ? "—" : keyStatus === "no_key" ? "No API key" : keyStatus === "invalid_key" ? "Invalid key" : keyStatus === "rate_limited" ? "Rate limited" : keyStatus === "error" ? "Connection error" : pct > 50 ? "Good energy" : pct > 20 ? "Getting low" : pct > 0 ? "Running low" : "Empty — recharge needed";
+            var statusLabel = !hasEnergy ? "—" : keyStatus === "no_key" ? "No API key" : keyStatus === "invalid_key" ? "Invalid key" : keyStatus === "rate_limited" ? "Rate limited" : keyStatus === "error" ? "Connection error" : companionEnergy.depleted ? "Empty — top up at console.anthropic.com" : companionEnergy.needsCalibration ? "Estimate out of date — tap Set balance" : (pct > 50 ? "Good energy" : pct > 20 ? "Getting low" : "Running low") + " · ≈ $" + (companionEnergy.balance || 0).toFixed(2) + " left";
             var statusEmoji = !hasEnergy ? "" : keyStatus === "active" ? "✓ " : keyStatus === "no_key" || keyStatus === "invalid_key" ? "✗ " : "";
             var pctColor = pct > 20 ? "#22c55e" : pct > 0 ? "#f59e0b" : "#ef4444";
 
@@ -2898,7 +2896,17 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ fontSize: 9, color: "#94a3b8" }}>{statusEmoji}{statusLabel}</div>
-                <button onClick={checkCompanionEnergy} disabled={energyLoading} style={{ background: "none", border: "none", fontSize: 9, color: "#2563eb", cursor: energyLoading ? "not-allowed" : "pointer", padding: "2px 6px" }}>↻ Refresh</button>
+                <div style={{ display: "flex", gap: 2 }}>
+                  <button onClick={async function() {
+                    var cur2 = companionEnergy && companionEnergy.balance != null ? companionEnergy.balance.toFixed(2) : "";
+                    var v = window.prompt("Enter your current Anthropic credit balance in US dollars.\n\nFind it at console.anthropic.com → Settings → Billing. Set it again after each top-up.", cur2);
+                    if (v === null) return; var amt = parseFloat(String(v).replace(/[^0-9.]/g, ""));
+                    if (!(amt >= 0)) { setFormMsg("Enter a number, e.g. 12.50"); setTimeout(function(){ setFormMsg(""); }, 3000); return; }
+                    var en = Object.assign({}, companionEnergy || {}, { initial: amt, balance: amt, spent: 0, pct: amt > 0 ? 100 : 0, depleted: amt <= 0, needsCalibration: false, calibratedAt: new Date().toISOString(), keyStatus: (companionEnergy && companionEnergy.keyStatus) || "active" });
+                    window._setCompanionEnergy(en); await sSet("companion_energy", JSON.stringify(en));
+                  }} style={{ background: "none", border: "none", fontSize: 9, color: "#2563eb", cursor: "pointer", padding: "2px 6px" }}>$ Set balance</button>
+                  <button onClick={checkCompanionEnergy} disabled={energyLoading} style={{ background: "none", border: "none", fontSize: 9, color: "#2563eb", cursor: energyLoading ? "not-allowed" : "pointer", padding: "2px 6px" }}>↻ Refresh</button>
+                </div>
               </div>
             </div>);
           })()}
@@ -7618,7 +7626,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var deviceInfo = "";
                 try { deviceInfo = navigator.userAgent; } catch(e) { deviceInfo = "Unknown"; }
                 var screenInfo = window.screen ? window.screen.width + "x" + window.screen.height : "Unknown";
-                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.371.1";
+                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.372.0";
                 var emailSubject = encodeURIComponent("[Life Care " + (feedbackType === "bug" ? "Bug" : "Feature") + "] " + feedbackText.trim().substring(0, 50));
                 window.open("mailto:jc.zaluski@gmail.com?subject=" + emailSubject + "&body=" + emailBody, "_self");
                 setFeedbackOpen(false);
@@ -7717,7 +7725,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           <button onClick={function(){ setShowPrivacy(false); }} style={{ width: "100%", padding: "10px 0", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", marginTop: 8 }}>Close</button>
         </div>
       </div>)}
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.371.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.372.0
       </div>
 
       {/* Floating Ask a Question button */}
