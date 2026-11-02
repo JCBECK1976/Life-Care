@@ -867,7 +867,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.369.1
+// STANDARD BUTTON STYLES v1.370.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -1245,6 +1245,7 @@ function Dashboard() {
   const [selectedEx, setSelectedEx] = useState(null);
   const [exInfoOpen, setExInfoOpen] = useState(false);
   const [fbExpanded, setFbExpanded] = useState(false);
+  const [stoppedExOpen, setStoppedExOpen] = useState(false);
   const [homeFbExpanded, setHomeFbExpanded] = useState(false);
   const [healthFbExpanded, setHealthFbExpanded] = useState(false);
   const [manageListsOpen, setManageListsOpen] = useState(false);
@@ -1972,6 +1973,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     const { day, idx } = logEx;
     const nd = JSON.parse(JSON.stringify(data));
     const ex = nd[activeTab].exercises[day][idx];
+    if (ex && ex.stopped) { setFormMsg("⏸ " + ex.name + " is stopped — restart it in Exercise Settings to log"); setTimeout(() => setFormMsg(""), 4000); return; }
     if (editPrev && ex.prog.length > 0) {
       // Edit previous entry
       const prev = ex.prog[ex.prog.length - 1];
@@ -2042,7 +2044,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         var otState = window._dualLogState[ot];
         if (otState && otState._edited && otState.sets && otState.sets[0] && otState.sets[0].w && otState.sets[0].r) {
           var otEx = nd[ot] && nd[ot].exercises && nd[ot].exercises[day] ? nd[ot].exercises[day][idx] : null;
-          if (otEx) {
+          if (otEx && !otEx.stopped) {
             var otW = otState.sets[0].w + "kg";
             var otReps = fmtReps(otState.sets.map(function(s) { return parseInt(s.r) || 0; }));
             var otWk = parseInt(otState.week || logWeek) || calcWeek(data.config.trainingStart);
@@ -4007,7 +4009,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       {warmUpOpen && <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.6, whiteSpace: "pre-wrap", marginTop: 6 }}>{p.sessionGuides[day].warmup}</div>}
                     </div>
                   )}
-                  {exList.map(function(ex, i) { return (<div key={i} id={"ex-" + day + "-" + i} style={{ padding: "10px 3px", borderBottom: i < exList.length - 1 ? "1px solid #cbd5e1" : "none", position: "relative" }}>
+                  {(function() { var _renderEx = function(ex, i) { return (<div key={i} id={"ex-" + day + "-" + i} style={{ padding: "10px 3px", borderBottom: i < exList.length - 1 ? "1px solid #cbd5e1" : "none", position: "relative" }}>
                     {editExercise && editExercise.day === day && editExercise.idx === i ? (
                       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                         <select value={ex.name} onChange={function(e) { renameExercise(day, i, e.target.value); }} style={{ ...inputStyle, flex: 1 }}>
@@ -4025,13 +4027,13 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         </div>
                         <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0,alignItems:"flex-end"}}>
                         <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} style={{padding:"4px 8px",background:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#1e3a5f":"#f1f5f9",border:"1px solid "+(selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#1e3a5f":"#e2e8f0"),borderRadius:6,fontSize:10,cursor:"pointer",fontWeight:600,color:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#fff":"#94a3b8",display:"flex",alignItems:"center",gap:2,whiteSpace:"nowrap"}}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕ Progress":"👁 Progress"}</button>
-                        <button onClick={function(){setSelectedEx({day:day,idx:i});openLogForm(day,i);}} style={{padding:"4px 8px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:6,fontSize:10,cursor:"pointer",fontWeight:600,color:"#94a3b8",display:"flex",alignItems:"center",gap:2,whiteSpace:"nowrap"}}>📋 Log</button>
+                        {!ex.stopped && <button onClick={function(){setSelectedEx({day:day,idx:i});openLogForm(day,i);}} style={{padding:"4px 8px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:6,fontSize:10,cursor:"pointer",fontWeight:600,color:"#94a3b8",display:"flex",alignItems:"center",gap:2,whiteSpace:"nowrap"}}>📋 Log</button>}
                         </div>
                       </div>
                       {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 6 }}>📋 {ex.notes}</div>}
                     
                     {selectedEx&&selectedEx.day===day&&selectedEx.idx===i&&(<div style={{marginTop:10,padding:12,background:accentLight,borderRadius:8,border:"1px solid "+accentBorder,width:"100%"}}>
-                      <button onClick={function() { openLogForm(day, i); }} style={btnActionLg}>📋 Log {ex.name}</button>
+                      {ex.stopped ? <div style={{fontSize:11,color:"#64748b",background:"#f1f5f9",padding:"8px 10px",borderRadius:6,textAlign:"center"}}>⏸ Stopped — view only. Restart in Exercise Settings to log again.</div> : <button onClick={function() { openLogForm(day, i); }} style={btnActionLg}>📋 Log {ex.name}</button>}
                       {logEx && logEx.day === day && logEx.idx === i && (() => {
             const ex = p.exercises[logEx.day] && p.exercises[logEx.day][logEx.idx]; if (!ex) return null;
             const prev = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
@@ -4245,6 +4247,14 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         }} style={{...btnEdit,flex:1}}>✎ Edit</button>
                         <button onClick={async function(){if(confirm("Delete "+ex.name+"?\n\nThis will permanently remove this exercise and all its progress history. This cannot be undone.")){var nd=JSON.parse(JSON.stringify(data));var exs=nd[activeTab].exercises[day];if(exs){exs.splice(i,1);await saveData(nd);setSelectedEx(null);setLogEx(null);}}}} style={{...btnDelete,flex:1}}>🗑 Delete</button>
                       </div>
+                      <button onClick={async function(){
+                        var stopping = !ex.stopped;
+                        if (stopping && !confirm("Stop " + ex.name + "?\n\nIt will move to Stopped Exercises with all its progress kept. You can restart it any time from Exercise Settings.")) return;
+                        var nd = JSON.parse(JSON.stringify(data)); var t = nd[activeTab].exercises[day][i];
+                        if (stopping) { t.stopped = true; t.stoppedAt = new Date().toISOString(); } else { delete t.stopped; delete t.stoppedAt; }
+                        await saveData(nd); setSelectedEx(null); setLogEx(null);
+                        setFormMsg(stopping ? "⏸ Stopped " + ex.name : "▶ Restarted " + ex.name); setTimeout(function(){ setFormMsg(""); }, 3000);
+                      }} style={{...(ex.stopped ? btnAction : btnMuted), width:"100%", marginTop:6, padding:"8px 10px", fontSize:11, fontWeight:600}}>{ex.stopped ? "▶ Restart Exercise" : "⏸ Stop Exercise"}</button>
                     </div>
                     {/* Inline edit form when editing this exercise */}
                     {addExConfirm && addExConfirm._editMode && addExConfirm._editDay===day && addExConfirm._editIdx===i && (
@@ -4342,7 +4352,14 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                       </div>
                     </div>)}
                     </>)}
-                  </div>); })}
+                  </div>); };
+                  var _nStopped = exList.filter(function(e) { return e.stopped; }).length;
+                  var _out = exList.map(function(ex, i) { return ex.stopped ? null : _renderEx(ex, i); });
+                  if (_nStopped > 0) {
+                    _out.push(<button key="stopped-toggle" onClick={function(){ setStoppedExOpen(!stoppedExOpen); }} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#64748b",cursor:"pointer",marginTop:8}}>{stoppedExOpen ? "▲ Hide Stopped Exercises (" + _nStopped + ")" : "▼ Stopped Exercises (" + _nStopped + ")"}</button>);
+                    if (stoppedExOpen) { exList.forEach(function(ex, i) { if (ex.stopped) _out.push(<div key={"stopped-" + i} style={{ opacity: 0.8, background: "#f8fafc", borderRadius: 6, marginTop: 6 }}><div style={{ fontSize: 9, fontWeight: 700, color: "#64748b", padding: "6px 6px 0", textTransform: "uppercase", letterSpacing: "0.5px" }}>⏸ Stopped</div>{_renderEx(ex, i)}</div>); }); }
+                  }
+                  return _out; })()}
                   
 
                 
@@ -4571,7 +4588,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                     setSessionFbLoading(true); setFbExpanded(true); var clearKey = activeTab + "_" + day; var clearFb = Object.assign({}, sessionFeedback); delete clearFb[clearKey]; setSessionFeedback(clearFb);
                     try {
                       var prof = p.profile || {};
-                      var daySummary = exList.map(function(ex) { var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null; var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null; var progNote = latest && latest.note ? latest.note : ""; var allNotes = [ex.notes, progNote].filter(Boolean).join("; "); var progRules = ex.progressionNotes || "Progression: build reps to target then increase weight. User defines increment method and ranges."; var eqInfo = ex.equipment ? " [EQUIPMENT: " + (ex.equipment.type || "") + ", increments: " + (ex.equipment.increments || "standard") + (ex.equipment.formNotes ? ", form: " + ex.equipment.formNotes : "") + "]" : ""; var histLines = ex.prog ? ex.prog.slice(-4).map(function(p){var ql=""; if(p.fullRange||p.goodForm){ql=" [FR:"+(p.fullRange==="good"?"Good":"WT")+",GF:"+(p.goodForm==="good"?"Good":"WT")+"]";} return "Wk"+p.wk+": "+p.w+" "+p.r+ql+(p.note?" ("+p.note+")":"");}).join(", ") : "no data";
+                      var daySummary = exList.filter(function(ex) { return !ex.stopped; }).map(function(ex) { var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null; var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null; var progNote = latest && latest.note ? latest.note : ""; var allNotes = [ex.notes, progNote].filter(Boolean).join("; "); var progRules = ex.progressionNotes || "Progression: build reps to target then increase weight. User defines increment method and ranges."; var eqInfo = ex.equipment ? " [EQUIPMENT: " + (ex.equipment.type || "") + ", increments: " + (ex.equipment.increments || "standard") + (ex.equipment.formNotes ? ", form: " + ex.equipment.formNotes : "") + "]" : ""; var histLines = ex.prog ? ex.prog.slice(-4).map(function(p){var ql=""; if(p.fullRange||p.goodForm){ql=" [FR:"+(p.fullRange==="good"?"Good":"WT")+",GF:"+(p.goodForm==="good"?"Good":"WT")+"]";} return "Wk"+p.wk+": "+p.w+" "+p.r+ql+(p.note?" ("+p.note+")":"");}).join(", ") : "no data";
                         // Cross-day context: pull data from other sessions of the same exercise (parent/child model)
                         var crossDayCtx = "";
                         var otherDays = ["sunday", "monday", "friday"].filter(function(cd) { return cd !== day; });
@@ -7601,7 +7618,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var deviceInfo = "";
                 try { deviceInfo = navigator.userAgent; } catch(e) { deviceInfo = "Unknown"; }
                 var screenInfo = window.screen ? window.screen.width + "x" + window.screen.height : "Unknown";
-                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.369.1";
+                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.370.0";
                 var emailSubject = encodeURIComponent("[Life Care " + (feedbackType === "bug" ? "Bug" : "Feature") + "] " + feedbackText.trim().substring(0, 50));
                 window.open("mailto:jc.zaluski@gmail.com?subject=" + emailSubject + "&body=" + emailBody, "_self");
                 setFeedbackOpen(false);
@@ -7700,7 +7717,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           <button onClick={function(){ setShowPrivacy(false); }} style={{ width: "100%", padding: "10px 0", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", marginTop: 8 }}>Close</button>
         </div>
       </div>)}
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.369.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.370.0
       </div>
 
       {/* Floating Ask a Question button */}
