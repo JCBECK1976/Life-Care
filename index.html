@@ -867,7 +867,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.367.0
+// STANDARD BUTTON STYLES v1.368.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -1249,6 +1249,7 @@ function Dashboard() {
   const [healthFbExpanded, setHealthFbExpanded] = useState(false);
   const [manageListsOpen, setManageListsOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [editDraft, setEditDraft] = useState(null);
   const [addExOpen, setAddExOpen] = useState(false);
   const [addExLoading, setAddExLoading] = useState(false);
   const [addExSearch, setAddExSearch] = useState("");
@@ -5136,7 +5137,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
               var dupeName = cp.name.toLowerCase().trim();
               if (listItems.some(function(x) { return x.name.toLowerCase().trim() === dupeName; })) { dupeFound.push(cat); continue; }
-              var newItem = { id: "custom_" + Date.now() + "_" + ci, name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, rating: cp.rating, itemType: cp.itemType || "packaged", ingredients: cp.ingredients || [], freq: "Daily", isCustom: true, source: cp.source || "manual", barcode: cp.barcode || "", servingSize: cp.servingSize || "" };
+              var newItem = { id: "custom_" + Date.now() + "_" + ci, name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, rating: cp.rating, itemType: cp.itemType || "packaged", ingredients: cp.ingredients || [], freq: "Daily", isCustom: true, source: cp.source || "manual", barcode: cp.barcode || "", servingSize: cp.servingSize || "", suitability: cp.suitability || "" };
               if (cat === "dinner" && !reviewSideType) { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = cp.itemType === "ingredient" ? (cp.ingredients || []) : [cp.name]; }
               if (cat === "dinner" && reviewSideType) { newItem.sideType = reviewSideType; }
               var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
@@ -5166,6 +5167,43 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           };
           /* Overlay panel renders outside this section's scope — expose current closure */
           window._confirmReviewItem = confirmReviewItem;
+
+          /* ═══ Update an existing list item — same confirm / recalc / continue flow ═══ */
+          var saveEditItem = async function(cat) {
+            var d = editDraft; if (!d) return;
+            var nameEl = document.getElementById("edit-item-name-" + d.id);
+            var ingEl = document.getElementById("edit-item-ingredients-" + d.id);
+            var editedName = (nameEl && nameEl.value.trim()) || d.name;
+            var editedIng = ingEl ? ingEl.value.split(",").map(function(x){return x.trim();}).filter(function(x){return x.length > 0;}) : (d.ingredients || []);
+            var dd = Object.assign({}, d, { name: editedName, ingredients: editedIng });
+            if (dd.itemType === "ingredient" && editedIng.length > 0 && editedIng.join(", ") !== dd.originalIngredients) {
+              setFormMsg("🔄 Recalculating nutritional values...");
+              try {
+                var recalcPrompt = "Calculate nutritional info for a homemade dish called \"" + dd.name + "\" with these specific ingredients and portions: " + editedIng.join(", ") + ". Return ONLY JSON: {\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\"}";
+                var recResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 300, messages: [{ role: "user", content: recalcPrompt }] }) });
+                var recResult = await recResp.json();
+                var recErr = handleApiError(recResult); if (recErr) throw new Error(recErr);
+                var recTxt = ""; if (recResult.content) { for (var re4 = 0; re4 < recResult.content.length; re4++) { if (recResult.content[re4].text) recTxt += recResult.content[re4].text; } }
+                var recMatch = recTxt.replace(/```json|```/g, "").trim().match(/\{[\s\S]*\}/);
+                if (!recMatch) throw new Error("AI did not return nutrition values");
+                var ri = JSON.parse(recMatch[0]);
+                var upd = { jcKcal: ri.kcal || dd.jcKcal, beckKcal: ri.kcal || dd.beckKcal, protein: ri.protein || dd.protein, fat: ri.fat || dd.fat, satFat: ri.satFat || dd.satFat, carbs: ri.carbs || dd.carbs, fibre: ri.fibre || dd.fibre, salt: ri.salt || dd.salt, rating: ri.rating || dd.rating, originalIngredients: editedIng.join(", "), recalculated: true };
+                if (dd.jcProt !== undefined) { upd.jcProt = upd.protein; upd.beckProt = upd.protein; upd.jcFat = upd.fat; upd.beckFat = upd.fat; }
+                if (dd.shop !== undefined) { upd.shop = editedIng; }
+                setEditDraft(Object.assign({}, dd, upd));
+                setFormMsg("✅ Nutritional values updated. Press Continue to save, or Edit Again to change the ingredients.");
+              } catch(re) {
+                setFormMsg(window.isEnergyEmpty(re) ? window.energyEmptyMsg : "⚠️ Recalculation failed: " + String(re.message || re).substring(0, 80) + ". Press Confirm to retry or Cancel.");
+              }
+              return;
+            }
+            var saved = Object.assign({}, dd); delete saved.originalIngredients; delete saved.recalculated;
+            var u = cat.customs.map(function(x) { return x.id === d.id ? saved : x; });
+            cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u));
+            setEditingItem(null); setEditDraft(null);
+            setFormMsg("✅ Updated " + saved.name);
+            setTimeout(function(){ setFormMsg(""); }, 3000);
+          };
 
           /* ═══ Bulk paste add — auto-adds items without per-item review ═══ */
           var bulkPasteAdd = async function(bulkCat) {
@@ -5336,9 +5374,43 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     var kcal = isJC ? item.jcKcal : item.beckKcal;
                     var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#15803d";
                     var hasRagChange = item._ragChanged && !item._ragChangedSeen;
-                    return (<div key={item.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
+                    return (<div key={item.id}><div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
                       <span style={{ flex: 1, color: color }}>{hasRagChange && <span onClick={function(){alert("Rating changed from " + (item.prevRating || "?") + " to " + item.rating + (item.ragReason ? ".\n\nReason: " + item.ragReason : "") + "\n\nBased on your current health profile and dietary guidelines.");var u=cat.customs.map(function(x){return x.id===item.id?Object.assign({},x,{_ragChangedSeen:true}):x;});cat.setCustoms(u);sSet(cat.storageKey,JSON.stringify(u));}} style={{cursor:"pointer"}} title={"Changed from " + (item.prevRating || "?")}>🔄 </span>}{item.name} ({kcal} kcal)</span>
-                      <button onClick={function() { setEditingItem(editingItem === item.id ? null : item.id); }} style={{...btnEdit, fontSize: 9, marginRight: 4}}>{editingItem === item.id ? "Cancel" : "✎ Update"}</button><button onClick={async function() { if(confirm("Delete " + item.name + "?")) { var u = cat.customs.filter(function(x){return x.id !== item.id;}); cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u)); setFormMsg("Deleted " + item.name); setTimeout(function(){setFormMsg("");},2000); }}} style={{...btnDelete, fontSize: 9}}>🗑 Del</button>
+                      <button onClick={function() { if (editingItem === item.id) { setEditingItem(null); setEditDraft(null); } else { setEditingItem(item.id); setEditDraft(Object.assign({}, item, { originalIngredients: (item.ingredients || []).join(", "), recalculated: false })); } setFormMsg(""); }} style={{...btnEdit, fontSize: 9, marginRight: 4}}>{editingItem === item.id ? "Cancel" : "✎ Update"}</button><button onClick={async function() { if(confirm("Delete " + item.name + "?")) { var u = cat.customs.filter(function(x){return x.id !== item.id;}); cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u)); setFormMsg("Deleted " + item.name); setTimeout(function(){setFormMsg("");},2000); }}} style={{...btnDelete, fontSize: 9}}>🗑 Del</button>
+                    </div>
+                    {editingItem === item.id && editDraft && editDraft.id === item.id && (<div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, margin: "4px 0 8px", border: "1px solid #86efac" }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Update Item</div>
+                      <div style={{ marginBottom: 6 }}>
+                        <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 2 }}>Name</div>
+                        <input id={"edit-item-name-" + item.id} defaultValue={editDraft.name} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, boxSizing: "border-box" }} />
+                      </div>
+                      <div style={{ display: "flex", gap: 8, marginBottom: 6, fontSize: 10, flexWrap: "wrap" }}>
+                        <span><b>{isJC ? editDraft.jcKcal : editDraft.beckKcal}</b> kcal</span>
+                        <span><b>{editDraft.protein || 0}g</b> prot</span>
+                        <span><b>{editDraft.fat || 0}g</b> fat</span>
+                        {editDraft.satFat > 0 && <span><b>{editDraft.satFat}g</b> s/fat</span>}
+                        {editDraft.carbs > 0 && <span><b>{editDraft.carbs}g</b> carbs</span>}
+                        {editDraft.fibre > 0 && <span><b>{editDraft.fibre}g</b> fibre</span>}
+                      </div>
+                      <div style={{ marginBottom: 8 }}><div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, background: editDraft.rating === "RED" ? "#fef2f2" : editDraft.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: editDraft.rating === "RED" ? "#dc2626" : editDraft.rating === "AMBER" ? "#d97706" : "#15803d", border: "1px solid " + (editDraft.rating === "RED" ? "#fecaca" : editDraft.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{editDraft.rating}</div></div>
+                      {editDraft.suitability && <div style={{ fontSize: 10, color: "#475569", fontStyle: "italic", lineHeight: 1.4, marginBottom: 8 }}>{editDraft.suitability}</div>}
+                      <div style={{ marginBottom: 8 }}>
+                        <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Type</div>
+                        <div style={{ display: "flex", gap: 4 }}>
+                          {[{k:"packaged",l:"📦 Packaged"},{k:"ingredient",l:"🍳 Ingredient Prepared"}].map(function(t) { var on = (editDraft.itemType || "packaged") === t.k; return (<button key={t.k} onClick={function() { setEditDraft(function(prev) { return Object.assign({}, prev, { itemType: t.k }); }); }} style={{ flex: 1, padding: "6px 8px", border: "1px solid " + (on ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: on ? "#eff6ff" : "#fff", color: on ? "#1e3a5f" : "#94a3b8" }}>{t.l}</button>); })}
+                        </div>
+                      </div>
+                      {editDraft.itemType === "ingredient" && (<div style={{ marginBottom: 8 }}>
+                        <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>🧾 Ingredients <span style={{ fontWeight: 400 }}>(edit to match your recipe)</span></div>
+                        <textarea id={"edit-item-ingredients-" + item.id} defaultValue={(editDraft.ingredients || []).join(", ")} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, minHeight: 50, resize: "vertical", boxSizing: "border-box", lineHeight: 1.4 }} placeholder="e.g. oats (85g), almond milk (300ml)..." />
+                        <div style={{ fontSize: 8, color: "#64748b", marginTop: 3, fontStyle: "italic" }}>Any changes to ingredients or portions will update nutritional values when confirmed</div>
+                      </div>)}
+                      {formMsg && <div style={{ padding: 8, borderRadius: 6, marginBottom: 8, fontSize: 11, fontWeight: 600, lineHeight: 1.4, background: formMsg.indexOf("✅") === 0 ? "#dcfce7" : formMsg.indexOf("🔄") === 0 ? "#e0f2fe" : "#fee2e2", color: formMsg.indexOf("✅") === 0 ? "#166534" : formMsg.indexOf("🔄") === 0 ? "#0c4a6e" : "#991b1b" }}>{formMsg}</div>}
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button disabled={formMsg.indexOf("🔄") === 0} onClick={function() { saveEditItem(cat); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: formMsg.indexOf("🔄") === 0 ? 0.5 : 1}}>{formMsg.indexOf("🔄") === 0 ? "Recalculating…" : editDraft.recalculated ? "✓ Continue — Save" : "✓ Confirm"}</button>
+                        <button onClick={function() { if (editDraft.recalculated) { setEditDraft(function(prev) { return Object.assign({}, prev, { recalculated: false }); }); } else { setEditingItem(null); setEditDraft(null); } setFormMsg(""); }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>{editDraft.recalculated ? "Edit Again" : "Cancel"}</button>
+                      </div>
+                    </div>)}
                     </div>);
                   })}
                   {cat.customs.length === 0 && <div style={{ fontSize: 10, color: "#94a3b8", padding: 4 }}>No custom items yet</div>}
@@ -7524,7 +7596,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var deviceInfo = "";
                 try { deviceInfo = navigator.userAgent; } catch(e) { deviceInfo = "Unknown"; }
                 var screenInfo = window.screen ? window.screen.width + "x" + window.screen.height : "Unknown";
-                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.367.0";
+                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.368.0";
                 var emailSubject = encodeURIComponent("[Life Care " + (feedbackType === "bug" ? "Bug" : "Feature") + "] " + feedbackText.trim().substring(0, 50));
                 window.open("mailto:jc.zaluski@gmail.com?subject=" + emailSubject + "&body=" + emailBody, "_self");
                 setFeedbackOpen(false);
@@ -7623,7 +7695,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           <button onClick={function(){ setShowPrivacy(false); }} style={{ width: "100%", padding: "10px 0", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", marginTop: 8 }}>Close</button>
         </div>
       </div>)}
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.367.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.368.0
       </div>
 
       {/* Floating Ask a Question button */}
