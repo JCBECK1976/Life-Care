@@ -867,7 +867,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.365.2
+// STANDARD BUTTON STYLES v1.365.3
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -5363,7 +5363,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     var editedIngredients = ingEl ? ingEl.value.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length > 0;}) : (cameraPreview.ingredients || []);
                     var cp = Object.assign({}, cameraPreview, { name: editedName, ingredients: editedIngredients });
                     var cats = reviewCategories;
-                    /* Recalculate nutrition if ingredients changed */
+                    /* Recalculate nutrition if ingredients changed — show new values, then user confirms again to add */
                     if (cp.itemType === "ingredient" && cp.originalIngredients !== undefined && editedIngredients.join(", ") !== cp.originalIngredients) {
                       setFormMsg("🔄 Updating nutritional values for changed ingredients...");
                       try {
@@ -5372,8 +5372,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         var recResult = await recResp.json(); var recErr = handleApiError(recResult); if (recErr) throw new Error(recErr);
                         var recTxt = ""; if (recResult.content) { for (var ri3=0;ri3<recResult.content.length;ri3++) { if(recResult.content[ri3].text) recTxt+=recResult.content[ri3].text; } }
                         var recJson = recTxt.replace(/```json|```/g, "").trim(); var recMatch = recJson.match(/\{[\s\S]*\}/);
-                        if (recMatch) { var recInfo = JSON.parse(recMatch[0]); cp = Object.assign({}, cp, { kcal: recInfo.kcal || cp.kcal, protein: recInfo.protein || cp.protein, fat: recInfo.fat || cp.fat, satFat: recInfo.satFat || cp.satFat, carbs: recInfo.carbs || cp.carbs, fibre: recInfo.fibre || cp.fibre, salt: recInfo.salt || cp.salt, rating: recInfo.rating || cp.rating }); }
-                      } catch(re) { setFormMsg(window.isEnergyEmpty(re) ? window.energyEmptyMsg : "⚠️ Could not recalculate — using original values"); await new Promise(function(r){setTimeout(r,1500);}); }
+                        if (recMatch) { var recInfo = JSON.parse(recMatch[0]); setCameraPreview(Object.assign({}, cp, { kcal: recInfo.kcal || cp.kcal, protein: recInfo.protein || cp.protein, fat: recInfo.fat || cp.fat, satFat: recInfo.satFat || cp.satFat, carbs: recInfo.carbs || cp.carbs, fibre: recInfo.fibre || cp.fibre, salt: recInfo.salt || cp.salt, rating: recInfo.rating || cp.rating, originalIngredients: editedIngredients.join(", ") })); setFormMsg("✅ Values updated — review and press Confirm to add"); return; }
+                      } catch(re) { setFormMsg(window.isEnergyEmpty(re) ? window.energyEmptyMsg : "⚠️ Could not recalculate — using original values"); setCameraPreview(Object.assign({}, cp, { originalIngredients: editedIngredients.join(", ") })); setTimeout(function(){setFormMsg("Press Confirm to add with original values");}, 2000); return; }
                     }
                     var addedTo = []; var dupeFound = [];
                     for (var ci = 0; ci < cats.length; ci++) {
@@ -7565,7 +7565,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var deviceInfo = "";
                 try { deviceInfo = navigator.userAgent; } catch(e) { deviceInfo = "Unknown"; }
                 var screenInfo = window.screen ? window.screen.width + "x" + window.screen.height : "Unknown";
-                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.365.2";
+                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.365.3";
                 var emailSubject = encodeURIComponent("[Life Care " + (feedbackType === "bug" ? "Bug" : "Feature") + "] " + feedbackText.trim().substring(0, 50));
                 window.open("mailto:jc.zaluski@gmail.com?subject=" + emailSubject + "&body=" + emailBody, "_self");
                 setFeedbackOpen(false);
@@ -7664,7 +7664,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           <button onClick={function(){ setShowPrivacy(false); }} style={{ width: "100%", padding: "10px 0", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", marginTop: 8 }}>Close</button>
         </div>
       </div>)}
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.365.2
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.365.3
       </div>
 
       {/* Floating Ask a Question button */}
@@ -7757,7 +7757,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               var editedIngredients = ingEl ? ingEl.value.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length > 0;}) : (cameraPreview.ingredients || []);
               var cp = Object.assign({}, cameraPreview, { name: editedName, ingredients: editedIngredients });
               var cats = reviewCategories;
-              /* Recalculate nutrition if ingredients changed */
+              /* Recalculate nutrition if ingredients changed — show new values, then user confirms again to add */
               if (cp.itemType === "ingredient" && cp.originalIngredients !== undefined && editedIngredients.join(", ") !== cp.originalIngredients) {
                 setFormMsg("🔄 Updating nutritional values for changed ingredients...");
                 try {
@@ -7766,8 +7766,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var recResult = await recResp.json(); var recErr = handleApiError(recResult); if (recErr) throw new Error(recErr);
                   var recTxt = ""; if (recResult.content) { for (var ri3=0;ri3<recResult.content.length;ri3++) { if(recResult.content[ri3].text) recTxt+=recResult.content[ri3].text; } }
                   var recJson = recTxt.replace(/```json|```/g, "").trim(); var recMatch = recJson.match(/\{[\s\S]*\}/);
-                  if (recMatch) { var recInfo = JSON.parse(recMatch[0]); cp = Object.assign({}, cp, { kcal: recInfo.kcal || cp.kcal, protein: recInfo.protein || cp.protein, fat: recInfo.fat || cp.fat, satFat: recInfo.satFat || cp.satFat, carbs: recInfo.carbs || cp.carbs, fibre: recInfo.fibre || cp.fibre, salt: recInfo.salt || cp.salt, rating: recInfo.rating || cp.rating }); }
-                } catch(re) { setFormMsg(window.isEnergyEmpty(re) ? window.energyEmptyMsg : "⚠️ Could not recalculate — using original values"); await new Promise(function(r){setTimeout(r,1500);}); }
+                  if (recMatch) { var recInfo = JSON.parse(recMatch[0]); setCameraPreview(Object.assign({}, cp, { kcal: recInfo.kcal || cp.kcal, protein: recInfo.protein || cp.protein, fat: recInfo.fat || cp.fat, satFat: recInfo.satFat || cp.satFat, carbs: recInfo.carbs || cp.carbs, fibre: recInfo.fibre || cp.fibre, salt: recInfo.salt || cp.salt, rating: recInfo.rating || cp.rating, originalIngredients: editedIngredients.join(", ") })); setFormMsg("✅ Values updated — review and press Confirm to add"); return; }
+                } catch(re) { setFormMsg(window.isEnergyEmpty(re) ? window.energyEmptyMsg : "⚠️ Could not recalculate — using original values"); setCameraPreview(Object.assign({}, cp, { originalIngredients: editedIngredients.join(", ") })); setTimeout(function(){setFormMsg("Press Confirm to add with original values");}, 2000); return; }
               }
               var addedTo = []; var dupeFound = [];
               for (var ci = 0; ci < cats.length; ci++) {
