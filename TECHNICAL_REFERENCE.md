@@ -1,7 +1,7 @@
 # Technical Reference — Life Care Companion
 
 > **Purpose**: Complete technical architecture reference for any developer continuing this project.  
-> **Version**: v1.365.0 | **File**: `index.html` (~860KB)  
+> **Version**: v1.371.0 | **File**: `index.html` (~860KB)  
 > **Live**: https://jcbeck1976.github.io/Life-Care  
 > **Repo**: https://github.com/JCBECK1976/Life-Care
 
@@ -255,15 +255,19 @@ window.trackApiUsage(inputTokens, outputTokens)
 // Deducts from energy balance stored in Firebase
 // Updates window._companionEnergyPct and window._companionEnergyStatus
 // Triggers UI update via window._setCompanionEnergy if available
+// DISPLAY ONLY since v1.366.1 — an estimate that drifts from the real Anthropic balance.
+// checkCompanionEnergy() resets a depleted ledger when the key pings OK (200 or 400).
 ```
 
 ### Fetch Interceptor
 ```javascript
 // window.fetch is overridden to:
-// 1. Check energy balance before Anthropic API calls — reject with ENERGY_EMPTY if ≤5%
-// 2. Clone response and extract usage tokens for tracking
-// 3. Pass through all non-Anthropic calls unchanged
-// window._origFetch — original fetch, used for energy checks to avoid infinite loop
+// 1. Clone Anthropic responses and extract usage tokens for tracking
+// 2. Pass through all non-Anthropic calls unchanged
+// It NEVER blocks a call. The old ENERGY_EMPTY pre-check was removed in v1.366.1:
+// it rejected every request locally once the estimate passed 95%, while real credit was fine.
+// "Energy Empty" now comes only from Anthropic's own credit error via handleApiError().
+// window._origFetch — original fetch, used by checkCompanionEnergy's ping
 ```
 
 ### Exercise Utilities
@@ -486,6 +490,12 @@ AI-generated per session day. Stored in Firebase as `session_guides_{day}`. Coll
 
 ---
 
+### Stopped Exercises (v1.370.0)
+- Fields: `ex.stopped` (true) and `ex.stoppedAt` (ISO date) on the exercise entry for that day only.
+- The day list renders active exercises, then a "Stopped Exercises (n)" toggle (`stoppedExOpen` state), then stopped ones. Rows are drawn by `_renderEx(ex, i)` using the original index, so logging indexes are unchanged.
+- `saveLog` refuses a stopped exercise; dual logging skips a stopped `otEx`. Session feedback filters stopped exercises out.
+- Stop / Restart button sits under Edit / Delete in Exercise Settings.
+
 ## 11. Eating System
 
 ### RAG Rating System
@@ -509,6 +519,13 @@ Generates meal suggestions using only custom-added items (with RAG status), neve
 
 ---
 
+### Adding & Updating Items (v1.366–v1.368)
+- `confirmReviewItem(isOverlay)` — one handler for the inline and overlay Review Item panels; published as `window._confirmReviewItem` because the overlay renders outside the meals IIFE. Two-step: recalculate if ingredients changed (`cameraPreview.recalculated` flips buttons to Continue — Add / Edit Again), then add.
+- `bulkPasteAdd(category)` — reads `#bulk-paste-textarea`, one AI call for all items, auto-adds, skips duplicates. Toggled by `bulkReviewItems === "paste"`.
+- `saveEditItem(cat)` with `editDraft` state — Update Item panel, same two-step flow; uncontrolled inputs `edit-item-name-{id}` / `edit-item-ingredients-{id}`.
+- New items store `suitability` (description).
+- Add box closes after add when `addingSource !== "manage"`.
+
 ## 12. Deployment
 
 ### GitHub Pages via API
@@ -524,6 +541,7 @@ opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 ### Pre-Deploy Checklist
 1. ✅ Run Babel syntax check (see HANDOVER.md for script)
+1a. ✅ Run the scope check (HANDOVER.md §4) — catches functions used outside the block that defines them
 2. ✅ Update version in footer display text
 3. ✅ Update version in button styles comment block
 4. ✅ Never bundle multiple features in one version
@@ -548,6 +566,8 @@ opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 8. **No offline/PWA support** — requires internet for all operations
 9. **Wide-open Firebase rules** — see FIREBASE_SECURITY.md
 10. **Client-side API keys** — Anthropic key visible in browser DevTools
+11. **Section IIFEs** — functions defined inside a section's render block are invisible elsewhere; use `window._name` or component level (see HANDOVER.md risk #11)
+12. **Known bug** — My Exercise "Remove [exercise] from [day]" references undefined `i` (HANDOVER.md known issue #9)
 
 ---
 
