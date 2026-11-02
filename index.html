@@ -867,7 +867,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.366.0
+// STANDARD BUTTON STYLES v1.366.1
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -931,10 +931,12 @@ window._origFetch = _origFetch;
 window.fetch = function() {
   var url = arguments[0];
   if (typeof url === "string" && url.indexOf("api.anthropic.com") !== -1) {
-    /* Block if energy is empty */
-    if (window._companionEnergyPct !== undefined && window._companionEnergyPct <= 5 && window._companionEnergyStatus === "active") {
-      return Promise.reject(new Error("ENERGY_EMPTY"));
-    }
+    /* v1.366.1: Local energy ledger is a DISPLAY estimate only — it must never block
+       a real API call. Anthropic is the authority on credit: if the account is genuinely
+       out, the API returns a "credit balance" error and handleApiError surfaces it.
+       The old client-side gate here blocked every call once its own estimate drifted
+       past 95% of a hardcoded $5, which made all AI features fail while real credit
+       was fine, and never reliably reset. */
     return _origFetch.apply(this, arguments).then(function(resp) {
       var cloned = resp.clone();
       cloned.json().then(function(data) {
@@ -1877,6 +1879,12 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           var parsed2 = JSON.parse(stored);
           parsed2.keyStatus = status;
           if (status === "invalid_key") { parsed2.balance = 0; parsed2.pct = 0; }
+          /* v1.366.1: a 400 means the key itself is fine (request shape complaint), so
+             treat it like a successful ping — reset a depleted ledger instead of leaving
+             it stuck at 0% forever. */
+          else if (status === "active" && (parsed2.pct <= 5 || parsed2.balance <= 0)) {
+            parsed2.spent = 0; parsed2.balance = parsed2.initial || 5; parsed2.pct = 100;
+          }
           window._setCompanionEnergy(parsed2);
           await sSet("companion_energy", JSON.stringify(parsed2));
         } else {
@@ -7511,7 +7519,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var deviceInfo = "";
                 try { deviceInfo = navigator.userAgent; } catch(e) { deviceInfo = "Unknown"; }
                 var screenInfo = window.screen ? window.screen.width + "x" + window.screen.height : "Unknown";
-                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.366.0";
+                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.366.1";
                 var emailSubject = encodeURIComponent("[Life Care " + (feedbackType === "bug" ? "Bug" : "Feature") + "] " + feedbackText.trim().substring(0, 50));
                 window.open("mailto:jc.zaluski@gmail.com?subject=" + emailSubject + "&body=" + emailBody, "_self");
                 setFeedbackOpen(false);
@@ -7610,7 +7618,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           <button onClick={function(){ setShowPrivacy(false); }} style={{ width: "100%", padding: "10px 0", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", marginTop: 8 }}>Close</button>
         </div>
       </div>)}
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.366.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.366.1
       </div>
 
       {/* Floating Ask a Question button */}
