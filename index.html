@@ -867,7 +867,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.366.1
+// STANDARD BUTTON STYLES v1.366.2
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -5117,10 +5117,11 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var recJson = recTxt.replace(/```json|```/g, "").trim(); var recMatch = recJson.match(/\{[\s\S]*\}/);
                 if (recMatch) {
                   var recInfo = JSON.parse(recMatch[0]);
-                  setCameraPreview(Object.assign({}, cp, { kcal: recInfo.kcal || cp.kcal, protein: recInfo.protein || cp.protein, fat: recInfo.fat || cp.fat, satFat: recInfo.satFat || cp.satFat, carbs: recInfo.carbs || cp.carbs, fibre: recInfo.fibre || cp.fibre, salt: recInfo.salt || cp.salt, rating: recInfo.rating || cp.rating, originalIngredients: editedIngredients.join(", ") }));
-                  setFormMsg("✅ Nutritional values updated — press Confirm to add or edit further");
+                  setCameraPreview(Object.assign({}, cp, { kcal: recInfo.kcal || cp.kcal, protein: recInfo.protein || cp.protein, fat: recInfo.fat || cp.fat, satFat: recInfo.satFat || cp.satFat, carbs: recInfo.carbs || cp.carbs, fibre: recInfo.fibre || cp.fibre, salt: recInfo.salt || cp.salt, rating: recInfo.rating || cp.rating, originalIngredients: editedIngredients.join(", "), recalculated: true }));
+                  setFormMsg("✅ Nutritional values updated. Press Continue to add, or Edit Again to change the ingredients.");
                   return;
                 }
+                throw new Error("AI did not return nutrition values");
               } catch(re) {
                 if (window.isEnergyEmpty(re)) { setFormMsg(window.energyEmptyMsg); }
                 else { setFormMsg("⚠️ Recalculation failed: " + String(re.message || re).substring(0, 80) + ". Press Confirm to retry or Cancel."); }
@@ -5162,6 +5163,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); setAddingSlotKey(null); setAddingSlotDay(null); setNewItemName(""); setOffResults([]);
             setTimeout(function(){setFormMsg("");}, 4000);
           };
+          /* Overlay panel renders outside this section's scope — expose current closure */
+          window._confirmReviewItem = confirmReviewItem;
 
           /* ═══ Bulk paste add — auto-adds items without per-item review ═══ */
           var bulkPasteAdd = async function(bulkCat) {
@@ -5433,9 +5436,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     })}
                   </div>
                 </div>)}
+                {formMsg && <div style={{ padding: 8, borderRadius: 6, marginBottom: 8, fontSize: 11, fontWeight: 600, lineHeight: 1.4, background: formMsg.indexOf("✅") === 0 ? "#dcfce7" : formMsg.indexOf("🔄") === 0 ? "#e0f2fe" : "#fee2e2", color: formMsg.indexOf("✅") === 0 ? "#166534" : formMsg.indexOf("🔄") === 0 ? "#0c4a6e" : "#991b1b" }}>{formMsg}</div>}
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button disabled={reviewCategories.length === 0} onClick={function() { confirmReviewItem(false); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: reviewCategories.length === 0 ? 0.5 : 1}}>✓ Confirm{reviewCategories.length > 1 ? " (" + reviewCategories.length + " lists)" : ""}</button>
-                  <button onClick={function() { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); setAddingSlotKey(null); setAddingSlotDay(null); }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
+                  <button disabled={reviewCategories.length === 0 || formMsg.indexOf("🔄") === 0} onClick={function() { window._confirmReviewItem(false); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: (reviewCategories.length === 0 || formMsg.indexOf("🔄") === 0) ? 0.5 : 1}}>{formMsg.indexOf("🔄") === 0 ? "Recalculating…" : cameraPreview.recalculated ? "✓ Continue — Add" : "✓ Confirm" + (reviewCategories.length > 1 ? " (" + reviewCategories.length + " lists)" : "")}</button>
+                  <button onClick={function() { if (cameraPreview.recalculated) { setCameraPreview(function(prev) { return Object.assign({}, prev, { recalculated: false }); }); setFormMsg(""); } else { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); setAddingSlotKey(null); setAddingSlotDay(null); setFormMsg(""); } }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>{cameraPreview.recalculated ? "Edit Again" : "Cancel"}</button>
                 </div>
               </div>)}
 
@@ -7519,7 +7523,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var deviceInfo = "";
                 try { deviceInfo = navigator.userAgent; } catch(e) { deviceInfo = "Unknown"; }
                 var screenInfo = window.screen ? window.screen.width + "x" + window.screen.height : "Unknown";
-                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.366.1";
+                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.366.2";
                 var emailSubject = encodeURIComponent("[Life Care " + (feedbackType === "bug" ? "Bug" : "Feature") + "] " + feedbackText.trim().substring(0, 50));
                 window.open("mailto:jc.zaluski@gmail.com?subject=" + emailSubject + "&body=" + emailBody, "_self");
                 setFeedbackOpen(false);
@@ -7618,7 +7622,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           <button onClick={function(){ setShowPrivacy(false); }} style={{ width: "100%", padding: "10px 0", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", marginTop: 8 }}>Close</button>
         </div>
       </div>)}
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.366.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.366.2
       </div>
 
       {/* Floating Ask a Question button */}
@@ -7703,9 +7707,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               })}
             </div>
           </div>)}
+          {formMsg && <div style={{ padding: 8, borderRadius: 6, marginBottom: 8, fontSize: 11, fontWeight: 600, lineHeight: 1.4, background: formMsg.indexOf("✅") === 0 ? "#dcfce7" : formMsg.indexOf("🔄") === 0 ? "#e0f2fe" : "#fee2e2", color: formMsg.indexOf("✅") === 0 ? "#166534" : formMsg.indexOf("🔄") === 0 ? "#0c4a6e" : "#991b1b" }}>{formMsg}</div>}
           <div style={{ display: "flex", gap: 6 }}>
-            <button disabled={reviewCategories.length === 0} onClick={function() { confirmReviewItem(true); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: reviewCategories.length === 0 ? 0.5 : 1}}>✓ Confirm{reviewCategories.length > 1 ? " (" + reviewCategories.length + " lists)" : ""}</button>
-            <button onClick={function() { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); setAddingSlotKey(null); setAddingSlotDay(null); }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
+            <button disabled={reviewCategories.length === 0 || formMsg.indexOf("🔄") === 0} onClick={function() { window._confirmReviewItem(true); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: (reviewCategories.length === 0 || formMsg.indexOf("🔄") === 0) ? 0.5 : 1}}>{formMsg.indexOf("🔄") === 0 ? "Recalculating…" : cameraPreview.recalculated ? "✓ Continue — Add" : "✓ Confirm" + (reviewCategories.length > 1 ? " (" + reviewCategories.length + " lists)" : "")}</button>
+            <button onClick={function() { if (cameraPreview.recalculated) { setCameraPreview(function(prev) { return Object.assign({}, prev, { recalculated: false }); }); setFormMsg(""); } else { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); setAddingSlotKey(null); setAddingSlotDay(null); setFormMsg(""); } }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>{cameraPreview.recalculated ? "Edit Again" : "Cancel"}</button>
           </div>
         </div>
       </div>)}
