@@ -867,7 +867,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.368.1
+// STANDARD BUTTON STYLES v1.368.2
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -4649,9 +4649,11 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         "6) Max 25 words per verdict. Be specific not generic.\n" +
                         "7) QUALITY TRACKING: Each exercise has [QUALITY] data — Full Range (or Completed in One for cardio) and Good Form toggles. 'Working Towards' means they are still developing that aspect. CRITICAL: If Full Range is 'Working Towards', do NOT recommend increasing weight — prioritise full range of motion with controlled 3-second eccentric tempo first. If Good Form is 'Working Towards', acknowledge their honesty and encourage form focus. Only recommend weight increases when BOTH quality indicators are 'Good' AND rep targets are met. Praise honesty when someone marks Working Towards — it shows self-awareness.\n\n" +
                         "Return ONLY valid JSON: " + jsonFormat;
-                      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
+                      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2500, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+                      if (result.stop_reason === "max_tokens") throw new Error("Feedback was cut off before it finished — please press the button again");
                       var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
+                      if (!txt) throw new Error("No feedback came back — please press the button again");
                       if (txt) { var fb = JSON.parse(txt.replace(/```json|```/g, "").trim()); fb._generatedAt = new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
                         // Store current week and data snapshot for re-run detection
                         var fbWeekNum = exList[0] && exList[0].prog && exList[0].prog.length > 0 ? exList[0].prog[exList[0].prog.length - 1].wk : null;
@@ -4661,7 +4663,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
                         setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb })); var sfUpdate = Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb }); await sSet("session_feedback_all", JSON.stringify(sfUpdate));
                         // Recommendations shown to user - they accept/decline individually
                         }
-                    } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [day]: { exercises: [], summary: window.isEnergyEmpty(e) ? window.energyEmptyMsg : "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
+                    } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: { exercises: [], summary: window.isEnergyEmpty(e) ? window.energyEmptyMsg : "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
                     setSessionFbLoading(false);
                   }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{sessionFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Session Feedback"}</button>
                   <button onClick={function(){setFbExpanded(!fbExpanded);}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#64748b",cursor:"pointer",marginTop:4}}>{fbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>
@@ -7597,7 +7599,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var deviceInfo = "";
                 try { deviceInfo = navigator.userAgent; } catch(e) { deviceInfo = "Unknown"; }
                 var screenInfo = window.screen ? window.screen.width + "x" + window.screen.height : "Unknown";
-                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.368.1";
+                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.368.2";
                 var emailSubject = encodeURIComponent("[Life Care " + (feedbackType === "bug" ? "Bug" : "Feature") + "] " + feedbackText.trim().substring(0, 50));
                 window.open("mailto:jc.zaluski@gmail.com?subject=" + emailSubject + "&body=" + emailBody, "_self");
                 setFeedbackOpen(false);
@@ -7696,7 +7698,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           <button onClick={function(){ setShowPrivacy(false); }} style={{ width: "100%", padding: "10px 0", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", marginTop: 8 }}>Close</button>
         </div>
       </div>)}
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.368.1
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.368.2
       </div>
 
       {/* Floating Ask a Question button */}
