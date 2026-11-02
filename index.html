@@ -867,7 +867,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.370.0
+// STANDARD BUTTON STYLES v1.371.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -7618,7 +7618,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var deviceInfo = "";
                 try { deviceInfo = navigator.userAgent; } catch(e) { deviceInfo = "Unknown"; }
                 var screenInfo = window.screen ? window.screen.width + "x" + window.screen.height : "Unknown";
-                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.370.0";
+                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.371.0";
                 var emailSubject = encodeURIComponent("[Life Care " + (feedbackType === "bug" ? "Bug" : "Feature") + "] " + feedbackText.trim().substring(0, 50));
                 window.open("mailto:jc.zaluski@gmail.com?subject=" + emailSubject + "&body=" + emailBody, "_self");
                 setFeedbackOpen(false);
@@ -7717,7 +7717,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           <button onClick={function(){ setShowPrivacy(false); }} style={{ width: "100%", padding: "10px 0", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", marginTop: 8 }}>Close</button>
         </div>
       </div>)}
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.370.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.371.0
       </div>
 
       {/* Floating Ask a Question button */}
@@ -7728,25 +7728,32 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
         <div onClick={() => setQaOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.3)" }} />
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, maxHeight: "75vh", background: "#fff", borderRadius: "16px 16px 0 0", boxShadow: "0 -4px 24px rgba(0,0,0,0.15)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <div style={{ padding: "14px 16px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Ask a Question</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Chat with your Companion</div>
             <button onClick={() => setQaOpen(false)} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
           </div>
-          <div style={{ padding: "8px 16px 16px", overflowY: "auto", flex: 1 }}>
-            <div style={{ fontSize: 11, color: "#64748b", marginBottom: 8 }}>Ask anything about your health, training, nutrition, or progress. Your full data history is used to answer.</div>
-            <textarea id={"qa-input-" + activeTab} placeholder="e.g. Why did my bicep curl reps drop? Am I eating enough protein? What should I focus on next?" style={{ ...inputStyle, minHeight: 50, resize: "vertical", fontSize: 12, marginBottom: 8 }} />
-            <button onClick={askQuestion} disabled={qaLoading} style={{ width: "100%", padding: 12, background: qaLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: qaLoading ? "not-allowed" : "pointer", opacity: qaLoading ? 0.7 : 1 }}>{qaLoading ? <span>Thinking, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Ask"}</button>
-            {qaMsg && <div style={{ marginTop: 6, padding: 8, borderRadius: 6, background: qaMsg.startsWith("Error") ? "#fee2e2" : "#dbeafe", color: qaMsg.startsWith("Error") ? "#991b1b" : "#1e40af", fontSize: 11, fontWeight: 600 }}>{qaMsg}</div>}
-            {qaHistory[activeTab] && qaHistory[activeTab].length > 0 && (<div style={{ marginTop: 12 }}>
-              {qaHistory[activeTab].slice(-3).reverse().map((qa, i) => (<div key={i} style={{ padding: 10, background: i === 0 ? "#f0fdf4" : accentLight, borderRadius: 8, marginBottom: 6, border: i === 0 ? "1px solid #bae6fd" : "1px solid " + accentBorder }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Q: {qa.q} <span style={{ fontWeight: 400, color: "#94a3b8" }}>· {qa.when}</span></div>
-                <div style={{ fontSize: 12, color: "#0f172a", lineHeight: 1.5 }}>{qa.a}</div>
-              </div>))}
-              {qaHistory[activeTab].length > 3 && <button onClick={() => setShowQaHistory(!showQaHistory)} style={{ fontSize: 11, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: 0 }}>{showQaHistory ? "Hide" : "Show"} older questions ({qaHistory[activeTab].length - 3})</button>}
-              {showQaHistory && qaHistory[activeTab].slice(0, -3).reverse().map((qa, i) => (<div key={i} style={{ padding: 8, background: accentLight, borderRadius: 8, marginBottom: 4, marginTop: 4, opacity: 0.7 }}>
-                <div style={{ fontSize: 10, color: "#64748b" }}>Q: {qa.q} · {qa.when}</div>
-                <div style={{ fontSize: 11, color: "#475569" }}>{qa.a}</div>
+          <div style={{ padding: "8px 16px 10px", overflowY: "auto", flex: 1 }}>
+            <div style={{ fontSize: 11, color: "#64748b", marginBottom: 10 }}>Ask anything about your health, training, nutrition, or progress. Your full data history is used to answer.</div>
+            {qaHistory[activeTab] && qaHistory[activeTab].length > 0 && (<div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Conversation</div>
+              {qaHistory[activeTab].length > 3 && <button onClick={() => setShowQaHistory(!showQaHistory)} style={{ fontSize: 11, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: "0 0 8px" }}>{showQaHistory ? "Hide" : "Show"} older messages ({qaHistory[activeTab].length - 3})</button>}
+              {(showQaHistory ? qaHistory[activeTab] : qaHistory[activeTab].slice(-3)).map((qa, i) => (<div key={i}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", marginBottom: 6 }}>
+                  <div style={{ maxWidth: "85%", padding: "8px 12px", borderRadius: "12px 12px 2px 12px", background: accentChatUser, border: "1px solid " + accentBorder, color: "#334155", fontSize: 12, lineHeight: 1.5 }}>{qa.q}</div>
+                  <div style={{ fontSize: 9, color: "#94a3b8", marginTop: 2, paddingLeft: 4, paddingRight: 4 }}>You{qa.when ? " · " + qa.when : ""}</div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", marginBottom: 10 }}>
+                  <div style={{ maxWidth: "85%", padding: "8px 12px", borderRadius: "12px 12px 12px 2px", background: "#334155", color: "#fff", fontSize: 12, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{qa.a}</div>
+                  <div style={{ fontSize: 9, color: "#94a3b8", marginTop: 2, paddingLeft: 4, paddingRight: 4 }}>Companion</div>
+                </div>
               </div>))}
             </div>)}
+          </div>
+          <div style={{ padding: "8px 16px 16px", borderTop: "1px solid #f1f5f9" }}>
+            {qaMsg && <div style={{ marginBottom: 6, padding: 8, borderRadius: 6, background: qaMsg.startsWith("Error") ? "#fee2e2" : "#dbeafe", color: qaMsg.startsWith("Error") ? "#991b1b" : "#1e40af", fontSize: 11, fontWeight: 600 }}>{qaMsg}</div>}
+            <div style={{ display: "flex", gap: 6 }}>
+              <textarea id={"qa-input-" + activeTab} disabled={qaLoading} placeholder={qaHistory[activeTab] && qaHistory[activeTab].length > 0 ? "Continue the conversation..." : "e.g. Am I eating enough protein? What should I focus on next?"} style={{ flex: 1, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, resize: "vertical", minHeight: 40, boxSizing: "border-box", fontFamily: "inherit", opacity: qaLoading ? 0.6 : 1 }} />
+              <button onClick={askQuestion} disabled={qaLoading} style={{ padding: "8px 14px", background: qaLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: qaLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>{qaLoading ? <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /> : "Send"}</button>
+            </div>
           </div>
         </div>
       </div>}
