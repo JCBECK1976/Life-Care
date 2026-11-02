@@ -867,7 +867,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.365.5
+// STANDARD BUTTON STYLES v1.366.0
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -5085,30 +5085,85 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             setNewItemName(""); setNewItemLoading(false);
           };
 
-          var bulkImportItems = async function(file) {
-            if (!file) return;
-            setNewItemLoading(true);
-            setFormMsg("📄 Reading file...");
-            try {
-              var lines = [];
-              var isExcel = /\.(xls|xlsx)$/i.test(file.name);
-              if (isExcel) {
-                var ab = await new Promise(function(res, rej) { var r = new FileReader(); r.onload = function() { res(r.result); }; r.onerror = function() { rej(new Error("Read failed")); }; r.readAsArrayBuffer(file); });
-                var wb = XLSX.read(ab, { type: "array" });
-                var ws = wb.Sheets[wb.SheetNames[0]];
-                var rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
-                for (var ri2 = 0; ri2 < rows.length; ri2++) {
-                  var row = rows[ri2];
-                  if (!row || row.length === 0) continue;
-                  var val = String(row[0] || "").trim();
-                  if (val.length > 0 && val !== "---" && val.toLowerCase() !== "item" && val.toLowerCase() !== "name" && val.toLowerCase() !== "food") lines.push(val);
+          /* ═══ Shared confirm handler for Review Item (inline + overlay) ═══ */
+          var confirmReviewItem = async function(isOverlay) {
+            var nameId = isOverlay ? "review-item-name-overlay" : "review-item-name";
+            var ingId = isOverlay ? "review-item-ingredients-overlay" : "review-item-ingredients";
+            var nameEl = document.getElementById(nameId);
+            var ingEl = document.getElementById(ingId);
+            var editedName = nameEl ? nameEl.value.trim() : cameraPreview.name;
+            var editedIngredients = ingEl ? ingEl.value.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length > 0;}) : (cameraPreview.ingredients || []);
+            var cp = Object.assign({}, cameraPreview, { name: editedName, ingredients: editedIngredients });
+            var cats = reviewCategories;
+            if (cats.length === 0) return;
+
+            /* Step 1: If ingredients changed, recalculate and show updated values */
+            if (cp.itemType === "ingredient" && cp.originalIngredients !== undefined && editedIngredients.join(", ") !== cp.originalIngredients) {
+              setFormMsg("🔄 Recalculating nutritional values...");
+              try {
+                var recalcPrompt = "Calculate nutritional info for a homemade dish called \"" + cp.name + "\" with these specific ingredients and portions: " + editedIngredients.join(", ") + ". Return ONLY JSON: {\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\"}";
+                var recResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 300, messages: [{ role: "user", content: recalcPrompt }] }) });
+                var recResult = await recResp.json();
+                var recErr = handleApiError(recResult); if (recErr) throw new Error(recErr);
+                var recTxt = ""; if (recResult.content) { for (var ri3=0; ri3<recResult.content.length; ri3++) { if(recResult.content[ri3].text) recTxt += recResult.content[ri3].text; } }
+                var recJson = recTxt.replace(/```json|```/g, "").trim(); var recMatch = recJson.match(/\{[\s\S]*\}/);
+                if (recMatch) {
+                  var recInfo = JSON.parse(recMatch[0]);
+                  setCameraPreview(Object.assign({}, cp, { kcal: recInfo.kcal || cp.kcal, protein: recInfo.protein || cp.protein, fat: recInfo.fat || cp.fat, satFat: recInfo.satFat || cp.satFat, carbs: recInfo.carbs || cp.carbs, fibre: recInfo.fibre || cp.fibre, salt: recInfo.salt || cp.salt, rating: recInfo.rating || cp.rating, originalIngredients: editedIngredients.join(", ") }));
+                  setFormMsg("✅ Nutritional values updated — press Confirm to add or edit further");
+                  return;
                 }
-              } else {
-                var text = await new Promise(function(res, rej) { var r = new FileReader(); r.onload = function() { res(r.result); }; r.onerror = function() { rej(new Error("Read failed")); }; r.readAsText(file); });
-                lines = text.split(/[\n\r]+/).map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0 && l !== "---"; });
+              } catch(re) {
+                if (window.isEnergyEmpty(re)) { setFormMsg(window.energyEmptyMsg); }
+                else { setFormMsg("⚠️ Recalculation failed: " + String(re.message || re).substring(0, 80) + ". Press Confirm to retry or Cancel."); }
+                return;
               }
-              if (lines.length === 0) { setFormMsg("No items found in file"); setNewItemLoading(false); return; }
-              setFormMsg("🔍 Analysing " + lines.length + " item" + (lines.length > 1 ? "s" : "") + "... This uses more Companion Energy.");
+            }
+
+            /* Step 2: Add item to selected categories */
+            var addedTo = []; var dupeFound = [];
+            for (var ci = 0; ci < cats.length; ci++) {
+              var cat = cats[ci];
+              var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
+              var dupeName = cp.name.toLowerCase().trim();
+              if (listItems.some(function(x) { return x.name.toLowerCase().trim() === dupeName; })) { dupeFound.push(cat); continue; }
+              var newItem = { id: "custom_" + Date.now() + "_" + ci, name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, rating: cp.rating, itemType: cp.itemType || "packaged", ingredients: cp.ingredients || [], freq: "Daily", isCustom: true, source: cp.source || "manual", barcode: cp.barcode || "", servingSize: cp.servingSize || "" };
+              if (cat === "dinner" && !reviewSideType) { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = cp.itemType === "ingredient" ? (cp.ingredients || []) : [cp.name]; }
+              if (cat === "dinner" && reviewSideType) { newItem.sideType = reviewSideType; }
+              var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
+              var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : cat === "drink" ? "custom_drinks" : cat === "dessert" ? "custom_desserts" : "custom_snacks";
+              var u = [].concat(listItems, [newItem]); setList(u); await sSet(storageKey, JSON.stringify(u));
+              addedTo.push(cat); listItems = u;
+            }
+            if (addingSlotKey) {
+              var assignId = null;
+              if (addedTo.length > 0 && newItem) { assignId = newItem.id; }
+              else if (dupeFound.length > 0) {
+                var dupeList = addingCategory === "breakfast" ? customBreakfasts : addingCategory === "lunch" ? customLunches : addingCategory === "dinner" ? customMeals : addingCategory === "drink" ? customDrinks : addingCategory === "dessert" ? customDesserts : customSnacks;
+                var dupeMatch = dupeList.find(function(x) { return x.name.toLowerCase().trim() === cp.name.toLowerCase().trim(); });
+                if (dupeMatch) assignId = dupeMatch.id;
+              }
+              if (assignId) {
+                if (addingSlotDay) { setMeal(addingSlotDay, addingSlotKey, assignId); }
+                else { saveDef(addingSlotKey, assignId, "individual"); }
+              }
+            }
+            if (dupeFound.length > 0 && addedTo.length === 0) { setFormMsg("⚠️ " + cp.name + " already exists in " + dupeFound.join(", ")); }
+            else if (dupeFound.length > 0) { setFormMsg("✅ Added to " + addedTo.join(", ") + " (already in " + dupeFound.join(", ") + ")"); }
+            else { setFormMsg("✅ Added " + cp.name + " to " + addedTo.join(", ")); }
+            setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); setAddingSlotKey(null); setAddingSlotDay(null); setNewItemName(""); setOffResults([]);
+            setTimeout(function(){setFormMsg("");}, 4000);
+          };
+
+          /* ═══ Bulk paste add — auto-adds items without per-item review ═══ */
+          var bulkPasteAdd = async function(bulkCat) {
+            var pasteEl = document.getElementById("bulk-paste-textarea");
+            if (!pasteEl || !pasteEl.value.trim()) { setFormMsg("Paste your items first"); return; }
+            var lines = pasteEl.value.split(/[\n\r,]+/).map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
+            if (lines.length === 0) { setFormMsg("No items found"); return; }
+            setNewItemLoading(true);
+            setFormMsg("🔍 Analysing " + lines.length + " item" + (lines.length > 1 ? "s" : "") + "...");
+            try {
               var isJC2 = activeTab === "jc";
               var targetsStr = isJC2 ? "Daily targets: 2000-2200 kcal, 110-130g protein, <20g sat fat, <25g added sugar, 30-35g fibre, <6g salt" : "Daily targets: 1700-1900 kcal, 90-110g protein, <20g sat fat (critical - LDL 7.2 high cholesterol/suspected FH), <25g added sugar, 25-30g fibre, <6g salt";
               var prompt = "I have a list of food items to add to a meal planning app. For each item, find the closest nutritional match and assign a RAG colour rating.\n\nRating rules:\n- GREAT (green): Fits well within daily targets, healthy choice\n- AMBER: Acceptable but has some nutritional concerns\n- RED: Should be limited — high in sat fat, sugar, or calories\n\nClassification: 'packaged' if pre-made supermarket product, 'ingredient' if home-made recipe. If 'ingredient', list individual ingredients needed.\n\nPerson's profile: " + targetsStr + "\n\nItems to look up:\n" + lines.join("\n") + "\n\nReturn ONLY a JSON array. For each item: {\"name\":\"item name (corrected spelling)\",\"kcal\":number,\"protein\":number,\"fat\":number,\"satFat\":number,\"carbs\":number,\"fibre\":number,\"salt\":number,\"rating\":\"GREAT or AMBER or RED\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[],\"suitability\":\"ONE sentence\",\"matched\":true}. If cannot identify: {\"name\":\"original name\",\"matched\":false}. Per typical serving. ONLY JSON array.";
@@ -5119,16 +5174,30 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               var jsonStr = txt.replace(/```json|```/g, "").trim();
               var arrMatch = jsonStr.match(/\[[\s\S]*\]/); if (!arrMatch) throw new Error("No JSON array found");
               var items = JSON.parse(arrMatch[0]);
-              var reviewItems = [];
+              var listItems = bulkCat === "breakfast" ? customBreakfasts : bulkCat === "lunch" ? customLunches : bulkCat === "dinner" ? customMeals : bulkCat === "drink" ? customDrinks : bulkCat === "dessert" ? customDesserts : customSnacks;
+              var setList = bulkCat === "breakfast" ? setCustomBreakfasts : bulkCat === "lunch" ? setCustomLunches : bulkCat === "dinner" ? setCustomMeals : bulkCat === "drink" ? setCustomDrinks : bulkCat === "dessert" ? setCustomDesserts : setCustomSnacks;
+              var storageKey2 = bulkCat === "breakfast" ? "custom_breakfasts" : bulkCat === "lunch" ? "custom_lunches" : bulkCat === "dinner" ? "custom_meals" : bulkCat === "drink" ? "custom_drinks" : bulkCat === "dessert" ? "custom_desserts" : "custom_snacks";
+              var addedCount = 0; var skippedCount = 0;
               for (var bi = 0; bi < items.length; bi++) {
                 var it = items[bi];
-                reviewItems.push({ name: it.name || "Unknown", kcal: it.kcal || 0, protein: it.protein || 0, fat: it.fat || 0, satFat: it.satFat || 0, carbs: it.carbs || 0, fibre: it.fibre || 0, salt: it.salt || 0, rating: it.rating || "AMBER", itemType: it.itemType || "packaged", ingredients: it.ingredients || [], suitability: it.suitability || "", matched: it.matched !== false, categories: [addingCategory], sideType: "", include: it.matched !== false });
+                if (!it.matched && it.matched !== undefined) { skippedCount++; continue; }
+                var dupeName2 = (it.name || "").toLowerCase().trim();
+                if (listItems.some(function(x) { return x.name.toLowerCase().trim() === dupeName2; })) { skippedCount++; continue; }
+                var newItem = { id: "custom_" + Date.now() + "_" + bi, name: it.name || "Unknown", jcKcal: it.kcal || 0, beckKcal: it.kcal || 0, protein: it.protein || 0, fat: it.fat || 0, satFat: it.satFat || 0, carbs: it.carbs || 0, fibre: it.fibre || 0, salt: it.salt || 0, rating: it.rating || "AMBER", itemType: it.itemType || "packaged", ingredients: it.ingredients || [], freq: "Daily", isCustom: true, suitability: it.suitability || "" };
+                if (bulkCat === "dinner") { newItem.jcProt = it.protein; newItem.beckProt = it.protein; newItem.jcFat = it.fat; newItem.beckFat = it.fat; newItem.time = 30; newItem.shop = it.itemType === "ingredient" ? (it.ingredients || []) : [it.name]; }
+                listItems = [].concat(listItems, [newItem]);
+                addedCount++;
               }
-              setBulkReviewItems(reviewItems);
-              setFormMsg("");
-              setAddingNew(false);
-            } catch(e) { setFormMsg(window.aiErrorMsg(e)); setTimeout(function() { setFormMsg(""); }, 5000); }
+              setList(listItems); await sSet(storageKey2, JSON.stringify(listItems));
+              var msg = "✅ " + addedCount + " item" + (addedCount !== 1 ? "s" : "") + " added to " + bulkCat;
+              if (skippedCount > 0) msg += " (" + skippedCount + " skipped — duplicates or unrecognised)";
+              msg += ". Edit any item to check descriptions.";
+              setFormMsg(msg);
+              pasteEl.value = "";
+              setBulkReviewItems(null);
+            } catch(e) { setFormMsg(window.isEnergyEmpty(e) ? window.energyEmptyMsg : "⚠️ " + String(e.message || e).substring(0, 100)); }
             setNewItemLoading(false);
+            setTimeout(function(){setFormMsg("");}, 8000);
           };
 
           var deleteCustomItem = async function(itemId) {
@@ -5274,10 +5343,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     📷
                     <input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
                   </label>
-                  <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }} title="Import list of items from file">
-                    📄
-                    <input type="file" accept=".txt,.csv,.tsv,.xls,.xlsx,text/plain,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={function(e) { if (e.target.files && e.target.files[0]) bulkImportItems(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
-                  </label>
+                  <button onClick={function() { setBulkReviewItems(bulkReviewItems ? null : "paste"); }} style={{ padding: "6px 8px", background: bulkReviewItems === "paste" ? "#dbeafe" : "#f0f9ff", border: "1px solid " + (bulkReviewItems === "paste" ? "#2563eb" : "#bae6fd"), borderRadius: 6, fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0, color: "#1e3a5f", fontWeight: 600 }} title="Paste multiple items to bulk add">📋 Bulk</button>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={function() { setOffResults([]); addNewItem(); }} disabled={newItemLoading || !newItemName.trim()} style={{ flex: 1, padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? <span>Adding <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Add"}</button>
@@ -5360,154 +5426,30 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   </div>
                 </div>)}
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button disabled={reviewCategories.length === 0} onClick={async function() {
-                    var nameEl = document.getElementById("review-item-name");
-                    var ingEl = document.getElementById("review-item-ingredients");
-                    var editedName = nameEl ? nameEl.value.trim() : cameraPreview.name;
-                    var editedIngredients = ingEl ? ingEl.value.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length > 0;}) : (cameraPreview.ingredients || []);
-                    var cp = Object.assign({}, cameraPreview, { name: editedName, ingredients: editedIngredients });
-                    var cats = reviewCategories;
-                    /* Recalculate nutrition if ingredients changed — show updated values, user confirms again */
-                    if (cp.itemType === "ingredient" && cp.originalIngredients !== undefined && editedIngredients.join(", ") !== cp.originalIngredients) {
-                      setFormMsg("🔄 Recalculating nutritional values...");
-                      try {
-                        var recalcPrompt = "Calculate nutritional info for a homemade dish called \"" + cp.name + "\" with these specific ingredients and portions: " + editedIngredients.join(", ") + ". Return ONLY JSON: {\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\"}";
-                        var recResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 300, messages: [{ role: "user", content: recalcPrompt }] }) });
-                        var recResult = await recResp.json(); var recErr = handleApiError(recResult); if (recErr) throw new Error(recErr);
-                        var recTxt = ""; if (recResult.content) { for (var ri3=0;ri3<recResult.content.length;ri3++) { if(recResult.content[ri3].text) recTxt+=recResult.content[ri3].text; } }
-                        var recJson = recTxt.replace(/```json|```/g, "").trim(); var recMatch = recJson.match(/\{[\s\S]*\}/);
-                        if (recMatch) { var recInfo = JSON.parse(recMatch[0]); setCameraPreview(Object.assign({}, cp, { kcal: recInfo.kcal || cp.kcal, protein: recInfo.protein || cp.protein, fat: recInfo.fat || cp.fat, satFat: recInfo.satFat || cp.satFat, carbs: recInfo.carbs || cp.carbs, fibre: recInfo.fibre || cp.fibre, salt: recInfo.salt || cp.salt, rating: recInfo.rating || cp.rating, originalIngredients: editedIngredients.join(", ") })); setFormMsg("✅ Nutritional values updated — press Confirm to add or Cancel to edit"); return; }
-                      } catch(re) { setFormMsg(window.isEnergyEmpty(re) ? window.energyEmptyMsg : "⚠️ Could not recalculate: " + String(re.message || re).substring(0, 80) + " — edit ingredients or press Confirm to retry"); return; }
-                    }
-                    var addedTo = []; var dupeFound = [];
-                    for (var ci = 0; ci < cats.length; ci++) {
-                      var cat = cats[ci];
-                      var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
-                      /* Duplicate check — case-insensitive name match */
-                      var dupeName = cp.name.toLowerCase().trim();
-                      if (listItems.some(function(x) { return x.name.toLowerCase().trim() === dupeName; })) { dupeFound.push(cat); continue; }
-                      var newItem = { id: "custom_" + Date.now() + "_" + ci, name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, rating: cp.rating, itemType: cp.itemType || "packaged", ingredients: cp.ingredients || [], freq: "Daily", isCustom: true, source: cp.source || "manual", barcode: cp.barcode || "", servingSize: cp.servingSize || "" };
-                      if (cat === "dinner" && !reviewSideType) { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = cp.itemType === "ingredient" ? (cp.ingredients || []) : [cp.name]; }
-                      if (cat === "dinner" && reviewSideType) { newItem.sideType = reviewSideType; }
-                      var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
-                      var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : cat === "drink" ? "custom_drinks" : cat === "dessert" ? "custom_desserts" : "custom_snacks";
-                      var u = [].concat(listItems, [newItem]); setList(u); await sSet(storageKey, JSON.stringify(u));
-                      addedTo.push(cat);
-                      listItems = u;
-                    }
-                    /* Auto-assign to the slot that triggered the add */
-                    if (addingSlotKey) {
-                      var assignId = null;
-                      if (addedTo.length > 0 && newItem) { assignId = newItem.id; }
-                      else if (dupeFound.length > 0) {
-                        /* Item already exists — find its ID so we can still auto-assign */
-                        var dupeList = addingCategory === "breakfast" ? customBreakfasts : addingCategory === "lunch" ? customLunches : addingCategory === "dinner" ? customMeals : addingCategory === "drink" ? customDrinks : addingCategory === "dessert" ? customDesserts : customSnacks;
-                        var dupeMatch = dupeList.find(function(x) { return x.name.toLowerCase().trim() === cp.name.toLowerCase().trim(); });
-                        if (dupeMatch) assignId = dupeMatch.id;
-                      }
-                      if (assignId) {
-                        if (addingSlotDay) { setMeal(addingSlotDay, addingSlotKey, assignId); }
-                        else { saveDef(addingSlotKey, assignId, "individual"); }
-                      }
-                    }
-                    if (dupeFound.length > 0 && addedTo.length === 0) { setFormMsg("⚠️ " + cp.name + " already exists in " + dupeFound.join(", ")); }
-                    else if (dupeFound.length > 0) { setFormMsg("✅ Added to " + addedTo.join(", ") + " (already in " + dupeFound.join(", ") + ")"); }
-                    else { setFormMsg("✅ Added " + cp.name + " to " + addedTo.join(", ")); }
-                    setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); setAddingSlotKey(null); setAddingSlotDay(null); setNewItemName(""); setOffResults([]);
-                    setTimeout(function(){setFormMsg("");}, 4000);
-                  }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: reviewCategories.length === 0 ? 0.5 : 1}}>✓ Confirm{reviewCategories.length > 1 ? " (" + reviewCategories.length + " lists)" : ""}</button>
+                  <button disabled={reviewCategories.length === 0} onClick={function() { confirmReviewItem(false); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: reviewCategories.length === 0 ? 0.5 : 1}}>✓ Confirm{reviewCategories.length > 1 ? " (" + reviewCategories.length + " lists)" : ""}</button>
                   <button onClick={function() { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); setAddingSlotKey(null); setAddingSlotDay(null); }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
                 </div>
               </div>)}
 
-              {/* Bulk import review */}
-              {bulkReviewItems && (<div style={{ background: "#fffbeb", borderRadius: 8, padding: 12, marginTop: 10, border: "1px solid #fcd34d" }}>
+              {/* Bulk paste add */}
+              {bulkReviewItems === "paste" && (<div style={{ background: "#fffbeb", borderRadius: 8, padding: 12, marginTop: 10, border: "1px solid #fcd34d" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>📄 Review Bulk Import — {bulkReviewItems.length} item{bulkReviewItems.length !== 1 ? "s" : ""}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>📋 Bulk Add Items</div>
                   <button onClick={function() { setBulkReviewItems(null); }} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
                 </div>
-                <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: 8, borderRadius: 6, marginBottom: 8, lineHeight: 1.4 }}>⚡ This bulk lookup used more Companion Energy than single items. Review each item below before confirming.</div>
-                <div style={{ maxHeight: 400, overflowY: "auto" }}>
-                  {bulkReviewItems.map(function(bItem, bIdx) {
-                    if (!bItem.include) return null;
-                    return (<div key={bIdx} style={{ background: "#fff", borderRadius: 8, padding: 10, marginBottom: 6, border: "1px solid #e2e8f0" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-                        <input value={bItem.name} onChange={function(e) { setBulkReviewItems(function(prev) { var u = prev.slice(); u[bIdx] = Object.assign({}, u[bIdx], { name: e.target.value }); return u; }); }} style={{ flex: 1, padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, fontWeight: 600, marginRight: 6 }} />
-                        <button onClick={function() { setBulkReviewItems(function(prev) { var u = prev.slice(); u[bIdx] = Object.assign({}, u[bIdx], { include: false }); return u; }); }} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: 14, padding: 2, lineHeight: 1 }} title="Remove">✕</button>
-                      </div>
-                      {!bItem.matched && <div style={{ fontSize: 10, color: "#dc2626", marginBottom: 4 }}>⚠️ Could not identify — review carefully</div>}
-                      <div style={{ display: "flex", gap: 6, fontSize: 9, flexWrap: "wrap", marginBottom: 4 }}>
-                        <span><b>{bItem.kcal}</b> kcal</span><span><b>{bItem.protein}g</b> prot</span><span><b>{bItem.fat}g</b> fat</span>
-                        {bItem.satFat > 0 && <span><b>{bItem.satFat}g</b> s/fat</span>}
-                      </div>
-                      <div style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 4, flexWrap: "wrap" }}>
-                        <div style={{ display: "inline-block", padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 600, background: bItem.rating === "RED" ? "#fef2f2" : bItem.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: bItem.rating === "RED" ? "#dc2626" : bItem.rating === "AMBER" ? "#d97706" : "#0c4a6e", border: "1px solid " + (bItem.rating === "RED" ? "#fecaca" : bItem.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{bItem.rating}</div>
-                        <button onClick={function() { setBulkReviewItems(function(prev) { var u = prev.slice(); u[bIdx] = Object.assign({}, u[bIdx], { itemType: u[bIdx].itemType === "packaged" ? "ingredient" : "packaged" }); return u; }); }} style={{ padding: "1px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 9, cursor: "pointer", background: "#f8fafc", color: "#475569" }}>{bItem.itemType === "packaged" ? "📦 Packaged" : "🍳 Ingredient"}</button>
-                      </div>
-                      {bItem.suitability && <div style={{ fontSize: 9, color: "#475569", fontStyle: "italic", lineHeight: 1.3, marginBottom: 4 }}>{bItem.suitability}</div>}
-                      {/* Editable ingredients for ingredient-prepared bulk items */}
-                      {bItem.itemType === "ingredient" && (<div style={{ marginBottom: 4 }}>
-                        <div style={{ fontSize: 8, fontWeight: 600, color: "#64748b", marginBottom: 2 }}>🧾 Ingredients <span style={{ fontWeight: 400 }}>(edit to match your recipe)</span></div>
-                        <textarea value={(bItem.ingredients || []).join(", ")} onChange={function(e) { var idx = bIdx; setBulkReviewItems(function(prev) { var u = prev.slice(); u[idx] = Object.assign({}, u[idx], { ingredients: e.target.value.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length > 0;}) }); return u; }); }} style={{ width: "100%", padding: "4px 6px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 9, minHeight: 36, resize: "vertical", boxSizing: "border-box", lineHeight: 1.3 }} placeholder="e.g. oats, milk, chia seeds, honey..." />
-                        <div style={{ fontSize: 7, color: "#64748b", marginTop: 2, fontStyle: "italic" }}>Any changes to ingredients or portions will update nutritional values when confirmed</div>
-                      </div>)}
-                      {/* Category multi-select for each bulk item */}
-                      <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-                        {["breakfast","lunch","dinner","snack","dessert","drink"].map(function(c) {
-                          var sel = bItem.categories.indexOf(c) >= 0;
-                          return (<button key={c} onClick={function() { setBulkReviewItems(function(prev) { var u = prev.slice(); var cats = u[bIdx].categories.slice(); u[bIdx] = Object.assign({}, u[bIdx], { categories: sel ? cats.filter(function(x){return x!==c;}) : cats.concat([c]) }); return u; }); }} style={{ padding: "2px 6px", border: "1px solid " + (sel ? "#2563eb" : "#e2e8f0"), borderRadius: 4, fontSize: 9, fontWeight: 600, cursor: "pointer", background: sel ? "#eff6ff" : "#fff", color: sel ? "#1e3a5f" : "#94a3b8", textTransform: "capitalize" }}>{sel ? "✓ " : ""}{c}</button>);
-                        })}
-                      </div>
-                      {/* Dinner side type — only if dinner selected */}
-                      {bItem.categories.indexOf("dinner") >= 0 && (<div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginTop: 4 }}>
-                        {[{k:"",label:"Main"},{k:"potato",label:"🥔 Potato"},{k:"veg",label:"🥦 Veg"},{k:"salad",label:"🥗 Salad"}].map(function(st) {
-                          var sel = bItem.sideType === st.k;
-                          return (<button key={st.k} onClick={function() { setBulkReviewItems(function(prev) { var u = prev.slice(); u[bIdx] = Object.assign({}, u[bIdx], { sideType: st.k }); return u; }); }} style={{ padding: "2px 6px", border: "1px solid " + (sel ? "#2563eb" : "#e2e8f0"), borderRadius: 4, fontSize: 9, fontWeight: 600, cursor: "pointer", background: sel ? "#eff6ff" : "#fff", color: sel ? "#1e3a5f" : "#94a3b8" }}>{st.label}</button>);
-                        })}
-                      </div>)}
-                    </div>);
-                  })}
+                <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: 8, borderRadius: 6, marginBottom: 8, lineHeight: 1.4 }}>Paste your list of items below (one per line or comma-separated). Items will be added automatically with AI-calculated nutrition. You can edit any item afterwards for accuracy.</div>
+                <textarea id="bulk-paste-textarea" placeholder={"e.g.\nOvernight oats\nGreek yogurt\nChicken wrap\nProtein shake"} style={{ width: "100%", padding: "8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 80, resize: "vertical", boxSizing: "border-box", lineHeight: 1.5, marginBottom: 8 }} />
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Add to category</div>
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    {["breakfast","lunch","dinner","snack","dessert","drink"].map(function(c) {
+                      var sel = addingCategory === c;
+                      return (<button key={c} onClick={function() { setAddingCategory(c); }} style={{ padding: "5px 10px", border: "1px solid " + (sel ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: sel ? "#eff6ff" : "#fff", color: sel ? "#1e3a5f" : "#94a3b8", textTransform: "capitalize" }}>{sel ? "✓ " : ""}{c}</button>);
+                    })}
+                  </div>
                 </div>
-                {/* Confirm all / Cancel */}
-                <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                  <button onClick={async function() {
-                    var items = bulkReviewItems.filter(function(b) { return b.include && b.categories.length > 0; });
-                    if (items.length === 0) return;
-                    /* Recalculate nutrition for any ingredient items with changed ingredients */
-                    for (var ri4 = 0; ri4 < items.length; ri4++) {
-                      var it2 = items[ri4];
-                      if (it2.itemType === "ingredient" && it2.originalIngredients !== undefined && (it2.ingredients || []).join(", ") !== it2.originalIngredients) {
-                        setFormMsg("🔄 Updating nutritional values for " + it2.name + "...");
-                        try {
-                          var recalcPrompt = "Calculate nutritional info for a homemade dish called \"" + it2.name + "\" with these specific ingredients and portions: " + (it2.ingredients || []).join(", ") + ". Return ONLY JSON: {\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\"}";
-                          var recResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 300, messages: [{ role: "user", content: recalcPrompt }] }) });
-                          var recResult = await recResp.json(); var recErr = handleApiError(recResult); if (recErr) throw new Error(recErr);
-                          var recTxt = ""; if (recResult.content) { for (var ri5=0;ri5<recResult.content.length;ri5++) { if(recResult.content[ri5].text) recTxt+=recResult.content[ri5].text; } }
-                          var recJson = recTxt.replace(/```json|```/g, "").trim(); var recMatch = recJson.match(/\{[\s\S]*\}/);
-                          if (recMatch) { var recInfo = JSON.parse(recMatch[0]); items[ri4] = Object.assign({}, it2, { kcal: recInfo.kcal || it2.kcal, protein: recInfo.protein || it2.protein, fat: recInfo.fat || it2.fat, satFat: recInfo.satFat || it2.satFat, carbs: recInfo.carbs || it2.carbs, fibre: recInfo.fibre || it2.fibre, salt: recInfo.salt || it2.salt, rating: recInfo.rating || it2.rating }); }
-                        } catch(re) { /* continue with original values */ }
-                      }
-                    }
-                    var addedCount = 0;
-                    for (var bi = 0; bi < items.length; bi++) {
-                      var it = items[bi];
-                      for (var ci = 0; ci < it.categories.length; ci++) {
-                        var cat = it.categories[ci];
-                        var newItem = { id: "custom_" + Date.now() + "_" + bi + "_" + ci, name: it.name, jcKcal: it.kcal, beckKcal: it.kcal, protein: it.protein || 0, fat: it.fat || 0, satFat: it.satFat || 0, carbs: it.carbs || 0, fibre: it.fibre || 0, salt: it.salt || 0, rating: it.rating, itemType: it.itemType || "packaged", ingredients: it.ingredients || [], freq: "Daily", isCustom: true };
-                        if (cat === "dinner" && !it.sideType) { newItem.jcProt = it.protein; newItem.beckProt = it.protein; newItem.jcFat = it.fat; newItem.beckFat = it.fat; newItem.time = 30; newItem.shop = it.itemType === "ingredient" ? (it.ingredients || []) : [it.name]; }
-                        if (cat === "dinner" && it.sideType) { newItem.sideType = it.sideType; }
-                        var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
-                        var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
-                        var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : cat === "drink" ? "custom_drinks" : cat === "dessert" ? "custom_desserts" : "custom_snacks";
-                        var u = [].concat(listItems, [newItem]); setList(u); await sSet(storageKey, JSON.stringify(u));
-                        listItems = u;
-                        addedCount++;
-                      }
-                    }
-                    setFormMsg("✅ " + addedCount + " item" + (addedCount !== 1 ? "s" : "") + " added across categories");
-                    setBulkReviewItems(null);
-                    setTimeout(function(){setFormMsg("");}, 4000);
-                  }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: bulkReviewItems.filter(function(b){return b.include && b.categories.length > 0;}).length === 0 ? 0.5 : 1}} disabled={bulkReviewItems.filter(function(b){return b.include && b.categories.length > 0;}).length === 0}>✓ Confirm {bulkReviewItems.filter(function(b){return b.include;}).length} items</button>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button disabled={!addingCategory || newItemLoading} onClick={function() { bulkPasteAdd(addingCategory); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: !addingCategory ? 0.5 : 1}}>{newItemLoading ? <span>Uploading <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Upload Items"}</button>
                   <button onClick={function() { setBulkReviewItems(null); }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
                 </div>
               </div>)}
@@ -7569,7 +7511,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var deviceInfo = "";
                 try { deviceInfo = navigator.userAgent; } catch(e) { deviceInfo = "Unknown"; }
                 var screenInfo = window.screen ? window.screen.width + "x" + window.screen.height : "Unknown";
-                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.365.5";
+                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.366.0";
                 var emailSubject = encodeURIComponent("[Life Care " + (feedbackType === "bug" ? "Bug" : "Feature") + "] " + feedbackText.trim().substring(0, 50));
                 window.open("mailto:jc.zaluski@gmail.com?subject=" + emailSubject + "&body=" + emailBody, "_self");
                 setFeedbackOpen(false);
@@ -7668,7 +7610,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           <button onClick={function(){ setShowPrivacy(false); }} style={{ width: "100%", padding: "10px 0", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", marginTop: 8 }}>Close</button>
         </div>
       </div>)}
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.365.5
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.366.0
       </div>
 
       {/* Floating Ask a Question button */}
@@ -7754,61 +7696,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             </div>
           </div>)}
           <div style={{ display: "flex", gap: 6 }}>
-            <button disabled={reviewCategories.length === 0} onClick={async function() {
-              var nameEl = document.getElementById("review-item-name-overlay");
-              var ingEl = document.getElementById("review-item-ingredients-overlay");
-              var editedName = nameEl ? nameEl.value.trim() : cameraPreview.name;
-              var editedIngredients = ingEl ? ingEl.value.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length > 0;}) : (cameraPreview.ingredients || []);
-              var cp = Object.assign({}, cameraPreview, { name: editedName, ingredients: editedIngredients });
-              var cats = reviewCategories;
-              /* Recalculate nutrition if ingredients changed — show updated values, user confirms again */
-              if (cp.itemType === "ingredient" && cp.originalIngredients !== undefined && editedIngredients.join(", ") !== cp.originalIngredients) {
-                setFormMsg("🔄 Recalculating nutritional values...");
-                try {
-                  var recalcPrompt = "Calculate nutritional info for a homemade dish called \"" + cp.name + "\" with these specific ingredients and portions: " + editedIngredients.join(", ") + ". Return ONLY JSON: {\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\"}";
-                  var recResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 300, messages: [{ role: "user", content: recalcPrompt }] }) });
-                  var recResult = await recResp.json(); var recErr = handleApiError(recResult); if (recErr) throw new Error(recErr);
-                  var recTxt = ""; if (recResult.content) { for (var ri3=0;ri3<recResult.content.length;ri3++) { if(recResult.content[ri3].text) recTxt+=recResult.content[ri3].text; } }
-                  var recJson = recTxt.replace(/```json|```/g, "").trim(); var recMatch = recJson.match(/\{[\s\S]*\}/);
-                  if (recMatch) { var recInfo = JSON.parse(recMatch[0]); setCameraPreview(Object.assign({}, cp, { kcal: recInfo.kcal || cp.kcal, protein: recInfo.protein || cp.protein, fat: recInfo.fat || cp.fat, satFat: recInfo.satFat || cp.satFat, carbs: recInfo.carbs || cp.carbs, fibre: recInfo.fibre || cp.fibre, salt: recInfo.salt || cp.salt, rating: recInfo.rating || cp.rating, originalIngredients: editedIngredients.join(", ") })); setFormMsg("✅ Nutritional values updated — press Confirm to add or Cancel to edit"); return; }
-                } catch(re) { setFormMsg(window.isEnergyEmpty(re) ? window.energyEmptyMsg : "⚠️ Could not recalculate: " + String(re.message || re).substring(0, 80) + " — edit ingredients or press Confirm to retry"); return; }
-              }
-              var addedTo = []; var dupeFound = [];
-              for (var ci = 0; ci < cats.length; ci++) {
-                var cat = cats[ci];
-                var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
-                /* Duplicate check — case-insensitive name match */
-                var dupeName = cp.name.toLowerCase().trim();
-                if (listItems.some(function(x) { return x.name.toLowerCase().trim() === dupeName; })) { dupeFound.push(cat); continue; }
-                var newItem = { id: "custom_" + Date.now() + "_" + ci, name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, rating: cp.rating, itemType: cp.itemType || "packaged", ingredients: cp.ingredients || [], freq: "Daily", isCustom: true, source: cp.source || "manual", barcode: cp.barcode || "", servingSize: cp.servingSize || "" };
-                if (cat === "dinner" && !reviewSideType) { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = cp.itemType === "ingredient" ? (cp.ingredients || []) : [cp.name]; }
-                if (cat === "dinner" && reviewSideType) { newItem.sideType = reviewSideType; }
-                var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
-                var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : cat === "drink" ? "custom_drinks" : cat === "dessert" ? "custom_desserts" : "custom_snacks";
-                var u = [].concat(listItems, [newItem]); setList(u); await sSet(storageKey, JSON.stringify(u));
-                addedTo.push(cat);
-                listItems = u;
-              }
-              /* Auto-assign to the slot that triggered the add */
-              if (addingSlotKey) {
-                var assignId = null;
-                if (addedTo.length > 0 && newItem) { assignId = newItem.id; }
-                else if (dupeFound.length > 0) {
-                  var dupeList = addingCategory === "breakfast" ? customBreakfasts : addingCategory === "lunch" ? customLunches : addingCategory === "dinner" ? customMeals : addingCategory === "drink" ? customDrinks : addingCategory === "dessert" ? customDesserts : customSnacks;
-                  var dupeMatch = dupeList.find(function(x) { return x.name.toLowerCase().trim() === cp.name.toLowerCase().trim(); });
-                  if (dupeMatch) assignId = dupeMatch.id;
-                }
-                if (assignId) {
-                  if (addingSlotDay) { setMeal(addingSlotDay, addingSlotKey, assignId); }
-                  else { saveDef(addingSlotKey, assignId, "individual"); }
-                }
-              }
-              if (dupeFound.length > 0 && addedTo.length === 0) { setFormMsg("⚠️ " + cp.name + " already exists in " + dupeFound.join(", ")); }
-              else if (dupeFound.length > 0) { setFormMsg("✅ Added to " + addedTo.join(", ") + " (already in " + dupeFound.join(", ") + ")"); }
-              else { setFormMsg("✅ Added " + cp.name + " to " + addedTo.join(", ")); }
-              setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); setAddingSlotKey(null); setAddingSlotDay(null); setNewItemName(""); setOffResults([]);
-              setTimeout(function(){setFormMsg("");}, 4000);
-            }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: reviewCategories.length === 0 ? 0.5 : 1}}>✓ Confirm{reviewCategories.length > 1 ? " (" + reviewCategories.length + " lists)" : ""}</button>
+            <button disabled={reviewCategories.length === 0} onClick={function() { confirmReviewItem(true); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: reviewCategories.length === 0 ? 0.5 : 1}}>✓ Confirm{reviewCategories.length > 1 ? " (" + reviewCategories.length + " lists)" : ""}</button>
             <button onClick={function() { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); setAddingSlotKey(null); setAddingSlotDay(null); }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
           </div>
         </div>
