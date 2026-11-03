@@ -503,3 +503,7 @@ The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable
 ### (Code) 3 Nov 2026 — stage 2: Health, Shop, Body sections
 - **Done:** `f662e11` Health (bloods) → `src/sections/Health.jsx`; `dc56332` Shop → `src/sections/Shop.jsx`; `bcfdeea` Body → `src/sections/Body.jsx`. Checks green on each.
 - **Resume point:** `vite-migration` @ `bcfdeea`. Next: overview (Home), weights (Exercise), hidden meds, meals (Eating); then overlays, error boundary, SheetJS, `next/`.
+
+### (Code) 3 Nov 2026 — stage 2: Home, Exercise, hidden meds, Eating sections
+- **Done:** `1a8e989` Home → `src/sections/Home.jsx`; `de52934` Exercise → `src/sections/Exercise.jsx`; `ae2637a` hidden meds block (never shown) → `src/sections/HiddenMeds.jsx`; `fb32e66` Eating → `src/sections/Eating.jsx` (its own try/catch and `MealSelect` kept inside it unchanged; `window._confirmReviewItem` still published from it). Checks green on each.
+- **Resume point:** `vite-migration` @ `fb32e66`. All sections are components. Next: overlays/footer (privacy, help, chat, review item) → components, then error boundary, SheetJS, `next/`.
