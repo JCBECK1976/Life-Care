@@ -26,6 +26,8 @@ You are working for **JC** (Jan-Christian Zaluski), owner of Lifecare Companion�
    - **After every action** (each version shipped, each checkpoint, each preview or deploy, each fix): add a dated entry to the **Session Log** in `HANDOVER.md` with what was done, the version and commit, what JC needs to test, and anything left open. Update the version table and the "Live Product" version line. Commit and push it in the same step, so it's never left unrecorded.
    - **After every design decision** (yours, JC's, or one JC passes on from Chat): record the decision, the reason and any alternatives rejected under a **Decisions** heading in the Session Log. A decision that isn't written down didn't happen.
    - Keep entries short and factual. Add new Session Log entries at the **end** of the file so diffs stay small. When the Session Log passes about 150 lines, move older entries into `HANDOVER_ARCHIVE.md` (not read routinely) and leave a one-line pointer. Update `TECHNICAL_REFERENCE.md` when the code structure changes and `APP_GUIDE.md` when anything user-visible changes.
+10. **Never read `index.html` in full.** It is ~870KB (~250,000 tokens per full read), the single biggest risk to JC's token budget. Use `grep` / search and read only the line ranges you need. Do mechanical moves (like the verbatim lift in 3.3) **with a script** that copies text between markers, not by reading it into context and writing it back out. The same applies to any large file, and to `src/App.jsx` while it is still large.
+11. **Keep `CLAUDE.md` short** (aim for under 60 lines). It is loaded every session, so every line costs tokens every time. Put only the rules from this section, the check and deploy commands, and pointers to `HANDOVER.md`, `TECHNICAL_REFERENCE.md`, `APP_GUIDE.md` and this brief. Never copy whole documents into it.
 
 ---
 
@@ -87,6 +89,7 @@ All in `https://github.com/JCBECK1976/Life-Care` (public):
 1. Clone the repo. Tag the current state: `git tag legacy-v1.374.2 && git push --tags`.
 2. **Back up Firebase:** GET `https://life-care-app-64d04-default-rtdb.europe-west1.firebasedatabase.app/data.json` and save it **locally only**. It contains personal health data and must **never** be committed to the public repo.
 3. Run the existing checks against `index.html` and confirm a clean baseline.
+4. **Check the GitHub PAT expiry** (in the vault). It expires **4 December 2026**. If the migration could run past it, ask JC to renew it now, so pushes and deploys don't stop mid-job.
 
 ### 3.1 Protect live data during development
 The dev server would otherwise read and write the **live** database. Add a data-root setting:
@@ -139,6 +142,34 @@ Build with `base: '/Life-Care/next/'` and commit the output to a `next/` folder 
 ### 3.8 Docs
 Update `HANDOVER.md` (version table, new deploy and checks, retire the Contents-API deploy script and Babel check), `TECHNICAL_REFERENCE.md` (file layout replaces line numbers), `CLAUDE.md`. Update `APP_GUIDE.md` **only** if something user-visible changed (it shouldn't). Every future user-visible change must update `APP_GUIDE.md` in the same release; the Help companion reads it live.
 
+### 3.9 After cutover: Step 1b — efficiency pass (measure → propose → JC approves → build)
+**Goal:** cut running costs and load time **without losing any capability**. Do not build anything here until JC has approved a written proposal.
+
+**Measured on 3 Nov 2026 (from Chat):** 100 Firebase keys, ~198KB in total, no images stored. Firebase is well inside the free tier at today's two users. **AI calls are the real running cost.** But:
+- `saveData()` rewrites the whole `dashboard:data` blob (~59KB, **both people's data**) on every save. That's wasteful at scale and a **lost-update risk today**: two phones saving close together can overwrite each other's changes.
+- Startup performs ~100 separate `sGet` reads.
+
+**1. Measure first** (cheap: Firebase console usage, key sizes, counts). Add a debug-mode-only tally of AI calls and tokens per feature over a few days of JC's normal use. Report the baseline to JC.
+
+**2. Propose** (each item with expected saving, risk, and how tests prove no capability loss). Candidates:
+- **AI (biggest saving):**
+  - Prompt caching wherever a large prefix repeats. 💬 Chat sends the full data context on every question, so caching it makes follow-ups within a few minutes ~90% cheaper on input (Help already does this).
+  - Cache nutrition lookups (AI and Open Food Facts) by normalised food name on the device, so repeat lookups cost nothing.
+  - Never regenerate guides, warm-ups or feedback whose inputs haven't changed.
+  - Trim prompt context to what each feature actually uses.
+  - Evaluate a smaller model only for simple extraction tasks (e.g. reading a scales screenshot), with side-by-side tests. **Switch only if JC sees no quality loss.**
+- **Device storage (sensible uses only):**
+  - Instant start from an IndexedDB copy of the last data, then sync from Firebase in the background.
+  - UI preferences (open panels, last tab) and unsent drafts (journal, add-item forms) in localStorage.
+  - Cache static reference data (APP_GUIDE.md, exercise database). Wrap every storage call in try/catch; the app must work with storage unavailable.
+  - Firebase stays the source of truth. **Device storage is never the only copy of health data**, and the device cache must be cleared on sign-out once accounts exist (Step 2).
+- **App shell:** a PWA service worker to cache the built assets: faster loads and offline opening. (Also on the technical-debt list.)
+- **Startup:** batch the ~100 reads into one or a few.
+- **Saves:** granular path writes instead of rewriting the whole blob. Fixes the lost-update risk. If it overlaps the Step 2/5 data-model work, propose doing it there instead, but flag the risk to JC now.
+- **Images:** if photo storage is added later, compress on the device and use Firebase Storage, never base64 in the database.
+
+**3. Build** each approved item as its own version, with before/after numbers in the Session Log.
+
 ---
 
 ## 4. Gotchas that have bitten this project
@@ -164,4 +195,4 @@ At each checkpoint send:
 
 Every report must be preceded by the matching `HANDOVER.md` Session Log entry (rule 9), and the report should say it's been recorded.
 
-Checkpoints: (a) baseline and backup done → (b) verbatim lift live on preview → (c) split complete on preview, all tests passing → (d) cutover done → (e) docs updated. Then stop and wait for JC before Step 2.
+Checkpoints: (a) baseline and backup done → (b) verbatim lift live on preview → (c) split complete on preview, all tests passing → (d) cutover done → (e) docs updated → (f) Step 1b measurement and proposal. Then stop and wait for JC's approval before building Step 1b items or starting Step 2.
