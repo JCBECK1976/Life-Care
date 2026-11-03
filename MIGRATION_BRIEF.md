@@ -1,0 +1,157 @@
+# Claude Code Migration Brief — Lifecare Companion™
+
+> **How to use this file:** start Claude Code with **Opus 5.5** (`claude --model claude-opus-5-5`, or `/model claude-opus-5-5` in a running session), then paste this whole file as your first message, or say "Read MIGRATION_BRIEF.md in the Life-Care repo and follow it."
+>
+> Written 3 November 2026 at app version **v1.374.2**. Supersedes any earlier instruction to use Opus 4.6 for this work.
+
+---
+
+## 0. Who you are working for and how
+
+You are working for **JC** (Jan-Christian Zaluski), owner of Lifecare Companion™. He is not a developer. He is technically sharp, busy, and has lost a lot of time and tokens to patches that didn't work. Treat these rules as hard requirements:
+
+1. **Stay in scope.** Do only what this brief or JC asks. No drive-by refactors, no "while I'm here" changes. Scope creep wastes his time and tokens.
+2. **Warn before anything token-heavy.** Give a one-line warning before large reads, big rewrites or long test runs.
+3. **Trace before you patch.** Find where a failure actually happens (read the call path, reproduce it) before changing code. Five blind patches to the wrong function once cost a full day.
+4. **One change per version, one deploy per version.** Feature/layout change = `v1.X.0`, bug fix = `v1.X.Y`.
+5. **Never break production.** JC and Becks use the live app daily for exercise, eating and health tracking. Production changes only after JC has tested a preview and said yes.
+6. **Talk plainly.** Short, specific updates: what changed, what he should test, what's next. No jargon walls. Ask at most one question at a time, and only when you're genuinely blocked.
+7. **Ask before anything irreversible**: production cutover, deleting files or branches, changing repo/Pages settings, touching Firebase rules or data.
+8. **Model:** you (Claude Code) run on **Opus 5.5** (`claude-opus-5-5`). The **app's own AI features stay on `claude-sonnet-4-6`**. Do not change the model strings inside the app.
+
+---
+
+## 1. Read these first (in order)
+
+All in `https://github.com/JCBECK1976/Life-Care` (public):
+1. `HANDOVER.md` — history, current state, roadmap, user rules, gotchas, session log. **Section 3 (migration path) and Section 6 (risks) are essential.**
+2. `TECHNICAL_REFERENCE.md` — architecture, state, data model, core functions, patterns to preserve.
+3. `FIREBASE_SECURITY.md` — needed later (Step 2); skim now.
+4. `TRANSFER_GAPS.md` — known gaps from the Chat → Code handover.
+5. `APP_GUIDE.md` — the user-facing guide. **The in-app Help companion fetches this file live**, so it must keep being served next to the app.
+
+**Credentials** are in the **private** repo `JCBECK1976/vault` → `life-care/CREDENTIALS.md` (GitHub PAT, Firebase, Google OAuth). If you can't access it, ask JC. **Never commit any credential to the public repo**; GitHub secret scanning will block the push anyway. The GitHub PAT expires **4 December 2026**, so flag it to JC if you're still working near then.
+
+---
+
+## 2. The app today (facts you need)
+
+- **Live:** https://jcbeck1976.github.io/Life-Care. GitHub Pages serves the `main` branch root.
+- **Everything is one file:** `index.html` (~870KB, ~7,900 lines). JSX is compiled **in the browser** by Babel standalone.
+- **CDN dependencies (match these versions in npm):**
+  - React 18.2.0 + ReactDOM 18.2.0 (UMD)
+  - Babel standalone 7.23.9 (**removed by the migration**)
+  - Firebase **10.12.0 compat** (`firebase-app-compat`, `firebase-database-compat`)
+  - Google Identity Services (`https://accounts.google.com/gsi/client`) for Health Connect OAuth
+  - SheetJS `xlsx` 0.18.5
+- **Data:** Firebase Realtime Database, project `life-care-app-64d04`, region europe-west1. `sGet(key)` / `sSet(key, val)` read and write `data/<key>` (keys sanitised). Rules are currently wide open; securing them is Step 2, **not this job**.
+- **AI:** browser calls to `https://api.anthropic.com/v1/messages` with `anthropic-dangerous-direct-browser-access`. The Claude API key is stored in Firebase (`anthropic_api_key`). `window.fetch` is wrapped so every Anthropic response's `usage` feeds `window.trackApiUsage(usage, model)` (Companion Energy). **The wrapper must never block calls.** A client-side block once disabled all AI features; see HANDOVER Session Log.
+- **Structure:** one giant `Dashboard` component with ~150 `useState`s. Each main section renders inside an IIFE (`{section === "meals" && (() => { ... })()}`).
+- **Patterns that only work because of the current structure (preserve the behaviour, not necessarily the trick):**
+  - `window._confirmReviewItem` — the Review Item overlay renders outside the meals IIFE, so the function is published on `window` every render.
+  - `loadUserSettings(k)` — shared by the top name tabs and the person switch inside the exercise log.
+  - Uncontrolled inputs (`defaultValue` + `id` + `document.getElementById`) in add/edit food forms, to stop cursor jumping in the giant component.
+  - Top-level style constants (`btnS`, `btnAction`, `btnMuted`, …) must be static values.
+  - `APP_GUIDE.md` is fetched with a **relative** URL by `askHelp()`.
+- **Version number** appears in 3 places: the button-styles comment near the top of the script, the feedback `emailBody` "App Version", and the footer. After migration, make it **one constant**.
+- **Current deploy method:** GitHub Contents API PUT of `index.html`. Pre-deploy checks are a Babel syntax check plus a scope check (HANDOVER §4). The scope check exists because Babel passes code that calls a function that doesn't exist in that scope.
+
+---
+
+## 3. This job: Step 1 — Vite migration (behaviour-identical)
+
+**Goal:** the same app, looking and behaving exactly the same for JC and Becks, but built with **Vite** from **component files**, with **no in-browser Babel**, a **local dev server**, **automated checks**, and a **preview URL** before production.
+
+**Out of scope for this job (do NOT start without JC's explicit go-ahead):** Firebase Auth/security rules (Step 2), removing hardcoded data (Step 3), onboarding (Step 4), multi-user model (Step 5), backend AI proxy and Companion Energy purchases (Step 6). No feature changes, no visual changes, no "improvements". If you spot bugs, **list them for JC**; fix them only if he says so.
+
+### Definition of done
+- [ ] Every tab, panel, button, form, chart and AI feature works exactly as in v1.374.2 for **both** people (JC and Becks), on mobile Chrome and desktop.
+- [ ] Same Firebase data paths and formats. **No migration of existing data needed.**
+- [ ] `APP_GUIDE.md` served next to the app; the Help panel answers questions.
+- [ ] `npm run build` passes with zero ESLint errors (`no-undef` on, which replaces the old scope check).
+- [ ] Playwright smoke tests pass (see 3.5).
+- [ ] An error boundary shows a friendly message instead of a blank screen.
+- [ ] JC has tested the preview and approved the cutover.
+- [ ] Production is live on the Vite build, with a one-step rollback to the legacy single file.
+- [ ] HANDOVER.md, TECHNICAL_REFERENCE.md (new file layout, deploy, checks) and a new `CLAUDE.md` are updated.
+
+### 3.0 Before touching anything
+1. Clone the repo. Tag the current state: `git tag legacy-v1.374.2 && git push --tags`.
+2. **Back up Firebase:** GET `https://life-care-app-64d04-default-rtdb.europe-west1.firebasedatabase.app/data.json` and save it **locally only**. It contains personal health data and must **never** be committed to the public repo.
+3. Run the existing checks against `index.html` and confirm a clean baseline.
+
+### 3.1 Protect live data during development
+The dev server would otherwise read and write the **live** database. Add a data-root setting:
+- `sGet`/`sSet` use `import.meta.env.VITE_DATA_ROOT` (default `"data"`).
+- `.env.development` sets `VITE_DATA_ROOT=data_dev`. Seed `data_dev/` once from the backup (ask JC before writing to Firebase).
+- Production builds always use `data`. This is the only behaviour difference, and it's dev-only.
+
+### 3.2 Scaffold
+- Vite + React 18.2 (`@vitejs/plugin-react`), `firebase@10.12.0` using the **compat** imports, so the existing `firebase.database().ref(...)` code keeps working; `xlsx@0.18.5`. Keep Google Identity Services as a script tag.
+- `.gitignore`: `node_modules/`, `dist/`, `.env*.local`, the Firebase backup, Playwright reports.
+- `CLAUDE.md` with the rules in section 0, the checks to run and the deploy steps.
+- `vite.config` `base` must match where the build is served (`/Life-Care/` for production, `/Life-Care/next/` for preview).
+- `APP_GUIDE.md` goes in `public/` so it's emitted next to `index.html`.
+
+### 3.3 Port in two stages (don't refactor and port at once)
+1. **Verbatim lift.** Move the entire `<script type="text/babel">` body into `src/App.jsx` almost untouched: imports instead of globals, `export default`, and mount in `main.jsx`. Get it building and behaving identically. **Checkpoint: show JC the preview.**
+2. **Split into files**, one area per commit, re-testing after each:
+   `src/constants/` (themes, exercise types, prices, mood, tone rules) · `src/lib/` (storage `sGet`/`sSet`, `apiFetch` + `handleApiError` + `trackApiUsage` + the fetch wrapper, utilities) · `src/components/` (MealSelect, LoadingBtn, thread renderer, charts, review/update panels, chat/help panels) · `src/sections/` (Home, Body, Exercise, Eating, Shop, Health, Settings, Data) · `src/App.jsx` (shell, header, navigation, person tabs).
+   - Replace the section IIFEs with real components. Pass props, or use a small context for shared state. Don't redesign state management in this step.
+   - Once the components can see each other properly, `window._confirmReviewItem` can become a normal import. **Remove a `window.*` workaround only once the replacement is proven.**
+   - Install the fetch wrapper exactly once at startup, before any API call.
+   - Keep uncontrolled inputs where they exist; a re-render must not wipe what the user is typing.
+
+### 3.4 Error boundary
+Wrap each section and the overlays. Show "Something went wrong in this section — your data is safe. Reload to try again." and log the error to the console. Never show a blank screen.
+
+### 3.5 Checks (run before every preview or production deploy)
+- `npm run lint`: ESLint with `no-undef` and the React hooks rules.
+- `npm run build`.
+- **Playwright smoke tests** (Chromium is pre-installed in cloud sessions; don't reinstall it). Point them at `data_dev` and **mock `api.anthropic.com`** with route interception, so tests never spend AI credit. Cover:
+  - each main tab renders for both people; switching people changes the colour theme;
+  - My Eating: add an item → Review Item → edit ingredients → Confirm shows "Nutritional values updated" → Continue — Add puts it in the list (mocked AI);
+  - My Eating: bulk paste adds items; ✎ Update opens the Update Item panel;
+  - My Exercise: Stop Exercise hides it under "Stopped Exercises"; Restart returns it; Log isn't offered while stopped;
+  - Help ? opens and returns a (mocked) answer; 💬 Chat opens;
+  - Home: the Companion Energy card shows a percentage only (no $ values).
+
+### 3.6 Preview (no repo setting changes needed)
+Build with `base: '/Life-Care/next/'` and commit the output to a `next/` folder on `main`. It is then served at **https://jcbeck1976.github.io/Life-Care/next/** by the existing Pages setup. Tell JC exactly what to test there.
+**Heads-up for JC:** the preview uses the **live** data (production build), so anything he saves there is real. That's intended for acceptance testing, and the backup from 3.0 covers it.
+
+### 3.7 Cutover (only after JC approves the preview)
+1. Ask JC to switch **Settings → Pages → Source** to **GitHub Actions** (one click, or do it yourself if he gives you access).
+2. Add a GitHub Actions workflow: install → lint → build (`base: '/Life-Care/'`) → deploy `dist/` to Pages.
+3. Keep the legacy single file as `public/legacy.html`, so rollback means visiting `/Life-Care/legacy.html` while you revert.
+4. Remove the `next/` folder after cutover.
+5. Version: **v1.375.0** (layout/platform change), shown from the single version constant.
+6. Tell JC to close the tab and reopen it, and to check the footer version.
+
+### 3.8 Docs
+Update `HANDOVER.md` (version table, new deploy and checks, retire the Contents-API deploy script and Babel check), `TECHNICAL_REFERENCE.md` (file layout replaces line numbers), `CLAUDE.md`. Update `APP_GUIDE.md` **only** if something user-visible changed (it shouldn't). Every future user-visible change must update `APP_GUIDE.md` in the same release; the Help companion reads it live.
+
+---
+
+## 4. Gotchas that have bitten this project
+
+- Babel and build passing ≠ working. Functions defined in one section weren't visible in another and failed silently at runtime. ESLint `no-undef` plus the Playwright tests are the guard now.
+- Page-level messages (`formMsg`) render at the top of the page and are **invisible behind modals**. Panels show their own messages.
+- AI JSON replies get cut off at `max_tokens`. Check `stop_reason === "max_tokens"` and show a retry message; store errors under the key the UI reads.
+- Companion Energy is **percentage only** for users. 100% = balance at the last recharge (set by the admin in Settings), 0% = $0. **Never show money values to users**, and never block calls client-side.
+- Help answers have markdown stripped because the panel renders plain text.
+- `isAdmin` is currently `activeTab === "jc"`: admin-only cards (API keys, reset, debug, energy level).
+- GitHub Pages and phone browsers cache hard. After a deploy, "close the tab and reopen" is the instruction for JC.
+- Dates and times are formatted en-GB throughout; keep it.
+
+---
+
+## 5. Reporting to JC
+
+At each checkpoint send:
+1. **Done:** one or two lines.
+2. **Test this:** a short checklist with the exact URL.
+3. **Next:** what you'll do after his OK.
+4. **Issues spotted (not fixed):** a list, if any.
+
+Checkpoints: (a) baseline and backup done → (b) verbatim lift live on preview → (c) split complete on preview, all tests passing → (d) cutover done → (e) docs updated. Then stop and wait for JC before Step 2.
