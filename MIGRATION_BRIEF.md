@@ -48,7 +48,7 @@ All in `https://github.com/JCBECK1976/Life-Care` (public):
 - Never write the PAT into any file in the Life-Care repo, commit messages or logs.
 - **Known limits of Code sessions (found 3 Nov):** tag pushes over the session's git connection are dropped, and the session's safety check blocks reading the PAT. **Don't fight these.** Anything needing the PAT or a tag is done from Chat or by JC: report what's needed and carry on with other work.
 - **Docs live on `main`.** Commit HANDOVER.md Session Log entries and other doc-only updates **directly to `main`** (merge `main` into `vite-migration` when you need them there), so Chat and Code always read one copy. Source code stays on `vite-migration` until cutover.
-- **Firebase access:** the Code environment must allow `life-care-app-64d04-default-rtdb.europe-west1.firebasedatabase.app` (environment menu → Edit → Network access). Needed from §3.1 for `data_dev`, the dev server and tests. If it's blocked, stop and tell JC.
+- **No live Firebase from Code sessions.** The session's network blocks the live database, and that's what we want. All development and testing use the **Firebase Realtime Database Emulator** inside the session (§3.1). Never ask for the live host to be allowed.
 
 **Sessions end** (time and usage limits; JC's sessions reset every few hours). Work so that any session can stop at any moment and the next one can pick up without redoing work:
 - Commit and push small steps often to the work branch (see 3.0).
@@ -106,11 +106,13 @@ All in `https://github.com/JCBECK1976/Life-Care` (public):
 3. Run the existing checks against `index.html` and confirm a clean baseline.
 4. **Check the GitHub PAT works** (from the vault). It has no expiry. If it's rejected, ask JC for a new one; don't work around it.
 
-### 3.1 Protect live data during development
-The dev server would otherwise read and write the **live** database. Add a data-root setting:
-- `sGet`/`sSet` use `import.meta.env.VITE_DATA_ROOT` (default `"data"`).
-- `.env.development` sets `VITE_DATA_ROOT=data_dev`. Seed `data_dev/` once from the backup (ask JC before writing to Firebase).
-- Production builds always use `data`. This is the only behaviour difference, and it's dev-only.
+### 3.1 Protect live data during development: Firebase Emulator
+Development and tests **never touch the live database**. Use the Firebase Realtime Database Emulator inside the session:
+- Install `firebase-tools` as a dev dependency. The emulator needs Java, which is pre-installed (OpenJDK 21), and downloads its runtime from `storage.googleapis.com`, which the default network access allows.
+- Add a minimal `firebase.json` with the `database` emulator (port 9000). In development and tests only, point the app at it: `firebase.database().useEmulator("127.0.0.1", 9000)`, behind `import.meta.env.DEV` or a `VITE_USE_EMULATOR` flag. **Production builds never contain the emulator switch.**
+- **Seed it** from JC's backup `lifecare_firebase_backup_2026-11-03.json` (taken from Chat on 3 Nov; JC attaches it to the session). Import it under the `data` key, so paths match production (`data/<key>`). Keep the file outside the repo (e.g. `/home/user/firebase-backup/`). It holds personal health data: **never commit it** and never print its contents. Add its name to `.gitignore` as a belt-and-braces measure.
+- If the backup isn't available, seed from the app's built-in `DEFAULT_DATA` and tell JC.
+- The data paths and formats are otherwise unchanged. This is the only behaviour difference, and it's dev-only.
 
 ### 3.2 Scaffold
 - Vite + React 18.2 (`@vitejs/plugin-react`), `firebase@10.12.0` using the **compat** imports, so the existing `firebase.database().ref(...)` code keeps working; `xlsx@0.18.5`. Keep Google Identity Services as a script tag.
@@ -134,7 +136,7 @@ Wrap each section and the overlays. Show "Something went wrong in this section �
 ### 3.5 Checks (run before every preview or production deploy)
 - `npm run lint`: ESLint with `no-undef` and the React hooks rules.
 - `npm run build`.
-- **Playwright smoke tests** (Chromium is pre-installed in cloud sessions; don't reinstall it). Point them at `data_dev` and **mock `api.anthropic.com`** with route interception, so tests never spend AI credit. Cover:
+- **Playwright smoke tests** (Chromium is pre-installed in cloud sessions; don't reinstall it). Run them against the **emulator** (§3.1) and **mock `api.anthropic.com`** with route interception, so tests never spend AI credit. Cover:
   - each main tab renders for both people; switching people changes the colour theme;
   - My Eating: add an item → Review Item → edit ingredients → Confirm shows "Nutritional values updated" → Continue — Add puts it in the list (mocked AI);
   - My Eating: bulk paste adds items; ✎ Update opens the Update Item panel;
