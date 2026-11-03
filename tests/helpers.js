@@ -1,20 +1,25 @@
-// Every test mocks the Claude API so tests never spend AI credit.
-export async function mockAnthropic(page, text = "Mocked companion reply.") {
-  await page.route("https://api.anthropic.com/**", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        id: "msg_mock", type: "message", role: "assistant", model: "claude-sonnet-4-6",
-        content: [{ type: "text", text }], stop_reason: "end_turn",
-        usage: { input_tokens: 10, output_tokens: 10, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 },
-      }),
-    })
-  );
-}
+import { expect } from "@playwright/test";
+import { execSync } from "node:child_process";
+import { mockAnthropic } from "./mock-ai.js";
+
+export { mockAnthropic };
 
 export function collectErrors(page) {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   return errors;
 }
+
+// Re-seed the emulator, then open the app with AI and Open Food Facts mocked; wait until data has loaded.
+export async function openApp(page) {
+  execSync("node scripts/seed-emulator.mjs", { stdio: "ignore" }); // fresh data for every test
+  const errors = collectErrors(page);
+  const aiCalls = await mockAnthropic(page);
+  await page.route(/openfoodfacts\.org/, (r) => r.fulfill({ status: 200, contentType: "application/json", body: '{"products":[]}' }));
+  await page.goto("./");
+  await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
+  return { errors, aiCalls };
+}
+
+export const tab = (page, name) => page.getByRole("button", { name, exact: true }).first().click();
+export const person = (page, name) => page.getByRole("button", { name, exact: true }).first().click();

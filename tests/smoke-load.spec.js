@@ -1,24 +1,18 @@
 import { test, expect } from "@playwright/test";
-import { mockAnthropic, collectErrors } from "./helpers.js";
+import { openApp } from "./helpers.js";
 
 const SECTIONS = ["Home", "My Body", "My Exercise", "My Eating", "My Shop", "My Health"];
 
 test("app loads from the emulator data and shows the version", async ({ page }) => {
-  const errors = collectErrors(page);
-  await mockAnthropic(page);
-  await page.goto("./");
-  await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
+  const { errors } = await openApp(page);
   await expect(page.getByText("v1.374.2").first()).toBeAttached();
   expect(errors).toEqual([]);
 });
 
 test("every main tab renders for both people", async ({ page }) => {
-  const errors = collectErrors(page);
-  await mockAnthropic(page);
-  await page.goto("./");
-  await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
-  for (const person of [/^JC$/i, /^Beck/i]) {
-    await page.getByRole("button", { name: person }).first().click();
+  const { errors } = await openApp(page);
+  for (const person of ["JC", "Becks"]) {
+    await page.getByRole("button", { name: person, exact: true }).first().click();
     for (const s of SECTIONS) {
       await page.getByRole("button", { name: s, exact: true }).first().click();
       await expect(page.locator("#root")).not.toBeEmpty();
