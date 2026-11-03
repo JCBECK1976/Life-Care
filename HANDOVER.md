@@ -433,3 +433,8 @@ The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable
 - **Known risk recorded:** `saveData()` rewrites the whole `dashboard:data` blob (~59KB, both people) on every save, so two devices saving close together can lose updates. Fix via granular writes (Step 1b or Step 2/5).
 - **Token rules for Claude Code:** never read `index.html` in full (~250k tokens); do mechanical moves with scripts; keep `CLAUDE.md` under ~60 lines.
 - **PAT:** regenerated 3 Nov 2026 with **no expiry**; if it is ever exposed, delete it at github.com/settings/personal-access-tokens, make a new one and update the vault. Stored in the vault.
+
+### (Chat) 3 November 2026 — access fixed, migration ready to start
+- **GitHub access:** claude.ai was connected to the wrong GitHub account (JCBECK1976-Git). Reconnected as **JCBECK1976**, with the Claude GitHub App installed on Life-Care and vault. Verified from Chat (both visible, push allowed) and from a Claude Code test session (read vault at `67b927c`; pushed branch `ccr-3a01afa0-4xkg6h`, identical to `main` at `def9ce0`, no code changed).
+- **Decisions:** source work goes on the `vite-migration` branch; `main` stays live until cutover (only `next/` preview builds go to `main` before then). Sessions log a **Resume point** in each (Code) entry so a fresh session can continue after time limits.
+- **Next:** JC starts a fresh Claude Code session (Opus 5.5) after 12:00 on 3 Nov with the kickoff message; Claude Code begins at MIGRATION_BRIEF.md §3.0. Checkpoint (a) comes back to Chat for review.
