@@ -323,6 +323,7 @@ Abort the deploy if it reports anything. It also checks syntax, so it can replac
 - Per-user colour isolation — never let one user's colour change affect another
 - Privacy policy accessible via legal links row below feedback button
 - DO NOT go off scope — only change what is explicitly asked for
+- **HANDOVER.md is the project memory** (Chat = architect, Claude Code = builder). Re-read it before every action or decision; after every action add a dated Session Log entry (what, version, commit, what to test, open items); record every design decision with its reason under "Decisions". Applies to both Chat and Code sessions.
 - Each fix or feature is its own version AND its own deploy/commit
 - Warn JC before anything that will use a lot of tokens
 - Trace where a failure actually happens before patching — read the call path, don't patch the error handler blind
@@ -416,3 +417,9 @@ The add-item flow had five patches (v1.365.1–5) that each failed. Every one ta
 
 ### Ready for migration
 The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable. Next: the Vite migration (Section 3, Step 1). The Admin API cost endpoint for a live energy balance belongs in the post-migration backend.
+
+### Decisions — 3 November 2026
+- **Working model:** Claude in Chat (with JC) is the architect: scope, design decisions, briefs, checkpoint reviews. Claude Code (Opus 5.5) is the builder: code, tests, previews, deploys and docs. JC approves anything that goes live.
+- **Project memory:** `HANDOVER.md` is the shared memory between Chat and Code sessions. Check it before acting; record after every action and decision (rule 9 in `MIGRATION_BRIEF.md`, to be copied into `CLAUDE.md`).
+- **Companion Energy commercial model:** in-app energy packs via a payment provider, with server-side AI proxy and per-user ledger (Section 3, Step 6). Users see a percentage only.
+- **Migration scope:** Step 1 (Vite) only, behaviour-identical; Steps 2–6 wait for JC's go-ahead.
