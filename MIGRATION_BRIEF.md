@@ -18,6 +18,11 @@ You are working for **JC** (Jan-Christian Zaluski), owner of Lifecare Companion�
 6. **Talk plainly.** Short, specific updates: what changed, what he should test, what's next. No jargon walls. Ask at most one question at a time, and only when you're genuinely blocked.
 7. **Ask before anything irreversible**: production cutover, deleting files or branches, changing repo/Pages settings, touching Firebase rules or data.
 8. **Model:** you (Claude Code) run on **Opus 5.5** (`claude-opus-5-5`). The **app's own AI features stay on `claude-sonnet-4-6`**. Do not change the model strings inside the app.
+9. **`HANDOVER.md` is the project memory. Check it before acting; record in it after acting.** This is how the architect (JC working with Claude in Chat) and you (the builder) stay in sync, because neither remembers the other's conversations.
+   - **Before every action or decision:** pull the latest `main` and re-read `HANDOVER.md`: current version, user rules, the latest Session Log entries and any open items. Another session (Chat or Code) may have changed things since you last looked. If what you're about to do conflicts with something recorded there, stop and ask JC.
+   - **After every action** (each version shipped, each checkpoint, each preview or deploy, each fix): add a dated entry to the **Session Log** in `HANDOVER.md` with what was done, the version and commit, what JC needs to test, and anything left open. Update the version table and the "Live Product" version line. Commit and push it in the same step, so it's never left unrecorded.
+   - **After every design decision** (yours, JC's, or one JC passes on from Chat): record the decision, the reason and any alternatives rejected under a **Decisions** heading in the Session Log. A decision that isn't written down didn't happen.
+   - Keep entries short and factual. Update `TECHNICAL_REFERENCE.md` when the code structure changes and `APP_GUIDE.md` when anything user-visible changes.
 
 ---
 
@@ -89,7 +94,7 @@ The dev server would otherwise read and write the **live** database. Add a data-
 ### 3.2 Scaffold
 - Vite + React 18.2 (`@vitejs/plugin-react`), `firebase@10.12.0` using the **compat** imports, so the existing `firebase.database().ref(...)` code keeps working; `xlsx@0.18.5`. Keep Google Identity Services as a script tag.
 - `.gitignore`: `node_modules/`, `dist/`, `.env*.local`, the Firebase backup, Playwright reports.
-- `CLAUDE.md` with the rules in section 0, the checks to run and the deploy steps.
+- `CLAUDE.md` with the rules in section 0 (**rule 9 word for word**: check `HANDOVER.md` before acting, record in it after every action and decision), the checks to run and the deploy steps. Claude Code loads `CLAUDE.md` automatically each session, so this keeps the memory rule in force in future sessions too.
 - `vite.config` `base` must match where the build is served (`/Life-Care/` for production, `/Life-Care/next/` for preview).
 - `APP_GUIDE.md` goes in `public/` so it's emitted next to `index.html`.
 
@@ -153,5 +158,7 @@ At each checkpoint send:
 2. **Test this:** a short checklist with the exact URL.
 3. **Next:** what you'll do after his OK.
 4. **Issues spotted (not fixed):** a list, if any.
+
+Every report must be preceded by the matching `HANDOVER.md` Session Log entry (rule 9), and the report should say it's been recorded.
 
 Checkpoints: (a) baseline and backup done → (b) verbatim lift live on preview → (c) split complete on preview, all tests passing → (d) cutover done → (e) docs updated. Then stop and wait for JC before Step 2.
