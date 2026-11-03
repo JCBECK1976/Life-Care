@@ -463,3 +463,19 @@ The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable
 - **Decision:** Code sessions never connect to the live Firebase. Development and Playwright tests run against the **Firebase Realtime Database Emulator** inside the session, seeded from JC's backup `lifecare_firebase_backup_2026-11-03.json` (attached by JC, kept outside the repo, never committed). This replaces the `data_dev` plan.
 - **Why:** the Claude mobile app has no setting to allow the Firebase host for Code sessions, and the emulator is safer anyway: zero risk to live data and no network change needed. Confirmed from Anthropic's docs: cloud sessions include OpenJDK 21, and `storage.googleapis.com` (the emulator download) is allowed by default.
 - **Live data is touched only** when JC tests the `next/` preview in his own browser.
+
+### (Code) 3 Nov 2026 — Step 1 §3.1–3.3 stage 1, checkpoint (b): verbatim lift on preview
+- **Read:** HANDOVER.md/brief diff to `99ea1bb`. Checkpoint (a) closed from Chat (tag, backup, PAT). Backup stored at `/home/user/firebase-backup/` (outside the repo, not committed).
+- **Done (source, `vite-migration` @ `d4bcafd`):** Vite 5 + React 18.2.0, firebase 10.12.0 compat, xlsx 0.18.5. `src/App.jsx` = the Babel script body lifted **verbatim by script** (`scripts/lift-legacy.py`; byte-identical apart from 2 imports and `export default`). `src/lib/firebase.js` = same config plus a dev-only `useEmulator` (not in builds: checked). Firebase RTDB emulator (`firebase.json`, `npm run emulator`, `npm run seed`). ESLint (`no-undef`, `jsx-no-undef`, hooks rules): **0 errors**, 5 `exhaustive-deps` warnings in the untouched code. Playwright smoke tests (3) pass against the emulator with the Claude API mocked: loads with no errors, all 6 tabs for JC and Becks, APP_GUIDE.md served. `CLAUDE.md` added (47 lines, rule 9 word for word). Legacy single file kept as `public/legacy.html`.
+- **Done (preview, `main` @ `996d8e0`):** build with base `/Life-Care/next/` committed to `next/` only; Pages deploy succeeded. Live `index.html` untouched, still v1.374.2.
+- **JC to test:** https://jcbeck1976.github.io/Life-Care/next/ (uses **live** data). See the checkpoint (b) report.
+- **Not yet:** the full §3.5 test list (add item, bulk, stop/restart, Help, Chat, energy %) and the error boundary (§3.4). They come with the split (checkpoint c).
+- **Decisions:**
+  - `APP_GUIDE.md` stays **once, at the repo root**; a small Vite plugin serves it in dev and copies it next to `index.html` in builds. Reason: docs are edited on `main`, and a second copy in `public/` would drift. Rejected: copying it into `public/` (as the brief first said).
+  - Legacy file moved to `public/legacy.html` on the branch now (its §3.7 home), so Vite can use the root `index.html`. It's also served at `next/legacy.html`.
+  - Seed script swaps the real Claude key for a placeholder in the emulator, so dev and tests can never spend AI credit.
+  - Preview keeps the version text **v1.374.2** (verbatim). The single version constant and v1.375.0 come at cutover.
+  - SheetJS is installed as the brief says but **not imported**: the app code never uses `XLSX` (only its old script tag did).
+- **Note:** a local boot check of the *production* build briefly tried the live Firebase host (WebSocket slipped past the test block); the session network refused it, so no data was read or written. Production builds are no longer run in this session.
+- **Open:** remote branch `ccr-3a01afa0-4xkg6h` can't be deleted from Code (git connection refuses ref deletes, like tags). Chat or JC to delete.
+- **Resume point:** source branch `vite-migration` @ `d4bcafd`; preview `main` @ `996d8e0`; checkpoint (b) waiting for JC. Next after JC's OK: §3.3 stage 2 (split into files, one area per commit) + §3.4 error boundary + full §3.5 tests → checkpoint (c). Start the emulator first (`npm run emulator`, `npm run seed`).
