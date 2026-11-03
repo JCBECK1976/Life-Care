@@ -40,7 +40,7 @@ All in `https://github.com/JCBECK1976/Life-Care` (public):
 4. `TRANSFER_GAPS.md` — known gaps from the Chat → Code handover.
 5. `APP_GUIDE.md` — the user-facing guide. **The in-app Help companion fetches this file live**, so it must keep being served next to the app.
 
-**Credentials** are in the **private** repo `JCBECK1976/vault` → `life-care/CREDENTIALS.md` (GitHub PAT, Firebase, Google OAuth). If you can't access it, ask JC. **Never commit any credential to the public repo**; GitHub secret scanning will block the push anyway. The GitHub PAT expires **4 December 2026**, so flag it to JC if you're still working near then.
+**Credentials** are in the **private** repo `JCBECK1976/vault` → `life-care/CREDENTIALS.md` (GitHub PAT, Firebase, Google OAuth). If you can't access it, ask JC. **Never commit any credential to the public repo**; GitHub secret scanning will block the push anyway. The GitHub PAT has no expiry (regenerated 3 Nov 2026).
 
 ---
 
@@ -89,7 +89,7 @@ All in `https://github.com/JCBECK1976/Life-Care` (public):
 1. Clone the repo. Tag the current state: `git tag legacy-v1.374.2 && git push --tags`.
 2. **Back up Firebase:** GET `https://life-care-app-64d04-default-rtdb.europe-west1.firebasedatabase.app/data.json` and save it **locally only**. It contains personal health data and must **never** be committed to the public repo.
 3. Run the existing checks against `index.html` and confirm a clean baseline.
-4. **Check the GitHub PAT expiry** (in the vault). It expires **4 December 2026**. If the migration could run past it, ask JC to renew it now, so pushes and deploys don't stop mid-job.
+4. **Check the GitHub PAT works** (from the vault). It has no expiry. If it's rejected, ask JC for a new one; don't work around it.
 
 ### 3.1 Protect live data during development
 The dev server would otherwise read and write the **live** database. Add a data-root setting:
