@@ -50,6 +50,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v1.372.0 | Companion Energy: exact per-call cost incl. cache, "Set balance" calibration, empty only when Anthropic says so |
 | v1.373.0 | ❓ Help button: Companion answers how-to questions from `APP_GUIDE.md` (replaces a user guide) |
 | v1.374.0 | Help ? moved into the header, left of the Settings gear; floating ? removed (only 💬 Chat floats) |
+| v1.374.1 | Energy bar: percentage only (no $ shown to users); 100% level set by admin in Settings; fixed 0% when record lacked `initial` |
 
 ---
 
@@ -58,7 +59,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v1.374.0 (3 November 2026)
+- **Version**: v1.374.1 (3 November 2026)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **File size**: ~860KB single HTML file (Babel compiles but approaching practical limits)
 
@@ -105,7 +106,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 5. **No error boundary** — A single JSX error causes blank screen (no graceful degradation)
 6. **No automated tests** — All testing is manual via live deployment
 7. **Hardcoded default data** — DEFAULT_DATA object contains JC/Beck specific data that needs removing for multi-user
-8. **Energy meter is calibrated, not live** — no Anthropic API key can read the credit balance. Since v1.372.0 the user enters their real balance ("$ Set balance") and each call is priced exactly from the returned token usage. It drifts only if the same key is used by another app. A truly live figure needs the Admin API Cost endpoint (`/v1/organizations/cost_report`), which requires an organisation account and an **admin key that must live server-side** — planned for the post-migration backend, never the browser.
+8. **Energy meter is calibrated, not live** — no Anthropic API key can read the credit balance. Since v1.374.1 the admin enters the balance after each recharge in **Settings → ⚡ Companion Energy Level** ("Set as 100%"); users see only the percentage (JC: showing money and watching it fall puts people off AI features). Each call is priced exactly from the returned token usage. It drifts only if the same key is used by another app. A truly live figure needs the Admin API Cost endpoint (`/v1/organizations/cost_report`), which requires an organisation account and an **admin key that must live server-side** — planned for the post-migration backend, never the browser.
 9. ~~Remove-exercise bug~~ — fixed in v1.371.1.
 
 ### Data Architecture
@@ -312,6 +313,7 @@ Abort the deploy if it reports anything. It also checks syntax, so it can replac
 - Recalculation failures must never add/save stale nutrition values
 - Stopped exercises are view-only, hidden under a "Stopped Exercises" toggle, restarted from Exercise Settings
 - GREAT-rated items display dark green (#15803d), never navy
+- Companion Energy never shows money to users — percentage only (100% = balance at last recharge, 0% = $0)
 - Every feature change must also update APP_GUIDE.md (the Help companion reads it live)
 
 ---
