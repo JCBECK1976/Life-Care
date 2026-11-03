@@ -19,10 +19,12 @@ You are working for **JC** (Jan-Christian Zaluski), owner of Lifecare Companionâ
 7. **Ask before anything irreversible**: production cutover, deleting files or branches, changing repo/Pages settings, touching Firebase rules or data.
 8. **Model:** you (Claude Code) run on **Opus 5.5** (`claude-opus-5-5`). The **app's own AI features stay on `claude-sonnet-4-6`**. Do not change the model strings inside the app.
 9. **`HANDOVER.md` is the project memory. Check it before acting; record in it after acting.** This is how the architect (JC working with Claude in Chat) and you (the builder) stay in sync, because neither remembers the other's conversations.
-   - **Before every action or decision:** pull the latest `main` and re-read `HANDOVER.md`: current version, user rules, the latest Session Log entries and any open items. Another session (Chat or Code) may have changed things since you last looked. If what you're about to do conflicts with something recorded there, stop and ask JC.
+   - **Read it in full once, at the start of each session.** Note the commit you read it at.
+   - **Before every later action or decision, read only what changed since your last read; don't re-read the whole file.** Run `git pull`, then `git diff <last-read-commit> HEAD -- HANDOVER.md`. If the diff is empty, carry on. If not, read just the changed lines, then note the new commit as your last read. Another session (Chat or Code) may have added rules, decisions or open items. If anything conflicts with what you're about to do, stop and ask JC.
+   - Your own entries don't need re-reading: you wrote them.
    - **After every action** (each version shipped, each checkpoint, each preview or deploy, each fix): add a dated entry to the **Session Log** in `HANDOVER.md` with what was done, the version and commit, what JC needs to test, and anything left open. Update the version table and the "Live Product" version line. Commit and push it in the same step, so it's never left unrecorded.
    - **After every design decision** (yours, JC's, or one JC passes on from Chat): record the decision, the reason and any alternatives rejected under a **Decisions** heading in the Session Log. A decision that isn't written down didn't happen.
-   - Keep entries short and factual. Update `TECHNICAL_REFERENCE.md` when the code structure changes and `APP_GUIDE.md` when anything user-visible changes.
+   - Keep entries short and factual. Add new Session Log entries at the **end** of the file so diffs stay small. When the Session Log passes about 150 lines, move older entries into `HANDOVER_ARCHIVE.md` (not read routinely) and leave a one-line pointer. Update `TECHNICAL_REFERENCE.md` when the code structure changes and `APP_GUIDE.md` when anything user-visible changes.
 
 ---
 
