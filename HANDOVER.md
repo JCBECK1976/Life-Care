@@ -154,6 +154,7 @@ The app works. It now needs to become a platform that other people can use.
 5. **Phase 5: Commercialise**
    - Full architecture decisions (hosting, billing, scaling)
    - Business model (subscription? usage-based?)
+   - **Agreed 3 Nov 2026: users buy Companion Energy packs in the app** (see Step 6). This replaces Phase 4's bring-your-own-key model for paying users; BYOK can stay as a pilot stepping stone.
 
 ### Technical Migration Path
 
@@ -191,6 +192,22 @@ See `FIREBASE_SECURITY.md` for full details. Summary:
 - Optional household/partner sharing (the JC+Beck pattern)
 - Data export/import
 - Account deletion (GDPR)
+
+#### Step 6: Backend AI Proxy & Companion Energy Purchases (agreed 3 Nov 2026)
+**Goal:** Companion Energy tops itself up when a user buys energy, and every user's percentage is exact. No manual "Set as 100%".
+
+**Why this design:** Anthropic provides no purchase notification or balance API for its own credit, so the app can never "see" a top-up of the owner's Anthropic account. Instead the app **sells its own Companion Energy** and the owner's Anthropic account is the wholesale supply behind it.
+
+**Build:**
+1. **Server-side AI proxy** (e.g. Firebase Cloud Functions). Every Anthropic call goes browser → server → Anthropic. The Claude API key lives only on the server (fixes today's client-side key exposure; see Technical Debt #10).
+2. **Per-user energy ledger** in the database, written only by the server: `balance`, `level100` (energy at last purchase), `pct`. The server prices each call exactly from the response `usage` (input, cache write, cache read, output × model prices) and deducts it. The browser only reads `pct`.
+3. **In-app energy packs** via a payment provider (e.g. Stripe Checkout). The provider's webhook hits the server on successful payment; the server credits the user's energy and resets their 100% level automatically.
+4. **Block on empty, server-side** — when a user's balance reaches 0 the proxy refuses calls and the app shows "Recharge needed" with a buy button. (Never reintroduce a client-side gate; see Session Log 2 Nov.)
+5. **Owner supply monitoring** — a scheduled server job calls the Admin API Cost endpoint (`/v1/organizations/cost_report`, admin key server-side only, needs an Anthropic organisation account) to compare real spend against energy sold: margin reporting and an alert before the owner's Anthropic credit runs low.
+
+**Rules carried forward:** users see a percentage only, never money values (JC, 3 Nov 2026). The current admin "⚡ Companion Energy Level" card and `trackApiUsage` are interim and are removed once this ships.
+
+**Depends on:** Step 2 (Firebase Auth / per-user data) for per-user ledgers and webhook-to-user mapping.
 
 ---
 
