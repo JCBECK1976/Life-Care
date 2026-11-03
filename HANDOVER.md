@@ -2,7 +2,7 @@
 
 ## Context for Claude Code
 
-This document hands over the **Life Care Companion** app from its development phase in Claude Chat (Opus 4.6) to Claude Code for platform engineering and commercialisation. The app has been built iteratively across multiple chat sessions from approximately August–October 2026, totalling 365+ version increments. It is a working product in live daily use by its two founding users (JC and Beck).
+This document hands over the **Life Care Companion** app from its development phase in Claude Chat to Claude Code (run Claude Code on **Opus 5.5**, `claude-opus-5-5`; the start instructions are in `MIGRATION_BRIEF.md`) for platform engineering and commercialisation. The app has been built iteratively across multiple chat sessions from approximately August–October 2026, totalling 365+ version increments. It is a working product in live daily use by its two founding users (JC and Beck).
 
 ---
 
@@ -50,6 +50,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v1.372.0 | Companion Energy: exact per-call cost incl. cache, "Set balance" calibration, empty only when Anthropic says so |
 | v1.373.0 | ❓ Help button: Companion answers how-to questions from `APP_GUIDE.md` (replaces a user guide) |
 | v1.374.0 | Help ? moved into the header, left of the Settings gear; floating ? removed (only 💬 Chat floats) |
+| v1.374.2 | Help intro shows Lifecare Companion™ as in footer |
 | v1.374.1 | Energy bar: percentage only (no $ shown to users); 100% level set by admin in Settings; fixed 0% when record lacked `initial` |
 
 ---
@@ -59,7 +60,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v1.374.1 (3 November 2026)
+- **Version**: v1.374.2 (3 November 2026)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **File size**: ~860KB single HTML file (Babel compiles but approaching practical limits)
 
@@ -339,6 +340,7 @@ Abort the deploy if it reports anything. It also checks syntax, so it can replac
 
 | File | Purpose |
 |------|---------|
+| `MIGRATION_BRIEF.md` | **Start here in Claude Code.** Self-contained brief for the Vite migration (Step 1): rules, scope, plan, checks, preview, cutover. |
 | `TECHNICAL_REFERENCE.md` | Full technical architecture, state management, component structure, data schema |
 | `FIREBASE_SECURITY.md` | Firebase security requirements and implementation plan |
 | `HANDOVER.md` | This document — context, history, roadmap, development guide |
