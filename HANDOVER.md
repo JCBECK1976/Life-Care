@@ -489,3 +489,9 @@ The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable
   - **Energy ping on every load** (1-token Claude call in `checkCompanionEnergy`): added to the Step 1b candidates.
   - Lint's 5 hook-dependency warnings: leave them as they are (behaviour-identical rule).
 - **Status:** checkpoint (b) approved from Chat. Waiting on JC's own phone test of `/next/` before stage 2 (§3.3 split) starts.
+
+### (Code) 3 Nov 2026 — Step 1 §3.3 stage 2 in progress: tests, constants, lib, components
+- **Read:** HANDOVER diff to `be499f6` (checkpoint (b) approved; Chat decisions noted: root APP_GUIDE.md kept, SheetJS may go, hook warnings left).
+- **Done (`vite-migration`):** `e78f5e2` full §3.5 Playwright list written **before** the split (11 tests, emulator re-seeded per test, AI and Open Food Facts mocked) plus an opt-in pixel check of 17 views (`VISUAL=1`; baseline images kept outside the repo at `/home/user/lc-visual-snapshots/`, as they show health data). `ecc0d3a` constants → `src/constants/`; `da54ee7` helpers → `src/lib/` (incl. `api.js`: fetch wrapper installed once at import); `18cde9a` top-level components → `src/components/`. Each move done by script; each commit: 0 lines lost/added, lint 0 errors, build ok, 11/11 tests, pixel-identical.
+- **Decisions:** tests before the split (so every split commit is checked by the full list). Sections become real components that receive the Dashboard values they use as one `ctx` prop (none of them reassigns a Dashboard variable, so this is behaviour-identical); state management unchanged.
+- **Resume point:** branch `vite-migration` @ `18cde9a`. Next: sections one per commit (overview, body, weights, hidden meds, meals, shop, bloods, admin, data), then overlays, then error boundary, drop SheetJS, rebuild `next/`. Start the emulator first (`npm run emulator`).
