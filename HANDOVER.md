@@ -49,6 +49,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v1.371.1 | Fixed "Remove exercise from day" in session feedback (undefined index; removes by name) |
 | v1.372.0 | Companion Energy: exact per-call cost incl. cache, "Set balance" calibration, empty only when Anthropic says so |
 | v1.373.0 | ❓ Help button: Companion answers how-to questions from `APP_GUIDE.md` (replaces a user guide) |
+| v1.374.0 | Help ? moved into the header, left of the Settings gear; floating ? removed (only 💬 Chat floats) |
 
 ---
 
@@ -57,7 +58,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v1.373.0 (2 November 2026)
+- **Version**: v1.374.0 (3 November 2026)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **File size**: ~860KB single HTML file (Babel compiles but approaching practical limits)
 
