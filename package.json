@@ -1,0 +1,32 @@
+{
+  "name": "lifecare-companion",
+  "private": true,
+  "version": "1.374.2",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run lint && vite build",
+    "build:preview": "npm run lint && vite build --mode next",
+    "lint": "eslint src --max-warnings=-1",
+    "emulator": "firebase emulators:start --only database --project life-care-app-64d04",
+    "seed": "node scripts/seed-emulator.mjs",
+    "test": "playwright test"
+  },
+  "dependencies": {
+    "firebase": "10.12.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "xlsx": "0.18.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.13.0",
+    "@playwright/test": "1.63.0",
+    "@vitejs/plugin-react": "4.3.3",
+    "eslint": "9.13.0",
+    "eslint-plugin-react": "7.37.2",
+    "eslint-plugin-react-hooks": "5.0.0",
+    "firebase-tools": "13.23.1",
+    "globals": "15.11.0",
+    "vite": "5.4.10"
+  }
+}
