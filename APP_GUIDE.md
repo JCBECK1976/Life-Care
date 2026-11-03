@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v1.374.0 · 3 November 2026
+> Last updated: v1.374.1 · 3 November 2026
 
 ---
 
@@ -73,20 +73,19 @@ It speaks to you directly ("you"), warmly and honestly, and adapts its tone to t
 "Good morning / afternoon / evening, [name]" with a rotating encouraging message. If no profile exists yet you'll see "New User".
 
 ### ⚡ Companion Energy
-Companion Energy shows how much AI credit is left for Companion features. Every time the Companion generates feedback, answers a chat or calculates nutrition, it uses a small amount of credit from the app owner's Anthropic account.
+Companion Energy shows how much AI energy is left for Companion features, as a percentage. Every time the Companion generates feedback, answers a chat or calculates nutrition, it uses a little energy.
 
-- The bar and percentage show how much of the last-set balance remains, with an approximate dollar figure ("≈ $X.XX left").
-- **$ Set balance** — enter the real credit balance (in US dollars) from console.anthropic.com → Settings → Billing. Do this after every top-up. The meter then counts down exactly from that figure, pricing each call from the tokens it used.
-- **↻ Refresh** — checks the connection and the key.
+- **100%** is a full recharge; **0%** is empty. The bar goes down gradually as AI features are used. Normal use takes very little, so use the features freely.
+- **↻ Refresh** checks the connection.
 - Status labels:
   - *Good energy / Getting low / Running low* — normal operation.
-  - *Estimate out of date — tap Set balance* — the AI is working but the meter's estimate has run out (usually after a top-up). Tap Set balance.
-  - *Empty — top up at console.anthropic.com* — Anthropic has reported the account is out of credit. AI features will not work until it is topped up.
-  - *No API key / Invalid key* — the Claude API key in Settings is missing or wrong.
+  - *Empty — recharge needed* — the AI service has no energy left. AI features won't work until the app owner recharges it.
+  - *Recharged — level resets in Settings* — the AI is working but the bar needs resetting to 100% by the app owner.
+  - *No API key / Invalid key* — the app owner needs to check the AI key in Settings.
   - *Rate limited* — too many requests in a short time; wait a moment.
   - *Connection error* — couldn't reach the AI service.
-- **Why it's an estimate:** Anthropic does not let apps read the account balance directly with a normal key. The meter is accurate to within cents as long as the same key isn't used by other apps.
-- If any feature shows "⚡ Companion Energy Empty. Please top up!", it means Anthropic has genuinely refused the request for lack of credit.
+- If a feature shows "⚡ Companion Energy Empty. Please top up!", the AI service has genuinely run out. Let the app owner know.
+- **For the app owner:** after recharging credit at console.anthropic.com, open **⚙ Settings → ⚡ Companion Energy Level**, enter the new balance and tap **Set as 100%**. The bar then runs from that level down to 0%.
 
 ### My Mood
 Five faces: 😔 Really struggling, 😕 Not great, 😐 OK, 🙂 Good, 😊 Great. Tap one to set today's mood (tap again to clear). **Why it matters:** the Companion adjusts its tone to your mood. On a hard day it is gentler and more supportive; on a good day it can push you more. Mood resets each day.
@@ -340,7 +339,7 @@ Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
 - **🎨 My Colour Theme** — Blue, Purple, Green, Teal, Rose, Amber, Indigo or Slate. Changes your highlighted tabs, info boxes and accents. Each person has their own colour.
 - **📱 Google Health Connect** (Android only) — syncs body composition and activity data from your phone. Setup: download Google Health Connect from the Play Store, connect your scales/health apps to it, then tap **🔗 Connect Google Health**. Use **🔄 Sync Google Health Data** to sync and **⏹ Disconnect** to stop.
 - **🍎 Apple Health** (iOS) — coming soon.
-- **Admin-only tools** (for the app owner): **🔑 API Keys** (Claude API key from console.anthropic.com → API Keys; Google OAuth Client ID for Health Connect), **⚠ Reset Data** (overwrites everything with default data; cannot be undone), **🔧 Debug Mode**, measurement types, **Firebase Data Viewer** and data recovery/restore tools.
+- **Admin-only tools** (for the app owner): **⚡ Companion Energy Level** (enter the balance after a recharge; it becomes 100%), **🔑 API Keys** (Claude API key from console.anthropic.com → API Keys; Google OAuth Client ID for Health Connect), **⚠ Reset Data** (overwrites everything with default data; cannot be undone), **🔧 Debug Mode**, measurement types, **Firebase Data Viewer** and data recovery/restore tools.
 
 ### Send Feedback, Privacy Policy
 At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature, describe it, and it opens an email) and **Privacy Policy**. The version number (e.g. v1.373.0) is shown at the very bottom.
@@ -365,14 +364,14 @@ At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature
 - **Weekly or fortnightly:** record body stats (same time of day, same conditions).
 - **Every 4 weeks:** tape measurements and progress photos.
 - **When they happen:** add blood results, medication changes and health notes, then **Re-evaluate Ratings** if your health picture changed.
-- **After topping up AI credit:** tap **$ Set balance** on Home.
+- **After recharging AI credit (app owner):** ⚙ Settings → ⚡ Companion Energy Level → **Set as 100%**.
 
 ## 13. Troubleshooting
 
 | Problem | What to do |
 |---|---|
-| "⚡ Companion Energy Empty. Please top up!" | The AI account is out of credit. Top up at console.anthropic.com, then tap **$ Set balance** on Home. |
-| Energy meter shows 0% but AI works | The estimate is out of date. Tap **$ Set balance** with the real balance. |
+| "⚡ Companion Energy Empty. Please top up!" | The AI service is out of energy. The app owner recharges it at console.anthropic.com, then sets the new level in **⚙ Settings → ⚡ Companion Energy Level**. |
+| Energy bar looks wrong (e.g. low but AI works) | The app owner resets it in **⚙ Settings → ⚡ Companion Energy Level → Set as 100%**. |
 | "Invalid API key" / "No API key" | The app owner needs to check the Claude key in Settings → API Keys. |
 | "Rate limit reached" / "API busy" | Wait a moment and try again. |
 | Feedback was "cut off" | Press the feedback button again. |
@@ -387,7 +386,7 @@ At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature
 ## 14. Glossary
 
 - **Companion** — the AI built into the app.
-- **Companion Energy** — remaining AI credit (estimate).
+- **Companion Energy** — how much AI energy is left, as a percentage of the last recharge.
 - **RAG / rating** — GREAT (green), AMBER, RED food ratings.
 - **Packaged** — a shop-bought product with fixed label nutrition.
 - **Ingredient Prepared** — something you make; nutrition is calculated from your ingredients and amounts.
