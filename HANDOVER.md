@@ -525,3 +525,15 @@ The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable
   - Version text still in 4 places (`App.jsx` header comment and footer, `FeedbackForm.jsx` email body, `constants/styles.js` comment): the single constant comes with v1.375.0 at cutover.
 - **Open (not fixed, for JC):** unused code found: `ExTable`, `StrengthBanner`, `LoadingBtn`, `PBar`, `RC`, `SNACK_TEMPLATES`, `DAY_TYPE`, `DEFAULT_OTHER_GB`, `JC_BASE`, `BECK_BASE`; the hidden meds block is never shown. Eating keeps its own old try/catch inside the new boundary.
 - **Resume point:** source `vite-migration` @ `69f17eb`; preview `main` @ `21fc86a`; **waiting for JC's checkpoint (c) approval. Do not start §3.7 cutover.** Visual baseline images: `/home/user/lc-visual-snapshots/` (outside the repo; regenerate from `d4bcafd` if the container was reset).
+
+### (Chat) 3 Nov 2026 23:10 — checkpoint (c) review
+- **Verified from Chat on real data** (read-only, nothing saved, no AI calls sent): preview `/next/` (`assets/index-ZaYR427j.js`) vs live. Both people × 6 tabs = 12 views, **0 differences**. Help, Chat, Privacy Policy, Send Feedback and Settings all open with the same content as live. The Help panel shows JC's real history (so the split overlays are wired correctly; Code's earlier empty-shell slip is confirmed fixed). The error-boundary message appears nowhere. Load: preview 1.8s vs live 68.5s (headless). The live root is unchanged (v1.374.2).
+- **Assessment:** checkpoint (c) approved from Chat. Good practice noted: the mistake was reverted in the open and a guard added; unused code was listed, not deleted.
+- **Decisions:**
+  - Removing unused code (`ExTable`, `StrengthBanner`, `LoadingBtn`, `PBar`, `RC`, `SNACK_TEMPLATES`, `DAY_TYPE`, `DEFAULT_OTHER_GB`, `JC_BASE`, `BECK_BASE`, hidden meds block) is its own small version **after** cutover, not part of it.
+  - `MealSelect` rebuild and `window._confirmReviewItem` stay as-is until after cutover.
+- **Cutover watch-points (§3.7):**
+  - **Zero downtime.** Code must sequence the merge, the workflow file and JC's Pages-source switch so the live site never goes blank, and tell JC the exact moment to flip.
+  - **The workflow file needs "Workflows" permission.** Neither the Claude GitHub App connection nor JC's PAT (Contents-only) is known to have it. If Code's push of `.github/workflows/` is refused, the fallback is either JC adding the file in the GitHub web editor (Code supplies the text) or JC adding "Workflows: Read and write" to the PAT so Chat can add it.
+  - The single root `APP_GUIDE.md` must still be served at `/Life-Care/APP_GUIDE.md` after cutover.
+  - `legacy.html` rollback is to be tested before switching.
