@@ -479,3 +479,13 @@ The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable
 - **Note:** a local boot check of the *production* build briefly tried the live Firebase host (WebSocket slipped past the test block); the session network refused it, so no data was read or written. Production builds are no longer run in this session.
 - **Open:** remote branch `ccr-3a01afa0-4xkg6h` can't be deleted from Code (git connection refuses ref deletes, like tags). Chat or JC to delete.
 - **Resume point:** source branch `vite-migration` @ `d4bcafd`; preview `main` @ `996d8e0`; checkpoint (b) waiting for JC. Next after JC's OK: §3.3 stage 2 (split into files, one area per commit) + §3.4 error boundary + full §3.5 tests → checkpoint (c). Start the emulator first (`npm run emulator`, `npm run seed`).
+
+### (Chat) 3 Nov 2026 13:30 — checkpoint (b) review
+- **Verified from Chat** (this session can reach github.io and Firebase): `/Life-Care/next/` and `/next/APP_GUIDE.md` are served (200), and the bundle has no in-browser Babel. A headless real-data comparison of preview vs live, both people × all 6 tabs (12 views, read-only, nothing saved), found **0 content differences**. Preview loaded in 1.5s vs 71.6s for live in the same headless browser. No app errors in the preview; the only console error (a certificate error on one external resource) also appears on live and comes from the Chat sandbox's proxy. Screenshot check: Becks's theme and layout are correct.
+- **Housekeeping:** old test branch `ccr-3a01afa0-4xkg6h` deleted from Chat. Branches now: `main`, `vite-migration`.
+- **Decisions:**
+  - **Accepted** Code's deviation: a single root `APP_GUIDE.md`, copied into the build (no second copy in `public/`). This must hold for the GitHub Actions build at cutover too.
+  - **SheetJS (xlsx):** unused since the file import was removed. Code may drop the dependency during the stage 2 split (no behaviour change).
+  - **Energy ping on every load** (1-token Claude call in `checkCompanionEnergy`): added to the Step 1b candidates.
+  - Lint's 5 hook-dependency warnings: leave them as they are (behaviour-identical rule).
+- **Status:** checkpoint (b) approved from Chat. Waiting on JC's own phone test of `/next/` before stage 2 (§3.3 split) starts.
