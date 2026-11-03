@@ -559,7 +559,7 @@ opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 5. ✅ Feature/layout = v1.X.0, bug fix = v1.X.Y
 
 ### GitHub PAT
-- Expires: **4 December 2026**
+- Expires: **never** (regenerated 3 Nov 2026). If exposed, delete and replace it, then update the vault.
 - Scope: `JCBECK1976/Life-Care` repo, Contents read/write
 - **Never commit real PAT to repo** (GitHub secret scanning blocks it)
 
