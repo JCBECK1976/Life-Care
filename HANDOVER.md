@@ -103,7 +103,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 1. **Firebase security** — Database rules are wide open (see FIREBASE_SECURITY.md)
 2. **File size limit** — Single file at ~860KB, Babel compilation on mobile increasingly slow
 3. **Silent Firebase errors** — `sGet()`/`sSet()` swallow permission errors, app loads defaults instead of showing error
-4. **GitHub PAT expiry** — Current token expires 4 December 2026
+4. **GitHub PAT** — regenerated 3 Nov 2026 with **no expiry**; if it is ever exposed, delete it at github.com/settings/personal-access-tokens, make a new one and update the vault
 5. **No error boundary** — A single JSX error causes blank screen (no graceful degradation)
 6. **No automated tests** — All testing is manual via live deployment
 7. **Hardcoded default data** — DEFAULT_DATA object contains JC/Beck specific data that needs removing for multi-user
@@ -370,7 +370,7 @@ Abort the deploy if it reports anything. It also checks syntax, so it can replac
 1. **Blank screen on syntax error** — No error boundary. One misplaced bracket = dead app for all users. Always Babel-check before deploy.
 2. **Firebase silent failures** — `sGet`/`sSet` return null on error. App treats null as "no data" and loads defaults. Users see their data vanish without warning.
 3. **Babel mobile limit** — File is at ~860KB. Vite migration is urgent for performance.
-4. **PAT expiry** — GitHub token expires 4 Dec 2026. New token needed before then.
+4. **PAT exposure** — the GitHub token has no expiry, so a leaked token works until deleted. Keep it in the vault only; never commit it.
 5. **No rollback** — Deployment overwrites. The only rollback is git revert via GitHub.
 6. **DEFAULT_DATA coupling** — The default data object serves as both a "safety net" when Firebase fails and as initial demo data. These two concerns need separating.
 7. **State variable count** — The component has 100+ useState variables. Refactoring into context/reducers is needed for the Vite migration.
@@ -432,4 +432,4 @@ The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable
 - **Efficiency pass (Step 1b)** added after the Vite cutover. Baseline measured from Chat: 100 keys, ~198KB, no images; Firebase is free-tier at 2 users; AI is the real running cost.
 - **Known risk recorded:** `saveData()` rewrites the whole `dashboard:data` blob (~59KB, both people) on every save, so two devices saving close together can lose updates. Fix via granular writes (Step 1b or Step 2/5).
 - **Token rules for Claude Code:** never read `index.html` in full (~250k tokens); do mechanical moves with scripts; keep `CLAUDE.md` under ~60 lines.
-- **PAT:** expires 4 Dec 2026; renew before starting the migration if it could overrun.
+- **PAT:** regenerated 3 Nov 2026 with **no expiry**; if it is ever exposed, delete it at github.com/settings/personal-access-tokens, make a new one and update the vault. Stored in the vault.
