@@ -2,7 +2,7 @@
 
 > **How to use this file:** start Claude Code with **Opus 5.5** (`claude --model claude-opus-5-5`, or `/model claude-opus-5-5` in a running session), then paste this whole file as your first message, or say "Read MIGRATION_BRIEF.md in the Life-Care repo and follow it."
 >
-> Written 3 November 2026 at app version **v1.374.2**. Supersedes any earlier instruction to use Opus 4.6 for this work.
+> Written 3 November 2026 at app version **v1.374.2**; access and session sections updated the same day. Supersedes any earlier instruction to use Opus 4.6 for this work.
 
 ---
 
@@ -41,6 +41,16 @@ All in `https://github.com/JCBECK1976/Life-Care` (public):
 5. `APP_GUIDE.md` — the user-facing guide. **The in-app Help companion fetches this file live**, so it must keep being served next to the app.
 
 **Credentials** are in the **private** repo `JCBECK1976/vault` → `life-care/CREDENTIALS.md` (GitHub PAT, Firebase, Google OAuth). If you can't access it, ask JC. **Never commit any credential to the public repo**; GitHub secret scanning will block the push anyway. The GitHub PAT has no expiry (regenerated 3 Nov 2026).
+
+**GitHub access (verified 3 Nov 2026):** claude.ai is connected to GitHub as **JCBECK1976**, with the Claude GitHub App installed on `Life-Care` and `vault`. A test session read the vault and pushed a branch to Life-Care successfully.
+- Use the connection. If `vault` isn't attached to your session, attach it with the repo-attach tool and clone it **outside** the Life-Care working tree, e.g. `/home/user/vault`.
+- Only if the connection fails, fall back to the PAT from the vault with the GitHub REST API, bypassing the session proxy (Python: `urllib.request.build_opener(urllib.request.ProxyHandler({}))`). Tell JC you've done so.
+- Never write the PAT into any file in the Life-Care repo, commit messages or logs.
+
+**Sessions end** (time and usage limits; JC's sessions reset every few hours). Work so that any session can stop at any moment and the next one can pick up without redoing work:
+- Commit and push small steps often to the work branch (see 3.0).
+- At least every hour, and whenever you finish a step, add a **(Code)** entry to the HANDOVER.md Session Log with a **Resume point**: branch, last commit, what's done, the exact next step, and anything half-finished.
+- **A new session:** read this brief, then follow rule 9 (HANDOVER.md in full once), find the latest (Code) entry's Resume point and continue from there. Never restart a step that's logged as done.
 
 ---
 
@@ -86,8 +96,10 @@ All in `https://github.com/JCBECK1976/Life-Care` (public):
 - [ ] HANDOVER.md, TECHNICAL_REFERENCE.md (new file layout, deploy, checks) and a new `CLAUDE.md` are updated.
 
 ### 3.0 Before touching anything
+**Branches:** do all source work on a branch named **`vite-migration`** (create it from `main` if it doesn't exist; if it does, you're resuming, so check the Session Log). `main` stays exactly as the live app until cutover. The only commits to `main` before cutover are the preview build in the `next/` folder (3.6). An earlier access test left a branch `ccr-3a01afa0-4xkg6h` (identical to `main` at `def9ce0`). Ask JC before deleting it.
+
 1. Clone the repo. Tag the current state: `git tag legacy-v1.374.2 && git push --tags`.
-2. **Back up Firebase:** GET `https://life-care-app-64d04-default-rtdb.europe-west1.firebasedatabase.app/data.json` and save it **locally only**. It contains personal health data and must **never** be committed to the public repo.
+2. **Back up Firebase:** GET `https://life-care-app-64d04-default-rtdb.europe-west1.firebasedatabase.app/data.json` and save it **locally only**. It contains personal health data and must **never** be committed to the public repo. If the session's network blocks Firebase, tell JC; don't skip the backup.
 3. Run the existing checks against `index.html` and confirm a clean baseline.
 4. **Check the GitHub PAT works** (from the vault). It has no expiry. If it's rejected, ask JC for a new one; don't work around it.
 
@@ -128,12 +140,12 @@ Wrap each section and the overlays. Show "Something went wrong in this section �
   - Home: the Companion Energy card shows a percentage only (no $ values).
 
 ### 3.6 Preview (no repo setting changes needed)
-Build with `base: '/Life-Care/next/'` and commit the output to a `next/` folder on `main`. It is then served at **https://jcbeck1976.github.io/Life-Care/next/** by the existing Pages setup. Tell JC exactly what to test there.
+Build from the `vite-migration` branch with `base: '/Life-Care/next/'` and commit **only the build output** to a `next/` folder on `main` (nothing else on `main` changes). It is then served at **https://jcbeck1976.github.io/Life-Care/next/** by the existing Pages setup. Tell JC exactly what to test there.
 **Heads-up for JC:** the preview uses the **live** data (production build), so anything he saves there is real. That's intended for acceptance testing, and the backup from 3.0 covers it.
 
 ### 3.7 Cutover (only after JC approves the preview)
 1. Ask JC to switch **Settings → Pages → Source** to **GitHub Actions** (one click, or do it yourself if he gives you access).
-2. Add a GitHub Actions workflow: install → lint → build (`base: '/Life-Care/'`) → deploy `dist/` to Pages.
+2. Merge `vite-migration` into `main`, with a pull request JC can see. Add a GitHub Actions workflow: install → lint → build (`base: '/Life-Care/'`) → deploy `dist/` to Pages.
 3. Keep the legacy single file as `public/legacy.html`, so rollback means visiting `/Life-Care/legacy.html` while you revert.
 4. Remove the `next/` folder after cutover.
 5. Version: **v1.375.0** (layout/platform change), shown from the single version constant.
