@@ -168,6 +168,9 @@ The single-file Babel architecture has hit its ceiling. Migrate to:
 
 This was attempted on Sep 19 2026 but reverted. Claude Code with local dev server testing makes this feasible.
 
+#### Step 1b: Efficiency Pass (agreed 3 Nov 2026)
+Straight after the Vite cutover: measure, propose, JC approves, then build. Goal: lower running costs and faster loads with **no loss of capability**. Full candidate list in `MIGRATION_BRIEF.md` §3.9: AI prompt caching (incl. 💬 Chat follow-ups), on-device caching of nutrition lookups and reference data, an IndexedDB copy for instant start, a PWA service worker, batched startup reads, and granular saves. Firebase stays the source of truth; device storage is never the only copy of health data.
+
 #### Step 2: Firebase Security
 See `FIREBASE_SECURITY.md` for full details. Summary:
 - Deploy UID-scoped security rules
@@ -424,3 +427,9 @@ The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable
 - **Project memory:** `HANDOVER.md` is the shared memory between Chat and Code sessions. Read in full once per session, then only the changes since the last read before each action (token saving); record after every action and decision (rule 9 in `MIGRATION_BRIEF.md`, to be copied into `CLAUDE.md`).
 - **Companion Energy commercial model:** in-app energy packs via a payment provider, with server-side AI proxy and per-user ledger (Section 3, Step 6). Users see a percentage only.
 - **Migration scope:** Step 1 (Vite) only, behaviour-identical; Steps 2–6 wait for JC's go-ahead.
+
+### (Chat) Decisions — 3 November 2026 (continued)
+- **Efficiency pass (Step 1b)** added after the Vite cutover. Baseline measured from Chat: 100 keys, ~198KB, no images; Firebase is free-tier at 2 users; AI is the real running cost.
+- **Known risk recorded:** `saveData()` rewrites the whole `dashboard:data` blob (~59KB, both people) on every save, so two devices saving close together can lose updates. Fix via granular writes (Step 1b or Step 2/5).
+- **Token rules for Claude Code:** never read `index.html` in full (~250k tokens); do mechanical moves with scripts; keep `CLAUDE.md` under ~60 lines.
+- **PAT:** expires 4 Dec 2026; renew before starting the migration if it could overrun.
