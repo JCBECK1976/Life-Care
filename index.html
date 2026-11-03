@@ -867,7 +867,7 @@ const btnP = (on = true) => ({ width: "100%", padding: 12, background: on ? "lin
 const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.374.0
+// STANDARD BUTTON STYLES v1.374.1
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };
@@ -917,8 +917,9 @@ window.trackApiUsage = async function(usage, model) {
     if (!stored) return;
     var energy = JSON.parse(stored);
     energy.spent = (energy.spent || 0) + cost;
-    energy.balance = Math.max(0, (energy.initial || 5) - energy.spent);
-    energy.pct = energy.initial > 0 ? Math.round((energy.balance / energy.initial) * 100) : 0;
+    if (!(energy.initial > 0)) energy.initial = 5; /* records saved without a starting level computed 0% */
+    energy.balance = Math.max(0, energy.initial - energy.spent);
+    energy.pct = Math.round((energy.balance / energy.initial) * 100);
     energy.lastUsed = new Date().toISOString();
     await sSet("companion_energy", JSON.stringify(energy));
     /* Update state if the app component can see it */
@@ -2925,7 +2926,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             var filledSegs = hasEnergy ? Math.round(pct / 5) : 0;
             var emptySegs = segCount - filledSegs;
 
-            var statusLabel = !hasEnergy ? "—" : keyStatus === "no_key" ? "No API key" : keyStatus === "invalid_key" ? "Invalid key" : keyStatus === "rate_limited" ? "Rate limited" : keyStatus === "error" ? "Connection error" : companionEnergy.depleted ? "Empty — top up at console.anthropic.com" : companionEnergy.needsCalibration ? "Estimate out of date — tap Set balance" : (pct > 50 ? "Good energy" : pct > 20 ? "Getting low" : "Running low") + " · ≈ $" + (companionEnergy.balance || 0).toFixed(2) + " left";
+            var statusLabel = !hasEnergy ? "—" : keyStatus === "no_key" ? "No API key" : keyStatus === "invalid_key" ? "Invalid key" : keyStatus === "rate_limited" ? "Rate limited" : keyStatus === "error" ? "Connection error" : companionEnergy.depleted ? "Empty — recharge needed" : companionEnergy.needsCalibration ? "Recharged — level resets in Settings" : pct > 50 ? "Good energy" : pct > 20 ? "Getting low" : "Running low";
             var statusEmoji = !hasEnergy ? "" : keyStatus === "active" ? "✓ " : keyStatus === "no_key" || keyStatus === "invalid_key" ? "✗ " : "";
             var pctColor = pct > 20 ? "#22c55e" : pct > 0 ? "#f59e0b" : "#ef4444";
 
@@ -2948,17 +2949,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ fontSize: 9, color: "#94a3b8" }}>{statusEmoji}{statusLabel}</div>
-                <div style={{ display: "flex", gap: 2 }}>
-                  <button onClick={async function() {
-                    var cur2 = companionEnergy && companionEnergy.balance != null ? companionEnergy.balance.toFixed(2) : "";
-                    var v = window.prompt("Enter your current Anthropic credit balance in US dollars.\n\nFind it at console.anthropic.com → Settings → Billing. Set it again after each top-up.", cur2);
-                    if (v === null) return; var amt = parseFloat(String(v).replace(/[^0-9.]/g, ""));
-                    if (!(amt >= 0)) { setFormMsg("Enter a number, e.g. 12.50"); setTimeout(function(){ setFormMsg(""); }, 3000); return; }
-                    var en = Object.assign({}, companionEnergy || {}, { initial: amt, balance: amt, spent: 0, pct: amt > 0 ? 100 : 0, depleted: amt <= 0, needsCalibration: false, calibratedAt: new Date().toISOString(), keyStatus: (companionEnergy && companionEnergy.keyStatus) || "active" });
-                    window._setCompanionEnergy(en); await sSet("companion_energy", JSON.stringify(en));
-                  }} style={{ background: "none", border: "none", fontSize: 9, color: "#2563eb", cursor: "pointer", padding: "2px 6px" }}>$ Set balance</button>
                   <button onClick={checkCompanionEnergy} disabled={energyLoading} style={{ background: "none", border: "none", fontSize: 9, color: "#2563eb", cursor: energyLoading ? "not-allowed" : "pointer", padding: "2px 6px" }}>↻ Refresh</button>
-                </div>
               </div>
             </div>);
           })()}
@@ -7403,6 +7394,20 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           {/* Reset to Defaults — Admin only */}
           {isAdmin && (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>⚡ Companion Energy Level</div>
+            <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8, lineHeight: 1.4 }}>After topping up credit at console.anthropic.com, enter the new balance in US dollars. That amount becomes 100% and $0 is 0%. Users only ever see the percentage.{companionEnergy && companionEnergy.initial ? " Current 100% level: $" + Number(companionEnergy.initial).toFixed(2) + (companionEnergy.calibratedAt ? " (set " + new Date(companionEnergy.calibratedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + ")" : "") + "." : ""}</div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <input id="energy-topup-input" type="number" step="0.01" min="0" placeholder="e.g. 10.00" style={{ ...inputStyle, flex: 1 }} />
+              <button onClick={async function() {
+                var el = document.getElementById("energy-topup-input"); var amt = el ? parseFloat(el.value) : NaN;
+                if (!(amt > 0)) { setFormMsg("Enter the balance after top-up, e.g. 10.00"); setTimeout(function(){ setFormMsg(""); }, 3000); return; }
+                var en = Object.assign({}, companionEnergy || {}, { initial: amt, balance: amt, spent: 0, pct: 100, depleted: false, needsCalibration: false, calibratedAt: new Date().toISOString(), keyStatus: (companionEnergy && companionEnergy.keyStatus) || "active" });
+                window._setCompanionEnergy(en); await sSet("companion_energy", JSON.stringify(en)); if (el) el.value = "";
+                setFormMsg("✓ Companion Energy set to 100%"); setTimeout(function(){ setFormMsg(""); }, 3000);
+              }} style={{ ...btnAction, padding: "8px 12px", fontSize: 12 }}>Set as 100%</button>
+            </div>
+          </div>)}
+          {isAdmin && (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#dc2626", marginBottom: 6 }}>⚠ Reset Data</div>
             <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8 }}>Overwrites Firebase with the clean default data. Use if data has become corrupted from bugs. This cannot be undone.</div>
             <button onClick={async function() { if (!confirm("This will reset ALL data to defaults. Are you sure?")) return; await sSet("life_care_data", JSON.stringify(DEFAULT_DATA)); setFormMsg("✓ Data reset to defaults — reload the app"); setTimeout(function() { setFormMsg(""); }, 5000); }} style={{...btnDelete, width: "100%", padding: 10, borderRadius: 8, fontSize: 12, fontWeight: 700}}>⚠ Reset to Default Data</button>
@@ -7678,7 +7683,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var deviceInfo = "";
                 try { deviceInfo = navigator.userAgent; } catch(e) { deviceInfo = "Unknown"; }
                 var screenInfo = window.screen ? window.screen.width + "x" + window.screen.height : "Unknown";
-                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.374.0";
+                var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: v1.374.1";
                 var emailSubject = encodeURIComponent("[Life Care " + (feedbackType === "bug" ? "Bug" : "Feature") + "] " + feedbackText.trim().substring(0, 50));
                 window.open("mailto:jc.zaluski@gmail.com?subject=" + emailSubject + "&body=" + emailBody, "_self");
                 setFeedbackOpen(false);
@@ -7777,7 +7782,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           <button onClick={function(){ setShowPrivacy(false); }} style={{ width: "100%", padding: "10px 0", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", marginTop: 8 }}>Close</button>
         </div>
       </div>)}
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.374.0
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.374.1
       </div>
 
       {/* Floating Ask a Question button */}
