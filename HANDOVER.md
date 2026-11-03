@@ -507,3 +507,8 @@ The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable
 ### (Code) 3 Nov 2026 — stage 2: Home, Exercise, hidden meds, Eating sections
 - **Done:** `1a8e989` Home → `src/sections/Home.jsx`; `de52934` Exercise → `src/sections/Exercise.jsx`; `ae2637a` hidden meds block (never shown) → `src/sections/HiddenMeds.jsx`; `fb32e66` Eating → `src/sections/Eating.jsx` (its own try/catch and `MealSelect` kept inside it unchanged; `window._confirmReviewItem` still published from it). Checks green on each.
 - **Resume point:** `vite-migration` @ `fb32e66`. All sections are components. Next: overlays/footer (privacy, help, chat, review item) → components, then error boundary, SheetJS, `next/`.
+
+### (Code) 3 Nov 2026 — stage 2: overlays and footer pieces
+- **Done:** `b285bae` ReviewItemOverlay, ChatPanel, HelpPanel → `src/components/`; `3cfd3cf` PrivacyPolicy, FeedbackForm → `src/components/`. Checks green on each.
+- **Mistake caught and reverted:** first overlay attempt `63c7df8` used stale line numbers, so Chat/Help became empty wrappers in front of the original code (tests still passed because the original code stayed). Reverted in `ad6d500` and redone by matching content; the commit script now refuses an empty `ctx`.
+- **Resume point:** `vite-migration` @ `3cfd3cf`. Split complete. Next: §3.4 error boundary, drop SheetJS, rebuild `next/`, checkpoint (c).
