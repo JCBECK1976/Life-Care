@@ -438,3 +438,12 @@ The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable
 - **GitHub access:** claude.ai was connected to the wrong GitHub account (JCBECK1976-Git). Reconnected as **JCBECK1976**, with the Claude GitHub App installed on Life-Care and vault. Verified from Chat (both visible, push allowed) and from a Claude Code test session (read vault at `67b927c`; pushed branch `ccr-3a01afa0-4xkg6h`, identical to `main` at `def9ce0`, no code changed).
 - **Decisions:** source work goes on the `vite-migration` branch; `main` stays live until cutover (only `next/` preview builds go to `main` before then). Sessions log a **Resume point** in each (Code) entry so a fresh session can continue after time limits.
 - **Next:** JC starts a fresh Claude Code session (Opus 5.5) after 12:00 on 3 Nov with the kickoff message; Claude Code begins at MIGRATION_BRIEF.md §3.0. Checkpoint (a) comes back to Chat for review.
+
+### (Code) 3 Nov 2026 — Step 1 §3.0, checkpoint (a): partly done, 2 items blocked
+- **Read:** HANDOVER.md in full at `33dd6cc`. No version shipped; live app unchanged at v1.374.2.
+- **Done:** branch `vite-migration` created from `main` at `33dd6cc` and pushed. Baseline checks (HANDOVER §4) on `index.html`: Babel syntax check passes and the scope check reports CHECKS PASS, so the baseline is clean.
+- **Blocked: tag.** `legacy-v1.374.2` exists locally (at `33dd6cc`), but this session's git connection disconnects on every tag push (branch pushes work). The REST API fallback with the vault PAT was refused by the session's permission system. Waiting for JC.
+- **Blocked: PAT check (§3.0.4).** Not run, for the same reason (permission refusal, not a token rejection). Waiting for JC.
+- **Blocked: Firebase backup (§3.0.2).** The session network policy refuses `life-care-app-64d04-default-rtdb.europe-west1.firebasedatabase.app`. Not skipped: it waits until JC allows that host. Note: a backup saved in a cloud session is lost when the container is reclaimed, so JC also needs a copy he keeps.
+- **Decision:** the backup is saved to `/home/user/firebase-backup/` (outside both repos, so it can never be committed). Reason: the brief says local only.
+- **Resume point:** branch `vite-migration`, last commit = this entry. Next: (1) push the tag `legacy-v1.374.2` → `33dd6cc` (or create it on GitHub); (2) take the Firebase backup once the host is allowed; (3) run the PAT check; (4) report checkpoint (a) to JC. Do not start §3.1 until JC replies. Branch `ccr-3a01afa0-4xkg6h` is still there (ask JC before deleting it).
