@@ -46,6 +46,9 @@ All in `https://github.com/JCBECK1976/Life-Care` (public):
 - Use the connection. If `vault` isn't attached to your session, attach it with the repo-attach tool and clone it **outside** the Life-Care working tree, e.g. `/home/user/vault`.
 - Only if the connection fails, fall back to the PAT from the vault with the GitHub REST API, bypassing the session proxy (Python: `urllib.request.build_opener(urllib.request.ProxyHandler({}))`). Tell JC you've done so.
 - Never write the PAT into any file in the Life-Care repo, commit messages or logs.
+- **Known limits of Code sessions (found 3 Nov):** tag pushes over the session's git connection are dropped, and the session's safety check blocks reading the PAT. **Don't fight these.** Anything needing the PAT or a tag is done from Chat or by JC: report what's needed and carry on with other work.
+- **Docs live on `main`.** Commit HANDOVER.md Session Log entries and other doc-only updates **directly to `main`** (merge `main` into `vite-migration` when you need them there), so Chat and Code always read one copy. Source code stays on `vite-migration` until cutover.
+- **Firebase access:** the Code environment must allow `life-care-app-64d04-default-rtdb.europe-west1.firebasedatabase.app` (environment menu → Edit → Network access). Needed from §3.1 for `data_dev`, the dev server and tests. If it's blocked, stop and tell JC.
 
 **Sessions end** (time and usage limits; JC's sessions reset every few hours). Work so that any session can stop at any moment and the next one can pick up without redoing work:
 - Commit and push small steps often to the work branch (see 3.0).
@@ -145,7 +148,7 @@ Build from the `vite-migration` branch with `base: '/Life-Care/next/'` and commi
 
 ### 3.7 Cutover (only after JC approves the preview)
 1. Ask JC to switch **Settings → Pages → Source** to **GitHub Actions** (one click, or do it yourself if he gives you access).
-2. Merge `vite-migration` into `main`, with a pull request JC can see. Add a GitHub Actions workflow: install → lint → build (`base: '/Life-Care/'`) → deploy `dist/` to Pages.
+2. Merge `vite-migration` into `main`, with a pull request JC can see. Add a GitHub Actions workflow (if pushing `.github/workflows/` is refused for lack of the GitHub App's *workflows* permission, report it; Chat or JC will add the file): install → lint → build (`base: '/Life-Care/'`) → deploy `dist/` to Pages.
 3. Keep the legacy single file as `public/legacy.html`, so rollback means visiting `/Life-Care/legacy.html` while you revert.
 4. Remove the `next/` folder after cutover.
 5. Version: **v1.375.0** (layout/platform change), shown from the single version constant.
