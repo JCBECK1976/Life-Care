@@ -1,7 +1,7 @@
 # Technical Reference — Life Care Companion
 
 > **Purpose**: Complete technical architecture reference for any developer continuing this project.  
-> **Version**: v1.374.0 | **File**: `index.html` (~860KB)  
+> **Version**: v1.374.1 | **File**: `index.html` (~860KB)  
 > **Live**: https://jcbeck1976.github.io/Life-Care  
 > **Repo**: https://github.com/JCBECK1976/Life-Care
 
@@ -258,7 +258,8 @@ window.trackApiUsage(usage, model)
 // Triggers UI update via window._setCompanionEnergy if available
 // DISPLAY ONLY — never blocks a call (v1.366.1).
 // companion_energy fields: initial, balance, spent, pct, keyStatus, depleted, needsCalibration, calibratedAt
-// "$ Set balance" on the Home energy card sets initial/balance to the user's real Console balance (v1.372.0).
+// Admin card "⚡ Companion Energy Level" (Settings, isAdmin) sets initial = balance after recharge → 100% (v1.374.1).
+// Home card shows percentage only — never dollar values. trackApiUsage defaults a missing initial to 5.
 // depleted=true only when Anthropic returns a credit-balance error (handleApiError or the ping).
 // A working ping with an estimate at 0 sets needsCalibration (label asks the user to Set balance) — no silent resets.
 ```
