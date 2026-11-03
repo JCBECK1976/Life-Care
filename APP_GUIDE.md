@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v1.373.0 · 2 November 2026
+> Last updated: v1.374.0 · 3 November 2026
 
 ---
 
@@ -36,7 +36,8 @@ It speaks to you directly ("you"), warmly and honestly, and adapts its tone to t
 
 ### The header (top of every page)
 - **Lifecare Companion™** title.
-- **Settings** button (top right) — opens Settings (colour theme, connections and data tools). See section 10.
+- **Help ?** button (top right, left of the gear) — ask how to use the app. See section 9.
+- **⚙ Settings** gear (top right) — opens Settings (colour theme, connections and data tools). See section 10.
 - **Week N · Updated [date]** — your current **training week number**, counted from your programme start date, and when your data was last saved. "· Saving..." appears briefly while changes are being saved.
 - **Person tabs** (e.g. *JC*, *Becks*) — tap a name to switch who you are viewing. The whole app switches to that person: their data, their colour theme, their feedback and settings. The highlighted tab is the active person.
 - **＋** next to the person tabs — add a new person. Type their name and tap **Add**.
@@ -51,9 +52,9 @@ It speaks to you directly ("you"), warmly and honestly, and adapts its tone to t
 | **My Shop** | Supermarket choice, Food Checker and your shopping list (generated from your eating plan). |
 | **My Health** | Health profile and notes, health log, vital observations, medications, blood results and health feedback. |
 
-### Floating buttons (bottom right)
-- **❓ Help** — ask how to use the app. Your Companion answers using this guide.
-- **💬 Chat** — chat with your Companion about your health, training, nutrition or progress, using your full data history.
+### Help and Chat
+- **Help ?** (top right, next to the Settings gear) — ask how to use the app. Your Companion answers using this guide.
+- **💬 Chat** (round button, bottom right) — chat with your Companion about your health, training, nutrition or progress, using your full data history.
 
 ### Common patterns used everywhere
 - **My Companion … Feedback** buttons (deep blue) — generate AI feedback for that area. After it is generated, **▼ Show Feedback / ▲ Hide Feedback** opens or closes it.
@@ -328,14 +329,14 @@ For prepared dinners, the ingredients become shopping list items. For packaged i
 ### 💬 Chat with your Companion
 Ask anything about your health, training, nutrition or progress, e.g. "Why did my bicep curl reps drop?", "Am I eating enough protein?", "What should I focus on next?". The Companion answers using your full data. Recent messages show as a conversation; **Show older messages** reveals earlier ones.
 
-### ❓ Help
-Ask how to use the app: where something is, what something means, how to do something, why it works the way it does. The Help companion answers from this guide, in the same conversation style. It helps with the **app**; for questions about your own health data, use 💬 Chat.
+### Help ?
+Tap **Help ?** at the top right of the screen, next to the Settings gear. Ask how to use the app: where something is, what something means, how to do something, why it works the way it does. The Help companion answers from this guide, in the same conversation style. It helps with the **app**; for questions about your own health data, use 💬 Chat.
 
 ---
 
 ## 10. Settings
 
-Open with **Settings** (top right).
+Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
 - **🎨 My Colour Theme** — Blue, Purple, Green, Teal, Rose, Amber, Indigo or Slate. Changes your highlighted tabs, info boxes and accents. Each person has their own colour.
 - **📱 Google Health Connect** (Android only) — syncs body composition and activity data from your phone. Setup: download Google Health Connect from the Play Store, connect your scales/health apps to it, then tap **🔗 Connect Google Health**. Use **🔄 Sync Google Health Data** to sync and **⏹ Disconnect** to stop.
 - **🍎 Apple Health** (iOS) — coming soon.
