@@ -499,3 +499,7 @@ The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable
 ### (Code) 3 Nov 2026 — stage 2: Data + Settings sections
 - **Done:** `98f7019` Data section → `src/sections/Data.jsx`; `8261905` Settings (admin) → `src/sections/Settings.jsx`. Checks green on each (lint 0 errors, build, 11/11 tests, pixel-identical).
 - **Resume point:** `vite-migration` @ `8261905`. Next: bloods (Health), shop, body, overview (Home), weights (Exercise), hidden meds, meals (Eating); then overlays, error boundary, SheetJS, `next/`.
+
+### (Code) 3 Nov 2026 — stage 2: Health, Shop, Body sections
+- **Done:** `f662e11` Health (bloods) → `src/sections/Health.jsx`; `dc56332` Shop → `src/sections/Shop.jsx`; `bcfdeea` Body → `src/sections/Body.jsx`. Checks green on each.
+- **Resume point:** `vite-migration` @ `bcfdeea`. Next: overview (Home), weights (Exercise), hidden meds, meals (Eating); then overlays, error boundary, SheetJS, `next/`.
