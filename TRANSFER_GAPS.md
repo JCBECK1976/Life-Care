@@ -2,12 +2,8 @@
 
 ## Things You Might Have Missed
 
-### 1. ⚠️ GitHub PAT Rotation
-The current GitHub Personal Access Token expires **4 December 2026**. After that date, all deployments will fail silently. You need to:
-- Generate a new fine-grained PAT before that date
-- Scope it to the `JCBECK1976/Life-Care` repo with Contents read/write
-- Update the token in your Claude Code session or environment
-- The PAT is currently in the session context — it's NOT stored in a config file or environment variable
+### 1. ✅ GitHub PAT Rotation — resolved 3 Nov 2026
+The PAT was regenerated with no expiry and is stored in the private vault (`life-care/CREDENTIALS.md`). Scope: Contents read/write on `JCBECK1976/Life-Care` and `JCBECK1976/vault`. If it is ever exposed, delete it on GitHub, generate a new one and update the vault.
 
 ### 2. ⚠️ FIREBASE_SECURITY.md Contains Live Credentials
 The Firebase security document pushed to the public GitHub repo contains:
