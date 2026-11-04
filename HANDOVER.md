@@ -624,3 +624,15 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **JC:** the header logo's border looks fuzzy. Confirmed at 3× phone resolution: the `header-mark-144.png` source is ~1:1 with 44px × 3 (132 device px), and the thin hand-drawn ring fades to a grey hairline.
 - **Fix prepared from Chat:** `public/brand/header-mark-288.png` (twice the resolution, the original ring replaced with one crisp dark ring), committed to `build` (`ab2cdb4`). Compared side by side at 3×, it's clearly sharper.
 - **Code to do (bug fix within v2.3.0, before beta):** point the header at `header-mark-288.png` (keep 44px and the white disc), remove the unused `header-mark-144.png`, re-run the checks and screenshot baseline, then hand `/build/` back to Chat for a 3× check.
+
+### (Chat) 4 Nov 2026 22:15 — finding: header doesn't scale past 2 people (pre-existing)
+- **JC asked** what happens with longer names or ~5 family members. **Tested from Chat** on `/build/`: 3 extra people with long names (Alexandra, Christopher, Maximilian) were temporarily added to `data_build/`, which was then restored from live (back to `jc`, `becks`).
+- **Result, at 360px and 412px:** no horizontal page overflow, but:
+  - (1) the title (all names joined with " & ") wraps to **4 lines** and pushes the app down;
+  - (2) the person tabs **overlap and become unreadable**, and the "+" gets squashed.
+  - This is **pre-existing** (not caused by v2.3.0), so v2.3.0 isn't blocked.
+- **Proposed fix (own version, v2.5.0, after v2.4.0 unless JC reorders):**
+  - **Title** = the active person's name (one line, ellipsis if long). Later, with households (Step 5), a household name.
+  - **Person tabs** = a horizontally scrollable row: each tab sized to its name (max ~12 characters, then an ellipsis); the active tab scrolled into view; "+" pinned at the end.
+  - Test with 1, 2, 5 and 8 people and long names, at 360/412px.
+  - **Waiting for JC's choice** on the title.
