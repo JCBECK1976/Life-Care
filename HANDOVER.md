@@ -667,3 +667,8 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Done:** **PR #9 `build → beta`** merged as `66fa117` (shows merged; lint 0 errors). Deploy run 41923480013 succeeded, 0 error annotations: `/beta/` = **v2.3.0-beta.1**; prod unchanged (v2.2.0).
 - **JC to test** `/Life-Care/beta/` on his phone (see the hand-off message).
 - **Resume point:** `beta` @ `66fa117`. After JC's OK: PR `beta → main` (release v2.3.0) → docs → Chat checks and tags. Then v2.4.0 installable app, then v2.5.0. Step 1b not started.
+
+### (Chat) 4 Nov 2026 22:35 — v2.3.0 beta verified; go to release
+- **JC tested `/beta/` on his phone: all good.**
+- **Chat verified:** `v2.3.0-beta.1` with BETA badge, title and noindex; the header loads `header-mark-288.png`; beta vs prod gives 12 views, **0 differences**, and overlays open. Prod v2.2.0 is untouched.
+- **Go to release v2.3.0** (`beta → main`); Chat verifies prod and tags `v2.3.0`. Then v2.4.0 (installable app).
