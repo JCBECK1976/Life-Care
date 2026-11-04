@@ -6,7 +6,7 @@
 # Run from a full clone of main with all branches fetched (the workflow does this).
 # Usage: scripts/build-pages.sh [output dir, default dist-pages]
 set -euo pipefail
-OUT="$(pwd)/${1:-dist-pages}"
+OUT="${1:-dist-pages}"; case "$OUT" in /*) ;; *) OUT="$(pwd)/$OUT" ;; esac
 REMOTE="${REMOTE:-origin}"
 rm -rf "$OUT"; mkdir -p "$OUT"
 WT="$(mktemp -d)"
