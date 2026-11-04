@@ -1,7 +1,7 @@
 # Technical Reference — Life Care Companion
 
 > **Purpose**: Complete technical architecture reference for any developer continuing this project.  
-> **Version**: v1.374.1 | **File**: `index.html` (~860KB)  
+> **Version**: v2.0.0 (Vite build, 4 Nov 2026) | **Source**: `src/` (component files)  
 > **Live**: https://jcbeck1976.github.io/Life-Care  
 > **Repo**: https://github.com/JCBECK1976/Life-Care
 
@@ -9,63 +9,50 @@
 
 ## 1. Architecture Overview
 
-### Single-File React App
-The entire application is one `index.html` file containing:
-- HTML `<head>` with CDN imports (lines 1–42)
-- Firebase config and initialisation (lines 45–53)
-- All JavaScript/JSX in a single `<script type="text/babel">` block (lines 55–7522)
-- Babel compiles JSX in the browser at page load — no build step
+### Vite React App (since v2.0.0)
+- `index.html` (page shell: meta tags, manifest, base CSS, `#root`, Google Identity Services script) loads `src/main.jsx`.
+- `src/main.jsx` mounts `<Dashboard />` inside an app-level `ErrorBoundary`.
+- `npm run build` = ESLint, then a Vite build into `dist/` (base `/Life-Care/`). No in-browser Babel.
+- GitHub Actions deploys `dist/` to Pages on every push to `main` (see §12).
+- Behaviour is identical to v1.374.2. The code was moved by script, not rewritten.
 
-### CDN Dependencies
-| Library | Version | CDN |
-|---------|---------|-----|
-| React | 18.2.0 | unpkg.com |
-| ReactDOM | 18.2.0 | unpkg.com |
-| Babel Standalone | 7.23.9 | unpkg.com |
-| Firebase App | 10.12.0 | gstatic.com |
-| Firebase Database | 10.12.0 | gstatic.com |
-| Google Identity Services | latest | accounts.google.com |
-| SheetJS (xlsx) | 0.18.5 | cdn.sheetjs.com |
+### Dependencies (npm, pinned)
+| Library | Version | Notes |
+|---------|---------|-------|
+| react, react-dom | 18.2.0 | Same versions as the old CDN build |
+| firebase | 10.12.0 | **compat** imports (`firebase/compat/app`, `firebase/compat/database`), so `firebase.database().ref(...)` code is unchanged |
+| Google Identity Services | latest | Still a `<script>` tag in `index.html` (`google` global) |
+| vite, @vitejs/plugin-react | 5.4.10, 4.3.3 | Build (dev) |
+| eslint + react, react-hooks plugins | 9.13.0 | `no-undef`, `react/jsx-no-undef`, hooks rules (dev) |
+| @playwright/test | 1.63.0 | Tests; matches the Chromium pre-installed in cloud sessions (dev) |
+| firebase-tools | 13.23.1 | Local Realtime Database emulator only (dev). Never `firebase deploy`. |
+
+SheetJS (xlsx) was dropped in v2.0.0: nothing used it after the file import was removed.
 
 ### Component Structure
-There is ONE React component: `Dashboard`. It contains all ~150+ useState variables, all business logic, all rendering. It is rendered via `ReactDOM.createRoot(document.getElementById("root")).render(<Dashboard />)`.
+`Dashboard` (in `src/App.jsx`) still owns all ~218 hooks (state, refs, effects), the handlers, the header, person tabs, navigation and footer. Each section and overlay is a component in its own file. It receives the Dashboard values it uses as one prop, `ctx` (state, setters, handlers), and renders exactly what the old inline block rendered. No section reassigns a Dashboard variable. Each is wrapped in an `ErrorBoundary`.
 
 ---
 
-## 2. File Layout (line numbers)
+## 2. File Layout
 
-| Section | Lines | Description |
-|---------|-------|-------------|
-| HTML head + CDN imports | 1–42 | Script tags for React, Babel, Firebase, GIS, SheetJS |
-| Firebase config | 45–53 | `firebase.initializeApp({...})` |
-| Constants & Helpers | 55–88 | `TONE_RULES`, `MOOD_LABELS`, `getMoodContext()`, `buildExProfileInfo()` |
-| DEFAULT_DATA | 90–540 | Hardcoded JC/Beck fallback data (~450 lines) |
-| Exercise type configs | 440–451 | `weights`, `bodyweight`, `timed_hold`, `cardio`, `walking`, `sports`, `stretching` |
-| Exercise utilities | 543–620 | `getExerciseType()`, `getExerciseTypeConfig()`, `nextPin()`, `countStatus()`, `autoStatus()` |
-| Shared helpers | 620–790 | `calcAge()`, `LoadingBtn`, `handleApiError()`, `parseStLb()`, `fbIcon()`, `calcWeek()` |
-| Button style constants | 790–794 | `btnAction`, `btnMuted`, `btnClose`, `btnClear` |
-| Storage: sGet/sSet | 799–809 | Firebase read/write with error swallowing |
-| API key & energy | 811–864 | `ensureApiKey()`, `trackApiUsage()`, fetch interceptor, energy helpers |
-| Dashboard component start | 868–1048 | `LoadingBtn` component, `Dashboard` function declaration |
-| useState declarations | 1049–1274 | All ~150+ state variables |
-| Data loading useEffect | 1275–1389 | Firebase data fetch on mount, loads all keys |
-| Google Health Connect | 1390–1510 | OAuth + Health API sync (weight, body fat, steps, exercise) |
-| Dynamic RAG system | 1310–1388 | `recalcRAG()` — AI-powered food rating recalculation |
-| Feedback thread reply | 2507–2541 | `threadReply()` — conversational follow-up on AI feedback |
-| Image parsing | 2654 | `handleFitdaysImage()` — body comp photo → structured data via AI |
-| Admin import | 2656–2657 | JSON data import/merge |
-| Return/render start | 2686 | Main JSX return begins |
-| Header + person toggle | 2686–2704 | App header, person tabs, add person |
-| Section navigation | 2705–2708 | Tab bar rendering with state resets |
-| **Home section** | 2712–3305 | Energy meter, mood, My Day, companion feedback |
-| **Body section** | 3306–3631 | Body Stats tab, Measurements tab, charts, image upload |
-| **Exercise section** | 3632–4634 | Day tabs, exercise cards, logging, warm-up/cool-down, guides |
-| **Eating section** | 4635–6586 | Weekly meals, day food selection, RAG ratings, AI meal gen |
-| **Shop section** | 6587–6820 | Food Checker (text + camera), shopping list generator |
-| **Health section** | 6821–7019 | General notes, vitals, medications, blood results |
-| **Admin/Settings** | 7020–7143 | Profile, API key, onboarding, data management |
-| **Data section** | 7144–7200 | Export, backup, reset |
-| Footer | 7200–7522 | Version display, person switcher, Ask a Question floating button |
+| Path | What's in it |
+|------|--------------|
+| `index.html` | Page shell (head, CSS, `#root`, GIS script, `src/main.jsx`) |
+| `src/main.jsx` | Mounts `<Dashboard />` in the app-level error boundary |
+| `src/App.jsx` | `Dashboard`: all hooks, data loading, `saveData`, `loadUserSettings`, AI handlers (`generateFeedback`, `generateEatFeedback`, `threadReply`, `askHelp`, `askQuestion`, `handleFitdaysImage`, …), Google Health sync, RAG recalculation, header, person tabs, navigation, footer, and where each section/overlay is placed |
+| `src/sections/` | `Home.jsx` (overview), `Body.jsx`, `Exercise.jsx` (weights), `Eating.jsx` (meals; includes `MealSelect`, add/update item flow, publishes `window._confirmReviewItem`), `Shop.jsx`, `Health.jsx` (bloods), `Settings.jsx` (admin), `Data.jsx`, `HiddenMeds.jsx` (old block, never shown) |
+| `src/components/` | `ReviewItemOverlay`, `HelpPanel`, `ChatPanel`, `PrivacyPolicy`, `FeedbackForm`, `ErrorBoundary`, `charts.jsx` (`MiniChart`, `FullChart`, `BodyCard`, `PBar`), `exercise.jsx` (`ExTable`, `StrengthBanner`), `LoadingBtn` |
+| `src/lib/` | `firebase.js` (config; dev-only emulator switch), `storage.js` (`sGet`/`sSet`), `api.js` (`ensureApiKey`, `API_PRICES`, `trackApiUsage`, the `window.fetch` wrapper, `isEnergyEmpty`, `aiErrorMsg`, `handleApiError`), `aiContext.js` (mood/profile/journal context), `exercise.js` (type helpers, `nextPin`, reps parsing, `autoStatus`), `utils.js` (dates, `mealKey`, status colours, `parseStLb`, `fbIcon`, `calcWeek`), `colour.js` (HSL helpers, `accentVariant`) |
+| `src/constants/` | `version.js` (**`APP_VERSION`, the only place the version is set**), `tone.js`, `mood.js`, `themes.js`, `defaultData.js`, `food.js`, `exercise.js`, `health.js`, `styles.js` (static button/input styles) |
+| `public/legacy.html` | The v1.374.2 single file, served at `/Life-Care/legacy.html` (rollback) |
+| `APP_GUIDE.md` (root) | The user guide. One copy only: `vite.config.js` serves it in dev and copies it next to `index.html` in builds (Help fetches it with a relative URL) |
+| `tests/` | Playwright: `smoke-load`, `eating`, `exercise`, `companion`, `error-boundary`, opt-in `visual`; `mock-ai.js` answers by prompt shape |
+| `scripts/` | `seed-emulator.mjs` (loads the backup into the emulator; swaps the real Claude key for a placeholder), `lift-legacy.py` (the one-off verbatim lift, kept for the record) |
+| `firebase.json`, `emulator.rules.json` | Emulator config only (open rules, local). Not production rules. |
+| `.github/workflows/deploy.yml` | Lint, build and deploy to Pages |
+
+Unused code still present (listed, not removed; clean-up is a separate version): `ExTable`, `StrengthBanner`, `LoadingBtn`, `PBar`, `RC`, `SNACK_TEMPLATES`, `DAY_TYPE`, `DEFAULT_OTHER_GB`, `JC_BASE`, `BECK_BASE`, `HiddenMeds`.
 
 ---
 
@@ -307,8 +294,8 @@ const resp = await fetch("https://api.anthropic.com/v1/messages", {
 ### Key AI Functions
 - **Home companion feedback** — mood-aware, cross-pillar analysis of all data
 - **Section feedback** — eating day/week, exercise session, body comp, measurements, health
-- **threadReply()** — conversational follow-up on any feedback (line 2507)
-- **handleFitdaysImage()** — body comp screenshot → structured data via vision API (line 2654)
+- **threadReply()** — conversational follow-up on any feedback (`src/App.jsx`)
+- **handleFitdaysImage()** — body comp screenshot → structured data via vision API (`src/App.jsx`)
 - **Dynamic RAG recalculation** — `recalcRAG()` re-rates all food items against health profile
 - **Food Checker** — text + camera input → nutritional analysis
 - **Help Me with What to Eat** — location-aware food guidance
@@ -407,7 +394,7 @@ grey page bg → white section → `accentLight` sub-section → white user inpu
 
 ## 8. AI Prompt Architecture
 
-### Tone Rules (TONE_RULES constant, line ~62)
+### Tone Rules (`TONE_RULES`, `src/constants/tone.js`)
 Applied to all AI calls. Key rules:
 - Never use 3rd person — always direct "you"
 - Vary openers — no fake-casual filler
@@ -457,7 +444,7 @@ All feedback responses follow a similar pattern:
 - Person key derived from name: `name.toLowerCase().replace(/[^a-z0-9]/g, "_")`
 - New person gets empty data structure with all required fields
 
-### Add Person Flow (line 2701)
+### Add Person Flow (header in `src/App.jsx`)
 Creates a new person with empty profile, exercises (sunday/monday/friday), body metrics, measurements, bloods, and meds arrays. Immediately saves and switches to new person.
 
 ### NOT Authentication
@@ -467,7 +454,7 @@ The person toggle is a UI switch, not authentication. Both JC and Beck see all d
 
 ## 10. Exercise System
 
-### Exercise Types (line 440–451)
+### Exercise Types (`EXERCISE_TYPES`, `src/constants/exercise.js`)
 Each type defines: label, metric1/2 (what's tracked), hasSets, defaultSets, defaultM1/M2, progression keys, chart labels.
 
 | Type | Metric 1 | Metric 2 | Sets |
@@ -538,46 +525,40 @@ Generates meal suggestions using only custom-added items (with RAG status), neve
 
 ## 12. Deployment
 
-### GitHub Pages via API
-```python
-import urllib.request, base64, json
-token = '<GITHUB_PAT>'
-url = 'https://api.github.com/repos/JCBECK1976/Life-Care/contents/index.html'
-opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-# GET SHA, PUT new content — see HANDOVER.md for full script
-```
-
-**CRITICAL**: Must use `ProxyHandler({})` to bypass session proxy.
+### GitHub Actions (since v2.0.0)
+- Settings → Pages → Source = **GitHub Actions**. `.github/workflows/deploy.yml` runs on every push to `main` (and by hand): `npm ci` → `npm run build` (ESLint 0 errors + Vite build) → check `dist/index.html` and `dist/APP_GUIDE.md` → deploy `dist/`.
+- If `main` has no `package.json` (e.g. the Vite merge reverted), it publishes the repo files as they are (the legacy app).
+- Rollback: `/Life-Care/legacy.html` at once, then `git revert` the bad commit.
+- The old Contents-API PUT of `index.html` and its Babel/scope checks are retired.
 
 ### Pre-Deploy Checklist
-1. ✅ Run Babel syntax check (see HANDOVER.md for script)
-1a. ✅ Run the scope check (HANDOVER.md §4) — catches functions used outside the block that defines them
-1b. ✅ Update APP_GUIDE.md for any user-visible change
-2. ✅ Update version in footer display text
-3. ✅ Update version in button styles comment block
-4. ✅ Never bundle multiple features in one version
-5. ✅ Feature/layout = v1.X.0, bug fix = v1.X.Y
+1. ✅ `npm run lint` (0 errors) and `npm run build`
+2. ✅ `npm test` with the emulator running (`npm run emulator`, `npm run seed`)
+3. ✅ Update `APP_GUIDE.md` for any user-visible change
+4. ✅ Bump `APP_VERSION` in `src/constants/version.js`: feature/layout `v2.X.0`, bug fix `v2.X.Y`
+5. ✅ One change per version; JC approves before it reaches `main`
+6. After deploy: JC closes and reopens the tab and checks the footer version
 
 ### GitHub PAT
 - Expires: **never** (regenerated 3 Nov 2026). If exposed, delete and replace it, then update the vault.
-- Scope: `JCBECK1976/Life-Care` repo, Contents read/write
-- **Never commit real PAT to repo** (GitHub secret scanning blocks it)
+- Scope: Contents read/write on Life-Care and vault. Not used by Claude Code sessions (they use the GitHub connection).
+- **Never commit a real PAT to the repo** (GitHub secret scanning blocks it)
 
 ---
 
 ## 13. Known Technical Debt
 
-1. **No error boundary** — single JSX error = blank screen for all users
+1. ~~No error boundary~~ — added in v2.0.0 (each section, overlay, and the whole app)
 2. **Silent Firebase errors** — sGet/sSet swallow PERMISSION_DENIED, app loads defaults
-3. **~329KB single file** — approaching Babel mobile limit (~340KB)
-4. **~150+ useState in one component** — needs Context/reducers for Vite migration
-5. **No automated tests** — all testing manual via live deployment
+3. ~~Single file / Babel mobile limit~~ — removed in v2.0.0 (Vite build)
+4. **~218 hooks in one component** — still in `Dashboard`; sections get them via `ctx`. Context/reducers is future work
+5. ~~No automated tests~~ — v2.0.0 has ESLint + 13 Playwright tests (emulator, AI mocked)
 6. **DEFAULT_DATA coupling** — serves as both safety net and demo data
 7. **Hardcoded exercise days** — Sunday/Monday/Friday specific to JC/Beck
 8. **No offline/PWA support** — requires internet for all operations
 9. **Wide-open Firebase rules** — see FIREBASE_SECURITY.md
 10. **Client-side API keys** — Anthropic key visible in browser DevTools
-11. **Section IIFEs** — functions defined inside a section's render block are invisible elsewhere; use `window._name` or component level (see HANDOVER.md risk #11)
+11. **Cross-file `window.*` links** — sections are components now, but `window._confirmReviewItem` (Eating → Review Item overlay) and the energy globals on `window` are kept as before; replace only once a tested alternative exists
 12. **Energy meter** — calibrated estimate; a live balance needs the Admin API from a server (see HANDOVER.md known issue #8)
 
 ---
@@ -585,7 +566,7 @@ opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 ## 14. Key Patterns to Preserve
 
 ### Section State Resets
-When switching sections (line 2706), these states reset:
+When switching sections (navigation in `src/App.jsx`), these states reset:
 - All feedback expanded states → false
 - Exercise log → null
 - Body view → "data"
@@ -627,4 +608,7 @@ All feedback supports conversational follow-up via `threadReply()`:
 | `FIREBASE_SECURITY.md` | GitHub repo | Security requirements and implementation plan |
 | `TRANSFER_GAPS.md` | GitHub repo | 12 identified risks and recommended first actions |
 | `TECHNICAL_REFERENCE.md` | GitHub repo | This document — full architecture reference |
-| `index.html` | GitHub repo | The entire application |
+| `src/`, `index.html` | GitHub repo | The application (Vite) — see §2 |
+| `public/legacy.html` | GitHub repo | v1.374.2 single file (rollback) |
+| `CLAUDE.md` | GitHub repo | Rules for Claude Code sessions |
+| `HANDOVER_ARCHIVE.md` | GitHub repo | Older Session Log entries |

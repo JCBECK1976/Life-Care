@@ -23,7 +23,7 @@ Owner: JC (not a developer). Live app used daily by JC and Becks. Full brief: `M
 11. Keep this file short (under 60 lines).
 
 ## Session limits and where things go
-- Docs (HANDOVER.md etc.) are committed **straight to `main`**; source code on **`vite-migration`** until cutover.
+- Docs (HANDOVER.md etc.) are committed **straight to `main`**. Since v2.0.0 a push to `main` deploys, so source changes go on a short-lived branch and reach `main` by PR only after JC approves (preview process: HANDOVER.md §4 open item).
 - No tag pushes and no PAT from Code sessions: report what's needed; Chat or JC does it.
 - **No live Firebase from Code.** Dev and tests use the local emulator only. Never run `firebase deploy`.
 - The Firebase backup lives outside the repo (`/home/user/firebase-backup/`). Never commit or print it.
