@@ -55,6 +55,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | **v2.0.0** | **Vite migration cutover** (4 Nov 2026): component files, no in-browser Babel, error boundaries, ESLint + Playwright checks, GitHub Actions deploy; behaviour unchanged. Legacy v1.374.2 kept at `/legacy.html` (tag `legacy-v1.374.2`) |
 | v2.1.0 | Build / beta / prod environments (Step 1a): one Pages pipeline for `main`, `beta`, `build`; per-environment data root; `-beta.N` / `-build.<sha>` versions; BUILD/BETA badge and tab-title prefix; noindex on test environments. First release through build → beta → main |
 | v2.1.1 | Unused code removed (no behaviour change): `ExTable`, `StrengthBanner`, `LoadingBtn`, `PBar`, `RC`, `SNACK_TEMPLATES`, `DAY_TYPE`, `DEFAULT_OTHER_GB`, `JC_BASE`, `BECK_BASE`, hidden meds block |
+| v2.2.0 | Settings → 🗂 **Data tools** (admin only): opens the Firebase Data Viewer and recovery tools; ← Back to Settings |
 
 ---
 
@@ -63,7 +64,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v2.1.1 (4 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
+- **Version**: v2.2.0 (4 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -556,3 +557,44 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Chat to check** prod v2.1.1 and tag it.
 - **Note:** JC's header-logo choice (A "In App Logo" / B text-free mark) still isn't recorded; needed before v2.3.0, not before v2.2.0.
 - **Resume point:** `main` @ `2ff9d5c` + this entry. Next: v2.2.0 Data tools on `build` (from `build` @ `4a3a9e1`, which carries the unwired brand assets). Step 1b not started.
+
+### (Code) 4 Nov 2026 — v2.2.0 Data tools on `build`: ready for Chat (hand-off 1)
+- **Read:** diff to `fa77d3c`; own release entry `e78486c` since.
+- **Done (`build` @ `a7e2b11`; `main` merged in first, brand assets from `4a3a9e1` still unwired):** Settings has a new **admin-only** card "🗂 Data tools" → **Open Data tools** (opens the existing Firebase Data Viewer + recovery tools, which had no way in). The Data section has **← Back to Settings** and renders only for the admin (switching to Becks hides it). APP_GUIDE describes it. Version v2.2.0. New tests (`tests/data-tools.spec.js`): admin opens and returns; Becks has no button; viewer hides on switch. Lint 0 errors, **17/17 tests**. Exact screenshot check: only the footer version text, plus the new card on JC's Settings (above it pixel-identical; below it identical after a 120px shift).
+- **Deploy** run 41910020084 succeeded, 0 error annotations (no environment skipped).
+- **Decision (Code):** the Data section is gated on `isAdmin` as well as the button, so a person switch can't leave Becks on the admin tools. Button uses the grey in-card style (`btnMuted`) per the design rules.
+- **Still needed before v2.3.0:** JC's header-logo choice (A "In App Logo" / B `header-mark-144.png`).
+- **Resume point:** `build` @ `a7e2b11`. After Chat's OK: PR `build → beta` → JC → PR `beta → main`. Step 1b not started.
+
+### (Code) 4 Nov 2026 — Decision: v2.3.0 header logo = B
+- **Decision (JC):** the header logo for v2.3.0 is **B**: the text-free artwork, `public/brand/header-mark-144.png` (on `build`). Reason (Chat's recommendation, accepted): the "In App Logo" name is illegible at header size and repeats the "LIFECARE COMPANION™" text beside it. Rejected: A ("In App Logo" with text).
+- **Resume point:** unchanged. v2.2.0 on `build` @ `a7e2b11`, waiting for Chat's verification. v2.3.0 starts only after v2.2.0 is released.
+
+### (Chat) 4 Nov 2026 21:15 — v2.1.1 verified and tagged; v2.2.0 build verified
+- **Prod v2.1.1 verified:** title and footer correct, no badge or robots meta; it renders all 12 views and overlays. **Tag `v2.1.1` → `2ff9d5c`** (PR #6 merge) created from Chat.
+- **v2.2.0 on `/build/` verified** (`data_build/` re-seeded first; live `data/` fingerprinted before and after, **unchanged**; no restore buttons pressed):
+  - Footer `v2.2.0-build.a7e2b11`.
+  - JC's Settings has the 🗂 Data tools card; **Open Data tools** shows the Firebase Data Viewer, and **← Back to Settings** returns to Settings.
+  - Switching to Becks hides the viewer, and Becks's Settings has no card. No page errors.
+  - Build vs prod: 12 views, **0 differences**; overlays open.
+- **Go for `build → beta`** (v2.2.0-beta.1). JC tests on his phone, as JC (he's the admin): the Data tools card opens the viewer and Back returns. **Don't press the restore buttons**, because beta uses real data.
+
+### (Code) 4 Nov 2026 — v2.2.0 on beta: `/beta/` ready for JC (hand-off 2)
+- **Read:** diff to `db6f1ea` (Chat verified prod v2.1.1 and tagged `v2.1.1`; verified v2.2.0 on `/build/`; JC must not press restore buttons on beta).
+- **Done:** **PR #7 `build → beta`** merged as `eea99c6` (shows merged; lint 0 errors). Deploy run 41913460997 succeeded, 0 error annotations: `/beta/` = **v2.2.0-beta.1**; prod unchanged (v2.1.1). Chat's unwired brand images ride along (unused until v2.3.0).
+- **JC to test** `/Life-Care/beta/` as JC (see the hand-off message).
+- **Resume point:** `beta` @ `eea99c6`. After JC's OK: PR `beta → main` (release v2.2.0) → docs → Chat checks and tags. Then v2.3.0 logos (header = B). Step 1b not started.
+
+### (Chat) 4 Nov 2026 21:25 — v2.2.0 beta verified; go to release
+- **JC tested `/beta/` on his phone: OK.**
+- **Chat verified** (real data, look only, no restore buttons pressed):
+  - `v2.2.0-beta.1`; the Data tools card shows for JC and opens the viewer; Back returns to Settings.
+  - Switching to Becks hides the viewer, and Becks's Settings has no card. No page errors.
+  - Beta vs prod: 12 views, **0 differences**; overlays open.
+- **Go to release v2.2.0** (`beta → main`); Chat verifies prod and tags `v2.2.0` after. Then v2.3.0 (logos, header B).
+
+### (Code) 4 Nov 2026 — v2.2.0 released (PR #8 `beta → main`)
+- **Read:** diff to `0357868` (JC tested beta OK; Chat verified beta; go to release).
+- **Done:** PR #8 merged as `2b8578c` (shows merged); merged tree lint 0 errors, build ok. Deploy run 41915585156 succeeded. Version table, Live Product line and `TECHNICAL_REFERENCE.md` (version, Data section, brand files) updated.
+- **Chat to check** prod v2.2.0 and tag it.
+- **Resume point:** `main` @ `2b8578c` + this entry. Next: v2.3.0 logos on `build` (header = B, `header-mark-144.png`). Step 1b not started.
