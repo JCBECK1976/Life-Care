@@ -679,3 +679,17 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Done:** PR #10 merged as `f34513b` (shows merged); merged tree lint 0 errors, build ok (static logo path `/Life-Care/brand/…`). Deploy run 41924275234 succeeded (an older docs-push run was superseded and shows "cancelled", which is normal). Version table, Live Product line and `TECHNICAL_REFERENCE.md` updated.
 - **Chat to check** prod v2.3.0 and tag it.
 - **Resume point:** `main` @ `f34513b` + this entry. Next: v2.4.0 installable app on `build`. Then v2.5.0. Step 1b not started.
+
+### (Code) 4 Nov 2026 — v2.4.0 installable app on `build`: ready for Chat (hand-off 1)
+- **Read:** own entries since `94c42f9` (v2.3.0 released as `f34513b`, docs `d20044b`); no new Chat entries.
+- **Done (`build` @ `d203eb7`), as specified in the v2.4.0 plan:**
+  - `manifest.webmanifest` per environment, generated at build: distinct `id`, names (Lifecare Companion/Lifecare · Lifecare BETA/LC Beta · Lifecare BUILD/LC Build), `start_url` = `scope` = base, standalone, theme `#0f172a`, background white, icons any + maskable (beta/build tinted).
+  - `sw.js`: **network-only** service worker per scope. It caches nothing, passes only this app's own GET requests to the network, and never touches Firebase, Anthropic or other origins; prod's skips `/beta/` and `/build/`. Registered in builds only.
+  - `index.html`: manifest, apple-touch-icon, favicons, `apple-mobile-web-app-title`. This replaces the old inline `data:` manifest (`start_url "/"`).
+  - `check-pages.mjs` validates manifest, icons and `sw.js` when present (prod strict; not required, so a legacy rollback still deploys); tested with a good artifact, a bad build manifest (build skipped) and a missing prod icon (deploy fails). It takes effect when v2.4.0 reaches `main`.
+  - APP_GUIDE: install steps for Android (Chrome, Samsung Internet); BETA/BUILD install as separate apps.
+- **Checks:** lint 0 errors; **24/24 tests**, incl. Chromium `Page.getInstallabilityErrors` = none, with the app loading its data under the service worker, and the service-worker routing rules. Exact screenshot check: only the footer version text differs. The Chat-panel screenshot was flaky (logo still loading after its reload); screenshots now wait for images to load, and 3/3 reruns were stable.
+- **Deploy** run 41926364576 succeeded, 0 error annotations.
+- **Note for go-live (from the plan):** an app installed from github.io must be reinstalled once after the move to `lifecarecompanion.app`.
+- **Open:** `public/brand/in-app-logo-144.png` (option A) is unused; it can be removed in a clean-up.
+- **Resume point:** `build` @ `d203eb7`. After Chat's OK: PR `build → beta` → JC installs beta on his phone → PR `beta → main`. Then v2.5.0. Step 1b not started.
