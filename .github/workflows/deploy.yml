@@ -1,67 +1,66 @@
 # Deploys Lifecare Companion to GitHub Pages (Settings → Pages → Source: GitHub Actions).
+# One Pages artifact holds all three environments (see scripts/build-pages.sh):
+#   main → /Life-Care/ (prod) · beta → /Life-Care/beta/ · build → /Life-Care/build/
 #
-# - main has package.json (the Vite app, v2.0.0+): install → lint → build → deploy dist/
-# - main has no package.json (before the Vite merge, or after reverting it): publish
-#   main's files exactly as they are, i.e. the legacy single-file app. This keeps the
-#   site up while the Pages source is switched, and makes a full revert a real rollback.
+# Only main's copy of this workflow builds and deploys. A push to build or beta just asks
+# main's workflow to rebuild everything, so a change on build can never change how prod is
+# deployed, and the github-pages environment only ever deploys from main.
 name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, beta, build]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
 
 jobs:
-  build:
+  request-deploy:
+    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Ask main's workflow to rebuild all environments
+        run: gh workflow run deploy.yml --ref main --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pages-build
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # all branches and history (beta.N counts promotions since the last release)
 
-      - name: Set up Node
-        if: hashFiles('package.json') != ''
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
 
-      - name: Install, lint and build the Vite app
-        if: hashFiles('package.json') != ''
-        run: |
-          npm ci
-          npm run build   # = lint (0 errors required) + vite build, base /Life-Care/
-
-      - name: Legacy single file (no package.json on main)
-        if: hashFiles('package.json') == ''
-        run: |
-          mkdir -p dist
-          for f in $(ls -A); do
-            case "$f" in .git|.github|dist) ;; *) cp -r "$f" dist/ ;; esac
-          done
-
-      - name: Check the build has the app and the Help guide
-        run: |
-          test -f dist/index.html
-          test -f dist/APP_GUIDE.md
-          ls dist
+      - name: Build prod, beta and build, then check the result
+        run: bash scripts/build-pages.sh dist-pages
 
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: dist-pages
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

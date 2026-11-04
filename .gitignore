@@ -11,3 +11,4 @@ database-debug.log
 .firebase/
 playwright-report/
 test-results/
+dist-pages/
