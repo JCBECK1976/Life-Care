@@ -277,8 +277,9 @@ console.log(Object.keys(miss).length?'SCOPE ERRORS: '+JSON.stringify(miss):'CHEC
 Abort the deploy if it reports anything. It also checks syntax, so it can replace the Babel step.
 
 ### Version Convention
-- Feature/layout change: increment major sub → `v1.366.0`
-- Bug fix: increment minor → `v1.365.1`
+- **v2.0.0** = the Vite-migrated app, the first completed version for handover (JC, 4 Nov 2026). The legacy single-file app ends at v1.374.2 (tag `legacy-v1.374.2`).
+- From v2: feature/layout change → `v2.X.0`; bug fix → `v2.X.Y`.
+- (Legacy v1 rule, kept for history: feature → `v1.366.0`, bug fix → `v1.365.1`.)
 - Always update version in THREE places:
   1. Footer display text
   2. Button styles comment block near the top of the script
@@ -537,3 +538,7 @@ The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable
   - **The workflow file needs "Workflows" permission.** Neither the Claude GitHub App connection nor JC's PAT (Contents-only) is known to have it. If Code's push of `.github/workflows/` is refused, the fallback is either JC adding the file in the GitHub web editor (Code supplies the text) or JC adding "Workflows: Read and write" to the PAT so Chat can add it.
   - The single root `APP_GUIDE.md` must still be served at `/Life-Care/APP_GUIDE.md` after cutover.
   - `legacy.html` rollback is to be tested before switching.
+
+### (Chat) 4 Nov 2026 08:25 — decision: cutover is v2.0.0
+- **Decision (JC):** the cutover ships as **v2.0.0**, not v1.375.0. The migrated app is effectively a new app and the first completed version for handover. Versioning continues `v2.X.0` (feature) / `v2.X.Y` (fix). Brief §0 rule 4 and §3.7 are updated; the Version Convention above is updated.
+- `APP_GUIDE.md` "Last updated" and version example are updated to v2.0.0 in the cutover release.
