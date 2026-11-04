@@ -609,3 +609,13 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Decisions (Code):** disc **44px**, not 46–48, because 44px = the text block height. At 46px the header grew 2px, which moved all content and made the exact check noisy (the fixed 💬 button and overlays don't move). The static logo is rounded so its white square doesn't show on the grey page.
 - **Deploy** run 41916873763 succeeded, 0 error annotations.
 - **Resume point:** `build` @ `777d82a`. After Chat's OK: PR `build → beta` → JC → PR `beta → main`. Then v2.4.0 installable app. Step 1b not started.
+
+### (Chat) 4 Nov 2026 21:50 — v2.2.0 tagged; v2.3.0 build verified
+- **Prod v2.2.0 verified; tag `v2.2.0` → `2b8578c`** (PR #8 merge) created from Chat.
+- **v2.3.0 on `/build/` verified** (`data_build/` re-seeded):
+  - The static loading screen with JS disabled shows the round App Logo and "Loading Lifecare Companion™…".
+  - The header at 360px and 412px has the round text-free mark top left, the title and names to its right, and the BUILD pill under Help/Settings, right-aligned. **No horizontal overflow** at either width.
+  - `v2.3.0-build.777d82a`. Build vs prod: 12 views, **0 differences**; overlays open. Prod is v2.2.0 and beta v2.2.0-beta.0, both untouched.
+  - Screenshots sent to JC for a visual check.
+- Code's choice of a **44px disc** (not 46px) to keep the header height unchanged is **accepted**.
+- **Go for `build → beta`** once JC is happy with the look.
