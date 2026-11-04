@@ -11,7 +11,7 @@ export default function EnvBadge() {
   const b = BADGES[APP_ENV];
   if (!b) return null;
   return (
-    <span data-testid="env-badge" style={{ display: "inline-block", marginLeft: 8, padding: "2px 8px", borderRadius: 6, background: b.bg, color: "#fff", fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", verticalAlign: "middle" }}>
+    <span data-testid="env-badge" style={{ display: "inline-block", padding: "2px 8px", borderRadius: 6, background: b.bg, color: "#fff", fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", verticalAlign: "middle" }}>
       {b.label}
     </span>
   );

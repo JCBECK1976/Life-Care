@@ -14,3 +14,12 @@ test("build environment: BUILD badge, tab title prefix, -build version, noindex"
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex, nofollow");
   expect(errors).toEqual([]);
 });
+
+test("build environment: the badge sits under the Help and Settings buttons", async ({ page }) => {
+  await openApp(page);
+  const help = await page.getByRole("button", { name: /Help/ }).first().boundingBox();
+  const badge = await page.getByTestId("env-badge").boundingBox();
+  expect(badge.y).toBeGreaterThan(help.y + help.height - 1);
+  const gear = await page.locator("button").nth(1).boundingBox(); // Settings gear, right of Help
+  expect(Math.abs(badge.x + badge.width - (gear.x + gear.width))).toBeLessThan(2); // right-aligned under the buttons
+});
