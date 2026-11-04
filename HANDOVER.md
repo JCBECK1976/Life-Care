@@ -54,6 +54,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v1.374.1 | Energy bar: percentage only (no $ shown to users); 100% level set by admin in Settings; fixed 0% when record lacked `initial` |
 | **v2.0.0** | **Vite migration cutover** (4 Nov 2026): component files, no in-browser Babel, error boundaries, ESLint + Playwright checks, GitHub Actions deploy; behaviour unchanged. Legacy v1.374.2 kept at `/legacy.html` (tag `legacy-v1.374.2`) |
 | v2.1.0 | Build / beta / prod environments (Step 1a): one Pages pipeline for `main`, `beta`, `build`; per-environment data root; `-beta.N` / `-build.<sha>` versions; BUILD/BETA badge and tab-title prefix; noindex on test environments. First release through build → beta → main |
+| v2.1.1 | Unused code removed (no behaviour change): `ExTable`, `StrengthBanner`, `LoadingBtn`, `PBar`, `RC`, `SNACK_TEMPLATES`, `DAY_TYPE`, `DEFAULT_OTHER_GB`, `JC_BASE`, `BECK_BASE`, hidden meds block |
 
 ---
 
@@ -62,7 +63,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v2.1.0 (4 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
+- **Version**: v2.1.1 (4 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -548,3 +549,10 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
      - **APP_GUIDE.md:** how to install on Android (Chrome and Samsung Internet → menu → Install app / Add to Home screen), and that BETA and BUILD install as separate apps.
      - **Note for go-live:** an app installed from github.io won't move to `lifecarecompanion.app`; it has to be reinstalled once after the domain move. Tell users at go-live.
 - Step 1b stays after these.
+
+### (Code) 4 Nov 2026 — v2.1.1 released (PR #6 `beta → main`)
+- **Read:** diff to `680deda` (Chat verified v2.1.1 beta; JC OK; v2.2.0 → v2.3.0 → v2.4.0 plan; brand assets on `build` @ `4a3a9e1`; header logo A/B awaiting JC).
+- **Done:** PR #6 merged as `2ff9d5c` (shows merged); merged tree lint 0 errors, build ok. Deploy run 41909279630 succeeded (prod strict checks passed). Version table and Live Product line → v2.1.1. `TECHNICAL_REFERENCE.md`: version, file layout (removed files, `EnvBadge`, Data section note), unused list closed, §12 rewritten for the three environments and pipeline. `CLAUDE.md`: source flow and deploy lines for build → beta → main.
+- **Chat to check** prod v2.1.1 and tag it.
+- **Note:** JC's header-logo choice (A "In App Logo" / B text-free mark) still isn't recorded; needed before v2.3.0, not before v2.2.0.
+- **Resume point:** `main` @ `2ff9d5c` + this entry. Next: v2.2.0 Data tools on `build` (from `build` @ `4a3a9e1`, which carries the unwired brand assets). Step 1b not started.
