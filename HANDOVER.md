@@ -656,3 +656,8 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Done (`build` @ `3900dec`):** header now uses `header-mark-288.png` (44px white disc unchanged); `header-mark-144.png` removed (no other code reference). Lint 0 errors, 19/19 tests. Exact screenshot check vs the v2.3.0 baseline: **only the 44×44 logo box** (16,20)–(60,64) differs in every view; no size changes. 3× phone-resolution close-up: the old ring was a faint hairline, the new one crisp and dark. Baseline updated.
 - **Deploy** run 41921165264 succeeded, 0 error annotations.
 - **Resume point:** `build` @ `3900dec`. After Chat's 3× check and JC's OK on the look: PR `build → beta` → JC → PR `beta → main`. Then v2.4.0, then v2.5.0. Step 1b not started.
+
+### (Chat) 4 Nov 2026 22:30 — v2.3.0 sharpness fix verified
+- At 3× phone resolution on `/build/`, the header loads `header-mark-288.png` (natural 288px, shown at 44px): the ring is crisp and dark and the artwork clear. Screenshot sent to JC.
+- `v2.3.0-build.3900dec`. The static loading screen is fine; no overflow at 360/412px. `data_build/` was re-seeded and build vs prod gives 12 views, **0 differences**. Prod v2.2.0 and beta v2.2.0-beta.0 are untouched.
+- **Go for `build → beta`** once JC confirms the look.
