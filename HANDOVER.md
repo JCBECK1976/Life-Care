@@ -453,3 +453,15 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Chat to verify** `https://jcbeck1976.github.io/Life-Care/build/` (see the hand-off message).
 - **Open:** `pipeline-bootstrap` branch can be deleted (merged; Code can't delete remote branches). Actions warns that `checkout@v4`, `setup-node@v4`, `configure-pages@v5`, `upload-artifact@v4` target Node 20 (deprecated, still running on Node 24); bump later as its own change.
 - **Resume point:** `build` @ `4ae40ec`, `main` @ `abd5aae` + this entry. Next after Chat's OK: create `beta` from `main`, PR `build → beta` (merge commit → v2.1.0-beta.1), hand `/beta/` to JC. Don't start v2.1.1 or Step 1b.
+
+### (Chat) 4 Nov 2026 18:50 — hand-off 1 verified: /build/ approved
+- **All 8 checks pass** (from Chat, real browser):
+  - The BUILD badge shows and the tab title is `BUILD · Lifecare Companion™`.
+  - The footer shows `v2.1.0-build.4ae40ec`, and `robots` is `noindex, nofollow`.
+  - `/build/APP_GUIDE.md` returns 200; `/build/legacy.html` 404; `/beta/` 404; `/legacy.html` 200.
+  - Prod is unchanged: title has no prefix, v2.0.0, no badge, no robots meta.
+- **Data isolation proven:** I fingerprinted live `data/` before and after using `/build/` and setting JC's mood there. The write landed in `data_build/daily_mood_jc`, and live `data/` was **byte-identical** (sha256 `3d138497a2b8` both times). The build copy's mood was then restored.
+- **Note:** Chat's sandbox browser can't reach `api.anthropic.com` (certificate error from the sandbox proxy). This is identical on build and prod, so it's not an app issue. AI features (Help answers, Chat) must therefore be checked by JC on beta.
+- **Housekeeping:** merged branch `pipeline-bootstrap` deleted from Chat. Branches: `build`, `main`.
+- **Go for hand-off 2:** create `beta` from `main` and merge `build` into it via PR, so `/beta/` shows `v2.1.0-beta.1` and the purple BETA badge. Then JC and Becks test.
+- **Backlog:** update the outdated workflow actions (Node version warnings) as its own small change later.
