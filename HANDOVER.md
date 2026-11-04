@@ -521,3 +521,30 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Done:** `main` merged into `build` (`255589b`, brings the APP_GUIDE fix; lint 0 errors, 15/15 tests). **PR #5 `build → beta`** merged as `244fbdf` (shows merged). Deploy run 41904837925 succeeded: beta rebuilt (new bundle, checks passed) = **v2.1.1-beta.1**; build rebuilt (`v2.1.1-build.255589b`); prod unchanged (v2.1.0).
 - **JC to test** `/Life-Care/beta/` (see the hand-off message).
 - **Resume point:** `beta` @ `244fbdf`. After JC's OK: PR `beta → main` (release v2.1.1), confirm deploy, update version table/Live Product and TECHNICAL_REFERENCE (file layout, unused list), Chat checks and tags. Then v2.2.0 Data tools (Option A). Step 1b not started.
+
+### (Chat) 4 Nov 2026 20:45 — v2.1.1 beta verified; branding and installable-app plan
+- **v2.1.1 beta verified from Chat** (real data, read-only): `v2.1.1-beta.1`, BETA badge and title, noindex; beta vs prod 12 views, **0 differences**; overlays open; the corrected guide is served on beta. JC tested on his phone: OK. **Go to release v2.1.1** (`beta → main`); Chat tags it after verifying prod.
+- **JC requirements (new):**
+  - (1) The app installs on phones as a real app with its own icon, not just a browser shortcut.
+  - (2) JC's three Copilot logos:
+    - **"Button Logo"** (round artwork in a rounded square) → **phone app icon**;
+    - **"App Logo"** (circle with arched name and "My Exercise / My Health / My Eating") → **loading page**;
+    - **"In App Logo"** (circle with the name underneath) → **header, top left**. This pushes the header content right, so the **BUILD/BETA pills move below the Help/Settings buttons**.
+- **Assets prepared from Chat and committed to `build` (`4a3a9e1`, not wired in):**
+  - Originals: `brand/source/`.
+  - `public/brand/`: `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` (artwork within the 80% safe zone), `apple-touch-icon.png`, `favicon.ico`, `favicon-48.png`, `app-logo-640.png`, `in-app-logo-144.png`, `header-mark-144.png` (the same artwork without text; see the header decision below).
+  - `public/brand/beta/` and `public/brand/build/`: tinted icon variants (purple / orange ring and dot) so the installed apps are told apart.
+  - Why the icons were reworked: the Button Logo's own rounded-square frame and shadow would sit inside the phone's mask ("icon in an icon"), so the round artwork alone is placed full-bleed on white.
+- **Order (one change per version, each through build → beta → main):**
+  1. **v2.2.0 — Data tools button** (admin-only, JC chose A earlier).
+  2. **v2.3.0 — logos:**
+     - A **loading screen** with `app-logo-640.png` centred (~200–240px) and "Loading Lifecare Companion™…" below. It's also put as **static HTML in `index.html`**, so it shows instantly before JS runs; React's loading screen matches it, so there's no flash.
+     - The **header logo** top left: about 44–48px, a white disc on the navy header. Header text moves right. **BUILD/BETA pill moves under Help/Settings** (right column). It must fit at 360px width with no overflow or wrapping.
+     - **Header image: waiting on JC's choice.** A = "In App Logo" (with text, as he asked) or B = the same artwork without text (`header-mark-144.png`). Chat's mock-up shows the name is illegible at header size and duplicates the "LIFECARE COMPANION™" text beside it; Chat recommends B.
+  3. **v2.4.0 — installable app (PWA):**
+     - A **manifest per environment** with a distinct `id`, `name` and `short_name`: prod "Lifecare Companion" / "Lifecare"; beta "Lifecare BETA" / "LC Beta"; build "Lifecare BUILD" / "LC Build".
+     - `start_url` and `scope` = that environment's base; `display: standalone`; `theme_color` = the header navy; `background_color` white; icons from `public/brand/` (beta/build use their tinted sets); `apple-touch-icon` and favicon linked in `index.html`.
+     - A **minimal service worker** per environment scope that is **network-only** (no caching, and never touches Firebase or Anthropic requests). It's only there to meet install requirements; caching belongs to Step 1b.
+     - **APP_GUIDE.md:** how to install on Android (Chrome and Samsung Internet → menu → Install app / Add to Home screen), and that BETA and BUILD install as separate apps.
+     - **Note for go-live:** an app installed from github.io won't move to `lifecarecompanion.app`; it has to be reinstalled once after the domain move. Tell users at go-live.
+- Step 1b stays after these.
