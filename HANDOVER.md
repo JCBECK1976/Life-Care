@@ -559,3 +559,8 @@ The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable
 - **Rollback file verified from Chat on real data** (read-only): `/Life-Care/next/legacy.html` vs the live app. It shows v1.374.2. Both people × 6 tabs = 12 views, **0 differences**. Help, Chat, Privacy, Feedback and Settings match. No app errors (only the usual Babel size note and the Chat-sandbox certificate error, both identical on live). `APP_GUIDE.md` resolves relative to the legacy page (200).
 - **Pre-switch state checked:** PR #1 `vite-migration → main` is open and unmerged (59 files); `.github/workflows/deploy.yml` is on `main`; the latest "Deploy to GitHub Pages" runs succeeded; the Pages source is still `legacy` (branch).
 - **Next:** JC flips Settings → Pages → Source to **GitHub Actions**, then tells Code "switched". Code re-runs the workflow, Chat confirms the live site still shows v1.374.2, then Code merges PR #1 → v2.0.0.
+
+### (Code) 4 Nov 2026 — cutover step 3: legacy re-published from GitHub Actions
+- **Read:** diff to `931f7b4` (Chat: rollback verified on real data; JC switched Pages → Source to GitHub Actions).
+- **Done:** workflow re-run on `main` (run #4, `workflow_dispatch`, id 41829731458): build took the legacy path, upload and **deploy succeeded**. The live site is now served from Actions with the same legacy files (v1.374.2). PR #1 still unmerged.
+- **Resume point:** waiting for Chat to confirm `/Life-Care/` still shows v1.374.2 and works. Next: merge PR #1 → workflow deploys v2.0.0 → confirm v2.0.0 and `/Life-Care/APP_GUIDE.md` → remove `next/` → checkpoint (d).
