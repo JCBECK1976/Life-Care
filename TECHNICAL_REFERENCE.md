@@ -1,7 +1,7 @@
 # Technical Reference — Life Care Companion
 
 > **Purpose**: Complete technical architecture reference for any developer continuing this project.  
-> **Version**: v2.2.0 (Vite build, 4 Nov 2026) | **Source**: `src/` (component files)  
+> **Version**: v2.3.0 (Vite build, 4 Nov 2026) | **Source**: `src/` (component files)  
 > **Live**: https://jcbeck1976.github.io/Life-Care  
 > **Repo**: https://github.com/JCBECK1976/Life-Care
 
@@ -38,15 +38,15 @@ SheetJS (xlsx) was dropped in v2.0.0: nothing used it after the file import was 
 
 | Path | What's in it |
 |------|--------------|
-| `index.html` | Page shell (head, CSS, `#root`, GIS script, `src/main.jsx`) |
+| `index.html` | Page shell (head, CSS incl. `.boot`, `#root` with the static loading screen, GIS script, `src/main.jsx`) |
 | `src/main.jsx` | Mounts `<Dashboard />` in the app-level error boundary |
 | `src/App.jsx` | `Dashboard`: all hooks, data loading, `saveData`, `loadUserSettings`, AI handlers (`generateFeedback`, `generateEatFeedback`, `threadReply`, `askHelp`, `askQuestion`, `handleFitdaysImage`, …), Google Health sync, RAG recalculation, header, person tabs, navigation, footer, and where each section/overlay is placed |
 | `src/sections/` | `Home.jsx` (overview), `Body.jsx`, `Exercise.jsx` (weights), `Eating.jsx` (meals; includes `MealSelect`, add/update item flow, publishes `window._confirmReviewItem`), `Shop.jsx`, `Health.jsx` (bloods), `Settings.jsx` (admin), `Data.jsx` (Firebase Data Viewer + recovery tools; opened from Settings → 🗂 Data tools, admin only; renders only for the admin; ← Back to Settings) |
-| `src/components/` | `ReviewItemOverlay`, `HelpPanel`, `ChatPanel`, `PrivacyPolicy`, `FeedbackForm`, `ErrorBoundary`, `EnvBadge` (BUILD/BETA badge), `charts.jsx` (`MiniChart`, `FullChart`, `BodyCard`) |
+| `src/components/` | `ReviewItemOverlay`, `HelpPanel`, `ChatPanel`, `PrivacyPolicy`, `FeedbackForm`, `ErrorBoundary`, `EnvBadge` (BUILD/BETA badge, under Help/Settings), `LoadingScreen` (same markup as the static loading screen in `index.html`, class `boot`), `charts.jsx` (`MiniChart`, `FullChart`, `BodyCard`) |
 | `src/lib/` | `firebase.js` (config; dev-only emulator switch), `storage.js` (`sGet`/`sSet`), `api.js` (`ensureApiKey`, `API_PRICES`, `trackApiUsage`, the `window.fetch` wrapper, `isEnergyEmpty`, `aiErrorMsg`, `handleApiError`), `aiContext.js` (mood/profile/journal context), `exercise.js` (type helpers, `nextPin`, reps parsing, `autoStatus`), `utils.js` (dates, `mealKey`, status colours, `parseStLb`, `fbIcon`, `calcWeek`), `colour.js` (HSL helpers, `accentVariant`) |
 | `src/constants/` | `version.js` (**`APP_VERSION_BASE`, the only place the version is set**; adds `-beta.N` / `-build.<sha>` per environment), `tone.js`, `mood.js`, `themes.js`, `defaultData.js`, `food.js`, `exercise.js`, `health.js`, `styles.js` (static button/input styles) |
 | `public/legacy.html` | The v1.374.2 single file, served at `/Life-Care/legacy.html` (rollback) |
-| `public/brand/`, `brand/source/` | JC's logos and the prepared app icons, loading and header logos (from Chat). Not used yet: wired in by v2.3.0 (logos) and v2.4.0 (installable app) |
+| `public/brand/`, `brand/source/` | JC's logos and prepared icons (from Chat). In use since v2.3.0: `app-logo-640.png` (loading screen), `header-mark-288.png` (header, 44px white disc). App icons wired in by v2.4.0 (installable app) |
 | `APP_GUIDE.md` (root) | The user guide. One copy only: `vite.config.js` serves it in dev and copies it next to `index.html` in builds (Help fetches it with a relative URL) |
 | `tests/` | Playwright: `smoke-load`, `eating`, `exercise`, `companion`, `error-boundary`, opt-in `visual`; `mock-ai.js` answers by prompt shape |
 | `scripts/` | `seed-emulator.mjs` (loads the backup into the emulator; swaps the real Claude key for a placeholder), `lift-legacy.py` (the one-off verbatim lift, kept for the record) |

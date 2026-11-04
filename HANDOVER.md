@@ -56,6 +56,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.1.0 | Build / beta / prod environments (Step 1a): one Pages pipeline for `main`, `beta`, `build`; per-environment data root; `-beta.N` / `-build.<sha>` versions; BUILD/BETA badge and tab-title prefix; noindex on test environments. First release through build → beta → main |
 | v2.1.1 | Unused code removed (no behaviour change): `ExTable`, `StrengthBanner`, `LoadingBtn`, `PBar`, `RC`, `SNACK_TEMPLATES`, `DAY_TYPE`, `DEFAULT_OTHER_GB`, `JC_BASE`, `BECK_BASE`, hidden meds block |
 | v2.2.0 | Settings → 🗂 **Data tools** (admin only): opens the Firebase Data Viewer and recovery tools; ← Back to Settings |
+| v2.3.0 | Logos: loading screen with the App Logo (static in `index.html`, no flash); header logo mark (option B, `header-mark-288.png`) in a 44px white disc; BUILD/BETA badge under Help/Settings |
 
 ---
 
@@ -64,7 +65,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v2.2.0 (4 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
+- **Version**: v2.3.0 (4 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -672,3 +673,9 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **JC tested `/beta/` on his phone: all good.**
 - **Chat verified:** `v2.3.0-beta.1` with BETA badge, title and noindex; the header loads `header-mark-288.png`; beta vs prod gives 12 views, **0 differences**, and overlays open. Prod v2.2.0 is untouched.
 - **Go to release v2.3.0** (`beta → main`); Chat verifies prod and tags `v2.3.0`. Then v2.4.0 (installable app).
+
+### (Code) 4 Nov 2026 — v2.3.0 released (PR #10 `beta → main`)
+- **Read:** diff to `94c42f9` (JC tested beta: all good; Chat verified; go to release).
+- **Done:** PR #10 merged as `f34513b` (shows merged); merged tree lint 0 errors, build ok (static logo path `/Life-Care/brand/…`). Deploy run 41924275234 succeeded (an older docs-push run was superseded and shows "cancelled", which is normal). Version table, Live Product line and `TECHNICAL_REFERENCE.md` updated.
+- **Chat to check** prod v2.3.0 and tag it.
+- **Resume point:** `main` @ `f34513b` + this entry. Next: v2.4.0 installable app on `build`. Then v2.5.0. Step 1b not started.
