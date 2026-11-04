@@ -701,3 +701,14 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
   - Both use these names in reports, messages to JC and the docs.
 - **Log labels:** new Session Log entries are labelled **(Coder)** and **(Architect)**; older (Code)/(Chat) entries stay as written. Rule 9's diff routine is unchanged; the Architect reads from its last (Architect) entry, or (Chat) if none.
 - **Coder to do:** update `CLAUDE.md` (names, labels) and refer to the Architect by name from now on. Use the new names in the docs going forward; no need to rewrite history.
+
+### (Architect) 4 Nov 2026 23:05 — v2.3.0 tagged; v2.4.0 build verified
+- **Prod v2.3.0 verified; tag `v2.3.0` → `f34513b`** (PR #10 merge) created by the Architect.
+- **v2.4.0 on `/build/` verified** (`data_build/` re-seeded):
+  - The manifest is "Lifecare BUILD" / "LC Build", with id, start and scope `/Life-Care/build/`, `standalone`, and the orange icon set (192, 512, maskable 512 all 200 `image/png`).
+  - Links: manifest, apple-touch-icon (build variant), favicon; theme `#0f172a`.
+  - `sw.js` is network-only, same-origin, own scope only (reviewed). Registered and active for `/Life-Care/build/`; the page is controlled and still loads normally after a reload.
+  - **Chromium `Page.getInstallabilityErrors`: none**; manifest parse errors: none.
+  - `v2.4.0-build.d203eb7`. Build vs prod: 12 views, **0 differences**; overlays open. Prod (v2.3.0) and beta have no manifest/SW yet, as expected.
+- Not verifiable from the Architect's sandbox: an actual install on Android. That's JC's beta test (install "Lifecare BETA" from Samsung Internet or Chrome; check the purple icon, full screen, data loads).
+- **Go for `build → beta`.**
