@@ -1,11 +1,15 @@
+import fs from "node:fs";
 import { test, expect } from "@playwright/test";
 import { openApp } from "./helpers.js";
+
+// The version base, read from the app so tests don't need editing for each release.
+const BASE = fs.readFileSync("src/constants/version.js", "utf8").match(/APP_VERSION_BASE = "(v[\d.]+)"/)[1];
 
 const SECTIONS = ["Home", "My Body", "My Exercise", "My Eating", "My Shop", "My Health"];
 
 test("app loads from the emulator data and shows the version", async ({ page }) => {
   const { errors } = await openApp(page);
-  await expect(page.getByText("v2.1.0", { exact: true }).first()).toBeAttached();
+  await expect(page.getByText(BASE, { exact: true }).first()).toBeAttached();
   expect(errors).toEqual([]);
 });
 

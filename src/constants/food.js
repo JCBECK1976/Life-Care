@@ -45,21 +45,7 @@ export const BREAKFASTS = [];
 
 export const LUNCHES = [];
 
-export const SNACK_TEMPLATES = {
-  home: { label: "Home Day", jcKcal: 565, beckKcal: 340, items: "Snack bar after lunch · Porridge pot ~4pm · Protein dessert · Snack bar before bed" },
-  office: { label: "Office Day", jcKcal: 350, beckKcal: 290, items: "Porridge pot afternoon only · Protein dessert after dinner" },
-  sat: { label: "Saturday", jcKcal: 945, beckKcal: 340, items: "Flexible — treat day allowance" },
-};
-
-export const DAY_TYPE = { sun: "home", mon: "home", tue: "home", wed: "office", thu: "office", fri: "home", sat: "sat" };
-
 export const SNACKS = [];
-
-export const JC_BASE = { sun: { bfast: 696, lunch: 500, snacks: 565 }, mon: { bfast: 696, lunch: 400, snacks: 565 }, tue: { bfast: 696, lunch: 400, snacks: 565 }, wed: { bfast: 360, lunch: 580, snacks: 350 }, thu: { bfast: 780, lunch: 580, snacks: 350 }, fri: { bfast: 696, lunch: 400, snacks: 565 }, sat: { bfast: 360, lunch: 380, snacks: 945 } };
-
-export const BECK_BASE = { sun: { bfast: 440, lunch: 400, snacks: 340 }, mon: { bfast: 380, lunch: 360, snacks: 340 }, tue: { bfast: 380, lunch: 360, snacks: 340 }, wed: { bfast: 380, lunch: 340, snacks: 340 }, thu: { bfast: 380, lunch: 340, snacks: 290 }, fri: { bfast: 380, lunch: 360, snacks: 340 }, sat: { bfast: 360, lunch: 320, snacks: 340 } };
-
-export const RC = { GREAT: { bg: "#e0f2fe", text: "#0c4a6e", dot: "#22c55e" }, AMBER: { bg: "#fef3c7", text: "#92400e", dot: "#eab308" }, RED: { bg: "#fee2e2", text: "#991b1b", dot: "#ef4444" }, INFO: { bg: "#f1f5f9", text: "#475569", dot: "#94a3b8" } };
 
 export const DEFAULT_BREAKFASTS = [
   { id: "gb_porridge", name: "Porridge (oats + milk)", jcKcal: 350, beckKcal: 280, rating: "GREAT" },
@@ -141,35 +127,3 @@ export const DEFAULT_DINNERS_GB = [
   { id: "gb_beans_sausage", name: "Beans + Sausages", rating: "AMBER", jcKcal: 420, beckKcal: 360, jcProt: 22, beckProt: 18, jcFat: 16, beckFat: 14, freq: "Weekly", time: 10, shop: [] }
 ];
 
-export const DEFAULT_OTHER_GB = [
-  { id: "gb_tea", name: "Tea (milk, no sugar)", jcKcal: 15, beckKcal: 15, rating: "GREAT", freq: "Daily" },
-  { id: "gb_coffee", name: "Black Coffee", jcKcal: 5, beckKcal: 5, rating: "GREAT", freq: "Daily" },
-  { id: "gb_latte", name: "Latte", jcKcal: 180, beckKcal: 150, rating: "AMBER", freq: "Daily" },
-  { id: "gb_cappuccino", name: "Cappuccino", jcKcal: 120, beckKcal: 100, rating: "GREAT", freq: "Daily" },
-  { id: "gb_coke_zero", name: "Coke Zero / Diet Drink", jcKcal: 1, beckKcal: 1, rating: "GREAT", freq: "Daily" },
-  { id: "gb_orange_juice", name: "Orange Juice (glass)", jcKcal: 110, beckKcal: 90, rating: "AMBER", freq: "Daily" },
-  { id: "gb_water", name: "Water / Sparkling Water", jcKcal: 0, beckKcal: 0, rating: "GREAT", freq: "Daily" },
-  { id: "gb_protein_shake", name: "Protein Shake", jcKcal: 150, beckKcal: 130, rating: "GREAT", freq: "Daily" },
-  { id: "gb_apple", name: "Apple", jcKcal: 80, beckKcal: 70, rating: "GREAT", freq: "Daily" },
-  { id: "gb_banana", name: "Banana", jcKcal: 100, beckKcal: 90, rating: "GREAT", freq: "Daily" },
-  { id: "gb_crisps", name: "Crisps (packet)", jcKcal: 180, beckKcal: 160, rating: "AMBER", freq: "Daily" },
-  { id: "gb_biscuits_2", name: "Biscuits (2)", jcKcal: 130, beckKcal: 120, rating: "AMBER", freq: "Daily" },
-  { id: "gb_choc_bar", name: "Chocolate Bar", jcKcal: 240, beckKcal: 220, rating: "RED", freq: "Weekly" },
-  { id: "gb_yogurt", name: "Yogurt", jcKcal: 120, beckKcal: 100, rating: "GREAT", freq: "Daily" },
-  { id: "gb_protein_bar", name: "Protein Bar", jcKcal: 200, beckKcal: 180, rating: "GREAT", freq: "Daily" },
-  { id: "gb_nuts_handful", name: "Nuts (handful)", jcKcal: 180, beckKcal: 160, rating: "GREAT", freq: "Daily" },
-  { id: "gb_cheese_crack", name: "Cheese + Crackers", jcKcal: 250, beckKcal: 220, rating: "AMBER", freq: "Daily" },
-  { id: "gb_hot_choc", name: "Hot Chocolate", jcKcal: 200, beckKcal: 170, rating: "AMBER", freq: "Daily" },
-  { id: "gb_cake_slice", name: "Cake (slice)", jcKcal: 350, beckKcal: 300, rating: "RED", freq: "Weekly" },
-  { id: "gb_ice_cream", name: "Ice Cream (2 scoops)", jcKcal: 250, beckKcal: 220, rating: "AMBER", freq: "Weekly" },
-  { id: "gb_wine_glass", name: "Wine (glass)", jcKcal: 160, beckKcal: 140, rating: "AMBER", freq: "Weekly" },
-  { id: "gb_beer_pint", name: "Beer (pint)", jcKcal: 220, beckKcal: 180, rating: "AMBER", freq: "Weekly" },
-  { id: "gb_gin_tonic", name: "Gin + Tonic", jcKcal: 120, beckKcal: 100, rating: "AMBER", freq: "Weekly" },
-  { id: "gb_toast_snack", name: "Toast + Butter (1 slice)", jcKcal: 140, beckKcal: 120, rating: "GREAT", freq: "Daily" },
-  { id: "gb_boiled_egg", name: "Boiled Egg", jcKcal: 75, beckKcal: 70, rating: "GREAT", freq: "Daily" },
-  { id: "gb_cereal_bar", name: "Cereal Bar", jcKcal: 130, beckKcal: 120, rating: "GREAT", freq: "Daily" },
-  { id: "gb_fruit_salad", name: "Fruit Salad", jcKcal: 100, beckKcal: 90, rating: "GREAT", freq: "Daily" },
-  { id: "gb_popcorn", name: "Popcorn (bag)", jcKcal: 120, beckKcal: 110, rating: "GREAT", freq: "Daily" },
-  { id: "gb_smoothie", name: "Smoothie", jcKcal: 200, beckKcal: 170, rating: "GREAT", freq: "Daily" },
-  { id: "gb_costa_drink", name: "Costa / Starbucks Drink", jcKcal: 250, beckKcal: 220, rating: "AMBER", freq: "Weekly" }
-];
