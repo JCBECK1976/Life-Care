@@ -717,3 +717,9 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Read:** diff to `95f75da` (roles renamed to Lifecare Companion Coder / Architect; brief note; Architect tagged `v2.3.0` and verified v2.4.0 on `/build/`, incl. installability; the Android install is JC's beta test).
 - **Done:** `CLAUDE.md` gains the names and the (Coder)/(Architect) labels; the flow and limits lines name the Architect. Rule 9 is unchanged and still word for word with the brief. New entries from here are labelled (Coder).
 - **Resume point:** unchanged: next, PR `build → beta` for v2.4.0.
+
+### (Coder) 4 Nov 2026 — v2.4.0 on beta: `/beta/` ready for JC (hand-off 2)
+- **Read:** own entries since `cf82fb0`; no new Architect entries.
+- **Done:** **PR #11 `build → beta`** merged as `ec5aa87` (shows merged; lint 0 errors). Deploy run 41929737384 succeeded, 0 error annotations: `/beta/` = **v2.4.0-beta.1**, installable as "Lifecare BETA"; prod unchanged (v2.3.0). (A docs-push run was superseded and shows "cancelled", which is normal.)
+- **JC to test:** install the BETA app on his phone (Samsung Internet or Chrome); see the hand-off message.
+- **Resume point:** `beta` @ `ec5aa87`. After JC's OK: PR `beta → main` (release v2.4.0) → docs → the Architect checks and tags. Then v2.5.0. Step 1b not started.
