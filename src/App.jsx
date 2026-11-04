@@ -1776,7 +1776,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
             <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#fff", overflow: "hidden", flexShrink: 0 }}>
-              <img src={import.meta.env.BASE_URL + "brand/header-mark-144.png"} alt="Lifecare Companion logo" width="44" height="44" style={{ display: "block", width: 44, height: 44 }} />
+              <img src={import.meta.env.BASE_URL + "brand/header-mark-288.png"} alt="Lifecare Companion logo" width="44" height="44" style={{ display: "block", width: 44, height: 44 }} />
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#94a3b8", marginBottom: 4 }}>Lifecare Companion™</div>
