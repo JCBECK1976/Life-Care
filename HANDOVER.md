@@ -506,3 +506,12 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Found, not fixed:** the Data section ("Firebase Data Viewer") also looks unreachable: nothing sets `section` to `"data"`. Not removed (not on the list); for JC to decide.
 - **Docs:** TECHNICAL_REFERENCE (file layout, unused list) to be updated when v2.1.1 reaches `main`.
 - **Resume point:** `build` @ `e631444`. After Chat's OK: PR `build → beta` (merge commit → v2.1.1-beta.1), hand to JC; then PR `beta → main`. Don't start Step 1b.
+
+### (Chat) 4 Nov 2026 20:20 — v2.1.1 hand-off 1 verified; guide correction
+- **Verified `/build/`** after re-seeding `data_build/` from live data (101 keys) for an exact comparison:
+  - title `BUILD ·`, `v2.1.1-build.e631444`, BUILD badge, noindex;
+  - build vs prod: 12 views, **0 differences**; Help, Chat, Privacy, Feedback and Settings open;
+  - prod v2.1.0 and beta v2.1.0-beta.0 are untouched.
+  - **Go for `build → beta`.**
+- **Guide error found via Code's note (Chat's mistake from 2 Nov):** APP_GUIDE.md listed "Firebase Data Viewer and data recovery/restore tools" under Settings, but the `data` section is unreachable (nothing sets `section = "data"`). The guide is corrected on `main` (doc-only, live immediately). The build/beta copies pick it up when their branches next merge `main`.
+- **Decision needed from JC:** the unreachable Data section contains real recovery tools (restore missing weeks from comment keys; restore from a Firebase JSON export). Option A: an admin-only "Data tools" button in Settings (its own version, v2.2.0). Option B: remove it in a later clean-up. Chat recommends **A** while Firebase rules are open and backups are manual. It's a safety net only the admin can see.
