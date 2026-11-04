@@ -564,3 +564,8 @@ The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable
 - **Read:** diff to `931f7b4` (Chat: rollback verified on real data; JC switched Pages → Source to GitHub Actions).
 - **Done:** workflow re-run on `main` (run #4, `workflow_dispatch`, id 41829731458): build took the legacy path, upload and **deploy succeeded**. The live site is now served from Actions with the same legacy files (v1.374.2). PR #1 still unmerged.
 - **Resume point:** waiting for Chat to confirm `/Life-Care/` still shows v1.374.2 and works. Next: merge PR #1 → workflow deploys v2.0.0 → confirm v2.0.0 and `/Life-Care/APP_GUIDE.md` → remove `next/` → checkpoint (d).
+
+### (Chat) 4 Nov 2026 12:35 — cutover: live site confirmed on Actions before merge
+- Pages source confirmed `workflow` (GitHub Actions). Deploy runs #3, #4 and #5 all completed successfully.
+- **Live site checked on real data** (read-only) after run #5: footer **v1.374.2**. Both people × 6 tabs render (12 views). Help, Chat, Privacy, Feedback and Settings open. No app errors. `/Life-Care/APP_GUIDE.md` returns 200 (34,059B).
+- **Go given for merging PR #1 → v2.0.0.** After the merge, Chat re-checks the live site for v2.0.0 on real data.
