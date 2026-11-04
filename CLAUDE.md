@@ -28,7 +28,7 @@ Owner: JC (not a developer). Live app used daily by JC and Becks. Full brief: `M
 - No tag pushes and no PAT from Coder sessions: report what's needed; the Architect or JC does it.
 - **No live Firebase from the Coder.** Dev and tests use the local emulator only. Never run `firebase deploy`.
 - The Firebase backup lives outside the repo (`/home/user/firebase-backup/`). Never commit or print it.
-- Each (Code) Session Log entry ends with a **Resume point** (branch, last commit, done, exact next step).
+- Each (Coder) Session Log entry ends with a **Resume point** (branch, last commit, done, exact next step).
 
 ## Dev and checks (run before every preview or deploy)
 ```
