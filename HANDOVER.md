@@ -310,8 +310,8 @@ The `next/` preview folder was removed at cutover, and Pages now only serves wha
 - Per-user colour isolation — never let one user's colour change affect another
 - Privacy policy accessible via legal links row below feedback button
 - DO NOT go off scope — only change what is explicitly asked for
-- **HANDOVER.md is the project memory** (Chat = architect, Claude Code = builder). Read it in full once per session, then before each action read only the diff since your last read (`git diff <last-read-commit> HEAD -- HANDOVER.md`); after every action add a dated Session Log entry (what, version, commit, what to test, open items); record every design decision with its reason under "Decisions". Applies to both Chat and Code sessions. Every entry is labelled **(Chat)** or **(Code)**.
-- **Chat sessions (architect):** don't read this whole file each chat. Fetch it in the workspace and print only what follows the last **(Chat)** entry (i.e. what Claude Code has done since). Read other sections only when a design discussion needs them.
+- **HANDOVER.md is the project memory** (Chat = architect, Claude Code = builder). Read it in full once per session, then before each action read only the diff since your last read (`git diff <last-read-commit> HEAD -- HANDOVER.md`); after every action add a dated Session Log entry (what, version, commit, what to test, open items); record every design decision with its reason under "Decisions". Applies to both Chat and Code sessions. Every entry is labelled **(Chat)** or **(Code)**. **From 4 Nov 2026 22:55: new entries are labelled (Architect) and (Coder) instead** (see "Roles and names" below); older (Chat)/(Code) entries keep their labels.
+- **Architect sessions (Chat):** don't read this whole file each chat. Fetch it in the workspace and print only what follows the last **(Architect)** entry, or **(Chat)** if none (i.e. what the Coder has done since). Read other sections only when a design discussion needs them.
 - Each fix or feature is its own version AND its own deploy/commit
 - Warn JC before anything that will use a lot of tokens
 - Trace where a failure actually happens before patching — read the call path, don't patch the error handler blind
@@ -693,3 +693,11 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Note for go-live (from the plan):** an app installed from github.io must be reinstalled once after the move to `lifecarecompanion.app`.
 - **Open:** `public/brand/in-app-logo-144.png` (option A) is unused; it can be removed in a clean-up.
 - **Resume point:** `build` @ `d203eb7`. After Chat's OK: PR `build → beta` → JC installs beta on his phone → PR `beta → main`. Then v2.5.0. Step 1b not started.
+
+### (Architect) 4 Nov 2026 22:55 — Roles and names (JC decision)
+- **Decision (JC):** to avoid ambiguity when he coordinates both:
+  - Claude Code (the builder) is now **Lifecare Companion Coder** ("the Coder").
+  - Claude in Chat (the architect) is now **Lifecare Companion Architect** ("the Architect").
+  - Both use these names in reports, messages to JC and the docs.
+- **Log labels:** new Session Log entries are labelled **(Coder)** and **(Architect)**; older (Code)/(Chat) entries stay as written. Rule 9's diff routine is unchanged; the Architect reads from its last (Architect) entry, or (Chat) if none.
+- **Coder to do:** update `CLAUDE.md` (names, labels) and refer to the Architect by name from now on. Use the new names in the docs going forward; no need to rewrite history.
