@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v1.374.1 · 3 November 2026
+> Last updated: v2.0.0 · 4 November 2026
 
 ---
 
@@ -342,7 +342,7 @@ Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
 - **Admin-only tools** (for the app owner): **⚡ Companion Energy Level** (enter the balance after a recharge; it becomes 100%), **🔑 API Keys** (Claude API key from console.anthropic.com → API Keys; Google OAuth Client ID for Health Connect), **⚠ Reset Data** (overwrites everything with default data; cannot be undone), **🔧 Debug Mode**, measurement types, **Firebase Data Viewer** and data recovery/restore tools.
 
 ### Send Feedback, Privacy Policy
-At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature, describe it, and it opens an email) and **Privacy Policy**. The version number (e.g. v1.373.0) is shown at the very bottom.
+At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature, describe it, and it opens an email) and **Privacy Policy**. The version number (e.g. v2.0.0) is shown at the very bottom.
 
 ---
 
