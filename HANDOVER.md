@@ -52,6 +52,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v1.374.0 | Help ? moved into the header, left of the Settings gear; floating ? removed (only 💬 Chat floats) |
 | v1.374.2 | Help intro shows Lifecare Companion™ as in footer |
 | v1.374.1 | Energy bar: percentage only (no $ shown to users); 100% level set by admin in Settings; fixed 0% when record lacked `initial` |
+| **v2.0.0** | **Vite migration cutover** (4 Nov 2026): component files, no in-browser Babel, error boundaries, ESLint + Playwright checks, GitHub Actions deploy; behaviour unchanged. Legacy v1.374.2 kept at `/legacy.html` (tag `legacy-v1.374.2`) |
 
 ---
 
@@ -60,7 +61,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v1.374.2 (3 November 2026)
+- **Version**: v2.0.0 (4 November 2026) — Vite build, deployed by GitHub Actions
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **File size**: ~860KB single HTML file (Babel compiles but approaching practical limits)
 
@@ -569,3 +570,9 @@ The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable
 - Pages source confirmed `workflow` (GitHub Actions). Deploy runs #3, #4 and #5 all completed successfully.
 - **Live site checked on real data** (read-only) after run #5: footer **v1.374.2**. Both people × 6 tabs render (12 views). Help, Chat, Privacy, Feedback and Settings open. No app errors. `/Life-Care/APP_GUIDE.md` returns 200 (34,059B).
 - **Go given for merging PR #1 → v2.0.0.** After the merge, Chat re-checks the live site for v2.0.0 on real data.
+
+### (Code) 4 Nov 2026 — v2.0.0 live: PR #1 merged
+- **Read:** diff to `cd206db` (Chat: live site confirmed on Actions at v1.374.2; go for PR #1).
+- **Done:** merged PR #1 `vite-migration` → `main` as merge commit `629d561` (PR shows merged). Before pushing, the merge result was built locally: lint 0 errors, build ok, base `/Life-Care/`, `dist/` has `index.html`, `assets/`, `APP_GUIDE.md`, `legacy.html`, one v2.0.0, no emulator or crash-switch code. Deploy run 41830867847: Vite path (install, lint, build), checks and **deploy succeeded**. Version table and Live Product line updated to v2.0.0.
+- **JC to do:** close the app tab and reopen it; the footer should show **v2.0.0**.
+- **Resume point:** `main` @ `629d561` + this entry. Waiting for Chat to confirm `/Life-Care/` shows v2.0.0 on real data and `/Life-Care/APP_GUIDE.md` returns 200. Then: remove `next/` from `main` → checkpoint (d).
