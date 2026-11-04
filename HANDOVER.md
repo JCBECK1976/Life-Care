@@ -731,3 +731,12 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Guide correction needed (not yet made):** APP_GUIDE's Samsung steps are wrong ("Add page to → Home screen" only makes a bookmark). It should recommend **Chrome** with the real menu names, and warn that Samsung Internet's "Install as web app" may be blocked by Play Protect.
 - **Idea for later (JC to decide):** an in-app "Install app" button (one tap via Chrome's install prompt) instead of the 3-step menu route.
 - **Resume point:** `beta` @ `ec5aa87`, JC's test OK. Next: correct the guide, then release v2.4.0 (order awaiting JC/Architect).
+
+### (Architect) 4 Nov 2026 23:40 — v2.4.0: guide correction goes through the flow (option A)
+- **JC's phone test:** "Lifecare BETA" installs through **Chrome** and opens full screen, and everything works. Samsung Internet's "Install as web app" was **blocked by Play Protect** (recorded by the Coder at `ed1df55`).
+- **Decision (JC, on the Architect's recommendation): option A.** Correct the install steps in `APP_GUIDE.md` on `build`:
+  - recommend Chrome: ⋮ → **Install and create shortcut** → **Install** → **Install**;
+  - warn that Samsung Internet's "Install as web app" may be blocked by Play Protect, and use Chrome instead;
+  - fix the wrong Samsung menu name.
+  - Then build → Architect check → beta as **v2.4.0-beta.2** (JC quick look) → release. Rejected: B (release now, fix on `main`), because live Help would give known-wrong steps and the guide copies would drift across environments.
+- **Principle:** `APP_GUIDE.md` changes that accompany a feature ship with that feature through the flow. Direct `main` guide edits are only for correcting live errors unrelated to an in-flight release (as with the Data Viewer line).
