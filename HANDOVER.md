@@ -515,3 +515,9 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
   - **Go for `build → beta`.**
 - **Guide error found via Code's note (Chat's mistake from 2 Nov):** APP_GUIDE.md listed "Firebase Data Viewer and data recovery/restore tools" under Settings, but the `data` section is unreachable (nothing sets `section = "data"`). The guide is corrected on `main` (doc-only, live immediately). The build/beta copies pick it up when their branches next merge `main`.
 - **Decision needed from JC:** the unreachable Data section contains real recovery tools (restore missing weeks from comment keys; restore from a Firebase JSON export). Option A: an admin-only "Data tools" button in Settings (its own version, v2.2.0). Option B: remove it in a later clean-up. Chat recommends **A** while Firebase rules are open and backups are manual. It's a safety net only the admin can see.
+
+### (Code) 4 Nov 2026 — v2.1.1 on beta: `/beta/` ready for JC (hand-off 2)
+- **Read:** diff to `7848aa1` (Chat verified `/build/` v2.1.1; APP_GUIDE corrected on `main`; JC chose **Option A** for the Data section: admin-only "Data tools" button in Settings as **v2.2.0**, after v2.1.1 is released).
+- **Done:** `main` merged into `build` (`255589b`, brings the APP_GUIDE fix; lint 0 errors, 15/15 tests). **PR #5 `build → beta`** merged as `244fbdf` (shows merged). Deploy run 41904837925 succeeded: beta rebuilt (new bundle, checks passed) = **v2.1.1-beta.1**; build rebuilt (`v2.1.1-build.255589b`); prod unchanged (v2.1.0).
+- **JC to test** `/Life-Care/beta/` (see the hand-off message).
+- **Resume point:** `beta` @ `244fbdf`. After JC's OK: PR `beta → main` (release v2.1.1), confirm deploy, update version table/Live Product and TECHNICAL_REFERENCE (file layout, unused list), Chat checks and tags. Then v2.2.0 Data tools (Option A). Step 1b not started.
