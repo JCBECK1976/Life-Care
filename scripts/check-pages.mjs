@@ -16,6 +16,26 @@ const jsOf = (dir) => {
   return fs.existsSync(a) ? fs.readdirSync(a).filter((f) => f.endsWith(".js")).map((f) => fs.readFileSync(path.join(a, f), "utf8")).join("\n") : "";
 };
 
+// Installable app (v2.4.0+): if an environment has a manifest, it must be complete and correct.
+// Not required, so a rollback to the legacy single file still deploys.
+const NAMES = { prod: "Lifecare Companion", beta: "Lifecare BETA", build: "Lifecare BUILD" };
+function checkPwa(env, dir, base) {
+  const p = [];
+  if (!exists(path.join(dir, "manifest.webmanifest"))) return p;
+  let m;
+  try { m = JSON.parse(read(path.join(dir, "manifest.webmanifest"))); } catch { return [env + " manifest is not valid JSON"]; }
+  if (m.name !== NAMES[env]) p.push(env + " manifest name is " + JSON.stringify(m.name));
+  for (const k of ["id", "start_url", "scope"]) if (m[k] !== base) p.push(env + " manifest " + k + " is " + JSON.stringify(m[k]) + ", expected " + base);
+  if (m.display !== "standalone") p.push(env + " manifest display is not standalone");
+  const icons = m.icons || [];
+  if (!icons.some((i) => i.sizes === "192x192") || !icons.some((i) => i.sizes === "512x512") || !icons.some((i) => i.purpose === "maskable")) p.push(env + " manifest icons incomplete");
+  for (const i of icons) if (!i.src.startsWith(base) || !exists(path.join(dir, i.src.slice(base.length)))) p.push(env + " icon missing: " + i.src);
+  if (!exists(path.join(dir, "sw.js"))) p.push(env + " sw.js missing");
+  else if (!read(path.join(dir, "sw.js")).includes("const SCOPE = " + JSON.stringify(base))) p.push(env + " sw.js scope is wrong");
+  if (p.length === 0) ok(env + " installable app (manifest, icons, sw.js)");
+  return p;
+}
+
 // ---- prod (root): strict
 const prodProblems = [];
 for (const f of ["index.html", "APP_GUIDE.md", "legacy.html"]) exists(f) ? ok("prod " + f) : prodProblems.push("prod " + f + " missing");
@@ -25,6 +45,7 @@ if (exists("index.html")) {
   if (/\/src\/main\.jsx/.test(html)) prodProblems.push("prod index.html is unbuilt source");
   if (/data_build/.test(jsOf("."))) prodProblems.push("prod bundle refers to data_build");
 }
+prodProblems.push(...checkPwa("prod", ".", "/Life-Care/"));
 if (prodProblems.length) {
   for (const p of prodProblems) { console.error("FAIL: " + p); console.log("::error title=prod check failed::" + p + ". Nothing was deployed."); }
   note("- ❌ **prod checks failed**: " + prodProblems.join("; ") + ". Nothing was deployed.");
@@ -50,6 +71,7 @@ for (const env of ["beta", "build"]) {
     if (env === "build") usesBuildData ? ok("build uses data_build") : problems.push("build does not use data_build");
     else usesBuildData ? problems.push("beta refers to data_build") : ok("beta uses data");
   }
+  problems.push(...checkPwa(env, env, "/Life-Care/" + env + "/"));
   if (problems.length) {
     fs.rmSync(path.join(out, env), { recursive: true, force: true });
     console.log("\n##################################################################");

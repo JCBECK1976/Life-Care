@@ -13,7 +13,10 @@ async function open(page) {
   await openApp(page);
   await page.waitForTimeout(1500);
 }
-const snap = (page, name, fullPage = true) => expect.soft(page).toHaveScreenshot(name + ".png", { fullPage, animations: "disabled", caret: "hide", threshold: 0 });
+const snap = async (page, name, fullPage = true) => {
+  await page.waitForFunction(() => [...document.images].every((i) => i.complete && i.naturalWidth > 0)); // e.g. the header logo after a reload
+  return expect.soft(page).toHaveScreenshot(name + ".png", { fullPage, animations: "disabled", caret: "hide", threshold: 0 });
+};
 
 for (const who of ["JC", "Becks"]) {
   test(`views for ${who}`, async ({ page }) => {

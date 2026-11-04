@@ -14,13 +14,13 @@ export default defineConfig({
   projects: [
     { name: "app", testIgnore: /env-build\.spec/ },
     // A dev server built as the "build" environment, to test the badge, title, version and noindex.
-    { name: "env-build", testMatch: /env-build\.spec/, use: { baseURL: "http://127.0.0.1:5175/Life-Care/" } },
+    { name: "env-build", testMatch: /env-build\.spec/, use: { baseURL: "http://127.0.0.1:5175/Life-Care/build/" } },
   ],
   webServer: [
     { command: "npx vite", url: "http://127.0.0.1:5173/Life-Care/", reuseExistingServer: true, timeout: 60000 },
     {
-      command: "npx vite --port 5175",
-      url: "http://127.0.0.1:5175/Life-Care/",
+      command: "npx vite --port 5175 --base /Life-Care/build/",
+      url: "http://127.0.0.1:5175/Life-Care/build/",
       reuseExistingServer: true,
       timeout: 60000,
       env: { VITE_APP_ENV: "build", VITE_BUILD_SHA: "test123", VITE_DATA_ROOT: "data_build" },
