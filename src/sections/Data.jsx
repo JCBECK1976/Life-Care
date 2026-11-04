@@ -1,4 +1,4 @@
-import firebase from "../lib/firebase.js";
+import firebase, { DATA_ROOT } from "../lib/firebase.js";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -61,7 +61,7 @@ export default function DataSection({ ctx }) {
         <button onClick={async function() {
           setFormMsg("Reading Firebase...");
           try {
-            var snap = await firebase.database().ref("data").once("value");
+            var snap = await firebase.database().ref(DATA_ROOT).once("value");
             var all = snap.val();
             var keys = Object.keys(all || {});
             var summary = keys.map(function(k) {
@@ -79,7 +79,7 @@ export default function DataSection({ ctx }) {
         <button onClick={async function() {
           setFormMsg("Reading all comment keys...");
           try {
-            var snap = await firebase.database().ref("data").once("value");
+            var snap = await firebase.database().ref(DATA_ROOT).once("value");
             var all = snap.val();
             if (!all) { setFormMsg("No data"); return; }
             var keys = Object.keys(all);
@@ -116,7 +116,7 @@ export default function DataSection({ ctx }) {
         <button onClick={async function() {
           setFormMsg("Rebuilding from comments...");
           try {
-            var snap = await firebase.database().ref("data").once("value");
+            var snap = await firebase.database().ref(DATA_ROOT).once("value");
             var all = snap.val();
             if (!all) { setFormMsg("No data"); return; }
             var keys = Object.keys(all);

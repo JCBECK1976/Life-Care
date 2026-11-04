@@ -18,6 +18,10 @@ if (import.meta.env.DEV) {
   firebase.database().useEmulator("127.0.0.1", 9000);
 }
 
+// Where the app's data lives in Firebase. Set per environment by the deploy workflow:
+// "data" for prod and beta, "data_build" for build. Defaults to "data".
+export const DATA_ROOT = import.meta.env.VITE_DATA_ROOT || "data";
+
 // Global API key holder
 window._anthropicKey = "";
 

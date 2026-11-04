@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 
@@ -24,10 +24,24 @@ function appGuide() {
   };
 }
 
+// Build and beta pages: no search-engine indexing, and the environment name in the tab title.
+function envHtml(appEnv) {
+  return {
+    name: "env-html",
+    transformIndexHtml(html) {
+      if (appEnv !== "build" && appEnv !== "beta") return html;
+      const label = appEnv.toUpperCase();
+      return html
+        .replace("<head>", '<head>\n  <meta name="robots" content="noindex, nofollow">')
+        .replace("<title>Lifecare Companion™</title>", "<title>" + label + " · Lifecare Companion™</title>");
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => ({
   // "next" mode = preview build served from /Life-Care/next/ ; otherwise production /Life-Care/
   base: mode === "next" ? "/Life-Care/next/" : "/Life-Care/",
-  plugins: [react(), appGuide()],
+  plugins: [react(), appGuide(), envHtml(loadEnv(mode, process.cwd(), "VITE_").VITE_APP_ENV)],
   build: { outDir: "dist", emptyOutDir: true, chunkSizeWarningLimit: 3000 },
   server: { host: "127.0.0.1", port: 5173, strictPort: true },
 }));

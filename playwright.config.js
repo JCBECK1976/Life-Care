@@ -11,5 +11,19 @@ export default defineConfig({
   snapshotPathTemplate: "../lc-visual-snapshots/{arg}{ext}",
   globalSetup: "./tests/global-setup.js",
   use: { baseURL: "http://127.0.0.1:5173/Life-Care/", viewport: { width: 412, height: 915 } },
-  webServer: { command: "npx vite", url: "http://127.0.0.1:5173/Life-Care/", reuseExistingServer: true, timeout: 60000 },
+  projects: [
+    { name: "app", testIgnore: /env-build\.spec/ },
+    // A dev server built as the "build" environment, to test the badge, title, version and noindex.
+    { name: "env-build", testMatch: /env-build\.spec/, use: { baseURL: "http://127.0.0.1:5175/Life-Care/" } },
+  ],
+  webServer: [
+    { command: "npx vite", url: "http://127.0.0.1:5173/Life-Care/", reuseExistingServer: true, timeout: 60000 },
+    {
+      command: "npx vite --port 5175",
+      url: "http://127.0.0.1:5175/Life-Care/",
+      reuseExistingServer: true,
+      timeout: 60000,
+      env: { VITE_APP_ENV: "build", VITE_BUILD_SHA: "test123", VITE_DATA_ROOT: "data_build" },
+    },
+  ],
 });
