@@ -568,3 +568,12 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 ### (Code) 4 Nov 2026 — Decision: v2.3.0 header logo = B
 - **Decision (JC):** the header logo for v2.3.0 is **B**: the text-free artwork, `public/brand/header-mark-144.png` (on `build`). Reason (Chat's recommendation, accepted): the "In App Logo" name is illegible at header size and repeats the "LIFECARE COMPANION™" text beside it. Rejected: A ("In App Logo" with text).
 - **Resume point:** unchanged. v2.2.0 on `build` @ `a7e2b11`, waiting for Chat's verification. v2.3.0 starts only after v2.2.0 is released.
+
+### (Chat) 4 Nov 2026 21:15 — v2.1.1 verified and tagged; v2.2.0 build verified
+- **Prod v2.1.1 verified:** title and footer correct, no badge or robots meta; it renders all 12 views and overlays. **Tag `v2.1.1` → `2ff9d5c`** (PR #6 merge) created from Chat.
+- **v2.2.0 on `/build/` verified** (`data_build/` re-seeded first; live `data/` fingerprinted before and after, **unchanged**; no restore buttons pressed):
+  - Footer `v2.2.0-build.a7e2b11`.
+  - JC's Settings has the 🗂 Data tools card; **Open Data tools** shows the Firebase Data Viewer, and **← Back to Settings** returns to Settings.
+  - Switching to Becks hides the viewer, and Becks's Settings has no card. No page errors.
+  - Build vs prod: 12 views, **0 differences**; overlays open.
+- **Go for `build → beta`** (v2.2.0-beta.1). JC tests on his phone, as JC (he's the admin): the Data tools card opens the viewer and Back returns. **Don't press the restore buttons**, because beta uses real data.
