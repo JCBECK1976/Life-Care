@@ -5,7 +5,7 @@ const SECTIONS = ["Home", "My Body", "My Exercise", "My Eating", "My Shop", "My 
 
 test("app loads from the emulator data and shows the version", async ({ page }) => {
   const { errors } = await openApp(page);
-  await expect(page.getByText("v2.0.0").first()).toBeAttached();
+  await expect(page.getByText("v2.1.0", { exact: true }).first()).toBeAttached();
   expect(errors).toEqual([]);
 });
 
@@ -25,4 +25,11 @@ test("APP_GUIDE.md is served next to the app (Help companion source)", async ({ 
   const res = await request.get("APP_GUIDE.md");
   expect(res.ok()).toBeTruthy();
   expect((await res.text()).length).toBeGreaterThan(1000);
+});
+
+test("prod: no environment badge, plain tab title, indexable", async ({ page }) => {
+  await openApp(page);
+  await expect(page.getByTestId("env-badge")).toHaveCount(0);
+  await expect(page).toHaveTitle("Lifecare Companion™");
+  await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
 });
