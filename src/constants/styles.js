@@ -7,7 +7,7 @@ export const btnP = (on = true) => ({ width: "100%", padding: 12, background: on
 export const btnS = { padding: "8px 16px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569", cursor: "pointer" };
 
 // ═══════════════════════════════════════════════════
-// STANDARD BUTTON STYLES v1.374.2
+// STANDARD BUTTON STYLES (app version: see constants/version.js)
 // ═══════════════════════════════════════════════════
 // Actions (deep blue gradient, white text)
 export const btnAction = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 };

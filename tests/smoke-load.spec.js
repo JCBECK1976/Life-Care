@@ -5,7 +5,7 @@ const SECTIONS = ["Home", "My Body", "My Exercise", "My Eating", "My Shop", "My 
 
 test("app loads from the emulator data and shows the version", async ({ page }) => {
   const { errors } = await openApp(page);
-  await expect(page.getByText("v1.374.2").first()).toBeAttached();
+  await expect(page.getByText("v2.0.0").first()).toBeAttached();
   expect(errors).toEqual([]);
 });
 

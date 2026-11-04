@@ -33,6 +33,7 @@ import ChatPanel from "./components/ChatPanel.jsx";
 import HelpPanel from "./components/HelpPanel.jsx";
 import PrivacyPolicy from "./components/PrivacyPolicy.jsx";
 import FeedbackForm from "./components/FeedbackForm.jsx";
+import { APP_VERSION } from "./constants/version.js";
 
 const { useState, useEffect, useCallback, useRef } = React;
 function Dashboard() {
@@ -1844,7 +1845,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       {/* Privacy Policy overlay */}
       <ErrorBoundary name="PrivacyPolicy"><PrivacyPolicy ctx={{ accent, setShowPrivacy, showPrivacy }} /></ErrorBoundary>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>v1.374.2
+      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>{APP_VERSION}
       </div>
 
       {/* Floating Ask a Question button */}

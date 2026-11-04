@@ -6,7 +6,7 @@ Owner: JC (not a developer). Live app used daily by JC and Becks. Full brief: `M
 1. **Stay in scope.** Only what the brief or JC asks. No drive-by refactors.
 2. **Warn before anything token-heavy** (large reads, big rewrites, long test runs).
 3. **Trace before you patch.** Find where a failure actually happens first.
-4. **One change per version, one deploy per version.** Feature/layout = `v1.X.0`, bug fix = `v1.X.Y`.
+4. **One change per version, one deploy per version.** Since v2.0.0 (the Vite cutover): feature/layout = `v2.X.0`, bug fix = `v2.X.Y`. The version lives only in `src/constants/version.js`.
 5. **Never break production.** Production changes only after JC has tested a preview and said yes.
 6. **Talk plainly.** Short updates: what changed, what to test, what's next. One question at a time.
 7. **Ask before anything irreversible** (cutover, deleting files/branches, repo/Pages settings, Firebase rules or data).
@@ -15,7 +15,7 @@ Owner: JC (not a developer). Live app used daily by JC and Becks. Full brief: `M
    - **Read it in full once, at the start of each session.** Note the commit you read it at.
    - **Before every later action or decision, read only what changed since your last read; don't re-read the whole file.** Run `git pull`, then `git diff <last-read-commit> HEAD -- HANDOVER.md`. If the diff is empty, carry on. If not, read just the changed lines, then note the new commit as your last read. Another session (Chat or Code) may have added rules, decisions or open items. If anything conflicts with what you're about to do, stop and ask JC.
    - Your own entries don't need re-reading: you wrote them.
-   - **Label every entry you write `(Code)`**, e.g. `### (Code) 4 Nov 2026 — v1.375.0 preview`. Entries written from Chat are labelled `(Chat)`. The labels let each side read only what the other has added since its own last entry.
+   - **Label every entry you write `(Code)`**, e.g. `### (Code) 4 Nov 2026 — v2.0.0 cutover`. Entries written from Chat are labelled `(Chat)`. The labels let each side read only what the other has added since its own last entry.
    - **After every action** (each version shipped, each checkpoint, each preview or deploy, each fix): add a dated entry to the **Session Log** in `HANDOVER.md` with what was done, the version and commit, what JC needs to test, and anything left open. Update the version table and the "Live Product" version line. Commit and push it in the same step, so it's never left unrecorded.
    - **After every design decision** (yours, JC's, or one JC passes on from Chat): record the decision, the reason and any alternatives rejected under a **Decisions** heading in the Session Log. A decision that isn't written down didn't happen.
    - Keep entries short and factual. Add new Session Log entries at the **end** of the file so diffs stay small. When the Session Log passes about 150 lines, move older entries into `HANDOVER_ARCHIVE.md` (not read routinely) and leave a one-line pointer. Update `TECHNICAL_REFERENCE.md` when the code structure changes and `APP_GUIDE.md` when anything user-visible changes.
@@ -39,9 +39,10 @@ npm run lint              # ESLint: no-undef + React hooks rules, must show 0 er
 npm test                  # Playwright smoke tests (emulator + mocked Claude API)
 ```
 
-## Preview deploy (before cutover)
-`npm run build:preview` (base `/Life-Care/next/`), then copy `dist/` into `next/` on `main` and commit only that.
-Served at https://jcbeck1976.github.io/Life-Care/next/ and uses **live** data.
+## Deploy (since v2.0.0)
+Push to `main` → GitHub Actions (`.github/workflows/deploy.yml`) runs lint + build and deploys `dist/` to Pages.
+Only after JC has tested and approved. Rollback: `/Life-Care/legacy.html` (the v1.374.2 single file), then `git revert` the bad commit.
+After a deploy, tell JC to close the tab and reopen it, and check the footer version.
 
 ## Pointers
 `HANDOVER.md` (memory, session log) · `TECHNICAL_REFERENCE.md` (architecture) · `APP_GUIDE.md` (user guide, read live by Help) · `MIGRATION_BRIEF.md` (the job).

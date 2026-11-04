@@ -13,7 +13,7 @@ async function open(page) {
   await openApp(page);
   await page.waitForTimeout(1500);
 }
-const snap = (page, name) => expect(page).toHaveScreenshot(name + ".png", { fullPage: true, animations: "disabled", caret: "hide" });
+const snap = (page, name, fullPage = true) => expect.soft(page).toHaveScreenshot(name + ".png", { fullPage, animations: "disabled", caret: "hide", threshold: 0 });
 
 for (const who of ["JC", "Becks"]) {
   test(`views for ${who}`, async ({ page }) => {
@@ -44,5 +44,5 @@ test("panels: eating lists, help, chat", async ({ page }) => {
   await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
   await page.getByRole("button", { name: "Chat with your Companion" }).or(page.getByTitle("Chat with your Companion")).first().click();
   await page.waitForTimeout(500);
-  await snap(page, "panel-chat");
+  await snap(page, "panel-chat", false); // fixed overlay: full-page mode resizes the window and jitters its scroll
 });
