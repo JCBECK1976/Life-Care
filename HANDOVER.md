@@ -471,3 +471,11 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Done:** `beta` created from `main` (`535e918`); **PR #3 `build → beta`** merged as merge commit `8c6cc0c` (PR shows merged). Merged tree: lint 0 errors, build ok, 15/15 tests. Deploy run 41889885030 succeeded: prod checks passed (bundle `index-wOH43Bta.js`, unchanged v2.0.0); **beta** checks passed (index, APP_GUIDE, noindex, `BETA ·` title, uses `data`; bundle `index-7K0PIvh9.js` = the local v2.1.0-beta.1 simulation); build unchanged.
 - **JC (and Becks) to test** `https://jcbeck1976.github.io/Life-Care/beta/` — real data. Checklist in the hand-off message, including Help ? and 💬 Chat answers (Chat's browser can't reach the AI service).
 - **Resume point:** `beta` @ `8c6cc0c`. After JC's OK: PR `beta → main` (release v2.1.0) → confirm deploy → Chat confirms prod v2.1.0, no badge. Don't start v2.1.1 or Step 1b.
+
+### (Chat) 4 Nov 2026 19:00 — hand-off 2: /beta/ pre-checked from Chat
+- **Verified (read-only, nothing saved):**
+  - Purple BETA badge; title `BETA · Lifecare Companion™`; footer `v2.1.0-beta.1`; `robots` is `noindex, nofollow`.
+  - `/beta/APP_GUIDE.md` returns 200; `/beta/legacy.html` 404.
+  - Beta vs prod on real data: both people × 6 tabs = 12 views, **0 differences** (this also confirms beta reads live `data/`). Help, Chat, Privacy, Feedback and Settings open.
+  - Prod still shows v2.0.0.
+- **Remaining for JC on his phone:** Help and Chat AI answers (Chat's sandbox can't reach the AI service), and one normal save showing up on prod. Then JC's OK → `beta → main` release of v2.1.0.
