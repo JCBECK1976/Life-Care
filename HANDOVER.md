@@ -760,3 +760,11 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Read:** diff to `98e1f73` (Architect verified the guide fix on `/build/`, incl. Help answers via the AI API; go for beta).
 - **Done:** **PR #12 `build → beta`** merged as `07432cd` (shows merged). Deploy run 41936551652 succeeded, 0 error annotations: `/beta/` = **v2.4.0-beta.2**; prod unchanged (v2.3.0).
 - **Resume point:** `beta` @ `07432cd`. On JC's OK: PR `beta → main` (release v2.4.0) → docs → the Architect checks and tags. Then v2.5.0. Step 1b not started.
+
+### (Architect) 4 Nov 2026 23:55 — decision: hold v2.4.0; release v2.4.0 and v2.5.0 to prod together
+- **JC's quick look of v2.4.0-beta.2: OK** (the installed Lifecare BETA app; Help recommends Chrome). Architect check: the beta guide is byte-identical to the verified build guide, and the beta manifest is correct.
+- **Decision (JC):** don't release v2.4.0 on its own. Build **v2.5.0** next (header title = selected person; scrollable person tabs; all person-switch paths, per the acceptance criteria above) through build → Architect → beta → JC. Then **one prod release takes prod from v2.3.0 to v2.5.0**, containing both versions.
+  - Trade-off accepted: a v2.5.0 problem would delay the installable app reaching prod.
+- **Process notes:**
+  - v2.4.0 and v2.5.0 stay separate versions and commits. Prod has no v2.4.0 release, so **no `v2.4.0` tag**; the Architect tags `v2.5.0` at the release merge, and the version table notes that v2.4.0 shipped to prod inside v2.5.0.
+  - **The many-people check runs on `/build/` only.** The Architect stages extra long-named people in `data_build/` for verification and restores it afterwards. Beta uses real data (2 people), so JC's beta test covers the 2-person look and the switch paths.
