@@ -23,10 +23,14 @@
     .loading-dots span { animation: dotPulse 1.4s infinite; font-size: 18px; }
     .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
     .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    /* Loading screen: shown by this file before JavaScript runs, and by React's LoadingScreen */
+    .boot { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+    .boot img { width: 220px; height: 220px; display: block; border-radius: 50%; }
+    .boot p { margin-top: 16px; color: #94a3b8; font-size: 14px; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
   </style>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root"><div class="boot"><img src="/brand/app-logo-640.png" alt="Lifecare Companion" width="220" height="220"><p>Loading Lifecare Companion™…</p></div></div>
 
   <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
