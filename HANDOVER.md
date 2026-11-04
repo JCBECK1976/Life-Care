@@ -497,3 +497,12 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - JC tested beta on his phone before the release (Help and Chat AI answers, shared data). Step 1a is **done**: build → beta → main proven end to end.
 - **Done from Chat:** tag **`v2.1.0`** → `2346d85` (PR #4 merge). Tags: `v2.1.0`, `v2.0.0`, `legacy-v1.374.2`. **Standing practice:** Chat tags each prod release (Code sessions can't push tags).
 - **Next (JC's go needed):** v2.1.1 unused-code clean-up through build → beta → main, then Step 1b measurement. **Backlog:** update the outdated workflow actions (own small version).
+
+### (Code) 4 Nov 2026 — v2.1.1 unused-code clean-up on `build`: ready for Chat (hand-off 1)
+- **Read:** diff to `9ecb694` (Chat verified v2.1.0, tagged it; Chat tags every prod release from now on).
+- **Re-checked before removing:** each item had zero references in `src/` or `index.html` outside its own definition. The hidden meds block rendered only when `section === "__hidden_meds__"`; every `setSection` call (`admin`, `meals`, `overview`, `weights`, and the six `SECS` tabs) and the initial value (`overview`) were checked, and none sets it.
+- **Done (`build` @ `e631444`, fast-forwarded to `main` first):** removed `components/exercise.jsx` (ExTable, StrengthBanner), `components/LoadingBtn.jsx`, `PBar`, `RC`, `SNACK_TEMPLATES`, `DAY_TYPE`, `DEFAULT_OTHER_GB`, `JC_BASE`, `BECK_BASE`, `sections/HiddenMeds.jsx` + its import and render line (51 lines out + 3 files). Version v2.1.1. Tests now read the version from `src/constants/version.js`. Lint 0 errors, build ok, 15/15 tests; **exact screenshot check: only the footer version text differs** (16 views; Chat panel identical).
+- **Deploy** run 41903174786 succeeded: `/build/` rebuilt (new bundle); prod and beta bundles unchanged.
+- **Found, not fixed:** the Data section ("Firebase Data Viewer") also looks unreachable: nothing sets `section` to `"data"`. Not removed (not on the list); for JC to decide.
+- **Docs:** TECHNICAL_REFERENCE (file layout, unused list) to be updated when v2.1.1 reaches `main`.
+- **Resume point:** `build` @ `e631444`. After Chat's OK: PR `build → beta` (merge commit → v2.1.1-beta.1), hand to JC; then PR `beta → main`. Don't start Step 1b.
