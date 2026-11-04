@@ -661,3 +661,9 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - At 3× phone resolution on `/build/`, the header loads `header-mark-288.png` (natural 288px, shown at 44px): the ring is crisp and dark and the artwork clear. Screenshot sent to JC.
 - `v2.3.0-build.3900dec`. The static loading screen is fine; no overflow at 360/412px. `data_build/` was re-seeded and build vs prod gives 12 views, **0 differences**. Prod v2.2.0 and beta v2.2.0-beta.0 are untouched.
 - **Go for `build → beta`** once JC confirms the look.
+
+### (Code) 4 Nov 2026 — v2.3.0 on beta: `/beta/` ready for JC (hand-off 2)
+- **Read:** diff to `49560f9` (Chat verified the sharpness fix at 3×; JC approved the look).
+- **Done:** **PR #9 `build → beta`** merged as `66fa117` (shows merged; lint 0 errors). Deploy run 41923480013 succeeded, 0 error annotations: `/beta/` = **v2.3.0-beta.1**; prod unchanged (v2.2.0).
+- **JC to test** `/Life-Care/beta/` on his phone (see the hand-off message).
+- **Resume point:** `beta` @ `66fa117`. After JC's OK: PR `beta → main` (release v2.3.0) → docs → Chat checks and tags. Then v2.4.0 installable app, then v2.5.0. Step 1b not started.
