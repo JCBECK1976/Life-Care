@@ -53,6 +53,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v1.374.2 | Help intro shows Lifecare Companion™ as in footer |
 | v1.374.1 | Energy bar: percentage only (no $ shown to users); 100% level set by admin in Settings; fixed 0% when record lacked `initial` |
 | **v2.0.0** | **Vite migration cutover** (4 Nov 2026): component files, no in-browser Babel, error boundaries, ESLint + Playwright checks, GitHub Actions deploy; behaviour unchanged. Legacy v1.374.2 kept at `/legacy.html` (tag `legacy-v1.374.2`) |
+| v2.1.0 | Build / beta / prod environments (Step 1a): one Pages pipeline for `main`, `beta`, `build`; per-environment data root; `-beta.N` / `-build.<sha>` versions; BUILD/BETA badge and tab-title prefix; noindex on test environments. First release through build → beta → main |
 
 ---
 
@@ -61,7 +62,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v2.0.0 (4 November 2026) — Vite build, deployed by GitHub Actions
+- **Version**: v2.1.0 (4 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -465,3 +466,52 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Housekeeping:** merged branch `pipeline-bootstrap` deleted from Chat. Branches: `build`, `main`.
 - **Go for hand-off 2:** create `beta` from `main` and merge `build` into it via PR, so `/beta/` shows `v2.1.0-beta.1` and the purple BETA badge. Then JC and Becks test.
 - **Backlog:** update the outdated workflow actions (Node version warnings) as its own small change later.
+
+### (Code) 4 Nov 2026 — v2.1.0 on beta: `/beta/` ready for JC (hand-off 2)
+- **Read:** diff to `d63546e` (Chat verified `/build/` on 8 points incl. data isolation; `pipeline-bootstrap` deleted; AI answers to be checked by JC on beta).
+- **Done:** `beta` created from `main` (`535e918`); **PR #3 `build → beta`** merged as merge commit `8c6cc0c` (PR shows merged). Merged tree: lint 0 errors, build ok, 15/15 tests. Deploy run 41889885030 succeeded: prod checks passed (bundle `index-wOH43Bta.js`, unchanged v2.0.0); **beta** checks passed (index, APP_GUIDE, noindex, `BETA ·` title, uses `data`; bundle `index-7K0PIvh9.js` = the local v2.1.0-beta.1 simulation); build unchanged.
+- **JC (and Becks) to test** `https://jcbeck1976.github.io/Life-Care/beta/` — real data. Checklist in the hand-off message, including Help ? and 💬 Chat answers (Chat's browser can't reach the AI service).
+- **Resume point:** `beta` @ `8c6cc0c`. After JC's OK: PR `beta → main` (release v2.1.0) → confirm deploy → Chat confirms prod v2.1.0, no badge. Don't start v2.1.1 or Step 1b.
+
+### (Chat) 4 Nov 2026 19:00 — hand-off 2: /beta/ pre-checked from Chat
+- **Verified (read-only, nothing saved):**
+  - Purple BETA badge; title `BETA · Lifecare Companion™`; footer `v2.1.0-beta.1`; `robots` is `noindex, nofollow`.
+  - `/beta/APP_GUIDE.md` returns 200; `/beta/legacy.html` 404.
+  - Beta vs prod on real data: both people × 6 tabs = 12 views, **0 differences** (this also confirms beta reads live `data/`). Help, Chat, Privacy, Feedback and Settings open.
+  - Prod still shows v2.0.0.
+- **Remaining for JC on his phone:** Help and Chat AI answers (Chat's sandbox can't reach the AI service), and one normal save showing up on prod. Then JC's OK → `beta → main` release of v2.1.0.
+
+### (Code) 4 Nov 2026 — v2.1.0 released (PR #4 `beta → main`)
+- **Read:** diff to `37d8280` (Chat pre-checked `/beta/`; JC approved: Help and Chat answer, beta save shows in prod).
+- **Done:** PR #4 `beta → main` merged as `2346d85` (PR shows merged); merged tree lint 0 errors, build ok, prod HTML has no noindex. Deploy run 41901867353 succeeded: prod bundle `index-BCSgoWux.js` (= the local "after release" simulation: v2.1.0, no badge, no noindex); `/beta/` rebuilt and now shows **v2.1.0-beta.0** (no unreleased changes; becomes `-beta.1` at the next promotion); `/build/` unchanged. Version table and Live Product line updated to v2.1.0.
+- **JC to do:** close the app tab and reopen it; the footer should show **v2.1.0** with no badge.
+- **Chat to check** the live app (see the release message).
+- **Resume point:** `main` @ `2346d85` + this entry; `beta` and `build` hold no unreleased changes. Next, after Chat's check and JC's go: v2.1.1 unused-code clean-up through build → beta → main; then Step 1b. Neither started.
+
+### (Chat) 4 Nov 2026 20:10 — v2.1.0 release verified; first full pipeline run complete
+- **Verified (real browser, read-only):**
+  - **prod:** title `Lifecare Companion™`, v2.1.0, no badge, no robots meta.
+  - **beta:** `BETA ·`, v2.1.0-beta.0, BETA badge, noindex.
+  - **build:** `BUILD ·`, v2.1.0-build.4ae40ec, BUILD badge, noindex.
+  - Prod vs beta on real data: 12 views, **0 differences**; overlays open. `/APP_GUIDE.md` and `/legacy.html` return 200.
+- JC tested beta on his phone before the release (Help and Chat AI answers, shared data). Step 1a is **done**: build → beta → main proven end to end.
+- **Done from Chat:** tag **`v2.1.0`** → `2346d85` (PR #4 merge). Tags: `v2.1.0`, `v2.0.0`, `legacy-v1.374.2`. **Standing practice:** Chat tags each prod release (Code sessions can't push tags).
+- **Next (JC's go needed):** v2.1.1 unused-code clean-up through build → beta → main, then Step 1b measurement. **Backlog:** update the outdated workflow actions (own small version).
+
+### (Code) 4 Nov 2026 — v2.1.1 unused-code clean-up on `build`: ready for Chat (hand-off 1)
+- **Read:** diff to `9ecb694` (Chat verified v2.1.0, tagged it; Chat tags every prod release from now on).
+- **Re-checked before removing:** each item had zero references in `src/` or `index.html` outside its own definition. The hidden meds block rendered only when `section === "__hidden_meds__"`; every `setSection` call (`admin`, `meals`, `overview`, `weights`, and the six `SECS` tabs) and the initial value (`overview`) were checked, and none sets it.
+- **Done (`build` @ `e631444`, fast-forwarded to `main` first):** removed `components/exercise.jsx` (ExTable, StrengthBanner), `components/LoadingBtn.jsx`, `PBar`, `RC`, `SNACK_TEMPLATES`, `DAY_TYPE`, `DEFAULT_OTHER_GB`, `JC_BASE`, `BECK_BASE`, `sections/HiddenMeds.jsx` + its import and render line (51 lines out + 3 files). Version v2.1.1. Tests now read the version from `src/constants/version.js`. Lint 0 errors, build ok, 15/15 tests; **exact screenshot check: only the footer version text differs** (16 views; Chat panel identical).
+- **Deploy** run 41903174786 succeeded: `/build/` rebuilt (new bundle); prod and beta bundles unchanged.
+- **Found, not fixed:** the Data section ("Firebase Data Viewer") also looks unreachable: nothing sets `section` to `"data"`. Not removed (not on the list); for JC to decide.
+- **Docs:** TECHNICAL_REFERENCE (file layout, unused list) to be updated when v2.1.1 reaches `main`.
+- **Resume point:** `build` @ `e631444`. After Chat's OK: PR `build → beta` (merge commit → v2.1.1-beta.1), hand to JC; then PR `beta → main`. Don't start Step 1b.
+
+### (Chat) 4 Nov 2026 20:20 — v2.1.1 hand-off 1 verified; guide correction
+- **Verified `/build/`** after re-seeding `data_build/` from live data (101 keys) for an exact comparison:
+  - title `BUILD ·`, `v2.1.1-build.e631444`, BUILD badge, noindex;
+  - build vs prod: 12 views, **0 differences**; Help, Chat, Privacy, Feedback and Settings open;
+  - prod v2.1.0 and beta v2.1.0-beta.0 are untouched.
+  - **Go for `build → beta`.**
+- **Guide error found via Code's note (Chat's mistake from 2 Nov):** APP_GUIDE.md listed "Firebase Data Viewer and data recovery/restore tools" under Settings, but the `data` section is unreachable (nothing sets `section = "data"`). The guide is corrected on `main` (doc-only, live immediately). The build/beta copies pick it up when their branches next merge `main`.
+- **Decision needed from JC:** the unreachable Data section contains real recovery tools (restore missing weeks from comment keys; restore from a Firebase JSON export). Option A: an admin-only "Data tools" button in Settings (its own version, v2.2.0). Option B: remove it in a later clean-up. Chat recommends **A** while Firebase rules are open and backups are manual. It's a safety net only the admin can see.
