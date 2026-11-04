@@ -577,3 +577,9 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
   - Switching to Becks hides the viewer, and Becks's Settings has no card. No page errors.
   - Build vs prod: 12 views, **0 differences**; overlays open.
 - **Go for `build → beta`** (v2.2.0-beta.1). JC tests on his phone, as JC (he's the admin): the Data tools card opens the viewer and Back returns. **Don't press the restore buttons**, because beta uses real data.
+
+### (Code) 4 Nov 2026 — v2.2.0 on beta: `/beta/` ready for JC (hand-off 2)
+- **Read:** diff to `db6f1ea` (Chat verified prod v2.1.1 and tagged `v2.1.1`; verified v2.2.0 on `/build/`; JC must not press restore buttons on beta).
+- **Done:** **PR #7 `build → beta`** merged as `eea99c6` (shows merged; lint 0 errors). Deploy run 41913460997 succeeded, 0 error annotations: `/beta/` = **v2.2.0-beta.1**; prod unchanged (v2.1.1). Chat's unwired brand images ride along (unused until v2.3.0).
+- **JC to test** `/Life-Care/beta/` as JC (see the hand-off message).
+- **Resume point:** `beta` @ `eea99c6`. After JC's OK: PR `beta → main` (release v2.2.0) → docs → Chat checks and tags. Then v2.3.0 logos (header = B). Step 1b not started.
