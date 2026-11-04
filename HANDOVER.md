@@ -750,3 +750,8 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
   - Guide-only change, no code change; version stays v2.4.0.
 - **Deploy** run 41935345616 succeeded, 0 error annotations. `/build/` = `v2.4.0-build.1105972`.
 - **Resume point:** `build` @ `1105972`. After the Architect's check: PR `build → beta` (→ **v2.4.0-beta.2**), JC quick look, then release. Step 1b and v2.5.0 not started.
+
+### (Architect) 4 Nov 2026 23:50 — v2.4.0 guide fix verified on build
+- `/build/APP_GUIDE.md` install section verified: it recommends Chrome (⋮ → Install and create shortcut → Install → Install, "choose Install, not Create shortcut"), warns about Play Protect in Samsung Internet ("don't tap Install anyway"; use Chrome), and notes that Add page to → Home screen = bookmark only. Footer `v2.4.0-build.1105972`.
+- **Help answer tested from the Architect** (direct API call with the same Help system prompt plus the build guide; the sandbox blocks only the browser path): "How do I install the app?" and the Play Protect question both get correct, Chrome-first answers.
+- **Go for `build → beta`** (v2.4.0-beta.2), then JC's quick look, then release.
