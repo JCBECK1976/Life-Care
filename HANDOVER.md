@@ -53,6 +53,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v1.374.2 | Help intro shows Lifecare Companion™ as in footer |
 | v1.374.1 | Energy bar: percentage only (no $ shown to users); 100% level set by admin in Settings; fixed 0% when record lacked `initial` |
 | **v2.0.0** | **Vite migration cutover** (4 Nov 2026): component files, no in-browser Babel, error boundaries, ESLint + Playwright checks, GitHub Actions deploy; behaviour unchanged. Legacy v1.374.2 kept at `/legacy.html` (tag `legacy-v1.374.2`) |
+| v2.1.0 | Build / beta / prod environments (Step 1a): one Pages pipeline for `main`, `beta`, `build`; per-environment data root; `-beta.N` / `-build.<sha>` versions; BUILD/BETA badge and tab-title prefix; noindex on test environments. First release through build → beta → main |
 
 ---
 
@@ -61,7 +62,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v2.0.0 (4 November 2026) — Vite build, deployed by GitHub Actions
+- **Version**: v2.1.0 (4 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -479,3 +480,10 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
   - Beta vs prod on real data: both people × 6 tabs = 12 views, **0 differences** (this also confirms beta reads live `data/`). Help, Chat, Privacy, Feedback and Settings open.
   - Prod still shows v2.0.0.
 - **Remaining for JC on his phone:** Help and Chat AI answers (Chat's sandbox can't reach the AI service), and one normal save showing up on prod. Then JC's OK → `beta → main` release of v2.1.0.
+
+### (Code) 4 Nov 2026 — v2.1.0 released (PR #4 `beta → main`)
+- **Read:** diff to `37d8280` (Chat pre-checked `/beta/`; JC approved: Help and Chat answer, beta save shows in prod).
+- **Done:** PR #4 `beta → main` merged as `2346d85` (PR shows merged); merged tree lint 0 errors, build ok, prod HTML has no noindex. Deploy run 41901867353 succeeded: prod bundle `index-BCSgoWux.js` (= the local "after release" simulation: v2.1.0, no badge, no noindex); `/beta/` rebuilt and now shows **v2.1.0-beta.0** (no unreleased changes; becomes `-beta.1` at the next promotion); `/build/` unchanged. Version table and Live Product line updated to v2.1.0.
+- **JC to do:** close the app tab and reopen it; the footer should show **v2.1.0** with no badge.
+- **Chat to check** the live app (see the release message).
+- **Resume point:** `main` @ `2346d85` + this entry; `beta` and `build` hold no unreleased changes. Next, after Chat's check and JC's go: v2.1.1 unused-code clean-up through build → beta → main; then Step 1b. Neither started.
