@@ -1,5 +1,7 @@
 # Claude Code Migration Brief — Lifecare Companion™
 
+> **Names (from 4 Nov 2026):** Claude Code is **Lifecare Companion Coder**; Claude in Chat is **Lifecare Companion Architect**. Where this brief says "Code"/"Chat", read Coder/Architect. New log entries are labelled (Coder)/(Architect).
+
 > **How to use this file:** start Claude Code with **Opus 5.5** (`claude --model claude-opus-5-5`, or `/model claude-opus-5-5` in a running session), then paste this whole file as your first message, or say "Read MIGRATION_BRIEF.md in the Life-Care repo and follow it."
 >
 > Written 3 November 2026 at app version **v1.374.2**; access and session sections updated the same day. Supersedes any earlier instruction to use Opus 4.6 for this work.

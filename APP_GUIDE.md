@@ -58,8 +58,8 @@ It speaks to you directly ("you"), warmly and honestly, and adapts its tone to t
 
 ### Installing the app on your phone
 You can install Lifecare Companion like a normal app, with its own icon on your home screen. It then opens full screen, without the browser bar.
-- **Android, Chrome:** open the app, tap the **⋮** menu → **Install app** (or **Add to Home screen** → **Install**).
-- **Android, Samsung Internet:** open the app, tap the **≡** menu → **Add page to** → **Home screen** (or tap the install icon in the address bar if it shows).
+- **Use Chrome (recommended, Android):** open the app in Chrome, tap the **⋮** menu → **Install and create shortcut** → **Install** → **Install**. The app then appears on your home screen with its own icon. (Choose **Install**, not **Create shortcut**: a shortcut just opens the page inside Chrome.)
+- **Samsung Internet:** its menu option **Add page to** → **Install as web app** may be **blocked by Google Play Protect** ("Unsafe app blocked … built for an older version of Android"). That warning is about the package Samsung Internet builds, not about Lifecare Companion. Don't tap "Install anyway": press **OK** and install from **Chrome** instead. (**Add page to** → **Home screen** only adds a bookmark that opens in the browser.)
 - The **BETA** and **BUILD** test versions install as **separate apps** (named "Lifecare BETA" and "Lifecare BUILD", with purple and orange icons), so you can tell them apart from the normal app.
 - Installed apps always load the latest version; nothing is stored offline.
 
