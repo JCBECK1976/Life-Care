@@ -310,8 +310,8 @@ The `next/` preview folder was removed at cutover, and Pages now only serves wha
 - Per-user colour isolation — never let one user's colour change affect another
 - Privacy policy accessible via legal links row below feedback button
 - DO NOT go off scope — only change what is explicitly asked for
-- **HANDOVER.md is the project memory** (Chat = architect, Claude Code = builder). Read it in full once per session, then before each action read only the diff since your last read (`git diff <last-read-commit> HEAD -- HANDOVER.md`); after every action add a dated Session Log entry (what, version, commit, what to test, open items); record every design decision with its reason under "Decisions". Applies to both Chat and Code sessions. Every entry is labelled **(Chat)** or **(Code)**.
-- **Chat sessions (architect):** don't read this whole file each chat. Fetch it in the workspace and print only what follows the last **(Chat)** entry (i.e. what Claude Code has done since). Read other sections only when a design discussion needs them.
+- **HANDOVER.md is the project memory** (Chat = architect, Claude Code = builder). Read it in full once per session, then before each action read only the diff since your last read (`git diff <last-read-commit> HEAD -- HANDOVER.md`); after every action add a dated Session Log entry (what, version, commit, what to test, open items); record every design decision with its reason under "Decisions". Applies to both Chat and Code sessions. Every entry is labelled **(Chat)** or **(Code)**. **From 4 Nov 2026 22:55: new entries are labelled (Architect) and (Coder) instead** (see "Roles and names" below); older (Chat)/(Code) entries keep their labels.
+- **Architect sessions (Chat):** don't read this whole file each chat. Fetch it in the workspace and print only what follows the last **(Architect)** entry, or **(Chat)** if none (i.e. what the Coder has done since). Read other sections only when a design discussion needs them.
 - Each fix or feature is its own version AND its own deploy/commit
 - Warn JC before anything that will use a lot of tokens
 - Trace where a failure actually happens before patching — read the call path, don't patch the error handler blind
@@ -679,3 +679,64 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Done:** PR #10 merged as `f34513b` (shows merged); merged tree lint 0 errors, build ok (static logo path `/Life-Care/brand/…`). Deploy run 41924275234 succeeded (an older docs-push run was superseded and shows "cancelled", which is normal). Version table, Live Product line and `TECHNICAL_REFERENCE.md` updated.
 - **Chat to check** prod v2.3.0 and tag it.
 - **Resume point:** `main` @ `f34513b` + this entry. Next: v2.4.0 installable app on `build`. Then v2.5.0. Step 1b not started.
+
+### (Code) 4 Nov 2026 — v2.4.0 installable app on `build`: ready for Chat (hand-off 1)
+- **Read:** own entries since `94c42f9` (v2.3.0 released as `f34513b`, docs `d20044b`); no new Chat entries.
+- **Done (`build` @ `d203eb7`), as specified in the v2.4.0 plan:**
+  - `manifest.webmanifest` per environment, generated at build: distinct `id`, names (Lifecare Companion/Lifecare · Lifecare BETA/LC Beta · Lifecare BUILD/LC Build), `start_url` = `scope` = base, standalone, theme `#0f172a`, background white, icons any + maskable (beta/build tinted).
+  - `sw.js`: **network-only** service worker per scope. It caches nothing, passes only this app's own GET requests to the network, and never touches Firebase, Anthropic or other origins; prod's skips `/beta/` and `/build/`. Registered in builds only.
+  - `index.html`: manifest, apple-touch-icon, favicons, `apple-mobile-web-app-title`. This replaces the old inline `data:` manifest (`start_url "/"`).
+  - `check-pages.mjs` validates manifest, icons and `sw.js` when present (prod strict; not required, so a legacy rollback still deploys); tested with a good artifact, a bad build manifest (build skipped) and a missing prod icon (deploy fails). It takes effect when v2.4.0 reaches `main`.
+  - APP_GUIDE: install steps for Android (Chrome, Samsung Internet); BETA/BUILD install as separate apps.
+- **Checks:** lint 0 errors; **24/24 tests**, incl. Chromium `Page.getInstallabilityErrors` = none, with the app loading its data under the service worker, and the service-worker routing rules. Exact screenshot check: only the footer version text differs. The Chat-panel screenshot was flaky (logo still loading after its reload); screenshots now wait for images to load, and 3/3 reruns were stable.
+- **Deploy** run 41926364576 succeeded, 0 error annotations.
+- **Note for go-live (from the plan):** an app installed from github.io must be reinstalled once after the move to `lifecarecompanion.app`.
+- **Open:** `public/brand/in-app-logo-144.png` (option A) is unused; it can be removed in a clean-up.
+- **Resume point:** `build` @ `d203eb7`. After Chat's OK: PR `build → beta` → JC installs beta on his phone → PR `beta → main`. Then v2.5.0. Step 1b not started.
+
+### (Architect) 4 Nov 2026 22:55 — Roles and names (JC decision)
+- **Decision (JC):** to avoid ambiguity when he coordinates both:
+  - Claude Code (the builder) is now **Lifecare Companion Coder** ("the Coder").
+  - Claude in Chat (the architect) is now **Lifecare Companion Architect** ("the Architect").
+  - Both use these names in reports, messages to JC and the docs.
+- **Log labels:** new Session Log entries are labelled **(Coder)** and **(Architect)**; older (Code)/(Chat) entries stay as written. Rule 9's diff routine is unchanged; the Architect reads from its last (Architect) entry, or (Chat) if none.
+- **Coder to do:** update `CLAUDE.md` (names, labels) and refer to the Architect by name from now on. Use the new names in the docs going forward; no need to rewrite history.
+
+### (Architect) 4 Nov 2026 23:05 — v2.3.0 tagged; v2.4.0 build verified
+- **Prod v2.3.0 verified; tag `v2.3.0` → `f34513b`** (PR #10 merge) created by the Architect.
+- **v2.4.0 on `/build/` verified** (`data_build/` re-seeded):
+  - The manifest is "Lifecare BUILD" / "LC Build", with id, start and scope `/Life-Care/build/`, `standalone`, and the orange icon set (192, 512, maskable 512 all 200 `image/png`).
+  - Links: manifest, apple-touch-icon (build variant), favicon; theme `#0f172a`.
+  - `sw.js` is network-only, same-origin, own scope only (reviewed). Registered and active for `/Life-Care/build/`; the page is controlled and still loads normally after a reload.
+  - **Chromium `Page.getInstallabilityErrors`: none**; manifest parse errors: none.
+  - `v2.4.0-build.d203eb7`. Build vs prod: 12 views, **0 differences**; overlays open. Prod (v2.3.0) and beta have no manifest/SW yet, as expected.
+- Not verifiable from the Architect's sandbox: an actual install on Android. That's JC's beta test (install "Lifecare BETA" from Samsung Internet or Chrome; check the purple icon, full screen, data loads).
+- **Go for `build → beta`.**
+
+### (Coder) 4 Nov 2026 — roles renamed: CLAUDE.md updated
+- **Read:** diff to `95f75da` (roles renamed to Lifecare Companion Coder / Architect; brief note; Architect tagged `v2.3.0` and verified v2.4.0 on `/build/`, incl. installability; the Android install is JC's beta test).
+- **Done:** `CLAUDE.md` gains the names and the (Coder)/(Architect) labels; the flow and limits lines name the Architect. Rule 9 is unchanged and still word for word with the brief. New entries from here are labelled (Coder).
+- **Resume point:** unchanged: next, PR `build → beta` for v2.4.0.
+
+### (Coder) 4 Nov 2026 — v2.4.0 on beta: `/beta/` ready for JC (hand-off 2)
+- **Read:** own entries since `cf82fb0`; no new Architect entries.
+- **Done:** **PR #11 `build → beta`** merged as `ec5aa87` (shows merged; lint 0 errors). Deploy run 41929737384 succeeded, 0 error annotations: `/beta/` = **v2.4.0-beta.1**, installable as "Lifecare BETA"; prod unchanged (v2.3.0). (A docs-push run was superseded and shows "cancelled", which is normal.)
+- **JC to test:** install the BETA app on his phone (Samsung Internet or Chrome); see the hand-off message.
+- **Resume point:** `beta` @ `ec5aa87`. After JC's OK: PR `beta → main` (release v2.4.0) → docs → the Architect checks and tags. Then v2.5.0. Step 1b not started.
+
+### (Coder) 4 Nov 2026 23:40 — v2.4.0 beta: JC's install test
+- **JC tested on his phone (Samsung, Android):**
+  - **Samsung Internet → "Install as web app":** **Google Play Protect blocked it** ("built for an older version of Android"). The package is generated by Samsung Internet, not by our code (only our name and icon are in it). JC pressed OK; not installed.
+  - **Chrome → ⋮ → "Install and create shortcut" → Install → Install:** installed as **"Lifecare BETA"** with the purple icon, no warning. Opens **full screen**, and everything works.
+- **Guide correction needed (not yet made):** APP_GUIDE's Samsung steps are wrong ("Add page to → Home screen" only makes a bookmark). It should recommend **Chrome** with the real menu names, and warn that Samsung Internet's "Install as web app" may be blocked by Play Protect.
+- **Idea for later (JC to decide):** an in-app "Install app" button (one tap via Chrome's install prompt) instead of the 3-step menu route.
+- **Resume point:** `beta` @ `ec5aa87`, JC's test OK. Next: correct the guide, then release v2.4.0 (order awaiting JC/Architect).
+
+### (Architect) 4 Nov 2026 23:40 — v2.4.0: guide correction goes through the flow (option A)
+- **JC's phone test:** "Lifecare BETA" installs through **Chrome** and opens full screen, and everything works. Samsung Internet's "Install as web app" was **blocked by Play Protect** (recorded by the Coder at `ed1df55`).
+- **Decision (JC, on the Architect's recommendation): option A.** Correct the install steps in `APP_GUIDE.md` on `build`:
+  - recommend Chrome: ⋮ → **Install and create shortcut** → **Install** → **Install**;
+  - warn that Samsung Internet's "Install as web app" may be blocked by Play Protect, and use Chrome instead;
+  - fix the wrong Samsung menu name.
+  - Then build → Architect check → beta as **v2.4.0-beta.2** (JC quick look) → release. Rejected: B (release now, fix on `main`), because live Help would give known-wrong steps and the guide copies would drift across environments.
+- **Principle:** `APP_GUIDE.md` changes that accompany a feature ship with that feature through the flow. Direct `main` guide edits are only for correcting live errors unrelated to an in-flight release (as with the Data Viewer line).
