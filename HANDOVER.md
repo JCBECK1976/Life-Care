@@ -556,3 +556,11 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Chat to check** prod v2.1.1 and tag it.
 - **Note:** JC's header-logo choice (A "In App Logo" / B text-free mark) still isn't recorded; needed before v2.3.0, not before v2.2.0.
 - **Resume point:** `main` @ `2ff9d5c` + this entry. Next: v2.2.0 Data tools on `build` (from `build` @ `4a3a9e1`, which carries the unwired brand assets). Step 1b not started.
+
+### (Code) 4 Nov 2026 — v2.2.0 Data tools on `build`: ready for Chat (hand-off 1)
+- **Read:** diff to `fa77d3c`; own release entry `e78486c` since.
+- **Done (`build` @ `a7e2b11`; `main` merged in first, brand assets from `4a3a9e1` still unwired):** Settings has a new **admin-only** card "🗂 Data tools" → **Open Data tools** (opens the existing Firebase Data Viewer + recovery tools, which had no way in). The Data section has **← Back to Settings** and renders only for the admin (switching to Becks hides it). APP_GUIDE describes it. Version v2.2.0. New tests (`tests/data-tools.spec.js`): admin opens and returns; Becks has no button; viewer hides on switch. Lint 0 errors, **17/17 tests**. Exact screenshot check: only the footer version text, plus the new card on JC's Settings (above it pixel-identical; below it identical after a 120px shift).
+- **Deploy** run 41910020084 succeeded, 0 error annotations (no environment skipped).
+- **Decision (Code):** the Data section is gated on `isAdmin` as well as the button, so a person switch can't leave Becks on the admin tools. Button uses the grey in-card style (`btnMuted`) per the design rules.
+- **Still needed before v2.3.0:** JC's header-logo choice (A "In App Logo" / B `header-mark-144.png`).
+- **Resume point:** `build` @ `a7e2b11`. After Chat's OK: PR `build → beta` → JC → PR `beta → main`. Step 1b not started.
