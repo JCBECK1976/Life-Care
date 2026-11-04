@@ -1,6 +1,7 @@
 # Lifecare Companion™ — Claude Code rules
 
 Owner: JC (not a developer). Live app used daily by JC and Becks. Full brief: `MIGRATION_BRIEF.md`.
+**Names (JC, 4 Nov 2026):** you (Claude Code) are **Lifecare Companion Coder**; Claude in Chat is **Lifecare Companion Architect**. Use these names with JC and in the docs. Label new Session Log entries **(Coder)**; the Architect's are **(Architect)**. Older (Code)/(Chat) entries keep their labels; where rule 9 says (Code)/(Chat), read (Coder)/(Architect).
 
 ## Rules (from MIGRATION_BRIEF.md §0)
 1. **Stay in scope.** Only what the brief or JC asks. No drive-by refactors.
@@ -23,9 +24,9 @@ Owner: JC (not a developer). Live app used daily by JC and Becks. Full brief: `M
 11. Keep this file short (under 60 lines).
 
 ## Session limits and where things go
-- Docs (HANDOVER.md etc.) are committed **straight to `main`**. Source: commit to **`build`** → Chat verifies `/build/` → PR `build → beta` (merge commit) → JC tests `/beta/` → PR `beta → main` (release; Chat tags it). Never push source straight to `beta` or `main`.
-- No tag pushes and no PAT from Code sessions: report what's needed; Chat or JC does it.
-- **No live Firebase from Code.** Dev and tests use the local emulator only. Never run `firebase deploy`.
+- Docs (HANDOVER.md etc.) are committed **straight to `main`**. Source: commit to **`build`** → the Architect verifies `/build/` → PR `build → beta` (merge commit) → JC tests `/beta/` → PR `beta → main` (release; the Architect tags it). Never push source straight to `beta` or `main`.
+- No tag pushes and no PAT from Coder sessions: report what's needed; the Architect or JC does it.
+- **No live Firebase from the Coder.** Dev and tests use the local emulator only. Never run `firebase deploy`.
 - The Firebase backup lives outside the repo (`/home/user/firebase-backup/`). Never commit or print it.
 - Each (Code) Session Log entry ends with a **Resume point** (branch, last commit, done, exact next step).
 

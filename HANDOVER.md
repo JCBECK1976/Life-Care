@@ -712,3 +712,8 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
   - `v2.4.0-build.d203eb7`. Build vs prod: 12 views, **0 differences**; overlays open. Prod (v2.3.0) and beta have no manifest/SW yet, as expected.
 - Not verifiable from the Architect's sandbox: an actual install on Android. That's JC's beta test (install "Lifecare BETA" from Samsung Internet or Chrome; check the purple icon, full screen, data loads).
 - **Go for `build → beta`.**
+
+### (Coder) 4 Nov 2026 — roles renamed: CLAUDE.md updated
+- **Read:** diff to `95f75da` (roles renamed to Lifecare Companion Coder / Architect; brief note; Architect tagged `v2.3.0` and verified v2.4.0 on `/build/`, incl. installability; the Android install is JC's beta test).
+- **Done:** `CLAUDE.md` gains the names and the (Coder)/(Architect) labels; the flow and limits lines name the Architect. Rule 9 is unchanged and still word for word with the brief. New entries from here are labelled (Coder).
+- **Resume point:** unchanged: next, PR `build → beta` for v2.4.0.
