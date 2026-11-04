@@ -169,6 +169,23 @@ The single-file Babel architecture has hit its ceiling. Migrate to:
 
 This was attempted on Sep 19 2026 but reverted. Claude Code with local dev server testing makes this feasible.
 
+#### Step 1a: Build / Beta / Prod environments (agreed 4 Nov 2026), ships as v2.1.0
+JC wants three versions of the app. Design (Chat):
+
+| Env | URL (until go-live) | Branch | Data (Firebase path) | Who tests |
+|---|---|---|---|---|
+| **Build** | `jcbeck1976.github.io/Life-Care/build/` | `build` | `data_build/` (a copy of live data, seeded from Chat on 4 Nov) | Chat verifies each change |
+| **Beta** | `jcbeck1976.github.io/Life-Care/beta/` | `beta` | `data/` (real data: JC and Becks are the only users) | JC and Becks on their phones |
+| **Prod** | `jcbeck1976.github.io/Life-Care/` → **lifecarecompanion.app** at go-live | `main` | `data/` | everyone |
+
+- **One workflow** builds all three branches into the single Pages artifact on a push to any of them (Pages serves one artifact per repo), each with its own `base`. Each environment folder gets its own `APP_GUIDE.md` (Help fetches it relatively). `legacy.html` stays at the root only.
+- **Flow:** Code commits to `build` (or short feature branches merged into `build`) → Chat verifies `/build/` → PR `build → beta` → JC and Becks test `/beta/` → PR `beta → main` = release. **No source pushes straight to `beta` or `main`.** Doc-only commits still go straight to `main` (rule 9).
+- **Data root is a build-time setting** (`VITE_DATA_ROOT`): `data_build` for build, `data` for beta and prod. Emulator in local dev as now. Chat re-seeds `data_build/` from live data on request (Code sessions can't reach Firebase).
+- **Versions:** prod `v2.X.Y`; beta shows `v2.X.Y-beta.N`; build shows `v2.X.Y-build.<short sha>`, all from the single version constant.
+- **Always know where you are:** build and beta show a clear coloured **BUILD** / **BETA** badge in the header and prefix the browser tab title; prod shows none. Build and beta pages carry `noindex`.
+- **Before real users onboard** (Step 2+), beta gets its own data too, so testers never touch customer data.
+- **Prod domain `lifecarecompanion.app`** (bought by JC at Spaceship) is **not connected yet.** Plan at go-live, together with Steps 2 and 6: move prod to **Firebase Hosting** in the same Google project (free tier, automatic SSL, custom domain, and the natural home for the Cloud Functions AI proxy), with DNS records added at Spaceship. Build and beta can stay on github.io or use Firebase Hosting preview channels; decide then. Don't point the domain at GitHub Pages: it would put build and beta under the prod domain (`lifecarecompanion.app/beta`).
+
 #### Step 1b: Efficiency Pass (agreed 3 Nov 2026)
 Straight after the Vite cutover: measure, propose, JC approves, then build. Goal: lower running costs and faster loads with **no loss of capability**. Full candidate list in `MIGRATION_BRIEF.md` §3.9: AI prompt caching (incl. 💬 Chat follow-ups), on-device caching of nutrition lookups and reference data, an IndexedDB copy for instant start, a PWA service worker, batched startup reads, and granular saves. Firebase stays the source of truth; device storage is never the only copy of health data.
 
@@ -408,3 +425,9 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Done from Chat:** tag **`v2.0.0`** created → `629d561` (the PR #1 merge). Tags now: `v2.0.0`, `legacy-v1.374.2`.
 - **Recommended to JC (awaiting his decision):** (1) adopt Code's preview proposal: a `preview` branch built by the same workflow to `/Life-Care/next/`; every change goes preview → JC tests (live data) + Chat verifies → merge to `main`. (2) Delete the merged `vite-migration` branch (Chat will do it on JC's OK).
 - **Proposed order after JC's go:** preview pipeline (own version) → unused-code clean-up v2.0.1 (through the preview) → Step 1b measurement, checkpoint (f).
+
+### (Chat) 4 Nov 2026 16:20 — decisions: environments, branch clean-up, order of work
+- **JC approved** Chat's recommendations: a permanent preview process, and deleting `vite-migration` (done from Chat; branches now: `main`).
+- **JC requirement:** build, beta and prod versions; prod on **lifecarecompanion.app** (bought at Spaceship) at first go-live; the others on GitHub. **Design recorded in §3 "Step 1a"** (supersedes Code's single `preview` branch proposal).
+- **Done from Chat:** `data_build/` seeded in Firebase as a copy of live `data/` (101 keys, 199KB).
+- **Order of work:** (1) Step 1a environments → **v2.1.0** (through build → beta → main itself); (2) unused-code clean-up → **v2.1.1**, the first change through the full pipeline; (3) Step 1b measurement → checkpoint (f).
