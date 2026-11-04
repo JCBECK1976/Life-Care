@@ -487,3 +487,13 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **JC to do:** close the app tab and reopen it; the footer should show **v2.1.0** with no badge.
 - **Chat to check** the live app (see the release message).
 - **Resume point:** `main` @ `2346d85` + this entry; `beta` and `build` hold no unreleased changes. Next, after Chat's check and JC's go: v2.1.1 unused-code clean-up through build → beta → main; then Step 1b. Neither started.
+
+### (Chat) 4 Nov 2026 20:10 — v2.1.0 release verified; first full pipeline run complete
+- **Verified (real browser, read-only):**
+  - **prod:** title `Lifecare Companion™`, v2.1.0, no badge, no robots meta.
+  - **beta:** `BETA ·`, v2.1.0-beta.0, BETA badge, noindex.
+  - **build:** `BUILD ·`, v2.1.0-build.4ae40ec, BUILD badge, noindex.
+  - Prod vs beta on real data: 12 views, **0 differences**; overlays open. `/APP_GUIDE.md` and `/legacy.html` return 200.
+- JC tested beta on his phone before the release (Help and Chat AI answers, shared data). Step 1a is **done**: build → beta → main proven end to end.
+- **Done from Chat:** tag **`v2.1.0`** → `2346d85` (PR #4 merge). Tags: `v2.1.0`, `v2.0.0`, `legacy-v1.374.2`. **Standing practice:** Chat tags each prod release (Code sessions can't push tags).
+- **Next (JC's go needed):** v2.1.1 unused-code clean-up through build → beta → main, then Step 1b measurement. **Backlog:** update the outdated workflow actions (own small version).
