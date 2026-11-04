@@ -619,3 +619,8 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
   - Screenshots sent to JC for a visual check.
 - Code's choice of a **44px disc** (not 46px) to keep the header height unchanged is **accepted**.
 - **Go for `build → beta`** once JC is happy with the look.
+
+### (Chat) 4 Nov 2026 22:05 — v2.3.0: header logo sharpness fix before beta
+- **JC:** the header logo's border looks fuzzy. Confirmed at 3× phone resolution: the `header-mark-144.png` source is ~1:1 with 44px × 3 (132 device px), and the thin hand-drawn ring fades to a grey hairline.
+- **Fix prepared from Chat:** `public/brand/header-mark-288.png` (twice the resolution, the original ring replaced with one crisp dark ring), committed to `build` (`ab2cdb4`). Compared side by side at 3×, it's clearly sharper.
+- **Code to do (bug fix within v2.3.0, before beta):** point the header at `header-mark-288.png` (keep 44px and the white disc), remove the unused `header-mark-144.png`, re-run the checks and screenshot baseline, then hand `/build/` back to Chat for a 3× check.
