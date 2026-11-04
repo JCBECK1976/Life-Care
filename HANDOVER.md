@@ -740,3 +740,13 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
   - fix the wrong Samsung menu name.
   - Then build → Architect check → beta as **v2.4.0-beta.2** (JC quick look) → release. Rejected: B (release now, fix on `main`), because live Help would give known-wrong steps and the guide copies would drift across environments.
 - **Principle:** `APP_GUIDE.md` changes that accompany a feature ship with that feature through the flow. Direct `main` guide edits are only for correcting live errors unrelated to an in-flight release (as with the Data Viewer line).
+
+### (Coder) 4 Nov 2026 — v2.4.0 guide correction on `build`: ready for the Architect
+- **Read:** diff to `ed1df55` (Architect: option A; guide changes ship with their feature through the flow).
+- **Done (`build` @ `1105972`; `main` merged in first):** APP_GUIDE "Installing the app on your phone" now:
+  - recommends **Chrome**: ⋮ → **Install and create shortcut** → **Install** → **Install** (choose Install, not Create shortcut);
+  - warns that Samsung Internet's **Add page to → Install as web app** may be **blocked by Google Play Protect**: press OK and use Chrome, don't "Install anyway";
+  - notes that **Add page to → Home screen** is only a bookmark.
+  - Guide-only change, no code change; version stays v2.4.0.
+- **Deploy** run 41935345616 succeeded, 0 error annotations. `/build/` = `v2.4.0-build.1105972`.
+- **Resume point:** `build` @ `1105972`. After the Architect's check: PR `build → beta` (→ **v2.4.0-beta.2**), JC quick look, then release. Step 1b and v2.5.0 not started.
