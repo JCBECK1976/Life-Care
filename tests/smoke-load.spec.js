@@ -37,3 +37,13 @@ test("prod: no environment badge, plain tab title, indexable", async ({ page }) 
   await expect(page).toHaveTitle("Lifecare Companion™");
   await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
 });
+
+test("loading screen is in the page HTML before JavaScript runs; header shows the logo", async ({ page, request }) => {
+  const html = await (await request.get("./")).text();
+  expect(html).toContain('class="boot"');
+  expect(html).toContain("Loading Lifecare Companion™…");
+  await openApp(page);
+  const logo = page.getByAltText("Lifecare Companion logo");
+  await expect(logo).toBeVisible();
+  expect(await logo.evaluate((i) => i.complete && i.naturalWidth > 0)).toBe(true);
+});

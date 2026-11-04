@@ -34,6 +34,7 @@ import PrivacyPolicy from "./components/PrivacyPolicy.jsx";
 import FeedbackForm from "./components/FeedbackForm.jsx";
 import { APP_VERSION } from "./constants/version.js";
 import EnvBadge from "./components/EnvBadge.jsx";
+import LoadingScreen from "./components/LoadingScreen.jsx";
 
 const { useState, useEffect, useCallback, useRef } = React;
 function Dashboard() {
@@ -1728,7 +1729,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   // ─── ADMIN IMPORT ───
   const doImport = async () => { try { const parsed = JSON.parse(importText); const merged = JSON.parse(JSON.stringify(data)); if (parsed.config) merged.config = { ...merged.config, ...parsed.config }; if (parsed.jc) { if (parsed.jc.body) merged.jc = { ...merged.jc, body: { ...merged.jc.body, ...parsed.jc.body } }; if (parsed.jc.exercises) merged.jc = { ...merged.jc, exercises: parsed.jc.exercises }; if (parsed.jc.measurements) merged.jc = { ...merged.jc, measurements: { ...merged.jc.measurements, ...parsed.jc.measurements } }; } if (parsed.becks) { if (parsed.becks.body) merged.becks = { ...merged.becks, body: { ...merged.becks.body, ...parsed.becks.body } }; if (parsed.becks.exercises) merged.becks = { ...merged.becks, exercises: parsed.becks.exercises }; if (parsed.becks.measurements) merged.becks = { ...merged.becks, measurements: { ...merged.becks.measurements, ...parsed.becks.measurements } }; } await saveData(merged); setImportMsg("✓ Data updated"); setImportText(""); setTimeout(() => setImportMsg(""), 3000); } catch (e) { setImportMsg("✗ Invalid JSON: " + e.message); } };
 
-  if (loading || !data) return <div style={{ padding: 40, textAlign: "center", color: "#94a3b8", fontFamily: "Inter, sans-serif" }}>Loading Lifecare Companion™...</div>;
+  if (loading || !data) return <LoadingScreen />;
 
   const isJC = activeTab === "jc";
   const isAdmin = activeTab === "jc";
@@ -1773,13 +1774,21 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", background: "#f8fafc", minHeight: "100vh", color: "#0f172a", maxWidth: 520, margin: "0 auto" }}>
       <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", padding: "20px 16px 16px", color: "#fff" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div>
-            <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#94a3b8", marginBottom: 4 }}>Lifecare Companion™<EnvBadge /></div>
-            <div style={{ fontSize: 22, fontWeight: 800 }}>{Object.keys(data).filter(k => k !== "config").map(k => (data[k].profile ? data[k].profile.name : k)).join(" & ")}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+            <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#fff", overflow: "hidden", flexShrink: 0 }}>
+              <img src={import.meta.env.BASE_URL + "brand/header-mark-288.png"} alt="Lifecare Companion logo" width="44" height="44" style={{ display: "block", width: 44, height: 44 }} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#94a3b8", marginBottom: 4 }}>Lifecare Companion™</div>
+              <div style={{ fontSize: 22, fontWeight: 800 }}>{Object.keys(data).filter(k => k !== "config").map(k => (data[k].profile ? data[k].profile.name : k)).join(" & ")}</div>
+            </div>
           </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
           <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
             <button onClick={() => setHelpOpen(true)} style={{ background: helpOpen ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "0 10px", height: 38, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#cbd5e1", fontSize: 13, fontWeight: 600, transition: "all 0.2s ease", marginTop: 2 }} title="Help using the app" aria-label="Help using the app">Help <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", border: "1.5px solid #94a3b8", fontSize: 11, fontWeight: 800, color: "#94a3b8" }}>?</span></button>
               <button onClick={() => { setSection("admin"); setShowOnboarding(false); setSetupTab("profile"); }} style={{ background: section === "admin" ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease", marginTop: 2 }} title="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+          </div>
+          <EnvBadge />
           </div>
         </div>
         <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Week {calcWeek(data.config.trainingStart)} · Updated {data.config.lastUpdate}{saving ? " · Saving..." : ""}</div>
