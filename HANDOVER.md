@@ -465,3 +465,9 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Housekeeping:** merged branch `pipeline-bootstrap` deleted from Chat. Branches: `build`, `main`.
 - **Go for hand-off 2:** create `beta` from `main` and merge `build` into it via PR, so `/beta/` shows `v2.1.0-beta.1` and the purple BETA badge. Then JC and Becks test.
 - **Backlog:** update the outdated workflow actions (Node version warnings) as its own small change later.
+
+### (Code) 4 Nov 2026 — v2.1.0 on beta: `/beta/` ready for JC (hand-off 2)
+- **Read:** diff to `d63546e` (Chat verified `/build/` on 8 points incl. data isolation; `pipeline-bootstrap` deleted; AI answers to be checked by JC on beta).
+- **Done:** `beta` created from `main` (`535e918`); **PR #3 `build → beta`** merged as merge commit `8c6cc0c` (PR shows merged). Merged tree: lint 0 errors, build ok, 15/15 tests. Deploy run 41889885030 succeeded: prod checks passed (bundle `index-wOH43Bta.js`, unchanged v2.0.0); **beta** checks passed (index, APP_GUIDE, noindex, `BETA ·` title, uses `data`; bundle `index-7K0PIvh9.js` = the local v2.1.0-beta.1 simulation); build unchanged.
+- **JC (and Becks) to test** `https://jcbeck1976.github.io/Life-Care/beta/` — real data. Checklist in the hand-off message, including Help ? and 💬 Chat answers (Chat's browser can't reach the AI service).
+- **Resume point:** `beta` @ `8c6cc0c`. After JC's OK: PR `beta → main` (release v2.1.0) → confirm deploy → Chat confirms prod v2.1.0, no badge. Don't start v2.1.1 or Step 1b.
