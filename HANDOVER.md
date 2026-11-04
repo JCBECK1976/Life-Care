@@ -576,3 +576,9 @@ The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable
 - **Done:** merged PR #1 `vite-migration` → `main` as merge commit `629d561` (PR shows merged). Before pushing, the merge result was built locally: lint 0 errors, build ok, base `/Life-Care/`, `dist/` has `index.html`, `assets/`, `APP_GUIDE.md`, `legacy.html`, one v2.0.0, no emulator or crash-switch code. Deploy run 41830867847: Vite path (install, lint, build), checks and **deploy succeeded**. Version table and Live Product line updated to v2.0.0.
 - **JC to do:** close the app tab and reopen it; the footer should show **v2.0.0**.
 - **Resume point:** `main` @ `629d561` + this entry. Waiting for Chat to confirm `/Life-Care/` shows v2.0.0 on real data and `/Life-Care/APP_GUIDE.md` returns 200. Then: remove `next/` from `main` → checkpoint (d).
+
+### (Chat) 4 Nov 2026 12:55 — v2.0.0 live: confirmed on real data
+- Deploy runs #6, #7 (merge `629d561`) and #8 (`d968c0d`) all succeeded.
+- **Live `/Life-Care/` checked on real data** (read-only): the footer shows **v2.0.0** (only version string on the page). Compared against the `/legacy.html` rollback: both people × 6 tabs = 12 views, **0 differences**. Help, Chat, Privacy, Feedback and Settings match. The error boundary shows nowhere. No app errors. Load: 1.2s for v2.0.0 vs 76s for legacy (headless).
+- `/Life-Care/APP_GUIDE.md` returns 200; `/Life-Care/legacy.html` returns 200 and shows v1.374.2 (the rollback works).
+- **Go given to remove `next/`** and send checkpoint (d).
