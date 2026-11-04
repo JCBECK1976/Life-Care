@@ -598,3 +598,14 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Done:** PR #8 merged as `2b8578c` (shows merged); merged tree lint 0 errors, build ok. Deploy run 41915585156 succeeded. Version table, Live Product line and `TECHNICAL_REFERENCE.md` (version, Data section, brand files) updated.
 - **Chat to check** prod v2.2.0 and tag it.
 - **Resume point:** `main` @ `2b8578c` + this entry. Next: v2.3.0 logos on `build` (header = B, `header-mark-144.png`). Step 1b not started.
+
+### (Code) 4 Nov 2026 — v2.3.0 logos on `build`: ready for Chat (hand-off 1)
+- **Read:** own entries since `0357868` (v2.2.0 released as `2b8578c`, docs `da936c5`); no new Chat entries.
+- **Done (`build` @ `777d82a`):**
+  - **Loading screen:** `app-logo-640.png`, 220px, round, centred, with "Loading Lifecare Companion™…". The same markup (class `boot`) is static HTML in `index.html` and shows before JavaScript; React's `LoadingScreen` is **pixel-identical**, so there's no flash. Vite rewrites the image path per base (`/Life-Care/…`, `/Life-Care/build/…`).
+  - **Header:** text-free mark `header-mark-144.png` (**B**) in a **44px** white disc, top left; the title and names move right. **BUILD/BETA badge** moved under Help/Settings, right-aligned.
+  - APP_GUIDE (badge position), v2.3.0.
+- **Checks:** lint 0 errors; **19/19 tests** (new: loading screen in the HTML, logo loads, badge under the buttons). Fits at 360px and 412px with no overflow. Exact screenshot check: only header rows 20–63 and the footer version text differ; page heights unchanged; everything else pixel-identical.
+- **Decisions (Code):** disc **44px**, not 46–48, because 44px = the text block height. At 46px the header grew 2px, which moved all content and made the exact check noisy (the fixed 💬 button and overlays don't move). The static logo is rounded so its white square doesn't show on the grey page.
+- **Deploy** run 41916873763 succeeded, 0 error annotations.
+- **Resume point:** `build` @ `777d82a`. After Chat's OK: PR `build → beta` → JC → PR `beta → main`. Then v2.4.0 installable app. Step 1b not started.
