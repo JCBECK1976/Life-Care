@@ -277,8 +277,9 @@ console.log(Object.keys(miss).length?'SCOPE ERRORS: '+JSON.stringify(miss):'CHEC
 Abort the deploy if it reports anything. It also checks syntax, so it can replace the Babel step.
 
 ### Version Convention
-- Feature/layout change: increment major sub → `v1.366.0`
-- Bug fix: increment minor → `v1.365.1`
+- **v2.0.0** = the Vite-migrated app, the first completed version for handover (JC, 4 Nov 2026). The legacy single-file app ends at v1.374.2 (tag `legacy-v1.374.2`).
+- From v2: feature/layout change → `v2.X.0`; bug fix → `v2.X.Y`.
+- (Legacy v1 rule, kept for history: feature → `v1.366.0`, bug fix → `v1.365.1`.)
 - Always update version in THREE places:
   1. Footer display text
   2. Button styles comment block near the top of the script
@@ -489,3 +490,55 @@ The add-item flow, energy meter, exercise stop/restart, Help and Chat are stable
   - **Energy ping on every load** (1-token Claude call in `checkCompanionEnergy`): added to the Step 1b candidates.
   - Lint's 5 hook-dependency warnings: leave them as they are (behaviour-identical rule).
 - **Status:** checkpoint (b) approved from Chat. Waiting on JC's own phone test of `/next/` before stage 2 (§3.3 split) starts.
+
+### (Code) 3 Nov 2026 — Step 1 §3.3 stage 2 in progress: tests, constants, lib, components
+- **Read:** HANDOVER diff to `be499f6` (checkpoint (b) approved; Chat decisions noted: root APP_GUIDE.md kept, SheetJS may go, hook warnings left).
+- **Done (`vite-migration`):** `e78f5e2` full §3.5 Playwright list written **before** the split (11 tests, emulator re-seeded per test, AI and Open Food Facts mocked) plus an opt-in pixel check of 17 views (`VISUAL=1`; baseline images kept outside the repo at `/home/user/lc-visual-snapshots/`, as they show health data). `ecc0d3a` constants → `src/constants/`; `da54ee7` helpers → `src/lib/` (incl. `api.js`: fetch wrapper installed once at import); `18cde9a` top-level components → `src/components/`. Each move done by script; each commit: 0 lines lost/added, lint 0 errors, build ok, 11/11 tests, pixel-identical.
+- **Decisions:** tests before the split (so every split commit is checked by the full list). Sections become real components that receive the Dashboard values they use as one `ctx` prop (none of them reassigns a Dashboard variable, so this is behaviour-identical); state management unchanged.
+- **Resume point:** branch `vite-migration` @ `18cde9a`. Next: sections one per commit (overview, body, weights, hidden meds, meals, shop, bloods, admin, data), then overlays, then error boundary, drop SheetJS, rebuild `next/`. Start the emulator first (`npm run emulator`).
+
+### (Code) 3 Nov 2026 — stage 2: Data + Settings sections
+- **Done:** `98f7019` Data section → `src/sections/Data.jsx`; `8261905` Settings (admin) → `src/sections/Settings.jsx`. Checks green on each (lint 0 errors, build, 11/11 tests, pixel-identical).
+- **Resume point:** `vite-migration` @ `8261905`. Next: bloods (Health), shop, body, overview (Home), weights (Exercise), hidden meds, meals (Eating); then overlays, error boundary, SheetJS, `next/`.
+
+### (Code) 3 Nov 2026 — stage 2: Health, Shop, Body sections
+- **Done:** `f662e11` Health (bloods) → `src/sections/Health.jsx`; `dc56332` Shop → `src/sections/Shop.jsx`; `bcfdeea` Body → `src/sections/Body.jsx`. Checks green on each.
+- **Resume point:** `vite-migration` @ `bcfdeea`. Next: overview (Home), weights (Exercise), hidden meds, meals (Eating); then overlays, error boundary, SheetJS, `next/`.
+
+### (Code) 3 Nov 2026 — stage 2: Home, Exercise, hidden meds, Eating sections
+- **Done:** `1a8e989` Home → `src/sections/Home.jsx`; `de52934` Exercise → `src/sections/Exercise.jsx`; `ae2637a` hidden meds block (never shown) → `src/sections/HiddenMeds.jsx`; `fb32e66` Eating → `src/sections/Eating.jsx` (its own try/catch and `MealSelect` kept inside it unchanged; `window._confirmReviewItem` still published from it). Checks green on each.
+- **Resume point:** `vite-migration` @ `fb32e66`. All sections are components. Next: overlays/footer (privacy, help, chat, review item) → components, then error boundary, SheetJS, `next/`.
+
+### (Code) 3 Nov 2026 — stage 2: overlays and footer pieces
+- **Done:** `b285bae` ReviewItemOverlay, ChatPanel, HelpPanel → `src/components/`; `3cfd3cf` PrivacyPolicy, FeedbackForm → `src/components/`. Checks green on each.
+- **Mistake caught and reverted:** first overlay attempt `63c7df8` used stale line numbers, so Chat/Help became empty wrappers in front of the original code (tests still passed because the original code stayed). Reverted in `ad6d500` and redone by matching content; the commit script now refuses an empty `ctx`.
+- **Resume point:** `vite-migration` @ `3cfd3cf`. Split complete. Next: §3.4 error boundary, drop SheetJS, rebuild `next/`, checkpoint (c).
+
+### (Code) 3 Nov 2026 — checkpoint (c): split complete on preview, all tests passing
+- **Done (`vite-migration` @ `69f17eb`):** `d3c1410` §3.4 error boundary around each section, each overlay and the whole app (message: "Something went wrong in this section — your data is safe. Reload to try again."; error logged to console; tested by a dev-only crash switch that is not in builds). `69f17eb` SheetJS dependency dropped (Chat-approved).
+- **Layout now:** `src/App.jsx` (2.1k lines: state, handlers, header, nav, person tabs, footer shell) · `src/sections/` Home, Body, Exercise, Eating, Shop, Health, Settings, Data, HiddenMeds · `src/components/` charts, exercise, LoadingBtn, ReviewItemOverlay, HelpPanel, ChatPanel, PrivacyPolicy, FeedbackForm, ErrorBoundary · `src/lib/` firebase, storage, api, aiContext, colour, exercise, utils · `src/constants/` tone, mood, themes, defaultData, food, exercise, health, styles.
+- **Proof of no change:** against the verbatim lift `d4bcafd`, the only lines changed are the 12 section-wrapper lines (now component wrappers); everything else is component headers, `ctx` lists and boundary call sites. Lint 0 errors (5 known warnings), build ok, **13/13 Playwright tests** (full §3.5 list + error boundary), 17 views pixel-identical to the verbatim lift.
+- **Preview (`main` @ `21fc86a`):** `next/` rebuilt from `69f17eb`. Live `index.html` untouched, still v1.374.2.
+- **JC / Chat to test:** https://jcbeck1976.github.io/Life-Care/next/ (live data). Same real-data comparison as (b), plus the add-item, bulk, ✎ Update, Stop/Restart, Help and Chat flows.
+- **Decisions:**
+  - Sections and overlays receive the Dashboard values they use as one `ctx` prop (none reassigns a Dashboard variable). State management unchanged, as the brief says.
+  - **Kept as they are (behaviour-identical):** `MealSelect` stays inside the Eating section (it's created per render there; moving it out would change when it remounts); `renderThread` stays a Dashboard function; `window._confirmReviewItem` kept (works, and the brief says remove a `window.*` workaround only once a replacement is proven; the overlay and Eating are now separate files, so a shared handler would be a state change). Alternatives rejected for this step: lifting them out now.
+  - Version text still in 4 places (`App.jsx` header comment and footer, `FeedbackForm.jsx` email body, `constants/styles.js` comment): the single constant comes with v1.375.0 at cutover.
+- **Open (not fixed, for JC):** unused code found: `ExTable`, `StrengthBanner`, `LoadingBtn`, `PBar`, `RC`, `SNACK_TEMPLATES`, `DAY_TYPE`, `DEFAULT_OTHER_GB`, `JC_BASE`, `BECK_BASE`; the hidden meds block is never shown. Eating keeps its own old try/catch inside the new boundary.
+- **Resume point:** source `vite-migration` @ `69f17eb`; preview `main` @ `21fc86a`; **waiting for JC's checkpoint (c) approval. Do not start §3.7 cutover.** Visual baseline images: `/home/user/lc-visual-snapshots/` (outside the repo; regenerate from `d4bcafd` if the container was reset).
+
+### (Chat) 3 Nov 2026 23:10 — checkpoint (c) review
+- **Verified from Chat on real data** (read-only, nothing saved, no AI calls sent): preview `/next/` (`assets/index-ZaYR427j.js`) vs live. Both people × 6 tabs = 12 views, **0 differences**. Help, Chat, Privacy Policy, Send Feedback and Settings all open with the same content as live. The Help panel shows JC's real history (so the split overlays are wired correctly; Code's earlier empty-shell slip is confirmed fixed). The error-boundary message appears nowhere. Load: preview 1.8s vs live 68.5s (headless). The live root is unchanged (v1.374.2).
+- **Assessment:** checkpoint (c) approved from Chat. Good practice noted: the mistake was reverted in the open and a guard added; unused code was listed, not deleted.
+- **Decisions:**
+  - Removing unused code (`ExTable`, `StrengthBanner`, `LoadingBtn`, `PBar`, `RC`, `SNACK_TEMPLATES`, `DAY_TYPE`, `DEFAULT_OTHER_GB`, `JC_BASE`, `BECK_BASE`, hidden meds block) is its own small version **after** cutover, not part of it.
+  - `MealSelect` rebuild and `window._confirmReviewItem` stay as-is until after cutover.
+- **Cutover watch-points (§3.7):**
+  - **Zero downtime.** Code must sequence the merge, the workflow file and JC's Pages-source switch so the live site never goes blank, and tell JC the exact moment to flip.
+  - **The workflow file needs "Workflows" permission.** Neither the Claude GitHub App connection nor JC's PAT (Contents-only) is known to have it. If Code's push of `.github/workflows/` is refused, the fallback is either JC adding the file in the GitHub web editor (Code supplies the text) or JC adding "Workflows: Read and write" to the PAT so Chat can add it.
+  - The single root `APP_GUIDE.md` must still be served at `/Life-Care/APP_GUIDE.md` after cutover.
+  - `legacy.html` rollback is to be tested before switching.
+
+### (Chat) 4 Nov 2026 08:25 — decision: cutover is v2.0.0
+- **Decision (JC):** the cutover ships as **v2.0.0**, not v1.375.0. The migrated app is effectively a new app and the first completed version for handover. Versioning continues `v2.X.0` (feature) / `v2.X.Y` (fix). Brief §0 rule 4 and §3.7 are updated; the Version Convention above is updated.
+- `APP_GUIDE.md` "Last updated" and version example are updated to v2.0.0 in the cutover release.

@@ -13,7 +13,7 @@ You are working for **JC** (Jan-Christian Zaluski), owner of Lifecare Companion�
 1. **Stay in scope.** Do only what this brief or JC asks. No drive-by refactors, no "while I'm here" changes. Scope creep wastes his time and tokens.
 2. **Warn before anything token-heavy.** Give a one-line warning before large reads, big rewrites or long test runs.
 3. **Trace before you patch.** Find where a failure actually happens (read the call path, reproduce it) before changing code. Five blind patches to the wrong function once cost a full day.
-4. **One change per version, one deploy per version.** Feature/layout change = `v1.X.0`, bug fix = `v1.X.Y`.
+4. **One change per version, one deploy per version.** The cutover ships as **v2.0.0** (JC, 4 Nov 2026: the migrated app is the first completed version for handover). From then on: feature/layout change = `v2.X.0`, bug fix = `v2.X.Y`.
 5. **Never break production.** JC and Becks use the live app daily for exercise, eating and health tracking. Production changes only after JC has tested a preview and said yes.
 6. **Talk plainly.** Short, specific updates: what changed, what he should test, what's next. No jargon walls. Ask at most one question at a time, and only when you're genuinely blocked.
 7. **Ask before anything irreversible**: production cutover, deleting files or branches, changing repo/Pages settings, touching Firebase rules or data.
@@ -22,7 +22,7 @@ You are working for **JC** (Jan-Christian Zaluski), owner of Lifecare Companion�
    - **Read it in full once, at the start of each session.** Note the commit you read it at.
    - **Before every later action or decision, read only what changed since your last read; don't re-read the whole file.** Run `git pull`, then `git diff <last-read-commit> HEAD -- HANDOVER.md`. If the diff is empty, carry on. If not, read just the changed lines, then note the new commit as your last read. Another session (Chat or Code) may have added rules, decisions or open items. If anything conflicts with what you're about to do, stop and ask JC.
    - Your own entries don't need re-reading: you wrote them.
-   - **Label every entry you write `(Code)`**, e.g. `### (Code) 4 Nov 2026 — v1.375.0 preview`. Entries written from Chat are labelled `(Chat)`. The labels let each side read only what the other has added since its own last entry.
+   - **Label every entry you write `(Code)`**, e.g. `### (Code) 4 Nov 2026 — v2.0.0 cutover`. Entries written from Chat are labelled `(Chat)`. The labels let each side read only what the other has added since its own last entry.
    - **After every action** (each version shipped, each checkpoint, each preview or deploy, each fix): add a dated entry to the **Session Log** in `HANDOVER.md` with what was done, the version and commit, what JC needs to test, and anything left open. Update the version table and the "Live Product" version line. Commit and push it in the same step, so it's never left unrecorded.
    - **After every design decision** (yours, JC's, or one JC passes on from Chat): record the decision, the reason and any alternatives rejected under a **Decisions** heading in the Session Log. A decision that isn't written down didn't happen.
    - Keep entries short and factual. Add new Session Log entries at the **end** of the file so diffs stay small. When the Session Log passes about 150 lines, move older entries into `HANDOVER_ARCHIVE.md` (not read routinely) and leave a one-line pointer. Update `TECHNICAL_REFERENCE.md` when the code structure changes and `APP_GUIDE.md` when anything user-visible changes.
@@ -153,7 +153,7 @@ Build from the `vite-migration` branch with `base: '/Life-Care/next/'` and commi
 2. Merge `vite-migration` into `main`, with a pull request JC can see. Add a GitHub Actions workflow (if pushing `.github/workflows/` is refused for lack of the GitHub App's *workflows* permission, report it; Chat or JC will add the file): install → lint → build (`base: '/Life-Care/'`) → deploy `dist/` to Pages.
 3. Keep the legacy single file as `public/legacy.html`, so rollback means visiting `/Life-Care/legacy.html` while you revert.
 4. Remove the `next/` folder after cutover.
-5. Version: **v1.375.0** (layout/platform change), shown from the single version constant.
+5. Version: **v2.0.0**, the first completed version for handover (JC's decision, 4 Nov 2026), shown from the single version constant. Update `APP_GUIDE.md`'s "Last updated" line and its version example to v2.0.0 in the same release.
 6. Tell JC to close the tab and reopen it, and to check the footer version.
 
 ### 3.8 Docs
