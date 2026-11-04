@@ -23,3 +23,9 @@ test("build environment: the badge sits under the Help and Settings buttons", as
   const gear = await page.locator("button").nth(1).boundingBox(); // Settings gear, right of Help
   expect(Math.abs(badge.x + badge.width - (gear.x + gear.width))).toBeLessThan(2); // right-aligned under the buttons
 });
+
+test("build environment: its own installable app (name, scope, tinted icons)", async ({ request }) => {
+  const m = await (await request.get("manifest.webmanifest")).json();
+  expect(m).toMatchObject({ name: "Lifecare BUILD", short_name: "LC Build", id: "/Life-Care/build/", start_url: "/Life-Care/build/", scope: "/Life-Care/build/" });
+  for (const i of m.icons) expect(i.src.startsWith("/Life-Care/build/brand/build/")).toBe(true);
+});

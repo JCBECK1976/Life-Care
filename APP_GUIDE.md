@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.3.0 · 4 November 2026
+> Last updated: v2.4.0 · 4 November 2026
 
 ---
 
@@ -55,6 +55,13 @@ It speaks to you directly ("you"), warmly and honestly, and adapts its tone to t
 ### Help and Chat
 - **Help ?** (top right, next to the Settings gear) — ask how to use the app. Your Companion answers using this guide.
 - **💬 Chat** (round button, bottom right) — chat with your Companion about your health, training, nutrition or progress, using your full data history.
+
+### Installing the app on your phone
+You can install Lifecare Companion like a normal app, with its own icon on your home screen. It then opens full screen, without the browser bar.
+- **Android, Chrome:** open the app, tap the **⋮** menu → **Install app** (or **Add to Home screen** → **Install**).
+- **Android, Samsung Internet:** open the app, tap the **≡** menu → **Add page to** → **Home screen** (or tap the install icon in the address bar if it shows).
+- The **BETA** and **BUILD** test versions install as **separate apps** (named "Lifecare BETA" and "Lifecare BUILD", with purple and orange icons), so you can tell them apart from the normal app.
+- Installed apps always load the latest version; nothing is stored offline.
 
 ### Common patterns used everywhere
 - **My Companion … Feedback** buttons (deep blue) — generate AI feedback for that area. After it is generated, **▼ Show Feedback / ▲ Hide Feedback** opens or closes it.

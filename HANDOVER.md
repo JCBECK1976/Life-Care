@@ -56,6 +56,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.1.0 | Build / beta / prod environments (Step 1a): one Pages pipeline for `main`, `beta`, `build`; per-environment data root; `-beta.N` / `-build.<sha>` versions; BUILD/BETA badge and tab-title prefix; noindex on test environments. First release through build → beta → main |
 | v2.1.1 | Unused code removed (no behaviour change): `ExTable`, `StrengthBanner`, `LoadingBtn`, `PBar`, `RC`, `SNACK_TEMPLATES`, `DAY_TYPE`, `DEFAULT_OTHER_GB`, `JC_BASE`, `BECK_BASE`, hidden meds block |
 | v2.2.0 | Settings → 🗂 **Data tools** (admin only): opens the Firebase Data Viewer and recovery tools; ← Back to Settings |
+| v2.3.0 | Logos: loading screen with the App Logo (static in `index.html`, no flash); header logo mark (option B, `header-mark-288.png`) in a 44px white disc; BUILD/BETA badge under Help/Settings |
 
 ---
 
@@ -64,7 +65,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v2.2.0 (4 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
+- **Version**: v2.3.0 (4 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -598,3 +599,83 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Done:** PR #8 merged as `2b8578c` (shows merged); merged tree lint 0 errors, build ok. Deploy run 41915585156 succeeded. Version table, Live Product line and `TECHNICAL_REFERENCE.md` (version, Data section, brand files) updated.
 - **Chat to check** prod v2.2.0 and tag it.
 - **Resume point:** `main` @ `2b8578c` + this entry. Next: v2.3.0 logos on `build` (header = B, `header-mark-144.png`). Step 1b not started.
+
+### (Code) 4 Nov 2026 — v2.3.0 logos on `build`: ready for Chat (hand-off 1)
+- **Read:** own entries since `0357868` (v2.2.0 released as `2b8578c`, docs `da936c5`); no new Chat entries.
+- **Done (`build` @ `777d82a`):**
+  - **Loading screen:** `app-logo-640.png`, 220px, round, centred, with "Loading Lifecare Companion™…". The same markup (class `boot`) is static HTML in `index.html` and shows before JavaScript; React's `LoadingScreen` is **pixel-identical**, so there's no flash. Vite rewrites the image path per base (`/Life-Care/…`, `/Life-Care/build/…`).
+  - **Header:** text-free mark `header-mark-144.png` (**B**) in a **44px** white disc, top left; the title and names move right. **BUILD/BETA badge** moved under Help/Settings, right-aligned.
+  - APP_GUIDE (badge position), v2.3.0.
+- **Checks:** lint 0 errors; **19/19 tests** (new: loading screen in the HTML, logo loads, badge under the buttons). Fits at 360px and 412px with no overflow. Exact screenshot check: only header rows 20–63 and the footer version text differ; page heights unchanged; everything else pixel-identical.
+- **Decisions (Code):** disc **44px**, not 46–48, because 44px = the text block height. At 46px the header grew 2px, which moved all content and made the exact check noisy (the fixed 💬 button and overlays don't move). The static logo is rounded so its white square doesn't show on the grey page.
+- **Deploy** run 41916873763 succeeded, 0 error annotations.
+- **Resume point:** `build` @ `777d82a`. After Chat's OK: PR `build → beta` → JC → PR `beta → main`. Then v2.4.0 installable app. Step 1b not started.
+
+### (Chat) 4 Nov 2026 21:50 — v2.2.0 tagged; v2.3.0 build verified
+- **Prod v2.2.0 verified; tag `v2.2.0` → `2b8578c`** (PR #8 merge) created from Chat.
+- **v2.3.0 on `/build/` verified** (`data_build/` re-seeded):
+  - The static loading screen with JS disabled shows the round App Logo and "Loading Lifecare Companion™…".
+  - The header at 360px and 412px has the round text-free mark top left, the title and names to its right, and the BUILD pill under Help/Settings, right-aligned. **No horizontal overflow** at either width.
+  - `v2.3.0-build.777d82a`. Build vs prod: 12 views, **0 differences**; overlays open. Prod is v2.2.0 and beta v2.2.0-beta.0, both untouched.
+  - Screenshots sent to JC for a visual check.
+- Code's choice of a **44px disc** (not 46px) to keep the header height unchanged is **accepted**.
+- **Go for `build → beta`** once JC is happy with the look.
+
+### (Chat) 4 Nov 2026 22:05 — v2.3.0: header logo sharpness fix before beta
+- **JC:** the header logo's border looks fuzzy. Confirmed at 3× phone resolution: the `header-mark-144.png` source is ~1:1 with 44px × 3 (132 device px), and the thin hand-drawn ring fades to a grey hairline.
+- **Fix prepared from Chat:** `public/brand/header-mark-288.png` (twice the resolution, the original ring replaced with one crisp dark ring), committed to `build` (`ab2cdb4`). Compared side by side at 3×, it's clearly sharper.
+- **Code to do (bug fix within v2.3.0, before beta):** point the header at `header-mark-288.png` (keep 44px and the white disc), remove the unused `header-mark-144.png`, re-run the checks and screenshot baseline, then hand `/build/` back to Chat for a 3× check.
+
+### (Chat) 4 Nov 2026 22:15 — finding: header doesn't scale past 2 people (pre-existing)
+- **JC asked** what happens with longer names or ~5 family members. **Tested from Chat** on `/build/`: 3 extra people with long names (Alexandra, Christopher, Maximilian) were temporarily added to `data_build/`, which was then restored from live (back to `jc`, `becks`).
+- **Result, at 360px and 412px:** no horizontal page overflow, but:
+  - (1) the title (all names joined with " & ") wraps to **4 lines** and pushes the app down;
+  - (2) the person tabs **overlap and become unreadable**, and the "+" gets squashed.
+  - This is **pre-existing** (not caused by v2.3.0), so v2.3.0 isn't blocked.
+- **Proposed fix (own version, v2.5.0, after v2.4.0 unless JC reorders):**
+  - **Title** = the active person's name (one line, ellipsis if long). Later, with households (Step 5), a household name.
+  - **Person tabs** = a horizontally scrollable row: each tab sized to its name (max ~12 characters, then an ellipsis); the active tab scrolled into view; "+" pinned at the end.
+  - Test with 1, 2, 5 and 8 people and long names, at 360/412px.
+  - **Waiting for JC's choice** on the title.
+
+### (Chat) 4 Nov 2026 22:20 — decision: header title = the selected person's name
+- **Decision (JC):** the header title shows **only the name of the person whose tab is selected** (e.g. "JC"; switching to Becks shows "Becks"). One line, with an ellipsis if very long. **No household/family name** (that idea is dropped).
+- Person tabs as proposed: a horizontally scrollable row, each tab sized to its name (max ~12 characters, then an ellipsis), the selected tab scrolled into view, "+" pinned at the end.
+- Ships as **v2.5.0** after v2.4.0 (installable app), through build → beta → main. Test with 1, 2, 5 and 8 people and long names at 360/412px. Chat can stage the extra test people in `data_build/` and restore it afterwards.
+
+### (Chat) 4 Nov 2026 22:25 — v2.5.0 acceptance criteria: every way of switching person
+- **JC asked:** does the title follow a switch from the top tabs **and** from the person switch inside the exercise log? Both call `setActiveTab` + `loadUserSettings` (v1.369.1), so the title should bind to `activeTab`. **It must be proven by tests, not assumed.**
+- **v2.5.0 must pass:**
+  1. **Title** = the selected person's name after a switch via (a) the top person tabs and (b) the person switch inside the exercise log (including after saving a log for the other person). Colour theme and data follow too, as today.
+  2. **The top tab row scrolls the selected tab into view** whenever the active person changes from anywhere, including the exercise-log switch, not only on a tap.
+  3. **The exercise-log person switch gets the same scaling fix** as the top tabs (it's built the same way and has the same overlap problem with many or long names).
+  4. **Code to search for every other place that lists people** (any `Object.keys(data)` person toggle, "Generated for …" labels, etc.), apply the same rules, and list them in the hand-off.
+  5. Playwright tests for 1, 2, 5 and 8 people with long names at 360/412px, covering 1–3. Chat re-checks on `/build/` with staged people in `data_build/`.
+
+### (Code) 4 Nov 2026 — v2.3.0 fix: sharper header logo on `build`, back to Chat
+- **Read:** diff to `e5dbd84` (v2.2.0 tagged; v2.3.0 build verified, 44px accepted; fuzzy-ring finding and `header-mark-288.png` on `build` `ab2cdb4`; header scaling finding; **JC's v2.5.0 decisions**: title = the selected person's name, scrollable person tabs, every switch path incl. the exercise-log switch, tests for 1/2/5/8 people — for later, after v2.4.0).
+- **Done (`build` @ `3900dec`):** header now uses `header-mark-288.png` (44px white disc unchanged); `header-mark-144.png` removed (no other code reference). Lint 0 errors, 19/19 tests. Exact screenshot check vs the v2.3.0 baseline: **only the 44×44 logo box** (16,20)–(60,64) differs in every view; no size changes. 3× phone-resolution close-up: the old ring was a faint hairline, the new one crisp and dark. Baseline updated.
+- **Deploy** run 41921165264 succeeded, 0 error annotations.
+- **Resume point:** `build` @ `3900dec`. After Chat's 3× check and JC's OK on the look: PR `build → beta` → JC → PR `beta → main`. Then v2.4.0, then v2.5.0. Step 1b not started.
+
+### (Chat) 4 Nov 2026 22:30 — v2.3.0 sharpness fix verified
+- At 3× phone resolution on `/build/`, the header loads `header-mark-288.png` (natural 288px, shown at 44px): the ring is crisp and dark and the artwork clear. Screenshot sent to JC.
+- `v2.3.0-build.3900dec`. The static loading screen is fine; no overflow at 360/412px. `data_build/` was re-seeded and build vs prod gives 12 views, **0 differences**. Prod v2.2.0 and beta v2.2.0-beta.0 are untouched.
+- **Go for `build → beta`** once JC confirms the look.
+
+### (Code) 4 Nov 2026 — v2.3.0 on beta: `/beta/` ready for JC (hand-off 2)
+- **Read:** diff to `49560f9` (Chat verified the sharpness fix at 3×; JC approved the look).
+- **Done:** **PR #9 `build → beta`** merged as `66fa117` (shows merged; lint 0 errors). Deploy run 41923480013 succeeded, 0 error annotations: `/beta/` = **v2.3.0-beta.1**; prod unchanged (v2.2.0).
+- **JC to test** `/Life-Care/beta/` on his phone (see the hand-off message).
+- **Resume point:** `beta` @ `66fa117`. After JC's OK: PR `beta → main` (release v2.3.0) → docs → Chat checks and tags. Then v2.4.0 installable app, then v2.5.0. Step 1b not started.
+
+### (Chat) 4 Nov 2026 22:35 — v2.3.0 beta verified; go to release
+- **JC tested `/beta/` on his phone: all good.**
+- **Chat verified:** `v2.3.0-beta.1` with BETA badge, title and noindex; the header loads `header-mark-288.png`; beta vs prod gives 12 views, **0 differences**, and overlays open. Prod v2.2.0 is untouched.
+- **Go to release v2.3.0** (`beta → main`); Chat verifies prod and tags `v2.3.0`. Then v2.4.0 (installable app).
+
+### (Code) 4 Nov 2026 — v2.3.0 released (PR #10 `beta → main`)
+- **Read:** diff to `94c42f9` (JC tested beta: all good; Chat verified; go to release).
+- **Done:** PR #10 merged as `f34513b` (shows merged); merged tree lint 0 errors, build ok (static logo path `/Life-Care/brand/…`). Deploy run 41924275234 succeeded (an older docs-push run was superseded and shows "cancelled", which is normal). Version table, Live Product line and `TECHNICAL_REFERENCE.md` updated.
+- **Chat to check** prod v2.3.0 and tag it.
+- **Resume point:** `main` @ `f34513b` + this entry. Next: v2.4.0 installable app on `build`. Then v2.5.0. Step 1b not started.
