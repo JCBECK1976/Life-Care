@@ -54,6 +54,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v1.374.1 | Energy bar: percentage only (no $ shown to users); 100% level set by admin in Settings; fixed 0% when record lacked `initial` |
 | **v2.0.0** | **Vite migration cutover** (4 Nov 2026): component files, no in-browser Babel, error boundaries, ESLint + Playwright checks, GitHub Actions deploy; behaviour unchanged. Legacy v1.374.2 kept at `/legacy.html` (tag `legacy-v1.374.2`) |
 | v2.1.0 | Build / beta / prod environments (Step 1a): one Pages pipeline for `main`, `beta`, `build`; per-environment data root; `-beta.N` / `-build.<sha>` versions; BUILD/BETA badge and tab-title prefix; noindex on test environments. First release through build → beta → main |
+| v2.1.1 | Unused code removed (no behaviour change): `ExTable`, `StrengthBanner`, `LoadingBtn`, `PBar`, `RC`, `SNACK_TEMPLATES`, `DAY_TYPE`, `DEFAULT_OTHER_GB`, `JC_BASE`, `BECK_BASE`, hidden meds block |
 
 ---
 
@@ -62,7 +63,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v2.1.0 (4 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
+- **Version**: v2.1.1 (4 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -515,3 +516,43 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
   - **Go for `build → beta`.**
 - **Guide error found via Code's note (Chat's mistake from 2 Nov):** APP_GUIDE.md listed "Firebase Data Viewer and data recovery/restore tools" under Settings, but the `data` section is unreachable (nothing sets `section = "data"`). The guide is corrected on `main` (doc-only, live immediately). The build/beta copies pick it up when their branches next merge `main`.
 - **Decision needed from JC:** the unreachable Data section contains real recovery tools (restore missing weeks from comment keys; restore from a Firebase JSON export). Option A: an admin-only "Data tools" button in Settings (its own version, v2.2.0). Option B: remove it in a later clean-up. Chat recommends **A** while Firebase rules are open and backups are manual. It's a safety net only the admin can see.
+
+### (Code) 4 Nov 2026 — v2.1.1 on beta: `/beta/` ready for JC (hand-off 2)
+- **Read:** diff to `7848aa1` (Chat verified `/build/` v2.1.1; APP_GUIDE corrected on `main`; JC chose **Option A** for the Data section: admin-only "Data tools" button in Settings as **v2.2.0**, after v2.1.1 is released).
+- **Done:** `main` merged into `build` (`255589b`, brings the APP_GUIDE fix; lint 0 errors, 15/15 tests). **PR #5 `build → beta`** merged as `244fbdf` (shows merged). Deploy run 41904837925 succeeded: beta rebuilt (new bundle, checks passed) = **v2.1.1-beta.1**; build rebuilt (`v2.1.1-build.255589b`); prod unchanged (v2.1.0).
+- **JC to test** `/Life-Care/beta/` (see the hand-off message).
+- **Resume point:** `beta` @ `244fbdf`. After JC's OK: PR `beta → main` (release v2.1.1), confirm deploy, update version table/Live Product and TECHNICAL_REFERENCE (file layout, unused list), Chat checks and tags. Then v2.2.0 Data tools (Option A). Step 1b not started.
+
+### (Chat) 4 Nov 2026 20:45 — v2.1.1 beta verified; branding and installable-app plan
+- **v2.1.1 beta verified from Chat** (real data, read-only): `v2.1.1-beta.1`, BETA badge and title, noindex; beta vs prod 12 views, **0 differences**; overlays open; the corrected guide is served on beta. JC tested on his phone: OK. **Go to release v2.1.1** (`beta → main`); Chat tags it after verifying prod.
+- **JC requirements (new):**
+  - (1) The app installs on phones as a real app with its own icon, not just a browser shortcut.
+  - (2) JC's three Copilot logos:
+    - **"Button Logo"** (round artwork in a rounded square) → **phone app icon**;
+    - **"App Logo"** (circle with arched name and "My Exercise / My Health / My Eating") → **loading page**;
+    - **"In App Logo"** (circle with the name underneath) → **header, top left**. This pushes the header content right, so the **BUILD/BETA pills move below the Help/Settings buttons**.
+- **Assets prepared from Chat and committed to `build` (`4a3a9e1`, not wired in):**
+  - Originals: `brand/source/`.
+  - `public/brand/`: `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` (artwork within the 80% safe zone), `apple-touch-icon.png`, `favicon.ico`, `favicon-48.png`, `app-logo-640.png`, `in-app-logo-144.png`, `header-mark-144.png` (the same artwork without text; see the header decision below).
+  - `public/brand/beta/` and `public/brand/build/`: tinted icon variants (purple / orange ring and dot) so the installed apps are told apart.
+  - Why the icons were reworked: the Button Logo's own rounded-square frame and shadow would sit inside the phone's mask ("icon in an icon"), so the round artwork alone is placed full-bleed on white.
+- **Order (one change per version, each through build → beta → main):**
+  1. **v2.2.0 — Data tools button** (admin-only, JC chose A earlier).
+  2. **v2.3.0 — logos:**
+     - A **loading screen** with `app-logo-640.png` centred (~200–240px) and "Loading Lifecare Companion™…" below. It's also put as **static HTML in `index.html`**, so it shows instantly before JS runs; React's loading screen matches it, so there's no flash.
+     - The **header logo** top left: about 44–48px, a white disc on the navy header. Header text moves right. **BUILD/BETA pill moves under Help/Settings** (right column). It must fit at 360px width with no overflow or wrapping.
+     - **Header image: waiting on JC's choice.** A = "In App Logo" (with text, as he asked) or B = the same artwork without text (`header-mark-144.png`). Chat's mock-up shows the name is illegible at header size and duplicates the "LIFECARE COMPANION™" text beside it; Chat recommends B.
+  3. **v2.4.0 — installable app (PWA):**
+     - A **manifest per environment** with a distinct `id`, `name` and `short_name`: prod "Lifecare Companion" / "Lifecare"; beta "Lifecare BETA" / "LC Beta"; build "Lifecare BUILD" / "LC Build".
+     - `start_url` and `scope` = that environment's base; `display: standalone`; `theme_color` = the header navy; `background_color` white; icons from `public/brand/` (beta/build use their tinted sets); `apple-touch-icon` and favicon linked in `index.html`.
+     - A **minimal service worker** per environment scope that is **network-only** (no caching, and never touches Firebase or Anthropic requests). It's only there to meet install requirements; caching belongs to Step 1b.
+     - **APP_GUIDE.md:** how to install on Android (Chrome and Samsung Internet → menu → Install app / Add to Home screen), and that BETA and BUILD install as separate apps.
+     - **Note for go-live:** an app installed from github.io won't move to `lifecarecompanion.app`; it has to be reinstalled once after the domain move. Tell users at go-live.
+- Step 1b stays after these.
+
+### (Code) 4 Nov 2026 — v2.1.1 released (PR #6 `beta → main`)
+- **Read:** diff to `680deda` (Chat verified v2.1.1 beta; JC OK; v2.2.0 → v2.3.0 → v2.4.0 plan; brand assets on `build` @ `4a3a9e1`; header logo A/B awaiting JC).
+- **Done:** PR #6 merged as `2ff9d5c` (shows merged); merged tree lint 0 errors, build ok. Deploy run 41909279630 succeeded (prod strict checks passed). Version table and Live Product line → v2.1.1. `TECHNICAL_REFERENCE.md`: version, file layout (removed files, `EnvBadge`, Data section note), unused list closed, §12 rewritten for the three environments and pipeline. `CLAUDE.md`: source flow and deploy lines for build → beta → main.
+- **Chat to check** prod v2.1.1 and tag it.
+- **Note:** JC's header-logo choice (A "In App Logo" / B text-free mark) still isn't recorded; needed before v2.3.0, not before v2.2.0.
+- **Resume point:** `main` @ `2ff9d5c` + this entry. Next: v2.2.0 Data tools on `build` (from `build` @ `4a3a9e1`, which carries the unwired brand assets). Step 1b not started.

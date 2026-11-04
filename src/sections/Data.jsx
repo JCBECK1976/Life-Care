@@ -1,14 +1,16 @@
 import firebase, { DATA_ROOT } from "../lib/firebase.js";
+import { btnMuted } from "../constants/styles.js";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
 export default function DataSection({ ctx }) {
   const {
-    accent, accentBorder, accentLight, data, dataExpandEx, saveData, setDataExpandEx, setFormMsg
+    accent, accentBorder, accentLight, data, dataExpandEx, saveData, setDataExpandEx, setFormMsg, setSection
   } = ctx;
 
   return (
 <div>
+  <button onClick={function() { setSection("admin"); }} style={{ ...btnMuted, marginBottom: 12 }}>← Back to Settings</button>
   <div style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 12 }}>Firebase Data Viewer</div>
   {(() => {
     if (!data) return (<div style={{fontSize:11,color:"#94a3b8"}}>No data loaded</div>);

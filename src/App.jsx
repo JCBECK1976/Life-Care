@@ -1824,9 +1824,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         {/* HEALTH */}
         {section === "bloods" && <ErrorBoundary name="Health"><HealthSection ctx={{ accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, bloodInputs, customBloodTests, customMedNames, data, editHealthText, editMedIdx, editingHealthLog, getCrossSectionCtx, getOnboardingCtx, healthComment, healthFb, healthFbAll, healthFbExpanded, healthFbLoading, healthView, isJC, medInputs, p, saveData, setBloodInputs, setCustomMedNames, setEditHealthText, setEditMedIdx, setEditingHealthLog, setFormMsg, setHealthComment, setHealthFb, setHealthFbExpanded, setHealthFbLoading, setHealthView, setMedInputs, setShowBloodForm, setShowBloodResults, setShowMedForm, setVitalsInput, setWeekOff, showBloodForm, showBloodResults, showMedForm, userMood, vitalsInput, weekLabel }} /></ErrorBoundary>}
 
-{section === "admin" && (<ErrorBoundary name="Settings"><SettingsSection ctx={{ accentBtnLight, activeTab, companionEnergy, connectGoogle, customMeasTypes, debugLog, debugMode, googleConnected, isAdmin, isJC, measInputs, setCustomMeasTypes, setDebugLog, setDebugMode, setFormMsg, setGoogleConnected, setGoogleToken, setMeasInputs, setUserColour, syncGoogleHealth, syncLoading, userColour }} /></ErrorBoundary>)}
+{section === "admin" && (<ErrorBoundary name="Settings"><SettingsSection ctx={{ accentBtnLight, activeTab, companionEnergy, connectGoogle, customMeasTypes, debugLog, debugMode, googleConnected, isAdmin, isJC, measInputs, setCustomMeasTypes, setDebugLog, setDebugMode, setFormMsg, setGoogleConnected, setGoogleToken, setMeasInputs, setUserColour, syncGoogleHealth, syncLoading, userColour , setSection}} /></ErrorBoundary>)}
 
-{section === "data" && (<ErrorBoundary name="Data"><DataSection ctx={{ accent, accentBorder, accentLight, data, dataExpandEx, saveData, setDataExpandEx, setFormMsg }} /></ErrorBoundary>)}
+{section === "data" && isAdmin && (<ErrorBoundary name="Data"><DataSection ctx={{ accent, accentBorder, accentLight, data, dataExpandEx, saveData, setDataExpandEx, setFormMsg, setSection }} /></ErrorBoundary>)}
 
       </div>
 

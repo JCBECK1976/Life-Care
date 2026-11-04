@@ -1,6 +1,6 @@
 import { COLOUR_THEMES } from "../constants/themes.js";
 import { sSet } from "../lib/storage.js";
-import { btnAction, btnClear, btnDelete, btnP, btnStop, inputStyle, labelStyle } from "../constants/styles.js";
+import { btnAction, btnClear, btnDelete, btnMuted, btnP, btnStop, inputStyle, labelStyle } from "../constants/styles.js";
 import { DEFAULT_DATA } from "../constants/defaultData.js";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
@@ -8,7 +8,7 @@ import { DEFAULT_DATA } from "../constants/defaultData.js";
 export default function SettingsSection({ ctx }) {
   const {
     accentBtnLight, activeTab, companionEnergy, connectGoogle, customMeasTypes, debugLog, debugMode, googleConnected,
-    isAdmin, isJC, measInputs, setCustomMeasTypes, setDebugLog, setDebugMode, setFormMsg, setGoogleConnected,
+    isAdmin, isJC, measInputs, setCustomMeasTypes, setSection, setDebugLog, setDebugMode, setFormMsg, setGoogleConnected,
     setGoogleToken, setMeasInputs, setUserColour, syncGoogleHealth, syncLoading, userColour
   } = ctx;
 
@@ -114,6 +114,13 @@ export default function SettingsSection({ ctx }) {
 
               {debugLog.length > 0 && <div style={{ marginTop: 8 }}><button onClick={function() { setDebugLog([]); }} style={{...btnClear, fontSize: 10, marginTop: 4}}>🗑 Clear Log</button></div>}
             </div>)}
+          </div>)}
+
+          {/* Data tools — Admin only (v2.2.0): opens the Firebase Data Viewer and recovery tools */}
+          {isAdmin && (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🗂 Data tools</div>
+            <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8 }}>View the data stored in Firebase and use the recovery tools (restore missing weeks, restore from a Firebase export).</div>
+            <button onClick={function() { setSection("data"); window.scrollTo(0, 0); }} style={{ ...btnMuted, width: "100%" }}>Open Data tools</button>
           </div>)}
         </div>
   );
