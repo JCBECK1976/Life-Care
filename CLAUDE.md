@@ -23,7 +23,7 @@ Owner: JC (not a developer). Live app used daily by JC and Becks. Full brief: `M
 11. Keep this file short (under 60 lines).
 
 ## Session limits and where things go
-- Docs (HANDOVER.md etc.) are committed **straight to `main`**. Since v2.0.0 a push to `main` deploys, so source changes go on a short-lived branch and reach `main` by PR only after JC approves (preview process: HANDOVER.md §4 open item).
+- Docs (HANDOVER.md etc.) are committed **straight to `main`**. Source: commit to **`build`** → Chat verifies `/build/` → PR `build → beta` (merge commit) → JC tests `/beta/` → PR `beta → main` (release; Chat tags it). Never push source straight to `beta` or `main`.
 - No tag pushes and no PAT from Code sessions: report what's needed; Chat or JC does it.
 - **No live Firebase from Code.** Dev and tests use the local emulator only. Never run `firebase deploy`.
 - The Firebase backup lives outside the repo (`/home/user/firebase-backup/`). Never commit or print it.
@@ -39,9 +39,9 @@ npm run lint              # ESLint: no-undef + React hooks rules, must show 0 er
 npm test                  # Playwright smoke tests (emulator + mocked Claude API)
 ```
 
-## Deploy (since v2.0.0)
-Push to `main` → GitHub Actions (`.github/workflows/deploy.yml`) runs lint + build and deploys `dist/` to Pages.
-Only after JC has tested and approved. Rollback: `/Life-Care/legacy.html` (the v1.374.2 single file), then `git revert` the bad commit.
+## Deploy (since v2.1.0)
+A push to `main`, `beta` or `build` rebuilds all three into Pages: prod `/Life-Care/` (data `data`), `/beta/` (data `data`), `/build/` (data `data_build`). Only main's workflow deploys. Prod failures stop the deploy; beta/build failures skip that environment.
+Releases only after JC has tested beta and approved. Rollback: `/Life-Care/legacy.html` (the v1.374.2 single file), then `git revert` the bad merge.
 After a deploy, tell JC to close the tab and reopen it, and check the footer version.
 
 ## Pointers

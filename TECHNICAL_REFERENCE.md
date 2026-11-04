@@ -1,7 +1,7 @@
 # Technical Reference — Life Care Companion
 
 > **Purpose**: Complete technical architecture reference for any developer continuing this project.  
-> **Version**: v2.0.0 (Vite build, 4 Nov 2026) | **Source**: `src/` (component files)  
+> **Version**: v2.1.1 (Vite build, 4 Nov 2026) | **Source**: `src/` (component files)  
 > **Live**: https://jcbeck1976.github.io/Life-Care  
 > **Repo**: https://github.com/JCBECK1976/Life-Care
 
@@ -41,10 +41,10 @@ SheetJS (xlsx) was dropped in v2.0.0: nothing used it after the file import was 
 | `index.html` | Page shell (head, CSS, `#root`, GIS script, `src/main.jsx`) |
 | `src/main.jsx` | Mounts `<Dashboard />` in the app-level error boundary |
 | `src/App.jsx` | `Dashboard`: all hooks, data loading, `saveData`, `loadUserSettings`, AI handlers (`generateFeedback`, `generateEatFeedback`, `threadReply`, `askHelp`, `askQuestion`, `handleFitdaysImage`, …), Google Health sync, RAG recalculation, header, person tabs, navigation, footer, and where each section/overlay is placed |
-| `src/sections/` | `Home.jsx` (overview), `Body.jsx`, `Exercise.jsx` (weights), `Eating.jsx` (meals; includes `MealSelect`, add/update item flow, publishes `window._confirmReviewItem`), `Shop.jsx`, `Health.jsx` (bloods), `Settings.jsx` (admin), `Data.jsx`, `HiddenMeds.jsx` (old block, never shown) |
-| `src/components/` | `ReviewItemOverlay`, `HelpPanel`, `ChatPanel`, `PrivacyPolicy`, `FeedbackForm`, `ErrorBoundary`, `charts.jsx` (`MiniChart`, `FullChart`, `BodyCard`, `PBar`), `exercise.jsx` (`ExTable`, `StrengthBanner`), `LoadingBtn` |
+| `src/sections/` | `Home.jsx` (overview), `Body.jsx`, `Exercise.jsx` (weights), `Eating.jsx` (meals; includes `MealSelect`, add/update item flow, publishes `window._confirmReviewItem`), `Shop.jsx`, `Health.jsx` (bloods), `Settings.jsx` (admin), `Data.jsx` (Firebase Data Viewer; not reachable yet — admin "Data tools" button planned for v2.2.0) |
+| `src/components/` | `ReviewItemOverlay`, `HelpPanel`, `ChatPanel`, `PrivacyPolicy`, `FeedbackForm`, `ErrorBoundary`, `EnvBadge` (BUILD/BETA badge), `charts.jsx` (`MiniChart`, `FullChart`, `BodyCard`) |
 | `src/lib/` | `firebase.js` (config; dev-only emulator switch), `storage.js` (`sGet`/`sSet`), `api.js` (`ensureApiKey`, `API_PRICES`, `trackApiUsage`, the `window.fetch` wrapper, `isEnergyEmpty`, `aiErrorMsg`, `handleApiError`), `aiContext.js` (mood/profile/journal context), `exercise.js` (type helpers, `nextPin`, reps parsing, `autoStatus`), `utils.js` (dates, `mealKey`, status colours, `parseStLb`, `fbIcon`, `calcWeek`), `colour.js` (HSL helpers, `accentVariant`) |
-| `src/constants/` | `version.js` (**`APP_VERSION`, the only place the version is set**), `tone.js`, `mood.js`, `themes.js`, `defaultData.js`, `food.js`, `exercise.js`, `health.js`, `styles.js` (static button/input styles) |
+| `src/constants/` | `version.js` (**`APP_VERSION_BASE`, the only place the version is set**; adds `-beta.N` / `-build.<sha>` per environment), `tone.js`, `mood.js`, `themes.js`, `defaultData.js`, `food.js`, `exercise.js`, `health.js`, `styles.js` (static button/input styles) |
 | `public/legacy.html` | The v1.374.2 single file, served at `/Life-Care/legacy.html` (rollback) |
 | `APP_GUIDE.md` (root) | The user guide. One copy only: `vite.config.js` serves it in dev and copies it next to `index.html` in builds (Help fetches it with a relative URL) |
 | `tests/` | Playwright: `smoke-load`, `eating`, `exercise`, `companion`, `error-boundary`, opt-in `visual`; `mock-ai.js` answers by prompt shape |
@@ -52,7 +52,7 @@ SheetJS (xlsx) was dropped in v2.0.0: nothing used it after the file import was 
 | `firebase.json`, `emulator.rules.json` | Emulator config only (open rules, local). Not production rules. |
 | `.github/workflows/deploy.yml` | Lint, build and deploy to Pages |
 
-Unused code still present (listed, not removed; clean-up is a separate version): `ExTable`, `StrengthBanner`, `LoadingBtn`, `PBar`, `RC`, `SNACK_TEMPLATES`, `DAY_TYPE`, `DEFAULT_OTHER_GB`, `JC_BASE`, `BECK_BASE`, `HiddenMeds`.
+Unused code listed at checkpoint (c) was removed in v2.1.1 (`ExTable`, `StrengthBanner`, `LoadingBtn`, `PBar`, `RC`, `SNACK_TEMPLATES`, `DAY_TYPE`, `DEFAULT_OTHER_GB`, `JC_BASE`, `BECK_BASE`, hidden meds block).
 
 ---
 
@@ -525,18 +525,23 @@ Generates meal suggestions using only custom-added items (with RAG status), neve
 
 ## 12. Deployment
 
-### GitHub Actions (since v2.0.0)
-- Settings → Pages → Source = **GitHub Actions**. `.github/workflows/deploy.yml` runs on every push to `main` (and by hand): `npm ci` → `npm run build` (ESLint 0 errors + Vite build) → check `dist/index.html` and `dist/APP_GUIDE.md` → deploy `dist/`.
-- If `main` has no `package.json` (e.g. the Vite merge reverted), it publishes the repo files as they are (the legacy app).
-- Rollback: `/Life-Care/legacy.html` at once, then `git revert` the bad commit.
-- The old Contents-API PUT of `index.html` and its Babel/scope checks are retired.
+### Three environments (since v2.1.0)
+| Env | URL | Branch | Data root | Version shown |
+|---|---|---|---|---|
+| prod | `/Life-Care/` | `main` | `data` | `v2.X.Y` |
+| beta | `/Life-Care/beta/` | `beta` | `data` (real) | `v2.X.Y-beta.N` (N = promotions since the last release) |
+| build | `/Life-Care/build/` | `build` | `data_build` (copy, re-seeded by Chat) | `v2.X.Y-build.<sha>` |
+- **Flow:** commit to `build` → Chat verifies → PR `build → beta` (merge commit) → JC tests → PR `beta → main` = release → Chat verifies and tags. No source pushes straight to `beta` or `main`; doc-only commits go straight to `main`.
+- **Pipeline:** Settings → Pages → Source = **GitHub Actions**. `.github/workflows/deploy.yml`: only **main's** run builds and deploys; pushes to `build`/`beta` ask it to run (`workflow_dispatch`). `scripts/build-pages.sh` builds all three branches (each `npm ci`, lint, `vite build --base …` with `VITE_APP_ENV`, `VITE_DATA_ROOT`, `VITE_BUILD_SHA`, `VITE_BETA_N`) into one artifact; `scripts/check-pages.mjs` checks it. **Prod is strict** (any failure stops the deploy); a beta/build failure leaves that folder out, is reported loudly (log, annotation, job summary), and prod still deploys.
+- Build/beta: BUILD/BETA badge, tab-title prefix, `noindex`; `legacy.html` only at the root. Each environment has its own `APP_GUIDE.md`.
+- Rollback: `/Life-Care/legacy.html` at once, then `git revert` the bad merge on `main`. If `main` has no `package.json`, prod is published as plain files (legacy).
 
 ### Pre-Deploy Checklist
 1. ✅ `npm run lint` (0 errors) and `npm run build`
 2. ✅ `npm test` with the emulator running (`npm run emulator`, `npm run seed`)
 3. ✅ Update `APP_GUIDE.md` for any user-visible change
-4. ✅ Bump `APP_VERSION` in `src/constants/version.js`: feature/layout `v2.X.0`, bug fix `v2.X.Y`
-5. ✅ One change per version; JC approves before it reaches `main`
+4. ✅ Bump `APP_VERSION_BASE` in `src/constants/version.js`: feature/layout `v2.X.0`, bug fix `v2.X.Y`
+5. ✅ One change per version, through build → Chat → beta → JC → main
 6. After deploy: JC closes and reopens the tab and checks the footer version
 
 ### GitHub PAT
