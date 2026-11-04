@@ -650,3 +650,9 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
   3. **The exercise-log person switch gets the same scaling fix** as the top tabs (it's built the same way and has the same overlap problem with many or long names).
   4. **Code to search for every other place that lists people** (any `Object.keys(data)` person toggle, "Generated for …" labels, etc.), apply the same rules, and list them in the hand-off.
   5. Playwright tests for 1, 2, 5 and 8 people with long names at 360/412px, covering 1–3. Chat re-checks on `/build/` with staged people in `data_build/`.
+
+### (Code) 4 Nov 2026 — v2.3.0 fix: sharper header logo on `build`, back to Chat
+- **Read:** diff to `e5dbd84` (v2.2.0 tagged; v2.3.0 build verified, 44px accepted; fuzzy-ring finding and `header-mark-288.png` on `build` `ab2cdb4`; header scaling finding; **JC's v2.5.0 decisions**: title = the selected person's name, scrollable person tabs, every switch path incl. the exercise-log switch, tests for 1/2/5/8 people — for later, after v2.4.0).
+- **Done (`build` @ `3900dec`):** header now uses `header-mark-288.png` (44px white disc unchanged); `header-mark-144.png` removed (no other code reference). Lint 0 errors, 19/19 tests. Exact screenshot check vs the v2.3.0 baseline: **only the 44×44 logo box** (16,20)–(60,64) differs in every view; no size changes. 3× phone-resolution close-up: the old ring was a faint hairline, the new one crisp and dark. Baseline updated.
+- **Deploy** run 41921165264 succeeded, 0 error annotations.
+- **Resume point:** `build` @ `3900dec`. After Chat's 3× check and JC's OK on the look: PR `build → beta` → JC → PR `beta → main`. Then v2.4.0, then v2.5.0. Step 1b not started.
