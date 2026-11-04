@@ -641,3 +641,12 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Decision (JC):** the header title shows **only the name of the person whose tab is selected** (e.g. "JC"; switching to Becks shows "Becks"). One line, with an ellipsis if very long. **No household/family name** (that idea is dropped).
 - Person tabs as proposed: a horizontally scrollable row, each tab sized to its name (max ~12 characters, then an ellipsis), the selected tab scrolled into view, "+" pinned at the end.
 - Ships as **v2.5.0** after v2.4.0 (installable app), through build → beta → main. Test with 1, 2, 5 and 8 people and long names at 360/412px. Chat can stage the extra test people in `data_build/` and restore it afterwards.
+
+### (Chat) 4 Nov 2026 22:25 — v2.5.0 acceptance criteria: every way of switching person
+- **JC asked:** does the title follow a switch from the top tabs **and** from the person switch inside the exercise log? Both call `setActiveTab` + `loadUserSettings` (v1.369.1), so the title should bind to `activeTab`. **It must be proven by tests, not assumed.**
+- **v2.5.0 must pass:**
+  1. **Title** = the selected person's name after a switch via (a) the top person tabs and (b) the person switch inside the exercise log (including after saving a log for the other person). Colour theme and data follow too, as today.
+  2. **The top tab row scrolls the selected tab into view** whenever the active person changes from anywhere, including the exercise-log switch, not only on a tap.
+  3. **The exercise-log person switch gets the same scaling fix** as the top tabs (it's built the same way and has the same overlap problem with many or long names).
+  4. **Code to search for every other place that lists people** (any `Object.keys(data)` person toggle, "Generated for …" labels, etc.), apply the same rules, and list them in the hand-off.
+  5. Playwright tests for 1, 2, 5 and 8 people with long names at 360/412px, covering 1–3. Chat re-checks on `/build/` with staged people in `data_build/`.
