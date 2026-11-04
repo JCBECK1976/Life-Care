@@ -740,3 +740,31 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
   - fix the wrong Samsung menu name.
   - Then build → Architect check → beta as **v2.4.0-beta.2** (JC quick look) → release. Rejected: B (release now, fix on `main`), because live Help would give known-wrong steps and the guide copies would drift across environments.
 - **Principle:** `APP_GUIDE.md` changes that accompany a feature ship with that feature through the flow. Direct `main` guide edits are only for correcting live errors unrelated to an in-flight release (as with the Data Viewer line).
+
+### (Coder) 4 Nov 2026 — v2.4.0 guide correction on `build`: ready for the Architect
+- **Read:** diff to `ed1df55` (Architect: option A; guide changes ship with their feature through the flow).
+- **Done (`build` @ `1105972`; `main` merged in first):** APP_GUIDE "Installing the app on your phone" now:
+  - recommends **Chrome**: ⋮ → **Install and create shortcut** → **Install** → **Install** (choose Install, not Create shortcut);
+  - warns that Samsung Internet's **Add page to → Install as web app** may be **blocked by Google Play Protect**: press OK and use Chrome, don't "Install anyway";
+  - notes that **Add page to → Home screen** is only a bookmark.
+  - Guide-only change, no code change; version stays v2.4.0.
+- **Deploy** run 41935345616 succeeded, 0 error annotations. `/build/` = `v2.4.0-build.1105972`.
+- **Resume point:** `build` @ `1105972`. After the Architect's check: PR `build → beta` (→ **v2.4.0-beta.2**), JC quick look, then release. Step 1b and v2.5.0 not started.
+
+### (Architect) 4 Nov 2026 23:50 — v2.4.0 guide fix verified on build
+- `/build/APP_GUIDE.md` install section verified: it recommends Chrome (⋮ → Install and create shortcut → Install → Install, "choose Install, not Create shortcut"), warns about Play Protect in Samsung Internet ("don't tap Install anyway"; use Chrome), and notes that Add page to → Home screen = bookmark only. Footer `v2.4.0-build.1105972`.
+- **Help answer tested from the Architect** (direct API call with the same Help system prompt plus the build guide; the sandbox blocks only the browser path): "How do I install the app?" and the Play Protect question both get correct, Chrome-first answers.
+- **Go for `build → beta`** (v2.4.0-beta.2), then JC's quick look, then release.
+
+### (Coder) 4 Nov 2026 — v2.4.0 guide fix on beta: v2.4.0-beta.2 ready for JC's quick look
+- **Read:** diff to `98e1f73` (Architect verified the guide fix on `/build/`, incl. Help answers via the AI API; go for beta).
+- **Done:** **PR #12 `build → beta`** merged as `07432cd` (shows merged). Deploy run 41936551652 succeeded, 0 error annotations: `/beta/` = **v2.4.0-beta.2**; prod unchanged (v2.3.0).
+- **Resume point:** `beta` @ `07432cd`. On JC's OK: PR `beta → main` (release v2.4.0) → docs → the Architect checks and tags. Then v2.5.0. Step 1b not started.
+
+### (Architect) 4 Nov 2026 23:55 — decision: hold v2.4.0; release v2.4.0 and v2.5.0 to prod together
+- **JC's quick look of v2.4.0-beta.2: OK** (the installed Lifecare BETA app; Help recommends Chrome). Architect check: the beta guide is byte-identical to the verified build guide, and the beta manifest is correct.
+- **Decision (JC):** don't release v2.4.0 on its own. Build **v2.5.0** next (header title = selected person; scrollable person tabs; all person-switch paths, per the acceptance criteria above) through build → Architect → beta → JC. Then **one prod release takes prod from v2.3.0 to v2.5.0**, containing both versions.
+  - Trade-off accepted: a v2.5.0 problem would delay the installable app reaching prod.
+- **Process notes:**
+  - v2.4.0 and v2.5.0 stay separate versions and commits. Prod has no v2.4.0 release, so **no `v2.4.0` tag**; the Architect tags `v2.5.0` at the release merge, and the version table notes that v2.4.0 shipped to prod inside v2.5.0.
+  - **The many-people check runs on `/build/` only.** The Architect stages extra long-named people in `data_build/` for verification and restores it afterwards. Beta uses real data (2 people), so JC's beta test covers the 2-person look and the switch paths.
