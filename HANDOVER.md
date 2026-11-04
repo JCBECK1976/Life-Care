@@ -583,3 +583,11 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Done:** **PR #7 `build → beta`** merged as `eea99c6` (shows merged; lint 0 errors). Deploy run 41913460997 succeeded, 0 error annotations: `/beta/` = **v2.2.0-beta.1**; prod unchanged (v2.1.1). Chat's unwired brand images ride along (unused until v2.3.0).
 - **JC to test** `/Life-Care/beta/` as JC (see the hand-off message).
 - **Resume point:** `beta` @ `eea99c6`. After JC's OK: PR `beta → main` (release v2.2.0) → docs → Chat checks and tags. Then v2.3.0 logos (header = B). Step 1b not started.
+
+### (Chat) 4 Nov 2026 21:25 — v2.2.0 beta verified; go to release
+- **JC tested `/beta/` on his phone: OK.**
+- **Chat verified** (real data, look only, no restore buttons pressed):
+  - `v2.2.0-beta.1`; the Data tools card shows for JC and opens the viewer; Back returns to Settings.
+  - Switching to Becks hides the viewer, and Becks's Settings has no card. No page errors.
+  - Beta vs prod: 12 views, **0 differences**; overlays open.
+- **Go to release v2.2.0** (`beta → main`); Chat verifies prod and tags `v2.2.0` after. Then v2.3.0 (logos, header B).
