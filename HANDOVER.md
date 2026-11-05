@@ -768,3 +768,18 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Process notes:**
   - v2.4.0 and v2.5.0 stay separate versions and commits. Prod has no v2.4.0 release, so **no `v2.4.0` tag**; the Architect tags `v2.5.0` at the release merge, and the version table notes that v2.4.0 shipped to prod inside v2.5.0.
   - **The many-people check runs on `/build/` only.** The Architect stages extra long-named people in `data_build/` for verification and restores it afterwards. Beta uses real data (2 people), so JC's beta test covers the 2-person look and the switch paths.
+
+### (Coder) 5 Nov 2026 — v2.5.0 on `build`: ready for the Architect (hand-off 1)
+- **Read:** diff to `e5f1114` (JC: hold v2.4.0; build v2.5.0; one prod release v2.3.0 → v2.5.0; many-people check on `/build/` only).
+- **Done (`build` @ `4644cb9`, on top of v2.4.0):**
+  - **Header title** = the selected person's name only (one line, ellipsis).
+  - **`PersonTabs`** component for the header and the exercise log: each tab at least its name's width; names over 12 characters cut with "…" (full name as tooltip); with few people the tabs share the width as before (2-person look unchanged); with many the row scrolls; "+" pinned at the end. The selected tab is scrolled into view **sideways only** whenever the selected person changes from anywhere, and whenever the row or a tab resizes.
+  - **Exercise-log switch:** uses `PersonTabs`; its save/switch/restore logic moved byte for byte; labels from profile names (were hard-coded "JC"/"Becks").
+- **Every place that lists people (criterion 4):**
+  - *Fixed:* header title (App), top person tabs (App), exercise-log switch (Exercise), Data Viewer section headers (Data, showed the raw key "Jc"), Eating "Individual for just …" text (was hard-coded "JC"/"Becks").
+  - *Not display, no change:* colour index (App `personKeys`), copying meal defaults to the other people (Eating ×3), shopping-list prompt (Shop).
+  - *Found, not fixed (2-person assumptions; Step 3/5, JC to decide):* `isJC ? data.jc : data.becks` in App and 4× in Exercise, so **people 3+ currently see Becks's data**; Data restore-from-backup only restores `["jc", "becks"]`.
+- **Bug found by the stricter test and fixed:** after saving a log with 5+ people, the selected tab ended 2px out of view, because the tab's letter-spacing was still animating when the scroll was measured. It's now re-checked on every row and tab resize. Traced before fixing (an earlier guess, the page scrollbar, was wrong).
+- **Checks:** lint 0 errors; **41/41 tests**, twice; new `tests/people.spec.js` (17 tests): 1, 2, 5 and 8 people with long names at 360/412px; layout, every top tab, the exercise-log switch incl. after saving a log, colour theme both ways. Exact screenshot check (2 people): only the title text and the version differ (plus ≤10px off by 1 on the active tab pill, from the new scroll layer). APP_GUIDE updated.
+- **Deploy** run 41938866256 succeeded, 0 error annotations. `/build/` = `v2.5.0-build.4644cb9`.
+- **Resume point:** `build` @ `4644cb9`. After the Architect's check with staged people: PR `build → beta` → JC (2-person look, switch paths, plus install) → one release `beta → main` (v2.3.0 → v2.5.0; Architect tags `v2.5.0` only). Step 1b not started.
