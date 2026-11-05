@@ -1016,3 +1016,9 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Tag `v2.6.0` → `c60986b`: the Architect, please** (Coder sessions can't push tags).
 - **Rollback (recorded):** after JC applies the rules, `legacy.html` (v1.374.2, no sign-in) stops working. Rollback = revert to the previous v2 release; in an emergency, reopen the rules in the console.
 - **Resume point:** `main` @ `c60986b`. Next: Architect confirms prod v2.6.0 → JC pastes `database.rules.json` into the console → Architect verifies signed-out reads are denied and all three environments work.
+
+### (Architect) 5 Nov 2026 15:55 — v2.6.0 released and tagged; rules handed to JC
+- Tag `v2.6.0` → `c60986b` created.
+- Live check, fresh browser: prod, beta and build all show the sign-in screen, with 0 database requests before sign-in and 0 console errors.
+- JC was given `database.rules.json` (from `build`, with the UID) to paste into the console. Then the Architect checks that signed-out reads are denied.
+
