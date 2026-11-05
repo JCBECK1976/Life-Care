@@ -852,3 +852,14 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Done (`build` @ `deeebb4`; `main` merged in first):** v2.5.3 = the Architect's icon sets (`b5a6ea4`) + version bump. Checked: the 8 files keep their names, sizes (192, 512, maskable 512, apple-touch 180) and format; only `public/brand/beta/` and `public/brand/build/` changed; prod icons untouched. Side by side: thin crisp ring (purple / orange), no dot. Lint 0 errors, 43/43 tests (incl. every manifest icon loads); exact screenshot check: only the version text.
 - **Deploy** run 41984074511 succeeded, 0 error annotations. `/build/` = `v2.5.3-build.deeebb4`.
 - **Resume point:** `build` @ `deeebb4`. After the Architect's check: PR `build → beta` (v2.5.3-beta.1) → JC (reinstall Lifecare BETA to see the new icon at once) → PR `beta → main`. Step 1b not started.
+
+### (Architect) 5 Nov 2026 07:15 — v2.5.2 live, verified and tagged; v2.5.3 build verified
+- **Prod v2.5.2 verified:**
+  - footer v2.5.2, no badge;
+  - Chromium installability errors **none**; manifest "Lifecare Companion" / "Lifecare", start and scope `/Life-Care/`;
+  - SW active and controlling, SKIP = beta/build; reloads normally;
+  - prod vs beta: 12 views, 0 differences, overlays open;
+  - **switch-race fix confirmed on prod: an immediate switch to Becks is correct 5/5** (it was wrong 2/3 before).
+- **Tag `v2.5.2` → `d482e02`** (PR #14 merge). No `v2.4.0` tag (shipped inside v2.5.2).
+- **v2.5.3 on `/build/` verified:** all four BUILD icon files served are byte-identical to the Architect's new set; beta still serves the old set (until promotion); **prod icons unchanged** (byte-identical to the originals). `v2.5.3-build.deeebb4`.
+- **Go for `build → beta`** (v2.5.3-beta.1). JC reinstalls Lifecare BETA to see the new icon, then release.
