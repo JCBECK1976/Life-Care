@@ -1,0 +1,14 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "data": {
+      ".read": "auth != null && auth.uid === '__UID__'",
+      ".write": "auth != null && auth.uid === '__UID__'"
+    },
+    "data_build": {
+      ".read": "auth != null && auth.uid === '__UID__'",
+      ".write": "auth != null && auth.uid === '__UID__'"
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import firebase from "firebase/compat/app";
 import "firebase/compat/database";
+import "firebase/compat/auth";
 
 // Firebase Config (unchanged from the legacy index.html)
 firebase.initializeApp({
@@ -14,8 +15,14 @@ firebase.initializeApp({
 
 // Dev server and tests only: use the local Firebase emulator, never live data.
 // import.meta.env.DEV is false in every build, so this is removed from production.
+// v2.6.0: Google sign-in. Users stay signed in on the device (local persistence, the default).
+export const auth = firebase.auth();
+
 if (import.meta.env.DEV) {
   firebase.database().useEmulator("127.0.0.1", 9000);
+  auth.useEmulator("http://127.0.0.1:9099", { disableWarnings: true });
+  // Tests sign in as a fake emulator user (dev server only; removed from builds).
+  window.__lcTestSignIn = (email, password) => auth.signInWithEmailAndPassword(email, password).then(() => true);
 }
 
 // Where the app's data lives in Firebase. Set per environment by the deploy workflow:
