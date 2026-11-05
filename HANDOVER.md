@@ -980,3 +980,17 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 
 **Token budget is tight (82%+ weekly):** keep reports short, and don't re-run unchanged checks.
 
+
+### (Coder) 5 Nov 2026 — v2.6.0 security pass on `build`: hand-off 1
+- **Read:** §7 from "(Architect) 5 Nov 2026 12:35" (ways of working; open rules confirmed; BRIEF v2.6.0).
+- **Database paths the app uses:** all under `DATA_ROOT`, i.e. `data/` (prod, beta) or `data_build/` (build). These are every `sGet`/`sSet` key (incl. `anthropic_api_key`, `companion_energy`, feedback, journal, mood and so on), `ref(DATA_ROOT)` (Data Viewer, comment queries) and `ref(DATA_ROOT + "/" + key)`. Nothing else, so the two rule blocks cover everything.
+- **Done (`build` @ `da62a11`, v2.6.0):**
+  - `AuthGate`: Google sign-in (popup; redirect fallback if blocked); data loads only after sign-in **and** an access probe; denied shows "This Google account doesn't have access" + Sign out; other errors show Try again + Sign out.
+  - Settings → 🔐 Account (masked email, Sign out).
+  - `database.rules.json` (`__UID__` placeholder; no email in the repo).
+  - The emulator runs database + auth with the real rules (test UID, generated `emulator.rules.json`).
+  - Tests: rules allow / deny, sign-in screen, denied screen, account card and persistence; all tests sign in.
+  - APP_GUIDE "Signing in" (the install tip is already in the guide).
+- **Checks:** lint 0 errors, **47/47 tests**; prod build has no test hook or emulator addresses; screenshots: only the version text + the Account card. Deploy 42052556588 ok, 0 errors.
+- **Not verified here:** the real Google popup on Android/installed PWA (emulator only). `/build/` can't sign in until JC enables the Google provider and authorises `jcbeck1976.github.io` (step b).
+- **Resume point:** `build` @ `da62a11`. Next: Architect check → beta → prod (hotfix route) → JC console steps → UID into `database.rules.json` → rules pasted → verify. Record the legacy.html trade-off in the docs at release.
