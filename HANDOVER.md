@@ -251,6 +251,28 @@ See `FIREBASE_SECURITY.md` for full details. Summary:
 - After a deploy: JC closes the tab and reopens it, then checks the footer version.
 - **Retired:** the Contents-API deploy script, the Babel syntax check and the scope check (ESLint `no-undef` + `react/jsx-no-undef` replace them). They remain in git history (e.g. `HANDOVER.md` at tag `legacy-v1.374.2`).
 
+### Ways of working — build, beta, prod and data (agreed by JC, 5 Nov 2026)
+**Flow.** Code and test on Build → promote to Beta → JC, Becks and pilot users use Beta daily on real data → Beta → Prod only when JC chooses. Prod is not functionally important until go-live.
+
+**Releasing Beta → Prod (however many versions behind).**
+- A Prod release = make Prod identical to Beta, as one tested snapshot (one PR `beta → main`). Never cherry-pick individual versions.
+- Before release: **freeze Beta** (no promotions from Build) for a 3–5 day soak of normal use, then back up the data, release, tag.
+- One combined release note covering every version since the last Prod tag (e.g. "v2.6.0 → v2.9.2").
+- **Hotfix route** (Prod needs an urgent fix while Beta has unreleased work): branch from `main`, fix, check, PR to `main`, then merge the fix back into `beta` and `build`.
+
+**Data.**
+- **Beta and Prod share the one real database** (release channels). Beta is therefore always tested on real, current data, and a user moving between Beta and Prod needs no migration.
+- **Golden rule: every data change must be backward compatible** (expand, then contract). New code may only *add* to the data shape; Prod's older code must still read everything. Removals/renames happen in a later release, after Prod has caught up. Migrations must be idempotent and non-destructive.
+- **Build uses `data_build/`: a copy of the real data, overwritten automatically every night.** Test junk is wiped at each refresh and never reaches Beta/Prod. Before any data-shape change, refresh Build on demand and rehearse the change on today's real data first. The emulator seed for automated tests is refreshed from the same snapshot.
+- **Privacy:** once pilot users exist (before Step 2 security), the Build copy holds only JC and Becks's data, or anonymises everyone else. Never copy pilot users' health data into a test area without consent.
+
+**Backups.**
+- Nightly plus immediately before every Prod release, run by GitHub Actions (no AI tokens; the size of the data doesn't affect token use).
+- **Full snapshot, saved only when the data has changed:** the job fingerprints the data and skips the save if nothing changed since the last backup. Each backup is complete on its own, so a restore never depends on a chain of partial files.
+- Encrypted before storage (key in GitHub Secrets), stored in the private vault repo, never the public Life-Care repo. Git stores only the differences between versions internally, so storage stays small. Retention: 30 daily + 12 monthly.
+
+**Automation, so routine work costs no AI tokens (to build, alongside Step 1b).** GitHub Actions jobs for: nightly `data_build` refresh, nightly and pre-release backups, a post-deploy smoke test on each environment (loads, footer version, no console errors, real data present: counts only), and automatic tagging on release. The Architect's token use moves to judgement, design and review only.
+
 ### Checks (run before every deploy)
 ```
 npm install
@@ -904,3 +926,8 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 ### (Architect) 5 Nov 2026 09:15 — install conflict resolved; guide tip added to Step 1b
 - **JC:** after uninstalling leftovers and resetting the site in Chrome's settings, **prod installed fine.** This confirms the stale install record diagnosis.
 - **Added to Step 1b scope (JC):** an `APP_GUIDE.md` troubleshooting row: *"Chrome says 'This app is already installed' but then 'Could not open app'"* → Android Settings → Apps: remove any leftover Lifecare/LC app; Chrome ⋮ → Settings → Site settings → All sites → the app's site → Delete & reset; install again. (Pilot users will realistically only install Beta.)
+
+### (Architect) 5 Nov 2026 12:35 — decision: ways of working and data strategy agreed
+- JC agreed the approach now recorded in §4 "Ways of working — build, beta, prod and data": Beta → Prod as one snapshot after a freeze; Beta and Prod share the real database under the backward-compatible-only rule; Build refreshed nightly from real data; hotfix route.
+- **JC asked: are backups incremental (only new or changed data)?** Decision: full snapshots, **saved only when the data changed** (fingerprint check). Incremental saves were rejected because restores would depend on a chain of files, and the data is one small record. Backups run in GitHub Actions, so they use no AI tokens whatever their size.
+- **New work item (alongside Step 1b), for the Coder:** the automation jobs listed in §4. This needs a Firebase service credential and a backup encryption key as GitHub Secrets, set up with JC. Waiting for JC's go.
