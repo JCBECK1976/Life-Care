@@ -886,3 +886,12 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Prod v2.5.3 verified:** footer v2.5.3, no badge; prod icons byte-identical to the originals; prod vs beta: 12 views, 0 differences, overlays open. **Tag `v2.5.3` → `f6e3a78`** (PR #16 merge).
 - **Done since the migration:** v2.0.0 (Vite), v2.1.0 (build/beta/prod), v2.1.1 (clean-up), v2.2.0 (Data tools), v2.3.0 (logos), v2.4.0 + v2.5.0–v2.5.2 (installable app, person title/tabs, switch-race fix, "+" hidden), v2.5.3 (BETA/BUILD icons). `build`, `beta` and `main` are level.
 - **Next in the plan:** Step 1b (measure running costs → proposal → JC approves → build). It waits for JC's go. **Backlog:** update the outdated workflow actions (Node warnings); Steps 2–6.
+
+### (Architect) 5 Nov 2026 08:00 — finding: "app already installed" for prod and build on JC's phone
+- **JC:** with Lifecare BETA installed, trying to install prod and build in Chrome says "app already installed".
+- **Checked:** the manifests are distinct (ids `/Life-Care/`, `/Life-Care/beta/`, `/Life-Care/build/`; matching start/scope). The BUILD icon is served correctly (thin orange ring, no dot).
+- **Likely cause** (inferred; Android behaviour can't be observed from the Architect's sandbox): **nested scopes.** Prod's scope `/Life-Care/` contains `/beta/` and `/build/`, and Android's web-app ownership of URLs is prefix-based, so nested apps conflict.
+- **Options put to JC:**
+  - **A (Architect recommends): v2.6.0, sibling paths.** Prod moves to `/Life-Care/app/` (start/scope/id), alongside `/beta/` and `/build/`. The root `index.html` becomes a tiny redirect to `/app/` (keep `legacy.html` and `/APP_GUIDE.md` working; the Help fetch is relative per environment). Plan clean-up of the old root-scope service worker (e.g. the redirect page unregisters it). JC and Becks reinstall the prod app once.
+  - **B:** wait for go-live: prod moves to `lifecarecompanion.app` (a separate origin), which removes the nesting permanently. Until then, install only one environment per phone.
+  - Either way the domain move is the permanent fix.
