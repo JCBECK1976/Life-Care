@@ -3,12 +3,12 @@
     ".read": false,
     ".write": false,
     "data": {
-      ".read": "auth != null && auth.uid === '__UID__'",
-      ".write": "auth != null && auth.uid === '__UID__'"
+      ".read": "auth != null && auth.uid === '3iEIfsbZlaUMwUiGY6Lro4jAQef1'",
+      ".write": "auth != null && auth.uid === '3iEIfsbZlaUMwUiGY6Lro4jAQef1'"
     },
     "data_build": {
-      ".read": "auth != null && auth.uid === '__UID__'",
-      ".write": "auth != null && auth.uid === '__UID__'"
+      ".read": "auth != null && auth.uid === '3iEIfsbZlaUMwUiGY6Lro4jAQef1'",
+      ".write": "auth != null && auth.uid === '3iEIfsbZlaUMwUiGY6Lro4jAQef1'"
     }
   }
 }
