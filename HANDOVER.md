@@ -57,6 +57,10 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.1.1 | Unused code removed (no behaviour change): `ExTable`, `StrengthBanner`, `LoadingBtn`, `PBar`, `RC`, `SNACK_TEMPLATES`, `DAY_TYPE`, `DEFAULT_OTHER_GB`, `JC_BASE`, `BECK_BASE`, hidden meds block |
 | v2.2.0 | Settings → 🗂 **Data tools** (admin only): opens the Firebase Data Viewer and recovery tools; ← Back to Settings |
 | v2.3.0 | Logos: loading screen with the App Logo (static in `index.html`, no flash); header logo mark (option B, `header-mark-288.png`) in a 44px white disc; BUILD/BETA badge under Help/Settings |
+| v2.4.0 | Installable app (PWA) per environment: manifest, tinted icons for beta/build, network-only service worker; Help install steps (Chrome; Samsung Internet may be blocked by Play Protect). **Not released alone: shipped to prod inside v2.5.2** (no `v2.4.0` tag) |
+| v2.5.0 | Header title = selected person; scrollable `PersonTabs` (header + exercise log) that follow the selected person; names over 12 chars cut with "…"; Data Viewer/Eating labels use profile names |
+| v2.5.1 | Fix: person-switch race (stale start-up and switch loads applied to the newly selected person); portion overrides and Google token now load per person |
+| v2.5.2 | "+ add person" hidden (`ALLOW_ADD_PERSON = false`) until the multi-user data model (Steps 3/5). **Prod release v2.3.0 → v2.5.2** |
 
 ---
 
@@ -65,7 +69,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v2.3.0 (4 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
+- **Version**: v2.5.2 (5 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -768,3 +772,77 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Process notes:**
   - v2.4.0 and v2.5.0 stay separate versions and commits. Prod has no v2.4.0 release, so **no `v2.4.0` tag**; the Architect tags `v2.5.0` at the release merge, and the version table notes that v2.4.0 shipped to prod inside v2.5.0.
   - **The many-people check runs on `/build/` only.** The Architect stages extra long-named people in `data_build/` for verification and restores it afterwards. Beta uses real data (2 people), so JC's beta test covers the 2-person look and the switch paths.
+
+### (Coder) 5 Nov 2026 — v2.5.0 on `build`: ready for the Architect (hand-off 1)
+- **Read:** diff to `e5f1114` (JC: hold v2.4.0; build v2.5.0; one prod release v2.3.0 → v2.5.0; many-people check on `/build/` only).
+- **Done (`build` @ `4644cb9`, on top of v2.4.0):**
+  - **Header title** = the selected person's name only (one line, ellipsis).
+  - **`PersonTabs`** component for the header and the exercise log: each tab at least its name's width; names over 12 characters cut with "…" (full name as tooltip); with few people the tabs share the width as before (2-person look unchanged); with many the row scrolls; "+" pinned at the end. The selected tab is scrolled into view **sideways only** whenever the selected person changes from anywhere, and whenever the row or a tab resizes.
+  - **Exercise-log switch:** uses `PersonTabs`; its save/switch/restore logic moved byte for byte; labels from profile names (were hard-coded "JC"/"Becks").
+- **Every place that lists people (criterion 4):**
+  - *Fixed:* header title (App), top person tabs (App), exercise-log switch (Exercise), Data Viewer section headers (Data, showed the raw key "Jc"), Eating "Individual for just …" text (was hard-coded "JC"/"Becks").
+  - *Not display, no change:* colour index (App `personKeys`), copying meal defaults to the other people (Eating ×3), shopping-list prompt (Shop).
+  - *Found, not fixed (2-person assumptions; Step 3/5, JC to decide):* `isJC ? data.jc : data.becks` in App and 4× in Exercise, so **people 3+ currently see Becks's data**; Data restore-from-backup only restores `["jc", "becks"]`.
+- **Bug found by the stricter test and fixed:** after saving a log with 5+ people, the selected tab ended 2px out of view, because the tab's letter-spacing was still animating when the scroll was measured. It's now re-checked on every row and tab resize. Traced before fixing (an earlier guess, the page scrollbar, was wrong).
+- **Checks:** lint 0 errors; **41/41 tests**, twice; new `tests/people.spec.js` (17 tests): 1, 2, 5 and 8 people with long names at 360/412px; layout, every top tab, the exercise-log switch incl. after saving a log, colour theme both ways. Exact screenshot check (2 people): only the title text and the version differ (plus ≤10px off by 1 on the active tab pill, from the new scroll layer). APP_GUIDE updated.
+- **Deploy** run 41938866256 succeeded, 0 error annotations. `/build/` = `v2.5.0-build.4644cb9`.
+- **Resume point:** `build` @ `4644cb9`. After the Architect's check with staged people: PR `build → beta` → JC (2-person look, switch paths, plus install) → one release `beta → main` (v2.3.0 → v2.5.0; Architect tags `v2.5.0` only). Step 1b not started.
+
+### (Architect) 5 Nov 2026 00:50 — v2.5.0 build verified; pre-existing person-switch race found
+- **v2.5.0 feature verified on `/build/`** (5 and 8 long-named people staged in `data_build/`, then restored to live 2 people):
+  - No page overflow at 360/412px. The title is the selected person's name on one line ("JC").
+  - Tabs keep their natural width and scroll; "+" is pinned; "Bartholomew-James" is shown as "Bartholomew…".
+  - Tapping Evangelina gives title "Evangelina", Becks gives "Becks".
+  - The exercise-log switch has its own tab row (2 "Maximilian" buttons on the page), and switching there to Maximilian gives title "Maximilian".
+  - With 2 people, Becks's purple theme applies instantly, the same as prod.
+- **NEW finding: race on person switch shortly after the app opens (pre-existing, affects prod v2.3.0).**
+  - Switching to Becks right after load left **JC's theme** applied (prod 2/3 attempts, build 3/3; also on the first Becks switch with 8 people). Later switches were correct.
+  - **Likely cause** (to be traced by the Coder): the start-up loader keyed on `activeTab` (loads `user_colour_*`, `user_mood_*`, `journal_*`, `daily_mood_*`, `wellbeing_flags_*`, meal tracking, …) is still running for JC when the switch happens. Its late results overwrite the newly selected person's state.
+  - **Risk:** beyond the theme, the selected person could be shown, and then save, the previous person's journal or mood (cross-person data).
+  - **Checked live data (counts only, read-only): no contamination so far.** Becks has no journal/mood/wellbeing entries; the shared keys differ.
+- **Decisions requested from JC:**
+  - (1) Fix the race as **v2.5.1** on `build` before beta, inside the combined release. Architect recommends yes. It needs a trace, a guard so stale loads can't apply (e.g. ignore results for a person who is no longer selected), and a test that switches immediately after load (with added emulator latency) and checks theme, mood, journal and meal tracking belong to the selected person.
+  - (2) **People 3+ see Becks's data** (`isJC ? data.jc : data.becks`; found by the Coder). Until Steps 3/5, adding a third person is unsafe. Architect recommends **hiding the "+ add person" button** (its own small version, v2.5.2) until the multi-user data model exists. The alternative is to keep it and accept the risk.
+
+### (Coder) 5 Nov 2026 — v2.5.1 race fix and v2.5.2 hide "+" on `build`: ready for the Architect
+- **Read:** diff to `1853a61` (Architect: v2.5.0 verified with 5/8 people; person-switch race found; JC: v2.5.1 fix + test, v2.5.2 hide "+"; on to beta together).
+- **v2.5.1 (`f8a2584`), traced first:**
+  1. The **start-up loader** reads about 30 keys one after another for the person selected at start (JC). Its person-specific results (meal tracking, portion overrides, Google token, mood, journal, daily mood, colour, wellbeing flags) arrive late and were applied after a switch to Becks; it also set the current body/health/measurement feedback to JC's.
+  2. **`loadUserSettings`** fired reads with no check, so quick A→B switches let a late answer for A win.
+  - **Fix:** `activeTabRef` = the person selected right now (set at once on every switch). Every person-specific result is dropped if another person is selected when it arrives; the current feedback is picked for whoever is selected. `loadUserSettings` now also loads **portion overrides and the Google token** for the selected person (before, they were only loaded at start-up, for JC, so Becks kept JC's after any switch).
+  - **Tests** (`tests/person-race.spec.js`, emulator slowed by 120ms each way via a WebSocket relay): switch to Becks right after load, and rapid Becks→JC→Becks. Theme, mood, journal, meal tracking and portion overrides must be Becks's, and switching back restores JC's. **Both fail on the old code** (JC's blue left on Becks) and pass with the fix (3/3). A dev-only `window.__lcPerson` exposes the state (not in builds).
+  - **Test fix:** the Chat-panel screenshot was flaky in the header logo behind the see-through overlay (Chrome draws it two ways; reproduced 3/3 *without* v2.5.1, so not caused by it). The logo is masked in that one shot only and stays pixel-checked in all 16 full-page views; 4/4 runs stable.
+- **v2.5.2 (`0d99ad3`):** the header "+" (the only way into the add-person form) is hidden by `ALLOW_ADD_PERSON = false` in `src/constants/features.js`; the add-person code is kept. APP_GUIDE: adding a person is switched off for now. The many-people tests now check there's no "+". Screenshot check: only the person-tab row (tabs use the full width) and the version differ.
+- **Checks:** lint 0 errors, **43/43 tests**. Deploys 41944292537 (v2.5.1) and 41944688421 (v2.5.2) succeeded, 0 error annotations. `/build/` = `v2.5.2-build.0d99ad3`.
+- **Resume point:** `build` @ `0d99ad3`. After the Architect's check: one PR `build → beta` carrying v2.4.0 + v2.5.0 + v2.5.1 + v2.5.2 → JC → release v2.3.0 → v2.5.2. Step 1b not started.
+
+### (Architect) 5 Nov 2026 01:15 — v2.5.1 and v2.5.2 verified on build; go for beta
+- **v2.5.1 race fix verified:**
+  - The immediate switch to Becks right after load gives Becks's purple **8/8** (before the fix: prod 2/3 and build 3/3 wrong).
+  - Rapid Becks/JC/Becks/JC/Becks switching ends fully on Becks (title and theme) **4/4**.
+  - With 8 staged people, the *first* switch to Becks is now purple (it was JC's blue before), and later switches are correct (Evangelina → default blue, Alexandra → green, by index).
+- **v2.5.2 verified:** no "+" in the person row (2 people and 8 people). No page overflow at 360/412px with 8 people. `v2.5.2-build.0d99ad3`.
+- With 2 people, build vs prod: 12 views, 0 content differences; overlays open. `data_build/` restored to live (2 people).
+- Noted and accepted: the Coder found and fixed portion overrides and the Google token loading only for JC (same class of bug); the Chat-panel screenshot logo is masked because of a pre-existing overlay-rendering flake (the full-page logo is still pixel-checked).
+- **Go:** one `build → beta` PR carrying v2.4.0 + v2.5.0 + v2.5.1 + v2.5.2 for JC's beta test. Then the single release v2.3.0 → v2.5.2; the Architect tags `v2.5.2` only.
+
+### (Coder) 5 Nov 2026 — v2.5.0–v2.5.2 on beta: `/beta/` (v2.5.2-beta.3) ready for JC
+- **Read:** diff to `09d3630` (Architect verified v2.5.1 and v2.5.2 on `/build/`; go for one `build → beta` PR).
+- **Done:** **PR #13 `build → beta`** merged as `8e20323` (shows merged; lint 0 errors). Beta now carries v2.4.0 (PRs #11, #12) + v2.5.0 + v2.5.1 + v2.5.2. Deploy run 41982087386 succeeded, 0 error annotations: `/beta/` = **v2.5.2-beta.3**; prod unchanged (v2.3.0).
+- **JC to test** `/Life-Care/beta/` (the installed Lifecare BETA app; see the hand-off message).
+- **Resume point:** `beta` @ `8e20323`. After JC's OK: PR `beta → main` = the single release v2.3.0 → v2.5.2 → docs (version table rows for v2.4.0–v2.5.2, noting v2.4.0 shipped inside it; TECHNICAL_REFERENCE: PersonTabs, PWA, features.js) → Architect checks and tags `v2.5.2` only. Step 1b not started.
+
+### (Architect) 5 Nov 2026 07:00 — v2.5.2 beta approved by JC; BETA icon restyle (v2.5.3)
+- **JC tested `/beta/` (v2.5.2-beta.3) on his phone: all OK.** Go to release v2.3.0 → v2.5.2; the Architect verifies prod and tags `v2.5.2`.
+- **JC feedback on the installed "LC Beta" icon:** the ring is too thick and he doesn't like the purple dot. BETA is the app the **pilot group** will use, so it must look as polished as prod.
+- **Decision:** the BETA icon uses **exactly the in-app header mark's ring** (same construction and thickness as `header-mark-288.png`) in purple, with **no dot**. BUILD gets the same style in orange for consistency. Prod icons are unchanged.
+  - New icon sets committed by the Architect to `build` (`b5a6ea4`): `public/brand/beta/*` and `public/brand/build/*` (192, 512, maskable 512, apple-touch).
+- **Order:** release v2.5.2 first (unaffected: prod icons don't change). Then **v2.5.3** (version bump plus these icons) through build → Architect → beta → JC → main.
+  - Note for JC: an installed app may keep its old icon until Android refreshes it (can take a day); reinstalling "Lifecare BETA" shows the new icon straight away.
+
+### (Coder) 5 Nov 2026 — v2.5.2 released (PR #14 `beta → main`, v2.3.0 → v2.5.2)
+- **Read:** diff to `1cb47ee` (JC tested beta v2.5.2-beta.3: all OK; go to release; then v2.5.3 icon restyle, icons on `build` @ `b5a6ea4`).
+- **Done:** PR #14 merged as `d482e02` (shows merged). Locally: lint 0 errors, build ok, and the new checker passes prod incl. "installable app (manifest, icons, sw.js)". Deploy run 41983550217 succeeded, 0 error annotations. Live is now installable as "Lifecare Companion". Version table (v2.4.0–v2.5.2), Live Product line and `TECHNICAL_REFERENCE.md` updated.
+- **Architect to check** prod v2.5.2 and tag `v2.5.2` only.
+- **JC:** close the app and reopen it; footer **v2.5.2**. The live app can now be installed from Chrome (⋮ → Install and create shortcut → Install → Install).
+- **Resume point:** `main` @ `d482e02` + this entry. Next: v2.5.3 (BETA/BUILD icon restyle) on `build`. Step 1b not started.
