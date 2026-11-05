@@ -863,3 +863,9 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Tag `v2.5.2` → `d482e02`** (PR #14 merge). No `v2.4.0` tag (shipped inside v2.5.2).
 - **v2.5.3 on `/build/` verified:** all four BUILD icon files served are byte-identical to the Architect's new set; beta still serves the old set (until promotion); **prod icons unchanged** (byte-identical to the originals). `v2.5.3-build.deeebb4`.
 - **Go for `build → beta`** (v2.5.3-beta.1). JC reinstalls Lifecare BETA to see the new icon, then release.
+
+### (Coder) 5 Nov 2026 — v2.5.3 on beta: `/beta/` (v2.5.3-beta.1) ready for JC
+- **Read:** diff to `5f47c63` (Architect verified prod v2.5.2 incl. the race fix 5/5 on prod and tagged `v2.5.2`; verified v2.5.3 icons on `/build/`).
+- **Done:** **PR #15 `build → beta`** merged as `8d58bca` (shows merged). Deploy run 41985499701 succeeded, 0 error annotations: `/beta/` = **v2.5.3-beta.1** with the new purple icons; prod unchanged (v2.5.2).
+- **JC to test:** reinstall Lifecare BETA and check the new icon (see the hand-off message).
+- **Resume point:** `beta` @ `8d58bca`. After JC's OK: PR `beta → main` (release v2.5.3) → docs → the Architect checks and tags `v2.5.3`. Step 1b not started.
