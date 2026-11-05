@@ -869,3 +869,8 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Done:** **PR #15 `build → beta`** merged as `8d58bca` (shows merged). Deploy run 41985499701 succeeded, 0 error annotations: `/beta/` = **v2.5.3-beta.1** with the new purple icons; prod unchanged (v2.5.2).
 - **JC to test:** reinstall Lifecare BETA and check the new icon (see the hand-off message).
 - **Resume point:** `beta` @ `8d58bca`. After JC's OK: PR `beta → main` (release v2.5.3) → docs → the Architect checks and tags `v2.5.3`. Step 1b not started.
+
+### (Architect) 5 Nov 2026 07:45 — v2.5.3 beta approved; go to release
+- **JC reinstalled Lifecare BETA (v2.5.3-beta.1): the new icon (thin purple ring, no dot) is correct; all checks fine.**
+- Architect check: beta serves the new icon set byte for byte; prod icons unchanged.
+- **Go to release v2.5.3** (`beta → main`); the Architect verifies prod and tags `v2.5.3`.
