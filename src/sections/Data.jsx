@@ -1,5 +1,6 @@
 import firebase, { DATA_ROOT } from "../lib/firebase.js";
 import { btnMuted } from "../constants/styles.js";
+import { personName } from "../components/PersonTabs.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -20,7 +21,7 @@ export default function DataSection({ ctx }) {
         var exercises = data[person].exercises;
         var days = Object.keys(exercises);
         return (<div key={person} style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: accent, marginBottom: 8, textTransform: "capitalize" }}>{person}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: accent, marginBottom: 8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{personName(data, person)}</div>
           {days.map(function(day) {
             var exList = exercises[day] || [];
             return (<div key={day} style={{ marginBottom: 10 }}>

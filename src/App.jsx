@@ -35,6 +35,7 @@ import FeedbackForm from "./components/FeedbackForm.jsx";
 import { APP_VERSION } from "./constants/version.js";
 import EnvBadge from "./components/EnvBadge.jsx";
 import LoadingScreen from "./components/LoadingScreen.jsx";
+import PersonTabs, { peopleOf, personName } from "./components/PersonTabs.jsx";
 
 const { useState, useEffect, useCallback, useRef } = React;
 function Dashboard() {
@@ -1780,7 +1781,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#94a3b8", marginBottom: 4 }}>Lifecare Companion™</div>
-              <div style={{ fontSize: 22, fontWeight: 800 }}>{Object.keys(data).filter(k => k !== "config").map(k => (data[k].profile ? data[k].profile.name : k)).join(" & ")}</div>
+              <div data-testid="header-title" style={{ fontSize: 22, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{personName(data, activeTab)}</div>
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
@@ -1792,11 +1793,11 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           </div>
         </div>
         <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Week {calcWeek(data.config.trainingStart)} · Updated {data.config.lastUpdate}{saving ? " · Saving..." : ""}</div>
-        <div style={{ display: "flex", gap: 4, marginTop: 14, background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 4, border: "1px solid rgba(255,255,255,0.08)", overflowX: "auto" }}>
-          {Object.keys(data).filter(k => k !== "config").map((k, i) => {
-            const label = data[k].profile ? data[k].profile.name : k;
-            return (<button key={k} onClick={() => { setActiveTab(k); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); setCopyDayOpen(false); setCopyWeekOpen(false); setHomeFbExpanded(false); setFbExpanded(false); setEatFbExpanded(false); setHealthFbExpanded(false); setBodyFbExpanded(false); setMeasFbExpanded2(false); loadUserSettings(k); setJournalText(""); setShowRecentJournal(false); setShowFullJournal(false); }} style={{ flex: 1, padding: "10px 0", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? "rgba(255,255,255,0.95)" : "transparent", color: activeTab === k ? "#0f172a" : "rgba(255,255,255,0.45)", minWidth: 50, letterSpacing: activeTab === k ? "0.02em" : "0", transition: "all 0.2s ease" }}>{label}</button>);
-          })}
+        <div style={{ display: "flex", gap: 4, marginTop: 14, background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 4, border: "1px solid rgba(255,255,255,0.08)" }}>
+          <PersonTabs testId="person-tabs" people={peopleOf(data)} activeKey={activeTab}
+            tabStyle={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }}
+            activeStyle={{ background: "rgba(255,255,255,0.95)", color: "#0f172a", letterSpacing: "0.02em" }} inactiveStyle={{ background: "transparent", color: "rgba(255,255,255,0.45)", letterSpacing: "0" }}
+            onSelect={(k) => { setActiveTab(k); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); setCopyDayOpen(false); setCopyWeekOpen(false); setHomeFbExpanded(false); setFbExpanded(false); setEatFbExpanded(false); setHealthFbExpanded(false); setBodyFbExpanded(false); setMeasFbExpanded2(false); loadUserSettings(k); setJournalText(""); setShowRecentJournal(false); setShowFullJournal(false); }} />
           <button onClick={() => setShowAddPerson(true)} style={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: "transparent", color: "rgba(255,255,255,0.3)", transition: "all 0.2s ease" }}>+</button>
         </div>
         {showAddPerson && (<div style={{ marginTop: 10, display: "flex", gap: 6 }}>
