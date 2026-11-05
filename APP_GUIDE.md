@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.5.0 · 5 November 2026
+> Last updated: v2.6.0 · 5 November 2026
 
 ---
 
@@ -55,6 +55,13 @@ It speaks to you directly ("you"), warmly and honestly, and adapts its tone to t
 ### Help and Chat
 - **Help ?** (top right, next to the Settings gear) — ask how to use the app. Your Companion answers using this guide.
 - **💬 Chat** (round button, bottom right) — chat with your Companion about your health, training, nutrition or progress, using your full data history.
+
+### Signing in
+- The app asks you to **Sign in with Google** before it shows anything. Use your **joint Google account** (the one JC and Becks share).
+- You only sign in **once per phone** (and once per installed app); it remembers you after that.
+- **Fingerprint sign-in:** turn on a **passkey** for the Google account once (on the phone: Google account → Security → Passkeys → Create a passkey). Google then asks for your fingerprint instead of the password.
+- If you see **"This Google account doesn't have access"**, you signed in with a different Google account: tap **Sign out** and choose the joint account.
+- **Settings → 🔐 Account** shows which account is signed in, with a **Sign out** button.
 
 ### Installing the app on your phone
 You can install Lifecare Companion like a normal app, with its own icon on your home screen. It then opens full screen, without the browser bar.

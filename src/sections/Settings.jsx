@@ -2,6 +2,7 @@ import { COLOUR_THEMES } from "../constants/themes.js";
 import { sSet } from "../lib/storage.js";
 import { btnAction, btnClear, btnDelete, btnMuted, btnP, btnStop, inputStyle, labelStyle } from "../constants/styles.js";
 import { DEFAULT_DATA } from "../constants/defaultData.js";
+import AccountCard from "../components/AccountCard.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -122,6 +123,8 @@ export default function SettingsSection({ ctx }) {
             <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8 }}>View the data stored in Firebase and use the recovery tools (restore missing weeks, restore from a Firebase export).</div>
             <button onClick={function() { setSection("data"); window.scrollTo(0, 0); }} style={{ ...btnMuted, width: "100%" }}>Open Data tools</button>
           </div>)}
+
+          <AccountCard />
         </div>
   );
 }

@@ -1,14 +1,14 @@
 {
   "name": "lifecare-companion",
   "private": true,
-  "version": "2.5.3",
+  "version": "2.6.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "npm run lint && vite build",
     "build:preview": "npm run lint && vite build --mode next",
     "lint": "eslint src --max-warnings=-1",
-    "emulator": "firebase emulators:start --only database --project life-care-app-64d04",
+    "emulator": "node scripts/make-emulator-rules.mjs && firebase emulators:start --only database,auth --project life-care-app-64d04",
     "seed": "node scripts/seed-emulator.mjs",
     "test": "playwright test"
   },
