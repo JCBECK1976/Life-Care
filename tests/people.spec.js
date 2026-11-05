@@ -40,7 +40,7 @@ const headerTabs = (page) => page.getByTestId("person-tabs").getByRole("button")
 const title = (page) => page.getByTestId("header-title");
 
 async function checkLayout(page, n, width) {
-  // no horizontal page overflow; title on one line; tabs labelled ≤12 chars, not clipped, not overlapping; "+" visible
+  // no horizontal page overflow; title on one line; tabs labelled ≤12 chars, not clipped, not overlapping; no "+" (v2.5.2)
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   const t = await title(page).evaluate((e) => ({ h: e.getBoundingClientRect().height, lh: parseFloat(getComputedStyle(e).lineHeight) || 29 }));
   expect(t.h).toBeLessThanOrEqual(t.lh + 1);
@@ -48,8 +48,7 @@ async function checkLayout(page, n, width) {
   expect(boxes.length).toBe(n);
   for (const b of boxes) { expect([...b.text].length).toBeLessThanOrEqual(12); expect(b.clipped).toBe(false); }
   for (let i = 1; i < boxes.length; i++) expect(boxes[i].l).toBeGreaterThanOrEqual(boxes[i - 1].r - 0.5);
-  const plus = await page.getByRole("button", { name: "+", exact: true }).first().boundingBox();
-  expect(plus.x + plus.width).toBeLessThanOrEqual(width);
+  await expect(page.getByRole("button", { name: "+", exact: true })).toHaveCount(0); // v2.5.2: adding a person is hidden
 }
 
 async function expectSelectedVisible(page, name) {

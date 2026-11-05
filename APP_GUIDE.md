@@ -40,7 +40,7 @@ It speaks to you directly ("you"), warmly and honestly, and adapts its tone to t
 - **⚙ Settings** gear (top right) — opens Settings (colour theme, connections and data tools). See section 10.
 - **Week N · Updated [date]** — your current **training week number**, counted from your programme start date, and when your data was last saved. "· Saving..." appears briefly while changes are being saved.
 - **Person tabs** (e.g. *JC*, *Becks*) — tap a name to switch who you are viewing. The whole app switches to that person: their data, their colour theme, their feedback and settings. The highlighted tab is the active person. With many people, **swipe the row sideways** to see everyone; long names are shortened with "…". The row always scrolls to show the active person.
-- **＋** next to the person tabs — add a new person. Type their name and tap **Add**.
+- **Adding a person** is switched off for now. It comes back with proper separate accounts for each person.
 
 ### The main tabs
 | Tab | What it's for |

@@ -36,6 +36,7 @@ import { APP_VERSION } from "./constants/version.js";
 import EnvBadge from "./components/EnvBadge.jsx";
 import LoadingScreen from "./components/LoadingScreen.jsx";
 import PersonTabs, { peopleOf, personName } from "./components/PersonTabs.jsx";
+import { ALLOW_ADD_PERSON } from "./constants/features.js";
 
 const { useState, useEffect, useCallback, useRef } = React;
 function Dashboard() {
@@ -1807,7 +1808,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             tabStyle={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }}
             activeStyle={{ background: "rgba(255,255,255,0.95)", color: "#0f172a", letterSpacing: "0.02em" }} inactiveStyle={{ background: "transparent", color: "rgba(255,255,255,0.45)", letterSpacing: "0" }}
             onSelect={(k) => { setActiveTab(k); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); setCopyDayOpen(false); setCopyWeekOpen(false); setHomeFbExpanded(false); setFbExpanded(false); setEatFbExpanded(false); setHealthFbExpanded(false); setBodyFbExpanded(false); setMeasFbExpanded2(false); loadUserSettings(k); setJournalText(""); setShowRecentJournal(false); setShowFullJournal(false); }} />
-          <button onClick={() => setShowAddPerson(true)} style={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: "transparent", color: "rgba(255,255,255,0.3)", transition: "all 0.2s ease" }}>+</button>
+          {ALLOW_ADD_PERSON && (<button onClick={() => setShowAddPerson(true)} style={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: "transparent", color: "rgba(255,255,255,0.3)", transition: "all 0.2s ease" }}>+</button>)}
         </div>
         {showAddPerson && (<div style={{ marginTop: 10, display: "flex", gap: 6 }}>
           <input value={newPersonName} onChange={e => setNewPersonName(e.target.value)} placeholder="Name..." style={{ flex: 1, padding: "8px 10px", border: "1px solid #475569", borderRadius: 8, fontSize: 13, background: "#1e293b", color: "#fff" }} />
