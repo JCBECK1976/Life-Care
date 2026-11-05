@@ -1003,3 +1003,8 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Live /build/ in a fresh browser:** sign-in screen shown; **0 database requests before sign-in**; 0 console errors.
 - **Remaining check before beta, which only JC can do:** a real Google sign-in on Android, in Chrome and in the installed app, on /build/ (needs console step (b)). Rules are still open, so data loads after sign-in.
 
+### (Architect) 5 Nov 2026 15:45 — v2.6.0: console steps done, UID set
+- JC finished console step (b): the Google provider is enabled and `jcbeck1976.github.io` is an authorised domain. The joint account signed in on /build/, so the user exists in Authentication → Users.
+- The Architect put the UID into `database.rules.json` on `build` (commit eabade2). This is not a secret.
+- **Next:** the Coder promotes v2.6.0 build → beta → main on the hotfix route (no soak) and tags v2.6.0. **The rules stay open until the Architect confirms prod v2.6.0 is live**; then JC pastes the rules.
+
