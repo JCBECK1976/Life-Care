@@ -57,6 +57,10 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.1.1 | Unused code removed (no behaviour change): `ExTable`, `StrengthBanner`, `LoadingBtn`, `PBar`, `RC`, `SNACK_TEMPLATES`, `DAY_TYPE`, `DEFAULT_OTHER_GB`, `JC_BASE`, `BECK_BASE`, hidden meds block |
 | v2.2.0 | Settings → 🗂 **Data tools** (admin only): opens the Firebase Data Viewer and recovery tools; ← Back to Settings |
 | v2.3.0 | Logos: loading screen with the App Logo (static in `index.html`, no flash); header logo mark (option B, `header-mark-288.png`) in a 44px white disc; BUILD/BETA badge under Help/Settings |
+| v2.4.0 | Installable app (PWA) per environment: manifest, tinted icons for beta/build, network-only service worker; Help install steps (Chrome; Samsung Internet may be blocked by Play Protect). **Not released alone: shipped to prod inside v2.5.2** (no `v2.4.0` tag) |
+| v2.5.0 | Header title = selected person; scrollable `PersonTabs` (header + exercise log) that follow the selected person; names over 12 chars cut with "…"; Data Viewer/Eating labels use profile names |
+| v2.5.1 | Fix: person-switch race (stale start-up and switch loads applied to the newly selected person); portion overrides and Google token now load per person |
+| v2.5.2 | "+ add person" hidden (`ALLOW_ADD_PERSON = false`) until the multi-user data model (Steps 3/5). **Prod release v2.3.0 → v2.5.2** |
 
 ---
 
@@ -65,7 +69,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v2.3.0 (4 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
+- **Version**: v2.5.2 (5 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -835,3 +839,10 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
   - New icon sets committed by the Architect to `build` (`b5a6ea4`): `public/brand/beta/*` and `public/brand/build/*` (192, 512, maskable 512, apple-touch).
 - **Order:** release v2.5.2 first (unaffected: prod icons don't change). Then **v2.5.3** (version bump plus these icons) through build → Architect → beta → JC → main.
   - Note for JC: an installed app may keep its old icon until Android refreshes it (can take a day); reinstalling "Lifecare BETA" shows the new icon straight away.
+
+### (Coder) 5 Nov 2026 — v2.5.2 released (PR #14 `beta → main`, v2.3.0 → v2.5.2)
+- **Read:** diff to `1cb47ee` (JC tested beta v2.5.2-beta.3: all OK; go to release; then v2.5.3 icon restyle, icons on `build` @ `b5a6ea4`).
+- **Done:** PR #14 merged as `d482e02` (shows merged). Locally: lint 0 errors, build ok, and the new checker passes prod incl. "installable app (manifest, icons, sw.js)". Deploy run 41983550217 succeeded, 0 error annotations. Live is now installable as "Lifecare Companion". Version table (v2.4.0–v2.5.2), Live Product line and `TECHNICAL_REFERENCE.md` updated.
+- **Architect to check** prod v2.5.2 and tag `v2.5.2` only.
+- **JC:** close the app and reopen it; footer **v2.5.2**. The live app can now be installed from Chrome (⋮ → Install and create shortcut → Install → Install).
+- **Resume point:** `main` @ `d482e02` + this entry. Next: v2.5.3 (BETA/BUILD icon restyle) on `build`. Step 1b not started.
