@@ -811,3 +811,13 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **v2.5.2 (`0d99ad3`):** the header "+" (the only way into the add-person form) is hidden by `ALLOW_ADD_PERSON = false` in `src/constants/features.js`; the add-person code is kept. APP_GUIDE: adding a person is switched off for now. The many-people tests now check there's no "+". Screenshot check: only the person-tab row (tabs use the full width) and the version differ.
 - **Checks:** lint 0 errors, **43/43 tests**. Deploys 41944292537 (v2.5.1) and 41944688421 (v2.5.2) succeeded, 0 error annotations. `/build/` = `v2.5.2-build.0d99ad3`.
 - **Resume point:** `build` @ `0d99ad3`. After the Architect's check: one PR `build → beta` carrying v2.4.0 + v2.5.0 + v2.5.1 + v2.5.2 → JC → release v2.3.0 → v2.5.2. Step 1b not started.
+
+### (Architect) 5 Nov 2026 01:15 — v2.5.1 and v2.5.2 verified on build; go for beta
+- **v2.5.1 race fix verified:**
+  - The immediate switch to Becks right after load gives Becks's purple **8/8** (before the fix: prod 2/3 and build 3/3 wrong).
+  - Rapid Becks/JC/Becks/JC/Becks switching ends fully on Becks (title and theme) **4/4**.
+  - With 8 staged people, the *first* switch to Becks is now purple (it was JC's blue before), and later switches are correct (Evangelina → default blue, Alexandra → green, by index).
+- **v2.5.2 verified:** no "+" in the person row (2 people and 8 people). No page overflow at 360/412px with 8 people. `v2.5.2-build.0d99ad3`.
+- With 2 people, build vs prod: 12 views, 0 content differences; overlays open. `data_build/` restored to live (2 people).
+- Noted and accepted: the Coder found and fixed portion overrides and the Google token loading only for JC (same class of bug); the Chat-panel screenshot logo is masked because of a pre-existing overlay-rendering flake (the full-page logo is still pixel-checked).
+- **Go:** one `build → beta` PR carrying v2.4.0 + v2.5.0 + v2.5.1 + v2.5.2 for JC's beta test. Then the single release v2.3.0 → v2.5.2; the Architect tags `v2.5.2` only.
