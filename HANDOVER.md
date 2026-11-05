@@ -1026,5 +1026,5 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - JC published the rules at 15:52. Signed-out reads of root, `data/`, `data_build/` and `anthropic_api_key` are all denied, and a signed-out write is denied. JC confirms the app works when signed in.
 - **Follow-ups for JC:** Becks signs in once per phone. Create a new Anthropic API key (the old one was readable while the rules were open), enter it in the app, and delete the old one. Keep the spend limit and a Google Cloud budget alert, since the project is on the Blaze plan.
 - **Next work:** Step 1b and the automation jobs (§4 Ways of working), next week when the token allowance resets.
-- **Added to the automation work (16:02):** widen `.gitignore` to catch any backup or export file name, not just `*firebase_backup*.json`. Seed the emulator from the encrypted vault backup instead of a loose file. JC checked: no backup file exists in the repo.
+- **Added to the automation work (16:02):** widen `.gitignore` to catch any backup or export file name, not just `*firebase_backup*.json`. Seed the emulator from the encrypted vault backup instead of a loose file. The Architect checked: no backup file exists in the repo.
 
