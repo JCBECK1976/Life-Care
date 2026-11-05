@@ -7,6 +7,7 @@ import { btnAction, btnActionLg, btnDelete, btnEdit, btnMuted, btnP, btnS, input
 import { FullChart } from "../components/charts.jsx";
 import { TONE_RULES } from "../constants/tone.js";
 import { handleApiError } from "../lib/api.js";
+import PersonTabs, { peopleOf } from "../components/PersonTabs.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -241,10 +242,10 @@ export default function ExerciseSection({ ctx }) {
               <div style={{ marginTop: 4 }}><label style={labelStyle}>Notes (carried to next session)</label><textarea value={logComment} onChange={e => setLogComment(e.target.value)} placeholder="Notes for next session..." style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
               <div style={{ marginTop: 8, marginBottom: 4 }}>
                 <div style={{ display: "flex", background: accentMid, borderRadius: 6, padding: 2, marginBottom: 6 }}>
-                  {Object.keys(data).filter(function(k) { return k !== "config"; }).map(function(tab) {
-                    var tabName = tab === "jc" ? "JC" : "Becks";
-                    var isActive = tab === activeTab;
-                    return (<button key={tab} onClick={function() {
+                  <PersonTabs testId="log-person-tabs" people={peopleOf(data)} activeKey={activeTab} rowStyle={{ gap: 0 }}
+                    tabStyle={{ padding: "5px 10px", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+                    activeStyle={{ background: "#fff", color: "#0f172a" }} inactiveStyle={{ background: "transparent", color: "rgba(255,255,255,0.7)" }}
+                    onSelect={function(tab) {
                       // Save current form state before switching
                       if (!window._dualLogState) window._dualLogState = {};
                       // Save current form state — check if user actually changed values from what was loaded
@@ -302,8 +303,7 @@ export default function ExerciseSection({ ctx }) {
                           }
                         }
                       }
-                    }} style={{ flex: 1, padding: "5px 0", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer", background: isActive ? "#fff" : "transparent", color: isActive ? "#0f172a" : "rgba(255,255,255,0.7)" }}>{tabName}</button>);
-                  })}
+                    }} />
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}><button onClick={saveLog} disabled={!logSets[0].r} style={{ ...btnP(!!logSets[0].r), flex: 1 }}>{editPrev ? "Update" : "Save"}</button><button onClick={() => setLogEx(null)} style={btnS}>Cancel</button></div>

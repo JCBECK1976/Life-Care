@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.3.0 · 4 November 2026
+> Last updated: v2.5.0 · 5 November 2026
 
 ---
 
@@ -35,12 +35,12 @@ It speaks to you directly ("you"), warmly and honestly, and adapts its tone to t
 ## 2. Finding your way around
 
 ### The header (top of every page)
-- **Lifecare Companion™** title.
+- **Lifecare Companion™** title, with the logo on the left. Under it, in large letters, the **name of the person you are viewing** (it changes when you switch person).
 - **Help ?** button (top right, left of the gear) — ask how to use the app. See section 9.
 - **⚙ Settings** gear (top right) — opens Settings (colour theme, connections and data tools). See section 10.
 - **Week N · Updated [date]** — your current **training week number**, counted from your programme start date, and when your data was last saved. "· Saving..." appears briefly while changes are being saved.
-- **Person tabs** (e.g. *JC*, *Becks*) — tap a name to switch who you are viewing. The whole app switches to that person: their data, their colour theme, their feedback and settings. The highlighted tab is the active person.
-- **＋** next to the person tabs — add a new person. Type their name and tap **Add**.
+- **Person tabs** (e.g. *JC*, *Becks*) — tap a name to switch who you are viewing. The whole app switches to that person: their data, their colour theme, their feedback and settings. The highlighted tab is the active person. With many people, **swipe the row sideways** to see everyone; long names are shortened with "…". The row always scrolls to show the active person.
+- **Adding a person** is switched off for now. It comes back with proper separate accounts for each person.
 
 ### The main tabs
 | Tab | What it's for |
@@ -55,6 +55,13 @@ It speaks to you directly ("you"), warmly and honestly, and adapts its tone to t
 ### Help and Chat
 - **Help ?** (top right, next to the Settings gear) — ask how to use the app. Your Companion answers using this guide.
 - **💬 Chat** (round button, bottom right) — chat with your Companion about your health, training, nutrition or progress, using your full data history.
+
+### Installing the app on your phone
+You can install Lifecare Companion like a normal app, with its own icon on your home screen. It then opens full screen, without the browser bar.
+- **Use Chrome (recommended, Android):** open the app in Chrome, tap the **⋮** menu → **Install and create shortcut** → **Install** → **Install**. The app then appears on your home screen with its own icon. (Choose **Install**, not **Create shortcut**: a shortcut just opens the page inside Chrome.)
+- **Samsung Internet:** its menu option **Add page to** → **Install as web app** may be **blocked by Google Play Protect** ("Unsafe app blocked … built for an older version of Android"). That warning is about the package Samsung Internet builds, not about Lifecare Companion. Don't tap "Install anyway": press **OK** and install from **Chrome** instead. (**Add page to** → **Home screen** only adds a bookmark that opens in the browser.)
+- The **BETA** and **BUILD** test versions install as **separate apps** (named "Lifecare BETA" and "Lifecare BUILD", with purple and orange icons), so you can tell them apart from the normal app.
+- Installed apps always load the latest version; nothing is stored offline.
 
 ### Common patterns used everywhere
 - **My Companion … Feedback** buttons (deep blue) — generate AI feedback for that area. After it is generated, **▼ Show Feedback / ▲ Hide Feedback** opens or closes it.
@@ -184,7 +191,7 @@ Tape measurements in cm (e.g. chest, waist, hips, arms, thighs).
 - **Session Quality** toggles: **Full Range of Motion** (or **Completed in One** for cardio-type exercises) and **Good Form**, each *Good* or *Working Towards*. If Full Range is "Working Towards", the Companion won't recommend increasing weight. It will tell you to master the full controlled range first, using a 3-second lowering phase.
 - **Progression** choice: *Standard (follow progression rules)*, *Move Up* (override: ready to increase), *Hold* (keep current weight) or *Reduce* (drop weight).
 - **Notes (carried to next session)** — appear on the card next time.
-- **Logging for two people:** the log form has person tabs (e.g. JC / Becks). You can switch to the other person and log their sets for the same exercise in the same sitting. **Switching here makes that person the active person** (their colour and data show). Both people's logs are saved when you press Save.
+- **Logging for more than one person:** the log form has person tabs (e.g. JC / Becks), which scroll sideways if there are many. You can switch to another person and log their sets for the same exercise in the same sitting. **Switching here makes that person the active person** (their colour and data show). Both people's logs are saved when you press Save.
 - **Save** (or **Update** when editing a previous entry). **Edit Previous Entry** lets you correct a past week; **Cancel Edit — Log New Instead** returns to a new log.
 - **Why honesty matters:** the Companion bases its progression advice on what you log. Inflating reps leads to bad recommendations.
 
