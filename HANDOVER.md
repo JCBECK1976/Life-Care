@@ -61,6 +61,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.5.0 | Header title = selected person; scrollable `PersonTabs` (header + exercise log) that follow the selected person; names over 12 chars cut with "…"; Data Viewer/Eating labels use profile names |
 | v2.5.1 | Fix: person-switch race (stale start-up and switch loads applied to the newly selected person); portion overrides and Google token now load per person |
 | v2.5.2 | "+ add person" hidden (`ALLOW_ADD_PERSON = false`) until the multi-user data model (Steps 3/5). **Prod release v2.3.0 → v2.5.2** |
+| v2.5.3 | BETA/BUILD app icons restyled (thin crisp ring like the header mark, purple/orange, no dot); prod icons unchanged |
 
 ---
 
@@ -69,7 +70,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v2.5.2 (5 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
+- **Version**: v2.5.3 (5 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -249,6 +250,28 @@ See `FIREBASE_SECURITY.md` for full details. Summary:
 - **Rollback:** `/Life-Care/legacy.html` is the v1.374.2 single file (byte-identical to tag `legacy-v1.374.2`) and works immediately. Then `git revert` the bad commit; the workflow redeploys.
 - After a deploy: JC closes the tab and reopens it, then checks the footer version.
 - **Retired:** the Contents-API deploy script, the Babel syntax check and the scope check (ESLint `no-undef` + `react/jsx-no-undef` replace them). They remain in git history (e.g. `HANDOVER.md` at tag `legacy-v1.374.2`).
+
+### Ways of working — build, beta, prod and data (agreed by JC, 5 Nov 2026)
+**Flow.** Code and test on Build → promote to Beta → JC, Becks and pilot users use Beta daily on real data → Beta → Prod only when JC chooses. Prod is not functionally important until go-live.
+
+**Releasing Beta → Prod (however many versions behind).**
+- A Prod release = make Prod identical to Beta, as one tested snapshot (one PR `beta → main`). Never cherry-pick individual versions.
+- Before release: **freeze Beta** (no promotions from Build) for a 3–5 day soak of normal use, then back up the data, release, tag.
+- One combined release note covering every version since the last Prod tag (e.g. "v2.6.0 → v2.9.2").
+- **Hotfix route** (Prod needs an urgent fix while Beta has unreleased work): branch from `main`, fix, check, PR to `main`, then merge the fix back into `beta` and `build`.
+
+**Data.**
+- **Beta and Prod share the one real database** (release channels). Beta is therefore always tested on real, current data, and a user moving between Beta and Prod needs no migration.
+- **Golden rule: every data change must be backward compatible** (expand, then contract). New code may only *add* to the data shape; Prod's older code must still read everything. Removals/renames happen in a later release, after Prod has caught up. Migrations must be idempotent and non-destructive.
+- **Build uses `data_build/`: a copy of the real data, overwritten automatically every night.** Test junk is wiped at each refresh and never reaches Beta/Prod. Before any data-shape change, refresh Build on demand and rehearse the change on today's real data first. The emulator seed for automated tests is refreshed from the same snapshot.
+- **Privacy:** once pilot users exist (before Step 2 security), the Build copy holds only JC and Becks's data, or anonymises everyone else. Never copy pilot users' health data into a test area without consent.
+
+**Backups.**
+- Nightly plus immediately before every Prod release, run by GitHub Actions (no AI tokens; the size of the data doesn't affect token use).
+- **Full snapshot, saved only when the data has changed:** the job fingerprints the data and skips the save if nothing changed since the last backup. Each backup is complete on its own, so a restore never depends on a chain of partial files.
+- Encrypted before storage (key in GitHub Secrets), stored in the private vault repo, never the public Life-Care repo. Git stores only the differences between versions internally, so storage stays small. Retention: 30 daily + 12 monthly.
+
+**Automation, so routine work costs no AI tokens (to build, alongside Step 1b).** GitHub Actions jobs for: nightly `data_build` refresh, nightly and pre-release backups, a post-deploy smoke test on each environment (loads, footer version, no console errors, real data present: counts only), and automatic tagging on release. The Architect's token use moves to judgement, design and review only.
 
 ### Checks (run before every deploy)
 ```
@@ -846,3 +869,114 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Architect to check** prod v2.5.2 and tag `v2.5.2` only.
 - **JC:** close the app and reopen it; footer **v2.5.2**. The live app can now be installed from Chrome (⋮ → Install and create shortcut → Install → Install).
 - **Resume point:** `main` @ `d482e02` + this entry. Next: v2.5.3 (BETA/BUILD icon restyle) on `build`. Step 1b not started.
+
+### (Coder) 5 Nov 2026 — v2.5.3 BETA/BUILD icon restyle on `build`: ready for the Architect
+- **Read:** own release entry `b00454f` since `1cb47ee`; no new Architect entries.
+- **Done (`build` @ `deeebb4`; `main` merged in first):** v2.5.3 = the Architect's icon sets (`b5a6ea4`) + version bump. Checked: the 8 files keep their names, sizes (192, 512, maskable 512, apple-touch 180) and format; only `public/brand/beta/` and `public/brand/build/` changed; prod icons untouched. Side by side: thin crisp ring (purple / orange), no dot. Lint 0 errors, 43/43 tests (incl. every manifest icon loads); exact screenshot check: only the version text.
+- **Deploy** run 41984074511 succeeded, 0 error annotations. `/build/` = `v2.5.3-build.deeebb4`.
+- **Resume point:** `build` @ `deeebb4`. After the Architect's check: PR `build → beta` (v2.5.3-beta.1) → JC (reinstall Lifecare BETA to see the new icon at once) → PR `beta → main`. Step 1b not started.
+
+### (Architect) 5 Nov 2026 07:15 — v2.5.2 live, verified and tagged; v2.5.3 build verified
+- **Prod v2.5.2 verified:**
+  - footer v2.5.2, no badge;
+  - Chromium installability errors **none**; manifest "Lifecare Companion" / "Lifecare", start and scope `/Life-Care/`;
+  - SW active and controlling, SKIP = beta/build; reloads normally;
+  - prod vs beta: 12 views, 0 differences, overlays open;
+  - **switch-race fix confirmed on prod: an immediate switch to Becks is correct 5/5** (it was wrong 2/3 before).
+- **Tag `v2.5.2` → `d482e02`** (PR #14 merge). No `v2.4.0` tag (shipped inside v2.5.2).
+- **v2.5.3 on `/build/` verified:** all four BUILD icon files served are byte-identical to the Architect's new set; beta still serves the old set (until promotion); **prod icons unchanged** (byte-identical to the originals). `v2.5.3-build.deeebb4`.
+- **Go for `build → beta`** (v2.5.3-beta.1). JC reinstalls Lifecare BETA to see the new icon, then release.
+
+### (Coder) 5 Nov 2026 — v2.5.3 on beta: `/beta/` (v2.5.3-beta.1) ready for JC
+- **Read:** diff to `5f47c63` (Architect verified prod v2.5.2 incl. the race fix 5/5 on prod and tagged `v2.5.2`; verified v2.5.3 icons on `/build/`).
+- **Done:** **PR #15 `build → beta`** merged as `8d58bca` (shows merged). Deploy run 41985499701 succeeded, 0 error annotations: `/beta/` = **v2.5.3-beta.1** with the new purple icons; prod unchanged (v2.5.2).
+- **JC to test:** reinstall Lifecare BETA and check the new icon (see the hand-off message).
+- **Resume point:** `beta` @ `8d58bca`. After JC's OK: PR `beta → main` (release v2.5.3) → docs → the Architect checks and tags `v2.5.3`. Step 1b not started.
+
+### (Architect) 5 Nov 2026 07:45 — v2.5.3 beta approved; go to release
+- **JC reinstalled Lifecare BETA (v2.5.3-beta.1): the new icon (thin purple ring, no dot) is correct; all checks fine.**
+- Architect check: beta serves the new icon set byte for byte; prod icons unchanged.
+- **Go to release v2.5.3** (`beta → main`); the Architect verifies prod and tags `v2.5.3`.
+
+### (Coder) 5 Nov 2026 — v2.5.3 released (PR #16 `beta → main`)
+- **Read:** diff to `fd61e76` (JC reinstalled Lifecare BETA: new icon correct; go to release).
+- **Done:** PR #16 merged as `f6e3a78` (shows merged). Merged tree: lint 0 errors, build ok, prod icons unchanged (only `public/brand/beta|build/` differ), checker passes prod "installable app". Deploy run 41989156887 succeeded, 0 error annotations. Version table and Live Product line → v2.5.3.
+- **Architect to check** prod v2.5.3 and tag `v2.5.3`.
+- **Resume point:** `main` @ `f6e3a78` + this entry; `build`/`beta` hold no unreleased changes. Next: whatever JC/the Architect decide (Step 1b measurement was next in the plan; not started).
+
+### (Architect) 5 Nov 2026 07:50 — v2.5.3 verified and tagged; release train complete
+- **Prod v2.5.3 verified:** footer v2.5.3, no badge; prod icons byte-identical to the originals; prod vs beta: 12 views, 0 differences, overlays open. **Tag `v2.5.3` → `f6e3a78`** (PR #16 merge).
+- **Done since the migration:** v2.0.0 (Vite), v2.1.0 (build/beta/prod), v2.1.1 (clean-up), v2.2.0 (Data tools), v2.3.0 (logos), v2.4.0 + v2.5.0–v2.5.2 (installable app, person title/tabs, switch-race fix, "+" hidden), v2.5.3 (BETA/BUILD icons). `build`, `beta` and `main` are level.
+- **Next in the plan:** Step 1b (measure running costs → proposal → JC approves → build). It waits for JC's go. **Backlog:** update the outdated workflow actions (Node warnings); Steps 2–6.
+
+### (Architect) 5 Nov 2026 08:00 — finding: "app already installed" for prod and build on JC's phone
+- **JC:** with Lifecare BETA installed, trying to install prod and build in Chrome says "app already installed".
+- **Checked:** the manifests are distinct (ids `/Life-Care/`, `/Life-Care/beta/`, `/Life-Care/build/`; matching start/scope). The BUILD icon is served correctly (thin orange ring, no dot).
+- **Likely cause** (inferred; Android behaviour can't be observed from the Architect's sandbox): **nested scopes.** Prod's scope `/Life-Care/` contains `/beta/` and `/build/`, and Android's web-app ownership of URLs is prefix-based, so nested apps conflict.
+- **Options put to JC:**
+  - **A (Architect recommends): v2.6.0, sibling paths.** Prod moves to `/Life-Care/app/` (start/scope/id), alongside `/beta/` and `/build/`. The root `index.html` becomes a tiny redirect to `/app/` (keep `legacy.html` and `/APP_GUIDE.md` working; the Help fetch is relative per environment). Plan clean-up of the old root-scope service worker (e.g. the redirect page unregisters it). JC and Becks reinstall the prod app once.
+  - **B:** wait for go-live: prod moves to `lifecarecompanion.app` (a separate origin), which removes the nesting permanently. Until then, install only one environment per phone.
+  - Either way the domain move is the permanent fix.
+
+### (Architect) 5 Nov 2026 08:05 — install conflict: revised diagnosis; no code change now
+- **New evidence from JC:** only LC Beta is installed. On **both** prod and build pages Chrome says "This app is already installed", and tapping "open the app instead" gives **"Could not open app"**. Chrome holds a **stale install record** with no working app behind it, most likely left over from the Samsung Internet "Install as web app" attempt blocked by Play Protect, or an earlier Beta install. This doesn't fit the nested-scope theory (build doesn't overlap beta), so **option A (move prod to `/app/`) is withdrawn: it wouldn't fix a stale record.**
+- **Advised to JC:** (1) uninstall any leftover "Lifecare"/"LC" apps in Android Settings → Apps; (2) Chrome → Site settings → jcbeck1976.github.io → Delete & reset; (3) reinstall. If it persists, use prod and build in the browser and keep Beta installed (JC accepts this; pilot users install only one environment).
+- **Plan at go-live:** give each environment its own origin, e.g. `lifecarecompanion.app` (prod), plus separate origins for beta/build (`beta.` / `build.` subdomains, Firebase Hosting multi-site), so installed apps, service workers and browser storage are fully separate per environment. Recorded for Step 6 / go-live planning.
+
+### (Architect) 5 Nov 2026 09:15 — install conflict resolved; guide tip added to Step 1b
+- **JC:** after uninstalling leftovers and resetting the site in Chrome's settings, **prod installed fine.** This confirms the stale install record diagnosis.
+- **Added to Step 1b scope (JC):** an `APP_GUIDE.md` troubleshooting row: *"Chrome says 'This app is already installed' but then 'Could not open app'"* → Android Settings → Apps: remove any leftover Lifecare/LC app; Chrome ⋮ → Settings → Site settings → All sites → the app's site → Delete & reset; install again. (Pilot users will realistically only install Beta.)
+
+### (Architect) 5 Nov 2026 12:35 — decision: ways of working and data strategy agreed
+- JC agreed the approach now recorded in §4 "Ways of working — build, beta, prod and data": Beta → Prod as one snapshot after a freeze; Beta and Prod share the real database under the backward-compatible-only rule; Build refreshed nightly from real data; hotfix route.
+- **JC asked: are backups incremental (only new or changed data)?** Decision: full snapshots, **saved only when the data changed** (fingerprint check). Incremental saves were rejected because restores would depend on a chain of files, and the data is one small record. Backups run in GitHub Actions, so they use no AI tokens whatever their size.
+- **New work item (alongside Step 1b), for the Coder:** the automation jobs listed in §4. This needs a Firebase service credential and a backup encryption key as GitHub Secrets, set up with JC. Waiting for JC's go.
+
+### (Architect) 5 Nov 2026 12:50 — security risk raised by JC; priority change
+- **JC's working rule:** once weekly token use passes 80%, no feature work; only defect fixes and urgent items.
+- **Exposure found:** the app has no sign-in and the database address is in the public code, so the database rules are almost certainly open to anyone. The **Anthropic API key is stored in the database** (`anthropic_api_key`, read by `ensureApiKey`). So a bot could read the key and spend money, and could read or wipe the health data. Code copying is the lowest risk.
+- **Immediate (JC, no tokens):** set a monthly spend limit in the Anthropic Console; check Firebase → Realtime Database → Rules; take a manual backup.
+- **Proposed:** a minimal Step 2 security pass becomes the next work item, ahead of Step 1b: Google sign-in, database rules allow-listed to named accounts, and the AI key moved out of readable data. Waiting for JC's go.
+- **14:46 confirmed by JC:** the Realtime Database rules are `".read": true, ".write": true`. The whole database is open to anyone. The security pass is urgent.
+
+### (Architect) 5 Nov 2026 14:55 — BRIEF for Coder: v2.6.0 security pass (urgent, JC said go)
+**Goal:** only JC and Becks's joint Google account can read or write the database. Sign-in uses Google, with a fingerprint via passkey on the phone, once per device.
+
+**Why:** the Realtime Database rules are fully open (`.read/.write: true`), and the database holds health data plus `anthropic_api_key`.
+
+**Do not put the account's email address anywhere in this public repo.** The allow-list uses the account's Firebase **UID**, which JC will supply after the first sign-in.
+
+**Build (on `build`, version v2.6.0):**
+1. **Firebase Auth (compat 10.12, same as the database):**
+   - Google provider, `signInWithPopup`. Test it in an installed PWA on Android Chrome; fall back to `signInWithRedirect` only if the popup fails there. Local persistence, so users stay signed in.
+2. **Sign-in gate before any `sGet`/`sSet`:**
+   - A simple branded screen with a "Sign in with Google" button.
+   - Data loads only after `onAuthStateChanged` reports a user.
+   - A `PERMISSION_DENIED` result shows "This Google account doesn't have access" plus a Sign out button. Never show a blank or crashed app.
+   - The existing `ensureApiKey` and all reads run after sign-in.
+3. **Settings:** show the signed-in account (masked email) and a Sign out button.
+4. **`database.rules.json` in the repo (the source of truth; JC pastes it into the console):**
+   ```
+   { "rules": {
+       ".read": false, ".write": false,
+       "data":       { ".read": "auth != null && auth.uid === '__UID__'", ".write": "auth != null && auth.uid === '__UID__'" },
+       "data_build": { ".read": "auth != null && auth.uid === '__UID__'", ".write": "auth != null && auth.uid === '__UID__'" }
+   } }
+   ```
+   First check every path the app actually uses (feedback, energy, backups and so on). Every one must sit under `data/` or `data_build/`, or get its own block. Report the list.
+5. **Emulator and tests:**
+   - Add the Auth emulator.
+   - Tests sign in as a fake user, and the emulator loads `database.rules.json` with a test UID, so the tests prove the rules (signed in = works; signed out or another user = denied).
+   - Add a test for the denied screen.
+6. **APP_GUIDE.md:** a short "Signing in" section (Google, joint account, one-time per phone, how to turn on a passkey for fingerprint), plus the Step 1b install tip if it's cheap to include.
+
+**Release order. This is important, because one database serves all three environments:**
+- a) v2.6.0 build → Architect checks → beta → **prod, without the usual soak** (a security fix uses the hotfix route), while the rules are still open, so nothing breaks.
+- b) JC does the console steps (Architect gives them): enable the Google provider, and add `jcbeck1976.github.io` to the authorised domains. These must be done **before** the build can be tested live.
+- c) JC signs in once → copies the UID from Authentication → Users → the Coder puts it in `database.rules.json` (doc-only commit) → JC pastes the rules into the console → the Architect verifies that signed-out reads are denied and the app still works on build, beta and prod.
+- d) **Known trade-off:** `legacy.html` (v1.374.2 rollback) can't sign in, so after (c) it stops working. Rollback becomes "revert to the previous v2 release"; the rules can also be reopened in the console in an emergency. Record this in the docs.
+
+**Out of scope:** moving the AI key to a server (Step 6), per-person accounts (Step 5), Step 1b.
+
+**Token budget is tight (82%+ weekly):** keep reports short, and don't re-run unchanged checks.
+

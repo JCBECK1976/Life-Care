@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import { mockAnthropic } from "./mock-ai.js";
+import { gotoSignedIn } from "./helpers.js";
 
 // v2.5.1: switching person right after the app opens must never leave (or later apply) the
 // previous person's state. The local emulator is slowed down so the start-up loader is still
@@ -36,7 +37,7 @@ test("switch to Becks immediately after load (slow database): only Becks's state
   await seed();
   await slowEmulator(page, 120);
   await mockAnthropic(page);
-  await page.goto("./");
+  await gotoSignedIn(page);
   await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 60000 });
   await page.getByTestId("person-tabs").getByRole("button", { name: "Becks", exact: true }).click();
   // Wait until the start-up loader has certainly finished (it is sequential and slowed down).
@@ -61,7 +62,7 @@ test("rapid back-and-forth switching (slow database): the last selected person w
   await seed();
   await slowEmulator(page, 120);
   await mockAnthropic(page);
-  await page.goto("./");
+  await gotoSignedIn(page);
   await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 60000 });
   await page.waitForTimeout(12000); // let the start-up loader finish, so only switch loads are in flight
   const tabs = page.getByTestId("person-tabs");

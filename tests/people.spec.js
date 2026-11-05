@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import { mockAnthropic } from "./mock-ai.js";
+import { gotoSignedIn } from "./helpers.js";
 
 // v2.5.0: header title = selected person; scrollable person tabs; every way of switching person.
 // People are staged in the LOCAL emulator only: copies of Becks's entry with long names.
@@ -30,7 +31,7 @@ async function open(page, n, width) {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await mockAnthropic(page);
-  await page.goto("./");
+  await gotoSignedIn(page);
   await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
   return { names, errors };
 }
