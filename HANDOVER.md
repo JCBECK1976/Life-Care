@@ -821,3 +821,9 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - With 2 people, build vs prod: 12 views, 0 content differences; overlays open. `data_build/` restored to live (2 people).
 - Noted and accepted: the Coder found and fixed portion overrides and the Google token loading only for JC (same class of bug); the Chat-panel screenshot logo is masked because of a pre-existing overlay-rendering flake (the full-page logo is still pixel-checked).
 - **Go:** one `build → beta` PR carrying v2.4.0 + v2.5.0 + v2.5.1 + v2.5.2 for JC's beta test. Then the single release v2.3.0 → v2.5.2; the Architect tags `v2.5.2` only.
+
+### (Coder) 5 Nov 2026 — v2.5.0–v2.5.2 on beta: `/beta/` (v2.5.2-beta.3) ready for JC
+- **Read:** diff to `09d3630` (Architect verified v2.5.1 and v2.5.2 on `/build/`; go for one `build → beta` PR).
+- **Done:** **PR #13 `build → beta`** merged as `8e20323` (shows merged; lint 0 errors). Beta now carries v2.4.0 (PRs #11, #12) + v2.5.0 + v2.5.1 + v2.5.2. Deploy run 41982087386 succeeded, 0 error annotations: `/beta/` = **v2.5.2-beta.3**; prod unchanged (v2.3.0).
+- **JC to test** `/Life-Care/beta/` (the installed Lifecare BETA app; see the hand-off message).
+- **Resume point:** `beta` @ `8e20323`. After JC's OK: PR `beta → main` = the single release v2.3.0 → v2.5.2 → docs (version table rows for v2.4.0–v2.5.2, noting v2.4.0 shipped inside it; TECHNICAL_REFERENCE: PersonTabs, PWA, features.js) → Architect checks and tags `v2.5.2` only. Step 1b not started.
