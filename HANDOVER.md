@@ -931,3 +931,10 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - JC agreed the approach now recorded in §4 "Ways of working — build, beta, prod and data": Beta → Prod as one snapshot after a freeze; Beta and Prod share the real database under the backward-compatible-only rule; Build refreshed nightly from real data; hotfix route.
 - **JC asked: are backups incremental (only new or changed data)?** Decision: full snapshots, **saved only when the data changed** (fingerprint check). Incremental saves were rejected because restores would depend on a chain of files, and the data is one small record. Backups run in GitHub Actions, so they use no AI tokens whatever their size.
 - **New work item (alongside Step 1b), for the Coder:** the automation jobs listed in §4. This needs a Firebase service credential and a backup encryption key as GitHub Secrets, set up with JC. Waiting for JC's go.
+
+### (Architect) 5 Nov 2026 12:50 — security risk raised by JC; priority change
+- **JC's working rule:** once weekly token use passes 80%, no feature work; only defect fixes and urgent items.
+- **Exposure found:** the app has no sign-in and the database address is in the public code, so the database rules are almost certainly open to anyone. The **Anthropic API key is stored in the database** (`anthropic_api_key`, read by `ensureApiKey`). So a bot could read the key and spend money, and could read or wipe the health data. Code copying is the lowest risk.
+- **Immediate (JC, no tokens):** set a monthly spend limit in the Anthropic Console; check Firebase → Realtime Database → Rules; take a manual backup.
+- **Proposed:** a minimal Step 2 security pass becomes the next work item, ahead of Step 1b: Google sign-in, database rules allow-listed to named accounts, and the AI key moved out of readable data. Waiting for JC's go.
+
