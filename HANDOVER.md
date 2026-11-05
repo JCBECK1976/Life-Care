@@ -1022,3 +1022,8 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - Live check, fresh browser: prod, beta and build all show the sign-in screen, with 0 database requests before sign-in and 0 console errors.
 - JC was given `database.rules.json` (from `build`, with the UID) to paste into the console. Then the Architect checks that signed-out reads are denied.
 
+### (Architect) 5 Nov 2026 16:00 — security pass COMPLETE: database locked
+- JC published the rules at 15:52. Signed-out reads of root, `data/`, `data_build/` and `anthropic_api_key` are all denied, and a signed-out write is denied. JC confirms the app works when signed in.
+- **Follow-ups for JC:** Becks signs in once per phone. Create a new Anthropic API key (the old one was readable while the rules were open), enter it in the app, and delete the old one. Keep the spend limit and a Google Cloud budget alert, since the project is on the Blaze plan.
+- **Next work:** Step 1b and the automation jobs (§4 Ways of working), next week when the token allowance resets.
+
