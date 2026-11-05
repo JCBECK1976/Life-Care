@@ -42,7 +42,7 @@ npm test                  # Playwright smoke tests (emulator + mocked Claude API
 
 ## Deploy (since v2.1.0)
 A push to `main`, `beta` or `build` rebuilds all three into Pages: prod `/Life-Care/` (data `data`), `/beta/` (data `data`), `/build/` (data `data_build`). Only main's workflow deploys. Prod failures stop the deploy; beta/build failures skip that environment.
-Releases only after JC has tested beta and approved. Rollback: `/Life-Care/legacy.html` (the v1.374.2 single file), then `git revert` the bad merge.
+Releases only after JC has tested beta and approved. Rollback: `git revert` the bad merge on `main`. Since v2.6.0 the app needs Google sign-in, so `legacy.html` no longer works once the rules are applied; in an emergency the rules can be reopened in the console.
 After a deploy, tell JC to close the tab and reopen it, and check the footer version.
 
 ## Pointers
