@@ -937,4 +937,4 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Exposure found:** the app has no sign-in and the database address is in the public code, so the database rules are almost certainly open to anyone. The **Anthropic API key is stored in the database** (`anthropic_api_key`, read by `ensureApiKey`). So a bot could read the key and spend money, and could read or wipe the health data. Code copying is the lowest risk.
 - **Immediate (JC, no tokens):** set a monthly spend limit in the Anthropic Console; check Firebase → Realtime Database → Rules; take a manual backup.
 - **Proposed:** a minimal Step 2 security pass becomes the next work item, ahead of Step 1b: Google sign-in, database rules allow-listed to named accounts, and the AI key moved out of readable data. Waiting for JC's go.
-
+- **14:46 confirmed by JC:** the Realtime Database rules are `".read": true, ".write": true`. The whole database is open to anyone. The security pass is urgent.
