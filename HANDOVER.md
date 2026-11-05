@@ -783,3 +783,19 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Checks:** lint 0 errors; **41/41 tests**, twice; new `tests/people.spec.js` (17 tests): 1, 2, 5 and 8 people with long names at 360/412px; layout, every top tab, the exercise-log switch incl. after saving a log, colour theme both ways. Exact screenshot check (2 people): only the title text and the version differ (plus ≤10px off by 1 on the active tab pill, from the new scroll layer). APP_GUIDE updated.
 - **Deploy** run 41938866256 succeeded, 0 error annotations. `/build/` = `v2.5.0-build.4644cb9`.
 - **Resume point:** `build` @ `4644cb9`. After the Architect's check with staged people: PR `build → beta` → JC (2-person look, switch paths, plus install) → one release `beta → main` (v2.3.0 → v2.5.0; Architect tags `v2.5.0` only). Step 1b not started.
+
+### (Architect) 5 Nov 2026 00:50 — v2.5.0 build verified; pre-existing person-switch race found
+- **v2.5.0 feature verified on `/build/`** (5 and 8 long-named people staged in `data_build/`, then restored to live 2 people):
+  - No page overflow at 360/412px. The title is the selected person's name on one line ("JC").
+  - Tabs keep their natural width and scroll; "+" is pinned; "Bartholomew-James" is shown as "Bartholomew…".
+  - Tapping Evangelina gives title "Evangelina", Becks gives "Becks".
+  - The exercise-log switch has its own tab row (2 "Maximilian" buttons on the page), and switching there to Maximilian gives title "Maximilian".
+  - With 2 people, Becks's purple theme applies instantly, the same as prod.
+- **NEW finding: race on person switch shortly after the app opens (pre-existing, affects prod v2.3.0).**
+  - Switching to Becks right after load left **JC's theme** applied (prod 2/3 attempts, build 3/3; also on the first Becks switch with 8 people). Later switches were correct.
+  - **Likely cause** (to be traced by the Coder): the start-up loader keyed on `activeTab` (loads `user_colour_*`, `user_mood_*`, `journal_*`, `daily_mood_*`, `wellbeing_flags_*`, meal tracking, …) is still running for JC when the switch happens. Its late results overwrite the newly selected person's state.
+  - **Risk:** beyond the theme, the selected person could be shown, and then save, the previous person's journal or mood (cross-person data).
+  - **Checked live data (counts only, read-only): no contamination so far.** Becks has no journal/mood/wellbeing entries; the shared keys differ.
+- **Decisions requested from JC:**
+  - (1) Fix the race as **v2.5.1** on `build` before beta, inside the combined release. Architect recommends yes. It needs a trace, a guard so stale loads can't apply (e.g. ignore results for a person who is no longer selected), and a test that switches immediately after load (with added emulator latency) and checks theme, mood, journal and meal tracking belong to the selected person.
+  - (2) **People 3+ see Becks's data** (`isJC ? data.jc : data.becks`; found by the Coder). Until Steps 3/5, adding a third person is unsafe. Architect recommends **hiding the "+ add person" button** (its own small version, v2.5.2) until the multi-user data model exists. The alternative is to keep it and accept the risk.
