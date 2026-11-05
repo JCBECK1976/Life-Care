@@ -1,7 +1,7 @@
 # Technical Reference — Life Care Companion
 
 > **Purpose**: Complete technical architecture reference for any developer continuing this project.  
-> **Version**: v2.3.0 (Vite build, 4 Nov 2026) | **Source**: `src/` (component files)  
+> **Version**: v2.5.2 (Vite build, 5 Nov 2026) | **Source**: `src/` (component files)  
 > **Live**: https://jcbeck1976.github.io/Life-Care  
 > **Repo**: https://github.com/JCBECK1976/Life-Care
 
@@ -30,6 +30,8 @@
 SheetJS (xlsx) was dropped in v2.0.0: nothing used it after the file import was removed.
 
 ### Component Structure
+*Person switching (v2.5.1):* `activeTabRef` in `App.jsx` holds the person selected right now; every person-specific load (start-up loader and `loadUserSettings`) drops its result if another person is selected when it arrives. `loadUserSettings(k)` is the one place that loads a person's settings (colour, mood, journal, daily mood, wellbeing flags, meal tracking, portion overrides, Google token).
+
 `Dashboard` (in `src/App.jsx`) still owns all ~218 hooks (state, refs, effects), the handlers, the header, person tabs, navigation and footer. Each section and overlay is a component in its own file. It receives the Dashboard values it uses as one prop, `ctx` (state, setters, handlers), and renders exactly what the old inline block rendered. No section reassigns a Dashboard variable. Each is wrapped in an `ErrorBoundary`.
 
 ---
@@ -42,16 +44,17 @@ SheetJS (xlsx) was dropped in v2.0.0: nothing used it after the file import was 
 | `src/main.jsx` | Mounts `<Dashboard />` in the app-level error boundary |
 | `src/App.jsx` | `Dashboard`: all hooks, data loading, `saveData`, `loadUserSettings`, AI handlers (`generateFeedback`, `generateEatFeedback`, `threadReply`, `askHelp`, `askQuestion`, `handleFitdaysImage`, …), Google Health sync, RAG recalculation, header, person tabs, navigation, footer, and where each section/overlay is placed |
 | `src/sections/` | `Home.jsx` (overview), `Body.jsx`, `Exercise.jsx` (weights), `Eating.jsx` (meals; includes `MealSelect`, add/update item flow, publishes `window._confirmReviewItem`), `Shop.jsx`, `Health.jsx` (bloods), `Settings.jsx` (admin), `Data.jsx` (Firebase Data Viewer + recovery tools; opened from Settings → 🗂 Data tools, admin only; renders only for the admin; ← Back to Settings) |
-| `src/components/` | `ReviewItemOverlay`, `HelpPanel`, `ChatPanel`, `PrivacyPolicy`, `FeedbackForm`, `ErrorBoundary`, `EnvBadge` (BUILD/BETA badge, under Help/Settings), `LoadingScreen` (same markup as the static loading screen in `index.html`, class `boot`), `charts.jsx` (`MiniChart`, `FullChart`, `BodyCard`) |
+| `src/components/` | `ReviewItemOverlay`, `HelpPanel`, `ChatPanel`, `PrivacyPolicy`, `FeedbackForm`, `ErrorBoundary`, `EnvBadge` (BUILD/BETA badge, under Help/Settings), `PersonTabs` (scrollable person tabs for the header and the exercise log; `personName`, `peopleOf`, `tabLabel`), `LoadingScreen` (same markup as the static loading screen in `index.html`, class `boot`), `charts.jsx` (`MiniChart`, `FullChart`, `BodyCard`) |
 | `src/lib/` | `firebase.js` (config; dev-only emulator switch), `storage.js` (`sGet`/`sSet`), `api.js` (`ensureApiKey`, `API_PRICES`, `trackApiUsage`, the `window.fetch` wrapper, `isEnergyEmpty`, `aiErrorMsg`, `handleApiError`), `aiContext.js` (mood/profile/journal context), `exercise.js` (type helpers, `nextPin`, reps parsing, `autoStatus`), `utils.js` (dates, `mealKey`, status colours, `parseStLb`, `fbIcon`, `calcWeek`), `colour.js` (HSL helpers, `accentVariant`) |
-| `src/constants/` | `version.js` (**`APP_VERSION_BASE`, the only place the version is set**; adds `-beta.N` / `-build.<sha>` per environment), `tone.js`, `mood.js`, `themes.js`, `defaultData.js`, `food.js`, `exercise.js`, `health.js`, `styles.js` (static button/input styles) |
+| `src/constants/` | `features.js` (`ALLOW_ADD_PERSON = false` until Steps 3/5), `version.js` (**`APP_VERSION_BASE`, the only place the version is set**; adds `-beta.N` / `-build.<sha>` per environment), `tone.js`, `mood.js`, `themes.js`, `defaultData.js`, `food.js`, `exercise.js`, `health.js`, `styles.js` (static button/input styles) |
 | `public/legacy.html` | The v1.374.2 single file, served at `/Life-Care/legacy.html` (rollback) |
 | `public/brand/`, `brand/source/` | JC's logos and prepared icons (from Chat). In use since v2.3.0: `app-logo-640.png` (loading screen), `header-mark-288.png` (header, 44px white disc). App icons wired in by v2.4.0 (installable app) |
 | `APP_GUIDE.md` (root) | The user guide. One copy only: `vite.config.js` serves it in dev and copies it next to `index.html` in builds (Help fetches it with a relative URL) |
-| `tests/` | Playwright: `smoke-load`, `eating`, `exercise`, `companion`, `error-boundary`, opt-in `visual`; `mock-ai.js` answers by prompt shape |
+| `tests/` | Playwright: `smoke-load`, `eating`, `exercise`, `companion`, `error-boundary`, `data-tools`, `pwa` (manifest, installability, service-worker routing), `people` (1/2/5/8 people at 360/412px), `person-race` (slowed emulator), `env-build`, opt-in `visual`; `mock-ai.js` answers by prompt shape |
 | `scripts/` | `seed-emulator.mjs` (loads the backup into the emulator; swaps the real Claude key for a placeholder), `lift-legacy.py` (the one-off verbatim lift, kept for the record) |
 | `firebase.json`, `emulator.rules.json` | Emulator config only (open rules, local). Not production rules. |
 | `.github/workflows/deploy.yml` | Lint, build and deploy to Pages |
+| `vite.config.js` | Plugins: APP_GUIDE copy, build/beta `noindex` + title prefix, and the **installable app** (per-environment `manifest.webmanifest`, network-only `sw.js`, icon links); `sw.js` is registered in builds only (`main.jsx`) |
 
 Unused code listed at checkpoint (c) was removed in v2.1.1 (`ExTable`, `StrengthBanner`, `LoadingBtn`, `PBar`, `RC`, `SNACK_TEMPLATES`, `DAY_TYPE`, `DEFAULT_OTHER_GB`, `JC_BASE`, `BECK_BASE`, hidden meds block).
 
