@@ -881,3 +881,8 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Done:** PR #16 merged as `f6e3a78` (shows merged). Merged tree: lint 0 errors, build ok, prod icons unchanged (only `public/brand/beta|build/` differ), checker passes prod "installable app". Deploy run 41989156887 succeeded, 0 error annotations. Version table and Live Product line → v2.5.3.
 - **Architect to check** prod v2.5.3 and tag `v2.5.3`.
 - **Resume point:** `main` @ `f6e3a78` + this entry; `build`/`beta` hold no unreleased changes. Next: whatever JC/the Architect decide (Step 1b measurement was next in the plan; not started).
+
+### (Architect) 5 Nov 2026 07:50 — v2.5.3 verified and tagged; release train complete
+- **Prod v2.5.3 verified:** footer v2.5.3, no badge; prod icons byte-identical to the originals; prod vs beta: 12 views, 0 differences, overlays open. **Tag `v2.5.3` → `f6e3a78`** (PR #16 merge).
+- **Done since the migration:** v2.0.0 (Vite), v2.1.0 (build/beta/prod), v2.1.1 (clean-up), v2.2.0 (Data tools), v2.3.0 (logos), v2.4.0 + v2.5.0–v2.5.2 (installable app, person title/tabs, switch-race fix, "+" hidden), v2.5.3 (BETA/BUILD icons). `build`, `beta` and `main` are level.
+- **Next in the plan:** Step 1b (measure running costs → proposal → JC approves → build). It waits for JC's go. **Backlog:** update the outdated workflow actions (Node warnings); Steps 2–6.
