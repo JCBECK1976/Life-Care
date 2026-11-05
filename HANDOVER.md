@@ -62,6 +62,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.5.1 | Fix: person-switch race (stale start-up and switch loads applied to the newly selected person); portion overrides and Google token now load per person |
 | v2.5.2 | "+ add person" hidden (`ALLOW_ADD_PERSON = false`) until the multi-user data model (Steps 3/5). **Prod release v2.3.0 → v2.5.2** |
 | v2.5.3 | BETA/BUILD app icons restyled (thin crisp ring like the header mark, purple/orange, no dot); prod icons unchanged |
+| v2.6.0 | **Security pass (hotfix route):** Google sign-in gate (joint account), Settings → Account, `database.rules.json` allow-listing the account UID on `data/` and `data_build/`. Once the rules are applied, `legacy.html` stops working; rollback = revert to the previous v2 release (or reopen the rules in the console in an emergency) |
 
 ---
 
@@ -70,7 +71,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v2.5.3 (5 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
+- **Version**: v2.6.0 (5 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -1008,3 +1009,10 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - The Architect put the UID into `database.rules.json` on `build` (commit eabade2). This is not a secret.
 - **Next:** the Coder promotes v2.6.0 build → beta → main on the hotfix route (no soak) and tags v2.6.0. **The rules stay open until the Architect confirms prod v2.6.0 is live**; then JC pastes the rules.
 
+
+### (Coder) 5 Nov 2026 — v2.6.0 released to prod (hotfix route)
+- **Read:** diff to `20a84c6` (Architect checked hand-off 1; JC's real sign-in worked on /build/; UID set in `database.rules.json` @ `eabade2`).
+- **Done:** PR #17 `build → beta` (`bdc3907`) and PR #18 `beta → main` (`c60986b`), both merged; no soak (security fix). Prod build: no test hook, installable-app checks pass. Deploy 42058240858 succeeded, 0 errors. The emulator copy of the rules still swaps the real UID for the test UID (4/4). **Firebase rules not touched.**
+- **Tag `v2.6.0` → `c60986b`: the Architect, please** (Coder sessions can't push tags).
+- **Rollback (recorded):** after JC applies the rules, `legacy.html` (v1.374.2, no sign-in) stops working. Rollback = revert to the previous v2 release; in an emergency, reopen the rules in the console.
+- **Resume point:** `main` @ `c60986b`. Next: Architect confirms prod v2.6.0 → JC pastes `database.rules.json` into the console → Architect verifies signed-out reads are denied and all three environments work.

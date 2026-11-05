@@ -1,7 +1,7 @@
 # Technical Reference — Life Care Companion
 
 > **Purpose**: Complete technical architecture reference for any developer continuing this project.  
-> **Version**: v2.5.3 (Vite build, 5 Nov 2026) | **Source**: `src/` (component files)  
+> **Version**: v2.6.0 (Vite build, 5 Nov 2026) | **Source**: `src/` (component files)  
 > **Live**: https://jcbeck1976.github.io/Life-Care  
 > **Repo**: https://github.com/JCBECK1976/Life-Care
 
@@ -538,7 +538,8 @@ Generates meal suggestions using only custom-added items (with RAG status), neve
 - **Flow:** commit to `build` → Chat verifies → PR `build → beta` (merge commit) → JC tests → PR `beta → main` = release → Chat verifies and tags. No source pushes straight to `beta` or `main`; doc-only commits go straight to `main`.
 - **Pipeline:** Settings → Pages → Source = **GitHub Actions**. `.github/workflows/deploy.yml`: only **main's** run builds and deploys; pushes to `build`/`beta` ask it to run (`workflow_dispatch`). `scripts/build-pages.sh` builds all three branches (each `npm ci`, lint, `vite build --base …` with `VITE_APP_ENV`, `VITE_DATA_ROOT`, `VITE_BUILD_SHA`, `VITE_BETA_N`) into one artifact; `scripts/check-pages.mjs` checks it. **Prod is strict** (any failure stops the deploy); a beta/build failure leaves that folder out, is reported loudly (log, annotation, job summary), and prod still deploys.
 - Build/beta: BUILD/BETA badge, tab-title prefix, `noindex`; `legacy.html` only at the root. Each environment has its own `APP_GUIDE.md`.
-- Rollback: `/Life-Care/legacy.html` at once, then `git revert` the bad merge on `main`. If `main` has no `package.json`, prod is published as plain files (legacy).
+- Rollback: revert the bad merge on `main` (the previous v2 release redeploys). Since v2.6.0 the database needs Google sign-in, so `/Life-Care/legacy.html` (v1.374.2, no sign-in) no longer works once the rules are applied; in an emergency the rules can be reopened in the Firebase console.
+- **Sign-in (v2.6.0):** `AuthGate` (Google popup, redirect fallback; access probe on `DATA_ROOT`) wraps the app; `database.rules.json` is the source of truth for the console rules (allowed account UID on `data/` and `data_build/`); the emulator runs a generated copy with a test UID. If `main` has no `package.json`, prod is published as plain files (legacy).
 
 ### Pre-Deploy Checklist
 1. ✅ `npm run lint` (0 errors) and `npm run build`
