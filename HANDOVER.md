@@ -1028,3 +1028,12 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Next work:** Step 1b and the automation jobs (§4 Ways of working), next week when the token allowance resets.
 - **Added to the automation work (16:02):** widen `.gitignore` to catch any backup or export file name, not just `*firebase_backup*.json`. Seed the emulator from the encrypted vault backup instead of a loose file. The Architect checked: no backup file exists in the repo.
 
+### (Architect) 5 Nov 2026 21:35 — DESIGN PRINCIPLE agreed by JC: stolen data must not identify anyone
+JC's aim: if the database were stolen, the health data must not be traceable to a real person. GDPR is handled separately in the design. Apply from Step 5 (individual accounts) onwards:
+1. **Keyed by random ID only.** Health records sit under the Firebase Auth UID, which is random. Never sequential IDs, names or emails.
+2. **No identity in the database.** Names, emails and photos are not stored with health data. The display name lives on the device, with a "what should we call you?" prompt to recover it on a new device.
+3. **Keep the identity store separate and protected.** Firebase Auth (UID → email) is the only link. Protect the console and Google accounts with 2-Step Verification, and give it minimal admin access.
+4. **Free text is the main leak risk.** Journal, mood notes, comments, food notes and AI chat history can hold names, places and family details. Encrypt these on the device, or keep them only on the device.
+5. **Watch for quasi-identifiers.** Exact date of birth, height plus rare medical values, and precise locations together can identify someone in a small user base. Store bands where exact values aren't needed (age band, not date of birth).
+6. **Later (Step 6+):** device-side encryption for the medical fields (blood results, medication), with a passkey or recovery-code key design.
+
