@@ -13,9 +13,14 @@ async function open(page) {
   await openApp(page);
   await page.waitForTimeout(1500);
 }
-const snap = async (page, name, fullPage = true) => {
+const snap = async (page, name, fullPage = true, mask = []) => {
   await page.waitForFunction(() => [...document.images].every((i) => i.complete && i.naturalWidth > 0)); // e.g. the header logo after a reload
-  return expect.soft(page).toHaveScreenshot(name + ".png", { fullPage, animations: "disabled", caret: "hide", threshold: 0 });
+  // loaded isn't enough: wait until every image is decoded and two frames have been painted
+  await page.evaluate(async () => {
+    await Promise.all([...document.images].map((i) => i.decode().catch(() => {})));
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  });
+  return expect.soft(page).toHaveScreenshot(name + ".png", { fullPage, mask, animations: "disabled", caret: "hide", threshold: 0 });
 };
 
 for (const who of ["JC", "Becks"]) {
@@ -47,5 +52,8 @@ test("panels: eating lists, help, chat", async ({ page }) => {
   await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
   await page.getByRole("button", { name: "Chat with your Companion" }).or(page.getByTitle("Chat with your Companion")).first().click();
   await page.waitForTimeout(500);
-  await snap(page, "panel-chat", false); // fixed overlay: full-page mode resizes the window and jitters its scroll
+  // fixed overlay: full-page mode resizes the window and jitters its scroll. The header logo behind the
+  // see-through overlay is drawn in one of two slightly different ways by Chrome (seen with and without
+  // v2.5.1), so it is masked here only; it is checked pixel-exact in every full-page view.
+  await snap(page, "panel-chat", false, [page.getByAltText("Lifecare Companion logo")]);
 });
