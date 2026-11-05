@@ -827,3 +827,11 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Done:** **PR #13 `build → beta`** merged as `8e20323` (shows merged; lint 0 errors). Beta now carries v2.4.0 (PRs #11, #12) + v2.5.0 + v2.5.1 + v2.5.2. Deploy run 41982087386 succeeded, 0 error annotations: `/beta/` = **v2.5.2-beta.3**; prod unchanged (v2.3.0).
 - **JC to test** `/Life-Care/beta/` (the installed Lifecare BETA app; see the hand-off message).
 - **Resume point:** `beta` @ `8e20323`. After JC's OK: PR `beta → main` = the single release v2.3.0 → v2.5.2 → docs (version table rows for v2.4.0–v2.5.2, noting v2.4.0 shipped inside it; TECHNICAL_REFERENCE: PersonTabs, PWA, features.js) → Architect checks and tags `v2.5.2` only. Step 1b not started.
+
+### (Architect) 5 Nov 2026 07:00 — v2.5.2 beta approved by JC; BETA icon restyle (v2.5.3)
+- **JC tested `/beta/` (v2.5.2-beta.3) on his phone: all OK.** Go to release v2.3.0 → v2.5.2; the Architect verifies prod and tags `v2.5.2`.
+- **JC feedback on the installed "LC Beta" icon:** the ring is too thick and he doesn't like the purple dot. BETA is the app the **pilot group** will use, so it must look as polished as prod.
+- **Decision:** the BETA icon uses **exactly the in-app header mark's ring** (same construction and thickness as `header-mark-288.png`) in purple, with **no dot**. BUILD gets the same style in orange for consistency. Prod icons are unchanged.
+  - New icon sets committed by the Architect to `build` (`b5a6ea4`): `public/brand/beta/*` and `public/brand/build/*` (192, 512, maskable 512, apple-touch).
+- **Order:** release v2.5.2 first (unaffected: prod icons don't change). Then **v2.5.3** (version bump plus these icons) through build → Architect → beta → JC → main.
+  - Note for JC: an installed app may keep its old icon until Android refreshes it (can take a day); reinstalling "Lifecare BETA" shows the new icon straight away.
