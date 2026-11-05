@@ -35,12 +35,18 @@ import FeedbackForm from "./components/FeedbackForm.jsx";
 import { APP_VERSION } from "./constants/version.js";
 import EnvBadge from "./components/EnvBadge.jsx";
 import LoadingScreen from "./components/LoadingScreen.jsx";
+import PersonTabs, { peopleOf, personName } from "./components/PersonTabs.jsx";
+import { ALLOW_ADD_PERSON } from "./constants/features.js";
 
 const { useState, useEffect, useCallback, useRef } = React;
 function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("jc");
+  // v2.5.1: who is selected RIGHT NOW. Person-specific loads finish later; each result checks this
+  // and is dropped if another person has been selected meanwhile (no stale cross-person state).
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
   const [section, setSection] = useState("overview"); // always starts on Home
   const [weekOff, setWeekOff] = useState(function() { var diff = Math.floor((new Date() - new Date(2026, 6, 19)) / (7*24*60*60*1000)); return diff; });
   const [meals, setMeals] = useState({});
@@ -579,18 +585,19 @@ function Dashboard() {
 
   // Load saved feedback + history
   useEffect(() => { (async () => {
+    const who = activeTab; const stillSelected = () => activeTabRef.current === who; // v2.5.1
     const r = await sGet("feedback_results"); if (r) setFeedbackResults(JSON.parse(r));
-    const bfAll = await sGet("body_feedback"); if (bfAll) { var bfObj = JSON.parse(bfAll); setBodyFbAll(bfObj); setBodyFeedback(bfObj["jc"] || null); }
-    const hfAll = await sGet("health_feedback"); if (hfAll) { var hfObj = JSON.parse(hfAll); setHealthFbAll(hfObj); setHealthFb(hfObj["jc"] || null); }
-    const mfAll = await sGet("meas_feedback"); if (mfAll) { var mfObj = JSON.parse(mfAll); setMeasFbAll(mfObj); setMeasFeedback(mfObj["jc"] || null); }
+    const bfAll = await sGet("body_feedback"); if (bfAll) { var bfObj = JSON.parse(bfAll); setBodyFbAll(bfObj); setBodyFeedback(bfObj[activeTabRef.current] || null); }
+    const hfAll = await sGet("health_feedback"); if (hfAll) { var hfObj = JSON.parse(hfAll); setHealthFbAll(hfObj); setHealthFb(hfObj[activeTabRef.current] || null); }
+    const mfAll = await sGet("meas_feedback"); if (mfAll) { var mfObj = JSON.parse(mfAll); setMeasFbAll(mfObj); setMeasFeedback(mfObj[activeTabRef.current] || null); }
     const h = await sGet("feedback_history"); if (h) setFeedbackHistory(JSON.parse(h));
     const efb = await sGet("eat_feedback"); if (efb) setEatFbResults(JSON.parse(efb));
     const ce = await sGet("custom_exercises"); if (ce) setCustomExercises(JSON.parse(ce));
     const cs = await sGet("custom_snacks"); if (cs) setCustomSnacks(JSON.parse(cs));
     const cdr = await sGet("custom_drinks"); if (cdr) setCustomDrinks(JSON.parse(cdr));
     const cde = await sGet("custom_desserts"); if (cde) setCustomDesserts(JSON.parse(cde));
-    const mt = await sGet("meal_tracking:" + activeTab); if (mt) setMealTracking(JSON.parse(mt));
-    const po = await sGet("portion_overrides:" + activeTab); if (po) setPortionOverrides(JSON.parse(po));
+    const mt = await sGet("meal_tracking:" + activeTab); if (mt && stillSelected()) setMealTracking(JSON.parse(mt));
+    const po = await sGet("portion_overrides:" + activeTab); if (po && stillSelected()) setPortionOverrides(JSON.parse(po));
     const cb = await sGet("custom_breakfasts"); if (cb) setCustomBreakfasts(JSON.parse(cb));
     const cl = await sGet("custom_lunches"); if (cl) setCustomLunches(JSON.parse(cl));
     const md = await sGet("meal_defaults"); if (md) setMealDefaults(JSON.parse(md));
@@ -603,14 +610,14 @@ function Dashboard() {
     // Load saved session feedback
     var sfAll = await sGet("session_feedback_all"); if (sfAll) { setSessionFeedback(JSON.parse(sfAll)); }
 const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
-    const gt = await sGet("google_token_" + activeTab); if (gt) { setGoogleToken(gt); setGoogleConnected(true); }
+    const gt = await sGet("google_token_" + activeTab); if (gt && stillSelected()) { setGoogleToken(gt); setGoogleConnected(true); }
     const qa = await sGet("qa_history"); if (qa) setQaHistory(JSON.parse(qa));
     const hh = await sGet("help_history"); if (hh) setHelpHistory(JSON.parse(hh));
-    const savedMood = await sGet("user_mood_" + activeTab); if (savedMood) setUserMood(JSON.parse(savedMood));
-    const savedJournal = await sGet("journal_" + activeTab); if (savedJournal) setJournalEntries(JSON.parse(savedJournal));
-    const savedDailyMood = await sGet("daily_mood_" + activeTab); if (savedDailyMood) { var dm = JSON.parse(savedDailyMood); var todayStr = new Date().toISOString().split("T")[0]; if (dm && dm.date === todayStr) setDailyMood(dm); else setDailyMood(null); }
-    const savedColour = await sGet("user_colour_" + activeTab); if (savedColour) setUserColour(savedColour); else setUserColour(null);
-    const savedWbFlags = await sGet("wellbeing_flags_" + activeTab); if (savedWbFlags) setWellbeingFlags(JSON.parse(savedWbFlags));
+    const savedMood = await sGet("user_mood_" + activeTab); if (savedMood && stillSelected()) setUserMood(JSON.parse(savedMood));
+    const savedJournal = await sGet("journal_" + activeTab); if (savedJournal && stillSelected()) setJournalEntries(JSON.parse(savedJournal));
+    const savedDailyMood = await sGet("daily_mood_" + activeTab); if (savedDailyMood && stillSelected()) { var dm = JSON.parse(savedDailyMood); var todayStr = new Date().toISOString().split("T")[0]; if (dm && dm.date === todayStr) setDailyMood(dm); else setDailyMood(null); }
+    const savedColour = await sGet("user_colour_" + activeTab); if (stillSelected()) { if (savedColour) setUserColour(savedColour); else setUserColour(null); }
+    const savedWbFlags = await sGet("wellbeing_flags_" + activeTab); if (savedWbFlags && stillSelected()) setWellbeingFlags(JSON.parse(savedWbFlags));
     const cen = await sGet("companion_energy"); if (cen) setCompanionEnergy(JSON.parse(cen));
   })(); }, []);
 
@@ -1731,6 +1738,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
   if (loading || !data) return <LoadingScreen />;
 
+  // Dev/test only (removed from builds): the selected person's loaded state, so tests can check
+  // that nothing from a previously selected person is shown (tests/person-race.spec.js).
+  if (import.meta.env.DEV) window.__lcPerson = { activeTab, userColour, userMood, dailyMood, journalEntries, mealTracking, portionOverrides, googleConnected };
+
   const isJC = activeTab === "jc";
   const isAdmin = activeTab === "jc";
   const p = isJC ? data.jc : data.becks;
@@ -1748,7 +1759,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const accentBtnBorder = accentVariant(accent, 80);
   const accentChatUser = accentVariant(accent, 88);
   /* Per-person settings — shared by the top name tabs and the switch inside the exercise log */
-  const loadUserSettings = function(k) { if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); sGet("meal_tracking:" + k).then(function(mt) { if (mt) setMealTracking(JSON.parse(mt)); else setMealTracking({}); }); sGet("user_mood_" + k).then(function(m) { if (m) setUserMood(JSON.parse(m)); else setUserMood(null); }); sGet("journal_" + k).then(function(j) { if (j) setJournalEntries(JSON.parse(j)); else setJournalEntries([]); }); sGet("daily_mood_" + k).then(function(dm) { if (dm) { var parsed = JSON.parse(dm); var todayStr = new Date().toISOString().split("T")[0]; if (parsed && parsed.date === todayStr) setDailyMood(parsed); else setDailyMood(null); } else setDailyMood(null); }); sGet("wellbeing_flags_" + k).then(function(wf) { if (wf) setWellbeingFlags(JSON.parse(wf)); else setWellbeingFlags({}); }); sGet("user_colour_" + k).then(function(uc) { if (uc) setUserColour(uc); else setUserColour(null); }); };
+  const loadUserSettings = function(k) { activeTabRef.current = k; var stale = function() { return activeTabRef.current !== k; }; /* v2.5.1 */ if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); sGet("meal_tracking:" + k).then(function(mt) { if (stale()) return; if (mt) setMealTracking(JSON.parse(mt)); else setMealTracking({}); }); sGet("user_mood_" + k).then(function(m) { if (stale()) return; if (m) setUserMood(JSON.parse(m)); else setUserMood(null); }); sGet("journal_" + k).then(function(j) { if (stale()) return; if (j) setJournalEntries(JSON.parse(j)); else setJournalEntries([]); }); sGet("daily_mood_" + k).then(function(dm) { if (stale()) return; if (dm) { var parsed = JSON.parse(dm); var todayStr = new Date().toISOString().split("T")[0]; if (parsed && parsed.date === todayStr) setDailyMood(parsed); else setDailyMood(null); } else setDailyMood(null); }); sGet("wellbeing_flags_" + k).then(function(wf) { if (stale()) return; if (wf) setWellbeingFlags(JSON.parse(wf)); else setWellbeingFlags({}); }); sGet("user_colour_" + k).then(function(uc) { if (stale()) return; if (uc) setUserColour(uc); else setUserColour(null); }); sGet("portion_overrides:" + k).then(function(po) { if (stale()) return; setPortionOverrides(po ? JSON.parse(po) : {}); }); sGet("google_token_" + k).then(function(gt) { if (stale()) return; if (gt) { setGoogleToken(gt); setGoogleConnected(true); } else { setGoogleToken(null); setGoogleConnected(false); } }); };
   const accentBorder = accentVariant(accent, 78);
   const btnST = Object.assign({}, btnS, { background: accentBtnLight, border: "1px solid " + accentBtnBorder });
   const btnMT = Object.assign({}, btnMuted, { background: accentBtnLight, border: "1px solid " + accentBtnBorder });
@@ -1780,7 +1791,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#94a3b8", marginBottom: 4 }}>Lifecare Companion™</div>
-              <div style={{ fontSize: 22, fontWeight: 800 }}>{Object.keys(data).filter(k => k !== "config").map(k => (data[k].profile ? data[k].profile.name : k)).join(" & ")}</div>
+              <div data-testid="header-title" style={{ fontSize: 22, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{personName(data, activeTab)}</div>
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
@@ -1792,12 +1803,12 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           </div>
         </div>
         <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Week {calcWeek(data.config.trainingStart)} · Updated {data.config.lastUpdate}{saving ? " · Saving..." : ""}</div>
-        <div style={{ display: "flex", gap: 4, marginTop: 14, background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 4, border: "1px solid rgba(255,255,255,0.08)", overflowX: "auto" }}>
-          {Object.keys(data).filter(k => k !== "config").map((k, i) => {
-            const label = data[k].profile ? data[k].profile.name : k;
-            return (<button key={k} onClick={() => { setActiveTab(k); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); setCopyDayOpen(false); setCopyWeekOpen(false); setHomeFbExpanded(false); setFbExpanded(false); setEatFbExpanded(false); setHealthFbExpanded(false); setBodyFbExpanded(false); setMeasFbExpanded2(false); loadUserSettings(k); setJournalText(""); setShowRecentJournal(false); setShowFullJournal(false); }} style={{ flex: 1, padding: "10px 0", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: activeTab === k ? "rgba(255,255,255,0.95)" : "transparent", color: activeTab === k ? "#0f172a" : "rgba(255,255,255,0.45)", minWidth: 50, letterSpacing: activeTab === k ? "0.02em" : "0", transition: "all 0.2s ease" }}>{label}</button>);
-          })}
-          <button onClick={() => setShowAddPerson(true)} style={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: "transparent", color: "rgba(255,255,255,0.3)", transition: "all 0.2s ease" }}>+</button>
+        <div style={{ display: "flex", gap: 4, marginTop: 14, background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 4, border: "1px solid rgba(255,255,255,0.08)" }}>
+          <PersonTabs testId="person-tabs" people={peopleOf(data)} activeKey={activeTab}
+            tabStyle={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }}
+            activeStyle={{ background: "rgba(255,255,255,0.95)", color: "#0f172a", letterSpacing: "0.02em" }} inactiveStyle={{ background: "transparent", color: "rgba(255,255,255,0.45)", letterSpacing: "0" }}
+            onSelect={(k) => { setActiveTab(k); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); setCopyDayOpen(false); setCopyWeekOpen(false); setHomeFbExpanded(false); setFbExpanded(false); setEatFbExpanded(false); setHealthFbExpanded(false); setBodyFbExpanded(false); setMeasFbExpanded2(false); loadUserSettings(k); setJournalText(""); setShowRecentJournal(false); setShowFullJournal(false); }} />
+          {ALLOW_ADD_PERSON && (<button onClick={() => setShowAddPerson(true)} style={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: "transparent", color: "rgba(255,255,255,0.3)", transition: "all 0.2s ease" }}>+</button>)}
         </div>
         {showAddPerson && (<div style={{ marginTop: 10, display: "flex", gap: 6 }}>
           <input value={newPersonName} onChange={e => setNewPersonName(e.target.value)} placeholder="Name..." style={{ flex: 1, padding: "8px 10px", border: "1px solid #475569", borderRadius: 8, fontSize: 13, background: "#1e293b", color: "#fff" }} />

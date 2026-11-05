@@ -5,6 +5,7 @@ import { sGet, sSet } from "../lib/storage.js";
 import React from "react";
 import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnMuted, btnPortion } from "../constants/styles.js";
 import { accentVariant } from "../lib/colour.js";
+import { personName } from "../components/PersonTabs.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -1013,7 +1014,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
             <div style={{ background: accentLight, borderRadius: 8, padding: 12, marginBottom: 10, border: "1px solid " + accentBorder }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>Set Defaults</div>
-            <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8 }}>Set default meals. Use "All" to apply to all people or "Individual" for just {activeTab === "jc" ? "JC" : "Becks"}.</div>
+            <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8 }}>Set default meals. Use "All" to apply to all people or "Individual" for just {personName(data, activeTab)}.</div>
 
             <div style={{ marginBottom: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
