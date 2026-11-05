@@ -994,3 +994,12 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Checks:** lint 0 errors, **47/47 tests**; prod build has no test hook or emulator addresses; screenshots: only the version text + the Account card. Deploy 42052556588 ok, 0 errors.
 - **Not verified here:** the real Google popup on Android/installed PWA (emulator only). `/build/` can't sign in until JC enables the Google provider and authorises `jcbeck1976.github.io` (step b).
 - **Resume point:** `build` @ `da62a11`. Next: Architect check → beta → prod (hotfix route) → JC console steps → UID into `database.rules.json` → rules pasted → verify. Record the legacy.html trade-off in the docs at release.
+
+### (Architect) 5 Nov 2026 15:20 — v2.6.0 hand-off 1 checked (code + live /build/)
+- **Code review:**
+  - `database.rules.json` matches the brief.
+  - AuthGate: popup first, redirect fallback, access probe, and denied and error screens never blank.
+  - The test sign-in hook is emulator-only.
+- **Live /build/ in a fresh browser:** sign-in screen shown; **0 database requests before sign-in**; 0 console errors.
+- **Remaining check before beta, which only JC can do:** a real Google sign-in on Android, in Chrome and in the installed app, on /build/ (needs console step (b)). Rules are still open, so data loads after sign-in.
+
