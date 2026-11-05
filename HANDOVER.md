@@ -938,3 +938,45 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 - **Immediate (JC, no tokens):** set a monthly spend limit in the Anthropic Console; check Firebase → Realtime Database → Rules; take a manual backup.
 - **Proposed:** a minimal Step 2 security pass becomes the next work item, ahead of Step 1b: Google sign-in, database rules allow-listed to named accounts, and the AI key moved out of readable data. Waiting for JC's go.
 - **14:46 confirmed by JC:** the Realtime Database rules are `".read": true, ".write": true`. The whole database is open to anyone. The security pass is urgent.
+
+### (Architect) 5 Nov 2026 14:55 — BRIEF for Coder: v2.6.0 security pass (urgent, JC said go)
+**Goal:** only JC and Becks's joint Google account can read or write the database. Sign-in uses Google, with a fingerprint via passkey on the phone, once per device.
+
+**Why:** the Realtime Database rules are fully open (`.read/.write: true`), and the database holds health data plus `anthropic_api_key`.
+
+**Do not put the account's email address anywhere in this public repo.** The allow-list uses the account's Firebase **UID**, which JC will supply after the first sign-in.
+
+**Build (on `build`, version v2.6.0):**
+1. **Firebase Auth (compat 10.12, same as the database):**
+   - Google provider, `signInWithPopup`. Test it in an installed PWA on Android Chrome; fall back to `signInWithRedirect` only if the popup fails there. Local persistence, so users stay signed in.
+2. **Sign-in gate before any `sGet`/`sSet`:**
+   - A simple branded screen with a "Sign in with Google" button.
+   - Data loads only after `onAuthStateChanged` reports a user.
+   - A `PERMISSION_DENIED` result shows "This Google account doesn't have access" plus a Sign out button. Never show a blank or crashed app.
+   - The existing `ensureApiKey` and all reads run after sign-in.
+3. **Settings:** show the signed-in account (masked email) and a Sign out button.
+4. **`database.rules.json` in the repo (the source of truth; JC pastes it into the console):**
+   ```
+   { "rules": {
+       ".read": false, ".write": false,
+       "data":       { ".read": "auth != null && auth.uid === '__UID__'", ".write": "auth != null && auth.uid === '__UID__'" },
+       "data_build": { ".read": "auth != null && auth.uid === '__UID__'", ".write": "auth != null && auth.uid === '__UID__'" }
+   } }
+   ```
+   First check every path the app actually uses (feedback, energy, backups and so on). Every one must sit under `data/` or `data_build/`, or get its own block. Report the list.
+5. **Emulator and tests:**
+   - Add the Auth emulator.
+   - Tests sign in as a fake user, and the emulator loads `database.rules.json` with a test UID, so the tests prove the rules (signed in = works; signed out or another user = denied).
+   - Add a test for the denied screen.
+6. **APP_GUIDE.md:** a short "Signing in" section (Google, joint account, one-time per phone, how to turn on a passkey for fingerprint), plus the Step 1b install tip if it's cheap to include.
+
+**Release order. This is important, because one database serves all three environments:**
+- a) v2.6.0 build → Architect checks → beta → **prod, without the usual soak** (a security fix uses the hotfix route), while the rules are still open, so nothing breaks.
+- b) JC does the console steps (Architect gives them): enable the Google provider, and add `jcbeck1976.github.io` to the authorised domains. These must be done **before** the build can be tested live.
+- c) JC signs in once → copies the UID from Authentication → Users → the Coder puts it in `database.rules.json` (doc-only commit) → JC pastes the rules into the console → the Architect verifies that signed-out reads are denied and the app still works on build, beta and prod.
+- d) **Known trade-off:** `legacy.html` (v1.374.2 rollback) can't sign in, so after (c) it stops working. Rollback becomes "revert to the previous v2 release"; the rules can also be reopened in the console in an emergency. Record this in the docs.
+
+**Out of scope:** moving the AI key to a server (Step 6), per-person accounts (Step 5), Step 1b.
+
+**Token budget is tight (82%+ weekly):** keep reports short, and don't re-run unchanged checks.
+
