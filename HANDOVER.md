@@ -1037,3 +1037,28 @@ JC's aim: if the database were stolen, the health data must not be traceable to 
 5. **Watch for quasi-identifiers.** Exact date of birth, height plus rare medical values, and precise locations together can identify someone in a small user base. Store bands where exact values aren't needed (age band, not date of birth).
 6. **Later (Step 6+):** device-side encryption for the medical fields (blood results, medication), with a passkey or recovery-code key design.
 
+### (Architect) 6 Nov 2026 22:10 — BACKLOG for next week: defects and features from JC's training session
+All four are pre-existing app behaviour, not caused by the migration. Priority order: D1 and D2 first (safety and data integrity), then F1, then F2.
+
+- **D1 (defect, SAFETY): switching person in the header while the Log Exercise form is open.**
+  - What happens: JC selected Becks in the header tab rather than in the form. The screen switched, but the form kept the other person's data, so someone could train to the wrong person's weights.
+  - Proposed fix: the form belongs to the person it was opened for and shows that name clearly. While a form is open, switching person in the header asks first ("Discard Becks's unsaved entries and switch to JC?"); on Yes, the form closes or reloads cleanly for the new person. Never a mixed state.
+  - Add a regression test. Related: the v2.5.1 stale-load guard.
+- **D2 (defect, DATA): different weights per set are saved as the set 1 value.**
+  - What happens: set 1 at 16 kg, sets 2–3 at 22 kg all saved as 16 kg.
+  - Fix: store and show weight and reps (or the exercise's equivalent measure, e.g. time or level) **per set**, end to end: form, save, progress row, AI feedback and history.
+  - Data change must be backward compatible (expand-then-contract rule in §4): existing entries with one weight still read correctly.
+  - Add a test with mixed per-set weights.
+- **F1 (redesign, feature): editing past weeks in Progress.**
+  - JC believes editing previous weeks doesn't work reliably. Investigate and confirm in the report.
+  - New design: the Progress week row shows **key data only**, with no small notes text and no delete button, plus an **Open** button.
+  - Open shows the **same Log Exercise form**, read-only, with everything exactly as logged (every set, notes, etc.).
+  - An **Edit** button makes it editable → Save, or **Delete** with a confirm, all inside the form.
+  - One form for logging, viewing and editing.
+- **F2 (feature): body proportion guidance from body measurements.**
+  - The Companion looks at the measurement trends (e.g. chest, waist, arms left/right, shoulders, thighs, calves) and their ratios over time.
+  - It flags areas developing disproportionately fast or slow, or left/right imbalance, and recommends training changes (exercise swaps, emphasis, volume) to keep development balanced.
+  - Example from JC: upper chest developing faster than lower chest → suggest decline or lower-chest emphasis.
+  - **Limit to state clearly in the app:** tape measurements can't separate upper and lower chest. That level of detail needs a progress photo or the user's own observation, so offer an optional "what do you notice?" input or photo-based review.
+  - Recommendations are suggestions the user accepts, never automatic plan changes.
+
