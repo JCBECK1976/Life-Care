@@ -1061,4 +1061,12 @@ All four are pre-existing app behaviour, not caused by the migration. Priority o
   - Example from JC: upper chest developing faster than lower chest → suggest decline or lower-chest emphasis.
   - **Limit to state clearly in the app:** tape measurements can't separate upper and lower chest. That level of detail needs a progress photo or the user's own observation, so offer an optional "what do you notice?" input or photo-based review.
   - Recommendations are suggestions the user accepts, never automatic plan changes.
+  - **Amended by JC (6 Nov 22:46): proportion feedback only works from progress photos.** It runs when the user has uploaded photos, and the Companion assesses them as part of the overall body measurement feedback, combining photos and measurement trends. With no photos it says so and asks for them, and gives no proportion advice.
+- **F3 (feature): track food on the go from a photo, for users who don't plan meals.**
+  - Today the "Portion" photo button only works on a slot that already has an item.
+  - New: the button also appears on **empty** meal/snack slots. The user takes a photo → the AI identifies the food **and** the portion together → applies the RAG rating → adds it to that slot's selection list if it isn't already there → shows it selected in the slot.
+  - On a filled slot it keeps today's behaviour (portion size of the listed item).
+  - **Must reuse the shared add-item path (`confirmReviewItem`)**, so RAG, duplicate check and list insertion are not reimplemented, and the other add-item routes don't break.
+  - Several foods on one plate → one combined meal item by default (e.g. "Chicken stir fry with rice").
+  - **Rename the button:** "Portion" takes too much space. Use a camera icon with the short label **"📷 Snap"**, which suits both quick tracking and portion checks, and give it an accessible label "Snap a photo of your food". JC to confirm the label in review.
 
