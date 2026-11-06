@@ -1070,3 +1070,40 @@ All four are pre-existing app behaviour, not caused by the migration. Priority o
   - Several foods on one plate → one combined meal item by default (e.g. "Chicken stir fry with rice").
   - **Rename the button:** "Portion" takes too much space. Use a camera icon with the short label **"📷 Snap"**, which suits both quick tracking and portion checks, and give it an accessible label "Snap a photo of your food". JC to confirm the label in review.
 
+### (Architect) 6 Nov 2026 23:10 — DECISION: "house in order" before any further build-out; document set agreed
+**HANDOVER.md becomes hand-overs only.** Reference documents are kept separately and HANDOVER links to them.
+
+**Private vault repo** (security-sensitive):
+- SAD (incl. threat model and CSIA)
+- DPIA
+- SDD (support model, suppliers, service levels, runbooks)
+- Risk register
+- Supplier/processor register and DPAs
+- ROPA
+- LLD sections that reveal security detail
+
+**Public repo:**
+- HLD
+- LLD (TECHNICAL_REFERENCE)
+- Changelog / release notes (the version table moves here)
+- Test strategy
+- Product backlog
+- Defects backlog (separate)
+- Privacy notice, terms of use
+- Intended use and clinical safety statement (wellness, not a medical device)
+- Payments compliance statement (replaces PCI-DSS; PA-DSS dropped as retired and not applicable)
+- Accessibility statement
+- Decision log (ADRs)
+
+**Later:** an admin-only technical Q&A chat reading the private docs, never credentials.
+
+**Agreed order (Architect's recommendation):**
+1. D1 and D2 (safety and data defects)
+2. Automation jobs (backups, Build refresh, smoke tests, tagging, `.gitignore`/vault seed) and the GitHub Actions Node warnings
+3. Docs: set up the structure, move the backlogs out of HANDOVER, then SAD (for JC's cyber reviewer) + HLD, then DPIA, SDD/runbooks, ADRs, then the rest
+4. Step 1b
+
+F1–F3 come only after this, along with Steps 2–6 build-out.
+
+**Token estimate given to JC:** about 40–55% of a weekly allowance for 1–4. F1–F3 would add about 15–20% more.
+
