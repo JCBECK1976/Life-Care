@@ -1149,3 +1149,43 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
     - **First, the Coder checks the current data model:** do logged days reference list items by ID (so edits would rewrite history today) or copy their values? Report this before designing. Any change follows the backward-compatible rule.
   - Do it after D1–D5 and alongside F1, so both "Open" forms share one pattern.
 
+### (Architect) 7 Nov 2026 18:15 — JC amendments + NEXT WEEK PLAN (supersedes the order in the 6 Nov 23:10 entry)
+**JC amendments:**
+- **F4 badge:** "Check me" items keep their **RAG colour coding**, never greyed out. The badge is an addition, not a restyle.
+- **F5 delete:** **Delete from list** is available **only** when an item is opened from **Update Lists**. Opened from a meal slot, the form offers Edit and **Remove (from this meal)** only. This prevents accidental deletion.
+- **D6 (defect, DATA, raised by JC earlier, now confirmed as a defect):** deleting a list item breaks past meal selections, which then show raw code.
+  - Fix: when an item is selected into a meal, store a **snapshot** (name, portion, nutrition, RAG) in the selection. Past selections never depend on the list item still existing or being unchanged.
+  - Add a one-off, backward-compatible repair so existing broken or at-risk selections are filled from the current list or the backup where possible, and otherwise show "Deleted item" cleanly, never code.
+  - This is the data foundation for F5. Build it first.
+
+**NEXT WEEK PLAN, in order.** Estimates are % of a weekly allowance and include Architect checks. Target: finish under ~85%.
+
+| # | Task | Type | Est. |
+|---|---|---|---|
+| **P1 — Safety and data fixes (always first)** ||||
+| 1 | D1 Person switch while the Log Exercise form is open | Fix | 2–4% |
+| 2 | D2 Per-set weights/reps saved correctly | Fix | 3–4% |
+| 3 | D6 Meal selections store a snapshot; deleted items never show code; repair existing | Fix | 3–5% |
+| 4 | D4 Bulk upload: no remembered category; must choose | Fix | 1–2% |
+| 5 | D5 Bulk upload: Cancel really cancels | Fix | 1–2% |
+| 6 | D3 Bulk upload: batching with progress for long lists | Fix | 2–3% |
+| 7 | F4 Post-upload OK message + "Check me" badge (RAG colours kept) | Small feature | 1–2% |
+| **P2 — Automation (cuts token use on every later release)** ||||
+| 8 | Nightly encrypted backups + pre-release backup; Build data refresh; smoke tests; auto-tag; wider `.gitignore`; emulator seeded from the vault; GitHub Actions Node update (needs JC to create a Firebase service key + backup key) | Ops | 6–10% |
+| **P3 — Documents** ||||
+| 9 | Set up the doc structure (public/private); move backlogs and the version table out of HANDOVER | Docs | 2–3% |
+| 10 | SAD (incl. threat model; for JC's cyber reviewer) + HLD | Docs | 6–9% |
+| 11 | DPIA, SDD + runbooks, decision log (ADRs) | Docs | 5–8% |
+| **P4 — Efficiency** ||||
+| 12 | Step 1b: measure → propose → JC approves → build | Improve | 8–12% |
+| **P5 — Features (after P1–P4)** ||||
+| 13 | F1 + F5 "Open" pattern for Progress weeks and food items (shared form design; Delete only from Update Lists) | Feature | 8–12% |
+| 14 | F3 📷 Snap to track on the go | Feature | 4–6% |
+| 15 | F2 Body balance from progress photos | Feature | 4–6% |
+
+**Totals:** P1 13–22% · P2 6–10% · P3 13–20% · P4 8–12% · P5 16–24% → **56–88%**.
+
+**Cut line, to stay under 85%:** if usage passes ~70% before P5, defer **F2 (15)** and then **F3 (14)** to the following week. If tight earlier, defer the rest of **task 11** after the SAD/HLD. P1 is never deferred.
+
+**Not this week:** the new-device sign-in redesign (before pilot users), the remaining docs (privacy notice, terms, intended use, payments, accessibility, ROPA), and Steps 2–6.
+
