@@ -1136,4 +1136,16 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
 - **F4 (small feature, do with D3–D5): post-upload check reminder (JC, 7 Nov 17:53).**
   - After a bulk upload finishes, show a message the user must tap **OK** to dismiss: "N items added to <Category>. Ratings are AI estimates. Open each item and check the weight, portion and ingredients match what you actually have, then update where needed."
   - Mark newly bulk-added items as **"Check me"** (a small badge) until the user opens and saves them, so they're easy to find later.
+  - JC: the badge also shows in the **meal/snack selection lists**, styled consistently with how greyed (not-yet-added) items are shown today.
+- **F5 (feature + design, JC 7 Nov 18:01): "Open" replaces "Update" for food items, the same pattern as F1 (Progress).**
+  - **In the lists (Update Lists):** each item gets **Open** → the item form, read-only, then **Edit** → Save, or **Delete from list** (with a confirm), all inside the form.
+  - **In the daily eating slots:** buttons become **📷 Snap** (F3) and **Open**.
+    - Open on a selected item shows it and lets the user edit it.
+    - Open on an empty slot lets the user add an item.
+    - **Remove** clears the item from that slot only, which is different from Delete from list.
+  - **Key design rule, to be confirmed in the LLD (JC's concern): editing must never silently rewrite past days.**
+    - Separate the **list item** (the saved food: name, per-unit nutrition, RAG) from the **eaten entry** (that meal on that day: portion, plus a snapshot of the values at the time).
+    - When editing from a daily slot, ask once: **"Just this meal"** (e.g. a bigger portion today, the usual case) or **"Update the saved item"** (e.g. correcting a "Check me" item). Updating the saved item affects **future** selections only; past days keep their snapshot.
+    - **First, the Coder checks the current data model:** do logged days reference list items by ID (so edits would rewrite history today) or copy their values? Report this before designing. Any change follows the backward-compatible rule.
+  - Do it after D1–D5 and alongside F1, so both "Open" forms share one pattern.
 
