@@ -1107,3 +1107,14 @@ F1–F3 come only after this, along with Steps 2–6 build-out.
 
 **Token estimate given to JC:** about 40–55% of a weekly allowance for 1–4. F1–F3 would add about 15–20% more.
 
+### (Architect) 7 Nov 2026 17:20 — BACKLOG: sign-in experience on a new device (JC: "not fit for purpose")
+- **What happened:** JC tried to sign in on a desktop computer where the joint Google account had never been used. Google asked for a PIN he doesn't have. That was Windows Hello trying a passkey stored only on the phones, and the "forgotten PIN" route was a dead end. He gave up.
+- **Cause:** Google's own sign-in flow, not app code. But it is the app's first impression, so the design must remove it.
+- **Immediate workaround for JC:** on Google's PIN/passkey prompt choose **"Try another way"**, then the password, or **"Use a phone or tablet"** and scan the QR code with a phone that has the account.
+- **Design requirement (for Step 4 onboarding / Step 5 accounts; to go in the HLD/SDD):**
+  1. Sign-in must "just work" on any new device, first time, with no dead ends.
+  2. Offer more than one method: Google, plus a passwordless **email sign-in link** that works on any device. Apple sign-in for iPhone users.
+  3. A short hint on the sign-in screen: "On a computer and Google asks for a PIN? Choose 'Try another way'."
+  4. Sign-in journeys on Windows, Mac, Android and iPhone (new device, no saved account) become a **release test** before pilot users.
+- **Priority:** before any user other than JC and Becks. Not a blocker for the current order.
+
