@@ -1118,3 +1118,19 @@ F1–F3 come only after this, along with Steps 2–6 build-out.
   4. Sign-in journeys on Windows, Mac, Android and iPhone (new device, no saved account) become a **release test** before pilot users.
 - **Priority:** before any user other than JC and Becks. Not a blocker for the current order.
 
+### (Architect) 7 Nov 2026 17:50 — BACKLOG: bulk upload defects (JC: "apart from that, upload was very good")
+Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
+- **D3 (defect): long bulk lists fail.**
+  - What happens: Add gives up (probably a timeout or AI output limit) and the screen reverts to Upload with nothing added.
+  - Fix: process the list **in batches** (e.g. 10 items per AI call) with progress ("Rating 12 of 30…"). A failed batch can be retried without losing the batches that succeeded.
+  - If a hard limit is still needed, say it **before** starting ("Up to N items per upload; split longer lists"), never by failing silently.
+- **D4 (defect, DATA): bulk upload remembers the previous category.**
+  - What happens: drinks were added to Snacks because Snacks was still selected.
+  - Fix: every new bulk upload starts with **no category selected**. Add stays disabled with "Choose a category first" until one is chosen.
+  - Show the chosen category in the confirm step ("Add 14 items to **Drinks**?").
+- **D5 (defect, DATA): Cancel doesn't cancel.**
+  - What happens: Cancel hid the upload, but the add carried on in the background and saved everything.
+  - Fix: Cancel stops in-flight AI requests (abort) and **discards any results that arrive afterwards**. Nothing is saved after Cancel. Confirm with "Cancelled — nothing was added".
+  - If some batches were already saved before Cancel, say exactly what was kept and offer to undo it.
+- Tests for all three: a long list in batches, the category-required guard, and cancel mid-run saving nothing. Must keep using the shared `confirmReviewItem` path.
+
