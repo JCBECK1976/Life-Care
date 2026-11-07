@@ -1171,6 +1171,7 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
 | 5 | D5 Bulk upload: Cancel really cancels | Fix | 1–2% |
 | 6 | D3 Bulk upload: batching with progress for long lists | Fix | 2–3% |
 | 7 | F4 Post-upload OK message + "Check me" badge (RAG colours kept) | Small feature | 1–2% |
+| 7a | D9 Week meal generator ignores the user's defaults (see below) | Fix | 1–3% |
 | 7b | D8 All companion chats: consistent order, **latest first** (Question and Help chats currently need scrolling to the bottom) | Fix | 1–2% |
 | 7c | C1 Eating week starts **Sunday** (same as exercise) | Change | 2–4% |
 | **P2 — Automation (cuts token use on every later release)** ||||
@@ -1187,7 +1188,7 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
 | 14b | F6 Eating Feedback: plan-aware + upgraded chat features | Feature | 3–5% |
 | 15 | F2 Body balance from progress photos | Feature | 4–6% |
 
-**Totals:** P1 18–32% · P2 6–10% · P3 13–20% · P4 8–12% · P5 16–24% → **56–88%**.
+**Totals:** P1 19–35% · P2 6–10% · P3 13–20% · P4 8–12% · P5 16–24% → **56–88%**.
 
 **Cut line, to stay under 85%:** if usage passes ~70% before P5, defer **F2 (15)** and then **F3 (14)** to the following week. If tight earlier, defer the rest of **task 11** after the SAD/HLD. P1 is never deferred.
 
@@ -1229,4 +1230,13 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
   - Bring it up to the same chat features as the other upgraded companions: follow-up questions, cut-off detection and the correct error handling, latest-first order (D8), and the same panel style.
 - **Updated estimate:** the full plan is now **~64–100%**, which is over JC's ~85% target. It will very likely run into a second week.
   - Same cut line: P1 never deferred. Then defer **F2**, **F3**, then **F6**. Then, if needed, task 11 docs after the SAD/HLD.
+
+### (Architect) 7 Nov 2026 18:50 — D9 (fix, P1 #7a): week meal generator overrides defaults
+- **What happens:** JC set his default breakfast, but the week generator still auto-generated breakfasts.
+- **Required order for every day and slot:**
+  1. Keep anything the user has **already selected** for that day. Never overwrite it.
+  2. Otherwise apply the user's **default** for that slot.
+  3. Only if there is no selection and no default, **auto-generate**, and only from items available in that slot's selection list. If that list is empty, leave the slot empty and say so; don't invent items.
+- After generating, show a short summary: "Breakfast: your default · Lunch/Dinner/Snacks: generated · 2 slots left empty (no items in list)".
+- Add tests: a default present → used; an existing selection → untouched; no default → generated.
 
