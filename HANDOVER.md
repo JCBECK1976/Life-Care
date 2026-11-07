@@ -1166,6 +1166,7 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
 | 1 | D1 Person switch while the Log Exercise form is open | Fix | 2–4% |
 | 2 | D2 Per-set weights/reps saved correctly | Fix | 3–4% |
 | 3 | D6 Meal selections store a snapshot; deleted items never show code; repair existing | Fix | 3–5% |
+| 3b | D7 Update Item: nutrition not recalculated from edited ingredients (see below) | Fix | 2–4% |
 | 4 | D4 Bulk upload: no remembered category; must choose | Fix | 1–2% |
 | 5 | D5 Bulk upload: Cancel really cancels | Fix | 1–2% |
 | 6 | D3 Bulk upload: batching with progress for long lists | Fix | 2–3% |
@@ -1183,9 +1184,28 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
 | 14 | F3 📷 Snap to track on the go | Feature | 4–6% |
 | 15 | F2 Body balance from progress photos | Feature | 4–6% |
 
-**Totals:** P1 13–22% · P2 6–10% · P3 13–20% · P4 8–12% · P5 16–24% → **56–88%**.
+**Totals:** P1 15–26% · P2 6–10% · P3 13–20% · P4 8–12% · P5 16–24% → **56–88%**.
 
 **Cut line, to stay under 85%:** if usage passes ~70% before P5, defer **F2 (15)** and then **F3 (14)** to the following week. If tight earlier, defer the rest of **task 11** after the SAD/HLD. P1 is never deferred.
 
 **Not this week:** the new-device sign-in redesign (before pilot users), the remaining docs (privacy notice, terms, intended use, payments, accessibility, ROPA), and Steps 2–6.
+
+### (Architect) 7 Nov 2026 18:30 — D7 (defect, DATA, P1 #3b): Update Item doesn't recalculate nutrition correctly
+- **Evidence (JC screenshot, Update Lists, Breakfast):**
+  - Item: "Overnight Oats 95g (Berries, Yogurt & Almond Milk)".
+  - Ingredients: 95g rolled oats, 300ml unsweetened almond milk, 100g Greek yogurt, 150g mixed berries, tsp honey, mixed seeds.
+  - After changing berries from 80g to 150g, the form said "✅ Nutritional values updated" but still showed **387 kcal, 18.2g protein**.
+- **Sanity check:** 95g oats alone is ~355 kcal. A realistic total is roughly **550–650 kcal and ~25–30g protein**, depending on the yogurt's fat level and the seed amount. So the values are both stale and implausible.
+  - Compare: the 45g version is 320 kcal, so +50g oats and +70g berries only "added" 67 kcal.
+- **Investigate:**
+  1. Is the recalculation actually called, and is its result applied to the form/state, or is the old value kept while the success message shows anyway?
+  2. Does the AI prompt anchor on the old values or the "(387 kcal)" text embedded in the name?
+  3. The "(N kcal)" in the item name must be regenerated from the new values, not left stale.
+- **Fix requirements:**
+  - The success message only shows when new values have actually been applied.
+  - Show the **before → after** values on confirm.
+  - Add a **plausibility check**: total kcal must be at least the sum of the obvious main ingredients, otherwise warn and retry.
+  - Ingredients with no amount ("tsp honey", "mixed seeds") → the AI states the amount it assumed (e.g. "assumed 15g seeds") so the user can correct it.
+  - Add a test: change one ingredient amount and expect the values and the name's kcal to change.
+- **Data impact:** other items edited the same way may also hold stale values. After the fix, offer a one-off "re-check nutrition" for items edited since this behaviour began, flagged as "Check me" (F4).
 
