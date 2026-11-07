@@ -1133,4 +1133,7 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
   - Fix: Cancel stops in-flight AI requests (abort) and **discards any results that arrive afterwards**. Nothing is saved after Cancel. Confirm with "Cancelled — nothing was added".
   - If some batches were already saved before Cancel, say exactly what was kept and offer to undo it.
 - Tests for all three: a long list in batches, the category-required guard, and cancel mid-run saving nothing. Must keep using the shared `confirmReviewItem` path.
+- **F4 (small feature, do with D3–D5): post-upload check reminder (JC, 7 Nov 17:53).**
+  - After a bulk upload finishes, show a message the user must tap **OK** to dismiss: "N items added to <Category>. Ratings are AI estimates. Open each item and check the weight, portion and ingredients match what you actually have, then update where needed."
+  - Mark newly bulk-added items as **"Check me"** (a small badge) until the user opens and saves them, so they're easy to find later.
 
