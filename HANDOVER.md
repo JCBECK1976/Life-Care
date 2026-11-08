@@ -1173,6 +1173,7 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
 | 7 | F4 Post-upload OK message + "Check me" badge (RAG colours kept) | Small feature | 1–2% |
 | 7a | D9 Week meal generator ignores the user's defaults (see below) | Fix | 1–3% |
 | 7aa | D10 Portion photo of a *different* food keeps the original item (see below) | Fix | 1–2% |
+| 7ab | D11 RAG rating rules not proportionate (see below) | Fix + design | 2–4% |
 | 7b | D8 All companion chats: consistent order, **latest first** (Question and Help chats currently need scrolling to the bottom) | Fix | 1–2% |
 | 7c | C1 Eating week starts **Sunday** (same as exercise) | Change | 2–4% |
 | **P2 — Automation (cuts token use on every later release)** ||||
@@ -1189,7 +1190,7 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
 | 14b | F6 Eating Feedback: plan-aware + upgraded chat features | Feature | 3–5% |
 | 15 | F2 Body balance from progress photos | Feature | 4–6% |
 
-**Totals:** P1 20–37% · P2 6–10% · P3 13–20% · P4 8–12% · P5 16–24% → **56–88%**.
+**Totals:** P1 22–41% · P2 6–10% · P3 13–20% · P4 8–12% · P5 16–24% → **56–88%**.
 
 **Cut line, to stay under 85%:** if usage passes ~70% before P5, defer **F2 (15)** and then **F3 (14)** to the following week. If tight earlier, defer the rest of **task 11** after the SAD/HLD. P1 is never deferred.
 
@@ -1250,4 +1251,17 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
   - Same food → today's behaviour (portion update for this meal only, per F5's "just this meal" rule).
 - Uses the shared add-item path (`confirmReviewItem`), consistent with F3 (Snap on an empty slot).
 - Add tests: different food → replaced, with undo; same food → portion only; the original item unchanged in both.
+
+### (Architect) 8 Nov 2026 18:35 — D11 (fix + design, P1 #7ab): RAG ratings not proportionate
+- **Evidence (JC):** 3 standard biscuits are rated RED "once a month", the **same** as a large restaurant brownie with ice cream. Roughly 150 kcal / 4g saturated fat / 10g sugar versus about 800 kcal / 20g saturated fat / 60g sugar. The rating ignores portion size and scale.
+- **Step 1 (Coder, report only):** document how RAG is decided today: the prompt wording, any thresholds, and whether it's per item or per portion. Report this before changing anything.
+- **Step 2 (Architect proposes, JC approves):** **portion-based, rule-driven ratings.**
+  - Score the item's actual portion against the **person's own daily targets**: kcal, saturated fat, added sugar, fibre/protein credit.
+    - JC: under 20g saturated fat, under 25g added sugar.
+    - Becks: under 20g saturated fat (critical given her LDL), under 25g added sugar.
+  - Use clear bands, e.g. % of the daily saturated fat or sugar limit in one portion → GREAT / GOOD / AMBER / RED.
+  - Add **graded frequency guidance** that matches the size: "a few times a week", "weekly treat", "monthly treat".
+  - The AI identifies the food and its nutrition. **The rating itself is calculated by fixed rules in code**, so it's consistent and explainable ("RED: one portion is 100% of your daily saturated fat").
+- **Step 3:** re-rate existing list items under the new rules. Items whose rating changes get a "Check me" badge (F4), and the change is shown in a summary for JC to review.
+- Add tests: the biscuits example and the brownie example fall into **different** bands; the same food in half the portion rates better.
 
