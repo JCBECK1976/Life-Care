@@ -1165,6 +1165,7 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
 | **P1 — Safety and data fixes (always first)** ||||
 | 1 | D1 Person switch while the Log Exercise form is open | Fix | 2–4% |
 | 2 | D2 Per-set weights/reps saved correctly | Fix | 3–4% |
+| 2a | D12 Log Exercise: Form and Range must be chosen, with no default (see below) | Fix | 1% |
 | 3 | D6 Meal selections store a snapshot; deleted items never show code; repair existing | Fix | 3–5% |
 | 3b | D7 Update Item: nutrition not recalculated from edited ingredients (see below) | Fix | 2–4% |
 | 4 | D4 Bulk upload: no remembered category; must choose | Fix | 1–2% |
@@ -1190,7 +1191,7 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
 | 14b | F6 Eating Feedback: plan-aware + upgraded chat features | Feature | 3–5% |
 | 15 | F2 Body balance from progress photos | Feature | 4–6% |
 
-**Totals:** P1 22–41% · P2 6–10% · P3 13–20% · P4 8–12% · P5 16–24% → **56–88%**.
+**Totals:** P1 23–42% · P2 6–10% · P3 13–20% · P4 8–12% · P5 16–24% → **56–88%**.
 
 **Cut line, to stay under 85%:** if usage passes ~70% before P5, defer **F2 (15)** and then **F3 (14)** to the following week. If tight earlier, defer the rest of **task 11** after the SAD/HLD. P1 is never deferred.
 
@@ -1264,4 +1265,13 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
   - The AI identifies the food and its nutrition. **The rating itself is calculated by fixed rules in code**, so it's consistent and explainable ("RED: one portion is 100% of your daily saturated fat").
 - **Step 3:** re-rate existing list items under the new rules. Items whose rating changes get a "Check me" badge (F4), and the change is shown in a summary for JC to review.
 - Add tests: the biscuits example and the brownie example fall into **different** bands; the same food in half the portion rates better.
+
+### (Architect) 8 Nov 2026 21:55 — D12 (fix, DATA, P1 #2a): Form and Range default to "Working towards"
+- **What happens (JC):** in the Log Exercise form, **Form** and **Range** default to "Working towards", so it keeps being saved by accident. That feeds wrong data into progress and the AI feedback.
+- **Fix:**
+  - Both start **unselected** (neither "Working towards" nor "Good").
+  - Saving is blocked until both are chosen for each exercise, with a clear inline prompt ("Choose Form and Range") next to the missing one, not a generic error.
+  - If these are recorded per set, the same rule applies per set.
+- Existing saved entries are unchanged.
+- Build it with D1/D2 (same form). Add a test: save is blocked until both are chosen.
 
