@@ -1191,6 +1191,7 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
 | 14 | F3 📷 Snap to track on the go | Feature | 4–6% |
 | 14b | F6 Eating Feedback: plan-aware + upgraded chat features | Feature | 3–5% |
 | 15 | F2 Body balance from progress photos | Feature | 4–6% |
+| 16 | F8 "Share to Lifecare Companion" from other apps (see below) | Feature | 3–5% |
 
 **Totals:** P1 24–44% · P2 6–10% · P3 13–20% · P4 8–12% · P5 16–24% → **56–88%**.
 
@@ -1282,4 +1283,18 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
 - The description is sent to the AI with the photo, and the AI must **prefer the user's description** over its own size guess.
 - **The result always states the size/weight it assumed** (e.g. "Assumed: 28g bar — 125 kcal"), so a wrong assumption is visible and can be corrected with one more try.
 - Build it with D10 (same photo path). Add a test: the description reaches the AI request, and the assumed size is shown in the result.
+
+### (Architect) 9 Nov 2026 22:55 — F8 (feature, P5 #16): share images into the app from other apps
+- **JC's request:** body-scale and measurement apps have a Share button. The user should be able to pick **Lifecare Companion** from the share sheet, as with WhatsApp, rather than downloading the image and uploading it again.
+- **How (Android): the Web Share Target API.**
+  - Add `share_target` (method POST, `multipart/form-data`, accept `image/*`) to each environment's web manifest. The installed app then appears in Android's share sheet.
+  - Each environment shows under its own name ("Lifecare Companion", "… Beta", "… Build").
+  - **Service worker:** GitHub Pages can't accept a POST, so `sw.js` must **intercept the share POST**, store the file(s) locally (Cache or IndexedDB), then redirect to the app. This changes today's network-only service worker (only for the share route).
+  - **In the app:** a "What is this?" picker (Body measurements / Progress photo / Food), then route into the existing upload flow. If the user isn't signed in yet, keep the file until they are; never drop it.
+  - The shared image stays on the device until the user confirms the upload.
+- **Limits:**
+  - Works for **installed** apps on **Android (Chrome/Samsung Internet)**.
+  - **iPhone Safari does not support Web Share Target.** iPhone users keep download-then-upload, unless the app is later wrapped as a native app (store versions), which would add proper share support on both platforms.
+  - Desktop Chrome supports it partially; low priority there.
+- Add tests: the manifest has `share_target`; the service worker handles the POST; the file reaches the picker. A real-device check on Android is needed.
 
