@@ -13,7 +13,7 @@ import { BLOOD_TESTS, DEFAULT_MEDS, DEFAULT_SUPPS, IDEALS } from "./constants/he
 import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnMuted, btnP, btnPortion, btnS, btnStop, inputStyle, labelStyle } from "./constants/styles.js";
 import { accentVariant, hexToHsl, hslToHex } from "./lib/colour.js";
 import { buildExProfileInfo, getJournalWellbeingCtx, getMoodContext } from "./lib/aiContext.js";
-import { autoStatus, fmtReps, getExerciseType, getExerciseTypeConfig, parseReps } from "./lib/exercise.js";
+import { autoStatus, entrySets, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsToSave } from "./lib/exercise.js";
 import { calcWeek, countStatus, fbIcon, fmtDate, getWeekDates, mealKey, sBg, sColor, sLabel } from "./lib/utils.js";
 import { sGet, sSet } from "./lib/storage.js";
 import { handleApiError } from "./lib/api.js";
@@ -63,6 +63,7 @@ function Dashboard() {
   const [logWeek, setLogWeek] = useState("");
   const [logFullRange, setLogFullRange] = useState("working");
   const [logGoodForm, setLogGoodForm] = useState("working");
+  const [logNeedChoice, setLogNeedChoice] = useState(""); // D12: inline "Choose Form and Range" prompt
   const [logStatus, setLogStatus] = useState("");
   const [editPrev, setEditPrev] = useState(false);
   const [showMeasForm, setShowMeasForm] = useState(false);
@@ -816,7 +817,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
     const ex = data[activeTab].exercises[day][idx];
     const last = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
-    setLogEx({ day, idx });
+    setLogEx({ day, idx, who: activeTab }); setLogNeedChoice(""); // D1: the form belongs to this person
     var targetW = "";
     var targetR = "";
     if (ex.target) {
@@ -830,7 +831,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     var r1 = targetR || (lastReps[0] ? String(lastReps[0]) : "");
     var r2 = targetR || (lastReps[1] ? String(lastReps[1]) : (lastReps[0] ? String(lastReps[0]) : ""));
     var r3 = targetR || (lastReps[2] ? String(lastReps[2]) : (lastReps[0] ? String(lastReps[0]) : ""));
-    setLogSets([{ w: useW, r: r1 }, { w: useW, r: r2 }, { w: useW, r: r3 }]);
+    var lastSets = last ? entrySets(last) : [];
+    var wFor = function(i) { return targetW || (lastSets[i] ? lastSets[i].w : useW); }; // D2: last session's per-set weights
+    setLogSets([{ w: wFor(0), r: r1 }, { w: wFor(1), r: r2 }, { w: wFor(2), r: r3 }]);
     (function() {
       var maxWk = 0;
       if (ex.prog) { for (var mwi = 0; mwi < ex.prog.length; mwi++) { if (ex.prog[mwi].wk > maxWk) maxWk = ex.prog[mwi].wk; } }
@@ -841,21 +844,15 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     var currentWkEntry = null;
     if (ex.prog) { for (var cwi = 0; cwi < ex.prog.length; cwi++) { if (ex.prog[cwi].wk === currentCalcWk2) { currentWkEntry = ex.prog[cwi]; break; } } }
     if (currentWkEntry) {
-      var cwReps = currentWkEntry.r ? parseReps(currentWkEntry.r) : [];
-      setLogSets([
-        { w: currentWkEntry.w ? currentWkEntry.w.replace("kg","") : "", r: cwReps[0] ? String(cwReps[0]) : "" },
-        { w: currentWkEntry.w ? currentWkEntry.w.replace("kg","") : "", r: cwReps[1] ? String(cwReps[1]) : "" },
-        { w: currentWkEntry.w ? currentWkEntry.w.replace("kg","") : "", r: cwReps[2] ? String(cwReps[2]) : "" }
-      ]);
+      setLogSets(logSetsFrom(currentWkEntry, 3)); // D2: per-set
       setLogWeek(String(currentCalcWk2));
       setLogComment(currentWkEntry.note || "");
-      setLogFullRange(currentWkEntry.fullRange || "working");
-      setLogGoodForm(currentWkEntry.goodForm || "working");
+      setLogFullRange(currentWkEntry.fullRange || "");
+      setLogGoodForm(currentWkEntry.goodForm || "");
       setEditPrev(true);
     } else {
       setLogComment(""); setEditPrev(false);
-      setLogFullRange(last && last.fullRange ? last.fullRange : "working");
-      setLogGoodForm(last && last.goodForm ? last.goodForm : "working");
+      setLogFullRange(""); setLogGoodForm(""); // D12: always start unselected
     }
     setLogStatus("");
     setPrevComment("");
@@ -875,6 +872,14 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     const nd = JSON.parse(JSON.stringify(data));
     const ex = nd[activeTab].exercises[day][idx];
     if (ex && ex.stopped) { setFormMsg("⏸ " + ex.name + " is stopped — restart it in Exercise Settings to log"); setTimeout(() => setFormMsg(""), 4000); return; }
+    // D12: Form and Range must be chosen (for everyone being saved from this form)
+    if (!logGoodForm || !logFullRange) { setLogNeedChoice("Choose Form and Range"); return; }
+    if (window._dualLogState) {
+      var _missing = Object.keys(window._dualLogState).filter(function(t) { var st = window._dualLogState[t]; return t !== activeTab && st && st._edited && st.sets && st.sets[0] && st.sets[0].w && st.sets[0].r && (!st.goodForm || !st.fullRange); });
+      if (_missing.length) { setLogNeedChoice("Choose Form and Range for " + _missing.map(function(t) { return (nd[t] && nd[t].profile && nd[t].profile.name) || t; }).join(", ")); return; }
+    }
+    setLogNeedChoice("");
+    var _sets = setsToSave(logSets); // D2: weight and reps per set
     if (editPrev && ex.prog.length > 0) {
       // Edit previous entry
       const prev = ex.prog[ex.prog.length - 1];
@@ -882,7 +887,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       prev.r = fmtReps(logSets.map(s => parseInt(s.r) || 0));
       prev.wk = parseInt(logWeek) || prev.wk;
       prev.note = logComment.trim() || prev.note || "";
-      prev.fullRange = logFullRange; prev.goodForm = logGoodForm;
+      prev.fullRange = logFullRange; prev.goodForm = logGoodForm; prev.sets = _sets;
       ex.current = prev.w; ex.reps = prev.r;
       // Status and target deferred to AI feedback
       ex.status = "";
@@ -901,7 +906,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         ex.prog[existingIdx].w = (logSets[0].w || String(parseInt(ex.current) || 0)) + "kg";
         ex.prog[existingIdx].r = fmtReps(logSets.map(s => parseInt(s.r) || 0));
         ex.prog[existingIdx].note = logComment.trim() || ex.prog[existingIdx].note || "";
-        ex.prog[existingIdx].fullRange = logFullRange; ex.prog[existingIdx].goodForm = logGoodForm;
+        ex.prog[existingIdx].fullRange = logFullRange; ex.prog[existingIdx].goodForm = logGoodForm; ex.prog[existingIdx].sets = _sets;
         ex.current = ex.prog[existingIdx].w;
         ex.reps = ex.prog[existingIdx].r;
         ex.notes = logComment.trim() || "";
@@ -916,7 +921,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       const repsStr = fmtReps(logSets.map(s => parseInt(s.r) || 0));
       const wStr = w + "kg";
       const wk = parseInt(logWeek) || calcWeek(data.config.trainingStart);
-      ex.prog.push({ wk, w: wStr, r: repsStr, note: logComment.trim() || "", fullRange: logFullRange, goodForm: logGoodForm });
+      ex.prog.push({ wk, w: wStr, r: repsStr, sets: _sets, note: logComment.trim() || "", fullRange: logFullRange, goodForm: logGoodForm });
       ex.current = wStr; ex.reps = repsStr;
       // Status and target deferred to AI feedback
       ex.status = "";
@@ -954,9 +959,11 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             if (otExistIdx >= 0) {
               otEx.prog[otExistIdx].w = otW;
               otEx.prog[otExistIdx].r = otReps;
+              otEx.prog[otExistIdx].sets = setsToSave(otState.sets);
               otEx.prog[otExistIdx].note = otState.comment || "";
+              otEx.prog[otExistIdx].fullRange = otState.fullRange; otEx.prog[otExistIdx].goodForm = otState.goodForm;
             } else {
-              otEx.prog.push({ wk: otWk, w: otW, r: otReps, note: otState.comment || "" });
+              otEx.prog.push({ wk: otWk, w: otW, r: otReps, sets: setsToSave(otState.sets), note: otState.comment || "", fullRange: otState.fullRange, goodForm: otState.goodForm });
             }
             otEx.current = otW; otEx.reps = otReps;
             otEx.notes = otState.comment || "";
@@ -1111,7 +1118,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
           var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null;
           var qualInfo = ""; if (latest) { var et = ex.exType || "weights"; var frLbl = ["weights","bodyweight","timed_hold","stretching"].indexOf(et) >= 0 ? "FullRange" : "CompletedInOne"; qualInfo = frLbl + "=" + (latest.fullRange === "good" ? "Good" : "Working") + ",GoodForm=" + (latest.goodForm === "good" ? "Good" : "Working"); }
-          return { name: ex.name, current: ex.current, reps: ex.reps, status: ex.status, target: ex.target || "", notes: ex.notes || "", prev: prev ? prev.w + " " + prev.r + " Wk" + prev.wk : "", weeksTracked: ex.prog ? ex.prog.length : 0, quality: qualInfo };
+          return { name: ex.name, current: ex.current, reps: ex.reps, status: ex.status, target: ex.target || "", notes: ex.notes || "", prev: prev ? fmtEntry(prev) + " Wk" + prev.wk : "", weeksTracked: ex.prog ? ex.prog.length : 0, quality: qualInfo };
         });
       }
       const prompt = "You are " + (prof.name || "the user") + "'s Lifecare Companion — a trusted, knowledgeable friend checking in on their progress in Week " + data.config.week + ". You know " + (prof.name || "them") + " well: " + who + ".\n\nSCENE: You're giving your honest take on how things are going across their exercise, eating, body, health, medications, and life in general. You have access to ALL their data and you weave it together naturally like a friend who's been following their journey.\n\nCOMMUNICATION STYLE: Start with 'Hi " + (prof.name || "") + ",' then get straight into your observations. Speak directly using 'you' and 'your' — NEVER third person. Do NOT ask them questions about themselves (unless you genuinely need a specific piece of information to make a recommendation). Do NOT suggest doing things together — you're an AI companion, not a real person. Do NOT use fake-casual openers like 'grab a coffee' or 'good to see you'. Write as flowing, natural paragraphs. No bullet points, no headers, no structured sections.\n\n" + TONE_RULES + getMoodContext(userMood) + getJournalWellbeingCtx(journalEntries, wellbeingFlags) + "\n\nDATA TO WEAVE INTO YOUR CHAT:\nExercises: " + JSON.stringify(exSummary) + "\nBody: " + JSON.stringify(p.body) + "\nMeasurements: " + JSON.stringify(p.measurements) + mealSummary + exComments + healthContext + bloodContext + medsContext + medsHistCtx + measCommCtx + qaCtx + attachCtx + photoCtx + activityCtx + getOnboardingCtx(tab) + prevContext + getCrossSectionCtx(tab, "home") + (function() { if (!journalEntries || journalEntries.length === 0) return ""; var todayStr = new Date().toISOString().split("T")[0]; var todayEntries = journalEntries.filter(function(e) { return e.date === todayStr; }); var recentEntries = journalEntries.slice(0, 10); var moodCounts = {}; recentEntries.forEach(function(e) { if (e.mood !== null && e.mood !== undefined) { var label = MOOD_LABELS[e.mood]; moodCounts[label] = (moodCounts[label] || 0) + 1; } }); return "\n\nJOURNAL ENTRIES (read these carefully — the user is sharing what's on their mind):\nToday's entries: " + (todayEntries.length > 0 ? todayEntries.map(function(e) { return (e.mood !== null && e.mood !== undefined ? "[" + MOOD_LABELS[e.mood] + "] " : "") + e.text; }).join(" | ") : "None yet") + "\nRecent entries (last 10): " + JSON.stringify(recentEntries.map(function(e) { return { date: e.date, mood: e.mood !== null && e.mood !== undefined ? MOOD_LABELS[e.mood] : null, text: e.text }; })) + "\nMood distribution (recent): " + JSON.stringify(moodCounts) + "\nTotal journal entries: " + journalEntries.length; })() + "\n\nRULES:\n- Write 3-4 short paragraphs of natural conversation — like actual speech, not a report.\n- Reference SPECIFIC numbers from the data (weights, reps, calories, blood results, measurements).\n- Cover the full picture: what's going well, what could be better, and one thing to focus on — but woven together naturally, not in labelled sections.\n- MEDICATION: Note interactions between active meds AND with diet/exercise. Label [OFFICIAL] vs [ANECDOTAL]. Never recommend stopping medication.\n- Keep total length under 200 words. Quality over quantity.\n- Return ONLY a JSON object: {\"chat\":\"your conversational paragraphs here\", \"wellbeingFlags\":{}} where wellbeingFlags is OPTIONAL — only include it if you are flagging a wellbeing concern at Tier 2+. Format: {\"concern_key\":{\"tier\":2,\"concern\":\"recurring headaches\",\"signposted\":\"GP\",\"date\":\"" + new Date().toISOString().split("T")[0] + "\"}}. Use snake_case keys like 'headaches', 'low_mood', 'work_stress'. Omit wellbeingFlags entirely if no concerns at Tier 2+.\n- Use \\n\\n between paragraphs in the chat value.";
@@ -1807,7 +1814,14 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           <PersonTabs testId="person-tabs" people={peopleOf(data)} activeKey={activeTab}
             tabStyle={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }}
             activeStyle={{ background: "rgba(255,255,255,0.95)", color: "#0f172a", letterSpacing: "0.02em" }} inactiveStyle={{ background: "transparent", color: "rgba(255,255,255,0.45)", letterSpacing: "0" }}
-            onSelect={(k) => { setActiveTab(k); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); setCopyDayOpen(false); setCopyWeekOpen(false); setHomeFbExpanded(false); setFbExpanded(false); setEatFbExpanded(false); setHealthFbExpanded(false); setBodyFbExpanded(false); setMeasFbExpanded2(false); loadUserSettings(k); setJournalText(""); setShowRecentJournal(false); setShowFullJournal(false); }} />
+            onSelect={(k) => {
+              // D1: a Log Exercise form belongs to the person it was opened for. Switching person here asks
+              // first and closes the form cleanly; never a form showing one person's entries for another.
+              if (logEx && k !== activeTab) {
+                if (!window.confirm("Discard " + personName(data, activeTab) + "'s unsaved log entries and switch to " + personName(data, k) + "?")) return;
+                setLogEx(null); setSelectedEx(null); setLogNeedChoice(""); window._dualLogState = null;
+              }
+              setActiveTab(k); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); setCopyDayOpen(false); setCopyWeekOpen(false); setHomeFbExpanded(false); setFbExpanded(false); setEatFbExpanded(false); setHealthFbExpanded(false); setBodyFbExpanded(false); setMeasFbExpanded2(false); loadUserSettings(k); setJournalText(""); setShowRecentJournal(false); setShowFullJournal(false); }} />
           {ALLOW_ADD_PERSON && (<button onClick={() => setShowAddPerson(true)} style={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: "transparent", color: "rgba(255,255,255,0.3)", transition: "all 0.2s ease" }}>+</button>)}
         </div>
         {showAddPerson && (<div style={{ marginTop: 10, display: "flex", gap: 6 }}>
@@ -1829,7 +1843,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         {section === "body" && (<ErrorBoundary name="Body"><BodySection ctx={{ accent, accentBorder, accentLight, accentMid, activeTab, addMeasName, addMeasOpen, bodyFbAll, bodyFbExpanded, bodyFbLoading, bodyFeedback, bodyInputs, bodyMetricOpen, bodyMetricShowAll, bodyView, btnST, data, editMeasKey, editMeasName, getCrossSectionCtx, getOnboardingCtx, idealSt, isJC, measFbAll, measFbExpanded2, measFbLoading, measFeedback, measLogInputs, measLogKey, measMetricOpen, measMetricShowAll, p, renderThread, saveBodyComp, saveData, setAddMeasName, setAddMeasOpen, setBodyFbExpanded, setBodyFbLoading, setBodyFeedback, setBodyInputs, setBodyMetricOpen, setBodyMetricShowAll, setBodyView, setEditMeasKey, setEditMeasName, setFormMsg, setMeasFbExpanded2, setMeasFbLoading, setMeasFeedback, setMeasLogInputs, setMeasLogKey, setMeasMetricOpen, setMeasMetricShowAll, setShowBodyForm, showBodyForm, updateBodyFb, updateMeasFb, userMood, weekLabel, wt, wtDelta, wtSign, wtStr }} /></ErrorBoundary>)}
 
         {/* WEIGHTS */}
-        {section === "weights" && <ErrorBoundary name="Exercise"><ExerciseSection ctx={{ accent, accentBorder, accentLight, accentMid, activeTab, addExConfirm, addExLoading, addExOpen, addExSearch, btnST, coolDownOpen, customExercises, data, dayView, decisionsExpanded, editExercise, editPrev, exInfoOpen, exerciseDay, fbExpanded, getCrossSectionCtx, getOnboardingCtx, isJC, loadUserSettings, logComment, logEx, logFormRef, logFullRange, logGoodForm, logOverride, logSets, logWeek, newExName, openLogForm, p, prevComment, renderThread, saveData, saveLog, selectedEx, sessionFbLoading, sessionFeedback, sessionGuideLoading, setActiveTab, setAddExConfirm, setAddExLoading, setAddExOpen, setAddExSearch, setCoolDownOpen, setCustomExercises, setDayView, setDecisionsExpanded, setEditExercise, setEditPrev, setExInfoOpen, setExerciseDay, setFbExpanded, setFormMsg, setLogComment, setLogEx, setLogFullRange, setLogGoodForm, setLogOverride, setLogSets, setLogWeek, setNewExName, setNewSectionName, setSelectedEx, setSessionFbLoading, setSessionFeedback, setSessionGuideLoading, setShowNewExForm, setShowNewSection, setStoppedExOpen, setWarmUpOpen, stoppedExOpen, updateSessionFb, userMood, warmUpOpen, weekLabel }} /></ErrorBoundary>}
+        {section === "weights" && <ErrorBoundary name="Exercise"><ExerciseSection ctx={{ accent, accentBorder, accentLight, accentMid, activeTab, addExConfirm, addExLoading, addExOpen, addExSearch, btnST, coolDownOpen, customExercises, data, dayView, decisionsExpanded, editExercise, editPrev, exInfoOpen, exerciseDay, fbExpanded, getCrossSectionCtx, getOnboardingCtx, isJC, loadUserSettings, logComment, logEx, logFormRef, logFullRange, logGoodForm, logOverride, logSets, logWeek, newExName, openLogForm, p, prevComment, renderThread, saveData, saveLog, selectedEx, sessionFbLoading, sessionFeedback, sessionGuideLoading, setActiveTab, setAddExConfirm, setAddExLoading, setAddExOpen, setAddExSearch, setCoolDownOpen, setCustomExercises, setDayView, setDecisionsExpanded, setEditExercise, setEditPrev, setExInfoOpen, setExerciseDay, setFbExpanded, setFormMsg, setLogComment, setLogEx, setLogFullRange, setLogGoodForm, setLogOverride, setLogSets, setLogWeek, setNewExName, setNewSectionName, setSelectedEx, setSessionFbLoading, setSessionFeedback, setSessionGuideLoading, setShowNewExForm, setShowNewSection, setStoppedExOpen, setWarmUpOpen, stoppedExOpen, updateSessionFb, userMood, warmUpOpen, weekLabel , logNeedChoice, setLogNeedChoice}} /></ErrorBoundary>}
 
         {/* MEDS */}
 
