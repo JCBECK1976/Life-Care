@@ -1347,3 +1347,24 @@ Estimates are % of a weekly allowance, including Architect checks.
 - 10–13 (bulk upload);
 - 14–15.
 
+### (Architect) 9 Nov 2026 23:00 — JC DECISION: features this week (usability first)
+JC: "we really need to get using the app properly ourselves", so P5 moves up.
+
+**Week 1:**
+- P1 (items 1–15)
+- then P5 (items 21–25: F1+F5, F3, F6, F2, F8)
+- Estimate ~46–78%.
+
+**Week 2:** P2 automation (16), P3 docs (17–19, including the SAD for JC's cyber reviewer), P4 Step 1b (20).
+
+**Mitigation while automation waits:** JC takes a **manual backup from Data tools before each prod release**. The Architect reminds him at each release.
+
+**Suggested release batches:**
+1. Exercise form (1–3)
+2. Food data and photos (4–9)
+3. Bulk upload (10–13)
+4. Chats + Sunday week (14–15)
+5. Open pattern (21)
+6. Snap + Eating Feedback (22–23)
+7. Body balance + Share (24–25)
+
