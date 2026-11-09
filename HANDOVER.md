@@ -1380,3 +1380,8 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
 - **Checks:** lint 0 errors, **51/51 tests** (new `tests/exercise-log.spec.js`, 4); screenshots: version text only. Deploy ok, 0 errors.
 - **Not verified:** on a real phone; the per-set line in the AI feedback text (prompt changed, AI reply not exercised; tests mock the AI).
 - **Resume point:** `build` @ `7cb178d`. Next: Architect check → beta → JC → release (JC manual backup first).
+
+### (Coder) 9 Nov 2026 — v2.6.1 addendum (two people from one form) on `build`
+- **JC's rule implemented:** the shown person must have Form and Range (block). Any other person edited via the in-form switch is saved **only** if both are chosen, otherwise treated as untouched and not saved (no block; this replaces my earlier block that named them). One confirmation line, e.g. "✓ <exercise>: saved for Becks · JC not saved (Form and Range not chosen)". An unsaved person's log opens later with the usual pre-fill. This resolves the behaviour note in my previous entry.
+- **Tests:** +3 (other blank → not saved + confirmation + later pre-fill; other complete → saved; shown blank → blocked). exercise-log + people 24/24; suite 54. Lint 0 errors.
+- **Resume point:** `build` @ new head (see commit "v2.6.1 addendum"). Next: Architect check → beta → JC → release (JC manual backup first).
