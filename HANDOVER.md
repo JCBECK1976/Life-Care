@@ -1298,3 +1298,52 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
   - Desktop Chrome supports it partially; low priority there.
 - Add tests: the manifest has `share_target`; the service worker handles the POST; the file reaches the picker. A real-device check on Android is needed.
 
+### (Architect) 9 Nov 2026 23:00 — CONSOLIDATED WORK PLAN (supersedes the table in the 7 Nov 18:15 entry; item details stay in their own entries)
+Estimates are % of a weekly allowance, including Architect checks.
+
+**Week 1:** P1 + P2 + the first part of P3 (~45–75%).
+**Week 2:** the rest of P3, then P4 and P5.
+
+| # | ID | Task | Est. |
+|---|---|---|---|
+| **P1 — Safety and data fixes (never deferred)** ||||
+| 1 | D1 | Switching person in the header while Log Exercise is open | 2–4% |
+| 2 | D2 | Per-set weights/reps saved correctly | 3–4% |
+| 3 | D12 | Form and Range: no default, must choose | 1% |
+| 4 | D6 | Meals store a snapshot; deleted items never show code; repair existing | 3–5% |
+| 5 | D7 | Update Item nutrition actually recalculates (+ plausibility check, before → after) | 2–4% |
+| 6 | D11 | RAG ratings portion-based against personal limits (report → JC approves bands → build → re-rate) | 2–4% |
+| 7 | D9 | Week meal generator: keep selections → defaults → generate only into empty slots | 1–3% |
+| 8 | D10 | Portion photo of a different food replaces the item (with Undo); the original is never altered | 1–2% |
+| 9 | F7 | Optional description field on Snap/Portion and Shop Food Checker; show the assumed size | 1–2% |
+| 10 | D4 | Bulk upload: must choose a category | 1–2% |
+| 11 | D5 | Bulk upload: Cancel really cancels | 1–2% |
+| 12 | D3 | Bulk upload: batches with progress for long lists | 2–3% |
+| 13 | F4 | Post-upload OK message + "Check me" badge (RAG colours kept, also in selection lists) | 1–2% |
+| 14 | D8 | All companion chats latest first, opening at the latest | 1–2% |
+| 15 | C1 | Eating week starts Sunday | 2–4% |
+| **P2 — Automation** ||||
+| 16 | — | Encrypted nightly and pre-release backups, Build data refresh, smoke tests, auto-tag, wider `.gitignore`, emulator seeded from the vault, Actions Node update (JC creates 2 keys) | 6–10% |
+| **P3 — Documents** ||||
+| 17 | — | Doc structure (public/private); backlogs and version table moved out of HANDOVER | 2–3% |
+| 18 | — | SAD (with threat model, for JC's cyber reviewer) + HLD | 6–9% |
+| 19 | — | DPIA, SDD + runbooks, decision log | 5–8% |
+| **P4 — Efficiency** ||||
+| 20 | 1b | Step 1b: measure → propose → approve → build | 8–12% |
+| **P5 — Features** ||||
+| 21 | F1+F5 | "Open" pattern for Progress weeks and food items (Delete only from Update Lists; "just this meal" vs "update saved item") | 8–12% |
+| 22 | F3 | 📷 Snap to track on an empty slot | 4–6% |
+| 23 | F6 | Eating Feedback plan-aware + upgraded chat | 3–5% |
+| 24 | F2 | Body balance from progress photos | 4–6% |
+| 25 | F8 | Share to Lifecare Companion (Android) | 3–5% |
+
+**Totals:** P1 24–44% · P2 6–10% · P3 13–20% · P4 8–12% · P5 22–34% → **~73–120% ≈ 1.5–2 weeks.**
+
+**Not scheduled yet:** the new-device sign-in redesign (before pilot users), the remaining docs, and Steps 2–6.
+
+**Coder batching suggestion** (one release each, to save tokens):
+- 1–3 (exercise form);
+- 4–9 (food data and photos);
+- 10–13 (bulk upload);
+- 14–15.
+
