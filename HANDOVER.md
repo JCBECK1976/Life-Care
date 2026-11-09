@@ -1174,6 +1174,7 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
 | 7 | F4 Post-upload OK message + "Check me" badge (RAG colours kept) | Small feature | 1–2% |
 | 7a | D9 Week meal generator ignores the user's defaults (see below) | Fix | 1–3% |
 | 7aa | D10 Portion photo of a *different* food keeps the original item (see below) | Fix | 1–2% |
+| 7ac | F7 Optional description field for photo checks (Snap/Portion + Shop Food Checker) (see below) | Small feature | 1–2% |
 | 7ab | D11 RAG rating rules not proportionate (see below) | Fix + design | 2–4% |
 | 7b | D8 All companion chats: consistent order, **latest first** (Question and Help chats currently need scrolling to the bottom) | Fix | 1–2% |
 | 7c | C1 Eating week starts **Sunday** (same as exercise) | Change | 2–4% |
@@ -1191,7 +1192,7 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
 | 14b | F6 Eating Feedback: plan-aware + upgraded chat features | Feature | 3–5% |
 | 15 | F2 Body balance from progress photos | Feature | 4–6% |
 
-**Totals:** P1 23–42% · P2 6–10% · P3 13–20% · P4 8–12% · P5 16–24% → **56–88%**.
+**Totals:** P1 24–44% · P2 6–10% · P3 13–20% · P4 8–12% · P5 16–24% → **56–88%**.
 
 **Cut line, to stay under 85%:** if usage passes ~70% before P5, defer **F2 (15)** and then **F3 (14)** to the following week. If tight earlier, defer the rest of **task 11** after the SAD/HLD. P1 is never deferred.
 
@@ -1274,4 +1275,11 @@ Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
   - If these are recorded per set, the same rule applies per set.
 - Existing saved entries are unchanged.
 - Build it with D1/D2 (same form). Add a test: save is blocked until both are chosen.
+
+### (Architect) 9 Nov 2026 14:32 — F7 (small feature, P1 #7ac): description field for photo checks
+- **Evidence (JC):** a photo of a Peanut Brunch bar was identified as the bigger bar (175 kcal) instead of the 28g bar (125 kcal).
+- **Add an optional short text field** to every photo-based check: **📷 Snap / Portion** (meal slots) and the **Food Checker** on the Shop page. Placeholder: "Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'".
+- The description is sent to the AI with the photo, and the AI must **prefer the user's description** over its own size guess.
+- **The result always states the size/weight it assumed** (e.g. "Assumed: 28g bar — 125 kcal"), so a wrong assumption is visible and can be corrected with one more try.
+- Build it with D10 (same photo path). Add a test: the description reaches the AI request, and the assumed size is shown in the result.
 
