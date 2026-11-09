@@ -62,6 +62,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.5.1 | Fix: person-switch race (stale start-up and switch loads applied to the newly selected person); portion overrides and Google token now load per person |
 | v2.5.2 | "+ add person" hidden (`ALLOW_ADD_PERSON = false`) until the multi-user data model (Steps 3/5). **Prod release v2.3.0 → v2.5.2** |
 | v2.5.3 | BETA/BUILD app icons restyled (thin crisp ring like the header mark, purple/orange, no dot); prod icons unchanged |
+| v2.6.0 | **Security pass (hotfix route):** Google sign-in gate (joint account), Settings → Account, `database.rules.json` allow-listing the account UID on `data/` and `data_build/`. Once the rules are applied, `legacy.html` stops working; rollback = revert to the previous v2 release (or reopen the rules in the console in an emergency) |
 
 ---
 
@@ -70,7 +71,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v2.5.3 (5 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
+- **Version**: v2.6.0 (5 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -979,4 +980,391 @@ Older entries (2 Nov 2026 → checkpoint (c) review, 3 Nov 2026) are in `HANDOVE
 **Out of scope:** moving the AI key to a server (Step 6), per-person accounts (Step 5), Step 1b.
 
 **Token budget is tight (82%+ weekly):** keep reports short, and don't re-run unchanged checks.
+
+
+### (Coder) 5 Nov 2026 — v2.6.0 security pass on `build`: hand-off 1
+- **Read:** §7 from "(Architect) 5 Nov 2026 12:35" (ways of working; open rules confirmed; BRIEF v2.6.0).
+- **Database paths the app uses:** all under `DATA_ROOT`, i.e. `data/` (prod, beta) or `data_build/` (build). These are every `sGet`/`sSet` key (incl. `anthropic_api_key`, `companion_energy`, feedback, journal, mood and so on), `ref(DATA_ROOT)` (Data Viewer, comment queries) and `ref(DATA_ROOT + "/" + key)`. Nothing else, so the two rule blocks cover everything.
+- **Done (`build` @ `da62a11`, v2.6.0):**
+  - `AuthGate`: Google sign-in (popup; redirect fallback if blocked); data loads only after sign-in **and** an access probe; denied shows "This Google account doesn't have access" + Sign out; other errors show Try again + Sign out.
+  - Settings → 🔐 Account (masked email, Sign out).
+  - `database.rules.json` (`__UID__` placeholder; no email in the repo).
+  - The emulator runs database + auth with the real rules (test UID, generated `emulator.rules.json`).
+  - Tests: rules allow / deny, sign-in screen, denied screen, account card and persistence; all tests sign in.
+  - APP_GUIDE "Signing in" (the install tip is already in the guide).
+- **Checks:** lint 0 errors, **47/47 tests**; prod build has no test hook or emulator addresses; screenshots: only the version text + the Account card. Deploy 42052556588 ok, 0 errors.
+- **Not verified here:** the real Google popup on Android/installed PWA (emulator only). `/build/` can't sign in until JC enables the Google provider and authorises `jcbeck1976.github.io` (step b).
+- **Resume point:** `build` @ `da62a11`. Next: Architect check → beta → prod (hotfix route) → JC console steps → UID into `database.rules.json` → rules pasted → verify. Record the legacy.html trade-off in the docs at release.
+
+### (Architect) 5 Nov 2026 15:20 — v2.6.0 hand-off 1 checked (code + live /build/)
+- **Code review:**
+  - `database.rules.json` matches the brief.
+  - AuthGate: popup first, redirect fallback, access probe, and denied and error screens never blank.
+  - The test sign-in hook is emulator-only.
+- **Live /build/ in a fresh browser:** sign-in screen shown; **0 database requests before sign-in**; 0 console errors.
+- **Remaining check before beta, which only JC can do:** a real Google sign-in on Android, in Chrome and in the installed app, on /build/ (needs console step (b)). Rules are still open, so data loads after sign-in.
+
+### (Architect) 5 Nov 2026 15:45 — v2.6.0: console steps done, UID set
+- JC finished console step (b): the Google provider is enabled and `jcbeck1976.github.io` is an authorised domain. The joint account signed in on /build/, so the user exists in Authentication → Users.
+- The Architect put the UID into `database.rules.json` on `build` (commit eabade2). This is not a secret.
+- **Next:** the Coder promotes v2.6.0 build → beta → main on the hotfix route (no soak) and tags v2.6.0. **The rules stay open until the Architect confirms prod v2.6.0 is live**; then JC pastes the rules.
+
+
+### (Coder) 5 Nov 2026 — v2.6.0 released to prod (hotfix route)
+- **Read:** diff to `20a84c6` (Architect checked hand-off 1; JC's real sign-in worked on /build/; UID set in `database.rules.json` @ `eabade2`).
+- **Done:** PR #17 `build → beta` (`bdc3907`) and PR #18 `beta → main` (`c60986b`), both merged; no soak (security fix). Prod build: no test hook, installable-app checks pass. Deploy 42058240858 succeeded, 0 errors. The emulator copy of the rules still swaps the real UID for the test UID (4/4). **Firebase rules not touched.**
+- **Tag `v2.6.0` → `c60986b`: the Architect, please** (Coder sessions can't push tags).
+- **Rollback (recorded):** after JC applies the rules, `legacy.html` (v1.374.2, no sign-in) stops working. Rollback = revert to the previous v2 release; in an emergency, reopen the rules in the console.
+- **Resume point:** `main` @ `c60986b`. Next: Architect confirms prod v2.6.0 → JC pastes `database.rules.json` into the console → Architect verifies signed-out reads are denied and all three environments work.
+
+### (Architect) 5 Nov 2026 15:55 — v2.6.0 released and tagged; rules handed to JC
+- Tag `v2.6.0` → `c60986b` created.
+- Live check, fresh browser: prod, beta and build all show the sign-in screen, with 0 database requests before sign-in and 0 console errors.
+- JC was given `database.rules.json` (from `build`, with the UID) to paste into the console. Then the Architect checks that signed-out reads are denied.
+
+### (Architect) 5 Nov 2026 16:00 — security pass COMPLETE: database locked
+- JC published the rules at 15:52. Signed-out reads of root, `data/`, `data_build/` and `anthropic_api_key` are all denied, and a signed-out write is denied. JC confirms the app works when signed in.
+- **Follow-ups for JC:** Becks signs in once per phone. Create a new Anthropic API key (the old one was readable while the rules were open), enter it in the app, and delete the old one. Keep the spend limit and a Google Cloud budget alert, since the project is on the Blaze plan.
+- **Next work:** Step 1b and the automation jobs (§4 Ways of working), next week when the token allowance resets.
+- **Added to the automation work (16:02):** widen `.gitignore` to catch any backup or export file name, not just `*firebase_backup*.json`. Seed the emulator from the encrypted vault backup instead of a loose file. The Architect checked: no backup file exists in the repo.
+
+### (Architect) 5 Nov 2026 21:35 — DESIGN PRINCIPLE agreed by JC: stolen data must not identify anyone
+JC's aim: if the database were stolen, the health data must not be traceable to a real person. GDPR is handled separately in the design. Apply from Step 5 (individual accounts) onwards:
+1. **Keyed by random ID only.** Health records sit under the Firebase Auth UID, which is random. Never sequential IDs, names or emails.
+2. **No identity in the database.** Names, emails and photos are not stored with health data. The display name lives on the device, with a "what should we call you?" prompt to recover it on a new device.
+3. **Keep the identity store separate and protected.** Firebase Auth (UID → email) is the only link. Protect the console and Google accounts with 2-Step Verification, and give it minimal admin access.
+4. **Free text is the main leak risk.** Journal, mood notes, comments, food notes and AI chat history can hold names, places and family details. Encrypt these on the device, or keep them only on the device.
+5. **Watch for quasi-identifiers.** Exact date of birth, height plus rare medical values, and precise locations together can identify someone in a small user base. Store bands where exact values aren't needed (age band, not date of birth).
+6. **Later (Step 6+):** device-side encryption for the medical fields (blood results, medication), with a passkey or recovery-code key design.
+
+### (Architect) 6 Nov 2026 22:10 — BACKLOG for next week: defects and features from JC's training session
+All four are pre-existing app behaviour, not caused by the migration. Priority order: D1 and D2 first (safety and data integrity), then F1, then F2.
+
+- **D1 (defect, SAFETY): switching person in the header while the Log Exercise form is open.**
+  - What happens: JC selected Becks in the header tab rather than in the form. The screen switched, but the form kept the other person's data, so someone could train to the wrong person's weights.
+  - Proposed fix: the form belongs to the person it was opened for and shows that name clearly. While a form is open, switching person in the header asks first ("Discard Becks's unsaved entries and switch to JC?"); on Yes, the form closes or reloads cleanly for the new person. Never a mixed state.
+  - Add a regression test. Related: the v2.5.1 stale-load guard.
+- **D2 (defect, DATA): different weights per set are saved as the set 1 value.**
+  - What happens: set 1 at 16 kg, sets 2–3 at 22 kg all saved as 16 kg.
+  - Fix: store and show weight and reps (or the exercise's equivalent measure, e.g. time or level) **per set**, end to end: form, save, progress row, AI feedback and history.
+  - Data change must be backward compatible (expand-then-contract rule in §4): existing entries with one weight still read correctly.
+  - Add a test with mixed per-set weights.
+- **F1 (redesign, feature): editing past weeks in Progress.**
+  - JC believes editing previous weeks doesn't work reliably. Investigate and confirm in the report.
+  - New design: the Progress week row shows **key data only**, with no small notes text and no delete button, plus an **Open** button.
+  - Open shows the **same Log Exercise form**, read-only, with everything exactly as logged (every set, notes, etc.).
+  - An **Edit** button makes it editable → Save, or **Delete** with a confirm, all inside the form.
+  - One form for logging, viewing and editing.
+- **F2 (feature): body proportion guidance from body measurements.**
+  - The Companion looks at the measurement trends (e.g. chest, waist, arms left/right, shoulders, thighs, calves) and their ratios over time.
+  - It flags areas developing disproportionately fast or slow, or left/right imbalance, and recommends training changes (exercise swaps, emphasis, volume) to keep development balanced.
+  - Example from JC: upper chest developing faster than lower chest → suggest decline or lower-chest emphasis.
+  - **Limit to state clearly in the app:** tape measurements can't separate upper and lower chest. That level of detail needs a progress photo or the user's own observation, so offer an optional "what do you notice?" input or photo-based review.
+  - Recommendations are suggestions the user accepts, never automatic plan changes.
+  - **Amended by JC (6 Nov 22:46): proportion feedback only works from progress photos.** It runs when the user has uploaded photos, and the Companion assesses them as part of the overall body measurement feedback, combining photos and measurement trends. With no photos it says so and asks for them, and gives no proportion advice.
+- **F3 (feature): track food on the go from a photo, for users who don't plan meals.**
+  - Today the "Portion" photo button only works on a slot that already has an item.
+  - New: the button also appears on **empty** meal/snack slots. The user takes a photo → the AI identifies the food **and** the portion together → applies the RAG rating → adds it to that slot's selection list if it isn't already there → shows it selected in the slot.
+  - On a filled slot it keeps today's behaviour (portion size of the listed item).
+  - **Must reuse the shared add-item path (`confirmReviewItem`)**, so RAG, duplicate check and list insertion are not reimplemented, and the other add-item routes don't break.
+  - Several foods on one plate → one combined meal item by default (e.g. "Chicken stir fry with rice").
+  - **Rename the button:** "Portion" takes too much space. Use a camera icon with the short label **"📷 Snap"**, which suits both quick tracking and portion checks, and give it an accessible label "Snap a photo of your food". JC to confirm the label in review.
+
+### (Architect) 6 Nov 2026 23:10 — DECISION: "house in order" before any further build-out; document set agreed
+**HANDOVER.md becomes hand-overs only.** Reference documents are kept separately and HANDOVER links to them.
+
+**Private vault repo** (security-sensitive):
+- SAD (incl. threat model and CSIA)
+- DPIA
+- SDD (support model, suppliers, service levels, runbooks)
+- Risk register
+- Supplier/processor register and DPAs
+- ROPA
+- LLD sections that reveal security detail
+
+**Public repo:**
+- HLD
+- LLD (TECHNICAL_REFERENCE)
+- Changelog / release notes (the version table moves here)
+- Test strategy
+- Product backlog
+- Defects backlog (separate)
+- Privacy notice, terms of use
+- Intended use and clinical safety statement (wellness, not a medical device)
+- Payments compliance statement (replaces PCI-DSS; PA-DSS dropped as retired and not applicable)
+- Accessibility statement
+- Decision log (ADRs)
+
+**Later:** an admin-only technical Q&A chat reading the private docs, never credentials.
+
+**Agreed order (Architect's recommendation):**
+1. D1 and D2 (safety and data defects)
+2. Automation jobs (backups, Build refresh, smoke tests, tagging, `.gitignore`/vault seed) and the GitHub Actions Node warnings
+3. Docs: set up the structure, move the backlogs out of HANDOVER, then SAD (for JC's cyber reviewer) + HLD, then DPIA, SDD/runbooks, ADRs, then the rest
+4. Step 1b
+
+F1–F3 come only after this, along with Steps 2–6 build-out.
+
+**Token estimate given to JC:** about 40–55% of a weekly allowance for 1–4. F1–F3 would add about 15–20% more.
+
+### (Architect) 7 Nov 2026 17:20 — BACKLOG: sign-in experience on a new device (JC: "not fit for purpose")
+- **What happened:** JC tried to sign in on a desktop computer where the joint Google account had never been used. Google asked for a PIN he doesn't have. That was Windows Hello trying a passkey stored only on the phones, and the "forgotten PIN" route was a dead end. He gave up.
+- **Cause:** Google's own sign-in flow, not app code. But it is the app's first impression, so the design must remove it.
+- **Immediate workaround for JC:** on Google's PIN/passkey prompt choose **"Try another way"**, then the password, or **"Use a phone or tablet"** and scan the QR code with a phone that has the account.
+- **Design requirement (for Step 4 onboarding / Step 5 accounts; to go in the HLD/SDD):**
+  1. Sign-in must "just work" on any new device, first time, with no dead ends.
+  2. Offer more than one method: Google, plus a passwordless **email sign-in link** that works on any device. Apple sign-in for iPhone users.
+  3. A short hint on the sign-in screen: "On a computer and Google asks for a PIN? Choose 'Try another way'."
+  4. Sign-in journeys on Windows, Mac, Android and iPhone (new device, no saved account) become a **release test** before pilot users.
+- **Priority:** before any user other than JC and Becks. Not a blocker for the current order.
+
+### (Architect) 7 Nov 2026 17:50 — BACKLOG: bulk upload defects (JC: "apart from that, upload was very good")
+Priority: with D1/D2. D4 and D5 put wrong data into lists; D3 is usability.
+- **D3 (defect): long bulk lists fail.**
+  - What happens: Add gives up (probably a timeout or AI output limit) and the screen reverts to Upload with nothing added.
+  - Fix: process the list **in batches** (e.g. 10 items per AI call) with progress ("Rating 12 of 30…"). A failed batch can be retried without losing the batches that succeeded.
+  - If a hard limit is still needed, say it **before** starting ("Up to N items per upload; split longer lists"), never by failing silently.
+- **D4 (defect, DATA): bulk upload remembers the previous category.**
+  - What happens: drinks were added to Snacks because Snacks was still selected.
+  - Fix: every new bulk upload starts with **no category selected**. Add stays disabled with "Choose a category first" until one is chosen.
+  - Show the chosen category in the confirm step ("Add 14 items to **Drinks**?").
+- **D5 (defect, DATA): Cancel doesn't cancel.**
+  - What happens: Cancel hid the upload, but the add carried on in the background and saved everything.
+  - Fix: Cancel stops in-flight AI requests (abort) and **discards any results that arrive afterwards**. Nothing is saved after Cancel. Confirm with "Cancelled — nothing was added".
+  - If some batches were already saved before Cancel, say exactly what was kept and offer to undo it.
+- Tests for all three: a long list in batches, the category-required guard, and cancel mid-run saving nothing. Must keep using the shared `confirmReviewItem` path.
+- **F4 (small feature, do with D3–D5): post-upload check reminder (JC, 7 Nov 17:53).**
+  - After a bulk upload finishes, show a message the user must tap **OK** to dismiss: "N items added to <Category>. Ratings are AI estimates. Open each item and check the weight, portion and ingredients match what you actually have, then update where needed."
+  - Mark newly bulk-added items as **"Check me"** (a small badge) until the user opens and saves them, so they're easy to find later.
+  - JC: the badge also shows in the **meal/snack selection lists**, styled consistently with how greyed (not-yet-added) items are shown today.
+- **F5 (feature + design, JC 7 Nov 18:01): "Open" replaces "Update" for food items, the same pattern as F1 (Progress).**
+  - **In the lists (Update Lists):** each item gets **Open** → the item form, read-only, then **Edit** → Save, or **Delete from list** (with a confirm), all inside the form.
+  - **In the daily eating slots:** buttons become **📷 Snap** (F3) and **Open**.
+    - Open on a selected item shows it and lets the user edit it.
+    - Open on an empty slot lets the user add an item.
+    - **Remove** clears the item from that slot only, which is different from Delete from list.
+  - **Key design rule, to be confirmed in the LLD (JC's concern): editing must never silently rewrite past days.**
+    - Separate the **list item** (the saved food: name, per-unit nutrition, RAG) from the **eaten entry** (that meal on that day: portion, plus a snapshot of the values at the time).
+    - When editing from a daily slot, ask once: **"Just this meal"** (e.g. a bigger portion today, the usual case) or **"Update the saved item"** (e.g. correcting a "Check me" item). Updating the saved item affects **future** selections only; past days keep their snapshot.
+    - **First, the Coder checks the current data model:** do logged days reference list items by ID (so edits would rewrite history today) or copy their values? Report this before designing. Any change follows the backward-compatible rule.
+  - Do it after D1–D5 and alongside F1, so both "Open" forms share one pattern.
+
+### (Architect) 7 Nov 2026 18:15 — JC amendments + NEXT WEEK PLAN (supersedes the order in the 6 Nov 23:10 entry)
+**JC amendments:**
+- **F4 badge:** "Check me" items keep their **RAG colour coding**, never greyed out. The badge is an addition, not a restyle.
+- **F5 delete:** **Delete from list** is available **only** when an item is opened from **Update Lists**. Opened from a meal slot, the form offers Edit and **Remove (from this meal)** only. This prevents accidental deletion.
+- **D6 (defect, DATA, raised by JC earlier, now confirmed as a defect):** deleting a list item breaks past meal selections, which then show raw code.
+  - Fix: when an item is selected into a meal, store a **snapshot** (name, portion, nutrition, RAG) in the selection. Past selections never depend on the list item still existing or being unchanged.
+  - Add a one-off, backward-compatible repair so existing broken or at-risk selections are filled from the current list or the backup where possible, and otherwise show "Deleted item" cleanly, never code.
+  - This is the data foundation for F5. Build it first.
+
+**NEXT WEEK PLAN, in order.** Estimates are % of a weekly allowance and include Architect checks. Target: finish under ~85%.
+
+| # | Task | Type | Est. |
+|---|---|---|---|
+| **P1 — Safety and data fixes (always first)** ||||
+| 1 | D1 Person switch while the Log Exercise form is open | Fix | 2–4% |
+| 2 | D2 Per-set weights/reps saved correctly | Fix | 3–4% |
+| 2a | D12 Log Exercise: Form and Range must be chosen, with no default (see below) | Fix | 1% |
+| 3 | D6 Meal selections store a snapshot; deleted items never show code; repair existing | Fix | 3–5% |
+| 3b | D7 Update Item: nutrition not recalculated from edited ingredients (see below) | Fix | 2–4% |
+| 4 | D4 Bulk upload: no remembered category; must choose | Fix | 1–2% |
+| 5 | D5 Bulk upload: Cancel really cancels | Fix | 1–2% |
+| 6 | D3 Bulk upload: batching with progress for long lists | Fix | 2–3% |
+| 7 | F4 Post-upload OK message + "Check me" badge (RAG colours kept) | Small feature | 1–2% |
+| 7a | D9 Week meal generator ignores the user's defaults (see below) | Fix | 1–3% |
+| 7aa | D10 Portion photo of a *different* food keeps the original item (see below) | Fix | 1–2% |
+| 7ac | F7 Optional description field for photo checks (Snap/Portion + Shop Food Checker) (see below) | Small feature | 1–2% |
+| 7ab | D11 RAG rating rules not proportionate (see below) | Fix + design | 2–4% |
+| 7b | D8 All companion chats: consistent order, **latest first** (Question and Help chats currently need scrolling to the bottom) | Fix | 1–2% |
+| 7c | C1 Eating week starts **Sunday** (same as exercise) | Change | 2–4% |
+| **P2 — Automation (cuts token use on every later release)** ||||
+| 8 | Nightly encrypted backups + pre-release backup; Build data refresh; smoke tests; auto-tag; wider `.gitignore`; emulator seeded from the vault; GitHub Actions Node update (needs JC to create a Firebase service key + backup key) | Ops | 6–10% |
+| **P3 — Documents** ||||
+| 9 | Set up the doc structure (public/private); move backlogs and the version table out of HANDOVER | Docs | 2–3% |
+| 10 | SAD (incl. threat model; for JC's cyber reviewer) + HLD | Docs | 6–9% |
+| 11 | DPIA, SDD + runbooks, decision log (ADRs) | Docs | 5–8% |
+| **P4 — Efficiency** ||||
+| 12 | Step 1b: measure → propose → JC approves → build | Improve | 8–12% |
+| **P5 — Features (after P1–P4)** ||||
+| 13 | F1 + F5 "Open" pattern for Progress weeks and food items (shared form design; Delete only from Update Lists) | Feature | 8–12% |
+| 14 | F3 📷 Snap to track on the go | Feature | 4–6% |
+| 14b | F6 Eating Feedback: plan-aware + upgraded chat features | Feature | 3–5% |
+| 15 | F2 Body balance from progress photos | Feature | 4–6% |
+| 16 | F8 "Share to Lifecare Companion" from other apps (see below) | Feature | 3–5% |
+
+**Totals:** P1 24–44% · P2 6–10% · P3 13–20% · P4 8–12% · P5 16–24% → **56–88%**.
+
+**Cut line, to stay under 85%:** if usage passes ~70% before P5, defer **F2 (15)** and then **F3 (14)** to the following week. If tight earlier, defer the rest of **task 11** after the SAD/HLD. P1 is never deferred.
+
+**Not this week:** the new-device sign-in redesign (before pilot users), the remaining docs (privacy notice, terms, intended use, payments, accessibility, ROPA), and Steps 2–6.
+
+### (Architect) 7 Nov 2026 18:30 — D7 (defect, DATA, P1 #3b): Update Item doesn't recalculate nutrition correctly
+- **Evidence (JC screenshot, Update Lists, Breakfast):**
+  - Item: "Overnight Oats 95g (Berries, Yogurt & Almond Milk)".
+  - Ingredients: 95g rolled oats, 300ml unsweetened almond milk, 100g Greek yogurt, 150g mixed berries, tsp honey, mixed seeds.
+  - After changing berries from 80g to 150g, the form said "✅ Nutritional values updated" but still showed **387 kcal, 18.2g protein**.
+- **Sanity check:** 95g oats alone is ~355 kcal. A realistic total is roughly **550–650 kcal and ~25–30g protein**, depending on the yogurt's fat level and the seed amount. So the values are both stale and implausible.
+  - Compare: the 45g version is 320 kcal, so +50g oats and +70g berries only "added" 67 kcal.
+- **Investigate:**
+  1. Is the recalculation actually called, and is its result applied to the form/state, or is the old value kept while the success message shows anyway?
+  2. Does the AI prompt anchor on the old values or the "(387 kcal)" text embedded in the name?
+  3. The "(N kcal)" in the item name must be regenerated from the new values, not left stale.
+- **Fix requirements:**
+  - The success message only shows when new values have actually been applied.
+  - Show the **before → after** values on confirm.
+  - Add a **plausibility check**: total kcal must be at least the sum of the obvious main ingredients, otherwise warn and retry.
+  - Ingredients with no amount ("tsp honey", "mixed seeds") → the AI states the amount it assumed (e.g. "assumed 15g seeds") so the user can correct it.
+  - Add a test: change one ingredient amount and expect the values and the name's kcal to change.
+- **Data impact:** other items edited the same way may also hold stale values. After the fix, offer a one-off "re-check nutrition" for items edited since this behaviour began, flagged as "Check me" (F4).
+
+### (Architect) 7 Nov 2026 18:45 — more backlog from JC (D8, C1, F6); plan updated
+- **D8 (fix): chat order across all companions.**
+  - The Question and Help chats show the latest message at the bottom, so the user has to scroll.
+  - JC wants **latest first**, consistent across **every** companion chat (Question, Help, Session feedback, Eating Feedback, any others). Check each one and correct where needed.
+  - The chat must open showing the latest exchange with no scrolling.
+- **C1 (change): the Eating week starts on Sunday**, aligned with exercise (currently Sunday is the last day).
+  - The Coder first checks how eating data is keyed (by weekday name or by date/week) so existing plans, history and weekly summaries stay correct.
+  - Backward compatible, with a test across a Sunday boundary.
+- **F6 (feature): Eating Feedback companion is plan-aware, with upgraded chat.**
+  - For the selected week:
+    - **days before today** are treated as **consumed** ("what you ate");
+    - **today onwards** are treated as **planned** ("your plan");
+    - a fully future week is a **plan review**.
+  - The feedback says which is which, e.g. "So far this week you've eaten… / For the rest of the week your plan…".
+  - Bring it up to the same chat features as the other upgraded companions: follow-up questions, cut-off detection and the correct error handling, latest-first order (D8), and the same panel style.
+- **Updated estimate:** the full plan is now **~64–100%**, which is over JC's ~85% target. It will very likely run into a second week.
+  - Same cut line: P1 never deferred. Then defer **F2**, **F3**, then **F6**. Then, if needed, task 11 docs after the SAD/HLD.
+
+### (Architect) 7 Nov 2026 18:50 — D9 (fix, P1 #7a): week meal generator overrides defaults
+- **What happens:** JC set his default breakfast, but the week generator still auto-generated breakfasts.
+- **Required order for every day and slot:**
+  1. Keep anything the user has **already selected** for that day. Never overwrite it.
+  2. Otherwise apply the user's **default** for that slot.
+  3. Only if there is no selection and no default, **auto-generate**, and only from items available in that slot's selection list. If that list is empty, leave the slot empty and say so; don't invent items.
+- After generating, show a short summary: "Breakfast: your default · Lunch/Dinner/Snacks: generated · 2 slots left empty (no items in list)".
+- Add tests: a default present → used; an existing selection → untouched; no default → generated.
+
+### (Architect) 8 Nov 2026 18:32 — D10 (fix, DATA, P1 #7aa): Portion/Snap on a filled slot with a different food
+- **What happens (JC test):** the portion photo on a filled slot detected a **different food**, said so, then left the **original item selected**, sometimes with the new photo's values applied to it. That gives a wrong item and possibly corrupted values.
+- **Required behaviour:**
+  - When the photo shows a different food from the one listed, treat it as a **new food entry**: identify the food and portion → RAG → add it to the slot's list if it isn't already there → **select it in place of the original**.
+  - Show "Looks like **<new food>**, not <original> — replaced" with an **Undo** button that restores the original exactly.
+  - **Never write the photo's values onto the original item**, neither in the list nor in the meal.
+  - Same food → today's behaviour (portion update for this meal only, per F5's "just this meal" rule).
+- Uses the shared add-item path (`confirmReviewItem`), consistent with F3 (Snap on an empty slot).
+- Add tests: different food → replaced, with undo; same food → portion only; the original item unchanged in both.
+
+### (Architect) 8 Nov 2026 18:35 — D11 (fix + design, P1 #7ab): RAG ratings not proportionate
+- **Evidence (JC):** 3 standard biscuits are rated RED "once a month", the **same** as a large restaurant brownie with ice cream. Roughly 150 kcal / 4g saturated fat / 10g sugar versus about 800 kcal / 20g saturated fat / 60g sugar. The rating ignores portion size and scale.
+- **Step 1 (Coder, report only):** document how RAG is decided today: the prompt wording, any thresholds, and whether it's per item or per portion. Report this before changing anything.
+- **Step 2 (Architect proposes, JC approves):** **portion-based, rule-driven ratings.**
+  - Score the item's actual portion against the **person's own daily targets**: kcal, saturated fat, added sugar, fibre/protein credit.
+    - JC: under 20g saturated fat, under 25g added sugar.
+    - Becks: under 20g saturated fat (critical given her LDL), under 25g added sugar.
+  - Use clear bands, e.g. % of the daily saturated fat or sugar limit in one portion → GREAT / GOOD / AMBER / RED.
+  - Add **graded frequency guidance** that matches the size: "a few times a week", "weekly treat", "monthly treat".
+  - The AI identifies the food and its nutrition. **The rating itself is calculated by fixed rules in code**, so it's consistent and explainable ("RED: one portion is 100% of your daily saturated fat").
+- **Step 3:** re-rate existing list items under the new rules. Items whose rating changes get a "Check me" badge (F4), and the change is shown in a summary for JC to review.
+- Add tests: the biscuits example and the brownie example fall into **different** bands; the same food in half the portion rates better.
+
+### (Architect) 8 Nov 2026 21:55 — D12 (fix, DATA, P1 #2a): Form and Range default to "Working towards"
+- **What happens (JC):** in the Log Exercise form, **Form** and **Range** default to "Working towards", so it keeps being saved by accident. That feeds wrong data into progress and the AI feedback.
+- **Fix:**
+  - Both start **unselected** (neither "Working towards" nor "Good").
+  - Saving is blocked until both are chosen for each exercise, with a clear inline prompt ("Choose Form and Range") next to the missing one, not a generic error.
+  - If these are recorded per set, the same rule applies per set.
+- Existing saved entries are unchanged.
+- Build it with D1/D2 (same form). Add a test: save is blocked until both are chosen.
+
+### (Architect) 9 Nov 2026 14:32 — F7 (small feature, P1 #7ac): description field for photo checks
+- **Evidence (JC):** a photo of a Peanut Brunch bar was identified as the bigger bar (175 kcal) instead of the 28g bar (125 kcal).
+- **Add an optional short text field** to every photo-based check: **📷 Snap / Portion** (meal slots) and the **Food Checker** on the Shop page. Placeholder: "Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'".
+- The description is sent to the AI with the photo, and the AI must **prefer the user's description** over its own size guess.
+- **The result always states the size/weight it assumed** (e.g. "Assumed: 28g bar — 125 kcal"), so a wrong assumption is visible and can be corrected with one more try.
+- Build it with D10 (same photo path). Add a test: the description reaches the AI request, and the assumed size is shown in the result.
+
+### (Architect) 9 Nov 2026 22:55 — F8 (feature, P5 #16): share images into the app from other apps
+- **JC's request:** body-scale and measurement apps have a Share button. The user should be able to pick **Lifecare Companion** from the share sheet, as with WhatsApp, rather than downloading the image and uploading it again.
+- **How (Android): the Web Share Target API.**
+  - Add `share_target` (method POST, `multipart/form-data`, accept `image/*`) to each environment's web manifest. The installed app then appears in Android's share sheet.
+  - Each environment shows under its own name ("Lifecare Companion", "… Beta", "… Build").
+  - **Service worker:** GitHub Pages can't accept a POST, so `sw.js` must **intercept the share POST**, store the file(s) locally (Cache or IndexedDB), then redirect to the app. This changes today's network-only service worker (only for the share route).
+  - **In the app:** a "What is this?" picker (Body measurements / Progress photo / Food), then route into the existing upload flow. If the user isn't signed in yet, keep the file until they are; never drop it.
+  - The shared image stays on the device until the user confirms the upload.
+- **Limits:**
+  - Works for **installed** apps on **Android (Chrome/Samsung Internet)**.
+  - **iPhone Safari does not support Web Share Target.** iPhone users keep download-then-upload, unless the app is later wrapped as a native app (store versions), which would add proper share support on both platforms.
+  - Desktop Chrome supports it partially; low priority there.
+- Add tests: the manifest has `share_target`; the service worker handles the POST; the file reaches the picker. A real-device check on Android is needed.
+
+### (Architect) 9 Nov 2026 23:00 — CONSOLIDATED WORK PLAN (supersedes the table in the 7 Nov 18:15 entry; item details stay in their own entries)
+Estimates are % of a weekly allowance, including Architect checks.
+
+**Week 1:** P1 + P2 + the first part of P3 (~45–75%).
+**Week 2:** the rest of P3, then P4 and P5.
+
+| # | ID | Task | Est. |
+|---|---|---|---|
+| **P1 — Safety and data fixes (never deferred)** ||||
+| 1 | D1 | Switching person in the header while Log Exercise is open | 2–4% |
+| 2 | D2 | Per-set weights/reps saved correctly | 3–4% |
+| 3 | D12 | Form and Range: no default, must choose | 1% |
+| 4 | D6 | Meals store a snapshot; deleted items never show code; repair existing | 3–5% |
+| 5 | D7 | Update Item nutrition actually recalculates (+ plausibility check, before → after) | 2–4% |
+| 6 | D11 | RAG ratings portion-based against personal limits (report → JC approves bands → build → re-rate) | 2–4% |
+| 7 | D9 | Week meal generator: keep selections → defaults → generate only into empty slots | 1–3% |
+| 8 | D10 | Portion photo of a different food replaces the item (with Undo); the original is never altered | 1–2% |
+| 9 | F7 | Optional description field on Snap/Portion and Shop Food Checker; show the assumed size | 1–2% |
+| 10 | D4 | Bulk upload: must choose a category | 1–2% |
+| 11 | D5 | Bulk upload: Cancel really cancels | 1–2% |
+| 12 | D3 | Bulk upload: batches with progress for long lists | 2–3% |
+| 13 | F4 | Post-upload OK message + "Check me" badge (RAG colours kept, also in selection lists) | 1–2% |
+| 14 | D8 | All companion chats latest first, opening at the latest | 1–2% |
+| 15 | C1 | Eating week starts Sunday | 2–4% |
+| **P2 — Automation** ||||
+| 16 | — | Encrypted nightly and pre-release backups, Build data refresh, smoke tests, auto-tag, wider `.gitignore`, emulator seeded from the vault, Actions Node update (JC creates 2 keys) | 6–10% |
+| **P3 — Documents** ||||
+| 17 | — | Doc structure (public/private); backlogs and version table moved out of HANDOVER | 2–3% |
+| 18 | — | SAD (with threat model, for JC's cyber reviewer) + HLD | 6–9% |
+| 19 | — | DPIA, SDD + runbooks, decision log | 5–8% |
+| **P4 — Efficiency** ||||
+| 20 | 1b | Step 1b: measure → propose → approve → build | 8–12% |
+| **P5 — Features** ||||
+| 21 | F1+F5 | "Open" pattern for Progress weeks and food items (Delete only from Update Lists; "just this meal" vs "update saved item") | 8–12% |
+| 22 | F3 | 📷 Snap to track on an empty slot | 4–6% |
+| 23 | F6 | Eating Feedback plan-aware + upgraded chat | 3–5% |
+| 24 | F2 | Body balance from progress photos | 4–6% |
+| 25 | F8 | Share to Lifecare Companion (Android) | 3–5% |
+
+**Totals:** P1 24–44% · P2 6–10% · P3 13–20% · P4 8–12% · P5 22–34% → **~73–120% ≈ 1.5–2 weeks.**
+
+**Not scheduled yet:** the new-device sign-in redesign (before pilot users), the remaining docs, and Steps 2–6.
+
+**Coder batching suggestion** (one release each, to save tokens):
+- 1–3 (exercise form);
+- 4–9 (food data and photos);
+- 10–13 (bulk upload);
+- 14–15.
+
+### (Architect) 9 Nov 2026 23:00 — JC DECISION: features this week (usability first)
+JC: "we really need to get using the app properly ourselves", so P5 moves up.
+
+**Week 1:**
+- P1 (items 1–15)
+- then P5 (items 21–25: F1+F5, F3, F6, F2, F8)
+- Estimate ~46–78%.
+
+**Week 2:** P2 automation (16), P3 docs (17–19, including the SAD for JC's cyber reviewer), P4 Step 1b (20).
+
+**Mitigation while automation waits:** JC takes a **manual backup from Data tools before each prod release**. The Architect reminds him at each release.
+
+**Suggested release batches:**
+1. Exercise form (1–3)
+2. Food data and photos (4–9)
+3. Bulk upload (10–13)
+4. Chats + Sunday week (14–15)
+5. Open pattern (21)
+6. Snap + Eating Feedback (22–23)
+7. Body balance + Share (24–25)
 
