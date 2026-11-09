@@ -63,6 +63,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.5.2 | "+ add person" hidden (`ALLOW_ADD_PERSON = false`) until the multi-user data model (Steps 3/5). **Prod release v2.3.0 → v2.5.2** |
 | v2.5.3 | BETA/BUILD app icons restyled (thin crisp ring like the header mark, purple/orange, no dot); prod icons unchanged |
 | v2.6.0 | **Security pass (hotfix route):** Google sign-in gate (joint account), Settings → Account, `database.rules.json` allow-listing the account UID on `data/` and `data_build/`. Once the rules are applied, `legacy.html` stops working; rollback = revert to the previous v2 release (or reopen the rules in the console in an emergency) |
+| v2.6.1 | Exercise log form (release 1, fix): **D1** form belongs to its person ("Logging for …"; header switch asks first, never mixed); **D2** weight and reps per set (`sets: [{w, r}]`, old entries compatible); **D12** Form and Range start unselected, Save blocked until chosen. *(On `build`; not yet released)* |
 
 ---
 
@@ -1368,3 +1369,14 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
 6. Snap + Eating Feedback (22–23)
 7. Body balance + Share (24–25)
 
+
+### (Coder) 9 Nov 2026 — v2.6.1 (D1 + D2 + D12) on `build`: hand-off 1
+- **Read:** §7 work plan + JC decision (9 Nov 23:00), backlog D1/D2 (6 Nov 22:10), D12 (8 Nov 21:55).
+- **Done (`build` @ `7cb178d`, v2.6.1):**
+  - **D1:** form shows "Logging for <name>"; header switch with the form open asks "Discard <name>'s unsaved log entries and switch to <other>?" (No keeps the form untouched; Yes closes it and switches).
+  - **D2:** per-set `sets: [{w, r}]` saved (also for the other person via the in-log switch); old `w`/`r` kept (w = set 1, so charts are unchanged); per-set shown in Previous, Progress ("Sets: …") and the AI prompts; per-set prefill. Hand-editing a Progress row's old weight/reps drops the per-set detail.
+  - **D12:** Form/Range start unselected; Save blocked with inline "Choose Form and Range" ("· choose one" by each missing one), also for any other person saved from the form.
+- **Behaviour note:** the in-log person switch already saved the opener's untouched prefilled entry too (pre-existing). D12 now blocks that until the opener's Form/Range are chosen. Worth a look in F1 (Open/Edit redesign).
+- **Checks:** lint 0 errors, **51/51 tests** (new `tests/exercise-log.spec.js`, 4); screenshots: version text only. Deploy ok, 0 errors.
+- **Not verified:** on a real phone; the per-set line in the AI feedback text (prompt changed, AI reply not exercised; tests mock the AI).
+- **Resume point:** `build` @ `7cb178d`. Next: Architect check → beta → JC → release (JC manual backup first).
