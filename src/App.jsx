@@ -874,10 +874,6 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     if (ex && ex.stopped) { setFormMsg("⏸ " + ex.name + " is stopped — restart it in Exercise Settings to log"); setTimeout(() => setFormMsg(""), 4000); return; }
     // D12: Form and Range must be chosen (for everyone being saved from this form)
     if (!logGoodForm || !logFullRange) { setLogNeedChoice("Choose Form and Range"); return; }
-    if (window._dualLogState) {
-      var _missing = Object.keys(window._dualLogState).filter(function(t) { var st = window._dualLogState[t]; return t !== activeTab && st && st._edited && st.sets && st.sets[0] && st.sets[0].w && st.sets[0].r && (!st.goodForm || !st.fullRange); });
-      if (_missing.length) { setLogNeedChoice("Choose Form and Range for " + _missing.map(function(t) { return (nd[t] && nd[t].profile && nd[t].profile.name) || t; }).join(", ")); return; }
-    }
     setLogNeedChoice("");
     var _sets = setsToSave(logSets); // D2: weight and reps per set
     if (editPrev && ex.prog.length > 0) {
@@ -942,15 +938,21 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     const target = "ex-" + day + "-" + idx;
     var scrollY = window.scrollY; setLogEx(null); setSelectedEx(null); requestAnimationFrame(function() { window.scrollTo(0, scrollY); });
     await saveData(nd);
-    // Save other person's data if they were edited via dual tabs
+    // Save other person's data if they were edited via dual tabs.
+    // JC's rule (v2.6.1): another person is saved ONLY if their Form and Range are both chosen;
+    // otherwise their entry is treated as untouched and not saved (no block). Confirmation names both.
+    var _savedFor = [personName(nd, activeTab)], _notSaved = [];
     if (window._dualLogState) {
       var otherTabs = Object.keys(window._dualLogState).filter(function(t) { return t !== activeTab; });
       for (var oti = 0; oti < otherTabs.length; oti++) {
         var ot = otherTabs[oti];
         var otState = window._dualLogState[ot];
-        if (otState && otState._edited && otState.sets && otState.sets[0] && otState.sets[0].w && otState.sets[0].r) {
+        var _hasEntry = otState && otState._edited && otState.sets && otState.sets[0] && otState.sets[0].w && otState.sets[0].r;
+        if (_hasEntry && !(otState.goodForm && otState.fullRange)) { _notSaved.push(personName(nd, ot)); continue; }
+        if (_hasEntry) {
           var otEx = nd[ot] && nd[ot].exercises && nd[ot].exercises[day] ? nd[ot].exercises[day][idx] : null;
           if (otEx && !otEx.stopped) {
+            _savedFor.push(personName(nd, ot));
             var otW = otState.sets[0].w + "kg";
             var otReps = fmtReps(otState.sets.map(function(s) { return parseInt(s.r) || 0; }));
             var otWk = parseInt(otState.week || logWeek) || calcWeek(data.config.trainingStart);
@@ -988,7 +990,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       window._dualLogState = {};
       await saveData(nd);
     }
-    setFormMsg("✓ Logged " + ex.name); setTimeout(() => setFormMsg(""), 3000);
+    setFormMsg("✓ " + ex.name + ": saved for " + _savedFor.join(" and ") + (_notSaved.length ? " · " + _notSaved.join(", ") + " not saved (Form and Range not chosen)" : "")); setTimeout(() => setFormMsg(""), 6000);
     setScrollTarget(target);
   };
 

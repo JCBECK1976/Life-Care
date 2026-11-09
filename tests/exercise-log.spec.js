@@ -84,3 +84,64 @@ test("D1: switching person in the header with a log open asks first; never a mix
   expect(await page.evaluate(() => window.__lcPerson.activeTab)).toBe("becks");
   expect(errors).toEqual([]);
 });
+
+// JC's rule for logging two people from one form (v2.6.1 addendum)
+const firstSun = (d, who) => d[who].exercises.sunday.findIndex((e) => !e.stopped);
+const progOf = (d, who, i) => JSON.stringify(d[who].exercises.sunday[i].prog || []);
+const switchInLog = (page, name) => page.getByTestId("log-person-tabs").getByRole("button", { name, exact: true }).click();
+
+test("two people: the other person with blank Form/Range is NOT saved, and the confirmation says so", async ({ page }) => {
+  const { errors } = await openApp(page);
+  page.on("dialog", (d) => d.accept());
+  const before = await readData(); const i = firstSun(before, "jc");
+  await openLog(page);
+  await page.getByPlaceholder("Reps").first().fill("6");          // JC edited, but Form/Range left blank
+  await switchInLog(page, "Becks");
+  await expect(page.getByTestId("log-for")).toHaveText("Logging for Becks");
+  await page.getByPlaceholder("Reps").first().fill("9");
+  await qualityGood(page);
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByText(/saved for Becks · JC not saved \(Form and Range not chosen\)/)).toBeVisible();
+  const after = await readData();
+  expect(progOf(after, "jc", i)).toBe(progOf(before, "jc", i));    // JC untouched
+  expect(after.becks.exercises.sunday[i].prog.some((p) => p.goodForm === "good" && p.sets)).toBe(true);
+  // rule 7: JC's log later opens with the usual pre-fill, Form/Range unselected
+  await page.getByTestId("person-tabs").getByRole("button", { name: "JC", exact: true }).click();
+  await page.getByRole("button", { name: "📋 Log", exact: true }).first().click();
+  await expect(page.getByTestId("log-for")).toHaveText("Logging for JC");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByTestId("log-need-choice")).toHaveText("Choose Form and Range");
+  expect(errors).toEqual([]);
+});
+
+test("two people: the other person with Form/Range chosen IS saved", async ({ page }) => {
+  const { errors } = await openApp(page);
+  page.on("dialog", (d) => d.accept());
+  const i = firstSun(await readData(), "jc");
+  await openLog(page);
+  await page.getByPlaceholder("Reps").first().fill("6");
+  await qualityGood(page);                                           // JC complete
+  await switchInLog(page, "Becks");
+  await page.getByPlaceholder("Reps").first().fill("9");
+  await qualityGood(page);
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByText(/saved for Becks and JC$/)).toBeVisible();
+  const after = await readData();
+  for (const who of ["jc", "becks"]) expect(after[who].exercises.sunday[i].prog.some((p) => p.goodForm === "good" && p.fullRange === "good" && p.sets)).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test("two people: the person shown on the form with blank Form/Range blocks Save", async ({ page }) => {
+  await openApp(page);
+  page.on("dialog", (d) => d.accept());
+  const before = await readData(); const i = firstSun(before, "jc");
+  await openLog(page);
+  await qualityGood(page);                                           // JC complete
+  await switchInLog(page, "Becks");                                  // Becks shown, blank
+  await page.getByPlaceholder("Reps").first().fill("9");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByTestId("log-need-choice")).toHaveText("Choose Form and Range");
+  await expect(page.getByTestId("log-for")).toHaveText("Logging for Becks");
+  const after = await readData();
+  for (const who of ["jc", "becks"]) expect(progOf(after, who, i)).toBe(progOf(before, who, i)); // nothing saved
+});
