@@ -46,3 +46,8 @@ test("build environment: Download backup has data + data_build; Full restore tar
   await expect(page.getByRole("button", { name: "Full restore of data_build (this test app)" })).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("build environment: its share target posts to its own /build/ URL (v2.11.0 F8)", async ({ request }) => {
+  const m = await (await request.get("manifest.webmanifest")).json();
+  expect(m.share_target).toMatchObject({ action: "/Life-Care/build/share-target", method: "POST", enctype: "multipart/form-data" });
+});

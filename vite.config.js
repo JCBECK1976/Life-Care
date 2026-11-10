@@ -48,14 +48,30 @@ const PWA = {
 
 function swSource(scope, skip) {
   return `// Lifecare Companion service worker: NETWORK-ONLY. It exists so the app can be installed.
-// It caches nothing. It only passes this app's own GET requests straight to the network and
+// It caches no app files. It only passes this app's own GET requests straight to the network and
 // leaves everything else alone (Firebase, Anthropic, Google, fonts, other environments).
+// v2.11.0 F8: the ONE exception is the Android share target: a POST to SCOPE + "share-target" (images shared
+// from another app). The images are kept on this device (Cache Storage "lc-share") until the signed-in app
+// hands them to an upload, then the app deletes them.
 const SCOPE = ${JSON.stringify(scope)};
 const SKIP = ${JSON.stringify(skip)};
+const SHARE = SCOPE + "share-target";
+async function receiveShare(req) {
+  try {
+    const form = await req.formData();
+    const files = form.getAll("images").filter((f) => f && typeof f === "object" && f.size);
+    const cache = await caches.open("lc-share");
+    for (const k of await cache.keys()) await cache.delete(k);
+    let i = 0;
+    for (const f of files) await cache.put(new Request(SCOPE + "__share/" + (i++)), new Response(f, { headers: { "Content-Type": f.type || "image/jpeg", "X-Name": encodeURIComponent(f.name || "shared.jpg") } }));
+  } catch (e) {}
+  return Response.redirect(new URL(SCOPE + "?share=1", self.location.origin).href, 303);
+}
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 self.addEventListener("fetch", (event) => {
   const req = event.request;
+  if (req.method === "POST" && new URL(req.url).origin === self.location.origin && new URL(req.url).pathname === SHARE) { event.respondWith(receiveShare(req)); return; }
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
@@ -71,6 +87,8 @@ function pwa(appEnv) {
   const manifest = () => JSON.stringify({
     id: base, name: PWA[env].name, short_name: PWA[env].short_name,
     start_url: base, scope: base, display: "standalone",
+    // v2.11.0 F8: appear in Android's share sheet for images (handled by sw.js, then the in-app "What is this?" picker)
+    share_target: { action: base + "share-target", method: "POST", enctype: "multipart/form-data", params: { title: "title", text: "text", files: [{ name: "images", accept: ["image/*"] }] } },
     theme_color: "#0f172a", background_color: "#ffffff",
     icons: [
       { src: base + PWA[env].icons + "icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
