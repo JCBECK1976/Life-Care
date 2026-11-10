@@ -1648,3 +1648,7 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   5. JC runs Clear on Beta
   6. Prod release soon after, with another backup
 
+### (Architect) 10 Nov 2026 16:15 — false "Run failed" emails explained
+- **Cause:** when the Coder pushes to `build` and a doc-only commit to `main` within seconds, two "Deploy to GitHub Pages" runs overlap. The second fails with "in progress deployment… cancel d76a7d9 first" (e.g. run e7bd87b at 14:50). The next run publishes everything, so **nothing is lost and the site is correct**. JC still gets a failure email.
+- **Fix (small, do in the next Coder session, with the beta PR):** in `deploy.yml`, add a workflow-level `concurrency: { group: pages-deploy, cancel-in-progress: false }`, so deploys **queue** instead of colliding. Also update `actions/deploy-pages` (and the related actions) to their current major versions to clear the Node 20 deprecation warning, which is P2 item 16.
+
