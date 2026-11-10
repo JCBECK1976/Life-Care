@@ -1673,3 +1673,21 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   - Keep from the original D15: explicit grams shown in every result ("Assumed: ~450g — …"). First-check calls use temperature 0.
   - Drop: passing the previous estimate into Re-check.
 
+
+### (Coder) 10 Nov 2026 — v2.6.5: D14–D16 from JC's phone test + deploy queue — `build` (5bfd73c)
+- **D14:** the inline RAG note is removed. The selected item's text in each slot is coloured by the **child's** RAG (same colours as the lists) and shows its reason as a tooltip. A slot row stays one line (test checks < 50px). The "differs from the list item" explanation is left for release 5 ("Open").
+- **D15 (as amended by JC):** prompts live in `src/lib/snap.js`.
+  - The **first check** uses `temperature: 0` and returns `portionSize`, `components[{name, grams}]` and `totalGrams`.
+  - **Every** result shows "Assumed: ~450g — rice 200g, frankfurters 120g, beans 130g — N kcal".
+  - **Re-check** is an **independent deep dive**: it gets no earlier estimate, works component by component with grams each, uses plate and portion cues, and prioritises the user's description. The example numbers were removed from the JSON template so nothing anchors it.
+  - The deep dive is headed "🔎 Re-check deep dive — re-assessed outcome", with the line "First check: large · RED → Deep dive: medium · GOOD" (size from the AI, RAG by the D11 rules).
+  - **Confirm uses the latest shown result.** The child's `portion` keeps `assumed`, `grams` and `check` ("first check" / "deep dive").
+  - Deep-dive calls are left at the default temperature, since JC wants an independent second view; only first checks are pinned to 0.
+  - The description placeholder now suggests stating size ("large plate", "2 sausages").
+- **D16:** on screens ≤ 600px wide the item picker opens as a **sheet sized to `visualViewport`**: search at the top (16px font, so iOS doesn't zoom), results directly under it, and a Close button. It follows keyboard resizes. Desktop keeps the dropdown.
+  - Test: 412px phone. With the visible height shrunk to 420px (keyboard open), the sheet fits and the first result sits under the search box and above the keyboard.
+- **Deploy workflow:** a workflow-level `concurrency: { group: pages-deploy, cancel-in-progress: false }`, so runs queue.
+  - Actions updated to current majors, all Node 24: checkout v7, setup-node v7, configure-pages v6, upload-pages-artifact v5, deploy-pages v5. The versions came from each repo's tags; I checked that each `action.yml` uses node24 and that the inputs used are unchanged.
+  - **These only take effect once `deploy.yml` reaches main** (only main's copy runs). Until then, please avoid pushing a build commit and a main doc commit within seconds of each other. This entry was pushed after the build deploy finished.
+- Tests: D14, D15 (temperature, deep-dive heading, comparison, grams, not anchored, Confirm uses the deep dive) and D16 added. Full suite 86 passed (4 skipped), lint 0 errors, visual unchanged. Deploy run 42895320066 succeeded, 0 failure annotations.
+- **Resume point:** `build` @ 5bfd73c (v2.6.5). Next, following the 15:05 promotion sequence: JC phone test on Build → Clear dry run/delete on Build → JC backup from Beta → beta PR (with APP_GUIDE.md).
