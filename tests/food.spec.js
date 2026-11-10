@@ -160,8 +160,9 @@ test("D10: a photo of a different food becomes a new entry in the slot, with Und
   const { key, today, a } = await portionSetup(page, { name: "Peanut Brunch Bar", matchesPlanned: false, assumed: "28g bar", kcal: 125, protein: 3, fat: 7, satFat: 2, carbs: 13, rating: "AMBER" });
   await expect(page.getByText("⚠️ Looks like Peanut Brunch Bar, not Test Oat Bar")).toBeVisible();
   await expect(page.getByTestId("portion-assumed")).toHaveText("Assumed: 28g bar — 125 kcal");
-  await page.getByRole("button", { name: "Replace with Peanut Brunch Bar" }).click();
-  await expect(page.getByTestId("portion-replaced")).toContainText("Looks like Peanut Brunch Bar, not Test Oat Bar — replaced");
+  await expect(page.getByTestId("snap-update-to")).toHaveText("Update to Peanut Brunch Bar");
+  await page.getByRole("button", { name: "Confirm", exact: true }).click();
+  await expect(page.getByTestId("portion-replaced")).toContainText("Looks like Peanut Brunch Bar, not Test Oat Bar — updated");
   const list = await getKey("custom_breakfasts");
   const added = list.find((x) => x.name === "Peanut Brunch Bar");
   expect(added).toMatchObject({ jcKcal: 125, servingSize: "28g bar" });
@@ -185,7 +186,8 @@ test("D10: the same food only updates this meal's portion; F7/Snap: the descript
   await page.getByRole("button", { name: "↻ Re-check" }).click();
   await expect.poll(() => prompts.length).toBe(2);
   expect(prompts[1]).toContain("28g bar");
-  await page.getByRole("button", { name: "Confirm Portion" }).click();
+  await expect(page.getByTestId("snap-update-to")).toHaveCount(0);
+  await page.getByRole("button", { name: "Confirm", exact: true }).click();
   await expect.poll(async () => ((await getKey("portion_overrides:jc")) || {})[today]?.b?.kcal).toBe(180);
   expect((await getKey("custom_breakfasts")).find((x) => x.id === a.id)).toEqual(a);  // list item untouched
   expect(errors).toEqual([]);
@@ -240,5 +242,33 @@ test("Snap on an empty slot: a new food is added to the list on 'Add to list?' a
   await page.getByTestId("snap-pre").getByRole("button", { name: "Cancel" }).click();
   await expect(page.getByTestId("snap-pre")).toHaveCount(0);
   expect((await getKey(key))[today].b).toBe(item.id);
+  expect(errors).toEqual([]);
+});
+
+// JC phone test: one row [Confirm][Re-check][Cancel], equal height, on every kind of result
+test("Snap result: Confirm, Re-check and Cancel sit in one row of equal-height buttons, in all three cases", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  const { errors } = await openApp(page);
+  const cases = [{ name: "Test Oat Bar", matchesPlanned: true, kcal: 180 }, { name: "Peanut Brunch Bar", matchesPlanned: false, kcal: 125 }];
+  let reply = cases[0];
+  const { key, today } = thisWeek();
+  const a = { id: "t_oatbar", name: "Test Oat Bar", jcKcal: 200, beckKcal: 200, rating: "GOOD" };
+  await setKey("custom_breakfasts", [a, ...((await getKey("custom_breakfasts")) || [])]);
+  await setKey(key, { [today]: { b: a.id, l: "__empty__" } });
+  await page.route("https://api.anthropic.com/**", (r) => /Analyze this food portion/.test(r.request().postData() || "") ? r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(aiText(reply)) }) : r.fallback());
+  await page.reload();
+  await tab(page, "My Eating");
+  for (const [slot, rep] of [[0, cases[0]], [0, cases[1]], [1, { name: "Soup", kcal: 200 }]]) {          // same food · different food · empty slot
+    reply = rep;
+    await snap(page, "", slot);
+    const row = page.getByTestId("snap-actions");
+    await expect(row).toBeVisible();
+    const boxes = await Promise.all(["Confirm", "↻ Re-check", "Cancel"].map((n) => row.getByRole("button", { name: n, exact: true }).boundingBox()));
+    expect(boxes.every((b) => b && Math.abs(b.y - boxes[0].y) < 1 && Math.abs(b.height - boxes[0].height) < 1)).toBe(true);
+    expect(boxes[0].x < boxes[1].x && boxes[1].x < boxes[2].x).toBe(true);
+    await row.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(row).toHaveCount(0);
+  }
+  expect((await getKey(key))[today]).toEqual({ b: a.id, l: "__empty__" });                               // Cancel saved nothing
   expect(errors).toEqual([]);
 });

@@ -122,6 +122,8 @@ export default function EatingSection({ ctx }) {
 
           /* ═══ v2.6.5 📷 Snap (replaces Portion): every slot, optional description first, nothing saved before Confirm ═══ */
           var listForSlot = function(slotKey) { var c = slotCategory(slotKey); return c === "breakfast" ? allBfast : c === "lunch" ? allLunch : c === "dessert" ? allDesserts : c === "drink" ? allDrinks : c === "snack" ? allOther : allDinners; };
+          /* one row, equal size: Confirm (deep blue) · Re-check (as Re-rate) · Cancel (grey) */
+          var snapBtn = { flex: 1, minWidth: 0, height: 38, padding: "0 4px", whiteSpace: "nowrap", fontSize: 12, fontWeight: 600, justifyContent: "center", display: "inline-flex", alignItems: "center", boxSizing: "border-box" };
           var openSnap = function(slotKey) { setPortionResult(null); setPortionPlanned(null); setPortionDesc(""); setPortionUndo(null); setPortionSlot(slotKey); setSnapPre(slotKey); };
           var snapButton = function(slotKey) {
             var busy = portionLoading && portionSlot === slotKey; var on = portionSlot === slotKey;
@@ -1713,10 +1715,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
                   {(function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
                   {portionResult.assumed && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {portionResult.assumed} — {portionResult.kcal} kcal</div>}
-                  <div style={{ display: "flex", gap: 4, marginBottom: 6 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ flex: 1, padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /><button onClick={recheckPortion} style={{ padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10, background: "#fff", cursor: "pointer" }}>↻ Re-check</button></div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{portionResult.matchesPlanned === false ? "Replace with " + (portionResult.name || "this food") : !portionPlanned ? "Confirm" : "Confirm Portion"}</button>
-                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  <div style={{ marginBottom: 8 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /></div>
+                  {portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+                    <button onClick={confirmPortion} style={Object.assign({}, btnActionLg, snapBtn)}>Confirm</button>
+                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
+                    <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
                   </div>
                 </div>)}
               </div>)}
@@ -1783,10 +1787,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
                   {(function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
                   {portionResult.assumed && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {portionResult.assumed} — {portionResult.kcal} kcal</div>}
-                  <div style={{ display: "flex", gap: 4, marginBottom: 6 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ flex: 1, padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /><button onClick={recheckPortion} style={{ padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10, background: "#fff", cursor: "pointer" }}>↻ Re-check</button></div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{portionResult.matchesPlanned === false ? "Replace with " + (portionResult.name || "this food") : !portionPlanned ? "Confirm" : "Confirm Portion"}</button>
-                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  <div style={{ marginBottom: 8 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /></div>
+                  {portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+                    <button onClick={confirmPortion} style={Object.assign({}, btnActionLg, snapBtn)}>Confirm</button>
+                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
+                    <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
                   </div>
                 </div>)}
               </div>)}
@@ -1876,10 +1882,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
                   {(function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
                   {portionResult.assumed && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {portionResult.assumed} — {portionResult.kcal} kcal</div>}
-                  <div style={{ display: "flex", gap: 4, marginBottom: 6 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ flex: 1, padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /><button onClick={recheckPortion} style={{ padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10, background: "#fff", cursor: "pointer" }}>↻ Re-check</button></div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{portionResult.matchesPlanned === false ? "Replace with " + (portionResult.name || "this food") : !portionPlanned ? "Confirm" : "Confirm Portion"}</button>
-                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  <div style={{ marginBottom: 8 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /></div>
+                  {portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+                    <button onClick={confirmPortion} style={Object.assign({}, btnActionLg, snapBtn)}>Confirm</button>
+                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
+                    <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
                   </div>
                 </div>)}
               </div>)}
@@ -1939,10 +1947,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
                   {(function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
                   {portionResult.assumed && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {portionResult.assumed} — {portionResult.kcal} kcal</div>}
-                  <div style={{ display: "flex", gap: 4, marginBottom: 6 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ flex: 1, padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /><button onClick={recheckPortion} style={{ padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10, background: "#fff", cursor: "pointer" }}>↻ Re-check</button></div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{portionResult.matchesPlanned === false ? "Replace with " + (portionResult.name || "this food") : !portionPlanned ? "Confirm" : "Confirm Portion"}</button>
-                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  <div style={{ marginBottom: 8 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /></div>
+                  {portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+                    <button onClick={confirmPortion} style={Object.assign({}, btnActionLg, snapBtn)}>Confirm</button>
+                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
+                    <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
                   </div>
                 </div>)}
               </div>)}
@@ -2002,10 +2012,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
                   {(function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
                   {portionResult.assumed && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {portionResult.assumed} — {portionResult.kcal} kcal</div>}
-                  <div style={{ display: "flex", gap: 4, marginBottom: 6 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ flex: 1, padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /><button onClick={recheckPortion} style={{ padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10, background: "#fff", cursor: "pointer" }}>↻ Re-check</button></div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{portionResult.matchesPlanned === false ? "Replace with " + (portionResult.name || "this food") : !portionPlanned ? "Confirm" : "Confirm Portion"}</button>
-                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  <div style={{ marginBottom: 8 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /></div>
+                  {portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+                    <button onClick={confirmPortion} style={Object.assign({}, btnActionLg, snapBtn)}>Confirm</button>
+                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
+                    <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
                   </div>
                 </div>)}
               </div>)}
@@ -2062,10 +2074,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
                   {(function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
                   {portionResult.assumed && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {portionResult.assumed} — {portionResult.kcal} kcal</div>}
-                  <div style={{ display: "flex", gap: 4, marginBottom: 6 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ flex: 1, padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /><button onClick={recheckPortion} style={{ padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10, background: "#fff", cursor: "pointer" }}>↻ Re-check</button></div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{portionResult.matchesPlanned === false ? "Replace with " + (portionResult.name || "this food") : !portionPlanned ? "Confirm" : "Confirm Portion"}</button>
-                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  <div style={{ marginBottom: 8 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /></div>
+                  {portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+                    <button onClick={confirmPortion} style={Object.assign({}, btnActionLg, snapBtn)}>Confirm</button>
+                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
+                    <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
                   </div>
                 </div>)}
               </div>)}
@@ -2262,7 +2276,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             <button aria-label="Dismiss" onClick={function(){ setBulkUndo(null); }} style={{ background: "none", color: "#fff", border: "none", cursor: "pointer" }}>✕</button>
           </div>)}
           {portionUndo && (<div role="status" data-testid="portion-replaced" style={{ position: "fixed", left: 12, right: 12, bottom: 76, zIndex: 60, background: "#0f172a", color: "#fff", borderRadius: 8, padding: "10px 12px", fontSize: 12, display: "flex", gap: 8, alignItems: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.25)" }}>
-            <span style={{ flex: 1 }}>Looks like <b>{portionUndo.name}</b>, not {portionUndo.original} — replaced</span>
+            <span style={{ flex: 1 }}>Looks like <b>{portionUndo.name}</b>, not {portionUndo.original} — updated</span>
             <button onClick={undoPortionReplace} style={{ background: "#fff", color: "#0f172a", border: "none", borderRadius: 6, padding: "4px 10px", fontWeight: 700, cursor: "pointer" }}>Undo</button>
             <button aria-label="Dismiss" onClick={function(){ setPortionUndo(null); }} style={{ background: "none", color: "#fff", border: "none", cursor: "pointer" }}>✕</button>
           </div>)}
