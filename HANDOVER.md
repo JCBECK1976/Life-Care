@@ -72,6 +72,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.7.1 | Fix (Architect 21:12): Download backup / Restore are environment-aware **at build time**. Beta/Prod back up and restore only `data`; Build also its own copy (`DATA_ROOT`, written into each bundle by Vite). PR #20's runtime-assembled name is reverted; the deploy guard is unchanged. | build only |
 | v2.8.0 | "Open" pattern (F1 + F5 + variations): one shared form (`src/components/OpenForm.jsx`) for Progress weeks, list items and meal selections. Read-only → ✎ Edit → Save; the only destructive action sits inside the form. Meal selections: portion + variations → AI recalculates the **child** → child RAG; list item untouched. | build only |
 | v2.9.0 | F6 Eating Feedback: days before today = **eaten** (logged children), today onwards = **plan**, a fully future week = **plan review**; the prompt and the panel say which ("What you ate" / "Your plan" / "Plan review" / "So far this week + the rest of your plan"). Cut-off, empty and unreadable feedback is reported; chat replies show failures (message kept) and cut-offs. | build only |
+| v2.11.0 | F8 Share to Lifecare Companion (Android): `share_target` (images) in each environment's manifest; `sw.js` handles only the POST to `<scope>share-target` and keeps the image on the device (Cache Storage "lc-share"); the signed-in "What is this?" picker hands it to the existing upload (📏 My Body upload / 📸 Body Type Photos / 🍽 Food Checker), then deletes it. "Later" keeps it; "Discard" deletes it. (v2.10.0 skipped: F2 not built.) | build only |
 
 ---
 
@@ -1812,3 +1813,35 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   3. **No storage: analyse-and-discard.** Each check uploads this week's photos, the AI compares them only with the stored text analyses of earlier weeks plus the measurement trends, and the images are dropped. Private and cheap, but there are no images to look back at, and comparisons rest on earlier text, not pictures. It could be a quick first step.
 - **Also to decide:** which poses (front/side/back, as Body Type Photos asks); how often (e.g. every 4 weeks); and whether Becks wants photos stored at all (per-person opt-in).
 - **Version:** none (nothing built). **Resume point:** `build` @ 8405365. Next: R5 (F8 share target).
+
+### (Coder) 11 Nov 2026 — overnight R5: v2.11.0 F8 share target on `build` (d42146b)
+- **Manifest** (each environment, from `vite.config.js`): `share_target: { action: <base>share-target, method: POST, enctype: multipart/form-data, params: { title, text, files: [{ name: "images", accept: ["image/*"] }] } }`. So prod, beta and build each appear under their own name and post to their own URL. `check-pages.mjs` is unaffected.
+- **Service worker:** the only change is a POST to exactly `SCOPE + "share-target"`. The image(s) go into Cache Storage `lc-share` (replacing any earlier share), then a 303 redirect to `<base>?share=1`. Every other request is handled as before: no app files are cached, other origins and environments are untouched. Prod's worker handles only `/Life-Care/share-target`; beta and build have their own.
+- **App** (`src/components/SharePicker.jsx`, rendered only after sign-in, so a share made while signed out is kept): a bottom sheet "What is this?" offers
+  - 📏 Body measurements → the My Body "📷 Upload";
+  - 📸 Progress / body photo → Home › My Profile › Body Type Photos (the only photo flow while F2 storage is undecided);
+  - 🍽 Food → the Shop Food Checker.
+  - The file is handed to the existing upload by setting that input's files (`data-share` attribute), so no upload flow was rewritten. The stored copy is deleted once handed over.
+  - **Later (keep it)** keeps it (it shows again next time); **Discard** deletes it.
+- Tests: `tests/share.spec.js` (4):
+  - the manifest;
+  - the real service worker receiving a multipart POST (stored + redirect);
+  - picker → Food Checker gets the PNG (image block in the AI request), with the cache and `?share=1` cleared;
+  - kept while signed out, shown after sign-in, Later/Discard, Progress → Body Type Photos called.
+  - Also: `pwa.spec` updated (it now runs the share code and proves the share POST is the only cache use); env-build checks build's own share URL.
+  - Full suite 105 passed (4 skipped), lint 0 errors, visual footer only. Deploy 42912727180 succeeded.
+- **For JC (real-device check, Android Chrome or Samsung Internet):**
+  1. Install /build/ as an app (or reinstall it, so Android picks up the new manifest).
+  2. In a scales or measurement app tap Share → choose "Lifecare BUILD".
+  3. Pick a kind in "What is this?".
+  - iPhone isn't supported (Safari has no share target).
+- **Resume point:** `build` @ d42146b (v2.11.0). The overnight batch is done (R1–R5); nothing has been merged to beta or main.
+
+### (Coder) 11 Nov 2026 — overnight batch summary and decisions needed
+- **Built (build only):** v2.7.1 (environment-aware backup), v2.8.0 ("Open" pattern), v2.9.0 (plan-aware Eating Feedback + chat errors), v2.11.0 (share target). **Not built:** F2 (v2.10.0), which needs a storage decision.
+- **Decisions needed:**
+  1. **F2 photo storage:** Firebase Storage per-UID (recommended) / photos in the RTDB / analyse-and-discard; plus poses, frequency and per-person opt-in (R4 entry).
+  2. **R1:** OK to use `DATA_ROOT` instead of a separate build-only module? (Same effect; the guard is untouched.)
+  3. **R2:** a portion factor change on a photo-checked selection replaces the photo values with list × factor. OK?
+  4. **R5:** while F2 is undecided, shared "Progress photos" go to Body Type Photos (one-off AI analysis, image not kept). OK, or hide that option until F2?
+  5. **APP_GUIDE.md** still needs updating for v2.8.0–v2.11.0 (Open forms, plan-aware feedback, share). I'll do it with the next beta PR, as before.
