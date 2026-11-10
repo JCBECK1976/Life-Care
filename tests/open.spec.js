@@ -105,3 +105,29 @@ test("F5: Open on an empty slot starts adding an item", async ({ page }) => {
   await expect(page.getByText("Add New Breakfast Item")).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("v2.11.1: changing the portion of a photo-checked meal scales the PHOTO values (not list × factor)", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const { key, today } = thisWeek();
+  await tab(page, "My Eating"); await page.waitForTimeout(500);
+  const dinner = { id: "t_pasta", name: "Test Pasta", jcKcal: 500, beckKcal: 450, protein: 18, satFat: 3, addedSugar: 2, rating: "GOOD" };
+  await setKey("custom_meals", [dinner, ...((await getKey("custom_meals")) || [])]);
+  await setKey(key, { [today]: { d: dinner.id } });
+  await setKey("portion_overrides:jc", { [today]: { d: { kcal: 600, protein: 20, satFat: 6, addedSugar: 4 } } });   // photo-checked (migrated)
+  await freshReload(page); await tab(page, "My Eating");
+  await expect.poll(async () => (await childOf(today, "d"))?.portion?.values?.kcal).toBe(600);
+  await page.getByRole("button", { name: "Open this meal" }).first().click();
+  const form = page.getByTestId("slot-open-form");
+  await form.getByRole("button", { name: "✎ Edit" }).click();
+  await form.getByRole("button", { name: "1½×", exact: true }).click();
+  await form.getByRole("button", { name: "Save for this meal" }).click();
+  await expect.poll(async () => (await childOf(today, "d"))?.nutrition?.kcal).toBe(900);               // 600 × 1.5, not 500 × 1.5
+  expect((await childOf(today, "d")).portion).toMatchObject({ source: "photo", factor: 1.5, photoValues: { kcal: 600 }, values: { kcal: 900, satFat: 9 } });
+  await expect(form.getByTestId("slot-portion")).toHaveText("checked by photo ×1.5");
+  await form.getByRole("button", { name: "✎ Edit" }).click();
+  await form.getByRole("button", { name: "½×", exact: true }).click();
+  await form.getByRole("button", { name: "Save for this meal" }).click();
+  await expect.poll(async () => (await childOf(today, "d"))?.nutrition?.kcal).toBe(300);               // always from the photo, not from 900
+  expect((await getKey("custom_meals")).find((x) => x.id === dinner.id)).toEqual(dinner);
+  expect(errors).toEqual([]);
+});

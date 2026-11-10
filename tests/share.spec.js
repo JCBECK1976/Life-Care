@@ -50,7 +50,7 @@ test("picker: 'What is this?' → Food hands the image to the Food Checker, then
   expect(errors).toEqual([]);
 });
 
-test("the shared image is kept until signed in; Later keeps it, Discard deletes it; Progress photo opens Body Type Photos", async ({ page }) => {
+test("the shared image is kept until signed in; Later keeps it, Discard deletes it; no Progress photo option yet", async ({ page }) => {
   const { errors } = await openApp(page);
   await shareImage(page);
   await expect(page.getByTestId("share-picker")).toBeVisible({ timeout: 20000 });  // a pending share shows on any signed-in load
@@ -65,11 +65,10 @@ test("the shared image is kept until signed in; Later keeps it, Discard deletes 
   await expect(page.getByTestId("share-picker")).toHaveCount(0);
   await page.reload();
   await expect(page.getByTestId("share-picker")).toBeVisible({ timeout: 20000 });  // still there next time
-  const calls = [];
-  await page.route("https://api.anthropic.com/**", (r) => { const t = r.request().postData() || ""; if (!/"type":"image"/.test(t)) return r.fallback(); calls.push(t); return r.fulfill(aiJson({ bodyType: "test" })); });
-  await page.getByRole("button", { name: /📸 Progress/ }).click();
-  await expect.poll(() => calls.length).toBe(1);                                    // Body Type Photos received the image
-  await expect(page.getByText("📸 Body Type Photos")).toBeVisible();
+  await expect(page.getByRole("button", { name: /📸 Progress/ })).toHaveCount(0);       // hidden until F2 is built (11 Nov decision)
+  await expect(page.getByRole("button", { name: /📏 Body measurements/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /🍽 Food/ })).toBeVisible();
+  await page.getByRole("button", { name: "Discard" }).click();
   await shareImage(page);
   await page.goto("./?share=1");
   await page.getByRole("button", { name: "Discard" }).click();

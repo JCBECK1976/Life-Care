@@ -107,7 +107,7 @@ export default function EatingSection({ ctx }) {
             var parent = c.parentId ? _listLookup[c.parentId] : null; var n = c.nutrition || {};
             var d = o.draft || { factor: String((c.portion && c.portion.factor) || 1), text: (c.variations && c.variations.text) || "" };
             var setD = function(patch) { setSlotOpen(Object.assign({}, o, { draft: Object.assign({}, d, patch), msg: "" })); };
-            var portionText = c.portion && c.portion.values ? (c.portion.source === "variations" ? "×" + (c.portion.factor || 1) + " with changes" : "checked by photo" + (c.portion.assumed ? " — " + c.portion.assumed : "")) : "×" + ((c.portion && c.portion.factor) || 1) + " of the list portion";
+            var portionText = c.portion && c.portion.values ? (c.portion.source === "variations" ? "×" + (c.portion.factor || 1) + " with changes" : "checked by photo" + (c.portion.factor && c.portion.factor !== 1 ? " ×" + c.portion.factor : "") + (c.portion.assumed ? " — " + c.portion.assumed : "")) : "×" + ((c.portion && c.portion.factor) || 1) + " of the list portion";
             var note = ragNote(c, parent);
             var save = async function() {
               var factor = parseFloat(d.factor) || 1; var text = (d.text || "").trim();
@@ -117,6 +117,11 @@ export default function EatingSection({ ctx }) {
                   setSlotOpen(Object.assign({}, o, { draft: d, msg: "⏳ Recalculating this meal…" }));
                   var r = await recalcWithVariations(c, factor, text);
                   next.portion = { factor: factor, source: "variations", values: { kcal: Math.round(parseFloat(r.kcal)), protein: parseFloat(r.protein) || 0, fat: parseFloat(r.fat) || 0, satFat: parseFloat(r.satFat) || 0, addedSugar: parseFloat(r.addedSugar) || 0, carbs: parseFloat(r.carbs) || 0, fibre: parseFloat(r.fibre) || 0, salt: parseFloat(r.salt) || 0 }, change: r.change || "" };
+                } else if (c.portion && c.portion.values && c.portion.source !== "variations") {
+                  /* v2.11.1: a photo-checked portion is scaled from the PHOTO values (kept as photoValues), never reset to the list */
+                  var pv = c.portion.photoValues || c.portion.values; var sc = {};
+                  Object.keys(pv).forEach(function(k) { var v = parseFloat(pv[k]) || 0; sc[k] = k === "kcal" ? Math.round(v * factor) : Math.round(v * factor * 10) / 10; });
+                  next.portion = Object.assign({}, c.portion, { factor: factor, photoValues: pv, values: sc });
                 } else if (factor !== ((c.portion && c.portion.factor) || 1) || (c.portion && c.portion.source === "variations")) {
                   next.portion = { factor: factor };
                 }
