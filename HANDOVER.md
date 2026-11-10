@@ -1591,4 +1591,8 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   - Idempotent; take a backup on real data first.
 - **Compatibility:** store children under a new key. Prod v2.6.0 ignores them, so prod won't show beta's new selections. That's acceptable (no one uses prod), and **prod is released soon after beta**.
 - **Estimate:** 4–7%. Built in this release before beta.
+- **Confirmed with JC (14:35):**
+  - **All tracking is against children.** Each child stores its **own RAG**, calculated by the D11 rule-based bands from the child's **adjusted nutrition** (portion + variations). It is recalculated whenever the portion or variations change.
+  - Frequency rules ("AMBER up to 3 a week", "RED weekly/monthly") count **children's** RAG, not parents'.
+  - When a child's RAG differs from its parent's, the selection shows it (e.g. "RED today — large portion").
 
