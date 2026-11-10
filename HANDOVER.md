@@ -64,6 +64,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.5.3 | BETA/BUILD app icons restyled (thin crisp ring like the header mark, purple/orange, no dot); prod icons unchanged |
 | v2.6.0 | **Security pass (hotfix route):** Google sign-in gate (joint account), Settings → Account, `database.rules.json` allow-listing the account UID on `data/` and `data_build/`. Once the rules are applied, `legacy.html` stops working; rollback = revert to the previous v2 release (or reopen the rules in the console in an emergency) |
 | v2.6.1 | Exercise log form (release 1, fix): **D1** form belongs to its person ("Logging for …"; header switch asks first, never mixed); **D2** weight and reps per set (`sets: [{w, r}]`, old entries compatible); **D12** Form and Range start unselected, Save blocked until chosen. *(On `build`; not yet released)* |
+| v2.6.2 | Food data and photos (release 2, fix): **D6** meal selections keep a snapshot (`_snap` per day:slot in the week's plan); deleted items show the snapshot or "Deleted item", never code. **D7** Update Item recalculates the whole recipe, applies only real values, before → after, plausibility check with one retry, assumed amounts, name's "(N kcal)" updated. **D9** generator: selections → defaults → generated only into empty slots from that slot's list, summary. **D10** different-food photo → new entry replaces the slot item with Undo; original never written. **F7** optional description on Portion and Shop Food Checker, preferred by the AI; assumed size shown. | build only |
 
 ---
 
@@ -1393,3 +1394,45 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
 - Tests: 2 new (range/Sets line; new-week per-set pre-fill), D12 test updated. Full suite 56 passed, lint 0 errors, visual unchanged. Deploy run 42729122571 succeeded, no failure annotations.
 - **JC to test on /build/:** log 63/56/63 → Progress shows 56–63kg + Sets line; next week's log pre-fills 63/56/63; Save without choices → red outline + one message.
 - **Resume point:** branch `build`, last commit 44b15a0. Next: the Architect verifies /build/, then PR build → beta.
+
+### (Coder) 10 Nov 2026 — v2.6.2 (release 2: food data and photos) on `build` (8c4511f)
+- **D6:** each selection saves a snapshot (name, kcal, nutrients, RAG, portion) in the week plan under `_snap["<day>:<slot>"]`, taken on every save of the plan. Days before today keep their snapshot; today onwards follow list edits. Slot names show the snapshot, else the list item, else "Deleted item" (the old code turned the id into text, e.g. "Custom 1730…"). Deleted items still count in day/week totals from their snapshot. No existing data was rewritten.
+- **D6 repair: proposal only, needs approval.** A one-off script, run with a pre-run backup: dry run first (counts only), then write. For every `mealplan:*:<person>` slot id it adds the missing `_snap` entries only (slot ids never change): from the current list item, or else from the 3 Nov backup's lists, or else nothing (the UI then shows "Deleted item"). Snapshots from the current list are tagged `approx: true`, because the item may have been edited since that day.
+- **D7 trace:** the success message showed even when the AI's answer had no usable values (`ri.kcal || old`). There was no plausibility check, the prompt said "per serving" (which invites dividing), and the name's "(N kcal)" was never touched.
+  - Fix (Update Item only): the prompt asks for the whole recipe with a per-ingredient breakdown plus any assumed amounts, and the name's kcal is stripped from the prompt.
+  - If the total comes back below 90% of the breakdown sum, it retries once. If it is still too low it is refused, with "nothing was changed".
+  - The message shows before → after (kcal, protein, sat fat) and the assumed amounts. The name's "(N kcal)" is updated.
+  - The Add-item Review path has the same weak recalc but is not changed (out of scope). Open: the "re-check nutrition for already-edited items" offer is not built.
+- **D11 report (no logic changed):**
+  - Today's rating is categorical and judged by the AI, with no portion scaling.
+    1. When an item is added (single or bulk), the AI gets loose wording ("GREAT fits daily targets / AMBER some concerns / RED should be limited — high sat fat, sugar or calories"). There are no numbers.
+    2. "Recalculate ratings" (`recalculateRagForList`) uses a clinical-dietitian prompt with the person's profile and targets. It defines AMBER = once a week and RED = once a month, and its only number is "<6g sat fat per meal" for high cholesterol. Each item is judged on its stored values (whatever amount those describe).
+    3. Open Food Facts items are rated by code (`calcRAG`) using NHS per-100g thresholds: sat fat >5 / >1.5, sugar >22.5 / >5, salt >1.5 / >0.3, with −1 credits for protein >10 and fibre >3. That is per 100g, not per portion.
+    4. Frequency is enforced by category (`checkRagFrequency` and the generator prompt): GREAT any day, AMBER max once a week, RED max once a month. So the biscuits and the brownie both end up "once a month".
+  - **Draft bands for the Architect/JC.** Per portion, score = the higher of sat fat ÷ 20g and added sugar ÷ 25g (both JC and Becks):
+
+    | Band | Score | Sat fat | Added sugar | Guidance |
+    |---|---|---|---|---|
+    | GREAT | ≤10% | ≤2g | ≤2.5g | any day |
+    | GOOD | ≤25% | ≤5g | ≤6g | daily |
+    | AMBER | ≤50% | ≤10g | ≤12.5g | a few times a week |
+    | RED weekly treat | ≤80% | ≤16g | ≤20g | weekly treat |
+    | RED monthly treat | >80%, or one portion >40% of the daily kcal target | | | monthly treat |
+
+    - Fibre ≥5g or protein ≥20g lifts the item one band, but never above AMBER when the score is >50%.
+    - Biscuits (4g sat fat = 20%, 10g sugar = 40%) → AMBER, "a few times a week". Brownie (20g = 100%, 60g = 240%) → RED, monthly treat. Half the biscuits (2g, 5g = 20%) → GOOD.
+    - **Question for JC/Architect:** should "sugar" be *added* sugar (the AI would estimate it; the lists hold no sugar field today) or total sugar? And is a kcal share wanted as a third score?
+- **D9 trace:** the generator ran `applyDefaults()` and then merged its result into the *stale* `meals` from before defaults were applied, so the defaults were overwritten.
+  - It now plans from the plan with defaults applied (`applyDefaultsTo`) and merges only into empty slots, accepting only ids from that slot's list. Invented ids are dropped and the slot is left empty.
+  - The summary looks like "Breakfast: your default · Lunch: 1 kept, 6 generated · … · 1 slot left empty".
+  - **Decision (Coder):** removed the old "fewer than 3 items in any list → refuse everything" gate. A list that can't fill now just leaves its slots empty, as D9 asks. It only refuses when no list can fill.
+- **D10:** a different food → "Replace with X" → the item is added through the shared step `addReviewedItem` (extracted from `confirmReviewItem`, which now calls it) and selected in the slot. The old portion values on that slot are removed, and a bottom bar "Looks like X, not Y — replaced" offers **Undo**, which restores the item and its portion values. The original list item is never written. The same food keeps today's portion-for-this-meal behaviour.
+- **F7:** the Shop Food Checker text box now doubles as the description (it was already sent; it is now marked "PREFER"), with the new placeholder. The Portion result panel has the description field plus **↻ Re-check**, which resends the same photo with the text. Both results show "Assumed: <size> — N kcal".
+  - **Decision (Coder), for review:** on Portion the description is entered after the first result, not before the photo, because the 📷 button opens the camera straight away. Alternative: a step before the camera (costs a tap every time).
+- Tests: `tests/food.spec.js` has 8 new tests. Full suite 64 passed (3 skipped), lint 0 errors, visual rebaselined (footer version + new Shop placeholder only).
+- **JC to test on /build/:**
+  - delete a list item that's selected on a day → the slot shows its name, not code;
+  - Update Item: change an ingredient amount → before → after, and the name's kcal changes;
+  - set a default breakfast → run the generator → the defaults are kept;
+  - Portion photo of something else → Replace → Undo.
+- **Resume point:** `build` @ 8c4511f. Next: release 3 (v2.6.3, bulk upload).
