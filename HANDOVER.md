@@ -1795,3 +1795,20 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   - Latest-first and the panel style were already shared (`renderThread`); follow-ups were already supported.
 - Tests: `tests/eat-feedback.spec.js` (5, using a fixed clock on Wed 11 Nov): pure phase rules, mixed week, future week, past vs future day, and cut-off + failed/cut-off chat. Full suite 100 passed (4 skipped), lint 0 errors, visual footer only. Deploy 42911044365 succeeded.
 - **Resume point:** `build` @ 8405365. Next: R4 (F2: first check photo storage).
+
+### (Coder) 11 Nov 2026 — overnight R4: F2 body balance — **nothing built** (no suitable photo storage); options for decision
+- **What exists today:**
+  - **Home → 📸 Body Type Photos** sends the photos to the AI once for `bodyAnalysis`, then saves only `bodyPhotos[]` = date, file name, type and the **first 500 characters of the base64** (not a usable image) inside `dashboard:data`. The photos themselves are not kept.
+  - `progressPhotos[]` is **read** by two prompts (Home check-in / cross-section context) but **nothing in the app writes it**, and the 3 Nov backup holds no photo data.
+  - **Firebase Storage is not used** (only `storageBucket` in the config); the rules cover the Realtime Database only.
+  - So there's no per-user progress-photo history to compare over time, and per the brief nothing was built for F2.
+- **Options (decision needed, JC + Architect):**
+  1. **Firebase Storage, per-UID rules (recommended).**
+     - Path `progress/<uid>/<person>/<YYYY-MM-DD>_<pose>.jpg`; Storage rules allow read/write only for `request.auth.uid == <owner uid>` (the same pattern as the DB rules), plus size ≤ 1.5 MB and `contentType` image/*.
+     - The app resizes to about 1280px / JPEG 0.8 before upload (about 200–400 KB). The DB keeps only metadata `{date, week, pose, path, analysis}` under `progressPhotos`.
+     - Needs: enabling Storage in the console (Blaze plan, which has a free tier of 5 GB stored / 1 GB a day downloaded, ample for two people), the rules applied by JC/Architect (the Coder never deploys rules), a delete-photo action and a "photos" section in the privacy notice.
+     - Privacy: these are body images (special-category health data). Owner-only rules, no public URLs (use `getDownloadURL` only after sign-in, or `getBlob`), and they're excluded from Download backup by default (or an explicit "include photos" option).
+  2. **Store compressed images in the Realtime Database** (base64 under a separate key per photo). No new service, but it bloats the DB and every backup (about 300 KB per photo, so 4 poses a week × 2 people ≈ 125 MB a year), is slower to load, and RTDB isn't meant for blobs. Not recommended beyond a trial.
+  3. **No storage: analyse-and-discard.** Each check uploads this week's photos, the AI compares them only with the stored text analyses of earlier weeks plus the measurement trends, and the images are dropped. Private and cheap, but there are no images to look back at, and comparisons rest on earlier text, not pictures. It could be a quick first step.
+- **Also to decide:** which poses (front/side/back, as Body Type Photos asks); how often (e.g. every 4 weeks); and whether Becks wants photos stored at all (per-person opt-in).
+- **Version:** none (nothing built). **Resume point:** `build` @ 8405365. Next: R5 (F8 share target).
