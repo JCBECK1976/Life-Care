@@ -73,6 +73,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.8.0 | "Open" pattern (F1 + F5 + variations): one shared form (`src/components/OpenForm.jsx`) for Progress weeks, list items and meal selections. Read-only → ✎ Edit → Save; the only destructive action sits inside the form. Meal selections: portion + variations → AI recalculates the **child** → child RAG; list item untouched. | build only |
 | v2.9.0 | F6 Eating Feedback: days before today = **eaten** (logged children), today onwards = **plan**, a fully future week = **plan review**; the prompt and the panel say which ("What you ate" / "Your plan" / "Plan review" / "So far this week + the rest of your plan"). Cut-off, empty and unreadable feedback is reported; chat replies show failures (message kept) and cut-offs. | build only |
 | v2.11.0 | F8 Share to Lifecare Companion (Android): `share_target` (images) in each environment's manifest; `sw.js` handles only the POST to `<scope>share-target` and keeps the image on the device (Cache Storage "lc-share"); the signed-in "What is this?" picker hands it to the existing upload (📏 My Body upload / 📸 Body Type Photos / 🍽 Food Checker), then deletes it. "Later" keeps it; "Discard" deletes it. (v2.10.0 skipped: F2 not built.) | build only |
+| v2.11.1 | Fix (Architect/JC 11 Nov): changing the portion of a photo-checked selection scales the **photo** values (kept as `portion.photoValues`, always the base), not list × factor; the share picker hides "Progress photo" until F2. | build only |
 
 ---
 
@@ -1845,3 +1846,13 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   3. **R2:** a portion factor change on a photo-checked selection replaces the photo values with list × factor. OK?
   4. **R5:** while F2 is undecided, shared "Progress photos" go to Body Type Photos (one-off AI analysis, image not kept). OK, or hide that option until F2?
   5. **APP_GUIDE.md** still needs updating for v2.8.0–v2.11.0 (Open forms, plan-aware feedback, share). I'll do it with the next beta PR, as before.
+
+### (Coder) 11 Nov 2026 — v2.11.1 on `build` (fd9c49c): decisions on the overnight batch
+- Recorded: R1 `DATA_ROOT` approach **accepted**; APP_GUIDE for v2.8.0–v2.11.0 goes with the next beta PR; F2 is pending JC's storage decision (not built).
+- **R2 fix:** on a photo-checked selection (`portion.source` photo), a new portion factor now scales the child's **photo** values.
+  - The original photo values are kept in `portion.photoValues` and are always the base, so ×1.5 then ½ gives 300 from a 600 kcal photo, never compounding.
+  - The view shows "checked by photo ×1.5". The list item is untouched, and the child RAG follows the scaled values.
+  - Variations (text) still recalculate from list × factor via the AI (unchanged).
+- **R5:** "Progress photo" is removed from the share picker until F2 is built; Body measurements and Food remain.
+- Tests: a new open.spec test (600 kcal photo → ×1.5 = 900 → ½ = 300; the parent is unchanged); share.spec now asserts there's no Progress option. Full suite 106 passed (4 skipped), lint 0 errors, visual footer only. Deploy 42920204308 succeeded.
+- **Resume point:** `build` @ fd9c49c (v2.11.1). Next: the beta PR (with APP_GUIDE for v2.8.0–v2.11.1) when asked; F2 waits for JC.
