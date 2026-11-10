@@ -66,6 +66,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.6.1 | Exercise log form (release 1, fix): **D1** form belongs to its person ("Logging for …"; header switch asks first, never mixed); **D2** weight and reps per set (`sets: [{w, r}]`, old entries compatible); **D12** Form and Range start unselected, Save blocked until chosen. *(On `build`; not yet released)* |
 | v2.6.2 | Food data and photos (release 2, fix): **D6** meal selections keep a snapshot (`_snap` per day:slot in the week's plan); deleted items show the snapshot or "Deleted item", never code. **D7** Update Item recalculates the whole recipe, applies only real values, before → after, plausibility check with one retry, assumed amounts, name's "(N kcal)" updated. **D9** generator: selections → defaults → generated only into empty slots from that slot's list, summary. **D10** different-food photo → new entry replaces the slot item with Undo; original never written. **F7** optional description on Portion and Shop Food Checker, preferred by the AI; assumed size shown. | build only |
 | v2.6.3 | Bulk upload (release 3, fix): **D4** bulk has its own category, starts unselected ("Choose a category first"), confirm names it ("Add 14 items to Drinks?"). **D5** Cancel aborts requests and discards late results; "Cancelled — nothing was added", or says what earlier batches kept with Undo. **D3** batches of 10 with progress, each batch saved as it succeeds, failed batches retried with "Retry N". **F4** OK-to-dismiss reminder; `checkMe: true` badge "Check me" (RAG colour kept) in Update Lists and selection lists until the item is opened and saved. | build only |
+| v2.6.4 | Chats + eating week (release 4): **D8** Question, Help and all feedback threads (session, eating, body, Home summary) show the latest exchange first (question above its answer); thread reply box moved above the conversation. **C1** eating week shown Sunday → Saturday (display only; data was already keyed by the Sunday the week starts). | build only |
 
 ---
 
@@ -1447,3 +1448,22 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
 - Tests: `tests/bulk.spec.js` has 4 new tests, and the old bulk test was updated for the confirm and the OK step. Full suite 68 passed (3 skipped), lint 0 errors, visual rebaselined (footer only).
 - **JC to test on /build/:** bulk add → no category selected; long list (20+) shows progress; Cancel mid-way → nothing (or Undo); after upload → OK message, "Check me" badges.
 - **Resume point:** `build` @ 64f5392. Next: release 4 (v2.6.4: D8 chats, C1 check).
+
+### (Coder) 10 Nov 2026 — v2.6.4 (release 4: D8 + C1) on `build` (7e76a87)
+- **C1 check first.** Eating plans are stored per week as `mealplan:<Sunday date>:<person>`, with days keyed by name. Weeks are counted from Sun 19 Jul 2026 (the same Sunday start as exercise), and on a real Sunday the app already opens that week's "sunday".
+  - So the data has always been Sunday-start; only the screen listed Mon…Sun, which put the week's *first* day (Sunday) last.
+  - The fix is display order only: `DAYS` and the quick-prep checkboxes start Sunday, and the week text sent to the AI is in date order. No keys or data move, so nothing can be misplaced.
+  - **Caveat for JC:** a Sunday planned on the old screen as "the end of the week" was always stored as that week's *first* Sunday, so it now shows first. That is the date it always had.
+- **D8:** a new `latestFirst()` in `src/lib/chat.js` groups a thread into exchanges and lists the newest exchange first.
+  - It is used by `renderThread` (every feedback thread), whose reply box now sits above the conversation, and by the Home summary thread.
+  - Question (💬) and Help chats list the newest exchange first; "Show older messages" moved to the end.
+  - The panels open at the top, so the latest exchange is visible without scrolling.
+- Tests: `tests/chat-week.spec.js` has 4 new tests (grouping; Help and Chat order; a Sunday via Playwright's clock: Sun-first tabs and the Sunday slot). Full suite 72 passed (3 skipped), lint 0 errors, visual rebaselined (footer, chat order, eating day order).
+- **JC to test on /build/:** open 💬 and Help → newest at the top; reply to a feedback → the reply is at the top; My Eating tabs read Sun Mon … Sat.
+- **Overnight batch done (releases 2–4 on `build`).** Nothing was merged to beta/main.
+- **Open decisions:**
+  1. D11 bands and the sugar definition (see the v2.6.2 entry).
+  2. Approve or reject the D6 one-off repair proposal.
+  3. F7 description placement on Portion (after the first result + Re-check, versus a step before the camera).
+  4. D7: offering "re-check nutrition" for items edited before the fix.
+- **Resume point:** `build` @ 7e76a87. Next: the Architect verifies /build/ (v2.6.2 → v2.6.4), then PR build → beta when approved.
