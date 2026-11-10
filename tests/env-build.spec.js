@@ -29,3 +29,20 @@ test("build environment: its own installable app (name, scope, tinted icons)", a
   expect(m).toMatchObject({ name: "Lifecare BUILD", short_name: "LC Build", id: "/Life-Care/build/", start_url: "/Life-Care/build/", scope: "/Life-Care/build/" });
   for (const i of m.icons) expect(i.src.startsWith("/Life-Care/build/brand/build/")).toBe(true);
 });
+
+// v2.7.1: Backup/Restore are environment-aware at build time. The Build app also backs up and restores its own copy.
+test("build environment: Download backup has data + data_build; Full restore targets data_build", async ({ page }) => {
+  const { errors } = await openApp(page);
+  await page.locator("button").nth(1).click();                                 // Settings
+  await page.getByRole("button", { name: "Open Data tools" }).click();
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "⬇️ Download backup" }).click()]);
+  expect(dl.suggestedFilename()).toMatch(/^lifecare_backup_build_\d{4}-\d{2}-\d{2}-\d{4}\.json$/);
+  const file = JSON.parse(fs.readFileSync(await dl.path(), "utf8"));
+  expect(Object.keys(file)).toEqual(["data", "data_build"]);
+  await expect(page.getByTestId("backup-msg")).toContainText(", data_build ");
+  await page.locator("#restore-json").fill(JSON.stringify(file));
+  await page.getByRole("button", { name: "Preview" }).click();
+  await expect(page.getByTestId("restore-preview")).toContainText("Found: backup file (data + 1 more section)");
+  await expect(page.getByRole("button", { name: "Full restore of data_build (this test app)" })).toBeVisible();
+  expect(errors).toEqual([]);
+});
