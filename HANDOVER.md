@@ -1553,3 +1553,42 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   - **Proposed fix:** store both **inside the week plan** (`mealplan:<Sunday>:<person>`) as `_portion["<day>:<slot>"]` and `_track["<day>:<slot>"]`. They are then tied to the week, removed with "Clear old eating history", and covered by the prod-compat check (prod ignores `_` keys).
   - Migration: existing entries can't be dated reliably. Either drop them (simplest) or attach them to the current week only. **Needs JC/Architect decision.**
 - **Resume point:** `build` @ ad538a3 (v2.6.5). Next: JC re-tests Snap on /build/; the Architect decides D13; then PR build → beta with APP_GUIDE.md.
+
+### (Architect) 10 Nov 2026 14:35 — DESIGN DECISION (JC): eating data = parent list items + child selections (supersedes the D13 patch and the `_snap` approach)
+- **Parent = list item** (the user's food lists).
+  - Used for selection and planning.
+  - Changed **only** through Update Lists.
+  - Never changed by selecting, Snap, the generator or portion changes.
+- **Child = selection entry**: one per person + **date** + slot (+ position, if a slot holds several items).
+  - Fields:
+    - `parentId` (or null for ad hoc);
+    - `date` and `weekday`;
+    - `slot`;
+    - `snapshot` (name, nutrition, RAG at selection time);
+    - `portion` / quantity;
+    - `variations` (free text plus structured substitutions, e.g. "chips instead of potato", "peas instead of beans");
+    - `nutrition` (the snapshot adjusted for portion and variations: this is what totals use);
+    - `tracked` / status;
+    - `source` (manual / snap / generator / default);
+    - `notes`.
+  - Totals, progress, feedback and history read **children only**. Deleting or editing a parent never changes a child.
+  - Keyed by date, which **solves D13** (portions and ticks can no longer leak between weeks). "Clear old eating history" deletes children before the date.
+- **Ad hoc foods (not saved to a list):** a child with `parentId: null` and `source: "adhoc"`, carrying its full snapshot. Architect's choice over a hidden placeholder parent: a fake parent would pollute list counts, ratings and the frequency rules, while the child already holds everything needed.
+- **Snap flow (amends the 10 Nov 07:20 entry):**
+  - Photo (+ optional description) → result panel (description editable, Confirm / Re-check / Cancel).
+  - **Confirm** writes the child directly.
+    - Matches a parent → child linked to the parent.
+    - Different food on a filled slot → the child is updated to the new food (with Undo).
+  - **Only when the food is NOT in the parent list**, ask once: "**Save <food> to your <slot> list for future selection?**"
+    - Yes → create the parent through `addReviewedItem` and link the child.
+    - No → ad hoc child.
+  - No other confirm popups.
+- **Generator, defaults and manual picks** all create children from parents.
+- **Migration:**
+  - The current week's selections (+ day-name portions and ticks) → children dated in the current week.
+  - Delete legacy eaten/skipped statuses.
+  - Older weeks are cleared by the tool.
+  - Idempotent; take a backup on real data first.
+- **Compatibility:** store children under a new key. Prod v2.6.0 ignores them, so prod won't show beta's new selections. That's acceptable (no one uses prod), and **prod is released soon after beta**.
+- **Estimate:** 4–7%. Built in this release before beta.
+
