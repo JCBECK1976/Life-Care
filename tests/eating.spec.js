@@ -22,15 +22,17 @@ test("My Eating: add item → Review Item → edit ingredients → Confirm → v
 
 test("My Eating: bulk paste adds items", async ({ page }) => {
   const { errors } = await openApp(page);
+  page.on("dialog", (d) => d.accept());                     // v2.6.3: "Add 2 items to Breakfast?"
   await tab(page, "My Eating");
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
   await page.getByRole("button", { name: "+ Add New Item to Lists" }).click();
   await page.getByRole("button", { name: "📋 Bulk" }).click();
   await page.locator("#bulk-paste-textarea").fill("Test Apple\nTest Pear");
   const bulk = page.locator("div", { has: page.locator("#bulk-paste-textarea") })
-    .filter({ has: page.getByRole("button", { name: "Upload Items" }) }).last();
+    .filter({ has: page.getByRole("button", { name: "Cancel" }) }).last();      // v2.6.3: no category until chosen
   await bulk.getByRole("button", { name: /^breakfast$/i }).click();
   await bulk.getByRole("button", { name: "Upload Items" }).click();
+  await page.getByRole("button", { name: "OK", exact: true }).click(); // v2.6.3 F4 reminder
   await expect(page.getByText("Test Apple").first()).toBeVisible();
   await expect(page.getByText("Test Pear").first()).toBeVisible();
   expect(errors).toEqual([]);

@@ -2,12 +2,12 @@ import { DEFAULT_EXERCISES, EXERCISE_DATABASE, EXERCISE_TYPES } from "../constan
 import { calcWeek, fbIcon, sBg, sColor, sLabel } from "../lib/utils.js";
 import { buildExProfileInfo, getMoodContext } from "../lib/aiContext.js";
 import { sSet } from "../lib/storage.js";
-import { autoStatus, getExerciseType, getExerciseTypeConfig, parseReps } from "../lib/exercise.js";
+import { autoStatus, entrySets, fmtEntry, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsDiffer, weightLabel } from "../lib/exercise.js";
 import { btnAction, btnActionLg, btnDelete, btnEdit, btnMuted, btnP, btnS, inputStyle, labelStyle } from "../constants/styles.js";
 import { FullChart } from "../components/charts.jsx";
 import { TONE_RULES } from "../constants/tone.js";
 import { handleApiError } from "../lib/api.js";
-import PersonTabs, { peopleOf } from "../components/PersonTabs.jsx";
+import PersonTabs, { peopleOf, personName } from "../components/PersonTabs.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -20,7 +20,7 @@ export default function ExerciseSection({ ctx }) {
     newExName, openLogForm, p, prevComment, renderThread, saveData, saveLog, selectedEx,
     sessionFbLoading, sessionFeedback, sessionGuideLoading, setActiveTab, setAddExConfirm, setAddExLoading, setAddExOpen, setAddExSearch,
     setCoolDownOpen, setCustomExercises, setDayView, setDecisionsExpanded, setEditExercise, setEditPrev, setExInfoOpen, setExerciseDay,
-    setFbExpanded, setFormMsg, setLogComment, setLogEx, setLogFullRange, setLogGoodForm, setLogOverride, setLogSets,
+    setFbExpanded, setFormMsg, setLogComment, setLogEx, setLogFullRange, setLogGoodForm, setLogOverride, setLogSets, logNeedChoice, setLogNeedChoice,
     setLogWeek, setNewExName, setNewSectionName, setSelectedEx, setSessionFbLoading, setSessionFeedback, setSessionGuideLoading, setShowNewExForm,
     setShowNewSection, setStoppedExOpen, setWarmUpOpen, stoppedExOpen, updateSessionFb, userMood, warmUpOpen, weekLabel
   } = ctx;
@@ -99,6 +99,7 @@ export default function ExerciseSection({ ctx }) {
           const updateProg = async (day, exIdx, progIdx, field, value) => {
             var nd = JSON.parse(JSON.stringify(data));
             nd[activeTab].exercises[day][exIdx].prog[progIdx][field] = value;
+            if (field === "w" || field === "r") delete nd[activeTab].exercises[day][exIdx].prog[progIdx].sets; // D2: keep one source of truth
             // Sync Activity from latest prog entry
             var prog = nd[activeTab].exercises[day][exIdx].prog;
             if (prog.length > 0) {
@@ -179,7 +180,7 @@ export default function ExerciseSection({ ctx }) {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }} onClick={function() { var curType=ex.exType||getExerciseType(ex.name);var tc=getExerciseTypeConfig(curType);var curM2=(ex.reps||tc.defaultM2).replace(/x\d+$/,"");setSelectedEx({day:day,idx:i});setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:ex.current||tc.defaultM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",exerciseGuide:ex.exerciseGuide||"",prePostGuide:ex.prePostGuide||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});setAddExOpen(false); }}>{ex.name} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span></div>
-                          <div style={{ color: "#64748b", fontSize: 11, fontWeight: 500 }}>{ex.current} · {ex.reps}{ex.exType && ex.exType !== "weights" && <span style={{fontSize:9,color:"#94a3b8",marginLeft:6}}>{EXERCISE_TYPES[ex.exType] ? EXERCISE_TYPES[ex.exType].label : ""}</span>}</div>
+                          <div style={{ color: "#64748b", fontSize: 11, fontWeight: 500 }}>{(ex.prog && ex.prog.length && setsDiffer(ex.prog[ex.prog.length - 1])) ? weightLabel(ex.prog[ex.prog.length - 1]) : ex.current} · {ex.reps}{ex.exType && ex.exType !== "weights" && <span style={{fontSize:9,color:"#94a3b8",marginLeft:6}}>{EXERCISE_TYPES[ex.exType] ? EXERCISE_TYPES[ex.exType].label : ""}</span>}</div>
                           {ex.status && <div style={{ marginTop: 3 }}><span style={{ fontSize: 9, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap", border: "1px solid " + sColor(ex.status) + "40" }}>{sLabel(ex.status)}</span></div>}
                         </div>
                         <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0,alignItems:"flex-end"}}>
@@ -195,40 +196,37 @@ export default function ExerciseSection({ ctx }) {
             const ex = p.exercises[logEx.day] && p.exercises[logEx.day][logEx.idx]; if (!ex) return null;
             const prev = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
             return (<div ref={logFormRef} style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginTop: 10, marginBottom: 14 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: accent, marginBottom: 2 }}>{(p.profile && p.profile.name) || activeTab}</div>
+              <div data-testid="log-for" style={{ fontSize: 11, fontWeight: 700, color: accent, marginBottom: 2 }}>Logging for {personName(data, activeTab)}</div>
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Log: {ex.name}</div>
-              <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Previous: {prev ? prev.w + " " + prev.r + " (Wk " + prev.wk + ")" : "No data"}</div>
+              <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Previous: {prev ? fmtEntry(prev) + " (Wk " + prev.wk + ")" : "No data"}</div>
               {prevComment && (<div style={{ padding: 8, background: "#fef3c7", borderRadius: 8, marginBottom: 8, border: "1px solid #fcd34d" }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>📋 NOTES FROM LAST SESSION</div>
                 <div style={{ fontSize: 11, color: "#92400e", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{prevComment}</div>
               </div>)}
-              {prev && <button onClick={() => { setEditPrev(!editPrev); if (!editPrev) { setLogSets([{ w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[0]||"") }, { w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[1]||"") }, { w: prev.w.replace("kg",""), r: String(parseReps(prev.r)[2]||"") }]); setLogWeek(String(prev.wk)); } else { setLogSets([{ w: prev.w.replace("kg",""), r: "" }, { w: prev.w.replace("kg",""), r: "" }, { w: prev.w.replace("kg",""), r: "" }]); (function() { var mwk = 0; var cex = data[activeTab].exercises[logEx.day][logEx.idx]; if (cex && cex.prog) { for (var mi = 0; mi < cex.prog.length; mi++) { if (cex.prog[mi].wk > mwk) mwk = cex.prog[mi].wk; } } setLogWeek(String(mwk > 0 ? mwk + 1 : calcWeek(data.config.trainingStart))); })(); } }} style={{ ...btnST, marginBottom: 8, fontSize: 11, background: editPrev ? "#fef3c7" : "#f1f5f9" }}>{editPrev ? "Cancel Edit — Log New Instead" : "Edit Previous Entry"}</button>}
+              {prev && <button onClick={() => { setEditPrev(!editPrev); if (!editPrev) { setLogSets(logSetsFrom(prev, 3)); setLogWeek(String(prev.wk)); } else { setLogSets(logSetsFrom(prev, 3).map(function(x) { return { w: x.w, r: "" }; })); (function() { var mwk = 0; var cex = data[activeTab].exercises[logEx.day][logEx.idx]; if (cex && cex.prog) { for (var mi = 0; mi < cex.prog.length; mi++) { if (cex.prog[mi].wk > mwk) mwk = cex.prog[mi].wk; } } setLogWeek(String(mwk > 0 ? mwk + 1 : calcWeek(data.config.trainingStart))); })(); } }} style={{ ...btnST, marginBottom: 8, fontSize: 11, background: editPrev ? "#fef3c7" : "#f1f5f9" }}>{editPrev ? "Cancel Edit — Log New Instead" : "Edit Previous Entry"}</button>}
               <div style={{ marginBottom: 8 }}><label style={labelStyle}>Week</label><input type="number" value={logWeek} onChange={e => setLogWeek(e.target.value)} style={{ ...inputStyle, width: 80 }} /></div>
               {(() => { var exTypeName = ex.exType || getExerciseType(ex.name); var etc = getExerciseTypeConfig(exTypeName); var numSets = ex.sets || 3; var showM1 = etc.metric1 !== "none"; var m1ph = etc.metric1Label ? etc.metric1Label.replace(/\s*\(.*\)/,"") : "value"; var m2ph = etc.metric2Label ? etc.metric2Label.replace(/\s*\(.*\)/,"") : "value"; var showM2 = etc.metric2 !== "none"; var setsLabel = etc.hasSets ? "Sets" : "Log"; return (<div><div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>{etc.hasSets ? setsLabel + " (" + (showM1 ? m1ph : "") + (showM1 && showM2 ? " × " : "") + (showM2 ? m2ph : "") + ")" : "Log (" + (showM1 ? m1ph : "") + (showM1 && showM2 ? " / " : "") + (showM2 ? m2ph : "") + ")"}</div>
               {logSets.slice(0, etc.hasSets ? numSets : 1).map((s, i) => (<div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}>{etc.hasSets && <span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", width: 20 }}>S{i + 1}</span>}{showM1 && <input type="number" placeholder={m1ph} value={s.w} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], w: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} />}{showM1 && showM2 && <span style={{ color: "#94a3b8" }}>×</span>}{showM2 && <input type="number" placeholder={m2ph} value={s.r} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], r: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} />}</div>))}</div>); })()}
 
               {/* Quality toggles — Full Range / Completed in One + Good Form */}
               {(() => { var exTypeName2 = ex.exType || getExerciseType(ex.name); var isWeightType = ["weights","bodyweight","timed_hold","stretching"].indexOf(exTypeName2) >= 0; var toggle1Label = isWeightType ? "Full Range of Motion" : "Completed in One"; var toggle1Tip = isWeightType ? "Full controlled movement through the complete range" : "Completed without stopping and restarting";
-              return (<div style={{ marginTop: 10, padding: 10, background: accentLight, borderRadius: 8, border: "1px solid " + accentBorder }}>
+              return (<>
+              <div data-testid="session-quality" style={{ marginTop: 10, padding: 10, background: accentLight, borderRadius: 8, border: "1px solid " + accentBorder }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#475569", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Session Quality</div>
-                <div style={{ display: "flex", gap: 12, marginBottom: 4 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>{toggle1Label}</div>
-                    <div style={{ display: "flex", background: accentMid, borderRadius: 6, padding: 2 }}>
-                      <button onClick={function(){ setLogFullRange("working"); }} style={{ flex: 1, padding: "5px 0", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: logFullRange === "working" ? "#fef3c7" : "transparent", color: logFullRange === "working" ? "#92400e" : "rgba(255,255,255,0.7)" }}>Working Towards</button>
-                      <button onClick={function(){ setLogFullRange("good"); }} style={{ flex: 1, padding: "5px 0", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: logFullRange === "good" ? "#dcfce7" : "transparent", color: logFullRange === "good" ? "#166534" : "rgba(255,255,255,0.7)" }}>Good</button>
+                {[["range", toggle1Label, logFullRange, setLogFullRange], ["form", "Good Form", logGoodForm, setLogGoodForm]].map(function(q) { var missing = !!logNeedChoice && !q[2]; return (
+                  <div key={q[0]} style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#334155", marginBottom: 4 }}>{q[1]}</div>
+                    <div data-testid={"quality-" + q[0]} data-missing={missing ? "true" : "false"} style={{ display: "flex", borderRadius: 8, overflow: "hidden", background: "#fff", border: missing ? "2px solid #dc2626" : "1px solid #cbd5e1" }}>
+                      {[["working", "Working towards"], ["good", "Good"]].map(function(o, oi) { var sel = q[2] === o[0]; return (
+                        <button key={o[0]} aria-pressed={sel} onClick={function() { q[3](o[0]); }} style={{ flex: 1, padding: "9px 4px", border: "none", borderLeft: oi ? "1px solid #cbd5e1" : "none", fontSize: 12, fontWeight: sel ? 700 : 500, cursor: "pointer", background: sel ? (o[0] === "good" ? "#166534" : "#b45309") : "#fff", color: sel ? "#fff" : "#475569" }}>{o[1]}</button>
+                      ); })}
                     </div>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Good Form</div>
-                    <div style={{ display: "flex", background: accentMid, borderRadius: 6, padding: 2 }}>
-                      <button onClick={function(){ setLogGoodForm("working"); }} style={{ flex: 1, padding: "5px 0", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: logGoodForm === "working" ? "#fef3c7" : "transparent", color: logGoodForm === "working" ? "#92400e" : "rgba(255,255,255,0.7)" }}>Working Towards</button>
-                      <button onClick={function(){ setLogGoodForm("good"); }} style={{ flex: 1, padding: "5px 0", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: logGoodForm === "good" ? "#dcfce7" : "transparent", color: logGoodForm === "good" ? "#166534" : "rgba(255,255,255,0.7)" }}>Good</button>
-                    </div>
-                  </div>
-                </div>
-                <div style={{ fontSize: 9, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>{toggle1Tip}</div>
-              </div>); })()}
+                ); })}
+                <div style={{ fontSize: 9, color: "#94a3b8", marginTop: 2, fontStyle: "italic" }}>{toggle1Tip}</div>
+              </div>
+              {logNeedChoice && (!logFullRange || !logGoodForm) && <div role="alert" data-testid="log-need-choice" style={{ marginTop: 6, fontSize: 12, fontWeight: 700, color: "#dc2626" }}>{logNeedChoice}</div>}
+              </>); })()}
 
               <div style={{ marginTop: 8 }}>
                 <label style={labelStyle}>Progression</label>
@@ -264,8 +262,8 @@ export default function ExerciseSection({ ctx }) {
                         setLogComment(st.comment || "");
                         setLogOverride(st.override || "standard");
                         setLogWeek(st.week || "");
-                        setLogFullRange(st.fullRange || "working");
-                        setLogGoodForm(st.goodForm || "working");
+                        setLogFullRange(st.fullRange || "");
+                        setLogGoodForm(st.goodForm || "");
                       } else {
                         // Load from other person's exercise data — check current week first
                         var otherEx = data[tab] && data[tab].exercises && data[tab].exercises[logEx.day] ? data[tab].exercises[logEx.day][logEx.idx] : null;
@@ -276,13 +274,13 @@ export default function ExerciseSection({ ctx }) {
                           if (otherCurEntry) {
                             // Current week data exists — pre-fill from it
                             var ocReps = otherCurEntry.r ? parseReps(otherCurEntry.r) : [];
-                            var ocSets = [{ w: otherCurEntry.w ? otherCurEntry.w.replace("kg","") : "", r: ocReps[0] ? String(ocReps[0]) : "" }, { w: otherCurEntry.w ? otherCurEntry.w.replace("kg","") : "", r: ocReps[1] ? String(ocReps[1]) : "" }, { w: otherCurEntry.w ? otherCurEntry.w.replace("kg","") : "", r: ocReps[2] ? String(ocReps[2]) : "" }];
+                            var ocSets = logSetsFrom(otherCurEntry, 3);
                             setLogSets(ocSets);
                             var ocComment = otherCurEntry.note || "";
                             setLogComment(ocComment);
                             setLogWeek(String(otherCurWk));
                             setLogOverride("standard");
-                            var ocFR = otherCurEntry.fullRange || "working"; var ocGF = otherCurEntry.goodForm || "working";
+                            var ocFR = otherCurEntry.fullRange || ""; var ocGF = otherCurEntry.goodForm || "";
                             setLogFullRange(ocFR); setLogGoodForm(ocGF);
                             // Record original state for edit detection
                             if (!window._dualLogState) window._dualLogState = {};
@@ -291,11 +289,11 @@ export default function ExerciseSection({ ctx }) {
                             // No current week data — load from last entry as before
                             var otherLast = otherEx.prog && otherEx.prog.length > 0 ? otherEx.prog[otherEx.prog.length - 1] : null;
                             var oReps = otherLast && otherLast.r ? parseReps(otherLast.r) : [];
-                            var oSets = [{ w: otherLast ? otherLast.w.replace("kg","") : "", r: oReps[0] ? String(oReps[0]) : "" }, { w: otherLast ? otherLast.w.replace("kg","") : "", r: oReps[1] ? String(oReps[1]) : "" }, { w: otherLast ? otherLast.w.replace("kg","") : "", r: oReps[2] ? String(oReps[2]) : "" }];
+                            var oSets = otherLast ? logSetsFrom(otherLast, 3) : [{ w: "", r: "" }, { w: "", r: "" }, { w: "", r: "" }];
                             setLogSets(oSets);
                             setLogComment("");
                             setLogOverride("standard");
-                            var olFR = otherLast && otherLast.fullRange ? otherLast.fullRange : "working"; var olGF = otherLast && otherLast.goodForm ? otherLast.goodForm : "working";
+                            var olFR = ""; var olGF = ""; // D12: a new entry starts unselected
                             setLogFullRange(olFR); setLogGoodForm(olGF);
                             // Record original state for edit detection
                             if (!window._dualLogState) window._dualLogState = {};
@@ -322,13 +320,13 @@ export default function ExerciseSection({ ctx }) {
                     {(() => { var _etc = getExerciseTypeConfig(ex.exType || getExerciseType(ex.name)); var _h1 = _etc.metric1 !== "none" ? _etc.metric1Label.replace(/\s*\(.*\)/,"").toUpperCase() : ""; var _h2 = _etc.metric2 !== "none" ? _etc.metric2Label.replace(/\s*\(.*\)/,"").toUpperCase() : ""; return (<div style={{ display: "flex", gap: 6, padding: "3px 0", marginBottom: 2, fontSize: 9, color: "#94a3b8", fontWeight: 600 }}>
                       <span style={{ width: 40 }}>WEEK</span>{_h1 && <span style={{ width: 55 }}>{_h1}</span>}{_h2 && <span style={{ width: 65 }}>{_h2}</span>}<span style={{ flex: 1 }}>NOTES</span><span style={{ width: 20 }}></span>
                     </div>); })()}
-                    {ex.prog && ex.prog.slice().reverse().slice(0, selectedEx && selectedEx.showAll ? 999 : 4).map(function(pr, pi) { var realPi = ex.prog.length - 1 - pi; return (<div key={pi} style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
+                    {ex.prog && ex.prog.slice().reverse().slice(0, selectedEx && selectedEx.showAll ? 999 : 4).map(function(pr, pi) { var realPi = ex.prog.length - 1 - pi; return (<div key={pi}><div style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
                       <input defaultValue={pr.wk} onBlur={function(e) { updateProg(day, exIdx, realPi, "wk", parseInt(e.target.value) || pr.wk); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
-                      <input defaultValue={pr.w} onBlur={function(e) { updateProg(day, exIdx, realPi, "w", e.target.value); }} style={{ width: 55, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
+                      {setsDiffer(pr) ? <span data-testid="prog-weight" style={{ width: 55, fontSize: 11, padding: "2px 4px" }}>{weightLabel(pr)}</span> : <input data-testid="prog-weight" defaultValue={pr.w} onBlur={function(e) { updateProg(day, exIdx, realPi, "w", e.target.value); }} style={{ width: 55, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />}
                       <input defaultValue={pr.r} onBlur={function(e) { updateProg(day, exIdx, realPi, "r", e.target.value); }} style={{ width: 65, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
                       <input defaultValue={pr.note || ""} onBlur={function(e) { updateProg(day, exIdx, realPi, "note", e.target.value); }} placeholder="..." style={{ flex: 1, minWidth: 0, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
                       <button onClick={function() { deleteProg(day, exIdx, realPi); }} style={{...btnDelete, fontSize: 11, minWidth: 24, flexShrink: 0}}>🗑 Del</button>
-                    </div>); })}
+                    </div>{setsDiffer(pr) && <div data-testid="prog-sets" style={{ fontSize: 10, color: "#64748b", padding: "0 0 4px 44px" }}>Sets: {fmtEntry(pr)}</div>}</div>); })}
                     {(!ex.prog || ex.prog.length === 0) && <div style={{ fontSize: 10, color: "#94a3b8" }}>No progression data yet</div>}
                     {ex.prog && ex.prog.length > 4 && <button onClick={function(){setSelectedEx(Object.assign({},selectedEx,{showAll:!selectedEx.showAll}));}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:accent,cursor:"pointer",marginBottom:6}}>{selectedEx && selectedEx.showAll ? "▲ Show less" : "▼ View more (" + (ex.prog.length - 4) + " entries)"}</button>}
                     <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var wk = calcWeek(nd.config.trainingStart); var existWk = -1; for (var awi = 0; awi < nd[activeTab].exercises[day][exIdx].prog.length; awi++) { if (nd[activeTab].exercises[day][exIdx].prog[awi].wk === wk) { existWk = awi; break; } }
@@ -744,7 +742,7 @@ export default function ExerciseSection({ ctx }) {
                     setSessionFbLoading(true); setFbExpanded(true); var clearKey = activeTab + "_" + day; var clearFb = Object.assign({}, sessionFeedback); delete clearFb[clearKey]; setSessionFeedback(clearFb);
                     try {
                       var prof = p.profile || {};
-                      var daySummary = exList.filter(function(ex) { return !ex.stopped; }).map(function(ex) { var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null; var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null; var progNote = latest && latest.note ? latest.note : ""; var allNotes = [ex.notes, progNote].filter(Boolean).join("; "); var progRules = ex.progressionNotes || "Progression: build reps to target then increase weight. User defines increment method and ranges."; var eqInfo = ex.equipment ? " [EQUIPMENT: " + (ex.equipment.type || "") + ", increments: " + (ex.equipment.increments || "standard") + (ex.equipment.formNotes ? ", form: " + ex.equipment.formNotes : "") + "]" : ""; var histLines = ex.prog ? ex.prog.slice(-4).map(function(p){var ql=""; if(p.fullRange||p.goodForm){ql=" [FR:"+(p.fullRange==="good"?"Good":"WT")+",GF:"+(p.goodForm==="good"?"Good":"WT")+"]";} return "Wk"+p.wk+": "+p.w+" "+p.r+ql+(p.note?" ("+p.note+")":"");}).join(", ") : "no data";
+                      var daySummary = exList.filter(function(ex) { return !ex.stopped; }).map(function(ex) { var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null; var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null; var progNote = latest && latest.note ? latest.note : ""; var allNotes = [ex.notes, progNote].filter(Boolean).join("; "); var progRules = ex.progressionNotes || "Progression: build reps to target then increase weight. User defines increment method and ranges."; var eqInfo = ex.equipment ? " [EQUIPMENT: " + (ex.equipment.type || "") + ", increments: " + (ex.equipment.increments || "standard") + (ex.equipment.formNotes ? ", form: " + ex.equipment.formNotes : "") + "]" : ""; var histLines = ex.prog ? ex.prog.slice(-4).map(function(p){var ql=""; if(p.fullRange||p.goodForm){ql=" [FR:"+(p.fullRange==="good"?"Good":"WT")+",GF:"+(p.goodForm==="good"?"Good":"WT")+"]";} return "Wk"+p.wk+": "+fmtEntry(p)+ql+(p.note?" ("+p.note+")":"");}).join(", ") : "no data";
                         // Cross-day context: pull data from other sessions of the same exercise (parent/child model)
                         var crossDayCtx = "";
                         var otherDays = ["sunday", "monday", "friday"].filter(function(cd) { return cd !== day; });

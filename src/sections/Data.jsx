@@ -1,18 +1,162 @@
 import firebase, { DATA_ROOT } from "../lib/firebase.js";
 import { btnMuted } from "../constants/styles.js";
 import { personName } from "../components/PersonTabs.jsx";
+import { useState } from "react";
+import { currentWeekSunday, planClearHistory } from "../lib/meals.js";
+import { APP_ENV } from "../constants/version.js";
+import { backupCounts, parseBackupInput, restoreTarget } from "../lib/backup.js";
 
-// Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
-// (state, setters, handlers) as one `ctx` prop; state management is unchanged.
+/* v2.6.5 Download backup: the REAL data ("data", whatever environment this is) plus "data_build", in the same shape
+   as a Firebase console export of the database root: { "data": {...}, "data_build": {...} }. */
+export function backupFileName(env, now) {
+  var d = now || new Date(); var p = function(n) { return String(n).padStart(2, "0"); };
+  return "lifecare_backup_" + env + "_" + d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes()) + ".json";
+}
+async function readBackup() {
+  var real = await firebase.database().ref("data").once("value");
+  var build = await firebase.database().ref("data_build").once("value");
+  return { data: real.val() || {}, data_build: build.val() || {} };
+}
+
+/* v2.6.5 Clear old eating history: read every stored meal week plan (and nothing else) */
+async function loadMealPlans() {
+  var snap = await firebase.database().ref(DATA_ROOT).orderByKey().startAt("mealplan:").endAt("mealplan:\uf8ff").once("value");
+  var snap2 = await firebase.database().ref(DATA_ROOT).orderByKey().startAt("eat_children:").endAt("eat_children:\uf8ff").once("value");
+  var plans = {}; var raw = Object.assign({}, snap.val() || {}, snap2.val() || {});
+  Object.keys(raw).forEach(function(k) { try { plans[k] = typeof raw[k] === "string" ? JSON.parse(raw[k]) : raw[k]; } catch (e) { plans[k] = null; } });
+  return plans;
+}
+
 export default function DataSection({ ctx }) {
   const {
     accent, accentBorder, accentLight, data, dataExpandEx, saveData, setDataExpandEx, setFormMsg, setSection
   } = ctx;
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [backupMsg, setBackupMsg] = useState("");
+  var downloadBackup = async function() {
+    setBackupBusy(true); setBackupMsg("");
+    try {
+      var exp = await readBackup();
+      var text = JSON.stringify(exp, null, 2);
+      var name = backupFileName(APP_ENV);
+      var blob = new Blob([text], { type: "application/json" });
+      var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function() { URL.revokeObjectURL(a.href); }, 5000);
+      var kb = blob.size / 1024; var size = kb >= 1024 ? (kb / 1024).toFixed(1) + " MB" : Math.max(1, Math.round(kb)) + " KB";
+      var count = function(o) { return Object.keys(o || {}).length; };
+      var meals = Object.keys(exp.data).filter(function(k) { return /^(mealplan|eat_children):/.test(k); }).length;
+      setBackupMsg("✓ Downloaded " + name + " (" + size + "): data " + count(exp.data) + " items (" + meals + " meal weeks), data_build " + count(exp.data_build) + " items.");
+    } catch (e) { setBackupMsg("Backup failed: " + String(e.message || e).substring(0, 120) + ". Nothing was downloaded."); }
+    setBackupBusy(false);
+  };
+  const [restoreParsed, setRestoreParsed] = useState(null);
+  const [restoreBusy, setRestoreBusy] = useState(false);
+  const [restoreMsg, setRestoreMsg] = useState("");
+  /* The original safe merge (unchanged logic): adds missing exercise weeks from the backup's exercise data */
+  var mergeExerciseWeeks = function(backup) {
+            var nd = JSON.parse(JSON.stringify(data));
+            var restored = 0;
+            var people = ["jc", "becks"];
+            people.forEach(function(person) {
+              if (!backup[person] || !backup[person].exercises) return;
+              if (!nd[person]) return;
+              if (!nd[person].exercises) nd[person].exercises = {};
+              var bDays = Object.keys(backup[person].exercises);
+              bDays.forEach(function(day) {
+                if (!nd[person].exercises[day]) nd[person].exercises[day] = [];
+                var bExList = backup[person].exercises[day];
+                bExList.forEach(function(bEx) {
+                  var found = false;
+                  for (var ei = 0; ei < nd[person].exercises[day].length; ei++) {
+                    if (nd[person].exercises[day][ei].name === bEx.name) {
+                      found = true;
+                      var existing = nd[person].exercises[day][ei];
+                      if (!existing.prog) existing.prog = [];
+                      var bProg = bEx.prog || [];
+                      bProg.forEach(function(bp) {
+                        var has = false;
+                        for (var pi = 0; pi < existing.prog.length; pi++) {
+                          if (existing.prog[pi].wk === bp.wk) { has = true; break; }
+                        }
+                        if (!has) {
+                          existing.prog.push({ wk: bp.wk, w: bp.w, r: bp.r, note: bp.note || "" });
+                          restored++;
+                        }
+                      });
+                      existing.prog.sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
+                      existing.current = bEx.current || existing.current;
+                      existing.reps = bEx.reps || existing.reps;
+                      existing.status = bEx.status || existing.status;
+                      if (bEx.notes) existing.notes = bEx.notes;
+                      if (bEx.target) existing.target = bEx.target;
+                      break;
+                    }
+                  }
+                  if (!found) {
+                    nd[person].exercises[day].push(bEx);
+                    restored += (bEx.prog || []).length;
+                  }
+                });
+              });
+              if (backup[person].body) nd[person].body = backup[person].body;
+              if (backup[person].measurements) nd[person].measurements = backup[person].measurements;
+              if (backup[person].bloods) nd[person].bloods = backup[person].bloods;
+              if (backup[person].profile) nd[person].profile = backup[person].profile;
+              if (backup[person].meds) nd[person].meds = backup[person].meds;
+            });
+            if (backup.config) {
+              nd.config = nd.config || {};
+              if (backup.config.trainingStart) nd.config.trainingStart = backup.config.trainingStart;
+            }
+            return { nd: nd, restored: restored };
+  };
+  const [clearBefore, setClearBefore] = useState(currentWeekSunday());
+  const [clearPlan, setClearPlan] = useState(null);   // last dry-run result
+  const [clearBusy, setClearBusy] = useState(false);
+  const [clearMsg, setClearMsg] = useState("");
+  var clearDryRun = async function() {
+    setClearBusy(true); setClearMsg("");
+    try { setClearPlan(Object.assign(planClearHistory(await loadMealPlans(), clearBefore), { before: clearBefore })); }
+    catch (e) { setClearMsg("Dry run failed: " + String(e.message || e).substring(0, 120)); }
+    setClearBusy(false);
+  };
+  var clearDelete = async function() {
+    var cp = clearPlan; if (!cp || !cp.weeks || cp.before !== clearBefore) return;
+    if (!confirm("Delete " + cp.weeks + " meal week plan" + (cp.weeks === 1 ? "" : "s") + " (" + cp.selections + " selections) from before " + cp.before + "? Food lists, exercise, body, health and settings are not touched. This cannot be undone.")) return;
+    setClearBusy(true);
+    try {
+      var upd = {}; cp.keys.forEach(function(k) { if (/^(mealplan|eat_children):/.test(k)) upd[k] = null; });   // meal weeks only
+      await firebase.database().ref(DATA_ROOT).update(upd);
+      setClearMsg("✓ Deleted " + Object.keys(upd).length + " meal weeks from before " + cp.before + ".");
+      setClearPlan(null);
+    } catch (e) { setClearMsg("Delete failed: " + String(e.message || e).substring(0, 120)); }
+    setClearBusy(false);
+  };
 
   return (
 <div>
   <button onClick={function() { setSection("admin"); }} style={{ ...btnMuted, marginBottom: 12 }}>← Back to Settings</button>
   <div style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 12 }}>Firebase Data Viewer</div>
+  <div data-testid="backup" style={{ padding: 10, background: "#eff6ff", borderRadius: 8, border: "1px solid #bfdbfe", marginBottom: 12 }}>
+    <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", marginBottom: 4 }}>Backup</div>
+    <div style={{ fontSize: 10, color: "#475569", marginBottom: 6, lineHeight: 1.4 }}>Downloads all real data ("data", shared by the app and beta) and the build copy ("data_build") as one dated file, in the same layout as a Firebase console export. Keep it somewhere safe; it contains health data.</div>
+    <button onClick={downloadBackup} disabled={backupBusy} style={{ width: "100%", padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{backupBusy ? "Preparing…" : "⬇️ Download backup"}</button>
+    {backupMsg && <div data-testid="backup-msg" style={{ fontSize: 11, fontWeight: 600, color: backupMsg.charAt(0) === "✓" ? "#166534" : "#991b1b", marginTop: 6 }}>{backupMsg}</div>}
+  </div>
+  <div data-testid="clear-history" style={{ padding: 10, background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca", marginBottom: 12 }}>
+    <div style={{ fontSize: 12, fontWeight: 700, color: "#991b1b", marginBottom: 4 }}>Clear old eating history</div>
+    <div style={{ fontSize: 10, color: "#475569", marginBottom: 6, lineHeight: 1.4 }}>Deletes only the meal selections (what was planned or eaten each day) for weeks starting before the date below. Food lists, exercise, body, health and settings are never touched. Take a backup first. Run the dry run to see the counts, then Delete.</div>
+    <label style={{ fontSize: 10, color: "#475569", display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>Delete weeks starting before
+      <input type="date" aria-label="Delete weeks starting before" value={clearBefore} onChange={function(e) { setClearBefore(e.target.value); setClearPlan(null); setClearMsg(""); }} style={{ padding: 4, border: "1px solid #fecaca", borderRadius: 6, fontSize: 11 }} />
+    </label>
+    <div style={{ display: "flex", gap: 6 }}>
+      <button onClick={clearDryRun} disabled={clearBusy || !clearBefore} style={{ flex: 1, padding: 8, background: "#fff", border: "1px solid #dc2626", color: "#991b1b", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{clearBusy ? "Working…" : "Dry run (counts only)"}</button>
+      <button onClick={clearDelete} disabled={clearBusy || !clearPlan || !clearPlan.weeks} style={{ flex: 1, padding: 8, background: (!clearPlan || !clearPlan.weeks) ? "#e2e8f0" : "#dc2626", border: "none", color: "#fff", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Delete</button>
+    </div>
+    {clearPlan && <div data-testid="clear-history-result" style={{ fontSize: 11, color: "#0f172a", marginTop: 6, lineHeight: 1.5 }}>Before {clearPlan.before}: {clearPlan.weeks} week plans · {clearPlan.selections} selections{Object.keys(clearPlan.perPerson).map(function(w) { var pp = clearPlan.perPerson[w]; return " · " + (w === "shared (old format)" ? w : personName(data, w)) + ": " + pp.weeks + " weeks, " + pp.selections + " selections"; }).join("")}</div>}
+    {clearMsg && <div data-testid="clear-history-msg" style={{ fontSize: 11, fontWeight: 600, color: clearMsg.charAt(0) === "✓" ? "#166534" : "#991b1b", marginTop: 6 }}>{clearMsg}</div>}
+  </div>
   {(() => {
     if (!data) return (<div style={{fontSize:11,color:"#94a3b8"}}>No data loaded</div>);
     var people = Object.keys(data).filter(function(k) { return data[k] && data[k].exercises; });
@@ -164,72 +308,45 @@ export default function DataSection({ ctx }) {
       </div>
       <div style={{ marginTop: 10, padding: 10, background: "#ecfdf5", borderRadius: 8, border: "1px solid #86efac" }}>
         <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6, color: "#0c4a6e" }}>Restore from Firebase Export</div>
-        <div style={{ fontSize: 10, color: "#475569", marginBottom: 6 }}>Paste your Firebase JSON export below and press Restore. This will merge missing weeks into current data without overwriting existing entries.</div>
+        <div style={{ fontSize: 10, color: "#475569", marginBottom: 6 }}>Paste a Download-backup file or a Firebase JSON export and press Preview. Merge adds missing exercise weeks only; Full restore replaces everything in data (on Build: data_build) and asks you to type RESTORE first.</div>
         <textarea id="restore-json" placeholder="Paste the full JSON here..." style={{ width: "100%", padding: 8, border: "1px solid #86efac", borderRadius: 6, fontSize: 10, minHeight: 80, resize: "vertical", boxSizing: "border-box", marginBottom: 6, fontFamily: "monospace" }}></textarea>
-        <button onClick={async function() {
+        {/* v2.7.0: preview first (counts only), then Merge (safe) or Full restore (double confirm) */}
+        <button onClick={function() {
           var raw = document.getElementById("restore-json").value.trim();
-          if (!raw) { setFormMsg("Paste the JSON first"); return; }
-          try {
-            var backup = JSON.parse(raw);
-            var nd = JSON.parse(JSON.stringify(data));
-            var restored = 0;
-            var people = ["jc", "becks"];
-            people.forEach(function(person) {
-              if (!backup[person] || !backup[person].exercises) return;
-              if (!nd[person]) return;
-              if (!nd[person].exercises) nd[person].exercises = {};
-              var bDays = Object.keys(backup[person].exercises);
-              bDays.forEach(function(day) {
-                if (!nd[person].exercises[day]) nd[person].exercises[day] = [];
-                var bExList = backup[person].exercises[day];
-                bExList.forEach(function(bEx) {
-                  var found = false;
-                  for (var ei = 0; ei < nd[person].exercises[day].length; ei++) {
-                    if (nd[person].exercises[day][ei].name === bEx.name) {
-                      found = true;
-                      var existing = nd[person].exercises[day][ei];
-                      if (!existing.prog) existing.prog = [];
-                      var bProg = bEx.prog || [];
-                      bProg.forEach(function(bp) {
-                        var has = false;
-                        for (var pi = 0; pi < existing.prog.length; pi++) {
-                          if (existing.prog[pi].wk === bp.wk) { has = true; break; }
-                        }
-                        if (!has) {
-                          existing.prog.push({ wk: bp.wk, w: bp.w, r: bp.r, note: bp.note || "" });
-                          restored++;
-                        }
-                      });
-                      existing.prog.sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
-                      existing.current = bEx.current || existing.current;
-                      existing.reps = bEx.reps || existing.reps;
-                      existing.status = bEx.status || existing.status;
-                      if (bEx.notes) existing.notes = bEx.notes;
-                      if (bEx.target) existing.target = bEx.target;
-                      break;
-                    }
-                  }
-                  if (!found) {
-                    nd[person].exercises[day].push(bEx);
-                    restored += (bEx.prog || []).length;
-                  }
-                });
-              });
-              if (backup[person].body) nd[person].body = backup[person].body;
-              if (backup[person].measurements) nd[person].measurements = backup[person].measurements;
-              if (backup[person].bloods) nd[person].bloods = backup[person].bloods;
-              if (backup[person].profile) nd[person].profile = backup[person].profile;
-              if (backup[person].meds) nd[person].meds = backup[person].meds;
-            });
-            if (backup.config) {
-              nd.config = nd.config || {};
-              if (backup.config.trainingStart) nd.config.trainingStart = backup.config.trainingStart;
-            }
-            await saveData(nd);
-            setFormMsg("Restored " + restored + " missing progression entries. Reload the app to see all data.");
-          } catch(e) { setFormMsg(window.aiErrorMsg(e)); }
-          setTimeout(function(){setFormMsg("");}, 15000);
-        }} style={{ width: "100%", padding: 10, background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Restore Data</button>
+          setRestoreMsg(""); setRestoreParsed(null);
+          if (!raw) { setRestoreMsg("Paste the JSON first"); return; }
+          try { var p = parseBackupInput(raw); setRestoreParsed(p); }
+          catch (e) { setRestoreMsg("Can't read this: " + String(e.message || e).substring(0, 100)); }
+        }} style={{ width: "100%", padding: 10, background: "#fff", color: "#166534", border: "1px solid #16a34a", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", marginBottom: 6 }}>Preview</button>
+        {restoreParsed && (function() { var c = backupCounts(restoreParsed); return (<div data-testid="restore-preview" style={{ fontSize: 11, color: "#0f172a", lineHeight: 1.5, marginBottom: 6 }}>Found: {restoreParsed.kind}{restoreParsed.dataRoot ? " · " + c.keys + " items in data (" + c.mealWeeks + " meal weeks)" : ""}{c.people.length ? " · exercise data for " + c.people.length + " people, " + c.exerciseWeeks + " logged weeks" : ""}</div>); })()}
+        {restoreParsed && (<div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <button disabled={!restoreParsed.dash || restoreBusy} onClick={async function() {
+            var backup = restoreParsed.dash; if (!backup) return;
+            setRestoreBusy(true);
+            try {
+              var r = mergeExerciseWeeks(backup);
+              await saveData(r.nd);
+              setRestoreMsg("✓ Merged: " + r.restored + " missing exercise weeks added. Nothing else was changed. Reload the app to see all data.");
+              setRestoreParsed(null);
+            } catch(e) { setRestoreMsg(window.aiErrorMsg(e)); }
+            setRestoreBusy(false);
+          }} style={{ width: "100%", padding: 10, background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", opacity: restoreParsed.dash ? 1 : 0.5 }}>Merge missing exercise weeks</button>
+          <button disabled={!restoreParsed.dataRoot || restoreBusy} onClick={async function() {
+            var target = restoreTarget(APP_ENV); var src = restoreParsed.dataRoot; if (!src) return;
+            var n = Object.keys(src).length;
+            if (!confirm("Full restore: overwrite EVERYTHING in \"" + target + "\" with the " + n + " items from this file? Anything added since the backup will be lost.")) return;
+            var typed = prompt("To confirm the full restore of \"" + target + "\", type RESTORE");
+            if (typed !== "RESTORE") { setRestoreMsg("Full restore cancelled — nothing was changed."); return; }
+            setRestoreBusy(true);
+            try {
+              await firebase.database().ref(target).set(src);
+              setRestoreMsg("✓ Full restore done: " + n + " items written to " + target + ". Close and reopen the app.");
+              setRestoreParsed(null);
+            } catch(e) { setRestoreMsg("Full restore failed: " + String(e.message || e).substring(0, 120) + ". Nothing was changed."); }
+            setRestoreBusy(false);
+          }} style={{ width: "100%", padding: 10, background: restoreParsed.dataRoot ? "#dc2626" : "#e2e8f0", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Full restore of {restoreTarget(APP_ENV) === "data" ? "data" : "data_build (Build)"}</button>
+        </div>)}
+        {restoreMsg && <div data-testid="restore-msg" style={{ fontSize: 11, fontWeight: 600, color: restoreMsg.charAt(0) === "✓" ? "#166534" : "#991b1b", marginTop: 6 }}>{restoreMsg}</div>}
       </div>
     </div>
       );

@@ -70,3 +70,45 @@ export function autoStatus(newWeight, newReps, prevProg, notes) {
   
   return "building";
 }
+
+
+// D2 (v2.6.1): weight and reps per set. New log entries carry sets: [{ w, r }] (w without "kg");
+// older entries only have w ("16kg", set 1) and r ("10x3" etc.), which still read correctly.
+export function entrySets(entry) {
+  if (entry && Array.isArray(entry.sets) && entry.sets.length) return entry.sets.map(function(s) { return { w: String(s.w == null ? "" : s.w), r: String(s.r == null ? "" : s.r) }; });
+  var reps = entry && entry.r ? parseReps(entry.r) : [];
+  var w = entry && entry.w ? String(entry.w).replace("kg", "") : "";
+  return (reps.length ? reps : [""]).map(function(r) { return { w: w, r: String(r) }; });
+}
+// Fill the log form (at least 3 sets) from an entry, repeating the last set if it had fewer.
+export function logSetsFrom(entry, n) {
+  var sets = entrySets(entry); var out = [];
+  for (var i = 0; i < Math.max(n || 3, 3); i++) out.push(sets[i] || { w: sets.length ? sets[sets.length - 1].w : "", r: sets.length ? sets[sets.length - 1].r : "" });
+  return out;
+}
+// True when an entry's sets used different weights (compared as numbers).
+export function setsDiffer(entry) {
+  if (!entry || !Array.isArray(entry.sets) || entry.sets.length < 2) return false;
+  var w0 = parseFloat(entry.sets[0].w);
+  return entry.sets.some(function(s) { return parseFloat(s.w) !== w0; });
+}
+// The weight to show for an entry: the range ("56–63kg") when sets differ, else the old single weight.
+export function weightLabel(entry) {
+  if (!entry) return "";
+  if (setsDiffer(entry)) {
+    var ws = entry.sets.map(function(s) { return parseFloat(s.w); }).filter(function(n) { return !isNaN(n); });
+    return Math.min.apply(null, ws) + "–" + Math.max.apply(null, ws) + "kg";
+  }
+  return entry.w || "";
+}
+// One line for display and AI prompts: "16kg×10, 22kg×8, 22kg×8" when weights differ, else the old "16kg 10x3" style.
+export function fmtEntry(entry) {
+  if (!entry) return "";
+  if (setsDiffer(entry)) return entry.sets.map(function(s) { return s.w + "kg×" + s.r; }).join(", ");
+  return (entry.w || "") + " " + (entry.r || "");
+}
+// The sets to save from the form; a blank weight on a later set means "same as set 1".
+export function setsToSave(logSets) {
+  var w1 = String((logSets[0] && logSets[0].w) || "").trim();
+  return logSets.map(function(s) { return { w: String(s.w || "").trim() || w1, r: String(s.r || "").trim() }; });
+}

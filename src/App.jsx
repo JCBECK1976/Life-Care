@@ -3,6 +3,7 @@
 // replaces the ReactDOM render call (now in main.jsx).
 import React from "react";
 import firebase, { DATA_ROOT } from "./lib/firebase.js";
+import { latestFirst } from "./lib/chat.js";
 import { TONE_RULES, WELLBEING_RULES } from "./constants/tone.js";
 import { MOOD_COLORS, MOOD_EMOJIS, MOOD_LABELS } from "./constants/mood.js";
 import { COLOUR_THEMES } from "./constants/themes.js";
@@ -13,7 +14,7 @@ import { BLOOD_TESTS, DEFAULT_MEDS, DEFAULT_SUPPS, IDEALS } from "./constants/he
 import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnMuted, btnP, btnPortion, btnS, btnStop, inputStyle, labelStyle } from "./constants/styles.js";
 import { accentVariant, hexToHsl, hslToHex } from "./lib/colour.js";
 import { buildExProfileInfo, getJournalWellbeingCtx, getMoodContext } from "./lib/aiContext.js";
-import { autoStatus, fmtReps, getExerciseType, getExerciseTypeConfig, parseReps } from "./lib/exercise.js";
+import { autoStatus, entrySets, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsToSave } from "./lib/exercise.js";
 import { calcWeek, countStatus, fbIcon, fmtDate, getWeekDates, mealKey, sBg, sColor, sLabel } from "./lib/utils.js";
 import { sGet, sSet } from "./lib/storage.js";
 import { handleApiError } from "./lib/api.js";
@@ -37,6 +38,7 @@ import EnvBadge from "./components/EnvBadge.jsx";
 import LoadingScreen from "./components/LoadingScreen.jsx";
 import PersonTabs, { peopleOf, personName } from "./components/PersonTabs.jsx";
 import { ALLOW_ADD_PERSON } from "./constants/features.js";
+import { childItems, dateOf, emptyDoc, loadParentLookup, loadWeekDoc, reconcile, recalcChild, saveWeekDoc, viewFromDoc, weekKey, ymd } from "./lib/children.js";
 
 const { useState, useEffect, useCallback, useRef } = React;
 function Dashboard() {
@@ -63,6 +65,7 @@ function Dashboard() {
   const [logWeek, setLogWeek] = useState("");
   const [logFullRange, setLogFullRange] = useState("working");
   const [logGoodForm, setLogGoodForm] = useState("working");
+  const [logNeedChoice, setLogNeedChoice] = useState(""); // D12: inline "Choose Form and Range" prompt
   const [logStatus, setLogStatus] = useState("");
   const [editPrev, setEditPrev] = useState(false);
   const [showMeasForm, setShowMeasForm] = useState(false);
@@ -712,28 +715,58 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const FIRST_KEY = "mealplan:2026-08-23";
   const FIRST_DEF = { sun: "spag_bol", mon: "sweet_chilli_mash", tue: "chicken_risotto", wed: "fish_chips", thu: "pesto_pasta", _notes: { wed: "JC at parents — Fish & Chips for Beck + boys", thu: "JC: work lunch + McFlurry with Evan. Session 3 moved to Thu." } };
 
-  const [pastWeeksMeals, setPastWeeksMeals] = useState([]);
+  const [pastWeeksMeals, setPastWeeksMeals] = useState([]);   // v2.6.5: past 4 weeks' children docs (frequency rules)
+  /* v2.6.5 eating data = parent list items + child selections (HANDOVER 10 Nov 14:35). `meals` stays the weekday
+     view the screens use; the CHILDREN in weekChildren are the data. */
+  const [weekChildren, setWeekChildrenState] = useState(emptyDoc());
+  const weekChildrenRef = React.useRef(emptyDoc());
+  const setWeekChildren = function(doc) { weekChildrenRef.current = doc; setWeekChildrenState(doc); };
+  const skRef = React.useRef(sk); skRef.current = sk;
+  const isCurrentWeek = ymd(weekStart) === ymd(new Date(baseStart.getTime() + Math.floor((new Date() - baseStart) / (7 * 864e5)) * 7 * 864e5));
   useEffect(() => {
     setMealLoading(true);
+    const mySk = sk; const who = activeTab; const ws = new Date(weekStart);
     (async () => {
-      const raw = await sGet(sk);
-      if (raw) setMeals(JSON.parse(raw));
-      else if (sk === FIRST_KEY) { setMeals(FIRST_DEF); await sSet(sk, JSON.stringify(FIRST_DEF)); }
-      else setMeals({});
-      /* Load past 4 weeks for RED frequency checking */
+      const lookup = await loadParentLookup();
+      const doc = await loadWeekDoc(who, ws, { write: true, current: isCurrentWeek, lookup: lookup });   // migrates an old plan once
+      if (skRef.current !== mySk) return;
+      setWeekChildren(doc); setMeals(viewFromDoc(doc));
+      /* Past 4 weeks for the frequency rules (children; old plans converted in memory only) */
       var past = [];
       for (var pw = 1; pw <= 4; pw++) {
-        var pws = new Date(weekStart); pws.setDate(pws.getDate() - (pw * 7));
-        var psk = mealKey(pws) + ":" + activeTab;
-        var praw = await sGet(psk);
-        if (praw) past.push(JSON.parse(praw));
+        var pws = new Date(ws); pws.setDate(pws.getDate() - (pw * 7));
+        past.push(await loadWeekDoc(who, pws, { write: false, lookup: lookup }));
       }
+      if (skRef.current !== mySk) return;
       setPastWeeksMeals(past);
       setMealLoading(false);
     })();
   }, [sk]);
 
-  const saveMeals = useCallback(async (d) => { setSaving(true); await sSet(sk, JSON.stringify(d)); setSaving(false); }, [sk]);
+  const parentLookupNow = function(extra) {
+    var l = {};
+    [].concat(BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, POTATO_SIDES, SNACKS, VEG_SIDES, customBreakfasts, customLunches, customMeals, customSnacks, customDrinks, customDesserts).forEach(function(it) { if (it && it.id) l[it.id] = it; });
+    return Object.assign(l, extra || {});
+  };
+  /* Screens edit the weekday view; saving turns it into children (parent picks become new children). */
+  const saveMeals = async (d, source, extraLookup) => {
+    setSaving(true);
+    const doc = reconcile(weekChildrenRef.current, d, parentLookupNow(extraLookup), { weekStart: weekStart, isJC: activeTab === "jc", source: source || "manual" });
+    setWeekChildren(doc); setMeals(viewFromDoc(doc));
+    await saveWeekDoc(activeTab, weekStart, doc);
+    setSaving(false);
+  };
+  /* Write one child directly (Snap). child = null removes it. Returns the previous child (for Undo). */
+  const setChildAt = async (weekday, slot, child) => {
+    const doc = JSON.parse(JSON.stringify(weekChildrenRef.current)); const id = "c_" + dateOf(weekStart, weekday) + "_" + slot;
+    const prev = doc.children[id] || null;
+    if (child) { doc.children[id] = recalcChild(Object.assign({}, child, { id: id, date: dateOf(weekStart, weekday), weekday: weekday, slot: slot })); doc.empty = (doc.empty || []).filter(function(k) { return k !== weekday + ":" + slot; }); }
+    else delete doc.children[id];
+    setWeekChildren(doc); setMeals(viewFromDoc(doc));
+    await saveWeekDoc(activeTab, weekStart, doc);
+    return prev;
+  };
+  const childItemsList = childItems(weekChildren, parentLookupNow());
   const pickMeal = (dk, id) => { const n = { ...meals, [dk]: id }; setMeals(n); saveMeals(n); setEditDay(null); };
   const clearMeal = dk => { const n = { ...meals }; delete n[dk]; setMeals(n); saveMeals(n); };
   const saveData = async (nd) => { setData(nd); await sSet("dashboard:data", JSON.stringify(nd)); };
@@ -816,7 +849,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
     const ex = data[activeTab].exercises[day][idx];
     const last = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
-    setLogEx({ day, idx });
+    setLogEx({ day, idx, who: activeTab }); setLogNeedChoice(""); // D1: the form belongs to this person
     var targetW = "";
     var targetR = "";
     if (ex.target) {
@@ -830,7 +863,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     var r1 = targetR || (lastReps[0] ? String(lastReps[0]) : "");
     var r2 = targetR || (lastReps[1] ? String(lastReps[1]) : (lastReps[0] ? String(lastReps[0]) : ""));
     var r3 = targetR || (lastReps[2] ? String(lastReps[2]) : (lastReps[0] ? String(lastReps[0]) : ""));
-    setLogSets([{ w: useW, r: r1 }, { w: useW, r: r2 }, { w: useW, r: r3 }]);
+    var lastSets = last ? entrySets(last) : [];
+    var wFor = function(i) { return targetW || (lastSets[i] ? lastSets[i].w : useW); }; // D2: last session's per-set weights
+    if (last && Array.isArray(last.sets) && last.sets.length) setLogSets(logSetsFrom(last, 3)); // each set from the previous entry
+    else setLogSets([{ w: wFor(0), r: r1 }, { w: wFor(1), r: r2 }, { w: wFor(2), r: r3 }]);
     (function() {
       var maxWk = 0;
       if (ex.prog) { for (var mwi = 0; mwi < ex.prog.length; mwi++) { if (ex.prog[mwi].wk > maxWk) maxWk = ex.prog[mwi].wk; } }
@@ -841,21 +877,15 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     var currentWkEntry = null;
     if (ex.prog) { for (var cwi = 0; cwi < ex.prog.length; cwi++) { if (ex.prog[cwi].wk === currentCalcWk2) { currentWkEntry = ex.prog[cwi]; break; } } }
     if (currentWkEntry) {
-      var cwReps = currentWkEntry.r ? parseReps(currentWkEntry.r) : [];
-      setLogSets([
-        { w: currentWkEntry.w ? currentWkEntry.w.replace("kg","") : "", r: cwReps[0] ? String(cwReps[0]) : "" },
-        { w: currentWkEntry.w ? currentWkEntry.w.replace("kg","") : "", r: cwReps[1] ? String(cwReps[1]) : "" },
-        { w: currentWkEntry.w ? currentWkEntry.w.replace("kg","") : "", r: cwReps[2] ? String(cwReps[2]) : "" }
-      ]);
+      setLogSets(logSetsFrom(currentWkEntry, 3)); // D2: per-set
       setLogWeek(String(currentCalcWk2));
       setLogComment(currentWkEntry.note || "");
-      setLogFullRange(currentWkEntry.fullRange || "working");
-      setLogGoodForm(currentWkEntry.goodForm || "working");
+      setLogFullRange(currentWkEntry.fullRange || "");
+      setLogGoodForm(currentWkEntry.goodForm || "");
       setEditPrev(true);
     } else {
       setLogComment(""); setEditPrev(false);
-      setLogFullRange(last && last.fullRange ? last.fullRange : "working");
-      setLogGoodForm(last && last.goodForm ? last.goodForm : "working");
+      setLogFullRange(""); setLogGoodForm(""); // D12: always start unselected
     }
     setLogStatus("");
     setPrevComment("");
@@ -875,6 +905,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     const nd = JSON.parse(JSON.stringify(data));
     const ex = nd[activeTab].exercises[day][idx];
     if (ex && ex.stopped) { setFormMsg("⏸ " + ex.name + " is stopped — restart it in Exercise Settings to log"); setTimeout(() => setFormMsg(""), 4000); return; }
+    // D12: Form and Range must be chosen (for everyone being saved from this form)
+    if (!logGoodForm || !logFullRange) { setLogNeedChoice("Choose Form and Range to save"); return; }
+    setLogNeedChoice("");
+    var _sets = setsToSave(logSets); // D2: weight and reps per set
     if (editPrev && ex.prog.length > 0) {
       // Edit previous entry
       const prev = ex.prog[ex.prog.length - 1];
@@ -882,7 +916,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       prev.r = fmtReps(logSets.map(s => parseInt(s.r) || 0));
       prev.wk = parseInt(logWeek) || prev.wk;
       prev.note = logComment.trim() || prev.note || "";
-      prev.fullRange = logFullRange; prev.goodForm = logGoodForm;
+      prev.fullRange = logFullRange; prev.goodForm = logGoodForm; prev.sets = _sets;
       ex.current = prev.w; ex.reps = prev.r;
       // Status and target deferred to AI feedback
       ex.status = "";
@@ -901,7 +935,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         ex.prog[existingIdx].w = (logSets[0].w || String(parseInt(ex.current) || 0)) + "kg";
         ex.prog[existingIdx].r = fmtReps(logSets.map(s => parseInt(s.r) || 0));
         ex.prog[existingIdx].note = logComment.trim() || ex.prog[existingIdx].note || "";
-        ex.prog[existingIdx].fullRange = logFullRange; ex.prog[existingIdx].goodForm = logGoodForm;
+        ex.prog[existingIdx].fullRange = logFullRange; ex.prog[existingIdx].goodForm = logGoodForm; ex.prog[existingIdx].sets = _sets;
         ex.current = ex.prog[existingIdx].w;
         ex.reps = ex.prog[existingIdx].r;
         ex.notes = logComment.trim() || "";
@@ -916,7 +950,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       const repsStr = fmtReps(logSets.map(s => parseInt(s.r) || 0));
       const wStr = w + "kg";
       const wk = parseInt(logWeek) || calcWeek(data.config.trainingStart);
-      ex.prog.push({ wk, w: wStr, r: repsStr, note: logComment.trim() || "", fullRange: logFullRange, goodForm: logGoodForm });
+      ex.prog.push({ wk, w: wStr, r: repsStr, sets: _sets, note: logComment.trim() || "", fullRange: logFullRange, goodForm: logGoodForm });
       ex.current = wStr; ex.reps = repsStr;
       // Status and target deferred to AI feedback
       ex.status = "";
@@ -937,15 +971,21 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     const target = "ex-" + day + "-" + idx;
     var scrollY = window.scrollY; setLogEx(null); setSelectedEx(null); requestAnimationFrame(function() { window.scrollTo(0, scrollY); });
     await saveData(nd);
-    // Save other person's data if they were edited via dual tabs
+    // Save other person's data if they were edited via dual tabs.
+    // JC's rule (v2.6.1): another person is saved ONLY if their Form and Range are both chosen;
+    // otherwise their entry is treated as untouched and not saved (no block). Confirmation names both.
+    var _savedFor = [personName(nd, activeTab)], _notSaved = [];
     if (window._dualLogState) {
       var otherTabs = Object.keys(window._dualLogState).filter(function(t) { return t !== activeTab; });
       for (var oti = 0; oti < otherTabs.length; oti++) {
         var ot = otherTabs[oti];
         var otState = window._dualLogState[ot];
-        if (otState && otState._edited && otState.sets && otState.sets[0] && otState.sets[0].w && otState.sets[0].r) {
+        var _hasEntry = otState && otState._edited && otState.sets && otState.sets[0] && otState.sets[0].w && otState.sets[0].r;
+        if (_hasEntry && !(otState.goodForm && otState.fullRange)) { _notSaved.push(personName(nd, ot)); continue; }
+        if (_hasEntry) {
           var otEx = nd[ot] && nd[ot].exercises && nd[ot].exercises[day] ? nd[ot].exercises[day][idx] : null;
           if (otEx && !otEx.stopped) {
+            _savedFor.push(personName(nd, ot));
             var otW = otState.sets[0].w + "kg";
             var otReps = fmtReps(otState.sets.map(function(s) { return parseInt(s.r) || 0; }));
             var otWk = parseInt(otState.week || logWeek) || calcWeek(data.config.trainingStart);
@@ -954,9 +994,11 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             if (otExistIdx >= 0) {
               otEx.prog[otExistIdx].w = otW;
               otEx.prog[otExistIdx].r = otReps;
+              otEx.prog[otExistIdx].sets = setsToSave(otState.sets);
               otEx.prog[otExistIdx].note = otState.comment || "";
+              otEx.prog[otExistIdx].fullRange = otState.fullRange; otEx.prog[otExistIdx].goodForm = otState.goodForm;
             } else {
-              otEx.prog.push({ wk: otWk, w: otW, r: otReps, note: otState.comment || "" });
+              otEx.prog.push({ wk: otWk, w: otW, r: otReps, sets: setsToSave(otState.sets), note: otState.comment || "", fullRange: otState.fullRange, goodForm: otState.goodForm });
             }
             otEx.current = otW; otEx.reps = otReps;
             otEx.notes = otState.comment || "";
@@ -981,7 +1023,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       window._dualLogState = {};
       await saveData(nd);
     }
-    setFormMsg("✓ Logged " + ex.name); setTimeout(() => setFormMsg(""), 3000);
+    setFormMsg("✓ " + ex.name + ": saved for " + _savedFor.join(" and ") + (_notSaved.length ? " · " + _notSaved.join(", ") + " not saved (Form and Range not chosen)" : "")); setTimeout(() => setFormMsg(""), 6000);
     setScrollTarget(target);
   };
 
@@ -1068,7 +1110,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       }
       // Gather meal plan
       let mealSummary = "";
-      try { const mr = await sGet(sk); if (mr) { const mp = JSON.parse(mr); const dayInfo = MEAL_DAYS.map(d => { const entry = mp[d.key]; const isO = entry && typeof entry === "object"; const din = isO ? entry.d : entry; const ml = allDinners.find(m => m.id === din); const note = isO ? entry._note : ""; return d.label + ": " + (ml ? ml.name : "unplanned") + (note ? " (" + note + ")" : ""); }).join(", "); mealSummary = "\nThis week's meals: " + dayInfo + "."; } } catch {}
+      try { const mr = true; if (mr) { const mp = viewFromDoc(weekChildrenRef.current); /* v2.6.5: children */ const dayInfo = MEAL_DAYS.map(d => { const entry = mp[DAY_MAP[d.key] || d.key]; const isO = entry && typeof entry === "object"; const din = isO ? entry.d : entry; const ml = childItemsList.find(m => m.id === din) || allDinners.find(m => m.id === din); const note = isO ? entry._note : ""; return d.label + ": " + (ml ? ml.name : "unplanned") + (note ? " (" + note + ")" : ""); }).join(", "); mealSummary = "\nThis week's meals: " + dayInfo + "."; } } catch {}
       // Gather exercise comments \u2014 separated by current vs previous weeks
       let exComments = "";
       try {
@@ -1111,7 +1153,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
           var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null;
           var qualInfo = ""; if (latest) { var et = ex.exType || "weights"; var frLbl = ["weights","bodyweight","timed_hold","stretching"].indexOf(et) >= 0 ? "FullRange" : "CompletedInOne"; qualInfo = frLbl + "=" + (latest.fullRange === "good" ? "Good" : "Working") + ",GoodForm=" + (latest.goodForm === "good" ? "Good" : "Working"); }
-          return { name: ex.name, current: ex.current, reps: ex.reps, status: ex.status, target: ex.target || "", notes: ex.notes || "", prev: prev ? prev.w + " " + prev.r + " Wk" + prev.wk : "", weeksTracked: ex.prog ? ex.prog.length : 0, quality: qualInfo };
+          return { name: ex.name, current: ex.current, reps: ex.reps, status: ex.status, target: ex.target || "", notes: ex.notes || "", prev: prev ? fmtEntry(prev) + " Wk" + prev.wk : "", weeksTracked: ex.prog ? ex.prog.length : 0, quality: qualInfo };
         });
       }
       const prompt = "You are " + (prof.name || "the user") + "'s Lifecare Companion — a trusted, knowledgeable friend checking in on their progress in Week " + data.config.week + ". You know " + (prof.name || "them") + " well: " + who + ".\n\nSCENE: You're giving your honest take on how things are going across their exercise, eating, body, health, medications, and life in general. You have access to ALL their data and you weave it together naturally like a friend who's been following their journey.\n\nCOMMUNICATION STYLE: Start with 'Hi " + (prof.name || "") + ",' then get straight into your observations. Speak directly using 'you' and 'your' — NEVER third person. Do NOT ask them questions about themselves (unless you genuinely need a specific piece of information to make a recommendation). Do NOT suggest doing things together — you're an AI companion, not a real person. Do NOT use fake-casual openers like 'grab a coffee' or 'good to see you'. Write as flowing, natural paragraphs. No bullet points, no headers, no structured sections.\n\n" + TONE_RULES + getMoodContext(userMood) + getJournalWellbeingCtx(journalEntries, wellbeingFlags) + "\n\nDATA TO WEAVE INTO YOUR CHAT:\nExercises: " + JSON.stringify(exSummary) + "\nBody: " + JSON.stringify(p.body) + "\nMeasurements: " + JSON.stringify(p.measurements) + mealSummary + exComments + healthContext + bloodContext + medsContext + medsHistCtx + measCommCtx + qaCtx + attachCtx + photoCtx + activityCtx + getOnboardingCtx(tab) + prevContext + getCrossSectionCtx(tab, "home") + (function() { if (!journalEntries || journalEntries.length === 0) return ""; var todayStr = new Date().toISOString().split("T")[0]; var todayEntries = journalEntries.filter(function(e) { return e.date === todayStr; }); var recentEntries = journalEntries.slice(0, 10); var moodCounts = {}; recentEntries.forEach(function(e) { if (e.mood !== null && e.mood !== undefined) { var label = MOOD_LABELS[e.mood]; moodCounts[label] = (moodCounts[label] || 0) + 1; } }); return "\n\nJOURNAL ENTRIES (read these carefully — the user is sharing what's on their mind):\nToday's entries: " + (todayEntries.length > 0 ? todayEntries.map(function(e) { return (e.mood !== null && e.mood !== undefined ? "[" + MOOD_LABELS[e.mood] + "] " : "") + e.text; }).join(" | ") : "None yet") + "\nRecent entries (last 10): " + JSON.stringify(recentEntries.map(function(e) { return { date: e.date, mood: e.mood !== null && e.mood !== undefined ? MOOD_LABELS[e.mood] : null, text: e.text }; })) + "\nMood distribution (recent): " + JSON.stringify(moodCounts) + "\nTotal journal entries: " + journalEntries.length; })() + "\n\nRULES:\n- Write 3-4 short paragraphs of natural conversation — like actual speech, not a report.\n- Reference SPECIFIC numbers from the data (weights, reps, calories, blood results, measurements).\n- Cover the full picture: what's going well, what could be better, and one thing to focus on — but woven together naturally, not in labelled sections.\n- MEDICATION: Note interactions between active meds AND with diet/exercise. Label [OFFICIAL] vs [ANECDOTAL]. Never recommend stopping medication.\n- Keep total length under 200 words. Quality over quantity.\n- Return ONLY a JSON object: {\"chat\":\"your conversational paragraphs here\", \"wellbeingFlags\":{}} where wellbeingFlags is OPTIONAL — only include it if you are flagging a wellbeing concern at Tier 2+. Format: {\"concern_key\":{\"tier\":2,\"concern\":\"recurring headaches\",\"signposted\":\"GP\",\"date\":\"" + new Date().toISOString().split("T")[0] + "\"}}. Use snake_case keys like 'headaches', 'low_mood', 'work_stress'. Omit wellbeingFlags entirely if no concerns at Tier 2+.\n- Use \\n\\n between paragraphs in the chat value.";
@@ -1170,9 +1212,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       const allSn = [...SNACKS, ...customSnacks];
       const allDr = [...customDrinks];
       const allDe = [...customDesserts];
-      const allFood = [].concat(allBf, allLu, allDin, allSn, allDr, allDe);
+      const allFood = [].concat(childItemsList, allBf, allLu, allDin, allSn, allDr, allDe); /* v2.6.5: children first */
       const dayMeals = meals[dayKey] || {};
-      const tracking = mealTracking || {};
+      const tracking = {}; /* v2.6.5: status lives on the child (item._status) */
       // Build planned vs consumed for this day
       var planned = []; var consumed = []; var skipped = [];
       var slots = [
@@ -1190,7 +1232,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           var item = allFood.find(function(x) { return x.id === id; });
           if (!item) return;
           var trackKey = dayKey + ":" + k;
-          var status = tracking[trackKey] || "planned";
+          var status = item._status || tracking[trackKey] || "planned";
           var entry = { slot: sl.cat, name: item.name, kcal: item[kf] || 0, prot: item[pf] || item.jcProt || 0, fat: item[ff] || item.jcFat || 0, rating: item.rating || "GREAT", freq: item.freq || "" };
           planned.push(entry);
           if (status === "consumed") consumed.push(entry);
@@ -1244,7 +1286,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       // Week context - what other days look like
       var weekCtx = "";
       try {
-        var DAYS7 = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+        var DAYS7 = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"]; /* C1: chronological */
         var dayParts = [];
         DAYS7.forEach(function(dk) {
           if (dk === dayKey) return;
@@ -1326,9 +1368,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       const allSn = [...SNACKS, ...customSnacks];
       const allDr = [...customDrinks];
       const allDe = [...customDesserts];
-      const allFood = [].concat(allBf, allLu, allDin, allSn, allDr, allDe);
-      const tracking = mealTracking || {};
-      var DAYS7 = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+      const allFood = [].concat(childItemsList, allBf, allLu, allDin, allSn, allDr, allDe); /* v2.6.5: children first */
+      const tracking = {}; /* v2.6.5: status lives on the child (item._status) */
+      var DAYS7 = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"]; /* C1: chronological */
       var weekSummary = []; var weekTotKcal = 0; var weekTotProt = 0; var weekTotFat = 0; var daysPlanned = 0;
       var allRedItems = []; var allAmberItems = [];
       DAYS7.forEach(function(dk) {
@@ -1350,7 +1392,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             var item = allFood.find(function(x) { return x.id === id; });
             if (!item) return;
             var trackKey = dk + ":" + k;
-            var status = tracking[trackKey] || "planned";
+            var status = item._status || tracking[trackKey] || "planned";
             var entry = { slot: sl.cat, name: item.name, kcal: item[kf] || 0, prot: item[pf] || item.jcProt || 0, fat: item[ff] || item.jcFat || 0, rating: item.rating || "GREAT", freq: item.freq || "" };
             dayPlanned.push(entry);
             if (status === "consumed") dayConsumed.push(entry);
@@ -1615,19 +1657,19 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     var loadKey = fbType + "-" + fbKey;
     var isLoading = threadLoading[loadKey];
     return React.createElement("div", { style: { marginTop: 10 } },
+      React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 8 } },
+        React.createElement("textarea", { id: "thread-input-" + fbType + "-" + fbKey, placeholder: thread.length > 0 ? "Continue the conversation..." : "Respond to this feedback...", disabled: isLoading, style: { flex: 1, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, resize: "vertical", minHeight: 40, boxSizing: "border-box", fontFamily: "inherit", opacity: isLoading ? 0.6 : 1 } }),
+        React.createElement("button", { onClick: function() { threadReply(fbObj, fbType, fbKey, updateFn, saveKey); }, disabled: isLoading, style: { padding: "8px 14px", background: isLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: isLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap", alignSelf: "flex-end", minWidth: 50 } }, isLoading ? React.createElement("span", null, React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })) : "Send"),
       thread.length > 0 && React.createElement("div", { style: { marginBottom: 8 } },
         React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#94a3b8", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" } }, "Conversation"),
-        thread.map(function(m, i) {
+        latestFirst(thread).map(function(m, i) { /* v2.6.4 D8: latest exchange first, input above */
           var isUser = m.role === "user";
           return React.createElement("div", { key: i, style: { display: "flex", flexDirection: "column", alignItems: isUser ? "flex-end" : "flex-start", marginBottom: 6 } },
             React.createElement("div", { style: { maxWidth: "85%", padding: "8px 12px", borderRadius: isUser ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: isUser ? accentChatUser : "#334155", border: isUser ? "1px solid " + accentBorder : "none", color: isUser ? "#334155" : "#fff", fontSize: 12, lineHeight: 1.5 } }, m.text),
             React.createElement("div", { style: { fontSize: 9, color: "#94a3b8", marginTop: 2, paddingLeft: 4, paddingRight: 4 } }, isUser ? "You" : "Companion", m.when ? " · " + m.when : "")
           );
         })
-      ),
-      React.createElement("div", { style: { display: "flex", gap: 6 } },
-        React.createElement("textarea", { id: "thread-input-" + fbType + "-" + fbKey, placeholder: thread.length > 0 ? "Continue the conversation..." : "Respond to this feedback...", disabled: isLoading, style: { flex: 1, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, resize: "vertical", minHeight: 40, boxSizing: "border-box", fontFamily: "inherit", opacity: isLoading ? 0.6 : 1 } }),
-        React.createElement("button", { onClick: function() { threadReply(fbObj, fbType, fbKey, updateFn, saveKey); }, disabled: isLoading, style: { padding: "8px 14px", background: isLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: isLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap", alignSelf: "flex-end", minWidth: 50 } }, isLoading ? React.createElement("span", null, React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })) : "Send")
+      )
       )
     );
   };
@@ -1765,7 +1807,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const btnMT = Object.assign({}, btnMuted, { background: accentBtnLight, border: "1px solid " + accentBtnBorder });
   const stats = countStatus(p.exercises);
   const allDinners = [...DINNERS, ...customMeals];
-  const shopItems = {}; MEAL_DAYS.forEach(d => { var _dk = DAY_MAP[d.key] || d.key; var _dm = meals[_dk] || {}; var _did = typeof _dm === "object" ? _dm.d : _dm; const m = allDinners.find(x => x.id === _did); if (m) m.shop?.forEach(it => { shopItems[it] = (shopItems[it] || 0) + 1; }); });
+  const shopItems = {}; MEAL_DAYS.forEach(d => { var _dk = DAY_MAP[d.key] || d.key; var _dm = meals[_dk] || {}; var _did = typeof _dm === "object" ? _dm.d : _dm; const m = childItemsList.find(x => x.id === _did) || allDinners.find(x => x.id === _did); if (m) m.shop?.forEach(it => { shopItems[it] = (shopItems[it] || 0) + 1; }); });
   const shopList = Object.entries(shopItems).sort((a, b) => a[0].localeCompare(b[0]));
   const planned = MEAL_DAYS.filter(d => meals[DAY_MAP[d.key] || d.key]).length;
   const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "My Body" }, { id: "weights", l: "My Exercise" }, { id: "meals", l: "My Eating" }, { id: "shop", l: "My Shop" }, { id: "bloods", l: "My Health" }];
@@ -1807,7 +1849,14 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           <PersonTabs testId="person-tabs" people={peopleOf(data)} activeKey={activeTab}
             tabStyle={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }}
             activeStyle={{ background: "rgba(255,255,255,0.95)", color: "#0f172a", letterSpacing: "0.02em" }} inactiveStyle={{ background: "transparent", color: "rgba(255,255,255,0.45)", letterSpacing: "0" }}
-            onSelect={(k) => { setActiveTab(k); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); setCopyDayOpen(false); setCopyWeekOpen(false); setHomeFbExpanded(false); setFbExpanded(false); setEatFbExpanded(false); setHealthFbExpanded(false); setBodyFbExpanded(false); setMeasFbExpanded2(false); loadUserSettings(k); setJournalText(""); setShowRecentJournal(false); setShowFullJournal(false); }} />
+            onSelect={(k) => {
+              // D1: a Log Exercise form belongs to the person it was opened for. Switching person here asks
+              // first and closes the form cleanly; never a form showing one person's entries for another.
+              if (logEx && k !== activeTab) {
+                if (!window.confirm("Discard " + personName(data, activeTab) + "'s unsaved log entries and switch to " + personName(data, k) + "?")) return;
+                setLogEx(null); setSelectedEx(null); setLogNeedChoice(""); window._dualLogState = null;
+              }
+              setActiveTab(k); setEatDayEyeOpen(false); setEatDayChartOpen(false); setEatWeekEyeOpen(false); setCopyDayOpen(false); setCopyWeekOpen(false); setHomeFbExpanded(false); setFbExpanded(false); setEatFbExpanded(false); setHealthFbExpanded(false); setBodyFbExpanded(false); setMeasFbExpanded2(false); loadUserSettings(k); setJournalText(""); setShowRecentJournal(false); setShowFullJournal(false); }} />
           {ALLOW_ADD_PERSON && (<button onClick={() => setShowAddPerson(true)} style={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", background: "transparent", color: "rgba(255,255,255,0.3)", transition: "all 0.2s ease" }}>+</button>)}
         </div>
         {showAddPerson && (<div style={{ marginTop: 10, display: "flex", gap: 6 }}>
@@ -1829,12 +1878,12 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         {section === "body" && (<ErrorBoundary name="Body"><BodySection ctx={{ accent, accentBorder, accentLight, accentMid, activeTab, addMeasName, addMeasOpen, bodyFbAll, bodyFbExpanded, bodyFbLoading, bodyFeedback, bodyInputs, bodyMetricOpen, bodyMetricShowAll, bodyView, btnST, data, editMeasKey, editMeasName, getCrossSectionCtx, getOnboardingCtx, idealSt, isJC, measFbAll, measFbExpanded2, measFbLoading, measFeedback, measLogInputs, measLogKey, measMetricOpen, measMetricShowAll, p, renderThread, saveBodyComp, saveData, setAddMeasName, setAddMeasOpen, setBodyFbExpanded, setBodyFbLoading, setBodyFeedback, setBodyInputs, setBodyMetricOpen, setBodyMetricShowAll, setBodyView, setEditMeasKey, setEditMeasName, setFormMsg, setMeasFbExpanded2, setMeasFbLoading, setMeasFeedback, setMeasLogInputs, setMeasLogKey, setMeasMetricOpen, setMeasMetricShowAll, setShowBodyForm, showBodyForm, updateBodyFb, updateMeasFb, userMood, weekLabel, wt, wtDelta, wtSign, wtStr }} /></ErrorBoundary>)}
 
         {/* WEIGHTS */}
-        {section === "weights" && <ErrorBoundary name="Exercise"><ExerciseSection ctx={{ accent, accentBorder, accentLight, accentMid, activeTab, addExConfirm, addExLoading, addExOpen, addExSearch, btnST, coolDownOpen, customExercises, data, dayView, decisionsExpanded, editExercise, editPrev, exInfoOpen, exerciseDay, fbExpanded, getCrossSectionCtx, getOnboardingCtx, isJC, loadUserSettings, logComment, logEx, logFormRef, logFullRange, logGoodForm, logOverride, logSets, logWeek, newExName, openLogForm, p, prevComment, renderThread, saveData, saveLog, selectedEx, sessionFbLoading, sessionFeedback, sessionGuideLoading, setActiveTab, setAddExConfirm, setAddExLoading, setAddExOpen, setAddExSearch, setCoolDownOpen, setCustomExercises, setDayView, setDecisionsExpanded, setEditExercise, setEditPrev, setExInfoOpen, setExerciseDay, setFbExpanded, setFormMsg, setLogComment, setLogEx, setLogFullRange, setLogGoodForm, setLogOverride, setLogSets, setLogWeek, setNewExName, setNewSectionName, setSelectedEx, setSessionFbLoading, setSessionFeedback, setSessionGuideLoading, setShowNewExForm, setShowNewSection, setStoppedExOpen, setWarmUpOpen, stoppedExOpen, updateSessionFb, userMood, warmUpOpen, weekLabel }} /></ErrorBoundary>}
+        {section === "weights" && <ErrorBoundary name="Exercise"><ExerciseSection ctx={{ accent, accentBorder, accentLight, accentMid, activeTab, addExConfirm, addExLoading, addExOpen, addExSearch, btnST, coolDownOpen, customExercises, data, dayView, decisionsExpanded, editExercise, editPrev, exInfoOpen, exerciseDay, fbExpanded, getCrossSectionCtx, getOnboardingCtx, isJC, loadUserSettings, logComment, logEx, logFormRef, logFullRange, logGoodForm, logOverride, logSets, logWeek, newExName, openLogForm, p, prevComment, renderThread, saveData, saveLog, selectedEx, sessionFbLoading, sessionFeedback, sessionGuideLoading, setActiveTab, setAddExConfirm, setAddExLoading, setAddExOpen, setAddExSearch, setCoolDownOpen, setCustomExercises, setDayView, setDecisionsExpanded, setEditExercise, setEditPrev, setExInfoOpen, setExerciseDay, setFbExpanded, setFormMsg, setLogComment, setLogEx, setLogFullRange, setLogGoodForm, setLogOverride, setLogSets, setLogWeek, setNewExName, setNewSectionName, setSelectedEx, setSessionFbLoading, setSessionFeedback, setSessionGuideLoading, setShowNewExForm, setShowNewSection, setStoppedExOpen, setWarmUpOpen, stoppedExOpen, updateSessionFb, userMood, warmUpOpen, weekLabel , logNeedChoice, setLogNeedChoice}} /></ErrorBoundary>}
 
         {/* MEDS */}
 
         {/* MEALS */}
-        {section === "meals" && <ErrorBoundary name="Eating"><EatingSection ctx={{ accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, addingCategory, addingNew, addingSlotDay, addingSlotKey, addingSource, baseStart, bulkReviewItems, calcRAG, cameraPreview, copyDayOpen, copyDayTargets, copyWeekOpen, copyWeekTargets, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, data, defScopes, eatDay, eatDayEyeOpen, eatFbExpanded, eatFbLoading, eatFbResults, eatWeekEyeOpen, editDraft, editingItem, formMsg, generateEatFeedback, generateWeekEatFeedback, generating, helpEatCat, helpEatLoading, helpEatResult, helpEatText, isJC, manageListsOpen, mealDefaults, mealTracking, meals, newItemLoading, newItemName, offLoading, offResults, openAddForm, p, pastWeeksMeals, portionLoading, portionOverrides, portionPlanned, portionResult, portionSlot, quickPrepMins, ragRecalcLoading, ragRecalcMsg, recalculateAllRag, renderThread, reviewCategories, reviewSideType, saveMeals, searchOFF, setAddingCategory, setAddingNew, setAddingSlotDay, setAddingSlotKey, setBulkReviewItems, setCameraPreview, setCopyDayOpen, setCopyDayTargets, setCopyWeekOpen, setCopyWeekTargets, setCustomBreakfasts, setCustomDesserts, setCustomDrinks, setCustomLunches, setCustomMeals, setCustomSnacks, setDefScopes, setEatDay, setEatDayChartOpen, setEatDayEyeOpen, setEatFbExpanded, setEatWeekEyeOpen, setEditDraft, setEditingItem, setFormMsg, setGenerating, setHelpEatCat, setHelpEatLoading, setHelpEatResult, setHelpEatText, setManageListsOpen, setMealDefaults, setMealTracking, setMeals, setNewItemLoading, setNewItemName, setOffResults, setOffSearchTerm, setPortionLoading, setPortionOverrides, setPortionPlanned, setPortionResult, setPortionSlot, setQuickPrepMins, setRagRecalcMsg, setReviewCategories, setReviewSideType, setSaving, setWeekOff, updateEatDayFb, updateEatWeekFb, weekLabel, weekOff, weekStart }} /></ErrorBoundary>}
+        {section === "meals" && <ErrorBoundary name="Eating"><EatingSection ctx={{ accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, addingCategory, addingNew, addingSlotDay, addingSlotKey, addingSource, baseStart, bulkReviewItems, calcRAG, cameraPreview, copyDayOpen, copyDayTargets, copyWeekOpen, copyWeekTargets, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, data, defScopes, eatDay, eatDayEyeOpen, eatFbExpanded, eatFbLoading, eatFbResults, eatWeekEyeOpen, editDraft, editingItem, formMsg, generateEatFeedback, generateWeekEatFeedback, generating, helpEatCat, helpEatLoading, helpEatResult, helpEatText, isJC, manageListsOpen, mealDefaults, mealTracking, meals, newItemLoading, newItemName, offLoading, offResults, openAddForm, p, pastWeeksMeals, portionLoading, portionOverrides, portionPlanned, portionResult, portionSlot, quickPrepMins, ragRecalcLoading, ragRecalcMsg, recalculateAllRag, renderThread, reviewCategories, reviewSideType, saveMeals, setChildAt, weekChildren, childItemsList, searchOFF, setAddingCategory, setAddingNew, setAddingSlotDay, setAddingSlotKey, setBulkReviewItems, setCameraPreview, setCopyDayOpen, setCopyDayTargets, setCopyWeekOpen, setCopyWeekTargets, setCustomBreakfasts, setCustomDesserts, setCustomDrinks, setCustomLunches, setCustomMeals, setCustomSnacks, setDefScopes, setEatDay, setEatDayChartOpen, setEatDayEyeOpen, setEatFbExpanded, setEatWeekEyeOpen, setEditDraft, setEditingItem, setFormMsg, setGenerating, setHelpEatCat, setHelpEatLoading, setHelpEatResult, setHelpEatText, setManageListsOpen, setMealDefaults, setMealTracking, setMeals, setNewItemLoading, setNewItemName, setOffResults, setOffSearchTerm, setPortionLoading, setPortionOverrides, setPortionPlanned, setPortionResult, setPortionSlot, setQuickPrepMins, setRagRecalcMsg, setReviewCategories, setReviewSideType, setSaving, setWeekOff, updateEatDayFb, updateEatWeekFb, weekLabel, weekOff, weekStart }} /></ErrorBoundary>}
 
         {section === "shop" && (<ErrorBoundary name="Shop"><ShopSection ctx={{ accentBorder, accentBtnBorder, accentBtnLight, accentLight, activeTab, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, data, editHealthText, editingHealthLog, foodCheckerCategory, foodCheckerLoading, foodCheckerPreview, foodCheckerText, generatedShop, planned, setCustomBreakfasts, setCustomLunches, setCustomMeals, setCustomSnacks, setEditHealthText, setEditingHealthLog, setFoodCheckerCategory, setFoodCheckerLoading, setFoodCheckerPreview, setFoodCheckerText, setFormMsg, setGeneratedShop, setShopDefaults, setShopLoading, setSupermarket, setWeekOff, shopDefaults, shopList, shopLoading, supermarket, weekLabel, weekStart }} /></ErrorBoundary>)}
 

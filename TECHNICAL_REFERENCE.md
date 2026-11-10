@@ -1,7 +1,7 @@
 # Technical Reference — Life Care Companion
 
 > **Purpose**: Complete technical architecture reference for any developer continuing this project.  
-> **Version**: v2.5.3 (Vite build, 5 Nov 2026) | **Source**: `src/` (component files)  
+> **Version**: v2.7.0 (Vite build, 10 Nov 2026) | **Source**: `src/` (component files)  
 > **Live**: https://jcbeck1976.github.io/Life-Care  
 > **Repo**: https://github.com/JCBECK1976/Life-Care
 
@@ -522,6 +522,17 @@ Generates meal suggestions using only custom-added items (with RAG status), neve
 - New items store `suitability` (description).
 - Add box closes after add when `addingSource !== "manage"`.
 
+### Eating data model (v2.7.0): parent list items + child selections
+- **Parents** are the list items (`custom_breakfasts`, `custom_lunches`, `custom_meals`, `custom_snacks`, `custom_drinks`, `custom_desserts`, plus the built-in defaults). They change only through Update Lists.
+- **Children** are the selections: `eat_children:<person>:<Sunday YYYY-MM-DD>` = `{ v, children: { "c_<date>_<slot>": child }, empty: ["<weekday>:<slot>"], notes }`.
+  - Child fields: `parentId` (null when ad hoc), `date`, `weekday`, `slot`, `snapshot`, `portion` (`{factor}` or `{source:"photo", values, assumed, grams, check}`), `variations`, `nutrition`, its own `rating`/`ragFreq`/`band`, `parentBand`, `tracked`, `source`, `notes`.
+  - See `src/lib/children.js`.
+- The screens use a weekday view (`meals[weekday][slot] = childId`). `childItems()` builds list-item-shaped stand-ins so every lookup (totals, warnings, feedback, Home, Shop) reads the **child**. `reconcile()` turns an edited view back into children; `App.setChildAt()` writes one child directly (Snap).
+- **Migration:** a week with an old `mealplan:<Sunday>:<person>` and no children is converted once, when opened. For the current week only, `portion_overrides:<person>` and `meal_tracking:<person>` (day-name keyed) are folded into the children and then deleted.
+- **RAG** (`src/lib/rag.js`): portion-based rule bands on satFat/20g and addedSugar/25g, with a fibre/protein credit and a kcal-share rule. Applied to list items when they are saved, and to each child from its own nutrition. Frequency rules count children.
+- **Photo checks** (`src/lib/snap.js`): the first check runs at temperature 0 with grams per component; Re-check is an independent deep dive.
+- **Data tools:** Download backup (real `data` + `data_build`, console-export shape); Restore (`src/lib/backup.js`: preview → merge missing exercise weeks, or a full restore of `data`, or `data_build` on Build, after typing RESTORE); Clear old eating history (`mealplan:*` and `eat_children:*` before a date).
+
 ## 11b. Help & Chat
 - **💬 Chat** (`qaOpen`, `askQuestion`, Firebase `qa_history`) — questions about the person's own data; full data context in the prompt.
 - **❓ Help** (`helpOpen`, `askHelp`, Firebase `help_history`) — how to use the app. System prompt = rules + `APP_GUIDE.md` (fetched relative to index.html, cached in `window._appGuide`, sent with `cache_control: ephemeral`). Messages = last 6 Q/A pairs + "[I'm {name}, currently on the {tab} tab]" + question. `max_tokens` 800. Markdown stripped before saving.
@@ -538,7 +549,8 @@ Generates meal suggestions using only custom-added items (with RAG status), neve
 - **Flow:** commit to `build` → Chat verifies → PR `build → beta` (merge commit) → JC tests → PR `beta → main` = release → Chat verifies and tags. No source pushes straight to `beta` or `main`; doc-only commits go straight to `main`.
 - **Pipeline:** Settings → Pages → Source = **GitHub Actions**. `.github/workflows/deploy.yml`: only **main's** run builds and deploys; pushes to `build`/`beta` ask it to run (`workflow_dispatch`). `scripts/build-pages.sh` builds all three branches (each `npm ci`, lint, `vite build --base …` with `VITE_APP_ENV`, `VITE_DATA_ROOT`, `VITE_BUILD_SHA`, `VITE_BETA_N`) into one artifact; `scripts/check-pages.mjs` checks it. **Prod is strict** (any failure stops the deploy); a beta/build failure leaves that folder out, is reported loudly (log, annotation, job summary), and prod still deploys.
 - Build/beta: BUILD/BETA badge, tab-title prefix, `noindex`; `legacy.html` only at the root. Each environment has its own `APP_GUIDE.md`.
-- Rollback: `/Life-Care/legacy.html` at once, then `git revert` the bad merge on `main`. If `main` has no `package.json`, prod is published as plain files (legacy).
+- Rollback: revert the bad merge on `main` (the previous v2 release redeploys). Since v2.6.0 the database needs Google sign-in, so `/Life-Care/legacy.html` (v1.374.2, no sign-in) no longer works once the rules are applied; in an emergency the rules can be reopened in the Firebase console.
+- **Sign-in (v2.6.0):** `AuthGate` (Google popup, redirect fallback; access probe on `DATA_ROOT`) wraps the app; `database.rules.json` is the source of truth for the console rules (allowed account UID on `data/` and `data_build/`); the emulator runs a generated copy with a test UID. If `main` has no `package.json`, prod is published as plain files (legacy).
 
 ### Pre-Deploy Checklist
 1. ✅ `npm run lint` (0 errors) and `npm run build`

@@ -20,8 +20,7 @@ export default function ChatPanel({ ctx }) {
             <div style={{ fontSize: 11, color: "#64748b", marginBottom: 10 }}>Ask anything about your health, training, nutrition, or progress. Your full data history is used to answer.</div>
             {qaHistory[activeTab] && qaHistory[activeTab].length > 0 && (<div>
               <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Conversation</div>
-              {qaHistory[activeTab].length > 3 && <button onClick={() => setShowQaHistory(!showQaHistory)} style={{ fontSize: 11, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: "0 0 8px" }}>{showQaHistory ? "Hide" : "Show"} older messages ({qaHistory[activeTab].length - 3})</button>}
-              {(showQaHistory ? qaHistory[activeTab] : qaHistory[activeTab].slice(-3)).map((qa, i) => (<div key={i}>
+              {(showQaHistory ? qaHistory[activeTab] : qaHistory[activeTab].slice(-3)).slice().reverse().map(( /* v2.6.4 D8: latest exchange first */qa, i) => (<div key={i}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", marginBottom: 6 }}>
                   <div style={{ maxWidth: "85%", padding: "8px 12px", borderRadius: "12px 12px 2px 12px", background: accentChatUser, border: "1px solid " + accentBorder, color: "#334155", fontSize: 12, lineHeight: 1.5 }}>{qa.q}</div>
                   <div style={{ fontSize: 9, color: "#94a3b8", marginTop: 2, paddingLeft: 4, paddingRight: 4 }}>You{qa.when ? " · " + qa.when : ""}</div>
@@ -31,6 +30,7 @@ export default function ChatPanel({ ctx }) {
                   <div style={{ fontSize: 9, color: "#94a3b8", marginTop: 2, paddingLeft: 4, paddingRight: 4 }}>Companion</div>
                 </div>
               </div>))}
+              {qaHistory[activeTab].length > 3 && <button onClick={() => setShowQaHistory(!showQaHistory)} style={{ fontSize: 11, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: "0 0 8px" }}>{showQaHistory ? "Hide" : "Show"} older messages ({qaHistory[activeTab].length - 3})</button>}
             </div>)}
           </div>
           <div style={{ padding: "8px 16px 16px", borderTop: "1px solid #f1f5f9" }}>
