@@ -101,45 +101,27 @@ export function generatorSummary(src, allowed) {
   return parts.join(" · ") + (empty ? " · " + empty + " slot" + (empty === 1 ? "" : "s") + " left empty" + (noList.length ? " (no items in the " + noList.join("/") + " list)" : "") : "");
 }
 
-// v2.6.5 D6 one-off repair (approved): add missing "_snap" entries to stored week plans. Adds only; never changes a
-// slot or an existing snapshot, so running it twice adds nothing the second time.
-// plans: { "<mealplan key>": plan }, lookup / backupLookup: { id: item }. Person comes from the key's last part.
-export function planSnapRepair(plans, lookup, backupLookup) {
-  var r = { weeks: 0, slots: 0, alreadyOk: 0, fromList: 0, fromOldId: 0, fromBackup: 0, unresolved: 0, weeksToWrite: 0, adds: {} };
+// v2.6.5 (JC decision, replaces the snapshot repair): "Clear old eating history".
+// Picks ONLY meal week plans (mealplan:<YYYY-MM-DD>[:person]) whose week starts before `before` (YYYY-MM-DD).
+// Returns counts per person and the keys to delete. Nothing else is ever selected.
+export function planClearHistory(plans, before) {
+  var r = { weeks: 0, selections: 0, perPerson: {}, keys: [] };
   Object.keys(plans || {}).sort().forEach(function(key) {
-    var plan = plans[key]; if (!plan || typeof plan !== "object") return;
-    r.weeks++;
-    var isJC = /:jc$/.test(key); var have = plan._snap || {}; var add = {};
-    Object.keys(plan).forEach(function(day) {
-      if (day.charAt(0) === "_") return;
-      var dm = plan[day]; if (!dm || typeof dm !== "object") return;
-      Object.keys(dm).forEach(function(slot) {
-        var id = dm[slot]; if (!id || typeof id !== "string" || id === "__empty__" || id === "__placeholder__") return;
-        r.slots++;
-        var k = day + ":" + slot;
-        if (have[k] && have[k].id === id) { r.alreadyOk++; return; }
-        // old built-in ids were renamed with a "gb_" prefix (e.g. spag_bol → gb_spag_bol, same food)
-        var src = lookup[id] ? "list" : lookup["gb_" + id] ? "oldId" : (backupLookup && backupLookup[id]) ? "backup" : "";
-        if (!src) { r.unresolved++; return; }
-        var s = makeSnap(src === "list" ? lookup[id] : src === "oldId" ? lookup["gb_" + id] : backupLookup[id], isJC); s.id = id; s.approx = true; s.repaired = src;
-        add[k] = s; if (src === "list") r.fromList++; else if (src === "oldId") r.fromOldId++; else r.fromBackup++;
-      });
+    var m = /^mealplan:(\d{4}-\d{2}-\d{2})(?::(.+))?$/.exec(key); if (!m || m[1] >= before) return;
+    var who = m[2] || "shared (old format)"; var plan = plans[key]; var n = 0;
+    if (plan && typeof plan === "object") Object.keys(plan).forEach(function(day) {
+      if (day.charAt(0) === "_") return; var dm = plan[day];
+      if (typeof dm === "string") { if (dm && dm !== "__empty__") n++; return; }
+      if (dm && typeof dm === "object") Object.keys(dm).forEach(function(sl) { var v = dm[sl]; if (typeof v === "string" && v && v !== "__empty__" && v !== "__placeholder__") n++; });
     });
-    if (Object.keys(add).length) { r.adds[key] = add; r.weeksToWrite++; }
+    if (!r.perPerson[who]) r.perPerson[who] = { weeks: 0, selections: 0 };
+    r.perPerson[who].weeks++; r.perPerson[who].selections += n; r.weeks++; r.selections += n; r.keys.push(key);
   });
   return r;
 }
 
-// Items from a pasted Firebase export (any custom_* list, stored as JSON strings or arrays, at the root or under "data").
-export function lookupFromExport(exp) {
-  var out = {}; if (!exp) return out;
-  var roots = [exp, exp.data, exp.data_build].filter(function(x) { return x && typeof x === "object"; });
-  roots.forEach(function(o) {
-    Object.keys(o).forEach(function(k) {
-      if (k.indexOf("custom_") !== 0) return;
-      var v = o[k]; if (typeof v === "string") { try { v = JSON.parse(v); } catch (e) { return; } }
-      if (Array.isArray(v)) v.forEach(function(it) { if (it && it.id && !out[it.id]) out[it.id] = it; });
-    });
-  });
-  return out;
+// The Sunday that starts the current week (weeks run Sunday–Saturday), as YYYY-MM-DD.
+export function currentWeekSunday(now) {
+  var d = now ? new Date(now) : new Date(); d.setDate(d.getDate() - d.getDay());
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
