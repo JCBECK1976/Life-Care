@@ -9,7 +9,9 @@ const openSettings = (page) => page.locator("button").nth(1).click();
 
 test("Download backup: one dated file with data + data_build, confirmation shows size and counts only", async ({ page }) => {
   const { errors } = await openApp(page);
-  await fetch("http://127.0.0.1:9000/data_build.json" + NS, { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify({ "dashboard:data": "{\"jc\":{}}", "custom_snacks": "[]" }) });
+  const buildBefore = await raw("data_build");                                     // restored at the end (other tests use it)
+  await fetch("http://127.0.0.1:9000/data_build/backup_test_a.json" + NS, { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify("x") });
+  await fetch("http://127.0.0.1:9000/data_build/backup_test_b.json" + NS, { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify("[]") });
   await person(page, "JC");
   await openSettings(page);
   await page.getByRole("button", { name: "Open Data tools" }).click();
@@ -20,7 +22,7 @@ test("Download backup: one dated file with data + data_build, confirmation shows
   expect(file.data).toEqual(await raw("data"));                                     // the REAL path, exactly as stored
   expect(file.data_build).toEqual(await raw("data_build"));
   const msg = page.getByTestId("backup-msg");
-  await expect(msg).toHaveText(new RegExp("^✓ Downloaded " + dl.suggestedFilename().replace(/\./g, "\\.") + " \\(\\d+ (KB|MB)\\): data " + Object.keys(file.data).length + " items \\(\\d+ meal weeks\\), data_build 2 items\\.$"));
+  await expect(msg).toHaveText(new RegExp("^✓ Downloaded " + dl.suggestedFilename().replace(/\./g, "\\.") + " \\(\\d+ (KB|MB)\\): data " + Object.keys(file.data).length + " items \\(\\d+ meal weeks\\), data_build " + Object.keys(file.data_build).length + " items\\.$"));
   expect(await msg.innerText()).not.toContain("jc");                                 // counts only, no contents
   // What "Restore from Firebase Export" accepts: the exercise data, i.e. the value of data["dashboard:data"]
   page.on("dialog", (d) => d.accept());
@@ -28,4 +30,5 @@ test("Download backup: one dated file with data + data_build, confirmation shows
   await page.getByRole("button", { name: "Restore Data" }).click();
   await expect(page.getByText(/^Restored \d+ missing progression entries/).first()).toBeVisible();
   expect(errors).toEqual([]);
+  await fetch("http://127.0.0.1:9000/data_build.json" + NS, { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify(buildBefore) });
 });
