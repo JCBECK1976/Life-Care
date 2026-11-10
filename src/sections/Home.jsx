@@ -1,4 +1,5 @@
 import { btnDelete, btnMuted, btnP, inputStyle, labelStyle } from "../constants/styles.js";
+import { latestFirst } from "../lib/chat.js";
 import { accentVariant } from "../lib/colour.js";
 import { TONE_RULES } from "../constants/tone.js";
 import { getMoodContext } from "../lib/aiContext.js";
@@ -690,7 +691,7 @@ export default function HomeSection({ ctx }) {
                   <div style={{ color: "#1e40af" }}>★ {Array.isArray(hb.focus) ? hb.focus.join("; ") : hb.focus}</div>
                   </div>)}
                 </div>
-                {hb._thread && hb._thread.length > 0 && <div style={{ padding: "6px 12px", background: "#f8fafc", borderTop: "1px solid #e2e8f0" }}>{hb._thread.map(function(m, mi) { return <div key={mi} style={{ fontSize: 11, color: m.role === "user" ? "#1e3a5f" : "#475569", marginBottom: 2 }}><span style={{ fontWeight: 600 }}>{m.role === "user" ? "You" : "Companion"}:</span> {m.text} {m.when ? <span style={{ fontSize: 9, color: "#94a3b8" }}>· {m.when}</span> : null}</div>; })}</div>}
+                {hb._thread && hb._thread.length > 0 && <div style={{ padding: "6px 12px", background: "#f8fafc", borderTop: "1px solid #e2e8f0" }}>{latestFirst(hb._thread).map(function(m, mi) { return <div key={mi} style={{ fontSize: 11, color: m.role === "user" ? "#1e3a5f" : "#475569", marginBottom: 2 }}><span style={{ fontWeight: 600 }}>{m.role === "user" ? "You" : "Companion"}:</span> {m.text} {m.when ? <span style={{ fontSize: 9, color: "#94a3b8" }}>· {m.when}</span> : null}</div>; })}</div>}
                 {!hb._thread && hb._comment && <div style={{ padding: "6px 12px", background: "#f8fafc", borderTop: "1px solid #e2e8f0", fontSize: 11, color: "#334155" }}>Response: {hb._comment} {hb._commentWhen ? "· " + hb._commentWhen : ""}</div>}
               </div>
             ))}

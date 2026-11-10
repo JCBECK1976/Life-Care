@@ -3,6 +3,7 @@
 // replaces the ReactDOM render call (now in main.jsx).
 import React from "react";
 import firebase, { DATA_ROOT } from "./lib/firebase.js";
+import { latestFirst } from "./lib/chat.js";
 import { TONE_RULES, WELLBEING_RULES } from "./constants/tone.js";
 import { MOOD_COLORS, MOOD_EMOJIS, MOOD_LABELS } from "./constants/mood.js";
 import { COLOUR_THEMES } from "./constants/themes.js";
@@ -1254,7 +1255,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       // Week context - what other days look like
       var weekCtx = "";
       try {
-        var DAYS7 = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+        var DAYS7 = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"]; /* C1: chronological */
         var dayParts = [];
         DAYS7.forEach(function(dk) {
           if (dk === dayKey) return;
@@ -1338,7 +1339,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       const allDe = [...customDesserts];
       const allFood = [].concat(allBf, allLu, allDin, allSn, allDr, allDe);
       const tracking = mealTracking || {};
-      var DAYS7 = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+      var DAYS7 = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"]; /* C1: chronological */
       var weekSummary = []; var weekTotKcal = 0; var weekTotProt = 0; var weekTotFat = 0; var daysPlanned = 0;
       var allRedItems = []; var allAmberItems = [];
       DAYS7.forEach(function(dk) {
@@ -1625,19 +1626,19 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     var loadKey = fbType + "-" + fbKey;
     var isLoading = threadLoading[loadKey];
     return React.createElement("div", { style: { marginTop: 10 } },
+      React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 8 } },
+        React.createElement("textarea", { id: "thread-input-" + fbType + "-" + fbKey, placeholder: thread.length > 0 ? "Continue the conversation..." : "Respond to this feedback...", disabled: isLoading, style: { flex: 1, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, resize: "vertical", minHeight: 40, boxSizing: "border-box", fontFamily: "inherit", opacity: isLoading ? 0.6 : 1 } }),
+        React.createElement("button", { onClick: function() { threadReply(fbObj, fbType, fbKey, updateFn, saveKey); }, disabled: isLoading, style: { padding: "8px 14px", background: isLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: isLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap", alignSelf: "flex-end", minWidth: 50 } }, isLoading ? React.createElement("span", null, React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })) : "Send"),
       thread.length > 0 && React.createElement("div", { style: { marginBottom: 8 } },
         React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#94a3b8", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" } }, "Conversation"),
-        thread.map(function(m, i) {
+        latestFirst(thread).map(function(m, i) { /* v2.6.4 D8: latest exchange first, input above */
           var isUser = m.role === "user";
           return React.createElement("div", { key: i, style: { display: "flex", flexDirection: "column", alignItems: isUser ? "flex-end" : "flex-start", marginBottom: 6 } },
             React.createElement("div", { style: { maxWidth: "85%", padding: "8px 12px", borderRadius: isUser ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: isUser ? accentChatUser : "#334155", border: isUser ? "1px solid " + accentBorder : "none", color: isUser ? "#334155" : "#fff", fontSize: 12, lineHeight: 1.5 } }, m.text),
             React.createElement("div", { style: { fontSize: 9, color: "#94a3b8", marginTop: 2, paddingLeft: 4, paddingRight: 4 } }, isUser ? "You" : "Companion", m.when ? " · " + m.when : "")
           );
         })
-      ),
-      React.createElement("div", { style: { display: "flex", gap: 6 } },
-        React.createElement("textarea", { id: "thread-input-" + fbType + "-" + fbKey, placeholder: thread.length > 0 ? "Continue the conversation..." : "Respond to this feedback...", disabled: isLoading, style: { flex: 1, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, resize: "vertical", minHeight: 40, boxSizing: "border-box", fontFamily: "inherit", opacity: isLoading ? 0.6 : 1 } }),
-        React.createElement("button", { onClick: function() { threadReply(fbObj, fbType, fbKey, updateFn, saveKey); }, disabled: isLoading, style: { padding: "8px 14px", background: isLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: isLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap", alignSelf: "flex-end", minWidth: 50 } }, isLoading ? React.createElement("span", null, React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })) : "Send")
+      )
       )
     );
   };

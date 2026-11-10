@@ -127,7 +127,7 @@ export default function EatingSection({ ctx }) {
             return null;
           };
           var currentWeek = calcWeek(data.config.trainingStart);
-          var DAYS = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+          var DAYS = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"]; /* v2.6.4 C1: the week (stored Sunday-start) is shown Sunday first */
           var DAY_LABELS = { monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu", friday: "Fri", saturday: "Sat", sunday: "Sun" };
           // States moved to component top level
           var sk = mealKey(weekStart) + ":" + activeTab;
@@ -1099,7 +1099,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 4 }}>
-                {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(function(d2) {
+                {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(function(d2) {
                   return (<label key={d2} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "#475569", cursor: "pointer" }}>
                     <input type="checkbox" id={"qp-" + d2 + "-" + activeTab} style={{ width: 14, height: 14 }} />
                     {d2}
