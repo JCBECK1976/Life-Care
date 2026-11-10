@@ -70,6 +70,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.6.5 | Architect/JC decisions (10 Nov 07:20): **D11** portion-based RAG by rules in code (`src/lib/rag.js`; new `addedSugar`, `ragFreq` weekly/monthly; AMBER ≤3/week, RED weekly/monthly treats) + "🔄 Re-rate all lists" (changed → Check me). Data tools **"Clear old eating history"** (meal week plans before a date; dry run → Delete), replacing the D6 repair (JC). **Snap** 📷 on every slot: description first, Confirm / Re-check / Cancel, empty slot → list match or "Add to list?". **D7** "🔎 Re-check nutrition" (flags only) + recalc/plausibility on the add-item Review path. | build only |
 | v2.7.0 | **Release (on beta as v2.7.0-beta.2, 10 Nov; not yet on main):** contains all of v2.6.1–v2.6.5, which were **build-only and never released separately**: per-set logging + Form/Range rule (D1/D2/D12); meal snapshots → **parent list items + dated child selections** with their own RAG (D6/D13 superseded by the 14:35 model); real Update/Review recalculation (D7); portion-based RAG with added sugar + Re-rate all lists (D11); generator order (D9); 📷 Snap with deep-dive Re-check (D10/F7/D15); bulk upload fixes + Check me (D3–D5/F4); Sunday-first week (C1); latest-first chats (D8); child-RAG colouring (D14); phone picker sheet (D16); Data tools: Download backup, Restore preview → merge / full restore (type RESTORE), Clear old eating history; deploy queue + Node 24 actions. | beta |
 | v2.7.1 | Fix (Architect 21:12): Download backup / Restore are environment-aware **at build time**. Beta/Prod back up and restore only `data`; Build also its own copy (`DATA_ROOT`, written into each bundle by Vite). PR #20's runtime-assembled name is reverted; the deploy guard is unchanged. | build only |
+| v2.8.0 | "Open" pattern (F1 + F5 + variations): one shared form (`src/components/OpenForm.jsx`) for Progress weeks, list items and meal selections. Read-only → ✎ Edit → Save; the only destructive action sits inside the form. Meal selections: portion + variations → AI recalculates the **child** → child RAG; list item untouched. | build only |
 
 ---
 
@@ -1754,3 +1755,29 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   - pure: the restore target is the environment's own root.
 - Full suite 91 passed (4 skipped), lint 0 errors. Deploy 42907085680 succeeded, no failures.
 - **Resume point:** `build` @ 6fc8335. Next: R2 (v2.8.0 "Open" pattern).
+
+### (Coder) 11 Nov 2026 — overnight R2: v2.8.0 "Open" pattern on `build` (48b4fdf)
+- **Was the old "edit previous weeks" broken? Yes**, in three ways (found by reading the code):
+  1. The Progress rows were uncontrolled inputs (`defaultValue`) **keyed by position**. After a 🗑 Del, React reused the inputs, so the remaining rows **kept showing the deleted row's values**, and the next edit could write them to the wrong week.
+  2. Edits saved only on `blur`, which phones don't reliably fire before navigation, so changes could be lost silently.
+  3. Editing weight or reps inline dropped the per-set data.
+  "Edit Previous Entry" in the log form could only change the **latest** week.
+- **F1 (Progress):** each row shows key data only: week, weight (range), reps, a small Form/Range ✓ mark, and **Open**. Notes text and Del are gone from the rows.
+  - **Open** shows the entry as logged (every set, Range/Form segmented, notes), **read-only**.
+  - **✎ Edit** makes it editable (+ Add set). **Save** re-applies the D12 rule (Form and Range must be chosen), stores `sets`, `w`, `r`, `wk`, `note`, re-sorts by week and syncs the card's current weight/reps.
+  - **🗑 Delete week** (confirm) is inside the form. A test covers the old wrong-row problem: after a delete the remaining row is right.
+- **F5 (food):**
+  - **List items:** **Open** → read-only view (kcal, all nutrients incl. added sugar, rating + reason, type, ingredients, Check-me reason, description).
+    - **✎ Edit** = the existing Update Item editor (D7 recalc), now inside the same form; **Cancel** returns to the view.
+    - **🗑 Delete from list** (confirm: "Meals you already logged keep their own copy") exists **only here**; the row Del is gone.
+  - **Meal slots:** **Open** replaces Del.
+    - On a filled slot it opens the **child** (selection): portion (½/1/1½/2 or any factor), **Changes** ("chips instead of potato"), "What changed", nutrition, **Rating today** (child) and **Your list item** (parent) with "Differs today: …".
+    - Save with changes → the AI recalculates **this meal's** nutrition (temperature 0) → `portion = {factor, source:"variations", values, change}`, `variations.text` → child RAG recalculated. Factor only → scaled, no AI. The parent is never touched.
+    - **Remove from this meal** (confirm) is the only destructive action.
+    - **Open on an empty slot = add** (the existing add-item flow). Empty extra rows get a small ✕ to remove the row.
+  - The child-vs-parent explanation lives here only (D14).
+- Same form, buttons and styling everywhere (Edit deep blue, the danger action red outline, Close/Cancel grey, equal heights).
+- **Prod-compat re-run: PASSED** (v2.6.0 with a child carrying `variations` and a `variations` portion). No new exercise fields.
+- Tests: `tests/open.spec.js` (4: F1, list item, selection + variations + Remove, empty-slot add). 5 older tests moved from "✎ Update" to Open → ✎ Edit. Full suite 95 passed (4 skipped), lint 0 errors, visual rebaselined (eating rows/lists). Deploy 42909794550 succeeded.
+- **Decision (Coder):** a factor change on a photo-checked portion replaces the photo values with list × factor. Variations always use list portion × factor as the base.
+- **Resume point:** `build` @ 48b4fdf. Next: R3 (v2.9.0 Eating Feedback).
