@@ -7,7 +7,8 @@ import { currentWeekSunday, planClearHistory } from "../lib/meals.js";
 /* v2.6.5 Clear old eating history: read every stored meal week plan (and nothing else) */
 async function loadMealPlans() {
   var snap = await firebase.database().ref(DATA_ROOT).orderByKey().startAt("mealplan:").endAt("mealplan:\uf8ff").once("value");
-  var plans = {}; var raw = snap.val() || {};
+  var snap2 = await firebase.database().ref(DATA_ROOT).orderByKey().startAt("eat_children:").endAt("eat_children:\uf8ff").once("value");
+  var plans = {}; var raw = Object.assign({}, snap.val() || {}, snap2.val() || {});
   Object.keys(raw).forEach(function(k) { try { plans[k] = typeof raw[k] === "string" ? JSON.parse(raw[k]) : raw[k]; } catch (e) { plans[k] = null; } });
   return plans;
 }
@@ -31,9 +32,9 @@ export default function DataSection({ ctx }) {
     if (!confirm("Delete " + cp.weeks + " meal week plan" + (cp.weeks === 1 ? "" : "s") + " (" + cp.selections + " selections) from before " + cp.before + "? Food lists, exercise, body, health and settings are not touched. This cannot be undone.")) return;
     setClearBusy(true);
     try {
-      var upd = {}; cp.keys.forEach(function(k) { if (/^mealplan:/.test(k)) upd[k] = null; });   // meal week plans only
+      var upd = {}; cp.keys.forEach(function(k) { if (/^(mealplan|eat_children):/.test(k)) upd[k] = null; });   // meal weeks only
       await firebase.database().ref(DATA_ROOT).update(upd);
-      setClearMsg("✓ Deleted " + Object.keys(upd).length + " meal week plans from before " + cp.before + ".");
+      setClearMsg("✓ Deleted " + Object.keys(upd).length + " meal weeks from before " + cp.before + ".");
       setClearPlan(null);
     } catch (e) { setClearMsg("Delete failed: " + String(e.message || e).substring(0, 120)); }
     setClearBusy(false);
@@ -45,7 +46,7 @@ export default function DataSection({ ctx }) {
   <div style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 12 }}>Firebase Data Viewer</div>
   <div data-testid="clear-history" style={{ padding: 10, background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca", marginBottom: 12 }}>
     <div style={{ fontSize: 12, fontWeight: 700, color: "#991b1b", marginBottom: 4 }}>Clear old eating history</div>
-    <div style={{ fontSize: 10, color: "#475569", marginBottom: 6, lineHeight: 1.4 }}>Deletes only the meal plans (what was planned or eaten each day) for weeks starting before the date below. Food lists, exercise, body, health and settings are never touched. Take a backup first. Run the dry run to see the counts, then Delete.</div>
+    <div style={{ fontSize: 10, color: "#475569", marginBottom: 6, lineHeight: 1.4 }}>Deletes only the meal selections (what was planned or eaten each day) for weeks starting before the date below. Food lists, exercise, body, health and settings are never touched. Take a backup first. Run the dry run to see the counts, then Delete.</div>
     <label style={{ fontSize: 10, color: "#475569", display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>Delete weeks starting before
       <input type="date" aria-label="Delete weeks starting before" value={clearBefore} onChange={function(e) { setClearBefore(e.target.value); setClearPlan(null); setClearMsg(""); }} style={{ padding: 4, border: "1px solid #fecaca", borderRadius: 6, fontSize: 11 }} />
     </label>

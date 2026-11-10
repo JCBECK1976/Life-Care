@@ -8,7 +8,8 @@ import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnMute
 import { accentVariant } from "../lib/colour.js";
 import { personName } from "../components/PersonTabs.jsx";
 import { parseRecalc, recalcPrompt, renameKcal, stripKcal as stripKcalName } from "../lib/nutrition.js";
-import { addSnapshots, applyDefaultsTo, generatorSummary, mergeGenerated, selectionName, snapshotItems } from "../lib/meals.js";
+import { applyDefaultsTo, generatorSummary, mergeGenerated, selectionName } from "../lib/meals.js";
+import { foodKey, loadWeekDoc, makeChild, occurrences, ragNote, reconcile, saveWeekDoc, viewFromDoc } from "../lib/children.js";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -22,7 +23,7 @@ export default function EatingSection({ ctx }) {
     helpEatCat, helpEatLoading, helpEatResult, helpEatText, isJC, manageListsOpen, mealDefaults, mealTracking,
     meals, newItemLoading, newItemName, offLoading, offResults, openAddForm, p, pastWeeksMeals,
     portionLoading, portionOverrides, portionPlanned, portionResult, portionSlot, quickPrepMins, ragRecalcLoading, ragRecalcMsg,
-    recalculateAllRag, renderThread, reviewCategories, reviewSideType, saveMeals: saveMealsCtx, searchOFF, setAddingCategory, setAddingNew,
+    recalculateAllRag, renderThread, reviewCategories, reviewSideType, saveMeals: saveMealsCtx, setChildAt, weekChildren, childItemsList, searchOFF, setAddingCategory, setAddingNew,
     setAddingSlotDay, setAddingSlotKey, setBulkReviewItems, setCameraPreview, setCopyDayOpen, setCopyDayTargets, setCopyWeekOpen, setCopyWeekTargets,
     setCustomBreakfasts, setCustomDesserts, setCustomDrinks, setCustomLunches, setCustomMeals, setCustomSnacks, setDefScopes, setEatDay,
     setEatDayChartOpen, setEatDayEyeOpen, setEatFbExpanded, setEatWeekEyeOpen, setEditDraft, setEditingItem, setFormMsg, setGenerating,
@@ -64,39 +65,20 @@ export default function EatingSection({ ctx }) {
           /* Build lookup of all items by id for rating check */
           var allItemsLookup = {};
           [].concat(dispBfast, dispLunch, dispDinners, dispOther, dispDrinks, dispDesserts).forEach(function(it) { allItemsLookup[it.id] = it; });
-          /* v2.6.2 D6: snapshots — deleted items still show (and count) from the snapshot taken when selected */
+          /* v2.6.5: the week's CHILDREN (selections) stand in for their ids, so every lookup and total reads the child */
           var _listLookup = {};
           [].concat(allItems, allDrinks, allDesserts, POTATO_SIDES || [], VEG_SIDES || []).forEach(function(it) { if (it && it.id && !_listLookup[it.id]) _listLookup[it.id] = it; });
           Object.keys(allItemsLookup).forEach(function(id) { if (!_listLookup[id]) _listLookup[id] = allItemsLookup[id]; });
-          snapshotItems(meals, _listLookup).forEach(function(it) { [allBfast, allLunch, allDinners, allOther, allDrinks, allDesserts, allItems].forEach(function(arr) { arr.push(it); }); allItemsLookup[it.id] = it; });
-          var _dayDates = {}; ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].forEach(function(d, i) { var dt = new Date(weekStart); dt.setDate(dt.getDate() + i); _dayDates[d] = dt; });
-          var saveMeals = function(n) { addSnapshots(n, _listLookup, isJC, _dayDates); return saveMealsCtx(n); };
-          var getSnap = function(dayKey, slot) { return ((meals && meals._snap) || {})[dayKey + ":" + slot] || null; };
-          /* Collect all meal IDs used this week (current meals state) */
-          var thisWeekIds = function() {
-            var ids = [];
-            var DAYS_CK = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
-            DAYS_CK.forEach(function(d) {
-              var dm = meals[d]; if (!dm) return;
-              ["b","l","d"].forEach(function(s) { if (dm[s] && dm[s] !== "__empty__") ids.push(dm[s]); });
-              for (var i = 2; i <= 10; i++) { if (dm["b"+i]) ids.push(dm["b"+i]); if (dm["l"+i]) ids.push(dm["l"+i]); if (dm["d"+i]) ids.push(dm["d"+i]); }
-            });
-            return ids;
-          };
-          /* Collect all meal IDs used in past 4 weeks (for RED monthly check) */
-          var pastMonthIds = function() {
-            var ids = [];
-            pastWeeksMeals.forEach(function(wk) {
-              if (!wk) return;
-              Object.keys(wk).forEach(function(d) {
-                if (d.startsWith("_")) return;
-                var dm = wk[d]; if (!dm || typeof dm !== "object") return;
-                ["b","l","d"].forEach(function(s) { if (dm[s] && dm[s] !== "__empty__") ids.push(dm[s]); });
-                for (var i = 2; i <= 10; i++) { if (dm["b"+i]) ids.push(dm["b"+i]); if (dm["l"+i]) ids.push(dm["l"+i]); if (dm["d"+i]) ids.push(dm["d"+i]); }
-              });
-            });
-            return ids;
-          };
+          (childItemsList || []).forEach(function(it) { [allBfast, allLunch, allDinners, allOther, allDrinks, allDesserts, allItems].forEach(function(arr) { arr.push(it); }); allItemsLookup[it.id] = it; });
+          var saveMeals = function(n, source) { return saveMealsCtx(n, source, _listLookup); };
+          var getSnap = function() { return null; };
+          var childAt = function(dayKey, slot) { var v = getMeal(dayKey, slot); var it = v ? allItemsLookup[v] : null; return it && it._child ? it._child : null; };
+          /* Frequency rules count CHILDREN (their own RAG), by food: the parent, or the name when ad hoc */
+          var foodOf = function(id) { var it = allItemsLookup[id]; return it && it._child ? foodKey(it._child) : id; };
+          var thisWeekIds = function() { return occurrences(weekChildren).map(function(o) { return o.food; }); };
+          var pastMonthIds = function() { var ids = []; (pastWeeksMeals || []).forEach(function(doc) { occurrences(doc).forEach(function(o) { ids.push(o.food); }); }); return ids; };
+          var weekOcc = function() { return occurrences(weekChildren); };
+          var pastOcc = function() { var out = []; (pastWeeksMeals || []).forEach(function(doc) { out = out.concat(occurrences(doc)); }); return out; };
           /* Check if selecting itemId in a slot would breach RAG rules.
              excludeDay/excludeSlot: the slot being set (exclude its current value from count).
              Returns null if OK, or a warning string if breached. */
@@ -105,13 +87,11 @@ export default function EatingSection({ ctx }) {
             var item = allItemsLookup[itemId];
             if (!item || !item.rating || !item._isCustom) return null;
             if (item.rating === "GREAT" || item.rating === "GOOD") return null;
-            /* v2.6.5 D11: AMBER up to 3 a week · RED weekly treat once a week · RED monthly treat once a month */
-            if (excludeDay && excludeSlot) {
-              var curVal = meals[excludeDay] && meals[excludeDay][excludeSlot];
-              if (curVal === itemId) return null; /* Same item already there */
-            }
-            var cWeek = thisWeekIds().filter(function(id) { return id === itemId; }).length;
-            var cMonth = cWeek + pastMonthIds().filter(function(id) { return id === itemId; }).length;
+            /* v2.6.5: AMBER up to 3 a week · RED weekly treat once a week · RED monthly treat once a month — counted on children */
+            var food = foodOf(itemId);
+            var occ = weekOcc().filter(function(o) { return o.food === food && !(o.weekday === excludeDay && o.slot === excludeSlot); });
+            var cWeek = occ.length;
+            var cMonth = cWeek + pastOcc().filter(function(o) { return o.food === food; }).length;
             return frequencyWarning(item, cWeek, cMonth);
           };
           var currentWeek = calcWeek(data.config.trainingStart);
@@ -167,56 +147,43 @@ export default function EatingSection({ ctx }) {
           };
 
           var slotCategory = function(slotKey) { return /^ds/.test(slotKey) ? "dessert" : /^dr/.test(slotKey) ? "drink" : /^b/.test(slotKey) ? "breakfast" : /^l/.test(slotKey) ? "lunch" : /^o/.test(slotKey) ? "snack" : "dinner"; };
+          /* v2.6.5 Snap Confirm writes the CHILD directly (parents are never changed here). The only question asked is
+             "Save … to your … list?", and only when the food is not already in the list. */
           var confirmPortion = async function() {
             if (!portionResult || !portionSlot) return;
-            if (!portionPlanned) {
-              /* Snap on an empty slot: use a matching list item, or add it to the list (shared addReviewedItem) — then select it */
-              var prE = portionResult; var slotE = portionSlot; var dayE = eatDay; var catE = slotCategory(slotE);
+            var pr = portionResult; var slot = portionSlot; var day = eatDay; var cat = slotCategory(slot);
+            var vals = { kcal: pr.kcal || 0, protein: pr.protein || 0, fat: pr.fat || 0, satFat: pr.satFat || 0, addedSugar: pr.addedSugar || 0, carbs: pr.carbs || 0, fibre: pr.fibre || 0, salt: pr.salt || 0 };
+            var portion = { source: "photo", values: vals, assumed: pr.assumed || "" };
+            var cur = childAt(day, slot);
+            var sameFood = !!(cur && portionPlanned && pr.matchesPlanned !== false);
+            var child, msg;
+            if (sameFood) {
+              child = Object.assign({}, cur, { portion: portion, notes: portionDesc || cur.notes || "" });
+              msg = "✓ Portion logged for " + cur.snapshot.name;
+            } else {
               var nm = function(x) { return stripKcalName(x || "").toLowerCase().trim(); };
-              var matchE = bulkListFor(catE).find(function(x) { return nm(x.name) === nm(prE.name); });
-              var ovE = { kcal: prE.kcal || 0, protein: prE.protein || 0, fat: prE.fat || 0, satFat: prE.satFat || 0, carbs: prE.carbs || 0, fibre: prE.fibre || 0, salt: prE.salt || 0, name: prE.name || "" };
-              if (matchE) {
-                setMeal(dayE, slotE, matchE.id);
-                var ovN = Object.assign({}, portionOverrides); ovN[dayE] = Object.assign({}, ovN[dayE] || {}); ovN[dayE][slotE] = ovE; setPortionOverrides(ovN); await sSet("portion_overrides:" + activeTab, JSON.stringify(ovN));
-                setFormMsg("✓ " + matchE.name + " (from your list) logged with this portion");
-              } else if (confirm("Add \u201c" + (prE.name || "this food") + "\u201d to your " + catLabel(catE) + " list?")) {
-                var cpE = { name: prE.name || "Photo item", kcal: prE.kcal || 0, protein: prE.protein || 0, fat: prE.fat || 0, satFat: prE.satFat || 0, addedSugar: prE.addedSugar || 0, carbs: prE.carbs || 0, fibre: prE.fibre || 0, salt: prE.salt || 0, rating: prE.rating || "AMBER", itemType: "packaged", ingredients: [], source: "photo", servingSize: prE.assumed || "" };
-                await addReviewedItem(cpE, [catE], dayE, slotE, catE, "");
-                setFormMsg("✓ Added " + cpE.name + " to " + catLabel(catE) + " and selected it");
-              } else { setFormMsg("Not saved"); }
-              setTimeout(function(){ setFormMsg(""); }, 4000);
-              setPortionSlot(""); setPortionResult(null); setPortionPlanned(null); setSnapPre("");
-              return;
+              var match = bulkListFor(cat).find(function(x) { return nm(x.name) === nm(pr.name); });
+              var parent = match || null;
+              if (!match && confirm("Save \u201c" + (pr.name || "this food") + "\u201d to your " + catLabel(cat) + " list for future selection?")) {
+                var cpS = { name: pr.name || "Photo item", kcal: vals.kcal, protein: vals.protein, fat: vals.fat, satFat: vals.satFat, addedSugar: vals.addedSugar, carbs: vals.carbs, fibre: vals.fibre, salt: vals.salt, rating: pr.rating || "AMBER", itemType: "packaged", ingredients: [], source: "photo", servingSize: pr.assumed || "" };
+                var resS = await addReviewedItem(cpS, [cat], null, null, cat, "");
+                parent = resS.itemId ? (_listLookup[resS.itemId] || null) : null;
+              }
+              child = makeChild(parent || Object.assign({ name: pr.name || "Food", jcKcal: vals.kcal, beckKcal: vals.kcal }, vals), { date: "", weekday: day, slot: slot, source: parent ? "snap" : "adhoc", isJC: isJC, parentId: parent ? parent.id : null, portion: portion, notes: portionDesc || "" });
+              msg = parent ? "✓ " + child.snapshot.name + (match ? " (from your list)" : " saved to your list") + " logged" : "✓ " + child.snapshot.name + " logged for this meal only";
             }
-            if (portionResult.matchesPlanned === false) {
-              /* D10: a different food is a NEW entry, selected in place of the original; the original is never written to */
-              var pr0 = portionResult; var slot0 = portionSlot; var day0 = eatDay; var cat0 = slotCategory(slot0);
-              var prevId = getMeal(day0, slot0); var prevOv = (portionOverrides[day0] || {})[slot0] || null;
-              var cp0 = { name: pr0.name || "Photo item", kcal: pr0.kcal || 0, protein: pr0.protein || 0, fat: pr0.fat || 0, satFat: pr0.satFat || 0, addedSugar: pr0.addedSugar || 0, carbs: pr0.carbs || 0, fibre: pr0.fibre || 0, salt: pr0.salt || 0, rating: pr0.rating || "AMBER", itemType: "packaged", ingredients: [], source: "photo", servingSize: pr0.assumed || "" };
-              var res0 = await addReviewedItem(cp0, [cat0], day0, slot0, cat0, "");
-              if (prevOv) { var ov0 = Object.assign({}, portionOverrides); ov0[day0] = Object.assign({}, ov0[day0]); delete ov0[day0][slot0]; setPortionOverrides(ov0); await sSet("portion_overrides:" + activeTab, JSON.stringify(ov0)); }
-              setPortionUndo({ day: day0, slot: slot0, prevId: prevId, prevOv: prevOv, newId: res0.assignId, name: cp0.name, original: (portionPlanned && portionPlanned.name) || "the planned item" });
-              setPortionSlot(""); setPortionResult(null); setPortionPlanned(null);
-              return;
-            }
-            var newOverrides = Object.assign({}, portionOverrides);
-            if (!newOverrides[eatDay]) newOverrides[eatDay] = {};
-            newOverrides[eatDay][portionSlot] = { kcal: portionResult.kcal || 0, protein: portionResult.protein || 0, fat: portionResult.fat || 0, satFat: portionResult.satFat || 0, addedSugar: portionResult.addedSugar || 0, carbs: portionResult.carbs || 0, fibre: portionResult.fibre || 0, salt: portionResult.salt || 0, name: portionResult.name || "" };
-            setPortionOverrides(newOverrides);
-            await sSet("portion_overrides:" + activeTab, JSON.stringify(newOverrides));
-            setFormMsg("Portion logged ✓");
-            setPortionSlot("");
-            setPortionResult(null);
-            setPortionPlanned(null);
-            setTimeout(function(){setFormMsg("");}, 3000);
+            var prev = await setChildAt(day, slot, child);
+            if (cur && !sameFood) setPortionUndo({ day: day, slot: slot, prev: prev, name: child.snapshot.name, original: cur.snapshot.name });
+            else { setFormMsg(msg); setTimeout(function(){ setFormMsg(""); }, 3000); }
+            setPortionSlot(""); setPortionResult(null); setPortionPlanned(null); setSnapPre("");
           };
 
           var undoPortionReplace = async function() {
             var u0 = portionUndo; if (!u0) return;
-            setMeal(u0.day, u0.slot, u0.prevId);
-            if (u0.prevOv) { var ov1 = Object.assign({}, portionOverrides); ov1[u0.day] = Object.assign({}, ov1[u0.day] || {}); ov1[u0.day][u0.slot] = u0.prevOv; setPortionOverrides(ov1); await sSet("portion_overrides:" + activeTab, JSON.stringify(ov1)); }
+            await setChildAt(u0.day, u0.slot, u0.prev);
             setPortionUndo(null); setFormMsg("Restored " + u0.original); setTimeout(function(){ setFormMsg(""); }, 3000);
           };
+          var childRagNote = function(slotKey) { var c = childAt(eatDay, slotKey); var note = c ? ragNote(c, _listLookup[c.parentId]) : ""; return note ? <span data-testid="child-rag-note" title={c.ragReason || ""} style={{ fontSize: 9, fontWeight: 700, whiteSpace: "nowrap", color: c.rating === "RED" ? "#dc2626" : c.rating === "AMBER" ? "#d97706" : "#15803d" }}>{note}</span> : null; };
           var recheckPortion = function() { var l0 = window._lcPortionLast; if (l0) portionAnalyze(l0.slotKey, l0.file, l0.itemsList, portionDesc); };
           var cancelPortion = function() {
             setSnapPre("");
@@ -226,7 +193,7 @@ export default function EatingSection({ ctx }) {
           };
 
           var getEffective = function(dayKey, slotKey, item) {
-            if (portionOverrides[dayKey] && portionOverrides[dayKey][slotKey]) return portionOverrides[dayKey][slotKey];
+            var c0 = childAt(dayKey, slotKey); if (c0 && c0.portion && c0.portion.values) return c0.portion.values;
             return null;
           };
 
@@ -348,7 +315,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   else { saveDef(slotKey, assignId, "individual"); }
                 }
               }
-            return { addedTo: addedTo, dupeFound: dupeFound, assignId: slotKey ? assignId : null };
+            var itemId = (addedTo.length > 0 && newItem) ? newItem.id : null;
+            if (!itemId && dupeFound.length > 0) { var dl = bulkListFor(cats[0]); var dm0 = dl.find(function(x) { return x.name.toLowerCase().trim() === cp.name.toLowerCase().trim(); }); if (dm0) itemId = dm0.id; }
+            return { addedTo: addedTo, dupeFound: dupeFound, assignId: slotKey ? assignId : null, itemId: itemId };
           };
           var confirmReviewItem = async function(isOverlay) {
             var nameId = isOverlay ? "review-item-name-overlay" : "review-item-name";
@@ -609,26 +578,31 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             setFormMsg("Item deleted"); setTimeout(function(){setFormMsg("");}, 2000);
           };
 
+          /* v2.6.5: write another person's or another week's selections as CHILDREN (never the old plan keys) */
+          var editWeekChildren = async function(person, ws, editView, source, otherChildren) {
+            var doc = await loadWeekDoc(person, ws, { write: true, lookup: _listLookup });
+            var view = viewFromDoc(doc); editView(view);
+            var nd = reconcile(doc, view, _listLookup, { weekStart: ws, isJC: person === "jc", source: source, otherChildren: otherChildren });
+            await saveWeekDoc(person, ws, nd);
+          };
           var applyDefaults = async function() {
             var planned = applyDefaultsTo(meals, mealDefaults[activeTab]); /* D9: keep selections, then defaults */
             var n = planned.meals;
-            setMeals(n); saveMeals(n);
+            setMeals(n); saveMeals(n, "default");
             var otherPeople = Object.keys(data).filter(function(k) { return k !== "config" && k !== activeTab; });
             for (var opi = 0; opi < otherPeople.length; opi++) {
               var op = otherPeople[opi];
               var opDefs = mealDefaults[op] || {};
               if (Object.keys(opDefs).length === 0) continue;
-              var opSk = mealKey(weekStart) + ":" + op;
-              var opRaw = await sGet(opSk);
-              var opM = opRaw ? JSON.parse(opRaw) : {};
-              DAYS.forEach(function(d) {
-                if (!opM[d]) opM[d] = {};
-                if (opDefs.b && !opM[d].b) opM[d].b = opDefs.b;
-                if (opDefs.l && !opM[d].l) opM[d].l = opDefs.l;
-                if (opDefs.d && !opM[d].d) opM[d].d = opDefs.d;
-                for (var i = 1; i <= 7; i++) { if (opDefs["o" + i] && !opM[d]["o" + i]) opM[d]["o" + i] = opDefs["o" + i]; }
-              });
-              await sSet(opSk, JSON.stringify(opM));
+              await editWeekChildren(op, weekStart, function(opM) {
+                DAYS.forEach(function(d) {
+                  if (!opM[d]) opM[d] = {};
+                  if (opDefs.b && !opM[d].b) opM[d].b = opDefs.b;
+                  if (opDefs.l && !opM[d].l) opM[d].l = opDefs.l;
+                  if (opDefs.d && !opM[d].d) opM[d].d = opDefs.d;
+                  for (var i = 1; i <= 7; i++) { if (opDefs["o" + i] && !opM[d]["o" + i]) opM[d]["o" + i] = opDefs["o" + i]; }
+                });
+              }, "default");
             }
             setFormMsg("Defaults applied (all people)"); setTimeout(function() { setFormMsg(""); }, 2000);
             return planned;
@@ -948,11 +922,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   setSaving(true);
                   for (var ti = 0; ti < targets.length; ti++) {
                     var tws = new Date(baseStart); tws.setDate(tws.getDate() + (targets[ti] * 7));
-                    var tsk = mealKey(tws) + ":" + activeTab;
-                    var existRaw = await sGet(tsk);
-                    var existMeals = existRaw ? JSON.parse(existRaw) : {};
-                    DAYS.forEach(function(d) { if (dayData[d]) existMeals[d] = JSON.parse(JSON.stringify(dayData[d])); });
-                    await sSet(tsk, JSON.stringify(existMeals));
+                    await editWeekChildren(activeTab, tws, function(existMeals) { DAYS.forEach(function(d) { if (dayData[d]) existMeals[d] = JSON.parse(JSON.stringify(dayData[d])); }); }, "copy", weekChildren.children);
                   }
                   setSaving(false);
                   setCopyWeekOpen(false); setCopyWeekTargets({});
@@ -1377,19 +1347,20 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               /* AMBER: already used this week — do not reuse */
               var weekIds = thisWeekIds();
               var uniq = function(arr) { return arr.filter(function(v, i, a) { return a.indexOf(v) === i; }); };
-              var amberFull = uniq(weekIds).filter(function(id) { var it = allItemsLookup[id]; return it && bandOf(it) === "AMBER" && weekIds.filter(function(x) { return x === id; }).length >= 3; });
+              var _wo = weekOcc(); /* v2.6.5: children's own RAG */
+              var amberFull = uniq(_wo.filter(function(o) { return o.band === "AMBER"; }).map(function(o) { return o.food; })).filter(function(f) { return _wo.filter(function(o) { return o.food === f; }).length >= 3 && f.indexOf("adhoc:") !== 0; });
               if (amberFull.length > 0) { pastHistory += " AMBER items already used 3 times this week (DO NOT reuse — a few times a week): " + amberFull.join(",") + "."; }
-              var redWeekUsed = uniq(weekIds).filter(function(id) { var it = allItemsLookup[id]; return it && bandOf(it) === "RED-weekly"; });
+              var redWeekUsed = uniq(_wo.filter(function(o) { return o.band === "RED-weekly" && o.food.indexOf("adhoc:") !== 0; }).map(function(o) { return o.food; }));
               if (redWeekUsed.length > 0) { pastHistory += " RED weekly-treat items already used this week (DO NOT reuse — weekly treat): " + redWeekUsed.join(",") + "."; }
               /* RED: used in past 4 weeks — do not reuse */
               if (pastWeeksMeals.length > 0) {
                 var pastIds = pastMonthIds();
                 var allRedIds = weekIds.concat(pastIds);
-                var pastRedUsed = allRedIds.filter(function(id) { var it = allItemsLookup[id]; return it && bandOf(it) === "RED-monthly"; });
+                var pastRedUsed = _wo.concat(pastOcc()).filter(function(o) { return o.band === "RED-monthly" && o.food.indexOf("adhoc:") !== 0; }).map(function(o) { return o.food; });
                 if (pastRedUsed.length > 0) { pastHistory += " RED monthly-treat items used in past 4 weeks (DO NOT reuse — monthly treat): " + pastRedUsed.filter(function(v, i, a) { return a.indexOf(v) === i; }).join(",") + "."; }
               }
               var fmt = '{"monday":{"b":"id","l":"id","d":"id"},"tuesday":{"b":"id","l":"id","d":"id"},"wednesday":{"b":"id","l":"id","d":"id"},"thursday":{"b":"id","l":"id","d":"id"},"friday":{"b":"id","l":"id","d":"id"},"saturday":{"b":"id","l":"id","d":"id"},"sunday":{"b":"id","l":"id","d":"id"}}';
-              var prompt = "Generate a week of meals for " + (prof.name || "user") + " (" + (isJC ? "2000-2200 kcal" : "1700-1900 kcal") + " target). Only fill EMPTY slots - keep existing selections. CRITICAL: You MUST ONLY use item IDs from the lists below - never invent new IDs. FREQUENCY RULES based on the rating in [brackets]: GREAT = any day, GOOD = daily, AMBER = a few times a week (max 3), RED-weekly = weekly treat (max once a week), RED-monthly = monthly treat (max once a month). Respect these limits strictly." + pastHistory + " Current: " + JSON.stringify(planned.meals, function(k, v) { return k === "_snap" ? undefined : v; }) + ". Breakfasts: " + (_can.b ? bfastList : "(none — leave breakfast slots empty)") + ". Lunches: " + (_can.l ? lunchList : "(none — leave lunch slots empty)") + ". Dinners: " + (_can.d ? dinnerList : "(none — leave dinner slots empty)") + ". Vary daily. Return ONLY JSON: " + fmt;
+              var prompt = "Generate a week of meals for " + (prof.name || "user") + " (" + (isJC ? "2000-2200 kcal" : "1700-1900 kcal") + " target). Only fill EMPTY slots - keep existing selections. CRITICAL: You MUST ONLY use item IDs from the lists below - never invent new IDs. FREQUENCY RULES based on the rating in [brackets]: GREAT = any day, GOOD = daily, AMBER = a few times a week (max 3), RED-weekly = weekly treat (max once a week), RED-monthly = monthly treat (max once a month). Respect these limits strictly." + pastHistory + " Current: " + JSON.stringify(planned.meals, function(k, v) { if (k === "_snap" || k === "_notes") return undefined; var it = typeof v === "string" ? allItemsLookup[v] : null; return it && it._child ? (it.parentId || it.name) : v; }) + ". Breakfasts: " + (_can.b ? bfastList : "(none — leave breakfast slots empty)") + ". Lunches: " + (_can.l ? lunchList : "(none — leave lunch slots empty)") + ". Dinners: " + (_can.d ? dinnerList : "(none — leave dinner slots empty)") + ". Vary daily. Return ONLY JSON: " + fmt;
               var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }) });
               var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
               var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
@@ -1397,15 +1368,11 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var gen = JSON.parse(txt.replace(/```json|```/g, "").trim());
                 var merged = mergeGenerated(planned, gen, _allowed); /* D9: only empty slots, only ids from that slot's list */
                 var n = merged.meals;
-                setMeals(n); saveMeals(n);
+                setMeals(n); saveMeals(n, "generator");
                 var otherPeople2 = Object.keys(data).filter(function(k) { return k !== "config" && k !== activeTab; });
                 for (var opi2 = 0; opi2 < otherPeople2.length; opi2++) {
                   var op2 = otherPeople2[opi2];
-                  var opSk2 = mealKey(weekStart) + ":" + op2;
-                  var opRaw2 = await sGet(opSk2);
-                  var opM2 = opRaw2 ? JSON.parse(opRaw2) : {};
-                  DAYS.forEach(function(d2) { if (gen[d2]) { if (!opM2[d2]) opM2[d2] = {}; if (gen[d2].d && !opM2[d2].d && _allowed.d.indexOf(gen[d2].d) >= 0) opM2[d2].d = gen[d2].d; } });
-                  await sSet(opSk2, JSON.stringify(opM2));
+                  await editWeekChildren(op2, weekStart, function(opM2) { DAYS.forEach(function(d2) { if (gen[d2]) { if (!opM2[d2]) opM2[d2] = {}; if (gen[d2].d && !opM2[d2].d && _allowed.d.indexOf(gen[d2].d) >= 0) opM2[d2].d = gen[d2].d; } }); }, "generator");
                 }
                 setFormMsg("Week meals generated — " + generatorSummary(merged.src, _allowed));
               }
@@ -1690,7 +1657,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
                     {snapButton(slotKey)}
                     {_hasItem && <button onClick={function() { if (!confirm("Remove this meal? This cannot be undone.")) return; setMeal(eatDay, slotKey, idx === 1 ? "__empty__" : ""); }} style={btnDelete}>🗑 Del</button>}
-                    {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                    {childRagNote(slotKey)}{(function(){ var _c = childAt(eatDay, slotKey); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
@@ -1762,7 +1729,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
                     {snapButton(slotKey)}
                     {_hasItem && <button onClick={function() { if (!confirm("Remove this meal? This cannot be undone.")) return; setMeal(eatDay, slotKey, idx === 1 ? "__empty__" : ""); }} style={btnDelete}>🗑 Del</button>}
-                    {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                    {childRagNote(slotKey)}{(function(){ var _c = childAt(eatDay, slotKey); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
@@ -1839,7 +1806,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
                     {snapButton(slotKey)}
                     {_hasItem && <button onClick={function() { if (!confirm("Remove this meal? This cannot be undone.")) return; setMeal(eatDay, slotKey, idx === 1 ? "__empty__" : ""); }} style={btnDelete}>🗑 Del</button>}
-                    {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                    {childRagNote(slotKey)}{(function(){ var _c = childAt(eatDay, slotKey); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                     </div>
                     {_isPackaged && (<div style={{ marginLeft: 12, marginBottom: 6, paddingLeft: 8, borderLeft: "2px solid #bfdbfe" }}>
                       <div style={{ fontSize: 9, color: "#64748b", marginBottom: 2, fontWeight: 600 }}>📦 Sides for packaged product</div>
@@ -1922,7 +1889,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     </div>
                     {snapButton("ds" + idx)}
                     {getMeal(eatDay, "ds" + idx) && <button onClick={function() { if (!confirm("Remove this snack? This cannot be undone.")) return; setMeal(eatDay, "ds" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
-                    {portionOverrides[eatDay] && portionOverrides[eatDay]["ds" + idx] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                    {childRagNote("ds" + idx)}{(function(){ var _c = childAt(eatDay, "ds" + idx); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
@@ -1987,7 +1954,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     </div>
                     {snapButton("dr" + idx)}
                     {getMeal(eatDay, "dr" + idx) && <button onClick={function() { if (!confirm("Remove this drink? This cannot be undone.")) return; setMeal(eatDay, "dr" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
-                    {portionOverrides[eatDay] && portionOverrides[eatDay]["dr" + idx] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                    {childRagNote("dr" + idx)}{(function(){ var _c = childAt(eatDay, "dr" + idx); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
@@ -2050,7 +2017,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>
                 {snapButton("o" + idx)}
                 {getMeal(eatDay, "o" + idx) && <button onClick={function() { if (!confirm("Remove this item? This cannot be undone.")) return; setMeal(eatDay, "o" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
-                {portionOverrides[eatDay] && portionOverrides[eatDay]["o" + idx] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                {childRagNote("o" + idx)}{(function(){ var _c = childAt(eatDay, "o" + idx); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
               </div>);
             })}
             {portionSlot && portionSlot.match(/^o/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>

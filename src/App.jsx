@@ -38,6 +38,7 @@ import EnvBadge from "./components/EnvBadge.jsx";
 import LoadingScreen from "./components/LoadingScreen.jsx";
 import PersonTabs, { peopleOf, personName } from "./components/PersonTabs.jsx";
 import { ALLOW_ADD_PERSON } from "./constants/features.js";
+import { childItems, dateOf, emptyDoc, loadParentLookup, loadWeekDoc, reconcile, recalcChild, saveWeekDoc, viewFromDoc, weekKey, ymd } from "./lib/children.js";
 
 const { useState, useEffect, useCallback, useRef } = React;
 function Dashboard() {
@@ -714,28 +715,58 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const FIRST_KEY = "mealplan:2026-08-23";
   const FIRST_DEF = { sun: "spag_bol", mon: "sweet_chilli_mash", tue: "chicken_risotto", wed: "fish_chips", thu: "pesto_pasta", _notes: { wed: "JC at parents — Fish & Chips for Beck + boys", thu: "JC: work lunch + McFlurry with Evan. Session 3 moved to Thu." } };
 
-  const [pastWeeksMeals, setPastWeeksMeals] = useState([]);
+  const [pastWeeksMeals, setPastWeeksMeals] = useState([]);   // v2.6.5: past 4 weeks' children docs (frequency rules)
+  /* v2.6.5 eating data = parent list items + child selections (HANDOVER 10 Nov 14:35). `meals` stays the weekday
+     view the screens use; the CHILDREN in weekChildren are the data. */
+  const [weekChildren, setWeekChildrenState] = useState(emptyDoc());
+  const weekChildrenRef = React.useRef(emptyDoc());
+  const setWeekChildren = function(doc) { weekChildrenRef.current = doc; setWeekChildrenState(doc); };
+  const skRef = React.useRef(sk); skRef.current = sk;
+  const isCurrentWeek = ymd(weekStart) === ymd(new Date(baseStart.getTime() + Math.floor((new Date() - baseStart) / (7 * 864e5)) * 7 * 864e5));
   useEffect(() => {
     setMealLoading(true);
+    const mySk = sk; const who = activeTab; const ws = new Date(weekStart);
     (async () => {
-      const raw = await sGet(sk);
-      if (raw) setMeals(JSON.parse(raw));
-      else if (sk === FIRST_KEY) { setMeals(FIRST_DEF); await sSet(sk, JSON.stringify(FIRST_DEF)); }
-      else setMeals({});
-      /* Load past 4 weeks for RED frequency checking */
+      const lookup = await loadParentLookup();
+      const doc = await loadWeekDoc(who, ws, { write: true, current: isCurrentWeek, lookup: lookup });   // migrates an old plan once
+      if (skRef.current !== mySk) return;
+      setWeekChildren(doc); setMeals(viewFromDoc(doc));
+      /* Past 4 weeks for the frequency rules (children; old plans converted in memory only) */
       var past = [];
       for (var pw = 1; pw <= 4; pw++) {
-        var pws = new Date(weekStart); pws.setDate(pws.getDate() - (pw * 7));
-        var psk = mealKey(pws) + ":" + activeTab;
-        var praw = await sGet(psk);
-        if (praw) past.push(JSON.parse(praw));
+        var pws = new Date(ws); pws.setDate(pws.getDate() - (pw * 7));
+        past.push(await loadWeekDoc(who, pws, { write: false, lookup: lookup }));
       }
+      if (skRef.current !== mySk) return;
       setPastWeeksMeals(past);
       setMealLoading(false);
     })();
   }, [sk]);
 
-  const saveMeals = useCallback(async (d) => { setSaving(true); await sSet(sk, JSON.stringify(d)); setSaving(false); }, [sk]);
+  const parentLookupNow = function(extra) {
+    var l = {};
+    [].concat(BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, POTATO_SIDES, SNACKS, VEG_SIDES, customBreakfasts, customLunches, customMeals, customSnacks, customDrinks, customDesserts).forEach(function(it) { if (it && it.id) l[it.id] = it; });
+    return Object.assign(l, extra || {});
+  };
+  /* Screens edit the weekday view; saving turns it into children (parent picks become new children). */
+  const saveMeals = async (d, source, extraLookup) => {
+    setSaving(true);
+    const doc = reconcile(weekChildrenRef.current, d, parentLookupNow(extraLookup), { weekStart: weekStart, isJC: activeTab === "jc", source: source || "manual" });
+    setWeekChildren(doc); setMeals(viewFromDoc(doc));
+    await saveWeekDoc(activeTab, weekStart, doc);
+    setSaving(false);
+  };
+  /* Write one child directly (Snap). child = null removes it. Returns the previous child (for Undo). */
+  const setChildAt = async (weekday, slot, child) => {
+    const doc = JSON.parse(JSON.stringify(weekChildrenRef.current)); const id = "c_" + dateOf(weekStart, weekday) + "_" + slot;
+    const prev = doc.children[id] || null;
+    if (child) { doc.children[id] = recalcChild(Object.assign({}, child, { id: id, date: dateOf(weekStart, weekday), weekday: weekday, slot: slot })); doc.empty = (doc.empty || []).filter(function(k) { return k !== weekday + ":" + slot; }); }
+    else delete doc.children[id];
+    setWeekChildren(doc); setMeals(viewFromDoc(doc));
+    await saveWeekDoc(activeTab, weekStart, doc);
+    return prev;
+  };
+  const childItemsList = childItems(weekChildren, parentLookupNow());
   const pickMeal = (dk, id) => { const n = { ...meals, [dk]: id }; setMeals(n); saveMeals(n); setEditDay(null); };
   const clearMeal = dk => { const n = { ...meals }; delete n[dk]; setMeals(n); saveMeals(n); };
   const saveData = async (nd) => { setData(nd); await sSet("dashboard:data", JSON.stringify(nd)); };
@@ -1079,7 +1110,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       }
       // Gather meal plan
       let mealSummary = "";
-      try { const mr = await sGet(sk); if (mr) { const mp = JSON.parse(mr); const dayInfo = MEAL_DAYS.map(d => { const entry = mp[d.key]; const isO = entry && typeof entry === "object"; const din = isO ? entry.d : entry; const ml = allDinners.find(m => m.id === din); const note = isO ? entry._note : ""; return d.label + ": " + (ml ? ml.name : "unplanned") + (note ? " (" + note + ")" : ""); }).join(", "); mealSummary = "\nThis week's meals: " + dayInfo + "."; } } catch {}
+      try { const mr = true; if (mr) { const mp = viewFromDoc(weekChildrenRef.current); /* v2.6.5: children */ const dayInfo = MEAL_DAYS.map(d => { const entry = mp[DAY_MAP[d.key] || d.key]; const isO = entry && typeof entry === "object"; const din = isO ? entry.d : entry; const ml = childItemsList.find(m => m.id === din) || allDinners.find(m => m.id === din); const note = isO ? entry._note : ""; return d.label + ": " + (ml ? ml.name : "unplanned") + (note ? " (" + note + ")" : ""); }).join(", "); mealSummary = "\nThis week's meals: " + dayInfo + "."; } } catch {}
       // Gather exercise comments \u2014 separated by current vs previous weeks
       let exComments = "";
       try {
@@ -1181,9 +1212,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       const allSn = [...SNACKS, ...customSnacks];
       const allDr = [...customDrinks];
       const allDe = [...customDesserts];
-      const allFood = [].concat(allBf, allLu, allDin, allSn, allDr, allDe);
+      const allFood = [].concat(childItemsList, allBf, allLu, allDin, allSn, allDr, allDe); /* v2.6.5: children first */
       const dayMeals = meals[dayKey] || {};
-      const tracking = mealTracking || {};
+      const tracking = {}; /* v2.6.5: status lives on the child (item._status) */
       // Build planned vs consumed for this day
       var planned = []; var consumed = []; var skipped = [];
       var slots = [
@@ -1201,7 +1232,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           var item = allFood.find(function(x) { return x.id === id; });
           if (!item) return;
           var trackKey = dayKey + ":" + k;
-          var status = tracking[trackKey] || "planned";
+          var status = item._status || tracking[trackKey] || "planned";
           var entry = { slot: sl.cat, name: item.name, kcal: item[kf] || 0, prot: item[pf] || item.jcProt || 0, fat: item[ff] || item.jcFat || 0, rating: item.rating || "GREAT", freq: item.freq || "" };
           planned.push(entry);
           if (status === "consumed") consumed.push(entry);
@@ -1337,8 +1368,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       const allSn = [...SNACKS, ...customSnacks];
       const allDr = [...customDrinks];
       const allDe = [...customDesserts];
-      const allFood = [].concat(allBf, allLu, allDin, allSn, allDr, allDe);
-      const tracking = mealTracking || {};
+      const allFood = [].concat(childItemsList, allBf, allLu, allDin, allSn, allDr, allDe); /* v2.6.5: children first */
+      const tracking = {}; /* v2.6.5: status lives on the child (item._status) */
       var DAYS7 = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"]; /* C1: chronological */
       var weekSummary = []; var weekTotKcal = 0; var weekTotProt = 0; var weekTotFat = 0; var daysPlanned = 0;
       var allRedItems = []; var allAmberItems = [];
@@ -1361,7 +1392,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
             var item = allFood.find(function(x) { return x.id === id; });
             if (!item) return;
             var trackKey = dk + ":" + k;
-            var status = tracking[trackKey] || "planned";
+            var status = item._status || tracking[trackKey] || "planned";
             var entry = { slot: sl.cat, name: item.name, kcal: item[kf] || 0, prot: item[pf] || item.jcProt || 0, fat: item[ff] || item.jcFat || 0, rating: item.rating || "GREAT", freq: item.freq || "" };
             dayPlanned.push(entry);
             if (status === "consumed") dayConsumed.push(entry);
@@ -1776,7 +1807,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
   const btnMT = Object.assign({}, btnMuted, { background: accentBtnLight, border: "1px solid " + accentBtnBorder });
   const stats = countStatus(p.exercises);
   const allDinners = [...DINNERS, ...customMeals];
-  const shopItems = {}; MEAL_DAYS.forEach(d => { var _dk = DAY_MAP[d.key] || d.key; var _dm = meals[_dk] || {}; var _did = typeof _dm === "object" ? _dm.d : _dm; const m = allDinners.find(x => x.id === _did); if (m) m.shop?.forEach(it => { shopItems[it] = (shopItems[it] || 0) + 1; }); });
+  const shopItems = {}; MEAL_DAYS.forEach(d => { var _dk = DAY_MAP[d.key] || d.key; var _dm = meals[_dk] || {}; var _did = typeof _dm === "object" ? _dm.d : _dm; const m = childItemsList.find(x => x.id === _did) || allDinners.find(x => x.id === _did); if (m) m.shop?.forEach(it => { shopItems[it] = (shopItems[it] || 0) + 1; }); });
   const shopList = Object.entries(shopItems).sort((a, b) => a[0].localeCompare(b[0]));
   const planned = MEAL_DAYS.filter(d => meals[DAY_MAP[d.key] || d.key]).length;
   const SECS = [{ id: "overview", l: "Home" }, { id: "body", l: "My Body" }, { id: "weights", l: "My Exercise" }, { id: "meals", l: "My Eating" }, { id: "shop", l: "My Shop" }, { id: "bloods", l: "My Health" }];
@@ -1852,7 +1883,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         {/* MEDS */}
 
         {/* MEALS */}
-        {section === "meals" && <ErrorBoundary name="Eating"><EatingSection ctx={{ accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, addingCategory, addingNew, addingSlotDay, addingSlotKey, addingSource, baseStart, bulkReviewItems, calcRAG, cameraPreview, copyDayOpen, copyDayTargets, copyWeekOpen, copyWeekTargets, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, data, defScopes, eatDay, eatDayEyeOpen, eatFbExpanded, eatFbLoading, eatFbResults, eatWeekEyeOpen, editDraft, editingItem, formMsg, generateEatFeedback, generateWeekEatFeedback, generating, helpEatCat, helpEatLoading, helpEatResult, helpEatText, isJC, manageListsOpen, mealDefaults, mealTracking, meals, newItemLoading, newItemName, offLoading, offResults, openAddForm, p, pastWeeksMeals, portionLoading, portionOverrides, portionPlanned, portionResult, portionSlot, quickPrepMins, ragRecalcLoading, ragRecalcMsg, recalculateAllRag, renderThread, reviewCategories, reviewSideType, saveMeals, searchOFF, setAddingCategory, setAddingNew, setAddingSlotDay, setAddingSlotKey, setBulkReviewItems, setCameraPreview, setCopyDayOpen, setCopyDayTargets, setCopyWeekOpen, setCopyWeekTargets, setCustomBreakfasts, setCustomDesserts, setCustomDrinks, setCustomLunches, setCustomMeals, setCustomSnacks, setDefScopes, setEatDay, setEatDayChartOpen, setEatDayEyeOpen, setEatFbExpanded, setEatWeekEyeOpen, setEditDraft, setEditingItem, setFormMsg, setGenerating, setHelpEatCat, setHelpEatLoading, setHelpEatResult, setHelpEatText, setManageListsOpen, setMealDefaults, setMealTracking, setMeals, setNewItemLoading, setNewItemName, setOffResults, setOffSearchTerm, setPortionLoading, setPortionOverrides, setPortionPlanned, setPortionResult, setPortionSlot, setQuickPrepMins, setRagRecalcMsg, setReviewCategories, setReviewSideType, setSaving, setWeekOff, updateEatDayFb, updateEatWeekFb, weekLabel, weekOff, weekStart }} /></ErrorBoundary>}
+        {section === "meals" && <ErrorBoundary name="Eating"><EatingSection ctx={{ accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, addingCategory, addingNew, addingSlotDay, addingSlotKey, addingSource, baseStart, bulkReviewItems, calcRAG, cameraPreview, copyDayOpen, copyDayTargets, copyWeekOpen, copyWeekTargets, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, data, defScopes, eatDay, eatDayEyeOpen, eatFbExpanded, eatFbLoading, eatFbResults, eatWeekEyeOpen, editDraft, editingItem, formMsg, generateEatFeedback, generateWeekEatFeedback, generating, helpEatCat, helpEatLoading, helpEatResult, helpEatText, isJC, manageListsOpen, mealDefaults, mealTracking, meals, newItemLoading, newItemName, offLoading, offResults, openAddForm, p, pastWeeksMeals, portionLoading, portionOverrides, portionPlanned, portionResult, portionSlot, quickPrepMins, ragRecalcLoading, ragRecalcMsg, recalculateAllRag, renderThread, reviewCategories, reviewSideType, saveMeals, setChildAt, weekChildren, childItemsList, searchOFF, setAddingCategory, setAddingNew, setAddingSlotDay, setAddingSlotKey, setBulkReviewItems, setCameraPreview, setCopyDayOpen, setCopyDayTargets, setCopyWeekOpen, setCopyWeekTargets, setCustomBreakfasts, setCustomDesserts, setCustomDrinks, setCustomLunches, setCustomMeals, setCustomSnacks, setDefScopes, setEatDay, setEatDayChartOpen, setEatDayEyeOpen, setEatFbExpanded, setEatWeekEyeOpen, setEditDraft, setEditingItem, setFormMsg, setGenerating, setHelpEatCat, setHelpEatLoading, setHelpEatResult, setHelpEatText, setManageListsOpen, setMealDefaults, setMealTracking, setMeals, setNewItemLoading, setNewItemName, setOffResults, setOffSearchTerm, setPortionLoading, setPortionOverrides, setPortionPlanned, setPortionResult, setPortionSlot, setQuickPrepMins, setRagRecalcMsg, setReviewCategories, setReviewSideType, setSaving, setWeekOff, updateEatDayFb, updateEatWeekFb, weekLabel, weekOff, weekStart }} /></ErrorBoundary>}
 
         {section === "shop" && (<ErrorBoundary name="Shop"><ShopSection ctx={{ accentBorder, accentBtnBorder, accentBtnLight, accentLight, activeTab, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, data, editHealthText, editingHealthLog, foodCheckerCategory, foodCheckerLoading, foodCheckerPreview, foodCheckerText, generatedShop, planned, setCustomBreakfasts, setCustomLunches, setCustomMeals, setCustomSnacks, setEditHealthText, setEditingHealthLog, setFoodCheckerCategory, setFoodCheckerLoading, setFoodCheckerPreview, setFoodCheckerText, setFormMsg, setGeneratedShop, setShopDefaults, setShopLoading, setSupermarket, setWeekOff, shopDefaults, shopList, shopLoading, supermarket, weekLabel, weekStart }} /></ErrorBoundary>)}
 

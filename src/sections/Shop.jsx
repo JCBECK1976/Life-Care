@@ -1,6 +1,7 @@
 import { calcWeek, mealKey } from "../lib/utils.js";
 import { sGet, sSet } from "../lib/storage.js";
 import { withRuleRating } from "../lib/rag.js";
+import { loadWeekDoc, viewFromDoc } from "../lib/children.js";
 import { handleApiError } from "../lib/api.js";
 import { btnActionLg, btnClear, btnDelete, btnEdit, btnMuted, btnP } from "../constants/styles.js";
 import { BREAKFASTS, DAY_MAP, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, MEAL_DAYS, POTATO_SIDES, SNACKS, VEG_SIDES } from "../constants/food.js";
@@ -147,16 +148,14 @@ export default function ShopSection({ ctx }) {
             setShopLoading(true);
             try {
               var allItems = [].concat(BREAKFASTS, DEFAULT_BREAKFASTS, customBreakfasts, LUNCHES, DEFAULT_LUNCHES, customLunches, DINNERS, DEFAULT_DINNERS_GB, customMeals, SNACKS, customSnacks, customDrinks, customDesserts, POTATO_SIDES, VEG_SIDES);
-              var lookupName = function(id) { var found = allItems.find(function(x) { return x.id === id; }); return found ? found.name : id; };
+              var lookupName = function(id) { if (String(id).indexOf("__adhoc__:") === 0) return id.slice(10); var found = allItems.find(function(x) { return x.id === id; }); return found ? found.name : id; };
               var lookupShop = function(id) { var found = allItems.find(function(x) { return x.id === id; }); return found && found.shop ? found.shop : []; };
               var mealNames = "";
               var allPeople = Object.keys(data).filter(function(k) { return k !== "config"; });
               for (var pi = 0; pi < allPeople.length; pi++) {
                 var pn = allPeople[pi];
                 var pName = (data[pn].profile && data[pn].profile.name) || pn;
-                var pSk = mealKey(weekStart) + ":" + pn;
-                var pRaw = await sGet(pSk);
-                var pMeals = pRaw ? JSON.parse(pRaw) : {};
+                var pMeals = viewFromDoc(await loadWeekDoc(pn, weekStart, { write: false }), { parentIds: true }); /* v2.6.5: children */
                 var pDays = MEAL_DAYS.map(function(d) { var dk = DAY_MAP[d.key] || d.key; var entry = pMeals[dk]; if (!entry || typeof entry !== "object") return null; var parts = []; if (entry.b) parts.push("B:" + lookupName(entry.b)); if (entry.l) parts.push("L:" + lookupName(entry.l)); if (entry.d) parts.push("D:" + lookupName(entry.d)); for (var di2 = 2; di2 <= 5; di2++) { if (entry["d" + di2]) parts.push("D:" + lookupName(entry["d" + di2])); } for (var sideKey of ["dp","dv","dp2","dv2","dp3","dv3","dp4","dv4"]) { if (entry[sideKey] && entry[sideKey] !== "__empty__") { var sShop = lookupShop(entry[sideKey]); if (sShop.length > 0) parts.push("Side:" + sShop.join(", ")); else parts.push("Side:" + lookupName(entry[sideKey])); } } for (var oi = 1; oi <= 7; oi++) { if (entry["o" + oi] && entry["o" + oi] !== "__placeholder__" && entry["o" + oi] !== "__empty__") parts.push("S:" + lookupName(entry["o" + oi])); } return parts.length > 0 ? d.label + ": " + parts.join(", ") : null; }).filter(Boolean).join("; ");
                 if (pDays) mealNames += pName + ": " + pDays + ". ";
               }

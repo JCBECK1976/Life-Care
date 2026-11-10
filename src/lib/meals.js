@@ -102,14 +102,18 @@ export function generatorSummary(src, allowed) {
 }
 
 // v2.6.5 (JC decision, replaces the snapshot repair): "Clear old eating history".
-// Picks ONLY meal week plans (mealplan:<YYYY-MM-DD>[:person]) whose week starts before `before` (YYYY-MM-DD).
+// Picks ONLY meal weeks — children (eat_children:<person>:<YYYY-MM-DD>) and old plans (mealplan:<YYYY-MM-DD>[:person]) —
+// whose week starts before `before` (YYYY-MM-DD).
 // Returns counts per person and the keys to delete. Nothing else is ever selected.
 export function planClearHistory(plans, before) {
   var r = { weeks: 0, selections: 0, perPerson: {}, keys: [] };
   Object.keys(plans || {}).sort().forEach(function(key) {
-    var m = /^mealplan:(\d{4}-\d{2}-\d{2})(?::(.+))?$/.exec(key); if (!m || m[1] >= before) return;
-    var who = m[2] || "shared (old format)"; var plan = plans[key]; var n = 0;
-    if (plan && typeof plan === "object") Object.keys(plan).forEach(function(day) {
+    var m = /^mealplan:(\d{4}-\d{2}-\d{2})(?::(.+))?$/.exec(key); var c = /^eat_children:([^:]+):(\d{4}-\d{2}-\d{2})$/.exec(key);
+    if (!m && !c) return;
+    var date = m ? m[1] : c[2]; if (date >= before) return;
+    var who = m ? (m[2] || "shared (old format)") : c[1]; var plan = plans[key]; var n = 0;
+    if (c) { n = Object.keys((plan && plan.children) || {}).length; }      // v2.6.5 children: one per selection
+    else if (plan && typeof plan === "object") Object.keys(plan).forEach(function(day) {
       if (day.charAt(0) === "_") return; var dm = plan[day];
       if (typeof dm === "string") { if (dm && dm !== "__empty__") n++; return; }
       if (dm && typeof dm === "object") Object.keys(dm).forEach(function(sl) { var v = dm[sl]; if (typeof v === "string" && v && v !== "__empty__" && v !== "__placeholder__") n++; });
