@@ -11,6 +11,7 @@ import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm
 import { parseRecalc, recalcPrompt, renameKcal, stripKcal as stripKcalName } from "../lib/nutrition.js";
 import { applyDefaultsTo, generatorSummary, mergeGenerated, selectionName } from "../lib/meals.js";
 import { compareLine, gramsLine, requestBody } from "../lib/snap.js";
+import { PHASE_LABEL } from "../lib/eatPhase.js";
 import { foodKey, loadWeekDoc, makeChild, occurrences, ragNote, reconcile, saveWeekDoc, viewFromDoc } from "../lib/children.js";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
@@ -1501,7 +1502,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {(eatFbResults[activeTab] || {})["week"] && <button onClick={function(){ setEatFbExpanded(!eatFbExpanded); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer", marginBottom: 6 }}>{eatFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>}
               {eatFbExpanded && (eatFbResults[activeTab] || {})["week"] && (function() { var efb = eatFbResults[activeTab]["week"]; return React.createElement("div", { style: { marginBottom: 10 } },
                 React.createElement("div", { style: { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" } },
-                  efb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", efb._when, " for ", isJC ? "JC" : "Becks"),
+                  efb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", efb._when, " for ", isJC ? "JC" : "Becks", efb._phase ? React.createElement("span", { "data-testid": "eat-fb-phase", style: { marginLeft: 6, fontWeight: 700, color: "#1e3a5f" } }, "· " + (PHASE_LABEL[efb._phase] || efb._phase)) : null),
                   React.createElement("div", { style: { padding: "8px 14px", borderBottom: "1px solid #e2e8f0" } }, React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6 } }, React.createElement("span", { style: { fontSize: 14 } }, "🍽️"), React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f" } }, "Eating Companion Check-in — Weekly"))),
                   React.createElement("div", { style: { padding: "12px 14px", borderBottom: "1px solid #e2e8f0" } },
                     React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#0c4a6e" } }, "What went well this week"),
@@ -2335,7 +2336,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {(eatFbResults[activeTab] || {})[eatDay] && <button onClick={function(){ setEatFbExpanded(!eatFbExpanded); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer", marginBottom: 6 }}>{eatFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>}
               {eatFbExpanded && (eatFbResults[activeTab] || {})[eatDay] && (function() { var efb = eatFbResults[activeTab][eatDay]; return React.createElement("div", { style: { marginBottom: 10 } },
                 React.createElement("div", { style: { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" } },
-                  efb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", efb._when, " for ", isJC ? "JC" : "Becks"),
+                  efb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", efb._when, " for ", isJC ? "JC" : "Becks", efb._phase ? React.createElement("span", { "data-testid": "eat-fb-phase", style: { marginLeft: 6, fontWeight: 700, color: "#1e3a5f" } }, "· " + (PHASE_LABEL[efb._phase] || efb._phase)) : null),
                   React.createElement("div", { style: { padding: "8px 14px", borderBottom: "1px solid #e2e8f0" } }, React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6 } }, React.createElement("span", { style: { fontSize: 14 } }, "🍽️"), React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f" } }, "Eating Companion Check-in — Daily"))),
                   React.createElement("div", { style: { padding: "12px 14px", borderBottom: "1px solid #e2e8f0" } },
                     React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#0c4a6e" } }, "What went well"),
