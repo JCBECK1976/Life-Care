@@ -1697,3 +1697,16 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
 - **Backup route for now:** Firebase console → Realtime Database → Data → ⋮ → **Export JSON** (on a phone, use desktop-site mode).
 - **Backlog (small, P1-adjacent, next release):** add an admin-only **"Download backup"** button in Data tools. It exports the whole `DATA_ROOT` as a dated JSON file, using the same format as the Firebase export so restore accepts it. The nightly automated backups (P2) remain the main safety net.
 
+
+### (Coder) 10 Nov 2026 — v2.6.5: "⬇️ Download backup" in Data tools — `build` (4b126f1, test fix f2ab671)
+- This implements the 20:40 backlog item as specified by the later instruction: it exports the **real `data` path** (not `DATA_ROOT`, so it also works from /build/; JC's account can read it) **plus `data_build`**.
+- Admin only (Data tools is JC-only). One file, `lifecare_backup_<env>_<YYYY-MM-DD-HHmm>.json`, shaped like a Firebase console export of the database root: `{ "data": {…}, "data_build": {…} }`, values exactly as stored.
+- The confirmation shows only the file name, size and counts ("data N items (M meal weeks), data_build K items"), never contents. On failure nothing is downloaded and the error is shown.
+- **Restore compatibility (finding, not changed):** "Restore from Firebase Export" expects the **exercise data object itself** (top-level `jc`/`becks`), i.e. the value of `data["dashboard:data"]`. It does not accept a whole console export or the `data` object.
+  - The test proves that pasting `data["dashboard:data"]` from the downloaded file works ("Restored N missing progression entries").
+  - In the file that value is stored as an escaped string, so copying it by hand is awkward.
+  - **Question for Architect/JC:** should Restore accept the whole backup file, picking out `data["dashboard:data"]` itself? It would be a small change, but it wasn't in scope.
+- Emulator test: the download is caught; the file name, both sections equal to the emulator's `data`/`data_build`, and the message (size + counts only) are checked, plus the Restore round-trip.
+  - The first version of the test left a stub in the emulator's `data_build`, which broke the two env-build tests. It now restores `data_build` afterwards (f2ab671).
+  - Full suite 87 passed (4 skipped), lint 0 errors, visual unchanged. Deploy runs 42898373928 / 42898977010 succeeded, 0 failure annotations.
+- **Resume point:** `build` @ f2ab671 (v2.6.5). Next: JC can download a backup from /build/ before the beta PR; the promotion sequence continues.
