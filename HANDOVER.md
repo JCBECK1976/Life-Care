@@ -1666,4 +1666,10 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   - Fix: on phones, the item picker opens as a **bottom-sheet / full-screen picker** with the search box at the top and results directly under it, so the keyboard never hides the list.
   - At minimum, scroll the field into view on focus using `visualViewport`.
 - All three go in the current pre-beta batch, with tests where feasible (D14 layout snapshot; D15 request has temperature 0 and the previous estimate on Re-check; D16 picker visible with the keyboard open, using an emulated viewport).
+- **D15 amended by JC (20:15): Re-check is an independent second opinion, not anchored to the first estimate.**
+  - Re-check does a **deeper dive**: a component-by-component breakdown with an estimated weight in grams per component, plate/portion cues, and the user's description given priority.
+  - The result is headed **"Re-check deep dive — re-assessed outcome"** and shows a one-line comparison with the previous result (e.g. "First check: large · RED → Deep dive: medium · GOOD").
+  - Confirm uses the latest shown result.
+  - Keep from the original D15: explicit grams shown in every result ("Assumed: ~450g — …"). First-check calls use temperature 0.
+  - Drop: passing the previous estimate into Re-check.
 
