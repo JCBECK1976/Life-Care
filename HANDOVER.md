@@ -68,6 +68,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.6.3 | Bulk upload (release 3, fix): **D4** bulk has its own category, starts unselected ("Choose a category first"), confirm names it ("Add 14 items to Drinks?"). **D5** Cancel aborts requests and discards late results; "Cancelled — nothing was added", or says what earlier batches kept with Undo. **D3** batches of 10 with progress, each batch saved as it succeeds, failed batches retried with "Retry N". **F4** OK-to-dismiss reminder; `checkMe: true` badge "Check me" (RAG colour kept) in Update Lists and selection lists until the item is opened and saved. | build only |
 | v2.6.4 | Chats + eating week (release 4): **D8** Question, Help and all feedback threads (session, eating, body, Home summary) show the latest exchange first (question above its answer); thread reply box moved above the conversation. **C1** eating week shown Sunday → Saturday (display only; data was already keyed by the Sunday the week starts). | build only |
 | v2.6.5 | Architect/JC decisions (10 Nov 07:20): **D11** portion-based RAG by rules in code (`src/lib/rag.js`; new `addedSugar`, `ragFreq` weekly/monthly; AMBER ≤3/week, RED weekly/monthly treats) + "🔄 Re-rate all lists" (changed → Check me). Data tools **"Clear old eating history"** (meal week plans before a date; dry run → Delete), replacing the D6 repair (JC). **Snap** 📷 on every slot: description first, Confirm / Re-check / Cancel, empty slot → list match or "Add to list?". **D7** "🔎 Re-check nutrition" (flags only) + recalc/plausibility on the add-item Review path. | build only |
+| v2.7.0 | **Release (on beta as v2.7.0-beta.2, 10 Nov; not yet on main):** contains all of v2.6.1–v2.6.5, which were **build-only and never released separately**: per-set logging + Form/Range rule (D1/D2/D12); meal snapshots → **parent list items + dated child selections** with their own RAG (D6/D13 superseded by the 14:35 model); real Update/Review recalculation (D7); portion-based RAG with added sugar + Re-rate all lists (D11); generator order (D9); 📷 Snap with deep-dive Re-check (D10/F7/D15); bulk upload fixes + Check me (D3–D5/F4); Sunday-first week (C1); latest-first chats (D8); child-RAG colouring (D14); phone picker sheet (D16); Data tools: Download backup, Restore preview → merge / full restore (type RESTORE), Clear old eating history; deploy queue + Node 24 actions. | beta |
 
 ---
 
@@ -76,7 +77,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v2.6.0 (5 November 2026) — Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
+- **Version**: v2.6.0 (5 November 2026) in prod; **v2.7.0-beta.2 on beta** (10 Nov 2026, awaiting JC test + release). Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -1710,3 +1711,24 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   - The first version of the test left a stub in the emulator's `data_build`, which broke the two env-build tests. It now restores `data_build` afterwards (f2ab671).
   - Full suite 87 passed (4 skipped), lint 0 errors, visual unchanged. Deploy runs 42898373928 / 42898977010 succeeded, 0 failure annotations.
 - **Resume point:** `build` @ f2ab671 (v2.6.5). Next: JC can download a backup from /build/ before the beta PR; the promotion sequence continues.
+
+### (Coder) 10 Nov 2026 — v2.7.0 on beta (PR #19 + #20), /beta/ = v2.7.0-beta.2
+- **Restore** (JC decision): "Restore from Firebase Export" now takes the Download-backup file or a console export (of the root or of `data`), or the bare exercise data as before.
+  - **Preview** shows counts only (kind, items, meal weeks, people, logged exercise weeks). Then either:
+    - **Merge missing exercise weeks**: the old safe logic, unchanged; or
+    - **Full restore of data**: `set()` of the real `data` from the file (on Build: the build copy), after a confirm **and** typing RESTORE. Anything else typed cancels with nothing changed.
+  - Tests: pure parsing/targets; merge with the whole file; full restore makes `data` equal to the file again; a wrong word changes nothing.
+- **v2.7.0:** version.js / package.json. APP_GUIDE.md updated for every listed feature (Snap, RAG bands + Re-rate, Re-check nutrition, Check me, bulk upload, per-set logging + Form/Range, Clear old eating history, Sunday-first week, latest-first chats, phone picker, Download backup + Restore) and dated v2.7.0. TECHNICAL_REFERENCE gained an "Eating data model" section.
+- **PR #19 build → beta merged** (merge commit ce52472).
+  - **The deploy check skipped beta:** "beta refers to data_build". `check-pages.mjs` rejects any prod/beta bundle containing the literal build data path (the guard against a wrong DATA_ROOT). Backup/Restore named that path directly. **Prod would also have failed at release, which stops the whole deploy.**
+  - Fix 13e88d6: the path name is built at runtime (`BUILD_ROOT` in `src/lib/backup.js`). The guard is unchanged and still catches a literal DATA_ROOT. A local beta-mode build has no literal.
+  - **PR #20 merged** (6ec2e0f). Deploy run 42902054066: build success, no failure annotations, deploy success.
+- **/beta/ is live as v2.7.0-beta.2** (beta.N = merge commits on beta since main). Full suite 90 passed (4 skipped), lint 0 errors, visual: footer only.
+- **Not done (as instructed):** no merge to main, no tag.
+- **For JC on /beta/** (real data; JC's backup is taken):
+  1. Close and reopen; the footer should show v2.7.0-beta.2.
+  2. Opening My Eating migrates the week once.
+  3. Run Clear old eating history (dry run → delete), per the 15:05 sequence.
+  4. Check Snap, the picker on the phone, and Download backup.
+- **Remember at release:** prod deploys only from main's `deploy.yml`, so the queue/Node 24 changes start with the release. Take another backup before the beta → main PR.
+- **Resume point:** `build` @ 13e88d6, `beta` @ 6ec2e0f (v2.7.0-beta.2). Next: JC tests beta → Architect raises/approves beta → main (release v2.7.0, tag).
