@@ -4,7 +4,7 @@ import { personName } from "../components/PersonTabs.jsx";
 import { useState } from "react";
 import { currentWeekSunday, planClearHistory } from "../lib/meals.js";
 import { APP_ENV } from "../constants/version.js";
-import { backupCounts, parseBackupInput, restoreTarget } from "../lib/backup.js";
+import { BUILD_ROOT, backupCounts, parseBackupInput, restoreTarget } from "../lib/backup.js";
 
 /* v2.6.5 Download backup: the REAL data ("data", whatever environment this is) plus "data_build", in the same shape
    as a Firebase console export of the database root: { "data": {...}, "data_build": {...} }. */
@@ -14,8 +14,8 @@ export function backupFileName(env, now) {
 }
 async function readBackup() {
   var real = await firebase.database().ref("data").once("value");
-  var build = await firebase.database().ref("data_build").once("value");
-  return { data: real.val() || {}, data_build: build.val() || {} };
+  var build = await firebase.database().ref(BUILD_ROOT).once("value");
+  var out = { data: real.val() || {} }; out[BUILD_ROOT] = build.val() || {}; return out;
 }
 
 /* v2.6.5 Clear old eating history: read every stored meal week plan (and nothing else) */
@@ -46,7 +46,7 @@ export default function DataSection({ ctx }) {
       var kb = blob.size / 1024; var size = kb >= 1024 ? (kb / 1024).toFixed(1) + " MB" : Math.max(1, Math.round(kb)) + " KB";
       var count = function(o) { return Object.keys(o || {}).length; };
       var meals = Object.keys(exp.data).filter(function(k) { return /^(mealplan|eat_children):/.test(k); }).length;
-      setBackupMsg("✓ Downloaded " + name + " (" + size + "): data " + count(exp.data) + " items (" + meals + " meal weeks), data_build " + count(exp.data_build) + " items.");
+      setBackupMsg("✓ Downloaded " + name + " (" + size + "): data " + count(exp.data) + " items (" + meals + " meal weeks), " + BUILD_ROOT + " " + count(exp[BUILD_ROOT]) + " items.");
     } catch (e) { setBackupMsg("Backup failed: " + String(e.message || e).substring(0, 120) + ". Nothing was downloaded."); }
     setBackupBusy(false);
   };
@@ -140,7 +140,7 @@ export default function DataSection({ ctx }) {
   <div style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 12 }}>Firebase Data Viewer</div>
   <div data-testid="backup" style={{ padding: 10, background: "#eff6ff", borderRadius: 8, border: "1px solid #bfdbfe", marginBottom: 12 }}>
     <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", marginBottom: 4 }}>Backup</div>
-    <div style={{ fontSize: 10, color: "#475569", marginBottom: 6, lineHeight: 1.4 }}>Downloads all real data ("data", shared by the app and beta) and the build copy ("data_build") as one dated file, in the same layout as a Firebase console export. Keep it somewhere safe; it contains health data.</div>
+    <div style={{ fontSize: 10, color: "#475569", marginBottom: 6, lineHeight: 1.4 }}>Downloads all real data ("data", shared by the app and beta) and the build copy ({BUILD_ROOT}) as one dated file, in the same layout as a Firebase console export. Keep it somewhere safe; it contains health data.</div>
     <button onClick={downloadBackup} disabled={backupBusy} style={{ width: "100%", padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{backupBusy ? "Preparing…" : "⬇️ Download backup"}</button>
     {backupMsg && <div data-testid="backup-msg" style={{ fontSize: 11, fontWeight: 600, color: backupMsg.charAt(0) === "✓" ? "#166534" : "#991b1b", marginTop: 6 }}>{backupMsg}</div>}
   </div>
@@ -308,7 +308,7 @@ export default function DataSection({ ctx }) {
       </div>
       <div style={{ marginTop: 10, padding: 10, background: "#ecfdf5", borderRadius: 8, border: "1px solid #86efac" }}>
         <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6, color: "#0c4a6e" }}>Restore from Firebase Export</div>
-        <div style={{ fontSize: 10, color: "#475569", marginBottom: 6 }}>Paste a Download-backup file or a Firebase JSON export and press Preview. Merge adds missing exercise weeks only; Full restore replaces everything in data (on Build: data_build) and asks you to type RESTORE first.</div>
+        <div style={{ fontSize: 10, color: "#475569", marginBottom: 6 }}>Paste a Download-backup file or a Firebase JSON export and press Preview. Merge adds missing exercise weeks only; Full restore replaces everything in data (on Build: the build copy) and asks you to type RESTORE first.</div>
         <textarea id="restore-json" placeholder="Paste the full JSON here..." style={{ width: "100%", padding: 8, border: "1px solid #86efac", borderRadius: 6, fontSize: 10, minHeight: 80, resize: "vertical", boxSizing: "border-box", marginBottom: 6, fontFamily: "monospace" }}></textarea>
         {/* v2.7.0: preview first (counts only), then Merge (safe) or Full restore (double confirm) */}
         <button onClick={function() {
@@ -344,7 +344,7 @@ export default function DataSection({ ctx }) {
               setRestoreParsed(null);
             } catch(e) { setRestoreMsg("Full restore failed: " + String(e.message || e).substring(0, 120) + ". Nothing was changed."); }
             setRestoreBusy(false);
-          }} style={{ width: "100%", padding: 10, background: restoreParsed.dataRoot ? "#dc2626" : "#e2e8f0", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Full restore of {restoreTarget(APP_ENV) === "data" ? "data" : "data_build (Build)"}</button>
+          }} style={{ width: "100%", padding: 10, background: restoreParsed.dataRoot ? "#dc2626" : "#e2e8f0", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Full restore of {restoreTarget(APP_ENV) === "data" ? "data" : BUILD_ROOT + " (Build)"}</button>
         </div>)}
         {restoreMsg && <div data-testid="restore-msg" style={{ fontSize: 11, fontWeight: 600, color: restoreMsg.charAt(0) === "✓" ? "#166534" : "#991b1b", marginTop: 6 }}>{restoreMsg}</div>}
       </div>
