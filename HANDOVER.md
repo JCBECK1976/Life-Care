@@ -1652,3 +1652,18 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
 - **Cause:** when the Coder pushes to `build` and a doc-only commit to `main` within seconds, two "Deploy to GitHub Pages" runs overlap. The second fails with "in progress deployment… cancel d76a7d9 first" (e.g. run e7bd87b at 14:50). The next run publishes everything, so **nothing is lost and the site is correct**. JC still gets a failure email.
 - **Fix (small, do in the next Coder session, with the beta PR):** in `deploy.yml`, add a workflow-level `concurrency: { group: pages-deploy, cancel-in-progress: false }`, so deploys **queue** instead of colliding. Also update `actions/deploy-pages` (and the related actions) to their current major versions to clear the Node 20 deprecation warning, which is P2 item 16.
 
+### (Architect) 10 Nov 2026 20:15 — JC phone test of the eating tracker: D14–D16 (before beta)
+- **D14 (layout):** the inline child-RAG note ("GREAT today — this portion") squeezes the slot row.
+  - Fix: no inline note text. Colour the **selected item's text by the child's RAG**, the same way list items are coloured.
+  - Keep the "differs from list item" explanation only in the item's details (the "Open" form, release 5), not inline.
+- **D15 (consistency):** the same Frankfurter dinner photo came back as large/RED-or-AMBER, then medium/GOOD on Re-check. Vision estimates vary between calls, and the rule-based RAG then follows the varied nutrition.
+  - Fix:
+    - nutrition and photo calls use **temperature 0**;
+    - the AI must return an explicit **estimated weight in grams** per component, shown in the result ("Assumed: ~450g — rice 200g, sausages 2…");
+    - **Re-check sends the previous estimate** and asks the AI to keep it unless the photo or the description justifies a change, and to say what changed and why ("Changed: rice 200g → 150g because…");
+    - the description prompt suggests stating the size ("large plate", "2 sausages").
+- **D16 (mobile usability):** the phone keyboard covers the selection dropdown when searching.
+  - Fix: on phones, the item picker opens as a **bottom-sheet / full-screen picker** with the search box at the top and results directly under it, so the keyboard never hides the list.
+  - At minimum, scroll the field into view on focus using `visualViewport`.
+- All three go in the current pre-beta batch, with tests where feasible (D14 layout snapshot; D15 request has temperature 0 and the previous estimate on Re-check; D16 picker visible with the keyboard open, using an emulated viewport).
+
