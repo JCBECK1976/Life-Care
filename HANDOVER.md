@@ -67,6 +67,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.6.2 | Food data and photos (release 2, fix): **D6** meal selections keep a snapshot (`_snap` per day:slot in the week's plan); deleted items show the snapshot or "Deleted item", never code. **D7** Update Item recalculates the whole recipe, applies only real values, before → after, plausibility check with one retry, assumed amounts, name's "(N kcal)" updated. **D9** generator: selections → defaults → generated only into empty slots from that slot's list, summary. **D10** different-food photo → new entry replaces the slot item with Undo; original never written. **F7** optional description on Portion and Shop Food Checker, preferred by the AI; assumed size shown. | build only |
 | v2.6.3 | Bulk upload (release 3, fix): **D4** bulk has its own category, starts unselected ("Choose a category first"), confirm names it ("Add 14 items to Drinks?"). **D5** Cancel aborts requests and discards late results; "Cancelled — nothing was added", or says what earlier batches kept with Undo. **D3** batches of 10 with progress, each batch saved as it succeeds, failed batches retried with "Retry N". **F4** OK-to-dismiss reminder; `checkMe: true` badge "Check me" (RAG colour kept) in Update Lists and selection lists until the item is opened and saved. | build only |
 | v2.6.4 | Chats + eating week (release 4): **D8** Question, Help and all feedback threads (session, eating, body, Home summary) show the latest exchange first (question above its answer); thread reply box moved above the conversation. **C1** eating week shown Sunday → Saturday (display only; data was already keyed by the Sunday the week starts). | build only |
+| v2.6.5 | Architect/JC decisions (10 Nov 07:20): **D11** portion-based RAG by rules in code (`src/lib/rag.js`; new `addedSugar`, `ragFreq` weekly/monthly; AMBER ≤3/week, RED weekly/monthly treats) + "🔄 Re-rate all lists" (changed → Check me). **D6** one-off snapshot repair in Data tools (dry run → write, adds `_snap` only, idempotent). **Snap** 📷 on every slot: description first, Confirm / Re-check / Cancel, empty slot → list match or "Add to list?". **D7** "🔎 Re-check nutrition" (flags only) + recalc/plausibility on the add-item Review path. | build only |
 
 ---
 
@@ -1487,3 +1488,41 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
 - **Before any beta PR (Architect requirement):** prove prod v2.6.0 tolerates the new data shapes (`_snap` in the meal plan, per-set arrays in exercise logs, `addedSugar`, "Check me" flags): run the v2.6.0 build against emulator data containing them, with no crash or odd rendering. If it can't, prod must be released right after beta.
 - No backup is needed for Build data: it's a disposable copy, overwritten on refresh.
 
+
+### (Coder) 10 Nov 2026 — v2.6.5 (Architect/JC decisions of 07:20) on `build` (008b885)
+- **D11 (as approved, ADDED sugar):** `src/lib/rag.js` rates one portion: score = max(satFat/20, addedSugar/25).
+  - Bands: GREAT ≤10%, GOOD ≤25%, AMBER ≤50%, RED weekly treat ≤80%, RED monthly treat >80% or one portion >40% of the day's kcal (2100 JC / 1800 Becks).
+  - Fibre ≥5g or protein ≥20g lifts one band, never above AMBER when the score is >50%.
+  - Stored as `rating` (GREAT/GOOD/AMBER/RED, so older screens still work) + `ragFreq` ("weekly"/"monthly") + `ragReason`.
+  - Every AI nutrition prompt now asks for `addedSugar`; every save path (add, bulk, Update, Snap, Shop) applies the rule rating.
+  - `checkRagFrequency` uses: AMBER up to 3/week, RED weekly once/week, RED monthly once/month. The generator prompt and the item tags use the same bands.
+  - "🔄 Re-evaluate Ratings" is replaced by **"🔄 Re-rate all lists"**: the AI estimates `addedSugar` only where it is missing (batches of 20), then the rules rate every item. Changed items get `prevRating`, the 🔄 marker and **Check me** with the reason.
+  - **For JC:** press "Re-rate all lists" once on /build/ to see the summary. Ratings are then rule-based.
+- **D6 repair (Data tools → "Meal snapshot repair"):**
+  - The dry run counts only. Write adds missing `_snap` entries only (never touches slots or existing snapshots) and re-reads each plan before writing.
+  - It is idempotent: the second dry run shows "0 weeks to write". An optional pasted Firebase export fills items deleted from the lists.
+  - **Rehearsal: done on the emulator copy of the 3 Nov backup, not on live Build data.** Coder sessions have no live Firebase access, and the rules lock it to JC's account.
+    - Dry run: 17 week plans · 252 selections · 0 already · 1 from current lists · **61 from renamed built-in items** · 0 from export · **190 not found** · 11 weeks to write.
+    - Write: 62 snapshots to 11 plans. Second dry run: 0 to write. All other keys and slots unchanged (checked by the test).
+  - **Finding:** most old selections use pre-migration built-in ids (`spag_bol`, `overnight_oats` …). The current defaults hold the same foods as `gb_<id>`, so the repair maps them (and the slot display now does too, instead of showing code). Of the 190 not found, 60 are deleted custom items and 130 are old ids with no list match (e.g. `banana`, `leftovers`, `none_snack`).
+  - **Question for Architect/JC:** should those 130 old ids keep "Deleted item", or should a small name map be added (e.g. `none_snack` → "No snack", `leftovers` → "Leftovers")?
+  - **The real Build rehearsal is for JC/Architect** in /build/ → Settings → Data tools (Build data is a copy, no backup needed). Real data: JC backup → dry run → write, from beta or prod once released.
+- **📷 Snap (replaces Portion everywhere):**
+  - The button sits on every slot, empty or filled (accessible label "Snap a photo of your food"). Tapping it opens a bar under the slot: optional description → "📷 Take photo" or Cancel.
+  - The result panel shows food, values, rule RAG + frequency, and "Assumed: …". The description stays editable, with ↻ Re-check (repeatable).
+  - Confirm, by case:
+    - filled slot, same food → this meal's portion;
+    - filled slot, different food → swap with Undo (D10);
+    - empty slot → an exact list match by name is selected with this portion; otherwise "Add “X” to your <Category> list?" → `addReviewedItem` → selected.
+  - Cancel and Re-check save nothing.
+- **D7:** "🔎 Re-check nutrition" asks the AI for each recipe item's whole-recipe kcal, 10 per call. If the saved kcal is below 80% or above 125% of it, the item gets **Check me** with "Nutrition looks off: saved X kcal, ingredients add up to about Y". Values are never changed.
+  - Opening a flagged item and pressing Confirm now recalculates even with no ingredient change.
+  - The add-item **Review** path uses the same whole-recipe prompt, plausibility retry, before → after and name kcal as Update Item.
+- **Prod v2.6.0 tolerates the new data shapes: PASSED.** `tests/compat-prod.spec.js` (skipped in the normal suite) ran the v2.6.0 source (tag `v2.6.0`, dev server on the emulator) against data containing:
+  - `_snap`, per-set `sets`, `addedSugar`/`ragFreq`/`checkMe`/`checkReason`/`prevRating`/`assumed`, a deleted id and an old renamed id.
+  - Every tab plus Progress, the Eating day/week views and Update Lists: no page errors, no "section error", `[object Object]`, `_snap`, NaN or "undefined kcal".
+  - v2.6.0 simply ignores the new fields (deleted ids still show their old code-like name there, as today). **So beta can go ahead of prod safely.** Re-run it before the beta PR: see the comment at the top of the spec.
+- Tests: 4 new spec files/blocks (rating ×4, repair ×2, Snap ×2 + updated photo tests, compat ×1). Full suite 80 passed (4 skipped incl. compat), lint 0 errors.
+  - Visual rebaselined: Snap buttons, new list buttons, and the Chat panel. The v2.6.4 chat baseline had not picked up latest-first; the new one is correct ([14:59, 18:52] stored → 18:52 shown first).
+- **Not done:** `APP_GUIDE.md` (Help reads it live, including in prod) still describes Portion and the old ratings. Update it with the release, not before.
+- **Resume point:** `build` @ 008b885. Next: the Architect verifies /build/ (run Re-rate and the repair dry run there), then PR build → beta when approved.
