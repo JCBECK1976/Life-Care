@@ -2,7 +2,7 @@ import { DEFAULT_EXERCISES, EXERCISE_DATABASE, EXERCISE_TYPES } from "../constan
 import { calcWeek, fbIcon, sBg, sColor, sLabel } from "../lib/utils.js";
 import { buildExProfileInfo, getMoodContext } from "../lib/aiContext.js";
 import { sSet } from "../lib/storage.js";
-import { autoStatus, entrySets, fmtEntry, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps } from "../lib/exercise.js";
+import { autoStatus, entrySets, fmtEntry, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsDiffer, weightLabel } from "../lib/exercise.js";
 import { btnAction, btnActionLg, btnDelete, btnEdit, btnMuted, btnP, btnS, inputStyle, labelStyle } from "../constants/styles.js";
 import { FullChart } from "../components/charts.jsx";
 import { TONE_RULES } from "../constants/tone.js";
@@ -180,7 +180,7 @@ export default function ExerciseSection({ ctx }) {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }} onClick={function() { var curType=ex.exType||getExerciseType(ex.name);var tc=getExerciseTypeConfig(curType);var curM2=(ex.reps||tc.defaultM2).replace(/x\d+$/,"");setSelectedEx({day:day,idx:i});setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:ex.current||tc.defaultM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",exerciseGuide:ex.exerciseGuide||"",prePostGuide:ex.prePostGuide||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});setAddExOpen(false); }}>{ex.name} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span></div>
-                          <div style={{ color: "#64748b", fontSize: 11, fontWeight: 500 }}>{ex.current} · {ex.reps}{ex.exType && ex.exType !== "weights" && <span style={{fontSize:9,color:"#94a3b8",marginLeft:6}}>{EXERCISE_TYPES[ex.exType] ? EXERCISE_TYPES[ex.exType].label : ""}</span>}</div>
+                          <div style={{ color: "#64748b", fontSize: 11, fontWeight: 500 }}>{(ex.prog && ex.prog.length && setsDiffer(ex.prog[ex.prog.length - 1])) ? weightLabel(ex.prog[ex.prog.length - 1]) : ex.current} · {ex.reps}{ex.exType && ex.exType !== "weights" && <span style={{fontSize:9,color:"#94a3b8",marginLeft:6}}>{EXERCISE_TYPES[ex.exType] ? EXERCISE_TYPES[ex.exType].label : ""}</span>}</div>
                           {ex.status && <div style={{ marginTop: 3 }}><span style={{ fontSize: 9, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap", border: "1px solid " + sColor(ex.status) + "40" }}>{sLabel(ex.status)}</span></div>}
                         </div>
                         <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0,alignItems:"flex-end"}}>
@@ -210,27 +210,23 @@ export default function ExerciseSection({ ctx }) {
 
               {/* Quality toggles — Full Range / Completed in One + Good Form */}
               {(() => { var exTypeName2 = ex.exType || getExerciseType(ex.name); var isWeightType = ["weights","bodyweight","timed_hold","stretching"].indexOf(exTypeName2) >= 0; var toggle1Label = isWeightType ? "Full Range of Motion" : "Completed in One"; var toggle1Tip = isWeightType ? "Full controlled movement through the complete range" : "Completed without stopping and restarting";
-              return (<div style={{ marginTop: 10, padding: 10, background: accentLight, borderRadius: 8, border: "1px solid " + accentBorder }}>
+              return (<>
+              <div data-testid="session-quality" style={{ marginTop: 10, padding: 10, background: accentLight, borderRadius: 8, border: "1px solid " + accentBorder }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#475569", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Session Quality</div>
-                <div style={{ display: "flex", gap: 12, marginBottom: 4 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>{toggle1Label}{logNeedChoice && !logFullRange && <span style={{ color: "#dc2626" }}> · choose one</span>}</div>
-                    <div style={{ display: "flex", background: accentMid, borderRadius: 6, padding: 2 }}>
-                      <button onClick={function(){ setLogFullRange("working"); }} style={{ flex: 1, padding: "5px 0", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: logFullRange === "working" ? "#fef3c7" : "transparent", color: logFullRange === "working" ? "#92400e" : "rgba(255,255,255,0.7)" }}>Working Towards</button>
-                      <button onClick={function(){ setLogFullRange("good"); }} style={{ flex: 1, padding: "5px 0", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: logFullRange === "good" ? "#dcfce7" : "transparent", color: logFullRange === "good" ? "#166534" : "rgba(255,255,255,0.7)" }}>Good</button>
+                {[["range", toggle1Label, logFullRange, setLogFullRange], ["form", "Good Form", logGoodForm, setLogGoodForm]].map(function(q) { var missing = !!logNeedChoice && !q[2]; return (
+                  <div key={q[0]} style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#334155", marginBottom: 4 }}>{q[1]}</div>
+                    <div data-testid={"quality-" + q[0]} data-missing={missing ? "true" : "false"} style={{ display: "flex", borderRadius: 8, overflow: "hidden", background: "#fff", border: missing ? "2px solid #dc2626" : "1px solid #cbd5e1" }}>
+                      {[["working", "Working towards"], ["good", "Good"]].map(function(o, oi) { var sel = q[2] === o[0]; return (
+                        <button key={o[0]} aria-pressed={sel} onClick={function() { q[3](o[0]); }} style={{ flex: 1, padding: "9px 4px", border: "none", borderLeft: oi ? "1px solid #cbd5e1" : "none", fontSize: 12, fontWeight: sel ? 700 : 500, cursor: "pointer", background: sel ? (o[0] === "good" ? "#166534" : "#b45309") : "#fff", color: sel ? "#fff" : "#475569" }}>{o[1]}</button>
+                      ); })}
                     </div>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Good Form{logNeedChoice && !logGoodForm && <span style={{ color: "#dc2626" }}> · choose one</span>}</div>
-                    <div style={{ display: "flex", background: accentMid, borderRadius: 6, padding: 2 }}>
-                      <button onClick={function(){ setLogGoodForm("working"); }} style={{ flex: 1, padding: "5px 0", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: logGoodForm === "working" ? "#fef3c7" : "transparent", color: logGoodForm === "working" ? "#92400e" : "rgba(255,255,255,0.7)" }}>Working Towards</button>
-                      <button onClick={function(){ setLogGoodForm("good"); }} style={{ flex: 1, padding: "5px 0", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: logGoodForm === "good" ? "#dcfce7" : "transparent", color: logGoodForm === "good" ? "#166534" : "rgba(255,255,255,0.7)" }}>Good</button>
-                    </div>
-                  </div>
-                {logNeedChoice && (logNeedChoice !== "Choose Form and Range" || !logFullRange || !logGoodForm) && <div role="alert" data-testid="log-need-choice" style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: "#dc2626" }}>{logNeedChoice}</div>}
-                </div>
-                <div style={{ fontSize: 9, color: "#94a3b8", marginTop: 4, fontStyle: "italic" }}>{toggle1Tip}</div>
-              </div>); })()}
+                ); })}
+                <div style={{ fontSize: 9, color: "#94a3b8", marginTop: 2, fontStyle: "italic" }}>{toggle1Tip}</div>
+              </div>
+              {logNeedChoice && (!logFullRange || !logGoodForm) && <div role="alert" data-testid="log-need-choice" style={{ marginTop: 6, fontSize: 12, fontWeight: 700, color: "#dc2626" }}>{logNeedChoice}</div>}
+              </>); })()}
 
               <div style={{ marginTop: 8 }}>
                 <label style={labelStyle}>Progression</label>
@@ -326,11 +322,11 @@ export default function ExerciseSection({ ctx }) {
                     </div>); })()}
                     {ex.prog && ex.prog.slice().reverse().slice(0, selectedEx && selectedEx.showAll ? 999 : 4).map(function(pr, pi) { var realPi = ex.prog.length - 1 - pi; return (<div key={pi}><div style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
                       <input defaultValue={pr.wk} onBlur={function(e) { updateProg(day, exIdx, realPi, "wk", parseInt(e.target.value) || pr.wk); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
-                      <input defaultValue={pr.w} onBlur={function(e) { updateProg(day, exIdx, realPi, "w", e.target.value); }} style={{ width: 55, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
+                      {setsDiffer(pr) ? <span data-testid="prog-weight" style={{ width: 55, fontSize: 11, padding: "2px 4px" }}>{weightLabel(pr)}</span> : <input data-testid="prog-weight" defaultValue={pr.w} onBlur={function(e) { updateProg(day, exIdx, realPi, "w", e.target.value); }} style={{ width: 55, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />}
                       <input defaultValue={pr.r} onBlur={function(e) { updateProg(day, exIdx, realPi, "r", e.target.value); }} style={{ width: 65, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
                       <input defaultValue={pr.note || ""} onBlur={function(e) { updateProg(day, exIdx, realPi, "note", e.target.value); }} placeholder="..." style={{ flex: 1, minWidth: 0, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
                       <button onClick={function() { deleteProg(day, exIdx, realPi); }} style={{...btnDelete, fontSize: 11, minWidth: 24, flexShrink: 0}}>🗑 Del</button>
-                    </div>{fmtEntry(pr).indexOf("×") >= 0 && <div data-testid="prog-sets" style={{ fontSize: 10, color: "#64748b", padding: "0 0 4px 44px" }}>Sets: {fmtEntry(pr)}</div>}</div>); })}
+                    </div>{setsDiffer(pr) && <div data-testid="prog-sets" style={{ fontSize: 10, color: "#64748b", padding: "0 0 4px 44px" }}>Sets: {fmtEntry(pr)}</div>}</div>); })}
                     {(!ex.prog || ex.prog.length === 0) && <div style={{ fontSize: 10, color: "#94a3b8" }}>No progression data yet</div>}
                     {ex.prog && ex.prog.length > 4 && <button onClick={function(){setSelectedEx(Object.assign({},selectedEx,{showAll:!selectedEx.showAll}));}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:accent,cursor:"pointer",marginBottom:6}}>{selectedEx && selectedEx.showAll ? "▲ Show less" : "▼ View more (" + (ex.prog.length - 4) + " entries)"}</button>}
                     <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var wk = calcWeek(nd.config.trainingStart); var existWk = -1; for (var awi = 0; awi < nd[activeTab].exercises[day][exIdx].prog.length; awi++) { if (nd[activeTab].exercises[day][exIdx].prog[awi].wk === wk) { existWk = awi; break; } }

@@ -833,7 +833,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     var r3 = targetR || (lastReps[2] ? String(lastReps[2]) : (lastReps[0] ? String(lastReps[0]) : ""));
     var lastSets = last ? entrySets(last) : [];
     var wFor = function(i) { return targetW || (lastSets[i] ? lastSets[i].w : useW); }; // D2: last session's per-set weights
-    setLogSets([{ w: wFor(0), r: r1 }, { w: wFor(1), r: r2 }, { w: wFor(2), r: r3 }]);
+    if (last && Array.isArray(last.sets) && last.sets.length) setLogSets(logSetsFrom(last, 3)); // each set from the previous entry
+    else setLogSets([{ w: wFor(0), r: r1 }, { w: wFor(1), r: r2 }, { w: wFor(2), r: r3 }]);
     (function() {
       var maxWk = 0;
       if (ex.prog) { for (var mwi = 0; mwi < ex.prog.length; mwi++) { if (ex.prog[mwi].wk > maxWk) maxWk = ex.prog[mwi].wk; } }
@@ -873,7 +874,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
     const ex = nd[activeTab].exercises[day][idx];
     if (ex && ex.stopped) { setFormMsg("⏸ " + ex.name + " is stopped — restart it in Exercise Settings to log"); setTimeout(() => setFormMsg(""), 4000); return; }
     // D12: Form and Range must be chosen (for everyone being saved from this form)
-    if (!logGoodForm || !logFullRange) { setLogNeedChoice("Choose Form and Range"); return; }
+    if (!logGoodForm || !logFullRange) { setLogNeedChoice("Choose Form and Range to save"); return; }
     setLogNeedChoice("");
     var _sets = setsToSave(logSets); // D2: weight and reps per set
     if (editPrev && ex.prog.length > 0) {

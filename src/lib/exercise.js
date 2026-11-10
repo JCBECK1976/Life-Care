@@ -86,13 +86,25 @@ export function logSetsFrom(entry, n) {
   for (var i = 0; i < Math.max(n || 3, 3); i++) out.push(sets[i] || { w: sets.length ? sets[sets.length - 1].w : "", r: sets.length ? sets[sets.length - 1].r : "" });
   return out;
 }
+// True when an entry's sets used different weights (compared as numbers).
+export function setsDiffer(entry) {
+  if (!entry || !Array.isArray(entry.sets) || entry.sets.length < 2) return false;
+  var w0 = parseFloat(entry.sets[0].w);
+  return entry.sets.some(function(s) { return parseFloat(s.w) !== w0; });
+}
+// The weight to show for an entry: the range ("56–63kg") when sets differ, else the old single weight.
+export function weightLabel(entry) {
+  if (!entry) return "";
+  if (setsDiffer(entry)) {
+    var ws = entry.sets.map(function(s) { return parseFloat(s.w); }).filter(function(n) { return !isNaN(n); });
+    return Math.min.apply(null, ws) + "–" + Math.max.apply(null, ws) + "kg";
+  }
+  return entry.w || "";
+}
 // One line for display and AI prompts: "16kg×10, 22kg×8, 22kg×8" when weights differ, else the old "16kg 10x3" style.
 export function fmtEntry(entry) {
   if (!entry) return "";
-  if (Array.isArray(entry.sets) && entry.sets.length) {
-    var ws = entry.sets.map(function(s) { return String(s.w); });
-    if (ws.some(function(w) { return w !== ws[0]; })) return entry.sets.map(function(s) { return s.w + "kg×" + s.r; }).join(", ");
-  }
+  if (setsDiffer(entry)) return entry.sets.map(function(s) { return s.w + "kg×" + s.r; }).join(", ");
   return (entry.w || "") + " " + (entry.r || "");
 }
 // The sets to save from the form; a blank weight on a later set means "same as set 1".
