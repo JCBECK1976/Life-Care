@@ -69,6 +69,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.6.4 | Chats + eating week (release 4): **D8** Question, Help and all feedback threads (session, eating, body, Home summary) show the latest exchange first (question above its answer); thread reply box moved above the conversation. **C1** eating week shown Sunday → Saturday (display only; data was already keyed by the Sunday the week starts). | build only |
 | v2.6.5 | Architect/JC decisions (10 Nov 07:20): **D11** portion-based RAG by rules in code (`src/lib/rag.js`; new `addedSugar`, `ragFreq` weekly/monthly; AMBER ≤3/week, RED weekly/monthly treats) + "🔄 Re-rate all lists" (changed → Check me). Data tools **"Clear old eating history"** (meal week plans before a date; dry run → Delete), replacing the D6 repair (JC). **Snap** 📷 on every slot: description first, Confirm / Re-check / Cancel, empty slot → list match or "Add to list?". **D7** "🔎 Re-check nutrition" (flags only) + recalc/plausibility on the add-item Review path. | build only |
 | v2.7.0 | **Release (on beta as v2.7.0-beta.2, 10 Nov; not yet on main):** contains all of v2.6.1–v2.6.5, which were **build-only and never released separately**: per-set logging + Form/Range rule (D1/D2/D12); meal snapshots → **parent list items + dated child selections** with their own RAG (D6/D13 superseded by the 14:35 model); real Update/Review recalculation (D7); portion-based RAG with added sugar + Re-rate all lists (D11); generator order (D9); 📷 Snap with deep-dive Re-check (D10/F7/D15); bulk upload fixes + Check me (D3–D5/F4); Sunday-first week (C1); latest-first chats (D8); child-RAG colouring (D14); phone picker sheet (D16); Data tools: Download backup, Restore preview → merge / full restore (type RESTORE), Clear old eating history; deploy queue + Node 24 actions. | beta |
+| v2.7.1 | Fix (Architect 21:12): Download backup / Restore are environment-aware **at build time**. Beta/Prod back up and restore only `data`; Build also its own copy (`DATA_ROOT`, written into each bundle by Vite). PR #20's runtime-assembled name is reverted; the deploy guard is unchanged. | build only |
 
 ---
 
@@ -1742,3 +1743,14 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   - the guard stays exactly as is.
 - **Prod release (beta → main) waits for this fix.**
 
+
+### (Coder) 11 Nov 2026 — overnight R1: v2.7.1 on `build` (6fc8335)
+- PR #20's runtime-assembled build path name is **reverted**. Backup/Restore use `DATA_ROOT`, which Vite writes into each bundle as a literal at build time. On Beta/Prod it is "data", so those bundles contain no code or name for the build copy. On Build the second section and the restore target are its own copy.
+- **Decision (Coder), please check:** this uses the existing `DATA_ROOT` env flag rather than a separate build-only module. It has the same effect (no build-path code compiled into Beta/Prod) with less code.
+- Proof: local builds — prod 0 / beta 0 / build 1 JS files contain `data_build`, matching what the **unchanged** guard expects.
+- Tests per environment:
+  - app (prod-like): the backup holds only `data`;
+  - env-build: the backup holds `data` + `data_build`, and the full-restore button targets "data_build (this test app)";
+  - pure: the restore target is the environment's own root.
+- Full suite 91 passed (4 skipped), lint 0 errors. Deploy 42907085680 succeeded, no failures.
+- **Resume point:** `build` @ 6fc8335. Next: R2 (v2.8.0 "Open" pattern).
