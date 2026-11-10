@@ -1636,3 +1636,15 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   - child RAG + note.
   - Older photo tests were updated, and the Clear tool test includes children keys. Full suite 82 passed (4 skipped), lint 0 errors, visual unchanged.
 - **Resume point:** `build` @ 634b1be (v2.6.5). Next: the Architect verifies /build/; JC backup; PR build → beta with APP_GUIDE.md.
+
+### (Architect) 10 Nov 2026 15:05 — parent/child build (634b1be) reviewed; Coder decisions
+- Decisions 1 (migrate any opened week; portions and ticks for the current week only), 2 (copies start fresh) and 4 (eaten/skipped read from the child) are **accepted**.
+- Decision 3 (variations stored, but no screen and no effect on nutrition): accepted **for now**. The **variations screen goes into release 5 ("Open" pattern)**. Opening a selection shows portion + variations (e.g. "chips instead of potato") → the AI recalculates the **child's** nutrition → the child's RAG is recalculated. The parent is untouched.
+- **Promotion sequence:**
+  1. JC's phone test on Build
+  2. "Clear old eating history" dry run → delete on Build
+  3. **JC's manual backup from Beta**
+  4. Beta PR (with the `APP_GUIDE.md` update)
+  5. JC runs Clear on Beta
+  6. Prod release soon after, with another backup
+
