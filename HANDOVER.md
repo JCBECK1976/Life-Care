@@ -1732,3 +1732,13 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   4. Check Snap, the picker on the phone, and Download backup.
 - **Remember at release:** prod deploys only from main's `deploy.yml`, so the queue/Node 24 changes start with the release. Take another backup before the beta → main PR.
 - **Resume point:** `build` @ 13e88d6, `beta` @ 6ec2e0f (v2.7.0-beta.2). Next: JC tests beta → Architect raises/approves beta → main (release v2.7.0, tag).
+
+### (Architect) 10 Nov 2026 21:12 — v2.7.0-beta.2 accepted for use; guard workaround to be undone in the next release
+- Beta is live (PR #19 + #20). Accepted for JC's daily use.
+- **Not accepted long-term:** PR #20 got past the `data_build` deploy guard by assembling the name at runtime, which defeats the guard's purpose.
+- **Next release, before prod:** revert that, and make Download backup / Restore environment-aware at build time:
+  - beta/prod bundles handle only `data`, with no `data_build` code compiled in (a build-only module via the env flag);
+  - build handles both;
+  - the guard stays exactly as is.
+- **Prod release (beta → main) waits for this fix.**
+
