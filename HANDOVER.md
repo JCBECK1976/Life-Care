@@ -71,6 +71,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.7.0 | **Release (on beta as v2.7.0-beta.2, 10 Nov; not yet on main):** contains all of v2.6.1–v2.6.5, which were **build-only and never released separately**: per-set logging + Form/Range rule (D1/D2/D12); meal snapshots → **parent list items + dated child selections** with their own RAG (D6/D13 superseded by the 14:35 model); real Update/Review recalculation (D7); portion-based RAG with added sugar + Re-rate all lists (D11); generator order (D9); 📷 Snap with deep-dive Re-check (D10/F7/D15); bulk upload fixes + Check me (D3–D5/F4); Sunday-first week (C1); latest-first chats (D8); child-RAG colouring (D14); phone picker sheet (D16); Data tools: Download backup, Restore preview → merge / full restore (type RESTORE), Clear old eating history; deploy queue + Node 24 actions. | beta |
 | v2.7.1 | Fix (Architect 21:12): Download backup / Restore are environment-aware **at build time**. Beta/Prod back up and restore only `data`; Build also its own copy (`DATA_ROOT`, written into each bundle by Vite). PR #20's runtime-assembled name is reverted; the deploy guard is unchanged. | build only |
 | v2.8.0 | "Open" pattern (F1 + F5 + variations): one shared form (`src/components/OpenForm.jsx`) for Progress weeks, list items and meal selections. Read-only → ✎ Edit → Save; the only destructive action sits inside the form. Meal selections: portion + variations → AI recalculates the **child** → child RAG; list item untouched. | build only |
+| v2.9.0 | F6 Eating Feedback: days before today = **eaten** (logged children), today onwards = **plan**, a fully future week = **plan review**; the prompt and the panel say which ("What you ate" / "Your plan" / "Plan review" / "So far this week + the rest of your plan"). Cut-off, empty and unreadable feedback is reported; chat replies show failures (message kept) and cut-offs. | build only |
 
 ---
 
@@ -1781,3 +1782,16 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
 - Tests: `tests/open.spec.js` (4: F1, list item, selection + variations + Remove, empty-slot add). 5 older tests moved from "✎ Update" to Open → ✎ Edit. Full suite 95 passed (4 skipped), lint 0 errors, visual rebaselined (eating rows/lists). Deploy 42909794550 succeeded.
 - **Decision (Coder):** a factor change on a photo-checked portion replaces the photo values with list × factor. Variations always use list portion × factor as the base.
 - **Resume point:** `build` @ 48b4fdf. Next: R3 (v2.9.0 Eating Feedback).
+
+### (Coder) 11 Nov 2026 — overnight R3: v2.9.0 F6 Eating Feedback on `build` (8405365)
+- **Plan-aware** (`src/lib/eatPhase.js`): a day before today is **eaten**; today and later are **planned**. A week where every day is in the future is a **plan review**, one entirely in the past is all eaten, otherwise **mixed**.
+  - **Day feedback** sends either "THIS IS A PAST DAY — WHAT THEY ATE on Monday 2026-11-09 (from their logged meals)…" (past tense) or "THIS IS TODAY / A FUTURE DAY — THEIR PLAN for … (not eaten yet)…" ("never praise it as if it had been eaten").
+  - The old "default to consumed if not tracked" logic is gone: what's logged is what counts, and children marked skipped are listed as skipped.
+  - **Week feedback** marks each day "(EATEN)" or "(PLAN)" with its date. A mixed week is told to open with "So far this week you've eaten…" then "For the rest of the week your plan…"; a future week opens "THIS WHOLE WEEK IS IN THE FUTURE: it is a PLAN REVIEW".
+  - The result stores `_phase`, and the panel header shows "· What you ate / Your plan / Plan review / So far this week + the rest of your plan".
+- **Chat upgraded to the session-feedback standard:**
+  - Feedback replies go through `readFeedback()`: cut off (`max_tokens`), empty, or unreadable JSON each give a clear "please press the button again" message instead of a raw parse error.
+  - **Thread replies** (shared by every feedback chat): an empty reply or an API failure now shows an alert under the box ("… Your message is still in the box."), where it used to be silently swallowed. A cut-off reply is kept and marked "(I ran out of room there — ask me to carry on.)".
+  - Latest-first and the panel style were already shared (`renderThread`); follow-ups were already supported.
+- Tests: `tests/eat-feedback.spec.js` (5, using a fixed clock on Wed 11 Nov): pure phase rules, mixed week, future week, past vs future day, and cut-off + failed/cut-off chat. Full suite 100 passed (4 skipped), lint 0 errors, visual footer only. Deploy 42911044365 succeeded.
+- **Resume point:** `build` @ 8405365. Next: R4 (F2: first check photo storage).
