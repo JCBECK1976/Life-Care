@@ -1,6 +1,22 @@
 import firebase, { DATA_ROOT } from "../lib/firebase.js";
 import { btnMuted } from "../constants/styles.js";
 import { personName } from "../components/PersonTabs.jsx";
+import { useState } from "react";
+import { sGet, sSet } from "../lib/storage.js";
+import { lookupFromExport, planSnapRepair } from "../lib/meals.js";
+import { BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, POTATO_SIDES, SNACKS, VEG_SIDES } from "../constants/food.js";
+
+/* v2.6.5 D6 repair: read every stored week plan and the current lists */
+async function loadRepairInputs() {
+  var snap = await firebase.database().ref(DATA_ROOT).orderByKey().startAt("mealplan:").endAt("mealplan:\uf8ff").once("value");
+  var plans = {}; var raw = snap.val() || {};
+  Object.keys(raw).forEach(function(k) { try { plans[k] = typeof raw[k] === "string" ? JSON.parse(raw[k]) : raw[k]; } catch (e) {} });
+  var lookup = {};
+  [].concat(BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, POTATO_SIDES, SNACKS, VEG_SIDES).forEach(function(it) { if (it && it.id) lookup[it.id] = it; });
+  var keys = ["custom_breakfasts", "custom_lunches", "custom_meals", "custom_snacks", "custom_drinks", "custom_desserts"];
+  for (var i = 0; i < keys.length; i++) { var v = await sGet(keys[i]); var arr = []; try { arr = v ? JSON.parse(v) : []; } catch (e) {} (arr || []).forEach(function(it) { if (it && it.id) lookup[it.id] = it; }); }
+  return { plans: plans, lookup: lookup };
+}
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -8,11 +24,49 @@ export default function DataSection({ ctx }) {
   const {
     accent, accentBorder, accentLight, data, dataExpandEx, saveData, setDataExpandEx, setFormMsg, setSection
   } = ctx;
+  const [repair, setRepair] = useState(null);      // last dry-run result
+  const [repairBusy, setRepairBusy] = useState(false);
+  const [repairMsg, setRepairMsg] = useState("");
+  var backupLookup = function() { var el = document.getElementById("snap-repair-backup"); var t = el ? el.value.trim() : ""; if (!t) return {}; return lookupFromExport(JSON.parse(t)); };
+  var dryRun = async function() {
+    setRepairBusy(true); setRepairMsg("");
+    try { var inp = await loadRepairInputs(); setRepair(planSnapRepair(inp.plans, inp.lookup, backupLookup())); }
+    catch (e) { setRepairMsg("Dry run failed: " + String(e.message || e).substring(0, 120)); }
+    setRepairBusy(false);
+  };
+  var writeRepair = async function() {
+    if (!repair || !repair.weeksToWrite) return;
+    if (!confirm("Add " + (repair.fromList + repair.fromOldId + repair.fromBackup) + " snapshots to " + repair.weeksToWrite + " week plans? Slots and existing snapshots are not changed.")) return;
+    setRepairBusy(true);
+    try {
+      var keys = Object.keys(repair.adds); var n = 0;
+      for (var i = 0; i < keys.length; i++) {
+        var cur = await sGet(keys[i]); if (!cur) continue;
+        var plan = JSON.parse(cur); var have = plan._snap || {}; var add = repair.adds[keys[i]];
+        Object.keys(add).forEach(function(k) { if (!have[k]) { have[k] = add[k]; n++; } });   // adds only
+        plan._snap = have; await sSet(keys[i], JSON.stringify(plan));
+      }
+      setRepairMsg("✓ Wrote " + n + " snapshots to " + keys.length + " week plans. Run the dry run again: it should find nothing to add.");
+      setRepair(null);
+    } catch (e) { setRepairMsg("Write failed: " + String(e.message || e).substring(0, 120)); }
+    setRepairBusy(false);
+  };
 
   return (
 <div>
   <button onClick={function() { setSection("admin"); }} style={{ ...btnMuted, marginBottom: 12 }}>← Back to Settings</button>
   <div style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 12 }}>Firebase Data Viewer</div>
+  <div data-testid="snap-repair" style={{ padding: 10, background: "#fffbeb", borderRadius: 8, border: "1px solid #fcd34d", marginBottom: 12 }}>
+    <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 4 }}>Meal snapshot repair (one-off)</div>
+    <div style={{ fontSize: 10, color: "#475569", marginBottom: 6, lineHeight: 1.4 }}>Gives past meal selections their own copy of the item, so deleted or edited list items never show as code. Take a backup first. The dry run only counts; Write adds snapshots and changes nothing else. Optional: paste a Firebase export to fill items that were deleted from the lists.</div>
+    <textarea id="snap-repair-backup" placeholder="Optional: paste a Firebase export (JSON)" style={{ width: "100%", padding: 6, border: "1px solid #fcd34d", borderRadius: 6, fontSize: 10, minHeight: 36, boxSizing: "border-box", marginBottom: 6 }} />
+    <div style={{ display: "flex", gap: 6 }}>
+      <button onClick={dryRun} disabled={repairBusy} style={{ flex: 1, padding: 8, background: "#fff", border: "1px solid #d97706", color: "#92400e", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{repairBusy ? "Working…" : "Dry run (counts only)"}</button>
+      <button onClick={writeRepair} disabled={repairBusy || !repair || !repair.weeksToWrite} style={{ flex: 1, padding: 8, background: (!repair || !repair.weeksToWrite) ? "#e2e8f0" : "#d97706", border: "none", color: "#fff", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Write snapshots</button>
+    </div>
+    {repair && <div data-testid="snap-repair-result" style={{ fontSize: 11, color: "#0f172a", marginTop: 6, lineHeight: 1.5 }}>{repair.weeks} week plans · {repair.slots} selections · {repair.alreadyOk} already have a snapshot · {repair.fromList} from current lists · {repair.fromOldId} from renamed built-in items · {repair.fromBackup} from the export · {repair.unresolved} not found (will show "Deleted item") · {repair.weeksToWrite} weeks to write</div>}
+    {repairMsg && <div data-testid="snap-repair-msg" style={{ fontSize: 11, fontWeight: 600, color: repairMsg.charAt(0) === "✓" ? "#166534" : "#991b1b", marginTop: 6 }}>{repairMsg}</div>}
+  </div>
   {(() => {
     if (!data) return (<div style={{fontSize:11,color:"#94a3b8"}}>No data loaded</div>);
     var people = Object.keys(data).filter(function(k) { return data[k] && data[k].exercises; });

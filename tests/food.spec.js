@@ -131,11 +131,11 @@ test("D9: generator keeps selections, uses defaults, fills only empty slots from
 
 // D10 + F7: portion photo
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
-async function portionSetup(page, reply) {
+async function portionSetup(page, reply, desc, plan) {
   const { key, today } = thisWeek();
   const a = { id: "t_oatbar", name: "Test Oat Bar", jcKcal: 200, beckKcal: 200, protein: 5, satFat: 1, rating: "GOOD" };
   await setKey("custom_breakfasts", [a, ...((await getKey("custom_breakfasts")) || [])]);
-  await setKey(key, { [today]: { b: a.id } });
+  await setKey(key, plan === undefined ? { [today]: { b: a.id } } : plan(today));
   const prompts = [];
   await page.route("https://api.anthropic.com/**", (r) => {
     const b = r.request().postData() || "";
@@ -145,8 +145,14 @@ async function portionSetup(page, reply) {
   });
   await page.reload();
   await tab(page, "My Eating");
-  await page.locator("label", { hasText: "📷 Portion" }).first().locator("input[type=file]").setInputFiles({ name: "p.png", mimeType: "image/png", buffer: PNG });
+  await snap(page, desc);
   return { key, today, a, prompts };
+}
+// v2.6.5: 📷 Snap → optional description → 📷 Take photo
+async function snap(page, desc, nth = 0) {
+  await page.getByRole("button", { name: "Snap a photo of your food" }).nth(nth).click();
+  if (desc) await page.getByLabel("Photo description").fill(desc);
+  await page.locator("label", { hasText: "📷 Take photo" }).locator("input[type=file]").setInputFiles({ name: "p.png", mimeType: "image/png", buffer: PNG });
 }
 
 test("D10: a photo of a different food becomes a new entry in the slot, with Undo; the original is never changed", async ({ page }) => {
@@ -168,15 +174,17 @@ test("D10: a photo of a different food becomes a new entry in the slot, with Und
   expect(errors).toEqual([]);
 });
 
-test("D10: the same food only updates this meal's portion; F7: the description is sent and preferred", async ({ page }) => {
+test("D10: the same food only updates this meal's portion; F7/Snap: the description goes with the first photo and can be edited for Re-check", async ({ page }) => {
   const { errors } = await openApp(page);
-  const { a, today, prompts } = await portionSetup(page, { name: "Test Oat Bar", matchesPlanned: true, assumed: "40g bar", kcal: 180, protein: 4, satFat: 1, rating: "GOOD" });
+  const { a, today, prompts } = await portionSetup(page, { name: "Test Oat Bar", matchesPlanned: true, assumed: "40g bar", kcal: 180, protein: 4, satFat: 1, rating: "GOOD" }, "40g bar");
   await expect(page.getByText("📷 Portion Analysis")).toBeVisible();
+  expect(prompts[0]).toContain("40g bar");                                            // typed before the photo
+  expect(prompts[0]).toContain("PREFER the user's description");
+  expect(((await getKey("portion_overrides:jc")) || {})[today]).toBeUndefined();       // nothing saved before Confirm
   await page.getByLabel("Photo description").fill("28g bar");
   await page.getByRole("button", { name: "↻ Re-check" }).click();
   await expect.poll(() => prompts.length).toBe(2);
   expect(prompts[1]).toContain("28g bar");
-  expect(prompts[1]).toContain("PREFER the user's description");
   await page.getByRole("button", { name: "Confirm Portion" }).click();
   await expect.poll(async () => ((await getKey("portion_overrides:jc")) || {})[today]?.b?.kcal).toBe(180);
   expect((await getKey("custom_breakfasts")).find((x) => x.id === a.id)).toEqual(a);  // list item untouched
@@ -198,5 +206,39 @@ test("F7: Shop Food Checker sends the description with the photo and shows the a
   await expect(page.getByTestId("checker-assumed")).toHaveText("Assumed: 28g bar — 125 kcal");
   expect(prompts[0]).toContain("28g bar");
   expect(prompts[0]).toContain("PREFER the user's description");
+  expect(errors).toEqual([]);
+});
+
+// v2.6.5 Snap on an EMPTY slot
+const emptyPlan = (today) => ({ [today]: { b: "__empty__" } });
+test("Snap on an empty slot: a matching list item is selected with this portion", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const { key, today, a, prompts } = await portionSetup(page, { name: "Test Oat Bar", assumed: "1 bar (45g)", kcal: 190, protein: 5, satFat: 1, addedSugar: 6, rating: "GOOD" }, "", emptyPlan);
+  await expect(page.getByText("📷 Test Oat Bar").first()).toBeVisible();
+  await expect(page.getByTestId("snap-rating")).toHaveText("GOOD · daily");          // 6g added sugar = 24%
+  expect(prompts[0]).toContain("Nothing was planned for this slot");
+  expect((await getKey(key))[today].b).toBe("__empty__");                              // nothing saved yet
+  await page.getByRole("button", { name: "Confirm", exact: true }).click();
+  await expect.poll(async () => (await getKey(key))[today].b).toBe(a.id);
+  expect((await getKey("portion_overrides:jc"))[today].b.kcal).toBe(190);
+  expect(errors).toEqual([]);
+});
+
+test("Snap on an empty slot: a new food is added to the list on 'Add to list?' and selected; Cancel saves nothing", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const dialogs = []; page.on("dialog", (d) => { dialogs.push(d.message()); d.accept(); });
+  const { key, today } = await portionSetup(page, { name: "Banana Bread Slice", assumed: "1 slice (80g)", kcal: 260, protein: 4, satFat: 3, addedSugar: 14, rating: "AMBER" }, "", emptyPlan);
+  await page.getByRole("button", { name: "Confirm", exact: true }).click();
+  await expect.poll(() => dialogs).toEqual(["Add \u201cBanana Bread Slice\u201d to your Breakfast list?"]);
+  const added = await expect.poll(async () => (await getKey("custom_breakfasts")).find((x) => x.name === "Banana Bread Slice")?.rating).toBe("RED");
+  void added;
+  const item = (await getKey("custom_breakfasts")).find((x) => x.name === "Banana Bread Slice");
+  expect(item).toMatchObject({ ragFreq: "weekly", addedSugar: 14 });                    // 14g = 56% → weekly treat (rule, not the AI's AMBER)
+  await expect.poll(async () => (await getKey(key))[today].b).toBe(item.id);
+  // Cancel before the photo: nothing saved
+  await page.getByRole("button", { name: "Snap a photo of your food" }).first().click();
+  await page.getByTestId("snap-pre").getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByTestId("snap-pre")).toHaveCount(0);
+  expect((await getKey(key))[today].b).toBe(item.id);
   expect(errors).toEqual([]);
 });
