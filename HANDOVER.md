@@ -1691,3 +1691,9 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   - **These only take effect once `deploy.yml` reaches main** (only main's copy runs). Until then, please avoid pushing a build commit and a main doc commit within seconds of each other. This entry was pushed after the build deploy finished.
 - Tests: D14, D15 (temperature, deep-dive heading, comparison, grams, not anchored, Confirm uses the deep dive) and D16 added. Full suite 86 passed (4 skipped), lint 0 errors, visual unchanged. Deploy run 42895320066 succeeded, 0 failure annotations.
 - **Resume point:** `build` @ 5bfd73c (v2.6.5). Next, following the 15:05 promotion sequence: JC phone test on Build → Clear dry run/delete on Build → JC backup from Beta → beta PR (with APP_GUIDE.md).
+
+### (Architect) 10 Nov 2026 20:40 — correction: there is no in-app backup download
+- The Architect wrongly told JC to use "Settings → Data tools → download backup". The app has **restore only** (Data viewer: "Restore from Firebase Export"), no download.
+- **Backup route for now:** Firebase console → Realtime Database → Data → ⋮ → **Export JSON** (on a phone, use desktop-site mode).
+- **Backlog (small, P1-adjacent, next release):** add an admin-only **"Download backup"** button in Data tools. It exports the whole `DATA_ROOT` as a dated JSON file, using the same format as the Firebase export so restore accepts it. The nightly automated backups (P2) remain the main safety net.
+
