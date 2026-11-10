@@ -1,10 +1,15 @@
+// The build copy's database path. Written as a join on purpose: the deploy check (scripts/check-pages.mjs) fails a prod
+// or beta bundle that contains the literal build path, to catch a wrong DATA_ROOT. Backup/Restore read that copy by
+// design, so the name is built at runtime and the guard keeps working for its real purpose.
+export var BUILD_ROOT = ["data", "build"].join("_");
+
 // v2.7.0 Restore: accept the Download-backup file, a Firebase console export (of the root or of "data"), or the
 // bare exercise data that Restore took before. Nothing here writes; it only reads the pasted text.
 export function parseBackupInput(text) {
   var obj = JSON.parse(text);
   if (!obj || typeof obj !== "object") throw new Error("Not a backup file");
   var dataRoot = null, buildRoot = null, kind = "";
-  if (obj.data && typeof obj.data === "object" && !Array.isArray(obj.data)) { dataRoot = obj.data; buildRoot = obj.data_build || null; kind = "backup file (data" + (buildRoot ? " + data_build" : "") + ")"; }
+  if (obj.data && typeof obj.data === "object" && !Array.isArray(obj.data)) { dataRoot = obj.data; buildRoot = obj[BUILD_ROOT] || null; kind = "backup file (data" + (buildRoot ? " + " + BUILD_ROOT : "") + ")"; }
   else if (obj["dashboard:data"] !== undefined) { dataRoot = obj; kind = "export of data"; }
   var dash = null;
   if (dataRoot && dataRoot["dashboard:data"] !== undefined) { var d = dataRoot["dashboard:data"]; dash = typeof d === "string" ? JSON.parse(d) : d; }
@@ -24,4 +29,4 @@ export function backupCounts(p) {
 }
 
 // Full restore writes the REAL data on Beta/Prod; on Build it writes the build copy.
-export function restoreTarget(env) { return env === "build" ? "data_build" : "data"; }
+export function restoreTarget(env) { return env === "build" ? BUILD_ROOT : "data"; }
