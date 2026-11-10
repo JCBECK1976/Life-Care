@@ -1539,3 +1539,17 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
 - Version stays v2.6.5 (JC: "in this version"). Full suite 80 passed (4 skipped), lint 0 errors, visual unchanged.
 - **Open:** `APP_GUIDE.md` update (Snap, ratings, Check me, Re-rate, Re-check nutrition, Clear old eating history) goes in the beta PR. Note that `portion_overrides`/`meal_tracking` are keyed by day name, not week, so they are not part of this clear.
 - **Resume point:** `build` @ 19bddf9. Next: the Architect verifies /build/ (dry run there on Build data), then PR build → beta, with APP_GUIDE.md.
+
+### (Coder) 10 Nov 2026 — v2.6.5 Snap panel fixes from JC's phone test — `build` (ad538a3)
+- **Confirm:** the button was there, but labelled "Replace with X" or "Confirm Portion", never "Confirm". I could not reproduce a missing button at 360/412px in any slot type (it was always tappable and uncovered).
+  - It now always reads **Confirm** (same food, different food, empty slot). For a different food, a line "Update to X" sits above it. The Undo bar says "…— updated".
+  - **JC to re-check on the phone.** If the button is still missing, a screenshot and the slot (Breakfast/Snacks …) would help.
+- **Layout:** one row at the bottom, equal height (38px), no wrapping at 360px: **[Confirm]** deep blue (btnActionLg) · **[↻ Re-check]** (btnMuted, as Re-rate) · **[Cancel]** grey (as other Cancels). The description box has its own full-width row above.
+- Tests: the D10/Snap tests now press "Confirm". New test: same food, different food and empty slot each show the three buttons in one row of equal height, and Cancel saves nothing. Full suite 81 passed (4 skipped), lint 0 errors.
+- **D13 (defect, DATA, report only, not built): portion sizes and "tracked" statuses carry over between weeks.**
+  - `portion_overrides:<person>` is keyed `{ <day name>: { <slot>: values } }` and `meal_tracking:<person>` is keyed `"<day name>:<slot>"`. There is no week or date in either and nothing ever resets them (checked: no clearing code; the backup has e.g. `meal_tracking:jc` = `tuesday:b`, `monday:b` …).
+  - So this Monday's portion shows its ✓ "Portion verified" on **every** Monday's same slot, and its values come back for that slot in any week.
+  - Tracking statuses ("eaten/skipped") are read by the day and week Eating Feedback (`App.jsx` ~1204/1364) for whatever week is shown, so old statuses feed the AI as if current. (There is currently no screen that sets tracking; the stored entries come from older versions.)
+  - **Proposed fix:** store both **inside the week plan** (`mealplan:<Sunday>:<person>`) as `_portion["<day>:<slot>"]` and `_track["<day>:<slot>"]`. They are then tied to the week, removed with "Clear old eating history", and covered by the prod-compat check (prod ignores `_` keys).
+  - Migration: existing entries can't be dated reliably. Either drop them (simplest) or attach them to the current week only. **Needs JC/Architect decision.**
+- **Resume point:** `build` @ ad538a3 (v2.6.5). Next: JC re-tests Snap on /build/; the Architect decides D13; then PR build → beta with APP_GUIDE.md.
