@@ -65,6 +65,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.6.0 | **Security pass (hotfix route):** Google sign-in gate (joint account), Settings → Account, `database.rules.json` allow-listing the account UID on `data/` and `data_build/`. Once the rules are applied, `legacy.html` stops working; rollback = revert to the previous v2 release (or reopen the rules in the console in an emergency) |
 | v2.6.1 | Exercise log form (release 1, fix): **D1** form belongs to its person ("Logging for …"; header switch asks first, never mixed); **D2** weight and reps per set (`sets: [{w, r}]`, old entries compatible); **D12** Form and Range start unselected, Save blocked until chosen. *(On `build`; not yet released)* |
 | v2.6.2 | Food data and photos (release 2, fix): **D6** meal selections keep a snapshot (`_snap` per day:slot in the week's plan); deleted items show the snapshot or "Deleted item", never code. **D7** Update Item recalculates the whole recipe, applies only real values, before → after, plausibility check with one retry, assumed amounts, name's "(N kcal)" updated. **D9** generator: selections → defaults → generated only into empty slots from that slot's list, summary. **D10** different-food photo → new entry replaces the slot item with Undo; original never written. **F7** optional description on Portion and Shop Food Checker, preferred by the AI; assumed size shown. | build only |
+| v2.6.3 | Bulk upload (release 3, fix): **D4** bulk has its own category, starts unselected ("Choose a category first"), confirm names it ("Add 14 items to Drinks?"). **D5** Cancel aborts requests and discards late results; "Cancelled — nothing was added", or says what earlier batches kept with Undo. **D3** batches of 10 with progress, each batch saved as it succeeds, failed batches retried with "Retry N". **F4** OK-to-dismiss reminder; `checkMe: true` badge "Check me" (RAG colour kept) in Update Lists and selection lists until the item is opened and saved. | build only |
 
 ---
 
@@ -1436,3 +1437,13 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   - set a default breakfast → run the generator → the defaults are kept;
   - Portion photo of something else → Replace → Undo.
 - **Resume point:** `build` @ 8c4511f. Next: release 3 (v2.6.3, bulk upload).
+
+### (Coder) 10 Nov 2026 — v2.6.3 (release 3: bulk upload) on `build` (64f5392)
+- **D4 trace:** bulk shared `addingCategory` with the single-item add, so the last category stayed selected. Bulk now has its own state, reset on every open/close. The button reads "Choose a category first" until one is picked; the confirm names it.
+- **D5 trace:** Cancel only hid the panel while the request kept running and then saved. Now: AbortController + a run token; anything arriving after Cancel is dropped. If earlier batches were saved, a bottom bar says how many and offers Undo (removes exactly those ids).
+- **D3:** 10 items per AI call ("Rating 11–20 of 30…" + progress bar). Each batch is saved as it succeeds; a failed batch is skipped, the rest carry on, then "Retry N" re-sends only the failed lines. Out of AI energy stops the run and keeps the remainder for Retry.
+- **F4:** after a clean finish, a dialog that needs **OK** ("N items added to <Category>. Ratings are AI estimates. Open each item and check…"). New items carry `checkMe: true` → "Check me" badge next to the name (RAG colour unchanged) in Update Lists and in the slot dropdowns; it clears when the item is opened (✎ Update) and saved.
+- `confirmReviewItem` / the shared `addReviewedItem` step are unchanged; bulk keeps its own batch insert (per-item `addReviewedItem` would overwrite earlier items in the same run, because the list state only updates between renders).
+- Tests: `tests/bulk.spec.js` has 4 new tests, and the old bulk test was updated for the confirm and the OK step. Full suite 68 passed (3 skipped), lint 0 errors, visual rebaselined (footer only).
+- **JC to test on /build/:** bulk add → no category selected; long list (20+) shows progress; Cancel mid-way → nothing (or Undo); after upload → OK message, "Check me" badges.
+- **Resume point:** `build` @ 64f5392. Next: release 4 (v2.6.4: D8 chats, C1 check).
