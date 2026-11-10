@@ -99,9 +99,9 @@ async function portionSetup(page, reply, desc, plan) {
   const prompts = [];
   await page.route("https://api.anthropic.com/**", (r) => {
     const b = r.request().postData() || "";
-    if (!/Analyze this food portion/.test(b)) return r.fallback();
+    if (!/Analyze this food portion|Re-check deep dive/.test(b)) return r.fallback();
     prompts.push(b);
-    return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(aiText(reply)) });
+    return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(aiText(typeof reply === "function" ? reply(b) : reply)) });
   });
   await freshReload(page);
   await tab(page, "My Eating");
@@ -149,7 +149,7 @@ test("Snap result: Confirm, Re-check and Cancel sit in one row of equal-height b
   const a = { id: "t_oatbar", name: "Test Oat Bar", jcKcal: 200, beckKcal: 200, rating: "GOOD" };
   await setKey("custom_breakfasts", [a, ...((await getKey("custom_breakfasts")) || [])]);
   await setKey(key, { [today]: { b: a.id, l: "__empty__" } });
-  await page.route("https://api.anthropic.com/**", (r) => /Analyze this food portion/.test(r.request().postData() || "") ? r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(aiText(reply)) }) : r.fallback());
+  await page.route("https://api.anthropic.com/**", (r) => /Analyze this food portion|Re-check deep dive/.test(r.request().postData() || "") ? r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(aiText(reply)) }) : r.fallback());
   await freshReload(page);
   await tab(page, "My Eating");
   for (const [slot, rep] of [[0, cases[0]], [0, cases[1]], [1, { name: "Soup", kcal: 200 }]]) {          // same food · different food · empty slot
@@ -308,6 +308,68 @@ test("child RAG: recalculated from the child's own nutrition; shown when it diff
   await page.getByRole("button", { name: "Confirm", exact: true }).click();
   await expect.poll(async () => (await childOf(today, "b"))?.ragFreq).toBe("weekly");
   expect((await childOf(today, "b")).rating).toBe("RED");                                       // 13g sat fat = 65%
-  await expect(page.getByTestId("child-rag-note").first()).toHaveText("RED today — large portion");
+  await expect(page.getByTestId("selected-item").filter({ hasText: "Test Oat Bar" }).first()).toHaveAttribute("data-rag", "RED"); // D14: shown by colour
+  expect(errors).toEqual([]);
+});
+
+// ═══ JC phone test 10 Nov 20:15 — D14 / D15 / D16 ═══
+test("D14: no inline RAG note; the selected item's text is coloured by the CHILD's RAG", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const { today } = await portionSetup(page, { name: "Test Oat Bar", matchesPlanned: true, portionSize: "large", components: [{ name: "oat bar", grams: 135 }], kcal: 600, protein: 15, satFat: 13, addedSugar: 20 });
+  await page.getByRole("button", { name: "Confirm", exact: true }).click();
+  await expect.poll(async () => (await childOf(today, "b"))?.rating).toBe("RED");                 // parent is GOOD
+  await expect(page.getByTestId("child-rag-note")).toHaveCount(0);
+  await expect(page.getByText(/today —/)).toHaveCount(0);
+  const sel = page.getByTestId("selected-item").filter({ hasText: "Test Oat Bar" }).first();
+  await expect(sel).toHaveAttribute("data-rag", "RED");
+  await expect(sel).toHaveCSS("color", "rgb(220, 38, 38)");
+  const row = sel.locator("xpath=ancestor::div[contains(@style,'display: flex')][1]");
+  expect((await row.boundingBox()).height).toBeLessThan(50);                                        // one tidy row
+  expect(errors).toEqual([]);
+});
+
+test("D15: first check at temperature 0 with grams per component; Re-check is an independent deep dive with a comparison; Confirm uses it", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const first = { name: "Frankfurters, rice and beans", matchesPlanned: false, portionSize: "large", components: [{ name: "rice", grams: 200 }, { name: "frankfurters", grams: 120 }, { name: "beans", grams: 130 }], totalGrams: 450, kcal: 780, protein: 30, satFat: 14, addedSugar: 6 };
+  const deep = { name: "Frankfurters, rice and beans", matchesPlanned: false, portionSize: "medium", components: [{ name: "rice", grams: 150 }, { name: "frankfurters", grams: 80 }, { name: "beans", grams: 100 }], totalGrams: 330, kcal: 520, protein: 18, satFat: 4, addedSugar: 3 };
+  const bodies = [];
+  const { today } = await portionSetup(page, (raw) => { bodies.push(JSON.parse(raw)); return /Re-check deep dive/.test(raw) ? deep : first; }, "large plate, 2 frankfurters", (t) => ({ [t]: { b: "__empty__" } }));
+  await expect(page.getByTestId("portion-assumed")).toHaveText("Assumed: ~450g — rice 200g, frankfurters 120g, beans 130g — 780 kcal");
+  await page.getByRole("button", { name: "↻ Re-check" }).click();
+  await expect(page.getByText("🔎 Re-check deep dive — re-assessed outcome")).toBeVisible();
+  await expect(page.getByTestId("deep-compare")).toHaveText("First check: large · RED → Deep dive: medium · GOOD");
+  await expect(page.getByTestId("portion-assumed")).toHaveText("Assumed: ~330g — rice 150g, frankfurters 80g, beans 100g — 520 kcal");
+  const [b1, b2] = bodies.slice(-2);
+  expect(b1.temperature).toBe(0);
+  expect(b2.temperature).toBeUndefined();
+  const p2 = b2.messages[0].content[1].text;
+  expect(p2).toMatch(/^Re-check deep dive: give an independent, careful second opinion/);
+  expect(p2).toContain("large plate, 2 frankfurters");                                              // description prioritised
+  expect(p2).not.toMatch(/780|450|Frankfurters, rice and beans/);                                   // not anchored to the first result
+  page.on("dialog", (d) => d.dismiss());
+  await page.getByRole("button", { name: "Confirm", exact: true }).click();
+  await expect.poll(async () => (await childOf(today, "b"))?.nutrition?.kcal).toBe(520);           // the latest shown result
+  expect((await childOf(today, "b")).portion).toMatchObject({ assumed: "~330g — rice 150g, frankfurters 80g, beans 100g", grams: 330, check: "deep dive" });
+  expect(errors).toEqual([]);
+});
+
+test("D16: on a phone the picker is a sheet sized to the visible viewport — results stay visible with the keyboard open", async ({ page }) => {
+  await page.setViewportSize({ width: 412, height: 915 });
+  const { errors } = await openApp(page);
+  await tab(page, "My Eating");
+  await page.getByText("Select breakfast...").first().click();
+  const sheet = page.getByTestId("picker-sheet");
+  await expect(sheet).toBeVisible();
+  await expect(page.getByLabel("Search items")).toBeFocused();
+  await page.setViewportSize({ width: 412, height: 420 });                                         // keyboard open: visible area shrinks
+  await page.getByLabel("Search items").fill("o");
+  await expect.poll(async () => (await sheet.boundingBox()).height).toBeLessThanOrEqual(420);
+  const input = await page.getByLabel("Search items").boundingBox();
+  const firstRow = await page.getByTestId("picker-results").locator("div").first().boundingBox();
+  expect(input.y).toBeLessThan(60);                                                                 // search at the top
+  expect(firstRow.y).toBeGreaterThan(input.y);
+  expect(firstRow.y + firstRow.height).toBeLessThanOrEqual(420);                                   // results directly under it, above the keyboard
+  await page.getByRole("button", { name: "Close" }).click();
+  await expect(sheet).toHaveCount(0);
   expect(errors).toEqual([]);
 });
