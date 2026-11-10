@@ -1596,3 +1596,43 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   - Frequency rules ("AMBER up to 3 a week", "RED weekly/monthly") count **children's** RAG, not parents'.
   - When a child's RAG differs from its parent's, the selection shows it (e.g. "RED today — large portion").
 
+
+### (Coder) 10 Nov 2026 — v2.6.5: parent list items + child selections (Architect/JC 14:35) — `build` (634b1be)
+- **Model (`src/lib/children.js`):**
+  - Children are stored per person per week in `eat_children:<person>:<Sunday>` = `{ v, children: { c_<date>_<slot>: child }, empty: ["<weekday>:<slot>"], notes }`. Each child holds the listed fields:
+    - `parentId` (null when ad hoc), `date`, `weekday`, `slot`;
+    - `snapshot`, `portion` (`{factor}`, or `{source:"photo", values, assumed}`), `variations` (`{text, subs}`);
+    - `nutrition` (snapshot × portion, or the photo values);
+    - its **own** `rating` / `ragFreq` / `band` (D11 bands on that nutrition, recalculated on every change), plus `parentBand`;
+    - `tracked`, `source` (manual / default / generator / snap / adhoc / copy / migrated), `notes`.
+  - The screens keep their weekday view. Each slot now holds a child id, and stand-ins built from the children feed every lookup, so **totals, warnings, day/week feedback, the Home summary and shop items read children**.
+  - Saving reconciles the view back into children (a parent pick creates a child from the parent). Parents change only in Update Lists.
+- **Snap:** Confirm writes the child.
+  - Same food → portion only.
+  - Different food, or an empty slot → list match by name (no question). Otherwise the one question "Save <food> to your <slot> list for future selection?": Yes → `addReviewedItem` + link; No → ad hoc child.
+  - A filled slot gets Undo (restores the previous child). There are no other popups.
+- **Generator, defaults (incl. the other person), manual picks and Copy day/week** all create children from parents.
+- **Frequency rules** count children by food (parent, or name if ad hoc), using each child's own band (this week + 4 past weeks).
+- **RAG note:** "RED today — large portion" (or small portion / with changes) shows next to a selection whose band differs from its parent's.
+- **Migration (idempotent):** when a week is opened and has an old `mealplan:<Sunday>:<person>` but no children, it is converted once.
+  - Selections only, using the list, the renamed `gb_` defaults or a saved `_snap`; unknown ids are dropped.
+  - **For the current week only**, the day-name `portion_overrides` and `meal_tracking` become the children's portion/`tracked`, and then **both legacy keys are deleted**.
+  - Old plan keys are left for "Clear old eating history", which now deletes children weeks and old plans before the date.
+- **Decisions (Coder), please confirm:**
+  1. Migration runs for **any week that is opened**, not just the current one, so past weeks still show until JC clears them. Portions and ticks are migrated for the current week only, as specified.
+  2. Copy day/week makes **fresh** children from the parent (no portion or tick carried over, so D13 can't come back through copies).
+  3. **Variations:** the field exists (`{text, subs}`) and feeds the RAG note, but there's no screen to enter it yet, and it doesn't change nutrition yet.
+  4. No screen sets `tracked` today (pre-existing). Feedback reads it from the child.
+- **Questions for Architect/JC:**
+  - **(a) Real data:** migration writes on first load in beta (shared data), so **JC's backup must come before the beta deploy.**
+  - **(b)** After beta migrates a week, prod v2.6.0 still edits the old plan, and beta won't see those edits. Release prod soon after beta, as planned.
+- **Prod compatibility re-run: PASSED.** v2.6.0 against data with a children week, `_snap`, per-set arrays, `addedSugar` and Check-me flags: no errors, no odd text; it simply doesn't show beta's children.
+- Tests: `food.spec.js` adds 8 tests:
+  - migration (+ legacy keys removed, idempotent);
+  - list edit/delete doesn't change the child, and a manual pick creates a child;
+  - **portion this Monday not shown next Monday**;
+  - generator writes children;
+  - Snap Yes / No / list-match;
+  - child RAG + note.
+  - Older photo tests were updated, and the Clear tool test includes children keys. Full suite 82 passed (4 skipped), lint 0 errors, visual unchanged.
+- **Resume point:** `build` @ 634b1be (v2.6.5). Next: the Architect verifies /build/; JC backup; PR build → beta with APP_GUIDE.md.
