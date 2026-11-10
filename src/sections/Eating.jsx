@@ -33,6 +33,12 @@ export default function EatingSection({ ctx }) {
   /* v2.6.2 D10/F7: Undo for a replaced item, and the optional photo description */
   const [portionUndo, setPortionUndo] = React.useState(null);
   const [portionDesc, setPortionDesc] = React.useState("");
+  /* v2.6.3 bulk upload: own category (D4), batch progress/retry (D3), real cancel (D5), OK message (F4) */
+  const [bulkCat, setBulkCat] = React.useState("");
+  const [bulkRun, setBulkRun] = React.useState(null);   // { done, total, failed: [lines], cat }
+  const [bulkDone, setBulkDone] = React.useState(null); // message that needs OK
+  const [bulkUndo, setBulkUndo] = React.useState(null); // { cat, ids } kept before a cancel
+  const bulkToken = React.useRef(null);
  try {
           var allBfast = [].concat(BREAKFASTS, customBreakfasts, DEFAULT_BREAKFASTS);
           var allLunch = [].concat(LUNCHES, customLunches, DEFAULT_LUNCHES);
@@ -409,7 +415,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               }
               return;
             }
-            var saved = Object.assign({}, dd); delete saved.originalIngredients; delete saved.recalculated;
+            var saved = Object.assign({}, dd); delete saved.originalIngredients; delete saved.recalculated; delete saved.checkMe; /* F4: checked */
             var u = cat.customs.map(function(x) { return x.id === d.id ? saved : x; });
             cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u));
             setEditingItem(null); setEditDraft(null);
@@ -417,49 +423,94 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             setTimeout(function(){ setFormMsg(""); }, 3000);
           };
 
-          /* ═══ Bulk paste add — auto-adds items without per-item review ═══ */
-          var bulkPasteAdd = async function(bulkCat) {
+          /* ═══ Bulk paste add — auto-adds items without per-item review (v2.6.3: batches, cancel, Check me) ═══ */
+          var BULK_BATCH = 10;
+          var bulkListFor = function(c) { return c === "breakfast" ? customBreakfasts : c === "lunch" ? customLunches : c === "dinner" ? customMeals : c === "drink" ? customDrinks : c === "dessert" ? customDesserts : customSnacks; };
+          var bulkSetterFor = function(c) { return c === "breakfast" ? setCustomBreakfasts : c === "lunch" ? setCustomLunches : c === "dinner" ? setCustomMeals : c === "drink" ? setCustomDrinks : c === "dessert" ? setCustomDesserts : setCustomSnacks; };
+          var bulkKeyFor = function(c) { return c === "breakfast" ? "custom_breakfasts" : c === "lunch" ? "custom_lunches" : c === "dinner" ? "custom_meals" : c === "drink" ? "custom_drinks" : c === "dessert" ? "custom_desserts" : "custom_snacks"; };
+          var catLabel = function(c) { return c === "snack" ? "Snacks" : c === "drink" ? "Drinks" : c === "dessert" ? "Desserts" : c.charAt(0).toUpperCase() + c.slice(1); };
+          var bulkPasteAdd = async function(bulkCatArg, retryLines) {
+            if (!bulkCatArg) { setFormMsg("Choose a category first"); return; }
             var pasteEl = document.getElementById("bulk-paste-textarea");
-            if (!pasteEl || !pasteEl.value.trim()) { setFormMsg("Paste your items first"); return; }
-            var lines = pasteEl.value.split(/[\n\r,]+/).map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
-            if (lines.length === 0) { setFormMsg("No items found"); return; }
+            var lines = retryLines || (pasteEl ? pasteEl.value : "").split(/[\n\r,]+/).map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
+            if (lines.length === 0) { setFormMsg(retryLines ? "Nothing to retry" : "Paste your items first"); return; }
+            if (!retryLines && !confirm("Add " + lines.length + " item" + (lines.length === 1 ? "" : "s") + " to " + catLabel(bulkCatArg) + "?")) return;
+            var token = { cancelled: false, ctrl: typeof AbortController !== "undefined" ? new AbortController() : null, addedIds: [], cat: bulkCatArg };
+            bulkToken.current = token;
+            setBulkUndo(null); setBulkDone(null);
             setNewItemLoading(true);
-            setFormMsg("🔍 Analysing " + lines.length + " item" + (lines.length > 1 ? "s" : "") + "...");
-            try {
-              var isJC2 = activeTab === "jc";
-              var targetsStr = isJC2 ? "Daily targets: 2000-2200 kcal, 110-130g protein, <20g sat fat, <25g added sugar, 30-35g fibre, <6g salt" : "Daily targets: 1700-1900 kcal, 90-110g protein, <20g sat fat (critical - LDL 7.2 high cholesterol/suspected FH), <25g added sugar, 25-30g fibre, <6g salt";
-              var prompt = "I have a list of food items to add to a meal planning app. For each item, find the closest nutritional match and assign a RAG colour rating.\n\nRating rules:\n- GREAT (green): Fits well within daily targets, healthy choice\n- AMBER: Acceptable but has some nutritional concerns\n- RED: Should be limited — high in sat fat, sugar, or calories\n\nClassification: 'packaged' if pre-made supermarket product, 'ingredient' if home-made recipe. If 'ingredient', list individual ingredients needed.\n\nPerson's profile: " + targetsStr + "\n\nItems to look up:\n" + lines.join("\n") + "\n\nReturn ONLY a JSON array. For each item: {\"name\":\"item name (corrected spelling)\",\"kcal\":number,\"protein\":number,\"fat\":number,\"satFat\":number,\"carbs\":number,\"fibre\":number,\"salt\":number,\"rating\":\"GREAT or AMBER or RED\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[],\"suitability\":\"ONE sentence\",\"matched\":true}. If cannot identify: {\"name\":\"original name\",\"matched\":false}. Per typical serving. ONLY JSON array.";
-              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4000, messages: [{ role: "user", content: prompt }] }) });
-              var result = await resp.json();
-              var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-              var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
-              var jsonStr = txt.replace(/```json|```/g, "").trim();
-              var arrMatch = jsonStr.match(/\[[\s\S]*\]/); if (!arrMatch) throw new Error("No JSON array found");
-              var items = JSON.parse(arrMatch[0]);
-              var listItems = bulkCat === "breakfast" ? customBreakfasts : bulkCat === "lunch" ? customLunches : bulkCat === "dinner" ? customMeals : bulkCat === "drink" ? customDrinks : bulkCat === "dessert" ? customDesserts : customSnacks;
-              var setList = bulkCat === "breakfast" ? setCustomBreakfasts : bulkCat === "lunch" ? setCustomLunches : bulkCat === "dinner" ? setCustomMeals : bulkCat === "drink" ? setCustomDrinks : bulkCat === "dessert" ? setCustomDesserts : setCustomSnacks;
-              var storageKey2 = bulkCat === "breakfast" ? "custom_breakfasts" : bulkCat === "lunch" ? "custom_lunches" : bulkCat === "dinner" ? "custom_meals" : bulkCat === "drink" ? "custom_drinks" : bulkCat === "dessert" ? "custom_desserts" : "custom_snacks";
-              var addedCount = 0; var skippedCount = 0;
-              for (var bi = 0; bi < items.length; bi++) {
-                var it = items[bi];
-                if (!it.matched && it.matched !== undefined) { skippedCount++; continue; }
-                var dupeName2 = (it.name || "").toLowerCase().trim();
-                if (listItems.some(function(x) { return x.name.toLowerCase().trim() === dupeName2; })) { skippedCount++; continue; }
-                var newItem = { id: "custom_" + Date.now() + "_" + bi, name: it.name || "Unknown", jcKcal: it.kcal || 0, beckKcal: it.kcal || 0, protein: it.protein || 0, fat: it.fat || 0, satFat: it.satFat || 0, carbs: it.carbs || 0, fibre: it.fibre || 0, salt: it.salt || 0, rating: it.rating || "AMBER", itemType: it.itemType || "packaged", ingredients: it.ingredients || [], freq: "Daily", isCustom: true, suitability: it.suitability || "" };
-                if (bulkCat === "dinner") { newItem.jcProt = it.protein; newItem.beckProt = it.protein; newItem.jcFat = it.fat; newItem.beckFat = it.fat; newItem.time = 30; newItem.shop = it.itemType === "ingredient" ? (it.ingredients || []) : [it.name]; }
-                listItems = [].concat(listItems, [newItem]);
-                addedCount++;
+            var batches = []; for (var bs = 0; bs < lines.length; bs += BULK_BATCH) batches.push(lines.slice(bs, bs + BULK_BATCH));
+            var isJC2 = activeTab === "jc";
+            var targetsStr = isJC2 ? "Daily targets: 2000-2200 kcal, 110-130g protein, <20g sat fat, <25g added sugar, 30-35g fibre, <6g salt" : "Daily targets: 1700-1900 kcal, 90-110g protein, <20g sat fat (critical - LDL 7.2 high cholesterol/suspected FH), <25g added sugar, 25-30g fibre, <6g salt";
+            var listItems = bulkListFor(bulkCatArg); var setList = bulkSetterFor(bulkCatArg); var storageKey2 = bulkKeyFor(bulkCatArg);
+            var addedCount = 0; var skippedCount = 0; var failed = []; var lastErr = "";
+            for (var bn = 0; bn < batches.length; bn++) {
+              var batch = batches[bn];
+              setBulkRun({ done: bn * BULK_BATCH, total: lines.length, failed: failed, cat: bulkCatArg });
+              setFormMsg("🔍 Rating " + (bn * BULK_BATCH + 1) + "–" + (bn * BULK_BATCH + batch.length) + " of " + lines.length + "…");
+              try {
+                var prompt = "I have a list of food items to add to a meal planning app. For each item, find the closest nutritional match and assign a RAG colour rating.\n\nRating rules:\n- GREAT (green): Fits well within daily targets, healthy choice\n- AMBER: Acceptable but has some nutritional concerns\n- RED: Should be limited — high in sat fat, sugar, or calories\n\nClassification: 'packaged' if pre-made supermarket product, 'ingredient' if home-made recipe. If 'ingredient', list individual ingredients needed.\n\nPerson's profile: " + targetsStr + "\n\nItems to look up:\n" + batch.join("\n") + "\n\nReturn ONLY a JSON array. For each item: {\"name\":\"item name (corrected spelling)\",\"kcal\":number,\"protein\":number,\"fat\":number,\"satFat\":number,\"carbs\":number,\"fibre\":number,\"salt\":number,\"rating\":\"GREAT or AMBER or RED\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[],\"suitability\":\"ONE sentence\",\"matched\":true}. If cannot identify: {\"name\":\"original name\",\"matched\":false}. Per typical serving. ONLY JSON array.";
+                var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", signal: token.ctrl ? token.ctrl.signal : undefined, headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4000, messages: [{ role: "user", content: prompt }] }) });
+                var result = await resp.json();
+                if (token.cancelled) break;                                     /* D5: late results are discarded */
+                var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+                var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
+                var arrMatch = txt.replace(/```json|```/g, "").trim().match(/\[[\s\S]*\]/); if (!arrMatch) throw new Error("No JSON array found");
+                var items = JSON.parse(arrMatch[0]);
+                var batchNew = [];
+                for (var bi = 0; bi < items.length; bi++) {
+                  var it = items[bi];
+                  if (!it.matched && it.matched !== undefined) { skippedCount++; continue; }
+                  var dupeName2 = (it.name || "").toLowerCase().trim();
+                  if (listItems.concat(batchNew).some(function(x) { return x.name.toLowerCase().trim() === dupeName2; })) { skippedCount++; continue; }
+                  var newItem = { id: "custom_" + Date.now() + "_" + bn + "_" + bi, name: it.name || "Unknown", jcKcal: it.kcal || 0, beckKcal: it.kcal || 0, protein: it.protein || 0, fat: it.fat || 0, satFat: it.satFat || 0, carbs: it.carbs || 0, fibre: it.fibre || 0, salt: it.salt || 0, rating: it.rating || "AMBER", itemType: it.itemType || "packaged", ingredients: it.ingredients || [], freq: "Daily", isCustom: true, suitability: it.suitability || "", checkMe: true };
+                  if (bulkCatArg === "dinner") { newItem.jcProt = it.protein; newItem.beckProt = it.protein; newItem.jcFat = it.fat; newItem.beckFat = it.fat; newItem.time = 30; newItem.shop = it.itemType === "ingredient" ? (it.ingredients || []) : [it.name]; }
+                  batchNew.push(newItem);
+                }
+                if (token.cancelled) break;
+                if (batchNew.length) {
+                  listItems = [].concat(listItems, batchNew);                     /* each batch is saved as it succeeds */
+                  setList(listItems); await sSet(storageKey2, JSON.stringify(listItems));
+                  batchNew.forEach(function(x) { token.addedIds.push(x.id); });
+                  addedCount += batchNew.length;
+                }
+              } catch(e) {
+                if (token.cancelled) break;
+                if (window.isEnergyEmpty(e)) { lastErr = window.energyEmptyMsg; failed = failed.concat(batches.slice(bn).reduce(function(a, b) { return a.concat(b); }, [])); break; }
+                lastErr = String(e.message || e).substring(0, 100);
+                failed = failed.concat(batch);                                     /* D3: keep going; this batch can be retried */
               }
-              setList(listItems); await sSet(storageKey2, JSON.stringify(listItems));
-              var msg = "✅ " + addedCount + " item" + (addedCount !== 1 ? "s" : "") + " added to " + bulkCat;
-              if (skippedCount > 0) msg += " (" + skippedCount + " skipped — duplicates or unrecognised)";
-              msg += ". Edit any item to check descriptions.";
-              setFormMsg(msg);
-              pasteEl.value = "";
-              setBulkReviewItems(null);
-            } catch(e) { setFormMsg(window.isEnergyEmpty(e) ? window.energyEmptyMsg : "⚠️ " + String(e.message || e).substring(0, 100)); }
+            }
             setNewItemLoading(false);
-            setTimeout(function(){setFormMsg("");}, 8000);
+            if (token.cancelled) return;                                           /* cancelBulk has already reported */
+            bulkToken.current = null;
+            setBulkRun(failed.length ? { done: lines.length - failed.length, total: lines.length, failed: failed, cat: bulkCatArg } : null);
+            if (failed.length) {
+              setFormMsg("⚠️ " + addedCount + " added to " + catLabel(bulkCatArg) + "; " + failed.length + " item" + (failed.length === 1 ? "" : "s") + " could not be rated (" + lastErr + "). Press Retry to try them again.");
+            } else {
+              setFormMsg(skippedCount > 0 ? skippedCount + " skipped — duplicates or unrecognised" : "");
+              if (pasteEl) pasteEl.value = "";
+              setBulkReviewItems(null); setBulkCat("");
+            }
+            if (addedCount > 0 && !failed.length) setBulkDone(addedCount + " item" + (addedCount === 1 ? "" : "s") + " added to " + catLabel(bulkCatArg) + ". Ratings are AI estimates. Open each item and check the weight, portion and ingredients match what you actually have, then update where needed.");
+          };
+          /* D5: Cancel stops the requests and discards anything that arrives afterwards */
+          var cancelBulk = function() {
+            var t = bulkToken.current;
+            if (t) {
+              t.cancelled = true; if (t.ctrl) { try { t.ctrl.abort(); } catch(e) {} }
+              bulkToken.current = null;
+              setNewItemLoading(false); setBulkRun(null);
+              if (t.addedIds.length) { setBulkUndo({ cat: t.cat, ids: t.addedIds.slice() }); setFormMsg("Cancelled — " + t.addedIds.length + " item" + (t.addedIds.length === 1 ? "" : "s") + " from earlier batches were already added to " + catLabel(t.cat) + "."); }
+              else setFormMsg("Cancelled — nothing was added");
+            }
+            setBulkReviewItems(null); setBulkCat("");
+          };
+          var undoBulk = async function() {
+            var u = bulkUndo; if (!u) return;
+            var keep = bulkListFor(u.cat).filter(function(x) { return u.ids.indexOf(x.id) < 0; });
+            bulkSetterFor(u.cat)(keep); await sSet(bulkKeyFor(u.cat), JSON.stringify(keep));
+            setBulkUndo(null); setFormMsg("Removed " + u.ids.length + " item" + (u.ids.length === 1 ? "" : "s") + " from " + catLabel(u.cat));
           };
 
           var deleteCustomItem = async function(itemId) {
@@ -533,7 +584,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               <input ref={inputRef} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Type to search..." style={{width:"100%",padding:"8px 10px",border:"1px solid "+accent,borderRadius:6,fontSize:11,background:"#fff",boxSizing:"border-box"}} onBlur={function(){setTimeout(function(){setOpen(false);},200);}} />
               <div style={{position:"absolute",top:"100%",left:0,right:0,zIndex:50,background:"#fff",border:"1px solid #e2e8f0",borderRadius:6,maxHeight:200,overflowY:"auto",boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}>
                 {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var isAdded = item._isCustom !== false; var color = isAdded ? (item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#15803d") : "#94a3b8"; var hasRagChange = item._ragChanged && !item._ragChangedSeen; return (<div key={item.id} onMouseDown={function(e){e.preventDefault();onChange({target:{value:item.id}});setOpen(false);setSearch("");}} style={{padding:"6px 10px",fontSize:11,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f8fafc",color:color}}>
-                  <span>{hasRagChange ? "🔄 " : ""}{item.name} ({kcal} kcal){!isAdded ? " — not added" : ""}{hasRagChange ? " (was " + item.prevRating + ")" : ""}</span>
+                  <span>{hasRagChange ? "🔄 " : ""}{item.name} ({kcal} kcal){!isAdded ? " — not added" : ""}{item.checkMe && <span data-testid="check-me" title="Added by bulk upload: open and save it once you have checked it" style={{ marginLeft: 4, fontSize: 9, fontWeight: 600, color: "#64748b", border: "1px solid #cbd5e1", borderRadius: 4, padding: "0 4px", whiteSpace: "nowrap" }}>Check me</span>}{hasRagChange ? " (was " + item.prevRating + ")" : ""}</span>
 
                 </div>); })}
                 <div onMouseDown={function(e){e.preventDefault();onChange({target:{value:"__add_new__", searchText: search}});setOpen(false);setSearch("");}} style={{padding:"8px 10px",fontSize:11,fontWeight:600,color:accent,cursor:"pointer",borderTop:"1px solid #e2e8f0"}}>+ Add new item...</div>
@@ -580,7 +631,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#15803d";
                     var hasRagChange = item._ragChanged && !item._ragChangedSeen;
                     return (<div key={item.id}><div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
-                      <span style={{ flex: 1, color: color }}>{hasRagChange && <span onClick={function(){alert("Rating changed from " + (item.prevRating || "?") + " to " + item.rating + (item.ragReason ? ".\n\nReason: " + item.ragReason : "") + "\n\nBased on your current health profile and dietary guidelines.");var u=cat.customs.map(function(x){return x.id===item.id?Object.assign({},x,{_ragChangedSeen:true}):x;});cat.setCustoms(u);sSet(cat.storageKey,JSON.stringify(u));}} style={{cursor:"pointer"}} title={"Changed from " + (item.prevRating || "?")}>🔄 </span>}{item.name} ({kcal} kcal)</span>
+                      <span style={{ flex: 1, color: color }}>{hasRagChange && <span onClick={function(){alert("Rating changed from " + (item.prevRating || "?") + " to " + item.rating + (item.ragReason ? ".\n\nReason: " + item.ragReason : "") + "\n\nBased on your current health profile and dietary guidelines.");var u=cat.customs.map(function(x){return x.id===item.id?Object.assign({},x,{_ragChangedSeen:true}):x;});cat.setCustoms(u);sSet(cat.storageKey,JSON.stringify(u));}} style={{cursor:"pointer"}} title={"Changed from " + (item.prevRating || "?")}>🔄 </span>}{item.name} ({kcal} kcal){item.checkMe && <span data-testid="check-me" title="Added by bulk upload: open and save it once you have checked it" style={{ marginLeft: 4, fontSize: 9, fontWeight: 600, color: "#64748b", border: "1px solid #cbd5e1", borderRadius: 4, padding: "0 4px", whiteSpace: "nowrap" }}>Check me</span>}</span>
                       <button onClick={function() { if (editingItem === item.id) { setEditingItem(null); setEditDraft(null); } else { setEditingItem(item.id); setEditDraft(Object.assign({}, item, { originalIngredients: (item.ingredients || []).join(", "), recalculated: false })); } setFormMsg(""); }} style={{...btnEdit, fontSize: 9, marginRight: 4}}>{editingItem === item.id ? "Cancel" : "✎ Update"}</button><button onClick={async function() { if(confirm("Delete " + item.name + "?")) { var u = cat.customs.filter(function(x){return x.id !== item.id;}); cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u)); setFormMsg("Deleted " + item.name); setTimeout(function(){setFormMsg("");},2000); }}} style={{...btnDelete, fontSize: 9}}>🗑 Del</button>
                     </div>
                     {editingItem === item.id && editDraft && editDraft.id === item.id && (<div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, margin: "4px 0 8px", border: "1px solid #86efac" }}>
@@ -632,7 +683,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     📷
                     <input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
                   </label>
-                  <button onClick={function() { setBulkReviewItems(bulkReviewItems ? null : "paste"); }} style={{ padding: "6px 8px", background: bulkReviewItems === "paste" ? "#dbeafe" : "#f0f9ff", border: "1px solid " + (bulkReviewItems === "paste" ? "#2563eb" : "#bae6fd"), borderRadius: 6, fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0, color: "#1e3a5f", fontWeight: 600 }} title="Paste multiple items to bulk add">📋 Bulk</button>
+                  <button onClick={function() { if (bulkReviewItems) { cancelBulk(); } else { setBulkCat(""); setBulkRun(null); setBulkReviewItems("paste"); } }} style={{ padding: "6px 8px", background: bulkReviewItems === "paste" ? "#dbeafe" : "#f0f9ff", border: "1px solid " + (bulkReviewItems === "paste" ? "#2563eb" : "#bae6fd"), borderRadius: 6, fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0, color: "#1e3a5f", fontWeight: 600 }} title="Paste multiple items to bulk add">📋 Bulk</button>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={function() { setOffResults([]); addNewItem(); }} disabled={newItemLoading || !newItemName.trim()} style={{ flex: 1, padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? <span>Adding <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Add"}</button>
@@ -725,22 +776,25 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {bulkReviewItems === "paste" && (<div style={{ background: "#fffbeb", borderRadius: 8, padding: 12, marginTop: 10, border: "1px solid #fcd34d" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>📋 Bulk Add Items</div>
-                  <button onClick={function() { setBulkReviewItems(null); }} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
+                  <button aria-label="Close bulk add" onClick={cancelBulk} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
                 </div>
                 <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: 8, borderRadius: 6, marginBottom: 8, lineHeight: 1.4 }}>Paste your list of items below (one per line or comma-separated). Items will be added automatically with AI-calculated nutrition. You can edit any item afterwards for accuracy.</div>
+                <div style={{ fontSize: 10, color: "#92400e", marginBottom: 6 }}>Long lists are rated {BULK_BATCH} at a time; each finished batch is saved straight away.</div>
+                {bulkRun && newItemLoading && <div role="progressbar" aria-valuemin={0} aria-valuemax={bulkRun.total} aria-valuenow={bulkRun.done} data-testid="bulk-progress" style={{ height: 6, background: "#fde68a", borderRadius: 3, marginBottom: 8, overflow: "hidden" }}><div style={{ width: Math.round(100 * bulkRun.done / Math.max(1, bulkRun.total)) + "%", height: "100%", background: "#d97706" }} /></div>}
                 <textarea id="bulk-paste-textarea" placeholder={"e.g.\nOvernight oats\nGreek yogurt\nChicken wrap\nProtein shake"} style={{ width: "100%", padding: "8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 80, resize: "vertical", boxSizing: "border-box", lineHeight: 1.5, marginBottom: 8 }} />
                 <div style={{ marginBottom: 8 }}>
                   <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Add to category</div>
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                     {["breakfast","lunch","dinner","snack","dessert","drink"].map(function(c) {
-                      var sel = addingCategory === c;
-                      return (<button key={c} onClick={function() { setAddingCategory(c); }} style={{ padding: "5px 10px", border: "1px solid " + (sel ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: sel ? "#eff6ff" : "#fff", color: sel ? "#1e3a5f" : "#94a3b8", textTransform: "capitalize" }}>{sel ? "✓ " : ""}{c}</button>);
+                      var sel = bulkCat === c;
+                      return (<button key={c} disabled={newItemLoading} onClick={function() { setBulkCat(c); }} style={{ padding: "5px 10px", border: "1px solid " + (sel ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: sel ? "#eff6ff" : "#fff", color: sel ? "#1e3a5f" : "#94a3b8", textTransform: "capitalize" }}>{sel ? "✓ " : ""}{c}</button>);
                     })}
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button disabled={!addingCategory || newItemLoading} onClick={function() { bulkPasteAdd(addingCategory); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: !addingCategory ? 0.5 : 1}}>{newItemLoading ? <span>Uploading <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Upload Items"}</button>
-                  <button onClick={function() { setBulkReviewItems(null); }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
+                  <button disabled={!bulkCat || newItemLoading} onClick={function() { bulkPasteAdd(bulkCat); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: !bulkCat ? 0.5 : 1}}>{newItemLoading ? <span>Uploading <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : !bulkCat ? "Choose a category first" : "Upload Items"}</button>
+                  {bulkRun && bulkRun.failed && bulkRun.failed.length > 0 && !newItemLoading && <button onClick={function() { bulkPasteAdd(bulkRun.cat, bulkRun.failed); }} style={{...btnActionLg, borderRadius: 6}}>Retry {bulkRun.failed.length}</button>}
+                  <button onClick={cancelBulk} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
                 </div>
               </div>)}
           </div>)}
@@ -2051,6 +2105,18 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
         
 
+          {bulkDone && (<div role="dialog" aria-modal="true" aria-label="Bulk upload finished" style={{ position: "fixed", inset: 0, zIndex: 70, background: "rgba(15,23,42,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+            <div style={{ background: "#fff", borderRadius: 12, padding: 16, maxWidth: 380, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}>
+              <div data-testid="bulk-done" style={{ fontSize: 13, color: "#0f172a", lineHeight: 1.5, marginBottom: 12 }}>✅ {bulkDone}</div>
+              <div style={{ fontSize: 11, color: "#64748b", marginBottom: 12 }}>New items show a <b>Check me</b> badge until you open and save them.</div>
+              <button onClick={function(){ setBulkDone(null); }} style={{ ...btnActionLg, width: "100%", borderRadius: 8 }}>OK</button>
+            </div>
+          </div>)}
+          {bulkUndo && (<div role="status" data-testid="bulk-cancelled" style={{ position: "fixed", left: 12, right: 12, bottom: 76, zIndex: 60, background: "#0f172a", color: "#fff", borderRadius: 8, padding: "10px 12px", fontSize: 12, display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ flex: 1 }}>Cancelled — {bulkUndo.ids.length} item{bulkUndo.ids.length === 1 ? "" : "s"} from earlier batches were kept in {catLabel(bulkUndo.cat)}.</span>
+            <button onClick={undoBulk} style={{ background: "#fff", color: "#0f172a", border: "none", borderRadius: 6, padding: "4px 10px", fontWeight: 700, cursor: "pointer" }}>Undo</button>
+            <button aria-label="Dismiss" onClick={function(){ setBulkUndo(null); }} style={{ background: "none", color: "#fff", border: "none", cursor: "pointer" }}>✕</button>
+          </div>)}
           {portionUndo && (<div role="status" data-testid="portion-replaced" style={{ position: "fixed", left: 12, right: 12, bottom: 76, zIndex: 60, background: "#0f172a", color: "#fff", borderRadius: 8, padding: "10px 12px", fontSize: 12, display: "flex", gap: 8, alignItems: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.25)" }}>
             <span style={{ flex: 1 }}>Looks like <b>{portionUndo.name}</b>, not {portionUndo.original} — replaced</span>
             <button onClick={undoPortionReplace} style={{ background: "#fff", color: "#0f172a", border: "none", borderRadius: 6, padding: "4px 10px", fontWeight: 700, cursor: "pointer" }}>Undo</button>
