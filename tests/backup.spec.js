@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import fs from "fs";
 import { openApp, person } from "./helpers.js";
+import { parseBackupInput, backupCounts, restoreTarget } from "../src/lib/backup.js";
 
 // v2.6.5: Settings → Data tools → "⬇️ Download backup" (admin only): real "data" + "data_build", console-export shape.
 const NS = "?ns=life-care-app-64d04-default-rtdb";
@@ -24,11 +25,63 @@ test("Download backup: one dated file with data + data_build, confirmation shows
   const msg = page.getByTestId("backup-msg");
   await expect(msg).toHaveText(new RegExp("^✓ Downloaded " + dl.suggestedFilename().replace(/\./g, "\\.") + " \\(\\d+ (KB|MB)\\): data " + Object.keys(file.data).length + " items \\(\\d+ meal weeks\\), data_build " + Object.keys(file.data_build).length + " items\\.$"));
   expect(await msg.innerText()).not.toContain("jc");                                 // counts only, no contents
-  // What "Restore from Firebase Export" accepts: the exercise data, i.e. the value of data["dashboard:data"]
+  // Restore accepts the whole file: preview (counts only) → Merge missing exercise weeks (safe)
   page.on("dialog", (d) => d.accept());
-  await page.locator("#restore-json").fill(file.data["dashboard:data"]);
-  await page.getByRole("button", { name: "Restore Data" }).click();
-  await expect(page.getByText(/^Restored \d+ missing progression entries/).first()).toBeVisible();
+  await page.locator("#restore-json").fill(JSON.stringify(file));
+  await page.getByRole("button", { name: "Preview" }).click();
+  await expect(page.getByTestId("restore-preview")).toContainText("Found: backup file (data + data_build) · " + Object.keys(file.data).length + " items in data");
+  await page.getByRole("button", { name: "Merge missing exercise weeks" }).click();
+  await expect(page.getByTestId("restore-msg")).toHaveText(/^✓ Merged: \d+ missing exercise weeks added\. Nothing else was changed\./);
   expect(errors).toEqual([]);
   await fetch("http://127.0.0.1:9000/data_build.json" + NS, { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify(buildBefore) });
+});
+
+const put = (path, v) => fetch("http://127.0.0.1:9000/" + path + ".json" + NS, { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify(v) });
+async function downloadFile(page) {
+  await person(page, "JC"); await openSettings(page);
+  await page.getByRole("button", { name: "Open Data tools" }).click();
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "⬇️ Download backup" }).click()]);
+  return JSON.parse(fs.readFileSync(await dl.path(), "utf8"));
+}
+
+test("Restore input (pure): backup file, console export of data, bare exercise data; Build restores data_build", () => {
+  const dash = { jc: { exercises: { sunday: [{ name: "Row", prog: [{ wk: 1 }, { wk: 2 }] }] } } };
+  const f = parseBackupInput(JSON.stringify({ data: { "dashboard:data": JSON.stringify(dash), "mealplan:2026-09-06:jc": "{}", "eat_children:jc:2026-11-08": "{}" }, data_build: {} }));
+  expect(f.kind).toBe("backup file (data + data_build)");
+  expect(backupCounts(f)).toEqual({ keys: 3, mealWeeks: 2, people: ["jc"], exerciseWeeks: 2 });
+  expect(parseBackupInput(JSON.stringify({ "dashboard:data": JSON.stringify(dash) })).kind).toBe("export of data");
+  const bare = parseBackupInput(JSON.stringify(dash)); expect([bare.kind, bare.dataRoot]).toEqual(["exercise data only", null]);
+  expect(() => parseBackupInput('{"hello":1}')).toThrow(/doesn't look like a Lifecare backup/);
+  expect([restoreTarget("prod"), restoreTarget("beta"), restoreTarget("build")]).toEqual(["data", "data", "data_build"]);
+});
+
+test("Full restore of data: double confirm (type RESTORE) → every key in data replaced from the file", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const file = await downloadFile(page);
+  await put("data/custom_snacks", "[\"changed after the backup\"]");
+  await put("data/zz_added_after_backup", "\"x\"");
+  const dialogs = [];
+  page.on("dialog", (d) => { dialogs.push(d.type() + ": " + d.message()); d.type() === "prompt" ? d.accept("RESTORE") : d.accept(); });
+  await page.locator("#restore-json").fill(JSON.stringify(file));
+  await page.getByRole("button", { name: "Preview" }).click();
+  await page.getByRole("button", { name: "Full restore of data" }).click();
+  await expect(page.getByTestId("restore-msg")).toHaveText(`✓ Full restore done: ${Object.keys(file.data).length} items written to data. Close and reopen the app.`);
+  expect(dialogs[0]).toMatch(/^confirm: Full restore: overwrite EVERYTHING in "data"/);
+  expect(dialogs[1]).toBe('prompt: To confirm the full restore of "data", type RESTORE');
+  expect(await raw("data")).toEqual(file.data);                                       // exactly the backup again
+  expect(errors).toEqual([]);
+});
+
+test("Full restore: anything but RESTORE typed cancels and changes nothing", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const file = await downloadFile(page);
+  await put("data/zz_added_after_backup", "\"x\"");
+  const before = await raw("data");
+  page.on("dialog", (d) => (d.type() === "prompt" ? d.accept("restore") : d.accept()));
+  await page.locator("#restore-json").fill(JSON.stringify(file));
+  await page.getByRole("button", { name: "Preview" }).click();
+  await page.getByRole("button", { name: "Full restore of data" }).click();
+  await expect(page.getByTestId("restore-msg")).toHaveText("Full restore cancelled — nothing was changed.");
+  expect(await raw("data")).toEqual(before);
+  expect(errors).toEqual([]);
 });

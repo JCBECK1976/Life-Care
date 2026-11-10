@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.6.0 · 5 November 2026
+> Last updated: v2.7.0 · 10 November 2026
 
 ---
 
@@ -194,16 +194,17 @@ Tape measurements in cm (e.g. chest, waist, hips, arms, thighs).
 - **📋 Log** (grey) — opens the log form.
 
 ### Logging a session (📋 Log)
-- Enter each **set** (weight and reps, or the right measure for the exercise type).
-- **Session Quality** toggles: **Full Range of Motion** (or **Completed in One** for cardio-type exercises) and **Good Form**, each *Good* or *Working Towards*. If Full Range is "Working Towards", the Companion won't recommend increasing weight. It will tell you to master the full controlled range first, using a 3-second lowering phase.
+- The form says who it is for (**Logging for JC**). It belongs to that person: if you switch person in the header while it is open, the app asks first ("Discard JC's unsaved log entries and switch to Becks?"), so you never log one person's sets against another.
+- Enter each **set** separately: weight and reps per set (e.g. 63 kg × 10, 56 kg × 8, 63 kg × 8), or the right measure for the exercise type. A new log is pre-filled with each set from your last session.
+- **Session Quality:** for **Range** (Full Range of Motion, or Completed in One for cardio-type exercises) and **Form**, tap **Working towards** or **Good**. **Neither is chosen for you**, and you can't save until both are chosen. If you try, the missing one is outlined in red with "Choose Form and Range to save". If Range is "Working towards", the Companion won't recommend increasing weight; it will tell you to master the full controlled range first, using a 3-second lowering phase.
 - **Progression** choice: *Standard (follow progression rules)*, *Move Up* (override: ready to increase), *Hold* (keep current weight) or *Reduce* (drop weight).
-- **Notes (carried to next session)** — appear on the card next time.
-- **Logging for more than one person:** the log form has person tabs (e.g. JC / Becks), which scroll sideways if there are many. You can switch to another person and log their sets for the same exercise in the same sitting. **Switching here makes that person the active person** (their colour and data show). Both people's logs are saved when you press Save.
+- **Notes (carried to next session)** appear on the card next time.
+- **Logging for more than one person:** the person tabs inside the form let you log someone else's sets for the same exercise in the same sitting. When you press Save, the person shown must have Form and Range chosen. Anyone else you filled in is saved **only if** their Form and Range are chosen too. One line confirms it, e.g. "Saved for JC · Becks not saved (Form and Range not chosen)".
 - **Save** (or **Update** when editing a previous entry). **Edit Previous Entry** lets you correct a past week; **Cancel Edit — Log New Instead** returns to a new log.
 - **Why honesty matters:** the Companion bases its progression advice on what you log. Inflating reps leads to bad recommendations.
 
 ### Progress panel (👁 Progress)
-- Table of weeks with weight and reps; **+ Add Week** to add a missed week; chart once there are 2+ weeks.
+- Table of weeks with weight and reps; **+ Add Week** to add a missed week; chart once there are 2+ weeks. When the sets in a week used different weights, the row (and the card) shows the range, e.g. **56–63kg**, with a **Sets:** line underneath (63kg×10, 56kg×8, 63kg×8).
 - **Strength vs Population** — an estimate of where your performance sits against people of your sex and age (untrained, and including trained). Estimated from cable machine performance, so treat it as a guide, not a test result.
 - **ℹ️ Exercise Information:** **📖 Exercise Guide** (how to perform it), **🧘 Pre & Post Exercise** (prep and stretches), **Progression Rules** (your editable rules, e.g. build to 15 reps before increasing weight). Guides are AI-generated, so review them for accuracy. Older exercises can use **🔄 Generate / Update Guides**.
 - **Exercise Settings:**
@@ -239,69 +240,88 @@ Generate after logging a session. It includes:
 ## 6. My Eating
 
 ### Layout
-- **Update Eating Lists** — manage your food lists (see below).
-- **🔄 Re-evaluate Ratings** — re-rates all your food items against your current health profile.
-- **Clear Week** — removes all meal selections for the week (asks first).
-- **Day tabs:** **Week** (whole-week view) and **Mon–Sun**, each showing that day's calories.
+- **Update Eating Lists** manages your food lists (see below).
+- **🔄 Re-rate all lists** re-rates every list item using the portion bands below. Items whose rating changes get a 🔄 and a **Check me** badge.
+- **🔎 Re-check nutrition** looks for recipe items whose saved calories don't add up from their ingredients and marks them **Check me** ("Nutrition looks off: saved 387 kcal, ingredients add up to about 610"). It changes nothing itself: open the item and press **✓ Confirm** to recalculate.
+- **Clear Week** removes all meal selections for the week (asks first).
+- **Day tabs:** **Week** (whole-week view) and **Sun–Sat**. The week runs Sunday to Saturday, the same as exercise. Each tab shows that day's calories.
 
 ### The rating system (RAG)
-Every food item has a colour rating, worked out for **you** (your targets, health conditions and bloods):
-| Rating | Colour | Meaning | How often |
-|---|---|---|---|
-| **GREAT** | Dark green | Fits your daily targets well; a healthy choice. | Any day |
-| **AMBER** | Amber | Acceptable but has some concerns (e.g. sat fat, sugar, calories). | At most **once a week** |
-| **RED** | Red | Should be limited. | At most **once a month** |
+Every food is rated for **one portion as you eat it**, against the daily limits of **20 g saturated fat** and **25 g added sugar** (sugar added in cooking or processing, not the natural sugar in fruit or plain milk). The higher of the two decides:
 
-If you pick an AMBER item already used this week, or a RED item used in the past month, a ⚠️ appears next to it. Tap it to see why. Ratings can change after **Re-evaluate Ratings** (for example after new blood results). Changed items show 🔄; tap it to see the old rating, the new one and the reason.
+| Rating | One portion uses | How often |
+|---|---|---|
+| **GREAT** | up to 10% of a daily limit | any day |
+| **GOOD** | up to 25% | daily |
+| **AMBER** | up to 50% | a few times a week (up to 3) |
+| **RED — weekly treat** | up to 80% | once a week |
+| **RED — monthly treat** | over 80%, or more than 40% of your day's calories | once a month |
+
+Plenty of fibre (5 g+) or protein (20 g+) lifts an item one band (never above AMBER if it's over 50%). For example, 3 biscuits come out AMBER and a large brownie with ice cream comes out RED monthly treat. The rating is calculated the same way every time, and the reason shows when you hover or tap (e.g. "AMBER: one portion is 10g added sugar = 40% of the 25g daily limit").
+
+**Your meals have their own rating.** When you log a food, that meal keeps its own copy of the food and its own rating, worked out from what you actually ate (e.g. a bigger portion). The selected item's text is coloured by that rating. The ⚠️ warnings ("already 3 times this week") count what you actually logged. Editing or deleting a list item **never changes past days**.
 
 ### A day tab
-**Daily Eating Tracker** with **Breakfast, Lunch, Dinner, Desserts, Snacks, Drinks** and other items:
-- Each slot is a searchable dropdown of your list items, colour coded by rating. Type to search.
-- **+ Add New** adds another row for that meal (e.g. a second breakfast item).
-- **🗑 Del** removes a row. On the **first** breakfast, lunch or dinner row it clears the selection but keeps the box.
-- **📷 Portion** — photograph your plate. The Companion compares **Planned** vs **Actual** (including sat fat) and flags if a different food is detected. **Confirm Portion** to use the actual values (✓ Portion verified).
-- **Dinner sides** — for packaged products, add 🥔 Potato and 🥗 Veg sides.
-- **+ Add new item…** at the bottom of any dropdown lets you add a food that isn't on your list (see "Adding food" below). After it's added, it's selected in that slot and the add box closes.
-- **Day notes** — e.g. "Ate out, exam stress, birthday". Gives the Companion context.
-- **📋 Copy Day** — copy this day's selections to other days.
-- **Nutrition Overview (g)** — totals for the day (kcal, protein, fat, sat fat, carbs, fibre, salt) and **Daily Percentage of Recommendations**.
-- **🍽 Help Me with What to Eat** — when you're out: describe where you are (e.g. "M&S services", "hotel buffet", "Pizza Express"), optionally upload a photo of the menu, buffet or shelf, and say what you're looking for. The Companion picks the **best option** for you and lists others to **Also consider**. **✓ Confirm & Add** puts it in your day.
-- **My Companion Eating Feedback** — feedback on the day.
+**Daily Eating Tracker** with **Breakfast, Lunch, Dinner, Desserts, Snacks, Drinks**:
+- Each slot is a searchable picker of your list items, colour coded by rating. On a phone the picker opens as a full-screen sheet with the search box at the top, so the keyboard never hides the results.
+- **+ Add New** adds another row for that meal. **🗑 Del** removes a row (on the first row it just clears it).
+- **📷 Snap** (on every slot, empty or filled) photographs your food:
+  1. Optionally describe it first ("large plate", "2 sausages", "28g bar", "half eaten"); the Companion gives your description priority. Then **📷 Take photo**.
+  2. The result shows the food, its values, its rating and the weight it assumed, e.g. **"Assumed: ~450g — rice 200g, frankfurters 120g, beans 130g"**.
+  3. **Confirm** saves it; **↻ Re-check** asks for an independent **deep dive** (component by component, with grams), shown as "Re-check deep dive — re-assessed outcome" with a comparison line ("First check: large · RED → Deep dive: medium · GOOD"). You can change the description and re-check again. **Cancel** saves nothing.
+  4. On Confirm:
+     - the **same food** as the slot updates this meal's portion only;
+     - a **different food** updates the slot (with **Undo**);
+     - a food that **isn't in your list** asks once: **"Save <food> to your <slot> list for future selection?"** Yes adds it to your list; No keeps it for this meal only.
+  5. A ✓ shows the portion was checked by photo.
+- **Dinner sides**: for packaged products, add 🥔 Potato and 🥗 Veg sides.
+- **+ Add new item…** at the bottom of any picker adds a food that isn't on your list (see "Adding food").
+- **Day notes**, e.g. "Ate out, exam stress, birthday", give the Companion context.
+- **📋 Copy Day** copies this day's selections to other days. Copies start fresh: portions and ticks are not copied.
+- **Nutrition Overview (g)** shows the day's totals (from what you logged) and the **Daily Percentage of Recommendations**.
+- **🍽 Help Me with What to Eat**: when you're out, describe where you are, optionally add a photo of the menu or shelf, and the Companion picks the **best option**. **✓ Confirm & Add** puts it in your day.
+- **My Companion Eating Feedback** gives feedback on the day.
 - The reminder line: *It's important to track accurate and honest information for your companion to give you the most appropriate feedback. Use 'Update Eating Lists' to update eating selection list items.*
 
 ### The Week tab
-- **My Week** — average kcal/day; **📋 Copy Week** copies the week's day selections to future weeks.
-- **Week — Nutrition Overview (g)** — a table per day plus **Daily Totals**, **Recommended** and **Weekly Percentage of Recommendations** (kcal, protein, sat fat, carbs, fibre, salt).
-- **⏱ Quick Prep Days** — tick days when you're short of time and set a minutes limit. The meal generator will only choose dinners within that prep time on those days.
-- **Set Defaults** — default meals for each slot (Breakfast, Lunch, Dinner, Dessert, Drink, Snacks). **Individual** applies to the current person only; **All** applies to everyone. **+ Add New** adds more default rows; **🗑 Del** removes one.
-- **My Companion Meals Generator** — applies your defaults and fills any empty breakfast, lunch and dinner slots with recommended choices from your lists, respecting ratings and quick prep days. You can change any day afterwards.
-- **My Companion Week's Feedback** — patterns and nutritional trends across the week.
-- Then go to **My Shop** to generate your shopping list.
+- **My Week** shows average kcal/day. **📋 Copy Week** copies the week's selections to future weeks.
+- **Week — Nutrition Overview (g)** has a table per day plus totals and percentages of your recommendations.
+- **⏱ Quick Prep Days**: tick days when you're short of time; the generator then picks dinners within that prep time.
+- **Set Defaults** sets default meals for each slot (**Individual** or **All**).
+- **My Companion Meals Generator**, for every day and slot:
+  1. keeps what you've already chosen;
+  2. otherwise uses your **default**;
+  3. only then fills the empty slot from that slot's list.
+
+  It never invents items. If a list is empty, those slots stay empty and the summary says so (e.g. "Breakfast: your default · Lunch: 1 kept, 6 generated · 1 slot left empty").
+- **My Companion Week's Feedback** shows patterns and trends across the week.
+- Then go to **My Shop** for your shopping list.
 
 ### Update Eating Lists (your food lists)
-Tap **Update Eating Lists** to open **🍽️ My Eating Lists**: Breakfasts, Lunches, Dinners, Snacks, Desserts and Drinks, each listing your items (colour coded, with kcal).
-- **✎ Update** — opens an **Update Item** panel under the item: name, nutrition, rating, description, type (📦 Packaged or 🍳 Ingredient Prepared) and ingredients. Edit, then **✓ Confirm**. If you changed ingredients, the Companion recalculates the nutrition first. You'll see "Nutritional values updated", then press **✓ Continue — Save** to save or **Edit Again** to change more. Nothing is saved with old values if the recalculation fails.
-- **🗑 Del** — delete an item.
-- **+ Add New Item to Lists** — add a single item (below).
-- **📋 Bulk** — add many at once (below).
-- **✕ Close** — close the lists.
+Tap **Update Eating Lists** to open **🍽️ My Eating Lists** (Breakfasts, Lunches, Dinners, Snacks, Desserts, Drinks), colour coded with kcal.
+- **Check me** badge: items added by bulk upload, or flagged by Re-rate or Re-check nutrition, show **Check me** next to the name (keeping their rating colour), here and in the meal pickers. Tap or hover for the reason. It clears once you open the item and save it.
+- **✎ Update** opens the **Update Item** panel: name, nutrition, rating, type (📦 Packaged / 🍳 Ingredient Prepared) and ingredients.
+  - If you change an ingredient, **✓ Confirm** recalculates the **whole recipe** and shows **before → after** (e.g. "387 → 612 kcal, protein 18.2 → 27g"), plus any amounts it had to assume ("Assumed: 7g honey (1 tsp)"). The "(N kcal)" in the name updates too.
+  - Totals that don't add up are re-checked once and then refused ("nothing was changed").
+  - Press **✓ Continue — Save** to save or **Edit Again**.
+- **🗑 Del** deletes an item. Past days keep their own copy, so nothing you logged changes.
+- **+ Add New Item to Lists** adds one item; **📋 Bulk** adds many.
+- **✕ Close** closes the lists.
 
 ### Adding food — one item
-1. Type a name (e.g. "Costa Rocky Road" or "Overnight oats with berries"). UK products from **Open Food Facts** appear as you type; tap one to use its label data (per 100g). Or tap **Add** for an AI lookup. **📷** lets you photograph the product or meal instead.
-2. The **Review Item** panel shows the nutrition values, rating and a description of how it suits you.
-3. Choose the **Type**: **📦 Packaged** (a shop-bought product) or **🍳 Ingredient Prepared** (something you make). For prepared items, edit the **🧾 Ingredients** with your actual amounts (e.g. "Rolled oats (85g), Almond milk (300ml)…"), separated by commas.
-4. Choose which lists to add it to (**Add to categories**); for dinner, say whether it's a main or a side (potato, veg or salad).
-5. Press **✓ Confirm**.
-   - If you changed the ingredients, the Companion **recalculates** the nutrition ("Recalculating…"), then shows **"Nutritional values updated"**. Press **✓ Continue — Add** to add it, or **Edit Again** to keep editing.
-   - If you didn't change anything, it's added straight away.
-   - If the recalculation fails, you'll see why and can try again or cancel. **An item is never added with values that don't match its ingredients.**
-6. Duplicates are detected; if the item already exists, you're told and (when adding from a meal slot) the existing item is selected.
+1. Type a name (UK products from **Open Food Facts** appear as you type), or tap **Add** for an AI lookup, or **📷** to photograph it.
+2. **Review Item** shows the values, the rating and how it suits you.
+3. Choose **📦 Packaged** or **🍳 Ingredient Prepared**. For prepared items, edit the **🧾 Ingredients** with your real amounts.
+4. Choose the lists to add it to (for dinner: main or side).
+5. **✓ Confirm.** Changed ingredients are recalculated the same careful way as Update Item (whole recipe, before → after, sanity check), then **✓ Continue — Add**.
+6. Duplicates are detected.
 
 ### Adding food — bulk
-Tap **📋 Bulk**, paste a list (one per line or comma-separated), choose **one category**, then **Upload Items**. The Companion calculates baseline nutrition, ratings and descriptions for all of them and **adds them automatically, without reviewing each one**. Duplicates and items it couldn't identify are skipped and counted. Because bulk items aren't individually checked, **open any item with ✎ Update to confirm its description and ingredients for accuracy**.
-
-### Re-evaluate Ratings
-Re-rates every item in your lists against your current health profile, targets and bloods. Use it after new blood results, a change in health conditions or new targets.
+Tap **📋 Bulk** and paste a list (one per line or comma-separated).
+- **Choose a category**: none is pre-selected, and the button says "Choose a category first" until you do. You're asked to confirm, e.g. "Add 14 items to Drinks?".
+- Long lists are rated **10 at a time** with a progress bar, and each batch is saved as soon as it's done. If a batch fails, **Retry** re-sends just that batch.
+- **Cancel** really stops: anything still on its way is ignored. If earlier batches were already saved, you're told how many, with **Undo**.
+- When it finishes, a message (tap **OK**) reminds you that ratings are AI estimates. New items show **Check me** until you've opened and saved them.
 
 ### Ingredients and the shopping list
 For prepared dinners, the ingredients become shopping list items. For packaged items, the product itself goes on the list.
@@ -311,7 +331,7 @@ For prepared dinners, the ingredients become shopping list items. For packaged i
 ## 7. My Shop
 
 - **🛒 Choose My Supermarket** — your preferred supermarket. Shopping suggestions are tailored to it.
-- **📷 Food Checker** — type a food or scan a product (photo) to check its nutrition and rating for you. Then **Add to which list?** to put it in your eating lists.
+- **📷 Food Checker** — type a food or scan a product (photo) to check its nutrition and rating for you. The text box doubles as an optional description for the photo (e.g. '28g bar', 'brand'), which the Companion gives priority, and the result says what size it assumed ("Assumed: 28g bar — 125 kcal"). Then **Add to which list?** to put it in your eating lists.
 - **My Companion Shopping Generator** — builds the shopping list from the week planned in **My Eating**. Plan your week first.
 - **My Shopping List:**
   - Items generated from your eating plan, plus items you add (**Add item to shopping list…** → **+ Add**).
@@ -340,7 +360,7 @@ For prepared dinners, the ingredients become shopping list items. For packaged i
 ## 9. Chat and Help
 
 ### 💬 Chat with your Companion
-Ask anything about your health, training, nutrition or progress, e.g. "Why did my bicep curl reps drop?", "Am I eating enough protein?", "What should I focus on next?". The Companion answers using your full data. Recent messages show as a conversation; **Show older messages** reveals earlier ones.
+Ask anything about your health, training, nutrition or progress, e.g. "Why did my bicep curl reps drop?", "Am I eating enough protein?", "What should I focus on next?". The Companion answers using your full data. The **latest exchange is at the top**, so you see it straight away. **Show older messages** (at the end) reveals earlier ones. All Companion conversations, including Help and the feedback replies, work the same way, with the reply box above the conversation.
 
 ### Help ?
 Tap **Help ?** at the top right of the screen, next to the Settings gear. Ask how to use the app: where something is, what something means, how to do something, why it works the way it does. The Help companion answers from this guide, in the same conversation style. It helps with the **app**; for questions about your own health data, use 💬 Chat.
@@ -353,7 +373,13 @@ Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
 - **🎨 My Colour Theme** — Blue, Purple, Green, Teal, Rose, Amber, Indigo or Slate. Changes your highlighted tabs, info boxes and accents. Each person has their own colour.
 - **📱 Google Health Connect** (Android only) — syncs body composition and activity data from your phone. Setup: download Google Health Connect from the Play Store, connect your scales/health apps to it, then tap **🔗 Connect Google Health**. Use **🔄 Sync Google Health Data** to sync and **⏹ Disconnect** to stop.
 - **🍎 Apple Health** (iOS) — coming soon.
-- **Admin-only tools** (for the app owner): **⚡ Companion Energy Level** (enter the balance after a recharge; it becomes 100%), **🔑 API Keys** (Claude API key from console.anthropic.com → API Keys; Google OAuth Client ID for Health Connect), **⚠ Reset Data** (overwrites everything with default data; cannot be undone), **🔧 Debug Mode** and measurement types. **🗂 Data tools** (Settings → Open Data tools; admin only): a Firebase Data Viewer to look at the stored data, plus recovery tools to restore missing weeks and to restore from a Firebase export. **← Back to Settings** returns you to Settings.
+- **Admin-only tools** (for the app owner): **⚡ Companion Energy Level** (enter the balance after a recharge; it becomes 100%), **🔑 API Keys** (Claude API key from console.anthropic.com → API Keys; Google OAuth Client ID for Health Connect), **⚠ Reset Data** (overwrites everything with default data; cannot be undone), **🔧 Debug Mode** and measurement types. **🗂 Data tools** (Settings → Open Data tools; admin only):
+  - **⬇️ Download backup** saves all the real data (and the build copy) as one dated file, e.g. *lifecare_backup_beta_2026-11-10-2049.json*, in the same layout as a Firebase export. It shows the file size and counts only. Keep it somewhere safe: it contains health data.
+  - **Clear old eating history** deletes **only** meal selections for weeks before a date you choose (the default is this week's Sunday). Run the **Dry run** first to see how many weeks and selections per person; then **Delete** (asks first). Food lists, exercise, body, health and settings are never touched.
+  - **Restore from Firebase Export**: paste a Download-backup file (or a Firebase export) and press **Preview** to see what it contains (counts only). Then choose:
+    - **Merge missing exercise weeks** (safe: adds missing weeks, changes nothing else); or
+    - **Full restore of data**, which replaces everything in the data with the file. On the Build test app it restores the build copy instead. It asks twice, and you must type **RESTORE**.
+  - A **Firebase Data Viewer** and **Restore Missing Weeks from Comments** are also there. **← Back to Settings** returns you to Settings.
 
 ### Send Feedback, Privacy Policy
 At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature, describe it, and it opens an email) and **Privacy Policy**. The version number (e.g. v2.1.0) is shown at the very bottom. Test versions of the app show a coloured **BUILD** or **BETA** badge under the Help and Settings buttons at the top (and in the browser tab name), and their version ends in -build… or -beta…; the normal app has no badge.
@@ -372,12 +398,12 @@ At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature
 
 ## 12. A typical week (when to do what)
 
-- **Daily:** set your mood; tick off or adjust today's meals; use 📷 Portion when portions differ; add day notes; write a journal entry when useful.
+- **Daily:** set your mood; tick off or adjust today's meals; use 📷 Snap when portions differ or you ate something unplanned; add day notes; write a journal entry when useful.
 - **After each training session:** log every exercise honestly (with quality toggles), then generate **My Companion Session Feedback** and Accept/Decline its recommendations.
 - **Weekly (e.g. Sunday):** set defaults and quick prep days, run the **Meals Generator**, adjust days, then generate the shopping list in **My Shop**. Generate **Week's Feedback** at the end of the week.
 - **Weekly or fortnightly:** record body stats (same time of day, same conditions).
 - **Every 4 weeks:** tape measurements and progress photos.
-- **When they happen:** add blood results, medication changes and health notes, then **Re-evaluate Ratings** if your health picture changed.
+- **When they happen:** add blood results, medication changes and health notes, then **🔄 Re-rate all lists** if your health picture or your lists changed.
 - **After recharging AI credit (app owner):** ⚙ Settings → ⚡ Companion Energy Level → **Set as 100%**.
 
 ## 13. Troubleshooting
