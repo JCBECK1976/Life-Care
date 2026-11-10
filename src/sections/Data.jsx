@@ -3,6 +3,19 @@ import { btnMuted } from "../constants/styles.js";
 import { personName } from "../components/PersonTabs.jsx";
 import { useState } from "react";
 import { currentWeekSunday, planClearHistory } from "../lib/meals.js";
+import { APP_ENV } from "../constants/version.js";
+
+/* v2.6.5 Download backup: the REAL data ("data", whatever environment this is) plus "data_build", in the same shape
+   as a Firebase console export of the database root: { "data": {...}, "data_build": {...} }. */
+export function backupFileName(env, now) {
+  var d = now || new Date(); var p = function(n) { return String(n).padStart(2, "0"); };
+  return "lifecare_backup_" + env + "_" + d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes()) + ".json";
+}
+async function readBackup() {
+  var real = await firebase.database().ref("data").once("value");
+  var build = await firebase.database().ref("data_build").once("value");
+  return { data: real.val() || {}, data_build: build.val() || {} };
+}
 
 /* v2.6.5 Clear old eating history: read every stored meal week plan (and nothing else) */
 async function loadMealPlans() {
@@ -17,6 +30,25 @@ export default function DataSection({ ctx }) {
   const {
     accent, accentBorder, accentLight, data, dataExpandEx, saveData, setDataExpandEx, setFormMsg, setSection
   } = ctx;
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [backupMsg, setBackupMsg] = useState("");
+  var downloadBackup = async function() {
+    setBackupBusy(true); setBackupMsg("");
+    try {
+      var exp = await readBackup();
+      var text = JSON.stringify(exp, null, 2);
+      var name = backupFileName(APP_ENV);
+      var blob = new Blob([text], { type: "application/json" });
+      var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function() { URL.revokeObjectURL(a.href); }, 5000);
+      var kb = blob.size / 1024; var size = kb >= 1024 ? (kb / 1024).toFixed(1) + " MB" : Math.max(1, Math.round(kb)) + " KB";
+      var count = function(o) { return Object.keys(o || {}).length; };
+      var meals = Object.keys(exp.data).filter(function(k) { return /^(mealplan|eat_children):/.test(k); }).length;
+      setBackupMsg("✓ Downloaded " + name + " (" + size + "): data " + count(exp.data) + " items (" + meals + " meal weeks), data_build " + count(exp.data_build) + " items.");
+    } catch (e) { setBackupMsg("Backup failed: " + String(e.message || e).substring(0, 120) + ". Nothing was downloaded."); }
+    setBackupBusy(false);
+  };
   const [clearBefore, setClearBefore] = useState(currentWeekSunday());
   const [clearPlan, setClearPlan] = useState(null);   // last dry-run result
   const [clearBusy, setClearBusy] = useState(false);
@@ -44,6 +76,12 @@ export default function DataSection({ ctx }) {
 <div>
   <button onClick={function() { setSection("admin"); }} style={{ ...btnMuted, marginBottom: 12 }}>← Back to Settings</button>
   <div style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 12 }}>Firebase Data Viewer</div>
+  <div data-testid="backup" style={{ padding: 10, background: "#eff6ff", borderRadius: 8, border: "1px solid #bfdbfe", marginBottom: 12 }}>
+    <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", marginBottom: 4 }}>Backup</div>
+    <div style={{ fontSize: 10, color: "#475569", marginBottom: 6, lineHeight: 1.4 }}>Downloads all real data ("data", shared by the app and beta) and the build copy ("data_build") as one dated file, in the same layout as a Firebase console export. Keep it somewhere safe; it contains health data.</div>
+    <button onClick={downloadBackup} disabled={backupBusy} style={{ width: "100%", padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{backupBusy ? "Preparing…" : "⬇️ Download backup"}</button>
+    {backupMsg && <div data-testid="backup-msg" style={{ fontSize: 11, fontWeight: 600, color: backupMsg.charAt(0) === "✓" ? "#166534" : "#991b1b", marginTop: 6 }}>{backupMsg}</div>}
+  </div>
   <div data-testid="clear-history" style={{ padding: 10, background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca", marginBottom: 12 }}>
     <div style={{ fontSize: 12, fontWeight: 700, color: "#991b1b", marginBottom: 4 }}>Clear old eating history</div>
     <div style={{ fontSize: 10, color: "#475569", marginBottom: 6, lineHeight: 1.4 }}>Deletes only the meal selections (what was planned or eaten each day) for weeks starting before the date below. Food lists, exercise, body, health and settings are never touched. Take a backup first. Run the dry run to see the counts, then Delete.</div>
