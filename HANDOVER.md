@@ -1385,3 +1385,11 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
 - **JC's rule implemented:** the shown person must have Form and Range (block). Any other person edited via the in-form switch is saved **only** if both are chosen, otherwise treated as untouched and not saved (no block; this replaces my earlier block that named them). One confirmation line, e.g. "✓ <exercise>: saved for Becks · JC not saved (Form and Range not chosen)". An unsaved person's log opens later with the usual pre-fill. This resolves the behaviour note in my previous entry.
 - **Tests:** +3 (other blank → not saved + confirmation + later pre-fill; other complete → saved; shown blank → blocked). exercise-log + people 24/24; suite 54. Lint 0 errors.
 - **Resume point:** `build` @ new head (see commit "v2.6.1 addendum"). Next: Architect check → beta → JC → release (JC manual backup first).
+
+### (Coder) 10 Nov 2026 — v2.6.1 fixes from JC's phone test, on build (44b15a0)
+- Progress row and exercise header show the weight range ("56–63kg") when set weights differ; the "Sets: …" line shows only then (uniform and old entries get no extra line).
+- Bug fixed: a new week's log pre-filled every set with set 1's weight (the target weight overrode it). Each set now pre-fills from the previous entry's per-set weight and reps; old single-weight entries are the same for all sets. "Previous:" shows per set when they differed.
+- Session Quality: two segmented buttons per item ("Working towards" | "Good") with a solid selected colour. A blocked save outlines the unanswered group in red and shows one message below the box: "Choose Form and Range to save". The per-label "choose one" text and the squeezed third column are gone.
+- Tests: 2 new (range/Sets line; new-week per-set pre-fill), D12 test updated. Full suite 56 passed, lint 0 errors, visual unchanged. Deploy run 42729122571 succeeded, no failure annotations.
+- **JC to test on /build/:** log 63/56/63 → Progress shows 56–63kg + Sets line; next week's log pre-fills 63/56/63; Save without choices → red outline + one message.
+- **Resume point:** branch `build`, last commit 44b15a0. Next: the Architect verifies /build/, then PR build → beta.
