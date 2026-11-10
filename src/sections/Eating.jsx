@@ -6,6 +6,8 @@ import React from "react";
 import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnMuted, btnPortion } from "../constants/styles.js";
 import { accentVariant } from "../lib/colour.js";
 import { personName } from "../components/PersonTabs.jsx";
+import { parseRecalc, recalcPrompt, renameKcal } from "../lib/nutrition.js";
+import { addSnapshots, applyDefaultsTo, generatorSummary, mergeGenerated, selectionName, snapshotItems } from "../lib/meals.js";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -19,7 +21,7 @@ export default function EatingSection({ ctx }) {
     helpEatCat, helpEatLoading, helpEatResult, helpEatText, isJC, manageListsOpen, mealDefaults, mealTracking,
     meals, newItemLoading, newItemName, offLoading, offResults, openAddForm, p, pastWeeksMeals,
     portionLoading, portionOverrides, portionPlanned, portionResult, portionSlot, quickPrepMins, ragRecalcLoading, ragRecalcMsg,
-    recalculateAllRag, renderThread, reviewCategories, reviewSideType, saveMeals, searchOFF, setAddingCategory, setAddingNew,
+    recalculateAllRag, renderThread, reviewCategories, reviewSideType, saveMeals: saveMealsCtx, searchOFF, setAddingCategory, setAddingNew,
     setAddingSlotDay, setAddingSlotKey, setBulkReviewItems, setCameraPreview, setCopyDayOpen, setCopyDayTargets, setCopyWeekOpen, setCopyWeekTargets,
     setCustomBreakfasts, setCustomDesserts, setCustomDrinks, setCustomLunches, setCustomMeals, setCustomSnacks, setDefScopes, setEatDay,
     setEatDayChartOpen, setEatDayEyeOpen, setEatFbExpanded, setEatWeekEyeOpen, setEditDraft, setEditingItem, setFormMsg, setGenerating,
@@ -28,6 +30,9 @@ export default function EatingSection({ ctx }) {
     setPortionSlot, setQuickPrepMins, setRagRecalcMsg, setReviewCategories, setReviewSideType, setSaving, setWeekOff, updateEatDayFb,
     updateEatWeekFb, weekLabel, weekOff, weekStart
   } = ctx;
+  /* v2.6.2 D10/F7: Undo for a replaced item, and the optional photo description */
+  const [portionUndo, setPortionUndo] = React.useState(null);
+  const [portionDesc, setPortionDesc] = React.useState("");
  try {
           var allBfast = [].concat(BREAKFASTS, customBreakfasts, DEFAULT_BREAKFASTS);
           var allLunch = [].concat(LUNCHES, customLunches, DEFAULT_LUNCHES);
@@ -50,6 +55,14 @@ export default function EatingSection({ ctx }) {
           /* Build lookup of all items by id for rating check */
           var allItemsLookup = {};
           [].concat(dispBfast, dispLunch, dispDinners, dispOther, dispDrinks, dispDesserts).forEach(function(it) { allItemsLookup[it.id] = it; });
+          /* v2.6.2 D6: snapshots — deleted items still show (and count) from the snapshot taken when selected */
+          var _listLookup = {};
+          [].concat(allItems, allDrinks, allDesserts, POTATO_SIDES || [], VEG_SIDES || []).forEach(function(it) { if (it && it.id && !_listLookup[it.id]) _listLookup[it.id] = it; });
+          Object.keys(allItemsLookup).forEach(function(id) { if (!_listLookup[id]) _listLookup[id] = allItemsLookup[id]; });
+          snapshotItems(meals, _listLookup).forEach(function(it) { [allBfast, allLunch, allDinners, allOther, allDrinks, allDesserts, allItems].forEach(function(arr) { arr.push(it); }); allItemsLookup[it.id] = it; });
+          var _dayDates = {}; ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].forEach(function(d, i) { var dt = new Date(weekStart); dt.setDate(dt.getDate() + i); _dayDates[d] = dt; });
+          var saveMeals = function(n) { addSnapshots(n, _listLookup, isJC, _dayDates); return saveMealsCtx(n); };
+          var getSnap = function(dayKey, slot) { return ((meals && meals._snap) || {})[dayKey + ":" + slot] || null; };
           /* Collect all meal IDs used this week (current meals state) */
           var thisWeekIds = function() {
             var ids = [];
@@ -113,7 +126,11 @@ export default function EatingSection({ ctx }) {
           // States moved to component top level
           var sk = mealKey(weekStart) + ":" + activeTab;
 
-          var portionAnalyze = async function(slotKey, file, itemsList) {
+          var portionAnalyze = async function(slotKey, file, itemsList, descArg) {
+            var desc = (descArg || "").trim();
+            window._lcPortionLast = { slotKey: slotKey, file: file, itemsList: itemsList };
+            if (descArg === undefined) setPortionDesc("");
+            setPortionUndo(null);
             setPortionSlot(slotKey);
             setPortionLoading(true);
             setPortionResult(null);
@@ -130,7 +147,7 @@ export default function EatingSection({ ctx }) {
               var apiKey = await window.ensureApiKey();
               var isJC3 = activeTab === "jc";
               var plannedName = planned ? planned.name : "unknown food";
-              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 600, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Analyze this food portion. The planned meal was: " + plannedName + ". Estimate the ACTUAL portion shown. Return ONLY JSON: {\"name\":\"what you see\",\"matchesPlanned\":true/false,\"kcal\":calories,\"protein\":grams,\"fat\":total_fat,\"satFat\":sat_fat,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED\",\"portionNote\":\"ONE sentence comparing portion size to standard\"}" }] }] }) });
+              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 600, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Analyze this food portion. The planned meal was: " + plannedName + "." + (desc ? " The user describes it as: \"" + desc + "\". PREFER the user's description over your own size or product guess." : "") + " Estimate the ACTUAL portion shown. Return ONLY JSON: {\"name\":\"what you see\",\"matchesPlanned\":true/false,\"assumed\":\"the size or weight you assumed, e.g. 28g bar\",\"kcal\":calories,\"protein\":grams,\"fat\":total_fat,\"satFat\":sat_fat,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED\",\"portionNote\":\"ONE sentence comparing portion size to standard\"}" }] }] }) });
               var result = await resp.json();
               var apiErr = handleApiError(result);
               if (apiErr) throw new Error(apiErr);
@@ -145,8 +162,20 @@ export default function EatingSection({ ctx }) {
             setPortionLoading(false);
           };
 
+          var slotCategory = function(slotKey) { return /^ds/.test(slotKey) ? "dessert" : /^dr/.test(slotKey) ? "drink" : /^b/.test(slotKey) ? "breakfast" : /^l/.test(slotKey) ? "lunch" : /^o/.test(slotKey) ? "snack" : "dinner"; };
           var confirmPortion = async function() {
             if (!portionResult || !portionSlot) return;
+            if (portionResult.matchesPlanned === false) {
+              /* D10: a different food is a NEW entry, selected in place of the original; the original is never written to */
+              var pr0 = portionResult; var slot0 = portionSlot; var day0 = eatDay; var cat0 = slotCategory(slot0);
+              var prevId = getMeal(day0, slot0); var prevOv = (portionOverrides[day0] || {})[slot0] || null;
+              var cp0 = { name: pr0.name || "Photo item", kcal: pr0.kcal || 0, protein: pr0.protein || 0, fat: pr0.fat || 0, satFat: pr0.satFat || 0, carbs: pr0.carbs || 0, fibre: pr0.fibre || 0, salt: pr0.salt || 0, rating: pr0.rating || "AMBER", itemType: "packaged", ingredients: [], source: "photo", servingSize: pr0.assumed || "" };
+              var res0 = await addReviewedItem(cp0, [cat0], day0, slot0, cat0, "");
+              if (prevOv) { var ov0 = Object.assign({}, portionOverrides); ov0[day0] = Object.assign({}, ov0[day0]); delete ov0[day0][slot0]; setPortionOverrides(ov0); await sSet("portion_overrides:" + activeTab, JSON.stringify(ov0)); }
+              setPortionUndo({ day: day0, slot: slot0, prevId: prevId, prevOv: prevOv, newId: res0.assignId, name: cp0.name, original: (portionPlanned && portionPlanned.name) || "the planned item" });
+              setPortionSlot(""); setPortionResult(null); setPortionPlanned(null);
+              return;
+            }
             var newOverrides = Object.assign({}, portionOverrides);
             if (!newOverrides[eatDay]) newOverrides[eatDay] = {};
             newOverrides[eatDay][portionSlot] = { kcal: portionResult.kcal || 0, protein: portionResult.protein || 0, fat: portionResult.fat || 0, satFat: portionResult.satFat || 0, carbs: portionResult.carbs || 0, fibre: portionResult.fibre || 0, salt: portionResult.salt || 0, name: portionResult.name || "" };
@@ -159,6 +188,13 @@ export default function EatingSection({ ctx }) {
             setTimeout(function(){setFormMsg("");}, 3000);
           };
 
+          var undoPortionReplace = async function() {
+            var u0 = portionUndo; if (!u0) return;
+            setMeal(u0.day, u0.slot, u0.prevId);
+            if (u0.prevOv) { var ov1 = Object.assign({}, portionOverrides); ov1[u0.day] = Object.assign({}, ov1[u0.day] || {}); ov1[u0.day][u0.slot] = u0.prevOv; setPortionOverrides(ov1); await sSet("portion_overrides:" + activeTab, JSON.stringify(ov1)); }
+            setPortionUndo(null); setFormMsg("Restored " + u0.original); setTimeout(function(){ setFormMsg(""); }, 3000);
+          };
+          var recheckPortion = function() { var l0 = window._lcPortionLast; if (l0) portionAnalyze(l0.slotKey, l0.file, l0.itemsList, portionDesc); };
           var cancelPortion = function() {
             setPortionSlot("");
             setPortionResult(null);
@@ -257,6 +293,39 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           };
 
           /* ═══ Shared confirm handler for Review Item (inline + overlay) ═══ */
+          /* Shared add-item step (list insertion, duplicate check, assign to slot). Used by confirmReviewItem and
+             by the portion photo when it shows a different food (v2.6.2 D10). */
+          var addReviewedItem = async function(cp, cats, slotDay, slotKey, slotCategory, sideType) {
+              var addedTo = []; var dupeFound = [];
+              for (var ci = 0; ci < cats.length; ci++) {
+                var cat = cats[ci];
+                var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
+                var dupeName = cp.name.toLowerCase().trim();
+                if (listItems.some(function(x) { return x.name.toLowerCase().trim() === dupeName; })) { dupeFound.push(cat); continue; }
+                var newItem = { id: "custom_" + Date.now() + "_" + ci, name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, rating: cp.rating, itemType: cp.itemType || "packaged", ingredients: cp.ingredients || [], freq: "Daily", isCustom: true, source: cp.source || "manual", barcode: cp.barcode || "", servingSize: cp.servingSize || "", suitability: cp.suitability || "" };
+                if (cat === "dinner" && !sideType) { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = cp.itemType === "ingredient" ? (cp.ingredients || []) : [cp.name]; }
+                if (cat === "dinner" && sideType) { newItem.sideType = sideType; }
+                var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
+                var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : cat === "drink" ? "custom_drinks" : cat === "dessert" ? "custom_desserts" : "custom_snacks";
+                var u = [].concat(listItems, [newItem]); setList(u); await sSet(storageKey, JSON.stringify(u));
+                _listLookup[newItem.id] = newItem; /* D6: so the slot gets its snapshot straight away */
+                addedTo.push(cat); listItems = u;
+              }
+              if (slotKey) {
+                var assignId = null;
+                if (addedTo.length > 0 && newItem) { assignId = newItem.id; }
+                else if (dupeFound.length > 0) {
+                  var dupeList = slotCategory === "breakfast" ? customBreakfasts : slotCategory === "lunch" ? customLunches : slotCategory === "dinner" ? customMeals : slotCategory === "drink" ? customDrinks : slotCategory === "dessert" ? customDesserts : customSnacks;
+                  var dupeMatch = dupeList.find(function(x) { return x.name.toLowerCase().trim() === cp.name.toLowerCase().trim(); });
+                  if (dupeMatch) assignId = dupeMatch.id;
+                }
+                if (assignId) {
+                  if (slotDay) { setMeal(slotDay, slotKey, assignId); }
+                  else { saveDef(slotKey, assignId, "individual"); }
+                }
+              }
+            return { addedTo: addedTo, dupeFound: dupeFound, assignId: slotKey ? assignId : null };
+          };
           var confirmReviewItem = async function(isOverlay) {
             var nameId = isOverlay ? "review-item-name-overlay" : "review-item-name";
             var ingId = isOverlay ? "review-item-ingredients-overlay" : "review-item-ingredients";
@@ -292,34 +361,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               }
             }
 
-            /* Step 2: Add item to selected categories */
-            var addedTo = []; var dupeFound = [];
-            for (var ci = 0; ci < cats.length; ci++) {
-              var cat = cats[ci];
-              var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
-              var dupeName = cp.name.toLowerCase().trim();
-              if (listItems.some(function(x) { return x.name.toLowerCase().trim() === dupeName; })) { dupeFound.push(cat); continue; }
-              var newItem = { id: "custom_" + Date.now() + "_" + ci, name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, rating: cp.rating, itemType: cp.itemType || "packaged", ingredients: cp.ingredients || [], freq: "Daily", isCustom: true, source: cp.source || "manual", barcode: cp.barcode || "", servingSize: cp.servingSize || "", suitability: cp.suitability || "" };
-              if (cat === "dinner" && !reviewSideType) { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = cp.itemType === "ingredient" ? (cp.ingredients || []) : [cp.name]; }
-              if (cat === "dinner" && reviewSideType) { newItem.sideType = reviewSideType; }
-              var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
-              var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : cat === "drink" ? "custom_drinks" : cat === "dessert" ? "custom_desserts" : "custom_snacks";
-              var u = [].concat(listItems, [newItem]); setList(u); await sSet(storageKey, JSON.stringify(u));
-              addedTo.push(cat); listItems = u;
-            }
-            if (addingSlotKey) {
-              var assignId = null;
-              if (addedTo.length > 0 && newItem) { assignId = newItem.id; }
-              else if (dupeFound.length > 0) {
-                var dupeList = addingCategory === "breakfast" ? customBreakfasts : addingCategory === "lunch" ? customLunches : addingCategory === "dinner" ? customMeals : addingCategory === "drink" ? customDrinks : addingCategory === "dessert" ? customDesserts : customSnacks;
-                var dupeMatch = dupeList.find(function(x) { return x.name.toLowerCase().trim() === cp.name.toLowerCase().trim(); });
-                if (dupeMatch) assignId = dupeMatch.id;
-              }
-              if (assignId) {
-                if (addingSlotDay) { setMeal(addingSlotDay, addingSlotKey, assignId); }
-                else { saveDef(addingSlotKey, assignId, "individual"); }
-              }
-            }
+            /* Step 2: Add item to selected categories (shared step) */
+            var _added = await addReviewedItem(cp, cats, addingSlotDay, addingSlotKey, addingCategory, reviewSideType);
+            var addedTo = _added.addedTo; var dupeFound = _added.dupeFound;
             if (dupeFound.length > 0 && addedTo.length === 0) { setFormMsg("⚠️ " + cp.name + " already exists in " + dupeFound.join(", ")); }
             else if (dupeFound.length > 0) { setFormMsg("✅ Added to " + addedTo.join(", ") + " (already in " + dupeFound.join(", ") + ")"); }
             else { setFormMsg("✅ Added " + cp.name + " to " + addedTo.join(", ")); }
@@ -341,19 +385,25 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             if (dd.itemType === "ingredient" && editedIng.length > 0 && editedIng.join(", ") !== dd.originalIngredients) {
               setFormMsg("🔄 Recalculating nutritional values...");
               try {
-                var recalcPrompt = "Calculate nutritional info for a homemade dish called \"" + dd.name + "\" with these specific ingredients and portions: " + editedIng.join(", ") + ". Return ONLY JSON: {\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\"}";
-                var recResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 300, messages: [{ role: "user", content: recalcPrompt }] }) });
-                var recResult = await recResp.json();
-                var recErr = handleApiError(recResult); if (recErr) throw new Error(recErr);
-                var recTxt = ""; if (recResult.content) { for (var re4 = 0; re4 < recResult.content.length; re4++) { if (recResult.content[re4].text) recTxt += recResult.content[re4].text; } }
-                var recMatch = recTxt.replace(/```json|```/g, "").trim().match(/\{[\s\S]*\}/);
-                if (!recMatch) throw new Error("AI did not return nutrition values");
-                var ri = JSON.parse(recMatch[0]);
-                var upd = { jcKcal: ri.kcal || dd.jcKcal, beckKcal: ri.kcal || dd.beckKcal, protein: ri.protein || dd.protein, fat: ri.fat || dd.fat, satFat: ri.satFat || dd.satFat, carbs: ri.carbs || dd.carbs, fibre: ri.fibre || dd.fibre, salt: ri.salt || dd.salt, rating: ri.rating || dd.rating, originalIngredients: editedIng.join(", "), recalculated: true };
+                /* v2.6.2 D7: whole recipe, no anchoring on the name, plausibility check (one retry), apply only real values */
+                var askRecalc = async function(note) {
+                  var recResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 600, messages: [{ role: "user", content: recalcPrompt(dd.name, editedIng, note) }] }) });
+                  var recResult = await recResp.json();
+                  var recErr = handleApiError(recResult); if (recErr) throw new Error(recErr);
+                  var recTxt = ""; if (recResult.content) { for (var re4 = 0; re4 < recResult.content.length; re4++) { if (recResult.content[re4].text) recTxt += recResult.content[re4].text; } }
+                  return parseRecalc(recTxt);
+                };
+                var pr = await askRecalc("");
+                if (pr.implausible) pr = await askRecalc("A previous answer was implausible: " + pr.problem + ". Recheck every ingredient amount.");
+                if (!pr.values) throw new Error(pr.problem + " — nothing was changed");
+                var ri = pr.values;
+                var oldK = isJC ? dd.jcKcal : dd.beckKcal;
+                var upd = { jcKcal: ri.kcal, beckKcal: ri.kcal, protein: ri.protein, fat: ri.fat, satFat: ri.satFat, carbs: ri.carbs, fibre: ri.fibre, salt: ri.salt, rating: ri.rating || dd.rating, originalIngredients: editedIng.join(", "), recalculated: true, name: renameKcal(dd.name, ri.kcal), assumed: pr.assumed };
                 if (dd.jcProt !== undefined) { upd.jcProt = upd.protein; upd.beckProt = upd.protein; upd.jcFat = upd.fat; upd.beckFat = upd.fat; }
                 if (dd.shop !== undefined) { upd.shop = editedIng; }
                 setEditDraft(Object.assign({}, dd, upd));
-                setFormMsg("✅ Nutritional values updated. Press Continue to save, or Edit Again to change the ingredients.");
+                var nameEl2 = document.getElementById("edit-item-name-" + d.id); if (nameEl2) nameEl2.value = upd.name;
+                setFormMsg("✅ Nutritional values updated: " + (oldK || 0) + " → " + ri.kcal + " kcal, protein " + (dd.protein || 0) + " → " + ri.protein + "g, sat fat " + (dd.satFat || 0) + " → " + ri.satFat + "g" + (pr.assumed.length ? ". Assumed: " + pr.assumed.join(", ") : "") + ". Press Continue to save, or Edit Again to change the ingredients.");
               } catch(re) {
                 setFormMsg(window.isEnergyEmpty(re) ? window.energyEmptyMsg : "⚠️ Recalculation failed: " + String(re.message || re).substring(0, 80) + ". Press Confirm to retry or Cancel.");
               }
@@ -421,15 +471,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           };
 
           var applyDefaults = async function() {
-            var defs = mealDefaults[activeTab] || {};
-            var n = Object.assign({}, meals);
-            DAYS.forEach(function(d) {
-              if (!n[d]) n[d] = {};
-              if (defs.b && !n[d].b) n[d].b = defs.b;
-              if (defs.l && !n[d].l) n[d].l = defs.l;
-              if (defs.d && !n[d].d) n[d].d = defs.d;
-              for (var i = 1; i <= 7; i++) { if (defs["o" + i] && !n[d]["o" + i]) n[d]["o" + i] = defs["o" + i]; }
-            });
+            var planned = applyDefaultsTo(meals, mealDefaults[activeTab]); /* D9: keep selections, then defaults */
+            var n = planned.meals;
             setMeals(n); saveMeals(n);
             var otherPeople = Object.keys(data).filter(function(k) { return k !== "config" && k !== activeTab; });
             for (var opi = 0; opi < otherPeople.length; opi++) {
@@ -449,6 +492,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               await sSet(opSk, JSON.stringify(opM));
             }
             setFormMsg("Defaults applied (all people)"); setTimeout(function() { setFormMsg(""); }, 2000);
+            return planned;
           };
 
           var saveDef = function(key, val, scope) {
@@ -475,8 +519,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             var sorted = items.slice().sort(function(a,b) { return a.name.localeCompare(b.name); });
             var filtered = search ? sorted.filter(function(it) { return it.name.toLowerCase().indexOf(search.toLowerCase()) >= 0; }) : sorted;
             var selected = value ? items.find(function(it) { return it.id === value; }) : null;
-            var fallbackName = (!selected && value && value !== "__empty__") ? value.replace(/_/g, " ").replace(/\b\w/g, function(c) { return c.toUpperCase(); }) : null;
-            var displayName = selected ? selected.name : fallbackName;
+            var displayName = value && value !== "__empty__" ? selectionName(value, props.snap, selected || allItemsLookup[value]) : null; // D6: never the raw id
             var inputRef = React.useRef(null);
             if (!open) {
               return (<div style={{position:"relative"}}>
@@ -1155,11 +1198,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             var genBf = customBreakfasts.filter(function(it) { return it.rating; });
             var genLu = customLunches.filter(function(it) { return it.rating; });
             var genDin = customMeals.filter(function(it) { return it.rating; });
-            if (genBf.length < 3 || genLu.length < 3 || genDin.length < 3) {
-              setFormMsg("Please use 'Update Eating Lists' to add your choice of food items. Once added, the food items will be colour coded for use by the meal generator and yourself.");
-              setTimeout(function() { setFormMsg(""); }, 8000);
-              return;
-            }
+            /* D9: a short list no longer stops the whole generator; an empty one leaves its slots empty (said in the summary) */
             /* Check items can logically fill 7 days following RAG rules:
                GREEN = every day, AMBER = max 1/week, RED = max 1/month.
                Need enough GREEN items to cover days not filled by AMBER/RED */
@@ -1175,13 +1214,15 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               if (greens === 0 && greenDays > 0) return label;
               return null;
             };
-            var failCat = checkCanFill(genBf, "breakfasts") || checkCanFill(genLu, "lunches") || checkCanFill(genDin, "dinners");
-            if (failCat) {
+            /* D9: a slot whose list can't fill the week is left empty (and said so); only stop if none can */
+            var _can = { b: genBf.length > 0 && !checkCanFill(genBf, "b"), l: genLu.length > 0 && !checkCanFill(genLu, "l"), d: genDin.length > 0 && !checkCanFill(genDin, "d") };
+            if (!_can.b && !_can.l && !_can.d) {
               setFormMsg("Please use 'Update Eating Lists' to add your choice of food items. Once added, the food items will be colour coded for use by the meal generator and yourself.");
               setTimeout(function() { setFormMsg(""); }, 8000);
               return;
             }
-            await applyDefaults();
+            var planned = await applyDefaults(); /* D9: work from the plan WITH defaults, not the stale state */
+            var _allowed = { b: _can.b ? genBf.map(function(x){return x.id;}) : [], l: _can.l ? genLu.map(function(x){return x.id;}) : [], d: _can.d ? genDin.filter(function(x){return x.id !== "none";}).map(function(x){return x.id;}) : [] };
             setGenerating(true); setFormMsg("Applying defaults and generating meals...");
             try {
               var prof = p.profile || {};
@@ -1202,14 +1243,14 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 if (pastRedUsed.length > 0) { pastHistory += " RED items used in past 4 weeks (DO NOT reuse — max once per month): " + pastRedUsed.filter(function(v, i, a) { return a.indexOf(v) === i; }).join(",") + "."; }
               }
               var fmt = '{"monday":{"b":"id","l":"id","d":"id"},"tuesday":{"b":"id","l":"id","d":"id"},"wednesday":{"b":"id","l":"id","d":"id"},"thursday":{"b":"id","l":"id","d":"id"},"friday":{"b":"id","l":"id","d":"id"},"saturday":{"b":"id","l":"id","d":"id"},"sunday":{"b":"id","l":"id","d":"id"}}';
-              var prompt = "Generate a week of meals for " + (prof.name || "user") + " (" + (isJC ? "2000-2200 kcal" : "1700-1900 kcal") + " target). Only fill EMPTY slots - keep existing selections. CRITICAL: You MUST ONLY use item IDs from the lists below - never invent new IDs. FREQUENCY RULES based on RAG rating: GREAT items can appear every day, AMBER items maximum once per week, RED items maximum once per month. Each item shows its rating in [brackets]. Respect these limits strictly." + pastHistory + " Current: " + JSON.stringify(meals) + ". Breakfasts: " + bfastList + ". Lunches: " + lunchList + ". Dinners: " + dinnerList + ". Vary daily. Return ONLY JSON: " + fmt;
+              var prompt = "Generate a week of meals for " + (prof.name || "user") + " (" + (isJC ? "2000-2200 kcal" : "1700-1900 kcal") + " target). Only fill EMPTY slots - keep existing selections. CRITICAL: You MUST ONLY use item IDs from the lists below - never invent new IDs. FREQUENCY RULES based on RAG rating: GREAT items can appear every day, AMBER items maximum once per week, RED items maximum once per month. Each item shows its rating in [brackets]. Respect these limits strictly." + pastHistory + " Current: " + JSON.stringify(planned.meals, function(k, v) { return k === "_snap" ? undefined : v; }) + ". Breakfasts: " + (_can.b ? bfastList : "(none — leave breakfast slots empty)") + ". Lunches: " + (_can.l ? lunchList : "(none — leave lunch slots empty)") + ". Dinners: " + (_can.d ? dinnerList : "(none — leave dinner slots empty)") + ". Vary daily. Return ONLY JSON: " + fmt;
               var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }) });
               var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
               var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
               if (txt) {
                 var gen = JSON.parse(txt.replace(/```json|```/g, "").trim());
-                var n = Object.assign({}, meals);
-                DAYS.forEach(function(d2) { if (gen[d2]) { if (!n[d2]) n[d2] = {}; if (gen[d2].b && !n[d2].b) n[d2].b = gen[d2].b; if (gen[d2].l && !n[d2].l) n[d2].l = gen[d2].l; if (gen[d2].d && !n[d2].d) n[d2].d = gen[d2].d; } });
+                var merged = mergeGenerated(planned, gen, _allowed); /* D9: only empty slots, only ids from that slot's list */
+                var n = merged.meals;
                 setMeals(n); saveMeals(n);
                 var otherPeople2 = Object.keys(data).filter(function(k) { return k !== "config" && k !== activeTab; });
                 for (var opi2 = 0; opi2 < otherPeople2.length; opi2++) {
@@ -1217,13 +1258,13 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var opSk2 = mealKey(weekStart) + ":" + op2;
                   var opRaw2 = await sGet(opSk2);
                   var opM2 = opRaw2 ? JSON.parse(opRaw2) : {};
-                  DAYS.forEach(function(d2) { if (gen[d2]) { if (!opM2[d2]) opM2[d2] = {}; if (gen[d2].d && !opM2[d2].d) opM2[d2].d = gen[d2].d; } });
+                  DAYS.forEach(function(d2) { if (gen[d2]) { if (!opM2[d2]) opM2[d2] = {}; if (gen[d2].d && !opM2[d2].d && _allowed.d.indexOf(gen[d2].d) >= 0) opM2[d2].d = gen[d2].d; } });
                   await sSet(opSk2, JSON.stringify(opM2));
                 }
-                setFormMsg("Week meals generated (all people)");
+                setFormMsg("Week meals generated — " + generatorSummary(merged.src, _allowed));
               }
             } catch(e) { setFormMsg(window.aiErrorMsg(e)); }
-            setTimeout(function() { setFormMsg(""); }, 4000); setGenerating(false);
+            setTimeout(function() { setFormMsg(""); }, 10000); setGenerating(false);
           }} disabled={generating} style={{ width: "100%", padding: 12, marginTop: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: generating ? "not-allowed" : "pointer", background: generating ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{generating ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Meals Generator"}</button>
           <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Applies your default choices where stated and generates recommended breakfast, lunch, and dinner slots where left empty. These can be updated on individual days if required.</div>
             </div>
@@ -1497,7 +1538,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var _ragChg = _slotItem && _slotItem._ragChanged && !_slotItem._ragChangedSeen;
                   return (<div key={"b"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={dispBfast} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
+                      <MealSelect snap={getSnap(eatDay, slotKey)} items={dispBfast} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
                     </div>
                     {_ragChg && <span onClick={function(){alert("Rating changed from " + (_slotItem.prevRating || "?") + " to " + _slotItem.rating + (_slotItem.ragReason ? ".\n\nReason: " + _slotItem.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem.prevRating||"?") + " → " + _slotItem.rating}>🔄</span>}
                     {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
@@ -1510,7 +1551,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {portionSlot && portionSlot.match(/^b\d*$/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
                 {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
                 {portionResult && portionPlanned && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
                     <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
@@ -1518,8 +1559,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
                   </div>
                   {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {portionResult.assumed && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {portionResult.assumed} — {portionResult.kcal} kcal</div>}
+                  <div style={{ display: "flex", gap: 4, marginBottom: 6 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ flex: 1, padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /><button onClick={recheckPortion} disabled={!portionDesc.trim()} style={{ padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10, background: "#fff", cursor: "pointer" }}>↻ Re-check</button></div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Confirm Portion</button>
+                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{portionResult.matchesPlanned === false ? "Replace with " + (portionResult.name || "this food") : "Confirm Portion"}</button>
                     <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
                   </div>
                 </div>)}
@@ -1556,7 +1599,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var _ragChg2 = _slotItem2 && _slotItem2._ragChanged && !_slotItem2._ragChangedSeen;
                   return (<div key={"l"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={dispLunch} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
+                      <MealSelect snap={getSnap(eatDay, slotKey)} items={dispLunch} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
                     </div>
                     {_ragChg2 && <span onClick={function(){alert("Rating changed from " + (_slotItem2.prevRating || "?") + " to " + _slotItem2.rating + (_slotItem2.ragReason ? ".\n\nReason: " + _slotItem2.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem2.prevRating||"?") + " → " + _slotItem2.rating}>🔄</span>}
                     {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
@@ -1569,7 +1612,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {portionSlot && portionSlot.match(/^l\d*$/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
                 {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
                 {portionResult && portionPlanned && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
                     <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
@@ -1577,8 +1620,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
                   </div>
                   {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {portionResult.assumed && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {portionResult.assumed} — {portionResult.kcal} kcal</div>}
+                  <div style={{ display: "flex", gap: 4, marginBottom: 6 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ flex: 1, padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /><button onClick={recheckPortion} disabled={!portionDesc.trim()} style={{ padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10, background: "#fff", cursor: "pointer" }}>↻ Re-check</button></div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Confirm Portion</button>
+                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{portionResult.matchesPlanned === false ? "Replace with " + (portionResult.name || "this food") : "Confirm Portion"}</button>
                     <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
                   </div>
                 </div>)}
@@ -1620,7 +1665,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   return (<div key={"d"+idx}>
                     <div style={{ display: "flex", gap: 4, marginBottom: _isPackaged ? 2 : 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={dispDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
+                      <MealSelect snap={getSnap(eatDay, slotKey)} items={dispDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
                     </div>
                     {_ragChg3 && <span onClick={function(){alert("Rating changed from " + (_slotItem3.prevRating || "?") + " to " + _slotItem3.rating + (_slotItem3.ragReason ? ".\n\nReason: " + _slotItem3.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem3.prevRating||"?") + " → " + _slotItem3.rating}>🔄</span>}
                     {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
@@ -1651,7 +1696,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {portionSlot && portionSlot.match(/^d\d*$/) && !portionSlot.match(/^d[sr]/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
                 {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
                 {portionResult && portionPlanned && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
                     <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
@@ -1659,8 +1704,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
                   </div>
                   {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {portionResult.assumed && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {portionResult.assumed} — {portionResult.kcal} kcal</div>}
+                  <div style={{ display: "flex", gap: 4, marginBottom: 6 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ flex: 1, padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /><button onClick={recheckPortion} disabled={!portionDesc.trim()} style={{ padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10, background: "#fff", cursor: "pointer" }}>↻ Re-check</button></div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Confirm Portion</button>
+                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{portionResult.matchesPlanned === false ? "Replace with " + (portionResult.name || "this food") : "Confirm Portion"}</button>
                     <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
                   </div>
                 </div>)}
@@ -1692,7 +1739,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 return slots.map(function(idx) {
                   return (<div key={"ds"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={dispDesserts} value={getMeal(eatDay, "ds" + idx) === "__empty__" ? "" : getMeal(eatDay, "ds" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults", e.target.searchText, "ds" + idx, eatDay); } else { setMeal(eatDay, "ds" + idx, e.target.value); } }} placeholder="Select dessert..." />
+                      <MealSelect snap={getSnap(eatDay, "ds" + idx)} items={dispDesserts} value={getMeal(eatDay, "ds" + idx) === "__empty__" ? "" : getMeal(eatDay, "ds" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults", e.target.searchText, "ds" + idx, eatDay); } else { setMeal(eatDay, "ds" + idx, e.target.value); } }} placeholder="Select dessert..." />
                     </div>
                     {getMeal(eatDay, "ds" + idx) && getMeal(eatDay, "ds" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("ds" + idx) ? "#dbeafe" : btnPortion.background, border: portionSlot === ("ds" + idx) ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === ("ds" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("ds" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("ds" + idx, e.target.files[0], allDesserts); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {getMeal(eatDay, "ds" + idx) && <button onClick={function() { if (!confirm("Remove this snack? This cannot be undone.")) return; setMeal(eatDay, "ds" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
@@ -1703,7 +1750,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {portionSlot && portionSlot.match(/^ds/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
                 {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
                 {portionResult && portionPlanned && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
                     <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
@@ -1711,8 +1758,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
                   </div>
                   {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {portionResult.assumed && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {portionResult.assumed} — {portionResult.kcal} kcal</div>}
+                  <div style={{ display: "flex", gap: 4, marginBottom: 6 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ flex: 1, padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /><button onClick={recheckPortion} disabled={!portionDesc.trim()} style={{ padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10, background: "#fff", cursor: "pointer" }}>↻ Re-check</button></div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Confirm Portion</button>
+                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{portionResult.matchesPlanned === false ? "Replace with " + (portionResult.name || "this food") : "Confirm Portion"}</button>
                     <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
                   </div>
                 </div>)}
@@ -1744,7 +1793,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 return slots.map(function(idx) {
                   return (<div key={"dr"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={dispDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults", e.target.searchText, "dr" + idx, eatDay); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Select drink..." />
+                      <MealSelect snap={getSnap(eatDay, "dr" + idx)} items={dispDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults", e.target.searchText, "dr" + idx, eatDay); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Select drink..." />
                     </div>
                     {getMeal(eatDay, "dr" + idx) && getMeal(eatDay, "dr" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("dr" + idx) ? "#dbeafe" : btnPortion.background, border: portionSlot === ("dr" + idx) ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === ("dr" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("dr" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("dr" + idx, e.target.files[0], allDrinks); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                     {getMeal(eatDay, "dr" + idx) && <button onClick={function() { if (!confirm("Remove this drink? This cannot be undone.")) return; setMeal(eatDay, "dr" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
@@ -1755,7 +1804,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {portionSlot && portionSlot.match(/^dr/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
                 {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
                 {portionResult && portionPlanned && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
                     <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
@@ -1763,8 +1812,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
                   </div>
                   {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {portionResult.assumed && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {portionResult.assumed} — {portionResult.kcal} kcal</div>}
+                  <div style={{ display: "flex", gap: 4, marginBottom: 6 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ flex: 1, padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /><button onClick={recheckPortion} disabled={!portionDesc.trim()} style={{ padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10, background: "#fff", cursor: "pointer" }}>↻ Re-check</button></div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Confirm Portion</button>
+                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{portionResult.matchesPlanned === false ? "Replace with " + (portionResult.name || "this food") : "Confirm Portion"}</button>
                     <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
                   </div>
                 </div>)}
@@ -1794,7 +1845,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             {otherSlots.map(function(idx) {
               return (<div key={idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                 <div style={{ flex: 1 }}>
-                  <MealSelect items={dispOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults", e.target.searchText, "o" + idx, eatDay); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Select snack..." />
+                  <MealSelect snap={getSnap(eatDay, "o" + idx)} items={dispOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults", e.target.searchText, "o" + idx, eatDay); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Select snack..." />
                 </div>
                 {getMeal(eatDay, "o" + idx) && getMeal(eatDay, "o" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("o" + idx) ? "#dbeafe" : btnPortion.background, border: portionSlot === ("o" + idx) ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === ("o" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("o" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("o" + idx, e.target.files[0], allOther); e.target.value=""; }} style={{ display: "none" }} /></label>)}
                 {getMeal(eatDay, "o" + idx) && <button onClick={function() { if (!confirm("Remove this item? This cannot be undone.")) return; setMeal(eatDay, "o" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
@@ -1804,7 +1855,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             {portionSlot && portionSlot.match(/^o/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
                 {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
                 {portionResult && portionPlanned && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
                     <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
@@ -1812,8 +1863,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
                   </div>
                   {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {portionResult.assumed && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {portionResult.assumed} — {portionResult.kcal} kcal</div>}
+                  <div style={{ display: "flex", gap: 4, marginBottom: 6 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ flex: 1, padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /><button onClick={recheckPortion} disabled={!portionDesc.trim()} style={{ padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10, background: "#fff", cursor: "pointer" }}>↻ Re-check</button></div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Confirm Portion</button>
+                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{portionResult.matchesPlanned === false ? "Replace with " + (portionResult.name || "this food") : "Confirm Portion"}</button>
                     <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
                   </div>
                 </div>)}
@@ -1998,6 +2051,11 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
         
 
+          {portionUndo && (<div role="status" data-testid="portion-replaced" style={{ position: "fixed", left: 12, right: 12, bottom: 76, zIndex: 60, background: "#0f172a", color: "#fff", borderRadius: 8, padding: "10px 12px", fontSize: 12, display: "flex", gap: 8, alignItems: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.25)" }}>
+            <span style={{ flex: 1 }}>Looks like <b>{portionUndo.name}</b>, not {portionUndo.original} — replaced</span>
+            <button onClick={undoPortionReplace} style={{ background: "#fff", color: "#0f172a", border: "none", borderRadius: 6, padding: "4px 10px", fontWeight: 700, cursor: "pointer" }}>Undo</button>
+            <button aria-label="Dismiss" onClick={function(){ setPortionUndo(null); }} style={{ background: "none", color: "#fff", border: "none", cursor: "pointer" }}>✕</button>
+          </div>)}
           {/* Generate meals */}
           
         </div>); } catch(eatErr) { return (<div style={{ padding: 20, color: "#dc2626" }}>Eating section error: {String(eatErr)}</div>); } }
