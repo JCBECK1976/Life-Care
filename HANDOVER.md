@@ -1467,3 +1467,23 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   3. F7 description placement on Portion (after the first result + Re-check, versus a step before the camera).
   4. D7: offering "re-check nutrition" for items edited before the fix.
 - **Resume point:** `build` @ 7e76a87. Next: the Architect verifies /build/ (v2.6.2 → v2.6.4), then PR build → beta when approved.
+
+### (Architect) 10 Nov 2026 07:20 — Architect review of the overnight batch (v2.6.2–v2.6.4) + JC decisions
+- **Architect check:** the live /build/ contains the v2.6.1–v2.6.4 changes (new strings present). The Coder entries were reviewed: good traces and sound fixes.
+- **JC decisions:**
+  1. **D11 bands APPROVED as drafted**, using **added sugar** (not total, which would penalise fruit). Add an `addedSugar` field, AI-estimated; existing items get it on re-rate. Kcal share stays only in the "monthly treat" rule. `checkRagFrequency` and the generator prompt must use the new frequency labels. After the build, re-rate all lists; changed items get "Check me".
+  2. **D6 repair APPROVED:** rehearse on **Build first** (dry run with counts → write). On real data (beta/prod share it): JC takes a manual backup → dry run (counts only) → write. Idempotent; adds `_snap` only.
+  3. **Snap flow (replaces Portion everywhere; F3 pulled forward into the fixes):**
+     - The **📷 Snap** button sits on every meal slot, empty or filled, with an **optional description box beside it before the photo**.
+     - Result panel: food, portion, nutrition, RAG and "Assumed: …", with the **description still editable**, and **Confirm / Re-check / Cancel**.
+     - **Re-check** resends the same photo plus the description and updates the result. It can be repeated.
+     - **Confirm:**
+       - filled slot, same food → portion for this meal;
+       - filled slot, different food → swap with Undo (D10);
+       - empty slot → match a list item, or "Add to list?" via `addReviewedItem` → select.
+     - **Cancel** → nothing saved.
+     - Nothing is saved before Confirm.
+  4. **D7 follow-ups APPROVED:** a one-off "Re-check nutrition" in Update Lists (flags doubtful items "Check me"), and apply the D7 recalculation and plausibility fix to the **add-item Review path** too.
+- **Before any beta PR (Architect requirement):** prove prod v2.6.0 tolerates the new data shapes (`_snap` in the meal plan, per-set arrays in exercise logs, `addedSugar`, "Check me" flags): run the v2.6.0 build against emulator data containing them, with no crash or odd rendering. If it can't, prod must be released right after beta.
+- No backup is needed for Build data: it's a disposable copy, overwritten on refresh.
+
