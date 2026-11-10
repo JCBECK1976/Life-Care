@@ -107,7 +107,7 @@ export function ragNote(c, parent) {
   if (!c || !c.parentId || !parent) return "";
   var cb = c.band || bandOf(c); var pb = bandOf(parent); if (!cb || !pb || cb === pb) return "";
   var pk = parseFloat(parent.jcKcal || parent.kcal) || 0; var ck = (c.nutrition && c.nutrition.kcal) || 0;
-  var why = c.portion && c.portion.values ? (ck > pk ? "large portion" : ck < pk ? "small portion" : "this portion") : (c.variations && c.variations.text ? "with changes" : "this portion");
+  var why = c.portion && c.portion.source === "variations" ? "with changes" : c.portion && c.portion.values ? (ck > pk ? "large portion" : ck < pk ? "small portion" : "this portion") : (c.variations && c.variations.text ? "with changes" : "this portion");
   return (cb.indexOf("RED") === 0 ? "RED" : cb) + " today — " + why;
 }
 

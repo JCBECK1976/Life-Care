@@ -2,7 +2,9 @@ import { DEFAULT_EXERCISES, EXERCISE_DATABASE, EXERCISE_TYPES } from "../constan
 import { calcWeek, fbIcon, sBg, sColor, sLabel } from "../lib/utils.js";
 import { buildExProfileInfo, getMoodContext } from "../lib/aiContext.js";
 import { sSet } from "../lib/storage.js";
-import { autoStatus, entrySets, fmtEntry, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsDiffer, weightLabel } from "../lib/exercise.js";
+import { autoStatus, entrySets, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsDiffer, setsToSave, weightLabel } from "../lib/exercise.js";
+import React from "react";
+import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
 import { btnAction, btnActionLg, btnDelete, btnEdit, btnMuted, btnP, btnS, inputStyle, labelStyle } from "../constants/styles.js";
 import { FullChart } from "../components/charts.jsx";
 import { TONE_RULES } from "../constants/tone.js";
@@ -24,6 +26,8 @@ export default function ExerciseSection({ ctx }) {
     setLogWeek, setNewExName, setNewSectionName, setSelectedEx, setSessionFbLoading, setSessionFeedback, setSessionGuideLoading, setShowNewExForm,
     setShowNewSection, setStoppedExOpen, setWarmUpOpen, stoppedExOpen, updateSessionFb, userMood, warmUpOpen, weekLabel
   } = ctx;
+  /* v2.8.0 F1: a Progress week opens in the shared "Open" form (read-only → Edit → Save, or Delete inside the form) */
+  const [openProg, setOpenProg] = React.useState(null); // { day, exIdx, progIdx, editing, draft, msg }
 
           const allExNames = [...DEFAULT_EXERCISES, ...customExercises].sort();
           const days = Object.keys(p.exercises);
@@ -109,6 +113,47 @@ export default function ExerciseSection({ ctx }) {
             }
             await saveData(nd);
           };
+          const openEntry = (day, exIdx, progIdx) => {
+            var e = data[activeTab].exercises[day][exIdx].prog[progIdx];
+            setOpenProg({ day: day, exIdx: exIdx, progIdx: progIdx, editing: false, msg: "", draft: { wk: String(e.wk), sets: logSetsFrom(e, Math.max(1, (e.sets || []).length || parseReps(e.r).length || 3)), fullRange: e.fullRange || "", goodForm: e.goodForm || "", note: e.note || "" } });
+          };
+          const setDraft = (patch) => setOpenProg(function(o) { return Object.assign({}, o, { draft: Object.assign({}, o.draft, patch), msg: "" }); });
+          const saveEntry = async () => {
+            var o = openProg; var d = o.draft;
+            if (!d.fullRange || !d.goodForm) { setOpenProg(Object.assign({}, o, { msg: "Choose Form and Range to save" })); return; }
+            var sets = setsToSave(d.sets.filter(function(x) { return String(x.w).trim() || String(x.r).trim(); }));
+            if (!sets.length) { setOpenProg(Object.assign({}, o, { msg: "Enter at least one set" })); return; }
+            var nd = JSON.parse(JSON.stringify(data));
+            var ex2 = nd[activeTab].exercises[o.day][o.exIdx]; var e = ex2.prog[o.progIdx];
+            e.wk = parseInt(d.wk) || e.wk; e.sets = sets; e.w = String(sets[0].w).replace(/kg$/, "") + "kg"; e.r = fmtReps(sets.map(function(x) { return parseInt(x.r) || 0; }));
+            e.fullRange = d.fullRange; e.goodForm = d.goodForm; e.note = d.note.trim();
+            ex2.prog.sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
+            var latest = ex2.prog[ex2.prog.length - 1]; ex2.current = latest.w; ex2.reps = latest.r;
+            await saveData(nd);
+            setOpenProg(Object.assign({}, o, { progIdx: ex2.prog.indexOf(e), editing: false, msg: "✓ Week " + e.wk + " saved" }));
+          };
+          const renderEntryForm = (ex) => {
+            var o = openProg; var d = o.draft; var ed = o.editing; var cfg = getExerciseTypeConfig(ex.exType || getExerciseType(ex.name));
+            var l1 = cfg.metric1 !== "none" ? cfg.metric1Label : "Weight"; var l2 = cfg.metric2 !== "none" ? cfg.metric2Label : "Reps";
+            var seg = function(field, val, label) { var on = d[field] === val; return <button key={val} type="button" aria-pressed={on} disabled={!ed} onClick={function() { setDraft({ [field]: val }); }} style={{ flex: 1, padding: "6px 4px", fontSize: 11, fontWeight: 600, border: "none", cursor: ed ? "pointer" : "default", background: on ? (val === "good" ? "#166534" : "#b45309") : "#fff", color: on ? "#fff" : "#475569" }}>{label}</button>; };
+            var group = function(field, label) { return <Field label={label} testid={"entry-" + field}><div style={{ display: "flex", border: "1px solid " + (ed && !d[field] && o.msg ? "#dc2626" : "#cbd5e1"), borderRadius: 6, overflow: "hidden" }}>{seg(field, "working", "Working towards")}{seg(field, "good", "Good")}</div></Field>; };
+            return (<OpenForm testid="prog-open-form" title={ex.name + " — week " + d.wk} subtitle={ed ? "Change anything, then Save." : "As logged. Edit to change it."} editing={ed} message={o.msg} busy={false}
+              onEdit={function() { setOpenProg(Object.assign({}, o, { editing: true, msg: "" })); }}
+              onCancelEdit={function() { openEntry(o.day, o.exIdx, o.progIdx); }}
+              onClose={function() { setOpenProg(null); }}
+              onSave={saveEntry}
+              dangerLabel="🗑 Delete week" onDanger={function() { deleteProg(o.day, o.exIdx, o.progIdx); }}>
+              <Field label="Week">{ed ? <input aria-label="Week" value={d.wk} onChange={function(e) { setDraft({ wk: e.target.value }); }} style={Object.assign({}, openInput, { width: 70 })} /> : d.wk}</Field>
+              {d.sets.map(function(st, si) { return (<Field key={si} label={"Set " + (si + 1)} testid={"entry-set-" + (si + 1)}>{ed ? <div style={{ display: "flex", gap: 6 }}>
+                  <input aria-label={"Set " + (si + 1) + " " + l1} placeholder={l1} value={st.w} onChange={function(e) { var ns = d.sets.slice(); ns[si] = Object.assign({}, st, { w: e.target.value }); setDraft({ sets: ns }); }} style={openInput} />
+                  <input aria-label={"Set " + (si + 1) + " " + l2} placeholder={l2} value={st.r} onChange={function(e) { var ns = d.sets.slice(); ns[si] = Object.assign({}, st, { r: e.target.value }); setDraft({ sets: ns }); }} style={openInput} />
+                </div> : <span>{st.w}{/^[\d.]+$/.test(String(st.w)) ? "kg" : ""} × {st.r}</span>}</Field>); })}
+              {ed && <button type="button" onClick={function() { setDraft({ sets: d.sets.concat([{ w: (d.sets[d.sets.length - 1] || {}).w || "", r: "" }]) }); }} style={{...btnMuted, marginBottom: 6}}>+ Add set</button>}
+              {group("fullRange", "Range")}
+              {group("goodForm", "Form")}
+              <Field label="Notes" testid="entry-note">{ed ? <textarea aria-label="Notes" value={d.note} onChange={function(e) { setDraft({ note: e.target.value }); }} style={Object.assign({}, openInput, { minHeight: 44 })} /> : (d.note || <span style={{ color: "#94a3b8" }}>—</span>)}</Field>
+            </OpenForm>);
+          };
           const deleteProg = async (day, exIdx, progIdx) => {
             var ex2 = data[activeTab].exercises[day][exIdx];
             var entry = ex2.prog[progIdx];
@@ -128,7 +173,7 @@ export default function ExerciseSection({ ctx }) {
               delete nd[activeTab].exercises[day][exIdx].target;
             }
             nd[activeTab].exercises[day][exIdx].notes = prog.length > 0 ? (prog[prog.length-1].note || "") : "";
-            await saveData(nd);
+            await saveData(nd); setOpenProg(null);
             setFormMsg("✓ Week " + (entry ? entry.wk : "") + " entry removed");
             setTimeout(function() { setFormMsg(""); }, 3000);
             setSelectedEx(null);
@@ -318,15 +363,15 @@ export default function ExerciseSection({ ctx }) {
                     </div>
                     {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "4px 8px", borderRadius: 4, marginBottom: 6 }}>{ex.notes}</div>}
                     {(() => { var _etc = getExerciseTypeConfig(ex.exType || getExerciseType(ex.name)); var _h1 = _etc.metric1 !== "none" ? _etc.metric1Label.replace(/\s*\(.*\)/,"").toUpperCase() : ""; var _h2 = _etc.metric2 !== "none" ? _etc.metric2Label.replace(/\s*\(.*\)/,"").toUpperCase() : ""; return (<div style={{ display: "flex", gap: 6, padding: "3px 0", marginBottom: 2, fontSize: 9, color: "#94a3b8", fontWeight: 600 }}>
-                      <span style={{ width: 40 }}>WEEK</span>{_h1 && <span style={{ width: 55 }}>{_h1}</span>}{_h2 && <span style={{ width: 65 }}>{_h2}</span>}<span style={{ flex: 1 }}>NOTES</span><span style={{ width: 20 }}></span>
+                      <span style={{ width: 40 }}>WEEK</span>{_h1 && <span style={{ width: 55 }}>{_h1}</span>}{_h2 && <span style={{ width: 65 }}>{_h2}</span>}<span style={{ flex: 1 }}></span>
                     </div>); })()}
                     {ex.prog && ex.prog.slice().reverse().slice(0, selectedEx && selectedEx.showAll ? 999 : 4).map(function(pr, pi) { var realPi = ex.prog.length - 1 - pi; return (<div key={pi}><div style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
-                      <input defaultValue={pr.wk} onBlur={function(e) { updateProg(day, exIdx, realPi, "wk", parseInt(e.target.value) || pr.wk); }} style={{ width: 40, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11, textAlign: "center" }} />
-                      {setsDiffer(pr) ? <span data-testid="prog-weight" style={{ width: 55, fontSize: 11, padding: "2px 4px" }}>{weightLabel(pr)}</span> : <input data-testid="prog-weight" defaultValue={pr.w} onBlur={function(e) { updateProg(day, exIdx, realPi, "w", e.target.value); }} style={{ width: 55, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />}
-                      <input defaultValue={pr.r} onBlur={function(e) { updateProg(day, exIdx, realPi, "r", e.target.value); }} style={{ width: 65, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 11 }} />
-                      <input defaultValue={pr.note || ""} onBlur={function(e) { updateProg(day, exIdx, realPi, "note", e.target.value); }} placeholder="..." style={{ flex: 1, minWidth: 0, padding: "2px 4px", border: "1px solid #e2e8f0", borderRadius: 4, fontSize: 10, color: "#64748b" }} />
-                      <button onClick={function() { deleteProg(day, exIdx, realPi); }} style={{...btnDelete, fontSize: 11, minWidth: 24, flexShrink: 0}}>🗑 Del</button>
-                    </div>{setsDiffer(pr) && <div data-testid="prog-sets" style={{ fontSize: 10, color: "#64748b", padding: "0 0 4px 44px" }}>Sets: {fmtEntry(pr)}</div>}</div>); })}
+                      <span data-testid="prog-wk" style={{ width: 40, textAlign: "center", fontWeight: 600, color: "#334155" }}>{pr.wk}</span>
+                      <span data-testid="prog-weight" style={{ width: 70, fontSize: 11 }}>{weightLabel(pr) || pr.w}</span>
+                      <span style={{ width: 65, fontSize: 11 }}>{pr.r}</span>
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 9, color: "#64748b" }}>{pr.goodForm || pr.fullRange ? "Form " + (pr.goodForm === "good" ? "✓" : pr.goodForm ? "…" : "–") + " · Range " + (pr.fullRange === "good" ? "✓" : pr.fullRange ? "…" : "–") : ""}</span>
+                      <button aria-label={"Open week " + pr.wk} onClick={function() { openEntry(day, exIdx, realPi); }} style={{...btnEdit, fontSize: 10, flexShrink: 0}}>Open</button>
+                    </div>{setsDiffer(pr) && <div data-testid="prog-sets" style={{ fontSize: 10, color: "#64748b", padding: "0 0 4px 44px" }}>Sets: {fmtEntry(pr)}</div>}{openProg && openProg.day === day && openProg.exIdx === exIdx && openProg.progIdx === realPi && renderEntryForm(ex)}</div>); })}
                     {(!ex.prog || ex.prog.length === 0) && <div style={{ fontSize: 10, color: "#94a3b8" }}>No progression data yet</div>}
                     {ex.prog && ex.prog.length > 4 && <button onClick={function(){setSelectedEx(Object.assign({},selectedEx,{showAll:!selectedEx.showAll}));}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:accent,cursor:"pointer",marginBottom:6}}>{selectedEx && selectedEx.showAll ? "▲ Show less" : "▼ View more (" + (ex.prog.length - 4) + " entries)"}</button>}
                     <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var wk = calcWeek(nd.config.trainingStart); var existWk = -1; for (var awi = 0; awi < nd[activeTab].exercises[day][exIdx].prog.length; awi++) { if (nd[activeTab].exercises[day][exIdx].prog[awi].wk === wk) { existWk = awi; break; } }

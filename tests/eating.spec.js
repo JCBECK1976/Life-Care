@@ -38,11 +38,13 @@ test("My Eating: bulk paste adds items", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test("My Eating: ✎ Update opens the Update Item panel", async ({ page }) => {
+test("My Eating: Open shows the item read-only; Edit opens the Update Item editor", async ({ page }) => {
   const { errors } = await openApp(page);
   await tab(page, "My Eating");
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
-  await page.getByRole("button", { name: "✎ Update" }).first().click();
-  await expect(page.getByText("Update Item").first()).toBeVisible();
+  await page.getByRole("button", { name: /^Open / }).first().click();             // v2.8.0: Open (read-only) → Edit
+  await expect(page.getByTestId("item-view")).toBeVisible();
+  await page.getByTestId("item-view").getByRole("button", { name: "✎ Edit" }).click();
+  await expect(page.getByTestId("item-open-form")).toBeVisible();
   expect(errors).toEqual([]);
 });

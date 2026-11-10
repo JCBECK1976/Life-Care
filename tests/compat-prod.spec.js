@@ -33,7 +33,7 @@ test("prod tolerates v2.6.1–v2.6.5 data shapes (children, _snap, per-set array
   await setKey("portion_overrides:jc", { [today]: { b: { kcal: 600, protein: 25, name: "Compat Oats" } } });
   // v2.6.5 children model: dated selections under eat_children:<person>:<Sunday> (prod simply ignores them)
   const sunday = key.split(":")[1]; const td = new Date(); const tds = td.getFullYear() + "-" + String(td.getMonth() + 1).padStart(2, "0") + "-" + String(td.getDate()).padStart(2, "0");
-  await setKey("eat_children:jc:" + sunday, { v: 1, empty: [today + ":b3"], notes: {}, children: { ["c_" + tds + "_d"]: { id: "c_" + tds + "_d", parentId: null, date: tds, weekday: today, slot: "d", snapshot: { name: "Adhoc Soup", kcal: 300 }, portion: { source: "photo", values: { kcal: 300 } }, variations: { text: "", subs: [] }, nutrition: { kcal: 300 }, rating: "GOOD", ragFreq: "", band: "GOOD", tracked: "eaten", source: "adhoc", notes: "" } } });
+  await setKey("eat_children:jc:" + sunday, { v: 1, empty: [today + ":b3"], notes: {}, children: { ["c_" + tds + "_d"]: { id: "c_" + tds + "_d", parentId: null, date: tds, weekday: today, slot: "d", snapshot: { name: "Adhoc Soup", kcal: 300 }, portion: { source: "variations", factor: 1.5, values: { kcal: 300 }, change: "Chips add 260 kcal." }, variations: { text: "chips instead of potato", subs: [] }, nutrition: { kcal: 300 }, rating: "GOOD", ragFreq: "", band: "GOOD", tracked: "eaten", source: "adhoc", notes: "" } } });
   await page.reload();
   await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
   const visit = async (name) => { await tab(page, name); await page.waitForTimeout(400); };

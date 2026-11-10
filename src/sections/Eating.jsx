@@ -7,6 +7,7 @@ import { withRuleRating, rateByPortion, frequencyWarning, FREQ_LABEL, bandOf } f
 import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnMuted, btnPortion } from "../constants/styles.js";
 import { accentVariant } from "../lib/colour.js";
 import { personName } from "../components/PersonTabs.jsx";
+import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
 import { parseRecalc, recalcPrompt, renameKcal, stripKcal as stripKcalName } from "../lib/nutrition.js";
 import { applyDefaultsTo, generatorSummary, mergeGenerated, selectionName } from "../lib/meals.js";
 import { compareLine, gramsLine, requestBody } from "../lib/snap.js";
@@ -43,6 +44,8 @@ export default function EatingSection({ ctx }) {
   const [bulkUndo, setBulkUndo] = React.useState(null); // { cat, ids } kept before a cancel
   const bulkToken = React.useRef(null);
   const [listJob, setListJob] = React.useState("");
+  const [itemOpen, setItemOpen] = React.useState(null);  // v2.8.0 F5: list item open read-only (id)
+  const [slotOpen, setSlotOpen] = React.useState(null);  // v2.8.0 F5: meal selection open { day, slot, editing, draft, msg }
   const [snapPre, setSnapPre] = React.useState("");
   const [portionFirst, setPortionFirst] = React.useState(null); // D15: the first check, for the deep-dive comparison     // v2.6.5 Snap: slot whose description bar is open (before the photo)     // v2.6.5: "rerate" | "recheck" while running
  try {
@@ -74,6 +77,70 @@ export default function EatingSection({ ctx }) {
           (childItemsList || []).forEach(function(it) { [allBfast, allLunch, allDinners, allOther, allDrinks, allDesserts, allItems].forEach(function(arr) { arr.push(it); }); allItemsLookup[it.id] = it; });
           var saveMeals = function(n, source) { return saveMealsCtx(n, source, _listLookup); };
           var getSnap = function() { return null; };
+          /* ═══ v2.8.0 F5: a meal selection (the CHILD) opens in the shared form: portion + variations → the AI
+             recalculates the child's nutrition → its RAG is recalculated (D11 bands). The list item is never changed.
+             "Remove from this meal" is the only destructive action; deleting from the list happens only in Update Lists. ═══ */
+          var slotButtons = function(slotKey, idx) {
+            var v = getMeal(eatDay, slotKey); var filled = !!v && v !== "__empty__";
+            var first = idx === 1 && /^[bld]$/.test(slotKey);
+            return (<>
+              <button aria-label={filled ? "Open this meal" : "Add to this meal"} onClick={function() {
+                if (filled) { setSlotOpen(slotOpen && slotOpen.slot === slotKey && slotOpen.day === eatDay ? null : { day: eatDay, slot: slotKey, first: first, editing: false, msg: "" }); }
+                else { setSlotOpen(null); openAddForm(slotCategory(slotKey), "defaults", "", slotKey, eatDay); }
+              }} style={{...btnEdit, fontSize: 10, flexShrink: 0}}>Open</button>
+              {!filled && !first && v !== undefined && v !== "" && <button aria-label="Remove this empty row" onClick={function() { setMeal(eatDay, slotKey, ""); }} style={{...btnDelete, fontSize: 10, flexShrink: 0}}>✕</button>}
+            </>);
+          };
+          var recalcWithVariations = async function(c, factor, text) {
+            var base = c.snapshot || {};
+            var prompt = "A meal item is \"" + base.name + "\". One standard portion has: " + (base.kcal || 0) + " kcal, " + (base.protein || 0) + "g protein, " + (base.fat || 0) + "g fat, " + (base.satFat || 0) + "g saturated fat, " + (base.addedSugar || 0) + "g added sugar, " + (base.carbs || 0) + "g carbs, " + (base.fibre || 0) + "g fibre, " + (base.salt || 0) + "g salt. The person ate " + factor + " × that portion, with these changes: \"" + text + "\". Work out the nutrition of what they actually ate. Return ONLY JSON: {\"kcal\":number,\"protein\":g,\"fat\":g,\"satFat\":g,\"addedSugar\":added_sugar_g,\"carbs\":g,\"fibre\":g,\"salt\":g,\"change\":\"one short sentence on what changed\"}";
+            var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 400, temperature: 0, messages: [{ role: "user", content: prompt }] }) });
+            var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+            var txt = ""; (result.content || []).forEach(function(x) { if (x.text) txt += x.text; });
+            var m = txt.replace(/```json|```/g, "").trim().match(/\{[\s\S]*\}/); if (!m) throw new Error("the AI did not return nutrition values");
+            var r = JSON.parse(m[0]); if (!(parseFloat(r.kcal) > 0)) throw new Error("no calorie value came back");
+            return r;
+          };
+          var renderSlotForm = function() {
+            var o = slotOpen; var c = childAt(o.day, o.slot); if (!c) return null;
+            var parent = c.parentId ? _listLookup[c.parentId] : null; var n = c.nutrition || {};
+            var d = o.draft || { factor: String((c.portion && c.portion.factor) || 1), text: (c.variations && c.variations.text) || "" };
+            var setD = function(patch) { setSlotOpen(Object.assign({}, o, { draft: Object.assign({}, d, patch), msg: "" })); };
+            var portionText = c.portion && c.portion.values ? (c.portion.source === "variations" ? "×" + (c.portion.factor || 1) + " with changes" : "checked by photo" + (c.portion.assumed ? " — " + c.portion.assumed : "")) : "×" + ((c.portion && c.portion.factor) || 1) + " of the list portion";
+            var note = ragNote(c, parent);
+            var save = async function() {
+              var factor = parseFloat(d.factor) || 1; var text = (d.text || "").trim();
+              var next = Object.assign({}, c, { variations: { text: text, subs: (c.variations && c.variations.subs) || [] } });
+              try {
+                if (text) {
+                  setSlotOpen(Object.assign({}, o, { draft: d, msg: "⏳ Recalculating this meal…" }));
+                  var r = await recalcWithVariations(c, factor, text);
+                  next.portion = { factor: factor, source: "variations", values: { kcal: Math.round(parseFloat(r.kcal)), protein: parseFloat(r.protein) || 0, fat: parseFloat(r.fat) || 0, satFat: parseFloat(r.satFat) || 0, addedSugar: parseFloat(r.addedSugar) || 0, carbs: parseFloat(r.carbs) || 0, fibre: parseFloat(r.fibre) || 0, salt: parseFloat(r.salt) || 0 }, change: r.change || "" };
+                } else if (factor !== ((c.portion && c.portion.factor) || 1) || (c.portion && c.portion.source === "variations")) {
+                  next.portion = { factor: factor };
+                }
+                await setChildAt(o.day, o.slot, next);
+                setSlotOpen({ day: o.day, slot: o.slot, first: o.first, editing: false, msg: "✓ Saved for this meal. Your list item is unchanged." });
+              } catch (e) { setSlotOpen(Object.assign({}, o, { draft: d, msg: "⚠️ Couldn't recalculate: " + String(e.message || e).substring(0, 90) + ". Nothing was changed." })); }
+            };
+            var srcLabel = { manual: "picked", default: "your default", generator: "generated", snap: "📷 snap", adhoc: "📷 snap", copy: "copied", migrated: "earlier" }[c.source] || c.source;
+            return (<OpenForm testid="slot-open-form" title={c.snapshot.name} subtitle={(parent ? "From your list" : "This meal only (not in your lists)") + " · " + srcLabel} editing={o.editing} message={o.msg}
+              onEdit={function() { setSlotOpen(Object.assign({}, o, { editing: true, draft: d, msg: "" })); }}
+              onCancelEdit={function() { setSlotOpen(Object.assign({}, o, { editing: false, draft: null, msg: "" })); }}
+              onSave={save} saveLabel="Save for this meal"
+              dangerLabel="Remove from this meal" onDanger={function() { if (!confirm("Remove " + c.snapshot.name + " from this meal? Your list is not changed.")) return; setSlotOpen(null); setMeal(o.day, o.slot, o.first ? "__empty__" : ""); }}
+              onClose={function() { setSlotOpen(null); }}>
+              <Field label="Portion" testid="slot-portion">{o.editing ? <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+                  {["0.5", "1", "1.5", "2"].map(function(f) { return <button key={f} type="button" onClick={function() { setD({ factor: f }); }} style={{ ...btnMuted, color: String(d.factor) === f ? "#1e3a5f" : "#94a3b8", borderColor: String(d.factor) === f ? "#1e3a5f" : "#e2e8f0" }}>{f === "0.5" ? "½" : f === "1.5" ? "1½" : f}×</button>; })}
+                  <input aria-label="Portion factor" value={d.factor} onChange={function(e) { setD({ factor: e.target.value }); }} style={Object.assign({}, openInput, { width: 60 })} />
+                </div> : portionText}</Field>
+              <Field label="Changes" testid="slot-variations">{o.editing ? <textarea aria-label="Changes to this meal" value={d.text} onChange={function(e) { setD({ text: e.target.value }); }} placeholder="e.g. chips instead of potato, peas instead of beans, no sauce" style={Object.assign({}, openInput, { minHeight: 44 })} /> : ((c.variations && c.variations.text) || <span style={{ color: "#94a3b8" }}>none</span>)}</Field>
+              {c.portion && c.portion.change && !o.editing && <Field label="What changed">{c.portion.change}</Field>}
+              {nutritionRows(n, n.kcal)}
+              <Field label="Rating today" testid="slot-rating"><span style={{ fontWeight: 700, color: c.rating === "RED" ? "#dc2626" : c.rating === "AMBER" ? "#d97706" : "#15803d" }}>{ragText(c)}</span>{c.ragReason ? <div style={{ fontSize: 10, color: "#64748b" }}>{c.ragReason}</div> : null}</Field>
+              {parent && <Field label="Your list item" testid="slot-parent-rating">{ragText(parent)}{note ? <div data-testid="slot-rag-diff" style={{ fontSize: 10, color: "#64748b" }}>Differs today: {note}</div> : null}</Field>}
+            </OpenForm>);
+          };
           var childAt = function(dayKey, slot) { var v = getMeal(dayKey, slot); var it = v ? allItemsLookup[v] : null; return it && it._child ? it._child : null; };
           /* Frequency rules count CHILDREN (their own RAG), by food: the parent, or the name when ad hoc */
           var foodOf = function(id) { var it = allItemsLookup[id]; return it && it._child ? foodKey(it._child) : id; };
@@ -627,6 +694,26 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           var otherSlots = [];
           for (var oi = 1; oi <= 20; oi++) { if (dayMeals["o" + oi] || oi <= Math.max(getOtherCount(eatDay), 1) || dayMeals["o" + oi] === "__empty__") otherSlots.push(oi); }
 
+          /* v2.8.0 F5: a list item opened read-only. Edit = the Update Item editor; Delete from list lives ONLY here. */
+          var nutritionRows = function(n, kcal) { return (<>
+            <Field label="Calories" testid="view-kcal">{kcal} kcal</Field>
+            <Field label="Nutrition">{(n.protein || 0) + "g protein · " + (n.fat || 0) + "g fat · " + (n.satFat || 0) + "g sat fat · " + (n.addedSugar || 0) + "g added sugar · " + (n.carbs || 0) + "g carbs · " + (n.fibre || 0) + "g fibre · " + (n.salt || 0) + "g salt"}</Field>
+          </>); };
+          var ragText = function(it) { var b = bandOf(it); return b ? (b.indexOf("RED") === 0 ? "RED" : b) + (FREQ_LABEL[b] ? " · " + FREQ_LABEL[b] : "") : "—"; };
+          var renderItemView = function(item, cat) {
+            var kcal = isJC ? item.jcKcal : item.beckKcal;
+            return (<OpenForm testid="item-view" title={item.name} subtitle={"In your " + cat.label + " list"} editing={false}
+              onEdit={function() { setItemOpen(null); setEditingItem(item.id); setEditDraft(Object.assign({}, item, { originalIngredients: (item.ingredients || []).join(", "), recalculated: false })); setFormMsg(""); }}
+              dangerLabel="🗑 Delete from list" onDanger={async function() { if (!confirm("Delete " + item.name + " from your " + cat.label + " list? Meals you already logged keep their own copy.")) return; var u = cat.customs.filter(function(x){return x.id !== item.id;}); cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u)); setItemOpen(null); setFormMsg("Deleted " + item.name); setTimeout(function(){setFormMsg("");},2000); }}
+              onClose={function() { setItemOpen(null); }}>
+              {nutritionRows(item, kcal)}
+              <Field label="Rating" testid="view-rating"><span style={{ fontWeight: 700, color: item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#15803d" }}>{ragText(item)}</span>{item.ragReason ? <div style={{ fontSize: 10, color: "#64748b" }}>{item.ragReason}</div> : null}</Field>
+              <Field label="Type">{item.itemType === "ingredient" ? "🍳 Ingredient prepared" : "📦 Packaged"}{item.servingSize ? " · " + item.servingSize : ""}</Field>
+              {(item.ingredients || []).length > 0 && <Field label="Ingredients">{item.ingredients.join(", ")}</Field>}
+              {item.checkMe && <Field label="Check me">{item.checkReason || "Added by bulk upload: check it, then Edit and Save."}</Field>}
+              {item.suitability && <Field label="About">{item.suitability}</Field>}
+            </OpenForm>);
+          };
           var MealSelect = function(props) {
             var items = props.items; var value = props.value; var onChange = props.onChange; var placeholder = props.placeholder || "Select...";
             var _s = React.useState(""); var search = _s[0]; var setSearch = _s[1];
@@ -720,10 +807,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     var hasRagChange = item._ragChanged && !item._ragChangedSeen;
                     return (<div key={item.id}><div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
                       <span style={{ flex: 1, color: color }}>{hasRagChange && <span onClick={function(){alert("Rating changed from " + (item.prevRating || "?") + " to " + item.rating + (item.ragReason ? ".\n\nReason: " + item.ragReason : "") + "\n\nBased on your current health profile and dietary guidelines.");var u=cat.customs.map(function(x){return x.id===item.id?Object.assign({},x,{_ragChangedSeen:true}):x;});cat.setCustoms(u);sSet(cat.storageKey,JSON.stringify(u));}} style={{cursor:"pointer"}} title={"Changed from " + (item.prevRating || "?")}>🔄 </span>}{item.name} ({kcal} kcal){item.checkMe && <span data-testid="check-me" title={item.checkReason || "Added by bulk upload: open and save it once you have checked it"} style={{ marginLeft: 4, fontSize: 9, fontWeight: 600, color: "#64748b", border: "1px solid #cbd5e1", borderRadius: 4, padding: "0 4px", whiteSpace: "nowrap" }}>Check me</span>}</span>
-                      <button onClick={function() { if (editingItem === item.id) { setEditingItem(null); setEditDraft(null); } else { setEditingItem(item.id); setEditDraft(Object.assign({}, item, { originalIngredients: (item.ingredients || []).join(", "), recalculated: false })); } setFormMsg(""); }} style={{...btnEdit, fontSize: 9, marginRight: 4}}>{editingItem === item.id ? "Cancel" : "✎ Update"}</button><button onClick={async function() { if(confirm("Delete " + item.name + "?")) { var u = cat.customs.filter(function(x){return x.id !== item.id;}); cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u)); setFormMsg("Deleted " + item.name); setTimeout(function(){setFormMsg("");},2000); }}} style={{...btnDelete, fontSize: 9}}>🗑 Del</button>
+                      <button aria-label={"Open " + item.name} onClick={function() { setEditingItem(null); setEditDraft(null); setItemOpen(itemOpen === item.id ? null : item.id); setFormMsg(""); }} style={{...btnEdit, fontSize: 9}}>Open</button>
                     </div>
-                    {editingItem === item.id && editDraft && editDraft.id === item.id && (<div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, margin: "4px 0 8px", border: "1px solid #86efac" }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Update Item</div>
+                    {itemOpen === item.id && renderItemView(item, cat)}
+                    {editingItem === item.id && editDraft && editDraft.id === item.id && (<OpenForm testid="item-open-form" title={item.name} subtitle="Editing the list item. Past meals keep their own copy." editing={true} hideActions={true}>
                       <div style={{ marginBottom: 6 }}>
                         <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 2 }}>Name</div>
                         <input id={"edit-item-name-" + item.id} defaultValue={editDraft.name} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, boxSizing: "border-box" }} />
@@ -752,9 +839,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       {formMsg && <div style={{ padding: 8, borderRadius: 6, marginBottom: 8, fontSize: 11, fontWeight: 600, lineHeight: 1.4, background: formMsg.indexOf("✅") === 0 ? "#dcfce7" : formMsg.indexOf("🔄") === 0 ? "#e0f2fe" : "#fee2e2", color: formMsg.indexOf("✅") === 0 ? "#166534" : formMsg.indexOf("🔄") === 0 ? "#0c4a6e" : "#991b1b" }}>{formMsg}</div>}
                       <div style={{ display: "flex", gap: 6 }}>
                         <button disabled={formMsg.indexOf("🔄") === 0} onClick={function() { saveEditItem(cat); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: formMsg.indexOf("🔄") === 0 ? 0.5 : 1}}>{formMsg.indexOf("🔄") === 0 ? "Recalculating…" : editDraft.recalculated ? "✓ Continue — Save" : "✓ Confirm"}</button>
-                        <button onClick={function() { if (editDraft.recalculated) { setEditDraft(function(prev) { return Object.assign({}, prev, { recalculated: false }); }); } else { setEditingItem(null); setEditDraft(null); } setFormMsg(""); }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>{editDraft.recalculated ? "Edit Again" : "Cancel"}</button>
+                        <button onClick={function() { if (editDraft.recalculated) { setEditDraft(function(prev) { return Object.assign({}, prev, { recalculated: false }); }); } else { setEditingItem(null); setEditDraft(null); setItemOpen(editDraft.id); } setFormMsg(""); }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>{editDraft.recalculated ? "Edit Again" : "Cancel"}</button>
                       </div>
-                    </div>)}
+                    </OpenForm>)}
                     </div>);
                   })}
                   {cat.customs.length === 0 && <div style={{ fontSize: 10, color: "#94a3b8", padding: 4 }}>No custom items yet</div>}
@@ -1681,11 +1768,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     {_ragChg && <span onClick={function(){alert("Rating changed from " + (_slotItem.prevRating || "?") + " to " + _slotItem.rating + (_slotItem.ragReason ? ".\n\nReason: " + _slotItem.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem.prevRating||"?") + " → " + _slotItem.rating}>🔄</span>}
                     {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
                     {snapButton(slotKey)}
-                    {_hasItem && <button onClick={function() { if (!confirm("Remove this meal? This cannot be undone.")) return; setMeal(eatDay, slotKey, idx === 1 ? "__empty__" : ""); }} style={btnDelete}>🗑 Del</button>}
+                    {slotButtons(slotKey, idx)}
                     {(function(){ var _c = childAt(eatDay, slotKey); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
+              {slotOpen && slotOpen.day === eatDay && /^b\d*$/.test(slotOpen.slot) && renderSlotForm()}
               {portionSlot && portionSlot.match(/^b\d*$/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
                 {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
                 {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
@@ -1755,11 +1843,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     {_ragChg2 && <span onClick={function(){alert("Rating changed from " + (_slotItem2.prevRating || "?") + " to " + _slotItem2.rating + (_slotItem2.ragReason ? ".\n\nReason: " + _slotItem2.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem2.prevRating||"?") + " → " + _slotItem2.rating}>🔄</span>}
                     {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
                     {snapButton(slotKey)}
-                    {_hasItem && <button onClick={function() { if (!confirm("Remove this meal? This cannot be undone.")) return; setMeal(eatDay, slotKey, idx === 1 ? "__empty__" : ""); }} style={btnDelete}>🗑 Del</button>}
+                    {slotButtons(slotKey, idx)}
                     {(function(){ var _c = childAt(eatDay, slotKey); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
+              {slotOpen && slotOpen.day === eatDay && /^l\d*$/.test(slotOpen.slot) && renderSlotForm()}
               {portionSlot && portionSlot.match(/^l\d*$/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
                 {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
                 {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
@@ -1834,7 +1923,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     {_ragChg3 && <span onClick={function(){alert("Rating changed from " + (_slotItem3.prevRating || "?") + " to " + _slotItem3.rating + (_slotItem3.ragReason ? ".\n\nReason: " + _slotItem3.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem3.prevRating||"?") + " → " + _slotItem3.rating}>🔄</span>}
                     {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
                     {snapButton(slotKey)}
-                    {_hasItem && <button onClick={function() { if (!confirm("Remove this meal? This cannot be undone.")) return; setMeal(eatDay, slotKey, idx === 1 ? "__empty__" : ""); }} style={btnDelete}>🗑 Del</button>}
+                    {slotButtons(slotKey, idx)}
                     {(function(){ var _c = childAt(eatDay, slotKey); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                     </div>
                     {_isPackaged && (<div style={{ marginLeft: 12, marginBottom: 6, paddingLeft: 8, borderLeft: "2px solid #bfdbfe" }}>
@@ -1857,6 +1946,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   </div>);
                 });
               })()}
+              {slotOpen && slotOpen.day === eatDay && /^d\d*$/.test(slotOpen.slot) && renderSlotForm()}
               {portionSlot && portionSlot.match(/^d\d*$/) && !portionSlot.match(/^d[sr]/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
                 {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
                 {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
@@ -1919,11 +2009,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       <MealSelect snap={getSnap(eatDay, "ds" + idx)} items={dispDesserts} value={getMeal(eatDay, "ds" + idx) === "__empty__" ? "" : getMeal(eatDay, "ds" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults", e.target.searchText, "ds" + idx, eatDay); } else { setMeal(eatDay, "ds" + idx, e.target.value); } }} placeholder="Select dessert..." />
                     </div>
                     {snapButton("ds" + idx)}
-                    {getMeal(eatDay, "ds" + idx) && <button onClick={function() { if (!confirm("Remove this snack? This cannot be undone.")) return; setMeal(eatDay, "ds" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
+                    {slotButtons("ds" + idx, idx)}
                     {(function(){ var _c = childAt(eatDay, "ds" + idx); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
+              {slotOpen && slotOpen.day === eatDay && /^ds/.test(slotOpen.slot) && renderSlotForm()}
               {portionSlot && portionSlot.match(/^ds/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
                 {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
                 {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
@@ -1986,11 +2077,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       <MealSelect snap={getSnap(eatDay, "dr" + idx)} items={dispDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults", e.target.searchText, "dr" + idx, eatDay); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Select drink..." />
                     </div>
                     {snapButton("dr" + idx)}
-                    {getMeal(eatDay, "dr" + idx) && <button onClick={function() { if (!confirm("Remove this drink? This cannot be undone.")) return; setMeal(eatDay, "dr" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
+                    {slotButtons("dr" + idx, idx)}
                     {(function(){ var _c = childAt(eatDay, "dr" + idx); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
+              {slotOpen && slotOpen.day === eatDay && /^dr/.test(slotOpen.slot) && renderSlotForm()}
               {portionSlot && portionSlot.match(/^dr/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
                 {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
                 {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
@@ -2051,11 +2143,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <MealSelect snap={getSnap(eatDay, "o" + idx)} items={dispOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults", e.target.searchText, "o" + idx, eatDay); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Select snack..." />
                 </div>
                 {snapButton("o" + idx)}
-                {getMeal(eatDay, "o" + idx) && <button onClick={function() { if (!confirm("Remove this item? This cannot be undone.")) return; setMeal(eatDay, "o" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
+                {slotButtons("o" + idx, idx)}
                 {(function(){ var _c = childAt(eatDay, "o" + idx); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
               </div>);
             })}
-            {portionSlot && portionSlot.match(/^o/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
+            {slotOpen && slotOpen.day === eatDay && /^o/.test(slotOpen.slot) && renderSlotForm()}
+              {portionSlot && portionSlot.match(/^o/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
                 {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
                 {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 Snap a photo of your food</div>
