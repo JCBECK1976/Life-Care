@@ -1991,3 +1991,46 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
 - **PR #21 build → beta merged** as `c75c53a`; deploy run 43101203446 succeeded. Beta should show **v2.13.3-beta.3**. This sandbox can't reach github.io, so I couldn't check the beta footer: Architect or JC, please check it. On first load, beta runs the two one-off cleanups on the shared `data`: `bodyPhotos[].thumbnail` and `measurements.*[].img` (JC took a backup first). **Not merged to main.**
 - **JC to test on /beta/:** close and reopen; footer v2.13.3-beta.3; the v2.8.0–v2.13.3 features.
 - **Resume point:** `beta` @ c75c53a, `build` @ 6a0076e. Next: Step 1b measurement (no build), then `beta → main` only after JC's OK.
+
+### (Coder) 11 Nov 2026 — Step 1b measurement and proposal (nothing built)
+Measured on `build` @ 6a0076e (v2.13.3) against the emulator, seeded with the real backup, so the data sizes are realistic. Network timings are estimates: the emulator runs on localhost.
+
+**Measurements**
+- **Bundle:** one JS file, 1.32 MB raw / **315 KB gzip**. Split: Firebase app+database+auth about 95 KB gz, React about 46 KB gz, app code about 175 KB gz (Eating.jsx alone is 314 KB of source). No code splitting.
+- **Other first-load files:** the boot logo `app-logo-640.png` is **186 KB**, shown at 220 px. Also the Google sign-in script and `header-mark-288.png` (55 KB). `legacy.html` (880 KB) and `APP_GUIDE.md` (47 KB) are fetched only when used (the guide only when Help is used).
+- **Startup data:**
+  - **53 Firebase reads, 155 KB** downloaded (sign-in → data shown).
+  - **47 of the first 60 reads are serial**: each waits for the one before (`await sGet` one after another in App.jsx). At 4G round trips (50–100 ms) that is about **2.5–5 s** of waiting, versus well under 1 s for the downloads themselves. The localhost load took 1.3 s, with no network latency at all.
+- **Per screen:** changing tabs does **0 reads** (everything loads at startup). **Switching person** does 25 reads (10 KB), also serial.
+- **AI calls (all `claude-sonnet-4-6`; $3 input / $15 output per million tokens; tokens ≈ characters ÷ 4):**
+  | Call | Prompt size | max_tokens | Approx. cost, upper bound |
+  |---|---|---|---|
+  | Energy ping, on every app open | "hi" | 1 | ≈ $0.00004 |
+  | Home check-in | 20.9k chars ≈ 5.2k tokens | 1200 | ≈ $0.034 |
+  | Body feedback | 14.7k ≈ 3.7k | 1200 | ≈ $0.029 |
+  | Session feedback | 10.1k ≈ 2.5k | 2500 | ≈ $0.045 |
+  | Eating day feedback | 8.7k ≈ 2.2k | 1500 | ≈ $0.029 |
+  | Health feedback | 6.8k ≈ 1.7k | 1000 | ≈ $0.020 |
+  | Chat question | 8.6k ≈ 2.2k | 1000 | ≈ $0.021 |
+  | **Help question** | **49k ≈ 12.3k (the whole guide re-sent every time)** | 800 | ≈ $0.049 |
+  | 📷 Snap and other photo checks | image ≤ about 1.6k tokens + prompt | 500–1500 | ≈ $0.015 each |
+- **Typical day for two people (estimate):** about 6 app opens, 4 Snaps, 2 eating feedbacks, 1 session feedback, 3 chats and occasional Help/Home/Body. That is about **$0.25/day, ~$8/month**. **Output tokens are the main cost driver** (feedback length), then Help's guide. Real figures should be read from console.anthropic.com → Usage; the app doesn't log `usage`.
+- **Photos are sent full size**, apart from the Weigh In 📷 Upload, which shrinks to 800 px. This covers 📷 Snap, Food Checker, Body balance, Body Type Photos and measurement Snap. A 3–5 MB phone photo becomes 4–7 MB once encoded for sending. That is slow on mobile data and **can exceed the API's 5 MB-per-image limit** (to verify on JC's phone). Token cost doesn't change, because the API scales large images down anyway.
+
+**Proposal, ranked** (gain · effort · risk). Firebase stays the source of truth throughout; nothing changes what the AI can do.
+1. **Shrink photos before sending** (long edge about 1568 px, JPEG 0.85, the same canvas resize as Weigh In) in every photo feature. Gain: about 4–7 MB → about 0.3–0.5 MB per photo, Snap seconds faster on mobile data, and no "image too large" failures. Detail stays at what the AI actually uses. **Effort S · Risk low.**
+2. **Load startup data in parallel** (`Promise.all` instead of 33+ serial reads; the same for person switch), keeping the `stillSelected` guards. Gain: about **2–4 s faster** to a fully loaded app on 4G. **Effort S–M · Risk low–medium** (covered by the existing person-race and load tests).
+3. **Prompt caching for Help** (`cache_control` on the guide system prompt, about 12k tokens, well over the 1,024 minimum). Gain: a follow-up Help question within 5 minutes costs about 35% of today; the first costs +25%. The same could apply to Chat follow-ups (about 2k tokens: small gain). **Effort S · Risk low.**
+4. **Smaller boot logo** (186 KB → about 20 KB, sized for 220 px). Gain: about 165 KB off every first load. **Effort XS · Risk none.**
+5. **Service worker caches the app shell** (bundle, logo, guide), versioned, with an "update available → reload" prompt. Gain: repeat opens skip about 550 KB and start much faster. **Effort M · Risk medium:** stale versions; it changes today's "close the tab and reopen" deploy advice.
+6. **IndexedDB copy of the last data for an instant start**: show the copy, refresh from Firebase, never write from the copy. Gain: first screen in under 0.5 s. **Effort M–L · Risk medium:** a stale view for a moment, and health data is kept on the phone (privacy note in the guide).
+7. **Code-split the bundle** (load My Eating, Data tools, Settings etc. on demand). Gain: about 80–120 KB gz off the first load. **Effort M · Risk medium.**
+8. **Energy ping once a day** instead of on every open. Gain: one fewer request per open (cost negligible). **Effort XS · Risk low.** Low priority.
+- **Not recommended:**
+  - shorter feedback (lower `max_tokens`): it would lose capability;
+  - changing the AI model: CLAUDE.md rule 8;
+  - Firebase disk persistence: the web compat SDK has no offline persistence for the Realtime Database.
+- **Suggested first batch, each its own version through build → beta:** 1, 2, 4, then 3. Items 5–7 after JC decides on the offline/staleness trade-off.
+- **APP_GUIDE install tip** (Step 1b scope): done in the v2.13.3 guide update. The Troubleshooting row "This app is already installed" / "Could not open app" is on beta.
+- **Decision needed (JC):** which of 1–8 to build, and in what order.
+- **Resume point:** `build` @ 6a0076e, `beta` @ c75c53a (v2.13.3-beta.3). Nothing built for 1b. Next: JC's beta test of v2.13.3 and the 1b go/no-go per item.
