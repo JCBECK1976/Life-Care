@@ -1,0 +1,33 @@
+# Nightly (and manual) refresh of the Build test copy: `data_build` ← `data`. Test junk on /build/ is wiped each night.
+# Prepared 12 Nov 2026, inactive until JC adds FIREBASE_SERVICE_ACCOUNT (missing → "secret not set — skipped", green).
+# Privacy: refuses if the data holds anyone beyond ALLOWED_PEOPLE (pilot users' data is never copied without consent).
+name: Refresh Build data from real data
+
+on:
+  schedule:
+    - cron: "43 2 * * *"      # 02:43 UTC nightly, after the backup
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      ALLOWED_PEOPLE: jc,becks
+    steps:
+      - name: Check the secret is set
+        id: s
+        run: if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then echo "FIREBASE_SERVICE_ACCOUNT secret not set — skipped (nothing read or written)."; echo "skip=true" >> "$GITHUB_OUTPUT"; else echo "skip=false" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.s.outputs.skip == 'false'
+        uses: actions/checkout@v7
+      - if: steps.s.outputs.skip == 'false'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - if: steps.s.outputs.skip == 'false'
+        run: npm install --no-save --no-package-lock --prefix scripts/automation firebase-admin@12.7.0
+      - if: steps.s.outputs.skip == 'false'
+        run: node scripts/automation/refresh-build.mjs

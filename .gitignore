@@ -4,6 +4,19 @@ dist/
 # Firebase backups hold personal health data: never commit them
 *firebase_backup*.json
 firebase-backup/
+# v2.14.0: any backup / export / dump file name, plain or encrypted (Download backup, Firebase console export, automation)
+*backup*.json
+*backup*.json.gz
+*backup*.zip
+*export*.json
+*-rtdb-*.json
+*dump*.json
+*.json.gpg
+*.gpg
+lifecare_backup_*
+data_export*
+/out/
+scripts/automation/node_modules/
 # Emulator and test output
 firebase-debug.log
 database-debug.log
