@@ -19,69 +19,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 - **365+ versions** from v1.0.0 to v1.365.0, each individually versioned and deployed
 
 ### Key Milestones
-| Version | Feature |
-|---------|---------|
-| v1.260-264 | Conversational feedback threads, exercise architecture |
-| v1.270-271 | Body composition charts in eye panels, measurements redesign |
-| v1.277 | Full rebrand to "Lifecare Companion™" |
-| v1.282 | Eating section simplification (removed planned/consumed tracking) |
-| v1.286 | "Help Me with What to Eat" AI feature |
-| v1.302 | Comprehensive button audit and design system |
-| v1.306-313 | Open Food Facts integration, packaged/ingredient classification |
-| v1.315-322 | Home page redesign (mood, energy meter, My Day) |
-| v1.324-332 | Exercise refactor (search/select, AI guides, quality toggles) |
-| v1.329 | Dynamic RAG rating system |
-| v1.338-340 | Body section redesign (measurement cards, image upload) |
-| v1.341-344 | Warm-up/cool-down, delete confirmations, energy meter fixes |
-| v1.345-361 | Design system alignment (colour theming, header hierarchy, container patterns, button audit) |
-| v1.362-365 | Per-user colour isolation, privacy policy, settings gear icon, legal links |
-| v1.365.1-5 | Add-item flow patches (superseded — see Session Log 2 Nov 2026) |
-| v1.366.0 | Add-item feature rebuilt: shared confirm handler, paste-based bulk add (file import removed) |
-| v1.366.1 | **Root-cause fix**: removed client-side fetch gate that blocked all AI calls ("Energy Empty") |
-| v1.366.2 | Review Item overlay Confirm fixed (out-of-scope function); status shown inside panel; never add on failed recalc |
-| v1.366.3-5 | Add box closes after add from selection list; GREAT items dark green; day-tab guidance text |
-| v1.367.0 | Delete button on first day-tab meal row (clears, keeps box) |
-| v1.368.0 | Update Item panel in Update Eating Lists (nutrition, description, recalc flow) |
-| v1.368.1-2 | Log user switch loads colour; session feedback cut-off/error fixes |
-| v1.369.0-1 | Chat icon replaces ? button; exercise-log user switch makes that person fully active |
-| v1.370.0 | Stop / Restart Exercise with Stopped Exercises toggle |
-| v1.371.0 | Companion chat panel restyled to match feedback conversation threads |
-| v1.371.1 | Fixed "Remove exercise from day" in session feedback (undefined index; removes by name) |
-| v1.372.0 | Companion Energy: exact per-call cost incl. cache, "Set balance" calibration, empty only when Anthropic says so |
-| v1.373.0 | ❓ Help button: Companion answers how-to questions from `APP_GUIDE.md` (replaces a user guide) |
-| v1.374.0 | Help ? moved into the header, left of the Settings gear; floating ? removed (only 💬 Chat floats) |
-| v1.374.2 | Help intro shows Lifecare Companion™ as in footer |
-| v1.374.1 | Energy bar: percentage only (no $ shown to users); 100% level set by admin in Settings; fixed 0% when record lacked `initial` |
-| **v2.0.0** | **Vite migration cutover** (4 Nov 2026): component files, no in-browser Babel, error boundaries, ESLint + Playwright checks, GitHub Actions deploy; behaviour unchanged. Legacy v1.374.2 kept at `/legacy.html` (tag `legacy-v1.374.2`) |
-| v2.1.0 | Build / beta / prod environments (Step 1a): one Pages pipeline for `main`, `beta`, `build`; per-environment data root; `-beta.N` / `-build.<sha>` versions; BUILD/BETA badge and tab-title prefix; noindex on test environments. First release through build → beta → main |
-| v2.1.1 | Unused code removed (no behaviour change): `ExTable`, `StrengthBanner`, `LoadingBtn`, `PBar`, `RC`, `SNACK_TEMPLATES`, `DAY_TYPE`, `DEFAULT_OTHER_GB`, `JC_BASE`, `BECK_BASE`, hidden meds block |
-| v2.2.0 | Settings → 🗂 **Data tools** (admin only): opens the Firebase Data Viewer and recovery tools; ← Back to Settings |
-| v2.3.0 | Logos: loading screen with the App Logo (static in `index.html`, no flash); header logo mark (option B, `header-mark-288.png`) in a 44px white disc; BUILD/BETA badge under Help/Settings |
-| v2.4.0 | Installable app (PWA) per environment: manifest, tinted icons for beta/build, network-only service worker; Help install steps (Chrome; Samsung Internet may be blocked by Play Protect). **Not released alone: shipped to prod inside v2.5.2** (no `v2.4.0` tag) |
-| v2.5.0 | Header title = selected person; scrollable `PersonTabs` (header + exercise log) that follow the selected person; names over 12 chars cut with "…"; Data Viewer/Eating labels use profile names |
-| v2.5.1 | Fix: person-switch race (stale start-up and switch loads applied to the newly selected person); portion overrides and Google token now load per person |
-| v2.5.2 | "+ add person" hidden (`ALLOW_ADD_PERSON = false`) until the multi-user data model (Steps 3/5). **Prod release v2.3.0 → v2.5.2** |
-| v2.5.3 | BETA/BUILD app icons restyled (thin crisp ring like the header mark, purple/orange, no dot); prod icons unchanged |
-| v2.6.0 | **Security pass (hotfix route):** Google sign-in gate (joint account), Settings → Account, `database.rules.json` allow-listing the account UID on `data/` and `data_build/`. Once the rules are applied, `legacy.html` stops working; rollback = revert to the previous v2 release (or reopen the rules in the console in an emergency) |
-| v2.6.1 | Exercise log form (release 1, fix): **D1** form belongs to its person ("Logging for …"; header switch asks first, never mixed); **D2** weight and reps per set (`sets: [{w, r}]`, old entries compatible); **D12** Form and Range start unselected, Save blocked until chosen. *(On `build`; not yet released)* |
-| v2.6.2 | Food data and photos (release 2, fix): **D6** meal selections keep a snapshot (`_snap` per day:slot in the week's plan); deleted items show the snapshot or "Deleted item", never code. **D7** Update Item recalculates the whole recipe, applies only real values, before → after, plausibility check with one retry, assumed amounts, name's "(N kcal)" updated. **D9** generator: selections → defaults → generated only into empty slots from that slot's list, summary. **D10** different-food photo → new entry replaces the slot item with Undo; original never written. **F7** optional description on Portion and Shop Food Checker, preferred by the AI; assumed size shown. | build only |
-| v2.6.3 | Bulk upload (release 3, fix): **D4** bulk has its own category, starts unselected ("Choose a category first"), confirm names it ("Add 14 items to Drinks?"). **D5** Cancel aborts requests and discards late results; "Cancelled — nothing was added", or says what earlier batches kept with Undo. **D3** batches of 10 with progress, each batch saved as it succeeds, failed batches retried with "Retry N". **F4** OK-to-dismiss reminder; `checkMe: true` badge "Check me" (RAG colour kept) in Update Lists and selection lists until the item is opened and saved. | build only |
-| v2.6.4 | Chats + eating week (release 4): **D8** Question, Help and all feedback threads (session, eating, body, Home summary) show the latest exchange first (question above its answer); thread reply box moved above the conversation. **C1** eating week shown Sunday → Saturday (display only; data was already keyed by the Sunday the week starts). | build only |
-| v2.6.5 | Architect/JC decisions (10 Nov 07:20): **D11** portion-based RAG by rules in code (`src/lib/rag.js`; new `addedSugar`, `ragFreq` weekly/monthly; AMBER ≤3/week, RED weekly/monthly treats) + "🔄 Re-rate all lists" (changed → Check me). Data tools **"Clear old eating history"** (meal week plans before a date; dry run → Delete), replacing the D6 repair (JC). **Snap** 📷 on every slot: description first, Confirm / Re-check / Cancel, empty slot → list match or "Add to list?". **D7** "🔎 Re-check nutrition" (flags only) + recalc/plausibility on the add-item Review path. | build only |
-| v2.7.0 | **Release (on beta as v2.7.0-beta.2, 10 Nov; not yet on main):** contains all of v2.6.1–v2.6.5, which were **build-only and never released separately**: per-set logging + Form/Range rule (D1/D2/D12); meal snapshots → **parent list items + dated child selections** with their own RAG (D6/D13 superseded by the 14:35 model); real Update/Review recalculation (D7); portion-based RAG with added sugar + Re-rate all lists (D11); generator order (D9); 📷 Snap with deep-dive Re-check (D10/F7/D15); bulk upload fixes + Check me (D3–D5/F4); Sunday-first week (C1); latest-first chats (D8); child-RAG colouring (D14); phone picker sheet (D16); Data tools: Download backup, Restore preview → merge / full restore (type RESTORE), Clear old eating history; deploy queue + Node 24 actions. | beta |
-| v2.7.1 | Fix (Architect 21:12): Download backup / Restore are environment-aware **at build time**. Beta/Prod back up and restore only `data`; Build also its own copy (`DATA_ROOT`, written into each bundle by Vite). PR #20's runtime-assembled name is reverted; the deploy guard is unchanged. | build only |
-| v2.8.0 | "Open" pattern (F1 + F5 + variations): one shared form (`src/components/OpenForm.jsx`) for Progress weeks, list items and meal selections. Read-only → ✎ Edit → Save; the only destructive action sits inside the form. Meal selections: portion + variations → AI recalculates the **child** → child RAG; list item untouched. | build only |
-| v2.9.0 | F6 Eating Feedback: days before today = **eaten** (logged children), today onwards = **plan**, a fully future week = **plan review**; the prompt and the panel say which ("What you ate" / "Your plan" / "Plan review" / "So far this week + the rest of your plan"). Cut-off, empty and unreadable feedback is reported; chat replies show failures (message kept) and cut-offs. | build only |
-| v2.11.0 | F8 Share to Lifecare Companion (Android): `share_target` (images) in each environment's manifest; `sw.js` handles only the POST to `<scope>share-target` and keeps the image on the device (Cache Storage "lc-share"); the signed-in "What is this?" picker hands it to the existing upload (📏 My Body upload / 📸 Body Type Photos / 🍽 Food Checker), then deletes it. "Later" keeps it; "Discard" deletes it. (v2.10.0 skipped: F2 not built.) | build only |
-| v2.11.1 | Fix (Architect/JC 11 Nov): changing the portion of a photo-checked selection scales the **photo** values (kept as `portion.photoValues`, always the base), not list × factor; the share picker hides "Progress photo" until F2. | build only |
-| v2.12.0 | F2 Body balance check (JC 11 Nov: **analyse-and-discard**, supersedes the 06:25 Storage decision): progress photos go to the AI only, never stored; a fixed 10-region checklist scored 1–5 + notes is saved under `progressPhotos`; the next check compares with the previous one + tape trends and flags imbalances with suggestions to accept; per-person opt-in; the share picker's Progress photo routes here. No Firebase Storage, no storage.rules. | build only |
-| v2.12.1 | Fix (JC 11 Nov): Home → Body Type Photos no longer saves a base64 fragment (`bodyPhotos[]` keeps date, name, type; the analysis as before); a one-off idempotent cleanup on load strips old `thumbnail` fields and touches nothing else. | build only |
-| v2.13.0 | Layout (JC phone test 11 Nov): button standard in all Open forms (Edit deep blue · Remove deep orange · Delete red · Close/Cancel grey, single words, fit at 360px); D17–D19 labels; D20 fix (older-week edit/remove no longer changes the status pill); D21 Range/Form chip when viewing; F9 My Body history Open rows; F10 measurement 📷 Snap. | build only |
-| v2.13.1 | Fix (JC 11 Nov): one-off idempotent cleanup on load removes photos stored in old measurement entries (`measurements.*[].img`); week, value and note unchanged; saves only if something was removed. | build only |
-| v2.13.2 | Fix (JC phone test 11 Nov): Open forms and Progress panels scroll into view on open; Open buttons styled like Snap (blue outline, blue text); privacy note on Body Type Photos, measurement Log and Body balance; new meal-slot save text. | build only |
-| v2.13.3 | Layout (JC 11 Nov): shared outlined buttons (`styles.js`): Open and 📷 Snap blue, 👁 Progress violet, 📋 Log green, filled navy when open; Body stat card button moved under the rating (no overlap at 360px). **Beta 11 Nov as v2.13.3-beta.3 (PR #21).** | beta |
-| v2.13.4 | Fix (JC 11 Nov): Weigh In stat cards: 👁 Progress pinned to the card bottom (full-height flex column, `margin-top:auto`), so the buttons line up across each row whatever the card shows. | build only (next beta) |
-| v2.14.0 | Step 1b items 1–4, 8, 9 + tracker (overnight 11–12 Nov): photos shrunk before sending; parallel startup and person-switch loads; Help caching pinned by a test; boot logo WebP (186 → 52 KB, same look); energy ping once a day; AI usage ledger (counts only) driving Companion Energy, with an admin view; Feedback/Defect/Feature Tracker. | build only (next beta) |
+The version table (changelog) is in **[docs/CHANGELOG.md](docs/CHANGELOG.md)** (moved 12 Nov 2026). Latest: see the last row there and the "Live Product" line below.
 
 ---
 
@@ -373,6 +311,8 @@ The `next/` preview folder was removed at cutover, and Pages now only serves wha
 ---
 
 ## 5. Reference Files
+
+**Documents (from 12 Nov 2026): [docs/README.md](docs/README.md).** The version table is in [docs/CHANGELOG.md](docs/CHANGELOG.md); the product backlog and defects backlog are in [docs/backlog/](docs/backlog/) (the planned and approved record; new feedback, defects and features are captured in the in-app 📝 Tracker, v2.14.0); the HLD and test strategy are drafted in `docs/`. HANDOVER keeps the hand-overs and decisions, and links there.
 
 | File | Purpose |
 |------|---------|
@@ -2126,3 +2066,16 @@ On `build` @ 1a34a76; deploy 43111232779 succeeded, and only the deploy workflow
 
 **To open a backup later:** `gpg -d 2026-11-12.json.gpg > backup.json` and enter BACKUP_KEY. The file is in Download-backup format, so Data tools → Restore accepts it.
 - **Resume point:** `build` @ 1a34a76. Next: Step 3 (docs on main).
+
+### (Coder) 12 Nov 2026 — overnight STEP 3: docs structure, backlogs and changelog moved out, HLD + test strategy drafted (main, docs only)
+- **`docs/`** (public only), as agreed 6 Nov 23:10:
+  - `README.md`: index of public docs with status, and a list of the private ones that stay in the vault;
+  - `CHANGELOG.md`, `HLD.md`, `TEST_STRATEGY.md`;
+  - `backlog/PRODUCT_BACKLOG.md` and `backlog/DEFECTS.md` (separate files);
+  - `adr/README.md`: format, plus candidate decisions for the first ADRs.
+- **Moved out of HANDOVER:** the version table is now `docs/CHANGELOG.md` (60 rows, unchanged); §1 "Key Milestones" and §5 "Reference Files" now link to it. **From now on version rows go to `docs/CHANGELOG.md`.**
+- **Backlogs compiled** from the Session Log: D1–D21 with status and fixing version; F1–F10, C1, Step 1b and the Tracker under Done; P2, P2b, P3, 1b-5…7, S1 (new-device sign-in) and Steps 2–6 under Planned; three ideas. The dated Session Log entries stay as the history. "D22" was named in the 11 Nov 12:35 header, but no item was defined, so it isn't listed. Both files say the **in-app 📝 Tracker** is where new feedback, defects and features are captured, and the backlog files are the planned and approved record.
+- **HLD (draft 1)** covers: context, environments and release flow, app structure, data model including the parent/child eating model, AI flows (photos analysed then discarded), tracker, privacy principles, operations. It has **no secrets and no security detail** (access control, keys, threat model are the private SAD's).
+- **TEST_STRATEGY (draft 1)** covers: principles (emulator only, mocked AI, a regression test per defect, 360px), test levels, test data, pre-deploy checklist, flaky-test policy, known gaps.
+- **Not written:** SAD, DPIA, threat model (Architect, private). The remaining public statements (privacy notice, terms, intended use, accessibility, payments) are listed in the index as "to write".
+- **Resume point:** `main` @ this commit (docs); `build` @ 1a34a76 (v2.14.0 + automation); `beta` @ c75c53a. Next: the Architect reviews Steps 1–3; then a build → beta PR (v2.13.4 + v2.14.0 + workflows) when JC is ready.
