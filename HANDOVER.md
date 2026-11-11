@@ -76,6 +76,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.11.1 | Fix (Architect/JC 11 Nov): changing the portion of a photo-checked selection scales the **photo** values (kept as `portion.photoValues`, always the base), not list × factor; the share picker hides "Progress photo" until F2. | build only |
 | v2.12.0 | F2 Body balance check (JC 11 Nov: **analyse-and-discard**, supersedes the 06:25 Storage decision): progress photos go to the AI only, never stored; a fixed 10-region checklist scored 1–5 + notes is saved under `progressPhotos`; the next check compares with the previous one + tape trends and flags imbalances with suggestions to accept; per-person opt-in; the share picker's Progress photo routes here. No Firebase Storage, no storage.rules. | build only |
 | v2.12.1 | Fix (JC 11 Nov): Home → Body Type Photos no longer saves a base64 fragment (`bodyPhotos[]` keeps date, name, type; the analysis as before); a one-off idempotent cleanup on load strips old `thumbnail` fields and touches nothing else. | build only |
+| v2.13.0 | Layout (JC phone test 11 Nov): button standard in all Open forms (Edit deep blue · Remove deep orange · Delete red · Close/Cancel grey, single words, fit at 360px); D17–D19 labels; D20 fix (older-week edit/remove no longer changes the status pill); D21 Range/Form chip when viewing; F9 My Body history Open rows; F10 measurement 📷 Snap. | build only |
 
 ---
 
@@ -1929,3 +1930,21 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   - nothing saved before Confirm;
   - Confirm fills the value.
 
+
+### (Coder) 11 Nov 2026 — v2.13.0 button standard, D17–D21, F9, F10 on build
+- **Button standard:** `OpenForm` takes `dangerKind="remove"` (deep orange `#c2410c`) or `"delete"` (red). Labels are Edit / Remove / Delete / Close, and Save / Cancel. Exercise week and meal slot use **Remove** (D17, D18; both confirm). A list item uses **Delete** (D19, confirm). The meal slot's "Save for this meal" is now "Save".
+- **D20 cause:** removing *any* Progress week re-ran the old `autoStatus()` on the latest week against the one before it. When an older week had a higher weight, that gave "reduce". The designed logic is different: status is cleared on a new log and set by the AI session feedback. Fix: `syncAfterProgChange()` in `src/lib/exercise.js`.
+  - Changing or removing an older week leaves the card and the pill alone.
+  - Changing the latest week's weight, reps or week number, or removing it, updates the card from the new latest week and clears the status (as a new log does). A note-only edit keeps the pill.
+- **D21:** in view mode, Range and Form show one chip ("Good" / "Working towards"); the segmented buttons appear only in Edit.
+- **F9:** new `src/components/HistoryRows.jsx`. Weigh In metric history and Measurements history rows show week + value + **Open**, with no inputs and no Del. Open is read-only → Edit/Save or Remove (confirm). The measurement type settings keep Edit / Delete (red).
+- **F10:** new `src/components/MeasureSnap.jsx` (prompt and parser in `src/lib/measureReading.js`). The measurement Log form's 📷 is now **📷 Snap**: optional description → photo → the AI reads the value → Confirm / Re-check (independent deep dive, shows the first value) / Cancel. Confirm only fills the value; Save still saves.
+  - **Change:** the Log form used to save the whole photo (`img` data URL) into the measurement entry. New entries no longer store a photo. Old entries keep theirs and show it in the Open form.
+- Tests: new `tests/v213.spec.js` (D20 pure + UI regression, D17/D21, D18/D19 colours, F9, F10 incl. "nothing saved before Confirm" and "no image-like data"), plus `open.spec.js` updated (labels, chip, 360px check on the meal form). Every Open form tested checks at 360px that no button is cut off. Full suite 116 passed (4 skipped), lint 0 errors, visual footer only (rebaselined). Deploy run 43022946268 succeeded.
+- **JC to test on /build/:**
+  - the Remove/Delete colours and labels on a phone;
+  - remove or edit an old exercise week (no Reduce pill);
+  - My Body → 👁 Weight and Measurements → 👁 Progress → Open;
+  - Measurements → 📋 Log → 📷 Snap with a tape photo.
+- **Decision needed (JC):** remove the old measurement photos (`measurements.*[].img`, full images in the database) with a one-off cleanup like v2.12.1? Not done.
+- **Resume point:** `build` @ c3b10f2 (v2.13.0). Next: JC's /build/ test; then the beta PR when asked (APP_GUIDE for v2.8.0–v2.13.0).
