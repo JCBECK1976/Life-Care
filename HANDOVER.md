@@ -78,6 +78,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.12.1 | Fix (JC 11 Nov): Home → Body Type Photos no longer saves a base64 fragment (`bodyPhotos[]` keeps date, name, type; the analysis as before); a one-off idempotent cleanup on load strips old `thumbnail` fields and touches nothing else. | build only |
 | v2.13.0 | Layout (JC phone test 11 Nov): button standard in all Open forms (Edit deep blue · Remove deep orange · Delete red · Close/Cancel grey, single words, fit at 360px); D17–D19 labels; D20 fix (older-week edit/remove no longer changes the status pill); D21 Range/Form chip when viewing; F9 My Body history Open rows; F10 measurement 📷 Snap. | build only |
 | v2.13.1 | Fix (JC 11 Nov): one-off idempotent cleanup on load removes photos stored in old measurement entries (`measurements.*[].img`); week, value and note unchanged; saves only if something was removed. | build only |
+| v2.13.2 | Fix (JC phone test 11 Nov): Open forms and Progress panels scroll into view on open; Open buttons styled like Snap (blue outline, blue text); privacy note on Body Type Photos, measurement Log and Body balance; new meal-slot save text. | build only |
 
 ---
 
@@ -1956,3 +1957,23 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
 - The unused photo displays (the 📷 count beside a measurement name and the photo in the history Open form) are removed.
 - Tests: pure test (only `img` goes; a second run changes nothing). UI test: JPEG photos seeded for JC and Becks → load → a whole-database scan finds nothing image-like; weeks, values and notes are unchanged; a second load changes nothing. Full suite 118 passed (4 skipped), lint 0 errors, visual footer only (rebaselined). Deploy run 43038912225 succeeded.
 - **Resume point:** `build` @ 87a980b (v2.13.1). Next: JC's /build/ test of v2.13.x; then the beta PR when asked (APP_GUIDE for v2.8.0–v2.13.1).
+
+### (Coder) 11 Nov 2026 — v2.13.2 scroll into view, Open buttons, privacy notes (build)
+- **1. Scroll into view:** `scrollOnMount` (in `src/lib/scrollIntoView.js`) is a stable ref callback.
+  - When it opens: if the form or panel isn't fully on screen, it smoothly scrolls so its top sits 8px from the top. A tall panel whose top is already near the top is left alone.
+  - Applied to: every `OpenForm` (meal slot, Update Lists item and editor, exercise week, My Body history), the exercise Progress panel, the Weigh In metric panel and the Measurements panel.
+  - **Sticky header:** the app has none (checked at 360px; the only fixed element is the chat button at the bottom). The code still allows for a top-fixed `header`, `nav` or `[data-sticky-header]` bar if one is ever added.
+- **2. Text:** the meal slot save message now reads "✓ Saved for this meal only. To update the list item permanently, please go to 'Update Eating Lists'."
+- **3. Privacy note:** `PrivacyNote` shows "Images are analysed and then discarded — they're never stored." in small grey text in three places: under the Body Type Photos button, at the bottom of the measurement Log form, and on the Body balance card.
+- **4. Open buttons:** `btnOpen` (in `styles.js`) gives a light-blue outline and blue text, like Snap. Used on meal slots, Update Lists, exercise Progress weeks and My Body history.
+- Tests: new `tests/v2132.spec.js`.
+  - At 360×640, each trigger is placed at the bottom edge of the screen before it is clicked, then the test checks the opened panel's top is on screen. With the scroll switched off, these tests fail (3 failed), so they catch the bug.
+  - Also checked: the Open button colours, the three privacy notes, and the new save text (`open.spec.js` updated).
+  - Full suite 122 passed (4 skipped), lint 0 errors.
+  - Visual: the footer, and on My Eating and Update Lists the blue Open buttons (rows about 1px taller). Checked by eye and rebaselined.
+  - Deploy run 43063255817 succeeded.
+- **JC to test on /build/ (phone):**
+  - open a lower measurement's 👁 Progress, a Weight 👁, a meal slot Open, an Update Lists item and an exercise Progress panel: each should slide into view;
+  - the Open buttons now look tappable;
+  - the privacy notes.
+- **Resume point:** `build` @ 899777c (v2.13.2). Next: JC's /build/ test; then the beta PR when asked (APP_GUIDE for v2.8.0–v2.13.2).
