@@ -134,3 +134,79 @@ test("item 9: a mocked AI reply's token counts are recorded (counts only) and dr
   await expect(page.getByTestId("ai-usage")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
+
+// ── item 10: tracker ──
+const trackerAll = async () => (await (await fetch("http://127.0.0.1:9000/data/tracker.json?ns=life-care-app-64d04-default-rtdb", { headers: { Authorization: "Bearer owner" } })).json()) || {};
+const clearTracker = () => fetch("http://127.0.0.1:9000/data/tracker.json?ns=life-care-app-64d04-default-rtdb", { method: "DELETE", headers: { Authorization: "Bearer owner" } });
+const openTracker = async (page) => { await page.locator("button").nth(1).click(); const t = page.getByTestId("tracker"); await t.getByRole("button", { name: /📝 Tracker/ }).click(); return t; };
+
+test("item 10: Send Feedback also saves a Feedback/New tracker entry (masked account, no images); the email still opens", async ({ page }) => {
+  const { errors } = await openApp(page); await clearTracker();
+  await page.evaluate(() => { window._mailto = []; window.open = (u) => { window._mailto.push(String(u)); return null; }; });
+  await page.getByRole("button", { name: "💬 Send Feedback" }).click();
+  await page.getByRole("button", { name: "✨ Feature" }).click();
+  await page.getByPlaceholder(/Describe the feature/).fill("Please add a water tracker");
+  await page.getByRole("button", { name: "Send Feedback", exact: true }).click();
+  await expect.poll(async () => Object.keys(await trackerAll()).length).toBe(1);
+  const e = Object.values(await trackerAll())[0];
+  expect(e).toMatchObject({ category: "Feedback", status: "New", kind: "feature", person: "jc", text: "Please add a water tracker", env: "prod", source: "feedback" });
+  expect(e.version).toMatch(/^v2\.14\.0/); expect(e.created).toMatch(/^\d{4}-\d\d-\d\dT/);
+  expect(e.account).toMatch(/^.\*\*\*@.\*\*\*\..+$/);                                    // masked, never the address
+  expect(await page.evaluate(() => window._mailto.length)).toBe(1);                       // existing email behaviour kept
+  expect(errors).toEqual([]);
+});
+
+test("item 10: admin re-categorises Feedback → Defect with status, priority, note and ref; adds a Feature directly; filters; New badge", async ({ page }) => {
+  const { errors } = await openApp(page); await clearTracker();
+  page.on("dialog", (d) => d.accept());
+  await fetch("http://127.0.0.1:9000/data/tracker/t1.json?ns=life-care-app-64d04-default-rtdb", { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify({ id: "t1", created: "2026-11-11T20:00:00.000Z", updated: "2026-11-11T20:00:00.000Z", version: "v2.13.4", env: "beta", account: "j***@g***.com", person: "becks", kind: "bug", text: "Reduce pill appears after editing an old week", category: "Feedback", status: "New", priority: "", note: "", ref: "", source: "feedback" }) });
+  await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
+  await page.setViewportSize({ width: 360, height: 800 });
+  const t = await openTracker(page);
+  await expect(t.getByTestId("tracker-new-badge")).toHaveText("1 new");
+  await t.getByRole("button", { name: "Open Feedback t1" }).click();
+  const form = t.getByTestId("tracker-open-form");
+  await expect(form.getByTestId("open-form-mode")).toHaveText("Viewing");
+  await expect(form.getByRole("button")).toHaveText(["Edit", "Remove", "Close"]);
+  await form.getByRole("button", { name: "Edit", exact: true }).click();
+  await form.getByLabel("Category").selectOption("Defect");
+  await form.getByLabel("Status").selectOption("In progress");
+  await form.getByLabel("Priority").selectOption("High");
+  await form.getByLabel("Admin note").fill("Recalculated status on delete");
+  await form.getByLabel("Link or ref").fill("D20");
+  await form.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(form.getByTestId("open-form-msg")).toHaveText("✓ Saved");
+  expect((await trackerAll()).t1).toMatchObject({ category: "Defect", status: "In progress", priority: "High", note: "Recalculated status on delete", ref: "D20", text: "Reduce pill appears after editing an old week" });
+  await expect(t.getByTestId("tracker-new-badge")).toHaveCount(0);
+  await form.getByRole("button", { name: "Close", exact: true }).click();
+  // add a Feature directly
+  await t.getByRole("button", { name: "+ Add" }).click();
+  const add = t.getByTestId("tracker-add-form");
+  await add.getByLabel("Category").selectOption("Feature");
+  await add.getByLabel("Text").fill("Weekly email summary");
+  await add.getByLabel("Priority").selectOption("Low");
+  await add.getByRole("button", { name: "Save", exact: true }).click();
+  await expect.poll(async () => Object.values(await trackerAll()).filter((e) => e.category === "Feature").length).toBe(1);
+  expect(Object.values(await trackerAll()).find((e) => e.category === "Feature")).toMatchObject({ text: "Weekly email summary", status: "New", priority: "Low", source: "admin" });
+  await expect(t.getByTestId("tracker-row")).toHaveCount(2);
+  await t.getByLabel("Filter category").selectOption("Defect");
+  await expect(t.getByTestId("tracker-row")).toHaveCount(1);
+  await t.getByLabel("Filter category").selectOption("All"); await t.getByLabel("Filter status").selectOption("New");
+  await expect(t.getByTestId("tracker-row")).toHaveText([/Feature.*New.*Weekly email summary/]);
+  // Remove (deep orange, confirm)
+  await t.getByLabel("Filter status").selectOption("All");
+  await t.getByRole("button", { name: "Open Defect t1" }).click();
+  await expect(t.getByTestId("tracker-open-form").getByRole("button", { name: "Remove" })).toHaveAttribute("data-kind", "remove");
+  await t.getByTestId("tracker-open-form").getByRole("button", { name: "Remove" }).click();
+  await expect.poll(async () => Object.keys(await trackerAll()).length).toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test("item 10: a non-admin (Becks selected) can't see the tracker", async ({ page }) => {
+  const { errors } = await openApp(page);
+  await page.getByRole("button", { name: "Becks", exact: true }).first().click();
+  await page.locator("button").nth(1).click();
+  await expect(page.getByText("🎨 My Colour Theme")).toBeVisible();
+  await expect(page.getByTestId("tracker")).toHaveCount(0);
+  expect(errors).toEqual([]);
+});

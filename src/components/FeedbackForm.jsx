@@ -1,5 +1,6 @@
 import { btnP, btnS } from "../constants/styles.js";
 import { APP_VERSION } from "../constants/version.js";
+import { currentEmail, feedbackEntry, saveEntry } from "../lib/tracker.js";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -24,6 +25,8 @@ export default function FeedbackForm({ ctx }) {
             <button onClick={async function(){
               if (!feedbackText.trim()) return;
               setFeedbackSending(true);
+              /* v2.14.0 item 10: also save it to the tracker (Category Feedback, Status New); the email still opens as before */
+              try { await saveEntry(feedbackEntry({ email: currentEmail(), person: activeTab, kind: feedbackType, text: feedbackText.trim() })); } catch (te) {}
               try {
                 var deviceInfo = "";
                 try { deviceInfo = navigator.userAgent; } catch(e) { deviceInfo = "Unknown"; }

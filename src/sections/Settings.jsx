@@ -4,6 +4,7 @@ import { btnAction, btnClear, btnDelete, btnMuted, btnP, btnStop, inputStyle, la
 import { DEFAULT_DATA } from "../constants/defaultData.js";
 import AccountCard from "../components/AccountCard.jsx";
 import AiUsageCard from "../components/AiUsageCard.jsx";
+import Tracker from "../components/Tracker.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -60,6 +61,9 @@ export default function SettingsSection({ ctx }) {
             </div>
             <button disabled style={{ width: "100%", padding: 10, background: "#e2e8f0", color: "#94a3b8", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>🔗 Connect Apple Health — Coming Soon</button>
           </div>
+
+          {/* v2.14.0 item 10: Feedback, Defect & Feature tracker — Admin only */}
+          {isAdmin && <Tracker person={activeTab} />}
 
           {/* v2.14.0 item 9: AI usage ledger — Admin only */}
           {isAdmin && <AiUsageCard />}
