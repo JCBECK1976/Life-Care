@@ -77,6 +77,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.12.0 | F2 Body balance check (JC 11 Nov: **analyse-and-discard**, supersedes the 06:25 Storage decision): progress photos go to the AI only, never stored; a fixed 10-region checklist scored 1–5 + notes is saved under `progressPhotos`; the next check compares with the previous one + tape trends and flags imbalances with suggestions to accept; per-person opt-in; the share picker's Progress photo routes here. No Firebase Storage, no storage.rules. | build only |
 | v2.12.1 | Fix (JC 11 Nov): Home → Body Type Photos no longer saves a base64 fragment (`bodyPhotos[]` keeps date, name, type; the analysis as before); a one-off idempotent cleanup on load strips old `thumbnail` fields and touches nothing else. | build only |
 | v2.13.0 | Layout (JC phone test 11 Nov): button standard in all Open forms (Edit deep blue · Remove deep orange · Delete red · Close/Cancel grey, single words, fit at 360px); D17–D19 labels; D20 fix (older-week edit/remove no longer changes the status pill); D21 Range/Form chip when viewing; F9 My Body history Open rows; F10 measurement 📷 Snap. | build only |
+| v2.13.1 | Fix (JC 11 Nov): one-off idempotent cleanup on load removes photos stored in old measurement entries (`measurements.*[].img`); week, value and note unchanged; saves only if something was removed. | build only |
 
 ---
 
@@ -1948,3 +1949,10 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   - Measurements → 📋 Log → 📷 Snap with a tape photo.
 - **Decision needed (JC):** remove the old measurement photos (`measurements.*[].img`, full images in the database) with a one-off cleanup like v2.12.1? Not done.
 - **Resume point:** `build` @ c3b10f2 (v2.13.0). Next: JC's /build/ test; then the beta PR when asked (APP_GUIDE for v2.8.0–v2.13.0).
+
+### (Coder) 11 Nov 2026 — v2.13.1 old measurement photos removed (build)
+- **Decision (JC, 11 Nov):** yes, remove the photos stored in existing measurement entries, the same way as v2.12.1.
+- `stripMeasurementPhotos()` (in `src/lib/bodyBalance.js`) runs on dashboard load next to `stripPhotoFragments()`. It deletes only `measurements.<type>[].img`, for every person, and saves only if something was removed (idempotent). It runs on Beta/Prod on the first load after release; the usual pre-release backup covers it.
+- The unused photo displays (the 📷 count beside a measurement name and the photo in the history Open form) are removed.
+- Tests: pure test (only `img` goes; a second run changes nothing). UI test: JPEG photos seeded for JC and Becks → load → a whole-database scan finds nothing image-like; weeks, values and notes are unchanged; a second load changes nothing. Full suite 118 passed (4 skipped), lint 0 errors, visual footer only (rebaselined). Deploy run 43038912225 succeeded.
+- **Resume point:** `build` @ 87a980b (v2.13.1). Next: JC's /build/ test of v2.13.x; then the beta PR when asked (APP_GUIDE for v2.8.0–v2.13.1).
