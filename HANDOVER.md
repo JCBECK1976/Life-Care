@@ -75,6 +75,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.11.0 | F8 Share to Lifecare Companion (Android): `share_target` (images) in each environment's manifest; `sw.js` handles only the POST to `<scope>share-target` and keeps the image on the device (Cache Storage "lc-share"); the signed-in "What is this?" picker hands it to the existing upload (📏 My Body upload / 📸 Body Type Photos / 🍽 Food Checker), then deletes it. "Later" keeps it; "Discard" deletes it. (v2.10.0 skipped: F2 not built.) | build only |
 | v2.11.1 | Fix (Architect/JC 11 Nov): changing the portion of a photo-checked selection scales the **photo** values (kept as `portion.photoValues`, always the base), not list × factor; the share picker hides "Progress photo" until F2. | build only |
 | v2.12.0 | F2 Body balance check (JC 11 Nov: **analyse-and-discard**, supersedes the 06:25 Storage decision): progress photos go to the AI only, never stored; a fixed 10-region checklist scored 1–5 + notes is saved under `progressPhotos`; the next check compares with the previous one + tape trends and flags imbalances with suggestions to accept; per-person opt-in; the share picker's Progress photo routes here. No Firebase Storage, no storage.rules. | build only |
+| v2.12.1 | Fix (JC 11 Nov): Home → Body Type Photos no longer saves a base64 fragment (`bodyPhotos[]` keeps date, name, type; the analysis as before); a one-off idempotent cleanup on load strips old `thumbnail` fields and touches nothing else. | build only |
 
 ---
 
@@ -1897,3 +1898,10 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   - Full suite 108 passed (4 skipped), lint 0 errors, visual: the My Body card added. Deploy 42973460544 succeeded.
 - **Note (pre-existing, not changed):** Home → Body Type Photos still saves a 500-character base64 fragment per photo in `bodyPhotos[].thumbnail` (not a viewable image, but image-derived data). **Question:** remove that field (and stop writing it) to match "photos never stored anywhere"?
 - **Resume point:** `build` @ ffa3352 (v2.12.0). Next: the beta PR when asked, with APP_GUIDE for v2.8.0–v2.12.0.
+
+### (Coder) 11 Nov 2026 — v2.12.1 on `build` (bf38a7a): no image data in Body Type Photos
+- **Decision (JC):** stop keeping the base64 fragment, and remove the existing ones.
+- Body Type Photos now saves `{date, name, type}` per photo; the AI analysis (`bodyAnalysis`) is unchanged.
+- **Cleanup:** `stripPhotoFragments()` (in `src/lib/bodyBalance.js`) runs on every dashboard load. It deletes only `bodyPhotos[].thumbnail` and saves only if something was removed, so it is idempotent: after the first load there's nothing to do. It runs in Beta/Prod on first load after release (real data). The backup is taken before the release as usual.
+- Tests: pure (only that field goes; a second run changes nothing); UI (an old JPEG fragment is seeded → reload → gone, other fields intact, a whole-DB scan finds nothing image-like → a new Body Type Photos analysis adds entries with only date/name/type → the scan is still clean). Full suite 110 passed (4 skipped), lint 0 errors, visual footer only. Deploy 42976922211 succeeded.
+- **Resume point:** `build` @ bf38a7a (v2.12.1). Next: the beta PR when asked (APP_GUIDE for v2.8.0–v2.12.1).
