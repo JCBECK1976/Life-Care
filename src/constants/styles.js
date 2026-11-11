@@ -17,6 +17,8 @@ export const btnActionLg = { padding: "8px 16px", background: "linear-gradient(1
 // Edits on existing content
 export const btnEdit = { padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, color: "#94a3b8", cursor: "pointer", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3 };
 
+// v2.13.2: Open buttons look tappable, like 📷 Snap (light-blue outline, blue text)
+export const btnOpen = { padding: "4px 10px", background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 6, fontSize: 10, color: "#2563eb", cursor: "pointer", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0 };
 export const btnPortion = { padding: "4px 10px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 6, fontSize: 10, color: "#2563eb", cursor: "pointer", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3 };
 
 export const btnStop = { padding: "4px 10px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 6, fontSize: 10, color: "#dc2626", cursor: "pointer", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3 };

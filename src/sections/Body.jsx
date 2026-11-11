@@ -7,6 +7,8 @@ import { getMoodContext } from "../lib/aiContext.js";
 import { sSet } from "../lib/storage.js";
 import React from "react";
 import BodyBalance from "./BodyBalance.jsx";
+import PrivacyNote from "../components/PrivacyNote.jsx";
+import { scrollOnMount } from "../lib/scrollIntoView.js";
 import HistoryRows from "../components/HistoryRows.jsx";
 import MeasureSnap from "../components/MeasureSnap.jsx";
 
@@ -98,7 +100,7 @@ export default function BodySection({ ctx }) {
             <BodyCard label="BMR (kcal)" value={p.body.bmr?.[p.body.bmr.length-1]?.v} rating={isJC ? "Excellent" : ""} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "bmr" ? null : "bmr"); }} eyeOpen={bodyMetricOpen === "bmr"} />
             <BodyCard label="Body Age" value={p.body.bodyAge?.[p.body.bodyAge.length-1]?.v} rating="High" trend={isJC ? "Actual: 49" : "Actual: 48"} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "bodyAge" ? null : "bodyAge"); }} eyeOpen={bodyMetricOpen === "bodyAge"} />
           </div>
-          {bodyMetricOpen && (function() { var metricLabels = { weight: "Weight (st)", bodyFat: "Body Fat %", muscleMass: "Muscle Mass", muscleRate: "Muscle Rate %", visceralFat: "Visceral Fat", subcutFat: "Subcut Fat %", bodyWater: "Body Water %", boneMass: "Bone Mass", bmr: "BMR (kcal)", bodyAge: "Body Age", skeletalMuscle: "Skeletal Muscle %" }; var mArr = p.body[bodyMetricOpen] || []; return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 10 }}>
+          {bodyMetricOpen && (function() { var metricLabels = { weight: "Weight (st)", bodyFat: "Body Fat %", muscleMass: "Muscle Mass", muscleRate: "Muscle Rate %", visceralFat: "Visceral Fat", subcutFat: "Subcut Fat %", bodyWater: "Body Water %", boneMass: "Bone Mass", bmr: "BMR (kcal)", bodyAge: "Body Age", skeletalMuscle: "Skeletal Muscle %" }; var mArr = p.body[bodyMetricOpen] || []; return (<div ref={scrollOnMount} data-testid="body-metric-panel" style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>👁 {metricLabels[bodyMetricOpen] || bodyMetricOpen} Progress</div>
               <button onClick={() => setBodyMetricOpen(null)} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
@@ -202,7 +204,7 @@ export default function BodySection({ ctx }) {
                   <button onClick={function(){ if (measLogKey === k) { setMeasLogKey(null); } else { setMeasMetricOpen(k); setMeasLogKey(k); setMeasLogInputs({ week: calcWeek(data.config.trainingStart), value: "", note: "", image: null }); } }} style={{ padding: "4px 8px", background: measLogKey === k ? "#1e3a5f" : "#f1f5f9", border: "1px solid " + (measLogKey === k ? "#1e3a5f" : "#e2e8f0"), borderRadius: 6, fontSize: 10, cursor: "pointer", fontWeight: 600, color: measLogKey === k ? "#fff" : "#94a3b8", display: "flex", alignItems: "center", gap: 2, whiteSpace: "nowrap" }}>📋 Log</button>
                 </div>
               </div>
-              {measMetricOpen === k && (<div style={{ marginTop: 10, padding: 12, background: accentLight, borderRadius: 8, border: "1px solid " + accentBorder, width: "100%" }}>
+              {measMetricOpen === k && (<div ref={scrollOnMount} data-testid="meas-panel" style={{ marginTop: 10, padding: 12, background: accentLight, borderRadius: 8, border: "1px solid " + accentBorder, width: "100%" }}>
                 <button onClick={function(){ if (measLogKey === k) { setMeasLogKey(null); } else { setMeasLogKey(k); setMeasLogInputs({ week: calcWeek(data.config.trainingStart), value: "", note: "", image: null }); } }} style={btnActionLg}>📋 Log {k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})}</button>
                 {measLogKey === k && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginTop: 10, marginBottom: 14 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: accent, marginBottom: 2 }}>{(p.profile && p.profile.name) || activeTab}</div>
@@ -220,6 +222,7 @@ export default function BodySection({ ctx }) {
                     <button onClick={function(){ setMeasLogKey(null); }} style={btnS}>Cancel</button>
                   </div>
                   <p style={{ fontSize: 9, color: "#94a3b8", textAlign: "center", margin: "8px 0 0", fontStyle: "italic", lineHeight: 1.3 }}>Track accurate measurements for your companion to give you the most appropriate feedback</p>
+                  <PrivacyNote />
                 </div>)}
                 <div style={{ marginTop: 16, padding: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>

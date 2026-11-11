@@ -93,7 +93,7 @@ test("F5: a meal selection opens as the CHILD — variations recalculate the chi
   await form.getByRole("button", { name: "Edit", exact: true }).click();
   await form.getByLabel("Changes to this meal").fill("chips instead of potato");
   await form.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(form.getByTestId("open-form-msg")).toHaveText("✓ Saved for this meal. Your list item is unchanged.");
+  await expect(form.getByTestId("open-form-msg")).toHaveText("✓ Saved for this meal only. To update the list item permanently, please go to 'Update Eating Lists'.");
   expect(prompts[0].temperature).toBe(0);
   expect(prompts[0].messages[0].content).toContain('with these changes: "chips instead of potato"');
   const c = await childOf(today, "d");

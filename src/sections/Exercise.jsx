@@ -2,10 +2,11 @@ import { DEFAULT_EXERCISES, EXERCISE_DATABASE, EXERCISE_TYPES } from "../constan
 import { calcWeek, fbIcon, sBg, sColor, sLabel } from "../lib/utils.js";
 import { buildExProfileInfo, getMoodContext } from "../lib/aiContext.js";
 import { sSet } from "../lib/storage.js";
+import { scrollOnMount } from "../lib/scrollIntoView.js";
 import { entrySets, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsDiffer, setsToSave, syncAfterProgChange, weightLabel } from "../lib/exercise.js";
 import React from "react";
 import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
-import { btnAction, btnActionLg, btnDelete, btnEdit, btnMuted, btnP, btnS, inputStyle, labelStyle } from "../constants/styles.js";
+import { btnAction, btnActionLg, btnDelete, btnEdit, btnMuted, btnOpen, btnP, btnS, inputStyle, labelStyle } from "../constants/styles.js";
 import { FullChart } from "../components/charts.jsx";
 import { TONE_RULES } from "../constants/tone.js";
 import { handleApiError } from "../lib/api.js";
@@ -227,7 +228,7 @@ export default function ExerciseSection({ ctx }) {
                       </div>
                       {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 6 }}>📋 {ex.notes}</div>}
                     
-                    {selectedEx&&selectedEx.day===day&&selectedEx.idx===i&&(<div style={{marginTop:10,padding:12,background:accentLight,borderRadius:8,border:"1px solid "+accentBorder,width:"100%"}}>
+                    {selectedEx&&selectedEx.day===day&&selectedEx.idx===i&&(<div ref={scrollOnMount} data-testid="ex-progress-panel" style={{marginTop:10,padding:12,background:accentLight,borderRadius:8,border:"1px solid "+accentBorder,width:"100%"}}>
                       {ex.stopped ? <div style={{fontSize:11,color:"#64748b",background:"#f1f5f9",padding:"8px 10px",borderRadius:6,textAlign:"center"}}>⏸ Stopped — view only. Restart in Exercise Settings to log again.</div> : <button onClick={function() { openLogForm(day, i); }} style={btnActionLg}>📋 Log {ex.name}</button>}
                       {logEx && logEx.day === day && logEx.idx === i && (() => {
             const ex = p.exercises[logEx.day] && p.exercises[logEx.day][logEx.idx]; if (!ex) return null;
@@ -362,7 +363,7 @@ export default function ExerciseSection({ ctx }) {
                       <span data-testid="prog-weight" style={{ width: 70, fontSize: 11 }}>{weightLabel(pr) || pr.w}</span>
                       <span style={{ width: 65, fontSize: 11 }}>{pr.r}</span>
                       <span style={{ flex: 1, minWidth: 0, fontSize: 9, color: "#64748b" }}>{pr.goodForm || pr.fullRange ? "Form " + (pr.goodForm === "good" ? "✓" : pr.goodForm ? "…" : "–") + " · Range " + (pr.fullRange === "good" ? "✓" : pr.fullRange ? "…" : "–") : ""}</span>
-                      <button aria-label={"Open week " + pr.wk} onClick={function() { openEntry(day, exIdx, realPi); }} style={{...btnEdit, fontSize: 10, flexShrink: 0}}>Open</button>
+                      <button aria-label={"Open week " + pr.wk} onClick={function() { openEntry(day, exIdx, realPi); }} style={btnOpen}>Open</button>
                     </div>{setsDiffer(pr) && <div data-testid="prog-sets" style={{ fontSize: 10, color: "#64748b", padding: "0 0 4px 44px" }}>Sets: {fmtEntry(pr)}</div>}{openProg && openProg.day === day && openProg.exIdx === exIdx && openProg.progIdx === realPi && renderEntryForm(ex)}</div>); })}
                     {(!ex.prog || ex.prog.length === 0) && <div style={{ fontSize: 10, color: "#94a3b8" }}>No progression data yet</div>}
                     {ex.prog && ex.prog.length > 4 && <button onClick={function(){setSelectedEx(Object.assign({},selectedEx,{showAll:!selectedEx.showAll}));}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:accent,cursor:"pointer",marginBottom:6}}>{selectedEx && selectedEx.showAll ? "▲ Show less" : "▼ View more (" + (ex.prog.length - 4) + " entries)"}</button>}

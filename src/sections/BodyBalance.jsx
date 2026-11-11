@@ -1,4 +1,5 @@
 import React from "react";
+import PrivacyNote from "../components/PrivacyNote.jsx";
 import { handleApiError } from "../lib/api.js";
 import { REGIONS, buildPrompt, latestStructured, makeRecord, measurementTrends, nextDue, parseAnalysis } from "../lib/bodyBalance.js";
 
@@ -71,6 +72,7 @@ export default function BodyBalance(props) {
           {f.accepted ? <div style={{ fontWeight: 700, color: "#166534" }}>✓ Accepted — your companion will keep this in mind</div> : <button onClick={function() { acceptFlag(i); }} style={{ padding: "6px 12px", background: "#fff", border: "1px solid #d97706", color: "#92400e", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Accept suggestion</button>}
         </div>); })}
       </div>)}
+      <PrivacyNote />
       <button onClick={function() { setOptIn(false); }} style={{ marginTop: 10, background: "none", border: "none", color: "#94a3b8", fontSize: 10, cursor: "pointer", textDecoration: "underline" }}>Turn off body balance checks</button>
     </div>)}
   </div>);

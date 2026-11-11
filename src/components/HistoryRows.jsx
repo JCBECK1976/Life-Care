@@ -1,5 +1,6 @@
 import React from "react";
 import OpenForm, { Field, inputStyle } from "./OpenForm.jsx";
+import { btnOpen } from "../constants/styles.js";
 
 // v2.13.0 F9: My Body history (Weigh In metrics and Measurements) uses the same "Open" pattern as Progress weeks.
 // A row shows the key data + Open (no inline-editable fields, no Del). Open → read-only → Edit/Save, or Remove
@@ -30,7 +31,7 @@ export default function HistoryRows(props) {
         <div data-testid={pre + "-row"} style={{ display: "flex", gap: 6, alignItems: "center", padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
           <span data-testid={pre + "-wk"} style={{ width: 40, color: "#64748b", fontWeight: 600 }}>{e.wk}</span>
           <span data-testid={pre + "-v"} style={{ flex: 1, minWidth: 0, fontWeight: 700, color: "#0f172a" }}>{fmt(e.v)}</span>
-          <button aria-label={"Open week " + e.wk} onClick={function() { setOpen(isOpen ? null : { i: r.i, editing: false, msg: "", draft: { wk: String(e.wk), v: String(e.v), note: e.note || "" } }); }} style={{ padding: "4px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, fontWeight: 600, color: "#1e3a5f", cursor: "pointer", flexShrink: 0 }}>Open</button>
+          <button aria-label={"Open week " + e.wk} onClick={function() { setOpen(isOpen ? null : { i: r.i, editing: false, msg: "", draft: { wk: String(e.wk), v: String(e.v), note: e.note || "" } }); }} style={btnOpen}>Open</button>
         </div>
         {isOpen && (function() {
           var d = open.draft; var ed = open.editing;

@@ -4,7 +4,7 @@ import { handleApiError } from "../lib/api.js";
 import { sGet, sSet } from "../lib/storage.js";
 import React from "react";
 import { withRuleRating, rateByPortion, frequencyWarning, FREQ_LABEL, bandOf } from "../lib/rag.js";
-import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnMuted, btnPortion } from "../constants/styles.js";
+import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnMuted, btnOpen, btnPortion } from "../constants/styles.js";
 import { accentVariant } from "../lib/colour.js";
 import { personName } from "../components/PersonTabs.jsx";
 import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
@@ -88,7 +88,7 @@ export default function EatingSection({ ctx }) {
               <button aria-label={filled ? "Open this meal" : "Add to this meal"} onClick={function() {
                 if (filled) { setSlotOpen(slotOpen && slotOpen.slot === slotKey && slotOpen.day === eatDay ? null : { day: eatDay, slot: slotKey, first: first, editing: false, msg: "" }); }
                 else { setSlotOpen(null); openAddForm(slotCategory(slotKey), "defaults", "", slotKey, eatDay); }
-              }} style={{...btnEdit, fontSize: 10, flexShrink: 0}}>Open</button>
+              }} style={btnOpen}>Open</button>
               {!filled && !first && v !== undefined && v !== "" && <button aria-label="Remove this empty row" onClick={function() { setMeal(eatDay, slotKey, ""); }} style={{...btnDelete, fontSize: 10, flexShrink: 0}}>✕</button>}
             </>);
           };
@@ -126,7 +126,7 @@ export default function EatingSection({ ctx }) {
                   next.portion = { factor: factor };
                 }
                 await setChildAt(o.day, o.slot, next);
-                setSlotOpen({ day: o.day, slot: o.slot, first: o.first, editing: false, msg: "✓ Saved for this meal. Your list item is unchanged." });
+                setSlotOpen({ day: o.day, slot: o.slot, first: o.first, editing: false, msg: "✓ Saved for this meal only. To update the list item permanently, please go to 'Update Eating Lists'." });
               } catch (e) { setSlotOpen(Object.assign({}, o, { draft: d, msg: "⚠️ Couldn't recalculate: " + String(e.message || e).substring(0, 90) + ". Nothing was changed." })); }
             };
             var srcLabel = { manual: "picked", default: "your default", generator: "generated", snap: "📷 snap", adhoc: "📷 snap", copy: "copied", migrated: "earlier" }[c.source] || c.source;
@@ -813,7 +813,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     var hasRagChange = item._ragChanged && !item._ragChangedSeen;
                     return (<div key={item.id}><div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
                       <span style={{ flex: 1, color: color }}>{hasRagChange && <span onClick={function(){alert("Rating changed from " + (item.prevRating || "?") + " to " + item.rating + (item.ragReason ? ".\n\nReason: " + item.ragReason : "") + "\n\nBased on your current health profile and dietary guidelines.");var u=cat.customs.map(function(x){return x.id===item.id?Object.assign({},x,{_ragChangedSeen:true}):x;});cat.setCustoms(u);sSet(cat.storageKey,JSON.stringify(u));}} style={{cursor:"pointer"}} title={"Changed from " + (item.prevRating || "?")}>🔄 </span>}{item.name} ({kcal} kcal){item.checkMe && <span data-testid="check-me" title={item.checkReason || "Added by bulk upload: open and save it once you have checked it"} style={{ marginLeft: 4, fontSize: 9, fontWeight: 600, color: "#64748b", border: "1px solid #cbd5e1", borderRadius: 4, padding: "0 4px", whiteSpace: "nowrap" }}>Check me</span>}</span>
-                      <button aria-label={"Open " + item.name} onClick={function() { setEditingItem(null); setEditDraft(null); setItemOpen(itemOpen === item.id ? null : item.id); setFormMsg(""); }} style={{...btnEdit, fontSize: 9}}>Open</button>
+                      <button aria-label={"Open " + item.name} onClick={function() { setEditingItem(null); setEditDraft(null); setItemOpen(itemOpen === item.id ? null : item.id); setFormMsg(""); }} style={btnOpen}>Open</button>
                     </div>
                     {itemOpen === item.id && renderItemView(item, cat)}
                     {editingItem === item.id && editDraft && editDraft.id === item.id && (<OpenForm testid="item-open-form" title={item.name} subtitle="Editing the list item. Past meals keep their own copy." editing={true} hideActions={true}>

@@ -1,4 +1,5 @@
 import React from "react";
+import { scrollOnMount } from "../lib/scrollIntoView.js";
 
 // v2.8.0 "Open" pattern (F1 + F5): one form shell for every saved thing a user opens — a Progress week, a food list
 // item, a meal selection. It always opens read-only; Edit makes it editable (Save / Cancel); the one destructive action
@@ -16,7 +17,7 @@ var styles = {
 
 export default function OpenForm(props) {
   var editing = !!props.editing;
-  return (<div data-testid={props.testid || "open-form"} role="group" aria-label={props.title} style={{ background: "#fff", border: "1px solid #cbd5e1", borderRadius: 10, padding: 12, margin: "6px 0 10px", boxShadow: "0 2px 8px rgba(15,23,42,0.06)" }}>
+  return (<div ref={scrollOnMount} data-testid={props.testid || "open-form"} role="group" aria-label={props.title} style={{ background: "#fff", border: "1px solid #cbd5e1", borderRadius: 10, padding: 12, margin: "6px 0 10px", boxShadow: "0 2px 8px rgba(15,23,42,0.06)" }}>
     <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", flex: 1, minWidth: 0 }}>{props.title}</div>
       <span data-testid="open-form-mode" style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase", color: editing ? "#1d4ed8" : "#64748b", background: editing ? "#dbeafe" : "#f1f5f9", borderRadius: 4, padding: "2px 6px" }}>{editing ? "Editing" : "Viewing"}</span>
