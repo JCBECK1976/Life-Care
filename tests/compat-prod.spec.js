@@ -54,3 +54,33 @@ test("prod tolerates v2.6.1–v2.6.5 data shapes (children, _snap, per-set array
   console.log("PROD VERSION UNDER TEST: " + (body.match(/v\d+\.\d+\.\d+\S*/) || ["?"])[0]);
   expect(errors).toEqual([]);
 });
+
+test("prod tolerates v2.8.0–v2.13.3 data shapes (meal variations, body balance records, no photo fields, cleared status)", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const d = await getKey("dashboard:data");
+  // v2.12.0 body balance records + opt-in; v2.12.1 bodyPhotos without thumbnail; v2.13.1 measurements without img
+  d.jc.bodyBalance = { optIn: true };
+  d.jc.progressPhotos = [{ date: "2026-11-11", week: 17, pose: "front+side+back", scores: { upperChest: 4, lowerChest: 2 }, notes: { upperChest: "good", lowerChest: "behind" }, changes: [], flags: [{ region: "lowerChest", issue: "lagging", suggestion: "decline press", accepted: true }], summary: "Upper ahead of lower chest.", analysis: "Upper ahead of lower chest." }];
+  d.jc.bodyPhotos = [{ date: "2026-11-11", name: "front.jpg", type: "baseline" }];
+  d.jc.measurements = Object.assign({}, d.jc.measurements, { chest: [{ wk: 16, v: 100, note: "" }, { wk: 17, v: 98.5, note: "snap" }] });
+  // v2.13.0 D20: status cleared after the latest week changed
+  const ex = d.jc.exercises.sunday.find((e) => !e.stopped); ex.status = ""; delete ex.target;
+  await setKey("dashboard:data", d);
+  // v2.8.0 / v2.11.1 a meal child with variations and a recalculated portion
+  const base = new Date(2026, 6, 19), now = new Date(); const ws = new Date(base); ws.setDate(ws.getDate() + Math.floor((now - base) / (7 * 864e5)) * 7);
+  const sunday = ws.getFullYear() + "-" + String(ws.getMonth() + 1).padStart(2, "0") + "-" + String(ws.getDate()).padStart(2, "0");
+  const td = new Date(); const tds = td.getFullYear() + "-" + String(td.getMonth() + 1).padStart(2, "0") + "-" + String(td.getDate()).padStart(2, "0");
+  await setKey("mealplan:" + sunday + ":jc", { [DAYS[now.getDay()]]: { d: "spag_bol" } });
+  await setKey("eat_children:jc:" + sunday, { v: 1, empty: [], notes: {}, children: { ["c_" + tds + "_d"]: { id: "c_" + tds + "_d", parentId: "spag_bol", date: tds, weekday: DAYS[now.getDay()], slot: "d", source: "manual",
+    snapshot: { name: "Spag Bol", kcal: 600 }, variations: { text: "chips instead of pasta", subs: [] },
+    portion: { factor: 1.5, source: "variations", values: { kcal: 900, protein: 40, fat: 30, satFat: 9, addedSugar: 2, carbs: 100, fibre: 8, salt: 3 }, change: "Chips add about 300 kcal.", photoValues: { kcal: 600 } },
+    nutrition: { kcal: 900, protein: 40, satFat: 9, addedSugar: 2 }, rating: "AMBER", ragReason: "AMBER: 9g sat fat = 45%", _phase: "planned" } } });
+  await page.reload();
+  await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
+  for (const t of ["Home", "My Body", "My Exercise", "My Eating", "My Health", "My Shop"]) { await tab(page, t); await page.waitForTimeout(400); }
+  await tab(page, "My Body");
+  const body = await page.locator("body").innerText();
+  expect(body).not.toMatch(/section error|\[object Object\]|undefined kcal|NaN/);
+  console.log("PROD VERSION UNDER TEST: " + (body.match(/v\d+\.\d+\.\d+\S*/) || ["?"])[0]);
+  expect(errors).toEqual([]);
+});
