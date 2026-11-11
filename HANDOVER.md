@@ -1905,3 +1905,27 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
 - **Cleanup:** `stripPhotoFragments()` (in `src/lib/bodyBalance.js`) runs on every dashboard load. It deletes only `bodyPhotos[].thumbnail` and saves only if something was removed, so it is idempotent: after the first load there's nothing to do. It runs in Beta/Prod on first load after release (real data). The backup is taken before the release as usual.
 - Tests: pure (only that field goes; a second run changes nothing); UI (an old JPEG fragment is seeded → reload → gone, other fields intact, a whole-DB scan finds nothing image-like → a new Body Type Photos analysis adds entries with only date/name/type → the scan is still clean). Full suite 110 passed (4 skipped), lint 0 errors, visual footer only. Deploy 42976922211 succeeded.
 - **Resume point:** `build` @ bf38a7a (v2.12.1). Next: the beta PR when asked (APP_GUIDE for v2.8.0–v2.12.1).
+
+### (Architect) 11 Nov 2026 12:35 — JC phone test of v2.12.1 on /build/: D17–D22 (before beta)
+- **Button standard (applies app-wide in all Open forms):**
+  - **Edit** = deep blue;
+  - **Remove** = **deep orange** (new; for taking something out of a week or a meal);
+  - **Delete** = red (only for permanently deleting a list item or a measurement type);
+  - **Close/Cancel** = grey.
+  - Labels are short single words and must **never truncate**. Equal-width buttons that fit at 360px.
+- **D17:** exercise Open form, "Delete wee…" is truncated → **Remove** (deep orange), with a confirm.
+- **D18:** meal-slot Open form, "Remove from thi…" is truncated → **Remove** (deep orange).
+- **D19:** Update Lists Open form, "Delete from lis…" is truncated → **Delete** (red, confirm), keeping the same meaning.
+- **D20 (logic bug):** after removing, deleting or editing a **previous** week's exercise log, a **"Reduce" pill** appeared on the exercise day card. Pills must follow the designed logic only, based on the latest relevant entries. Find why an edit or removal of an old week changes the pill, and fix it. Add a regression test.
+- **D21 (view state):** in the exercise Open form (VIEWING), Range and Form show both options with **no visible selected value**. View mode must show the chosen value clearly (e.g. a single "Good" chip), with the segmented buttons only in Edit.
+- **F9 (feature):** the same **Open pattern for My Body: Weigh In and Measurements history rows.**
+  - Rows show key data + **Open** (no inline-editable fields, no Del).
+  - Open → read-only → **Edit/Save** or **Remove** (deep orange, confirm), inside the form.
+  - The measurement type's own settings keep Edit/**Delete** (red).
+- **F10 (feature):** the camera button on the body-measurement Log form should work like **📷 Snap**:
+  - optional description first;
+  - the AI reads the value from the photo (e.g. a tape measure or a scale screen);
+  - result panel with the description editable + **Confirm / Re-check (deep dive) / Cancel**;
+  - nothing saved before Confirm;
+  - Confirm fills the value.
+
