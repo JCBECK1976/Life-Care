@@ -56,7 +56,7 @@ async function openOatsUpdate(page, replies) {
   await tab(page, "My Eating");
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
   const row = page.locator("div", { hasText: /^Test Oats 95g/ }).filter({ has: page.getByRole("button", { name: /^Open / }) }).last();
-  await row.getByRole("button", { name: /^Open / }).click(); await page.getByTestId("item-view").getByRole("button", { name: "✎ Edit" }).click();
+  await row.getByRole("button", { name: /^Open / }).click(); await page.getByTestId("item-view").getByRole("button", { name: "Edit", exact: true }).click();
   await page.locator("#edit-item-ingredients-t_oats").fill("95g rolled oats, 150g berries, tsp honey");
   await page.getByRole("button", { name: "✓ Confirm" }).click();
   return prompts;

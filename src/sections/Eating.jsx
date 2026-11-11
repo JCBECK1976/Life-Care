@@ -133,8 +133,8 @@ export default function EatingSection({ ctx }) {
             return (<OpenForm testid="slot-open-form" title={c.snapshot.name} subtitle={(parent ? "From your list" : "This meal only (not in your lists)") + " · " + srcLabel} editing={o.editing} message={o.msg}
               onEdit={function() { setSlotOpen(Object.assign({}, o, { editing: true, draft: d, msg: "" })); }}
               onCancelEdit={function() { setSlotOpen(Object.assign({}, o, { editing: false, draft: null, msg: "" })); }}
-              onSave={save} saveLabel="Save for this meal"
-              dangerLabel="Remove from this meal" onDanger={function() { if (!confirm("Remove " + c.snapshot.name + " from this meal? Your list is not changed.")) return; setSlotOpen(null); setMeal(o.day, o.slot, o.first ? "__empty__" : ""); }}
+              onSave={save}
+              dangerKind="remove" onDanger={function() { if (!confirm("Remove " + c.snapshot.name + " from this meal? Your list is not changed.")) return; setSlotOpen(null); setMeal(o.day, o.slot, o.first ? "__empty__" : ""); }}
               onClose={function() { setSlotOpen(null); }}>
               <Field label="Portion" testid="slot-portion">{o.editing ? <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
                   {["0.5", "1", "1.5", "2"].map(function(f) { return <button key={f} type="button" onClick={function() { setD({ factor: f }); }} style={{ ...btnMuted, color: String(d.factor) === f ? "#1e3a5f" : "#94a3b8", borderColor: String(d.factor) === f ? "#1e3a5f" : "#e2e8f0" }}>{f === "0.5" ? "½" : f === "1.5" ? "1½" : f}×</button>; })}
@@ -710,7 +710,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             var kcal = isJC ? item.jcKcal : item.beckKcal;
             return (<OpenForm testid="item-view" title={item.name} subtitle={"In your " + cat.label + " list"} editing={false}
               onEdit={function() { setItemOpen(null); setEditingItem(item.id); setEditDraft(Object.assign({}, item, { originalIngredients: (item.ingredients || []).join(", "), recalculated: false })); setFormMsg(""); }}
-              dangerLabel="🗑 Delete from list" onDanger={async function() { if (!confirm("Delete " + item.name + " from your " + cat.label + " list? Meals you already logged keep their own copy.")) return; var u = cat.customs.filter(function(x){return x.id !== item.id;}); cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u)); setItemOpen(null); setFormMsg("Deleted " + item.name); setTimeout(function(){setFormMsg("");},2000); }}
+              dangerKind="delete" onDanger={async function() { if (!confirm("Delete " + item.name + " from your " + cat.label + " list? Meals you already logged keep their own copy.")) return; var u = cat.customs.filter(function(x){return x.id !== item.id;}); cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u)); setItemOpen(null); setFormMsg("Deleted " + item.name); setTimeout(function(){setFormMsg("");},2000); }}
               onClose={function() { setItemOpen(null); }}>
               {nutritionRows(item, kcal)}
               <Field label="Rating" testid="view-rating"><span style={{ fontWeight: 700, color: item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#15803d" }}>{ragText(item)}</span>{item.ragReason ? <div style={{ fontSize: 10, color: "#64748b" }}>{item.ragReason}</div> : null}</Field>

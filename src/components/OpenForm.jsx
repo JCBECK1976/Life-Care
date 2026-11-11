@@ -2,11 +2,15 @@ import React from "react";
 
 // v2.8.0 "Open" pattern (F1 + F5): one form shell for every saved thing a user opens — a Progress week, a food list
 // item, a meal selection. It always opens read-only; Edit makes it editable (Save / Cancel); the one destructive action
-// (Delete, Delete from list, Remove from this meal) sits inside the form, never in the list row.
+// sits inside the form, never in the list row.
+// v2.13.0 button standard (JC, 11 Nov): Edit = deep blue · Remove = deep orange (take out of a week/meal/history)
+// · Delete = red (permanently delete a list item or a measurement type) · Close/Cancel = grey. Short single-word
+// labels; equal-width buttons that fit at 360px. Pass dangerKind="remove" or "delete" (default "delete").
 var btn = { flex: 1, minWidth: 0, height: 38, padding: "0 6px", fontSize: 12, fontWeight: 600, borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap", boxSizing: "border-box" };
 var styles = {
   primary: Object.assign({}, btn, { background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none" }),
-  danger: Object.assign({}, btn, { background: "#fff", color: "#dc2626", border: "1px solid #fecaca" }),
+  delete: Object.assign({}, btn, { background: "#dc2626", color: "#fff", border: "1px solid #dc2626" }),
+  remove: Object.assign({}, btn, { background: "#c2410c", color: "#fff", border: "1px solid #c2410c" }),
   grey: Object.assign({}, btn, { background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0" }),
 };
 
@@ -21,8 +25,8 @@ export default function OpenForm(props) {
     {props.children}
     {props.message && <div data-testid="open-form-msg" role="status" style={{ marginTop: 8, padding: 8, borderRadius: 6, fontSize: 11, fontWeight: 600, background: props.message.charAt(0) === "✓" ? "#dcfce7" : props.message.charAt(0) === "⏳" ? "#e0f2fe" : "#fee2e2", color: props.message.charAt(0) === "✓" ? "#166534" : props.message.charAt(0) === "⏳" ? "#0c4a6e" : "#991b1b" }}>{props.message}</div>}
     {!props.hideActions && <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-      {!editing && props.onEdit && <button onClick={props.onEdit} style={styles.primary}>✎ Edit</button>}
-      {!editing && props.onDanger && <button onClick={props.onDanger} style={styles.danger}>{props.dangerLabel || "Delete"}</button>}
+      {!editing && props.onEdit && <button onClick={props.onEdit} style={styles.primary}>Edit</button>}
+      {!editing && props.onDanger && <button data-kind={props.dangerKind === "remove" ? "remove" : "delete"} onClick={props.onDanger} style={props.dangerKind === "remove" ? styles.remove : styles.delete}>{props.dangerLabel || (props.dangerKind === "remove" ? "Remove" : "Delete")}</button>}
       {!editing && <button onClick={props.onClose} style={styles.grey}>Close</button>}
       {editing && <button onClick={props.onSave} disabled={props.busy} style={Object.assign({}, styles.primary, { opacity: props.busy ? 0.6 : 1 })}>{props.busy ? "Saving…" : (props.saveLabel || "Save")}</button>}
       {editing && <button onClick={props.onCancelEdit} disabled={props.busy} style={styles.grey}>Cancel</button>}

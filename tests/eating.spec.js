@@ -44,7 +44,7 @@ test("My Eating: Open shows the item read-only; Edit opens the Update Item edito
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
   await page.getByRole("button", { name: /^Open / }).first().click();             // v2.8.0: Open (read-only) → Edit
   await expect(page.getByTestId("item-view")).toBeVisible();
-  await page.getByTestId("item-view").getByRole("button", { name: "✎ Edit" }).click();
+  await page.getByTestId("item-view").getByRole("button", { name: "Edit", exact: true }).click();
   await expect(page.getByTestId("item-open-form")).toBeVisible();
   expect(errors).toEqual([]);
 });

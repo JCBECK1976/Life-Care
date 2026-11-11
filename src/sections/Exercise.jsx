@@ -2,7 +2,7 @@ import { DEFAULT_EXERCISES, EXERCISE_DATABASE, EXERCISE_TYPES } from "../constan
 import { calcWeek, fbIcon, sBg, sColor, sLabel } from "../lib/utils.js";
 import { buildExProfileInfo, getMoodContext } from "../lib/aiContext.js";
 import { sSet } from "../lib/storage.js";
-import { autoStatus, entrySets, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsDiffer, setsToSave, weightLabel } from "../lib/exercise.js";
+import { entrySets, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsDiffer, setsToSave, syncAfterProgChange, weightLabel } from "../lib/exercise.js";
 import React from "react";
 import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
 import { btnAction, btnActionLg, btnDelete, btnEdit, btnMuted, btnP, btnS, inputStyle, labelStyle } from "../constants/styles.js";
@@ -125,10 +125,11 @@ export default function ExerciseSection({ ctx }) {
             if (!sets.length) { setOpenProg(Object.assign({}, o, { msg: "Enter at least one set" })); return; }
             var nd = JSON.parse(JSON.stringify(data));
             var ex2 = nd[activeTab].exercises[o.day][o.exIdx]; var e = ex2.prog[o.progIdx];
+            var before = ex2.prog.slice().sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); }).pop(); before = Object.assign({}, before);
             e.wk = parseInt(d.wk) || e.wk; e.sets = sets; e.w = String(sets[0].w).replace(/kg$/, "") + "kg"; e.r = fmtReps(sets.map(function(x) { return parseInt(x.r) || 0; }));
             e.fullRange = d.fullRange; e.goodForm = d.goodForm; e.note = d.note.trim();
             ex2.prog.sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
-            var latest = ex2.prog[ex2.prog.length - 1]; ex2.current = latest.w; ex2.reps = latest.r;
+            syncAfterProgChange(ex2, before);   // D20
             await saveData(nd);
             setOpenProg(Object.assign({}, o, { progIdx: ex2.prog.indexOf(e), editing: false, msg: "✓ Week " + e.wk + " saved" }));
           };
@@ -136,13 +137,14 @@ export default function ExerciseSection({ ctx }) {
             var o = openProg; var d = o.draft; var ed = o.editing; var cfg = getExerciseTypeConfig(ex.exType || getExerciseType(ex.name));
             var l1 = cfg.metric1 !== "none" ? cfg.metric1Label : "Weight"; var l2 = cfg.metric2 !== "none" ? cfg.metric2Label : "Reps";
             var seg = function(field, val, label) { var on = d[field] === val; return <button key={val} type="button" aria-pressed={on} disabled={!ed} onClick={function() { setDraft({ [field]: val }); }} style={{ flex: 1, padding: "6px 4px", fontSize: 11, fontWeight: 600, border: "none", cursor: ed ? "pointer" : "default", background: on ? (val === "good" ? "#166534" : "#b45309") : "#fff", color: on ? "#fff" : "#475569" }}>{label}</button>; };
-            var group = function(field, label) { return <Field label={label} testid={"entry-" + field}><div style={{ display: "flex", border: "1px solid " + (ed && !d[field] && o.msg ? "#dc2626" : "#cbd5e1"), borderRadius: 6, overflow: "hidden" }}>{seg(field, "working", "Working towards")}{seg(field, "good", "Good")}</div></Field>; };
+            var group = function(field, label) { if (!ed) { var v = d[field]; /* D21: viewing shows the chosen value as one chip */ return <Field label={label} testid={"entry-" + field}>{v ? <span data-testid={"entry-" + field + "-chip"} style={{ display: "inline-block", padding: "3px 10px", borderRadius: 12, fontSize: 11, fontWeight: 700, color: "#fff", background: v === "good" ? "#166534" : "#b45309" }}>{v === "good" ? "Good" : "Working towards"}</span> : <span style={{ color: "#94a3b8" }}>not recorded</span>}</Field>; }
+              return <Field label={label} testid={"entry-" + field}><div style={{ display: "flex", border: "1px solid " + (ed && !d[field] && o.msg ? "#dc2626" : "#cbd5e1"), borderRadius: 6, overflow: "hidden" }}>{seg(field, "working", "Working towards")}{seg(field, "good", "Good")}</div></Field>; };
             return (<OpenForm testid="prog-open-form" title={ex.name + " — week " + d.wk} subtitle={ed ? "Change anything, then Save." : "As logged. Edit to change it."} editing={ed} message={o.msg} busy={false}
               onEdit={function() { setOpenProg(Object.assign({}, o, { editing: true, msg: "" })); }}
               onCancelEdit={function() { openEntry(o.day, o.exIdx, o.progIdx); }}
               onClose={function() { setOpenProg(null); }}
               onSave={saveEntry}
-              dangerLabel="🗑 Delete week" onDanger={function() { deleteProg(o.day, o.exIdx, o.progIdx); }}>
+              dangerKind="remove" onDanger={function() { deleteProg(o.day, o.exIdx, o.progIdx); }}>
               <Field label="Week">{ed ? <input aria-label="Week" value={d.wk} onChange={function(e) { setDraft({ wk: e.target.value }); }} style={Object.assign({}, openInput, { width: 70 })} /> : d.wk}</Field>
               {d.sets.map(function(st, si) { return (<Field key={si} label={"Set " + (si + 1)} testid={"entry-set-" + (si + 1)}>{ed ? <div style={{ display: "flex", gap: 6 }}>
                   <input aria-label={"Set " + (si + 1) + " " + l1} placeholder={l1} value={st.w} onChange={function(e) { var ns = d.sets.slice(); ns[si] = Object.assign({}, st, { w: e.target.value }); setDraft({ sets: ns }); }} style={openInput} />
@@ -157,22 +159,12 @@ export default function ExerciseSection({ ctx }) {
           const deleteProg = async (day, exIdx, progIdx) => {
             var ex2 = data[activeTab].exercises[day][exIdx];
             var entry = ex2.prog[progIdx];
-            if (!confirm("Delete week " + (entry ? entry.wk : progIdx+1) + " entry for " + ex2.name + "?")) return;
+            if (!confirm("Remove week " + (entry ? entry.wk : progIdx+1) + " from " + ex2.name + "?")) return;
             var nd = JSON.parse(JSON.stringify(data));
-            nd[activeTab].exercises[day][exIdx].prog.splice(progIdx, 1);
-            var prog = nd[activeTab].exercises[day][exIdx].prog;
-            if (prog.length > 0) {
-              var latest = prog[prog.length - 1];
-              nd[activeTab].exercises[day][exIdx].current = latest.w;
-              nd[activeTab].exercises[day][exIdx].reps = latest.r;
-              nd[activeTab].exercises[day][exIdx].status = autoStatus(latest.w, latest.r, prog.slice(0, -1), latest.note || "");
-            } else {
-              nd[activeTab].exercises[day][exIdx].current = "";
-              nd[activeTab].exercises[day][exIdx].reps = "";
-              nd[activeTab].exercises[day][exIdx].status = "";
-              delete nd[activeTab].exercises[day][exIdx].target;
-            }
-            nd[activeTab].exercises[day][exIdx].notes = prog.length > 0 ? (prog[prog.length-1].note || "") : "";
+            var exN = nd[activeTab].exercises[day][exIdx];
+            var before = exN.prog.slice().sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); }).pop();
+            exN.prog.splice(progIdx, 1);
+            syncAfterProgChange(exN, before);   // D20: only a change to the LATEST week touches the card / status pill
             await saveData(nd); setOpenProg(null);
             setFormMsg("✓ Week " + (entry ? entry.wk : "") + " entry removed");
             setTimeout(function() { setFormMsg(""); }, 3000);

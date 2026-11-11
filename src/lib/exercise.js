@@ -112,3 +112,19 @@ export function setsToSave(logSets) {
   var w1 = String((logSets[0] && logSets[0].w) || "").trim();
   return logSets.map(function(s) { return { w: String(s.w || "").trim() || w1, r: String(s.r || "").trim() }; });
 }
+
+// v2.13.0 D20: after a Progress week is edited or removed, the card (current, reps, notes) and the status pill follow
+// the designed logic: they come from the LATEST week only. Changing or removing an OLDER week changes none of them.
+// If the latest week itself changed (or was removed), the card shows the new latest week and the status pill is
+// cleared, exactly as when a new week is logged (the status is set by the AI session feedback, never recomputed here).
+// `ex.prog` must already hold the change; `before` is the latest entry as it was before the change.
+export function latestKey(e) { return e ? [e.wk, e.w, e.r, JSON.stringify(e.sets || null)].join("|") : ""; }
+export function syncAfterProgChange(ex, before) {
+  var prog = (ex.prog || []).slice().sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
+  var latest = prog.length ? prog[prog.length - 1] : null;
+  if (latest && before && latestKey(latest) === latestKey(before)) return false;   // an older week: nothing on the card changes
+  if (latest) { ex.current = latest.w; ex.reps = latest.r; ex.notes = latest.note || ""; }
+  else { ex.current = ""; ex.reps = ""; ex.notes = ""; }
+  ex.status = ""; delete ex.target;
+  return true;
+}
