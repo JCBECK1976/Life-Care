@@ -36,10 +36,10 @@ test("D4 + F4: no category is pre-selected; confirm names the category; OK messa
   await page.getByRole("button", { name: "OK", exact: true }).click();
   const drinks = await getKey("custom_drinks");
   expect(drinks.filter((x) => /^Test (Cola|Juice)$/.test(x.name)).map((x) => x.checkMe)).toEqual([true, true]);
-  const row = page.locator("div", { hasText: /^Test Cola/ }).filter({ has: page.getByRole("button", { name: "✎ Update" }) }).last();
+  const row = page.locator("div", { hasText: /^Test Cola/ }).filter({ has: page.getByRole("button", { name: /^Open / }) }).last();
   await expect(row.getByTestId("check-me")).toBeVisible();
   await expect(row.locator("span").first()).toHaveCSS("color", "rgb(21, 128, 61)");     // RAG colour kept (GREAT)
-  await row.getByRole("button", { name: "✎ Update" }).click();
+  await row.getByRole("button", { name: /^Open / }).click(); await page.getByTestId("item-view").getByRole("button", { name: "Edit", exact: true }).click();
   await page.getByRole("button", { name: "✓ Confirm" }).click();
   await expect.poll(async () => (await getKey("custom_drinks")).find((x) => x.name === "Test Cola").checkMe).toBeUndefined();
   expect(errors).toEqual([]);

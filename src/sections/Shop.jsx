@@ -48,7 +48,7 @@ export default function ShopSection({ ctx }) {
                   <input value={foodCheckerText} onChange={function(e) { setFoodCheckerText(e.target.value); }} aria-label="Food description" placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ flex: 1, padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }} />
                   <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>
                     📷
-                    <input type="file" accept="image/*" capture="environment" onChange={async function(e) {
+                    <input type="file" data-share="food" accept="image/*" capture="environment" onChange={async function(e) {
                       if (!e.target.files || !e.target.files[0]) return;
                       var file = e.target.files[0];
                       setFoodCheckerLoading(true);

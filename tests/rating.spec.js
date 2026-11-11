@@ -74,8 +74,8 @@ test("D7: Re-check nutrition flags doubtful recipe items (values unchanged); Con
   expect(bf.find((x) => x.id === "t_oats")).toMatchObject({ jcKcal: 387, checkMe: true, checkReason: expect.stringMatching(/^Nutrition looks off: saved 387 kcal/) });
   expect(bf.find((x) => x.id === "t_fine").checkMe).toBeUndefined();
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
-  const row = page.locator("div", { hasText: /^Test Oats 95g/ }).filter({ has: page.getByRole("button", { name: "✎ Update" }) }).last();
-  await row.getByRole("button", { name: "✎ Update" }).click();
+  const row = page.locator("div", { hasText: /^Test Oats 95g/ }).filter({ has: page.getByRole("button", { name: /^Open / }) }).last();
+  await row.getByRole("button", { name: /^Open / }).click(); await page.getByTestId("item-view").getByRole("button", { name: "Edit", exact: true }).click();
   await page.getByRole("button", { name: "✓ Confirm" }).click();                       // no ingredient change
   await expect(page.getByText(/387 → 612 kcal/).first()).toBeVisible();
   await page.getByRole("button", { name: "✓ Continue — Save" }).click();

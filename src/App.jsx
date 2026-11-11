@@ -38,6 +38,9 @@ import EnvBadge from "./components/EnvBadge.jsx";
 import LoadingScreen from "./components/LoadingScreen.jsx";
 import PersonTabs, { peopleOf, personName } from "./components/PersonTabs.jsx";
 import { ALLOW_ADD_PERSON } from "./constants/features.js";
+import { PHASE_LABEL, dayPhase, readFeedback, weekPhase } from "./lib/eatPhase.js";
+import SharePicker from "./components/SharePicker.jsx";
+import { stripMeasurementPhotos, stripPhotoFragments } from "./lib/bodyBalance.js";
 import { childItems, dateOf, emptyDoc, loadParentLookup, loadWeekDoc, reconcile, recalcChild, saveWeekDoc, viewFromDoc, weekKey, ymd } from "./lib/children.js";
 
 const { useState, useEffect, useCallback, useRef } = React;
@@ -573,6 +576,8 @@ function Dashboard() {
         // Migrate: ensure fullBody measurement exists for all users
         var migrated = false;
         Object.keys(d).forEach(function(uk) { if (uk !== "config" && d[uk].measurements && !d[uk].measurements.fullBody) { d[uk].measurements = Object.assign({ fullBody: [] }, d[uk].measurements); migrated = true; } });
+        if (stripPhotoFragments(d)) migrated = true;   // v2.12.1: remove old base64 fragments from Body Type Photos
+        if (stripMeasurementPhotos(d)) migrated = true; // v2.13.1: remove old photos stored in measurement entries
         if (migrated) await sSet("dashboard:data", JSON.stringify(d));
         setData(d);
       } else {
@@ -1235,9 +1240,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           var status = item._status || tracking[trackKey] || "planned";
           var entry = { slot: sl.cat, name: item.name, kcal: item[kf] || 0, prot: item[pf] || item.jcProt || 0, fat: item[ff] || item.jcFat || 0, rating: item.rating || "GREAT", freq: item.freq || "" };
           planned.push(entry);
-          if (status === "consumed") consumed.push(entry);
-          else if (status === "skipped") skipped.push(entry);
-          else consumed.push(entry); // default to planned = consumed if not tracked
+          if (status === "skipped") skipped.push(entry);
+          else consumed.push(entry); // v2.9.0: what is logged counts (eaten for past days, the plan for today onwards)
         });
       });
       // Calorie & macro targets
@@ -1299,14 +1303,17 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
         if (dayParts.length > 0) weekCtx = "\nOther days this week: " + dayParts.join("; ") + ".";
       } catch(e) {}
 
+      /* v2.9.0 F6: days before today are what they ATE; today onwards is their PLAN */
+      var _phase = dayPhase(dateOf(weekStart, dayKey), ymd(new Date()));
+      var _dayName = dayKey.charAt(0).toUpperCase() + dayKey.slice(1);
+      var phaseBlock = _phase === "eaten"
+        ? "THIS IS A PAST DAY — WHAT THEY ATE on " + _dayName + " " + dateOf(weekStart, dayKey) + " (from their logged meals): " + consumed.map(function(x){return x.slot+": "+x.name+" ("+x.kcal+"kcal, "+x.prot+"g prot, "+x.fat+"g fat, "+x.rating+")";}).join("; ") + "\n" + (skipped.length > 0 ? "SKIPPED: " + skipped.map(function(x){return x.name;}).join(", ") + "\n" : "") + "Day total eaten: " + totConsumed + "/" + limKcal + " kcal, " + protConsumed + "/" + limProt + "g protein, " + fatConsumed + "/" + limSfat + "g sat fat.\nTalk about it as eaten (past tense: 'you had…').\n"
+        : "THIS IS " + (dateOf(weekStart, dayKey) === ymd(new Date()) ? "TODAY" : "A FUTURE DAY") + " — THEIR PLAN for " + _dayName + " " + dateOf(weekStart, dayKey) + " (not eaten yet): " + planned.map(function(x){return x.slot+": "+x.name+" ("+x.kcal+"kcal, "+x.prot+"g prot, "+x.fat+"g fat, "+x.rating+")";}).join("; ") + "\nPlanned day total: " + totConsumed + "/" + limKcal + " kcal, " + protConsumed + "/" + limProt + "g protein, " + fatConsumed + "/" + limSfat + "g sat fat.\nTalk about it as a plan ('your plan has…', 'you could swap…'); never praise it as if it had been eaten.\n";
       const prompt = "You are the user's Lifecare Companion — a trusted, knowledgeable friend reviewing " + dayKey.charAt(0).toUpperCase() + dayKey.slice(1) + "'s eating for " + who + ". Week " + (data.config.week || calcWeek(data.config.trainingStart)) + " of their programme.\n\n" +
         "COMMUNICATION STYLE: Imagine you're on a video call with your friend, specifically about their eating today. You're a knowledgeable mate who happens to know a lot about nutrition — not a coach delivering a verdict. Be pragmatic, warm, non-judgemental and direct. Give your honest opinions based on experience. NEVER be preachy or say 'you should have cut that out'. If they ate something indulgent, assume there was a good reason. Instead of criticising, show how a small tweak (like reducing a portion by a third) would have made it fit comfortably within targets — so they can enjoy it guilt-free next time. Frame every improvement as a choice they can make, not a rule they broke.\n\n" +
         "TARGETS: Kcal " + limKcal + ", Protein " + limProt + "g, Sat Fat <" + limSfat + "g, Carbs " + limCarbs + "g, Fibre " + limFib + "g, Salt <" + limSalt + "g.\n" +
         "RAG STATUS FREQUENCY TARGETS: GREEN items = daily staples. AMBER items = weekly max. RED items = monthly max.\n\n" +
-        "PLANNED TODAY: " + planned.map(function(x){return x.slot+": "+x.name+" ("+x.kcal+"kcal, "+x.prot+"g prot, "+x.fat+"g fat, "+x.rating+")";}).join("; ") + "\n" +
-        "CONSUMED TODAY: " + consumed.map(function(x){return x.slot+": "+x.name+" ("+x.kcal+"kcal, "+x.prot+"g prot, "+x.fat+"g fat)";}).join("; ") + "\n" +
-        (skipped.length > 0 ? "SKIPPED: " + skipped.map(function(x){return x.name;}).join(", ") + "\n" : "") +
-        "Day total: " + totConsumed + "/" + limKcal + " kcal, " + protConsumed + "/" + limProt + "g protein, " + fatConsumed + "/" + limSfat + "g sat fat.\n" +
+        phaseBlock +
         (ragSummary ? "RAG: " + ragSummary + "\n" : "") +
         (dayNote ? "Day notes: " + dayNote + "\n" : "") +
         weekCtx + "\n" +
@@ -1329,10 +1336,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       const result = await response.json();
       var apiErr = handleApiError(result);
       if (apiErr) throw new Error(apiErr);
-      var text = (result.content || []).map(function(blk) { return blk.text || ""; }).join("");
-      if (!text && result.error) throw new Error(result.error.message || JSON.stringify(result.error));
-      const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
-      const newFb = { ...parsed, _when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) };
+      const parsed = readFeedback(result);   // v2.9.0: cut-off / empty / unreadable → a clear error
+      const newFb = { ...parsed, _phase: _phase, _when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) };
       // Save
       const updated = Object.assign({}, eatFbResults);
       if (!updated[tab]) updated[tab] = {};
@@ -1407,7 +1412,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
           var dFat = dayConsumed.reduce(function(s,x){return s+(x.fat||0);},0);
           weekTotKcal += dKcal; weekTotProt += dProt; weekTotFat += dFat;
           dayConsumed.forEach(function(x){if(x.rating==="RED")allRedItems.push(x.name);if(x.rating==="AMBER")allAmberItems.push(x.name);});
-          weekSummary.push(dk.slice(0,3) + ": " + dKcal + "kcal, " + dProt + "g prot. Items: " + dayConsumed.map(function(x){return x.name+"("+x.kcal+"kcal,"+x.rating+")";}).join(", ") + (daySkipped.length > 0 ? ". Skipped: " + daySkipped.map(function(x){return x.name;}).join(", ") : ""));
+          weekSummary.push(dk.slice(0,3) + " " + dateOf(weekStart, dk) + (dayPhase(dateOf(weekStart, dk), ymd(new Date())) === "eaten" ? " (EATEN)" : " (PLAN)") + ": " + dKcal + "kcal, " + dProt + "g prot. Items: " + dayConsumed.map(function(x){return x.name+"("+x.kcal+"kcal,"+x.rating+")";}).join(", ") + (daySkipped.length > 0 ? ". Skipped: " + daySkipped.map(function(x){return x.name;}).join(", ") : ""));
         }
       });
       var limKcal = isJ ? 2200 : 1900; var limProt = isJ ? 130 : 110; var limSfat = 20;
@@ -1437,7 +1442,9 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       var prevActFb = feedbackResults[tab];
       var prevActCtx = prevActFb && prevActFb._when !== "failed" ? "\nLast activity feedback (" + prevActFb._when + "): Good: " + (prevActFb.good || []).join("; ") + ". Opportunities: " + (prevActFb.opportunities || []).join("; ") + "." : "";
 
-      const prompt = "You are the user's Lifecare Companion — a trusted, knowledgeable friend reviewing the FULL WEEK of eating for " + who + ". Week " + (data.config.week || calcWeek(data.config.trainingStart)) + " of their programme.\n\n" +
+      var _wPhase = weekPhase(["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].map(function(dk) { return dateOf(weekStart, dk); }), ymd(new Date()));
+      var weekPhaseNote = _wPhase === "plan review" ? "THIS WHOLE WEEK IS IN THE FUTURE: it is a PLAN REVIEW. Nothing has been eaten yet; review the plan and suggest swaps.\n" : _wPhase === "eaten" ? "THIS WEEK IS OVER: every day is what they ATE.\n" : "Days marked (EATEN) are what they ate; days marked (PLAN) are still their plan. Start with 'So far this week you've eaten…' and then 'For the rest of the week your plan…'. Never treat planned days as eaten.\n";
+      const prompt = weekPhaseNote + "You are the user's Lifecare Companion — a trusted, knowledgeable friend reviewing the FULL WEEK of eating for " + who + ". Week " + (data.config.week || calcWeek(data.config.trainingStart)) + " of their programme.\n\n" +
         "COMMUNICATION STYLE: Imagine you're on a video call with your friend, specifically about how their eating went this week. You're a knowledgeable mate who knows a lot about nutrition — not a coach delivering a weekly report card. Be pragmatic, warm, non-judgemental and direct. Give your honest opinions based on experience. NEVER be preachy or say 'you should have cut that out'. If they ate something indulgent, assume there was a good reason. Instead of criticising, show how small tweaks would accumulate over the week to meaningful health outcomes. Frame every improvement as a choice they can make, not a rule they broke.\n\n" +
         "DAILY TARGETS: Kcal " + limKcal + "/day, Protein " + limProt + "g/day, Sat Fat <" + limSfat + "g/day.\n" +
         "RAG STATUS FREQUENCY TARGETS: GREEN items = daily staples. AMBER items = weekly max. RED items = monthly max.\n\n" +
@@ -1464,10 +1471,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       const result = await response.json();
       var apiErr = handleApiError(result);
       if (apiErr) throw new Error(apiErr);
-      var text = (result.content || []).map(function(blk) { return blk.text || ""; }).join("");
-      if (!text && result.error) throw new Error(result.error.message || JSON.stringify(result.error));
-      const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
-      const newFb = { ...parsed, _when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) };
+      const parsed = readFeedback(result);   // v2.9.0
+      const newFb = { ...parsed, _phase: _wPhase, _when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) };
       const updated = Object.assign({}, eatFbResults);
       if (!updated[tab]) updated[tab] = {};
       updated[tab]["week"] = newFb;
@@ -1485,6 +1490,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
   const [qaMsg, setQaMsg] = useState("");
   const [threadLoading, setThreadLoading] = useState({});
+  const [threadErr, setThreadErr] = useState({});   // v2.9.0: a failed reply is shown, not swallowed
 
   // ─── CROSS-SECTION THREAD CONTEXT ───
   const getCrossSectionCtx = function(tab, excludeSection) {
@@ -1583,6 +1589,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
   // ─── FEEDBACK THREAD REPLY ───
   const threadReply = async function(fbObj, fbType, fbKey, updateFn, saveKey) {
+    setThreadErr(function(prev) { var n = Object.assign({}, prev); delete n[fbType + "-" + fbKey]; return n; });
     var elId = "thread-input-" + fbType + "-" + fbKey;
     var el = document.getElementById(elId);
     var txt = el ? el.value.trim() : "";
@@ -1608,6 +1615,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: prompt }] }) });
       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
       var replyTxt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) replyTxt += result.content[ci].text; } }
+      if (!replyTxt.trim()) throw new Error("No reply came back — please send it again");
+      if (result.stop_reason === "max_tokens") replyTxt = replyTxt.trim() + " … (I ran out of room there — ask me to carry on.)";   // v2.9.0: cut-off detection
       if (replyTxt) {
         thread.push({ role: "companion", text: replyTxt.trim(), when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) });
       }
@@ -1615,7 +1624,8 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       delete updatedFb._comment; delete updatedFb._commentWhen;
       updateFn(updatedFb, saveKey);
       if (el) el.value = "";
-    } catch(e) { console.error("Thread reply error:", e); if (window.isEnergyEmpty(e)) { setFormMsg(window.energyEmptyMsg); setTimeout(function() { setFormMsg(""); }, 4000); } }
+      setThreadErr(function(prev) { var n = Object.assign({}, prev); delete n[loadKey]; return n; });
+    } catch(e) { console.error("Thread reply error:", e); var em = window.isEnergyEmpty(e) ? window.energyEmptyMsg : window.aiErrorMsg ? window.aiErrorMsg(e) : String(e.message || e); setThreadErr(function(prev) { return Object.assign({}, prev, { [loadKey]: em + " Your message is still in the box." }); }); }
     setThreadLoading(function(prev) { return Object.assign({}, prev, { [loadKey]: false }); });
   };
 
@@ -1660,6 +1670,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 8 } },
         React.createElement("textarea", { id: "thread-input-" + fbType + "-" + fbKey, placeholder: thread.length > 0 ? "Continue the conversation..." : "Respond to this feedback...", disabled: isLoading, style: { flex: 1, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, resize: "vertical", minHeight: 40, boxSizing: "border-box", fontFamily: "inherit", opacity: isLoading ? 0.6 : 1 } }),
         React.createElement("button", { onClick: function() { threadReply(fbObj, fbType, fbKey, updateFn, saveKey); }, disabled: isLoading, style: { padding: "8px 14px", background: isLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: isLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap", alignSelf: "flex-end", minWidth: 50 } }, isLoading ? React.createElement("span", null, React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })) : "Send"),
+      threadErr[loadKey] && React.createElement("div", { role: "alert", "data-testid": "thread-error", style: { marginBottom: 8, padding: 8, borderRadius: 6, background: "#fee2e2", color: "#991b1b", fontSize: 11, fontWeight: 600 } }, threadErr[loadKey]),
       thread.length > 0 && React.createElement("div", { style: { marginBottom: 8 } },
         React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#94a3b8", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" } }, "Conversation"),
         latestFirst(thread).map(function(m, i) { /* v2.6.4 D8: latest exchange first, input above */
@@ -1872,6 +1883,7 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
 
       <div style={{ padding: 16 }}>
         {/* HOME */}
+        <SharePicker go={function(kind) { if (kind === "body" || kind === "progress") setSection("body"); else if (kind === "food") setSection("shop"); }} />
         {section === "overview" && (<ErrorBoundary name="Home"><HomeSection ctx={{ accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, assessment, assessmentExpanded, btnMT, calcAge, checkCompanionEnergy, companionEnergy, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, dailyMood, data, energyLoading, feedbackHistory, feedbackLoading, feedbackResults, genPlanLoading, generateFeedback, generatedTargets, getCrossSectionCtx, homeFbExpanded, isJC, journalEntries, journalText, meals, onboardInputs, p, profileInputs, renderThread, saveData, setAssessment, setAssessmentExpanded, setDailyMood, setEatDay, setExerciseDay, setFormMsg, setGenPlanLoading, setGeneratedTargets, setHomeFbExpanded, setJournalEntries, setJournalText, setOnboardInputs, setProfileInputs, setSection, setSetupDirty, setSetupTab, setShowFbHistory, setShowFullJournal, setShowMyDay, setShowOnboarding, setShowProfile, setShowRecentJournal, setUserMood, setupDirty, setupTab, showFbHistory, showFullJournal, showMyDay, showOnboarding, showProfile, showRecentJournal, updateHomeFb, userMood }} /></ErrorBoundary>)}
 
         {/* BODY */}
