@@ -60,3 +60,14 @@ test("item 3: Help sends the guide as a cached system prompt (cache_control), th
   expect(bodies[0].messages.at(-1).content).toContain("How do I log a measurement?");
   expect(errors).toEqual([]);
 });
+
+test("item 4: the boot/sign-in logo is the small WebP file, same 640px resolution, shown at 220px", async ({ page, request }) => {
+  const res = await request.get("brand/app-logo-640.webp");
+  expect(res.ok()).toBe(true);
+  expect((await res.body()).length).toBeLessThan(60 * 1024);                            // was a 186 KB PNG
+  await page.goto("./");
+  const img = page.locator('img[alt="Lifecare Companion"]').first();
+  await expect(img).toBeVisible();
+  const r = await img.evaluate((i) => ({ src: i.currentSrc, nw: i.naturalWidth, w: i.getBoundingClientRect().width }));
+  expect(r.src).toMatch(/app-logo-640\.webp$/); expect(r.nw).toBe(640); expect(r.w).toBe(220);
+});
