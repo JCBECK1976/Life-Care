@@ -63,3 +63,38 @@ test("opt-in, no photos yet, first check: scores saved, nothing image-like store
   expect(await rawRoot()).not.toMatch(IMAGE_LIKE);
   expect(errors).toEqual([]);
 });
+
+// v2.12.1: Body Type Photos keeps no image data; old fragments are removed on load (one-off, idempotent).
+import { stripPhotoFragments } from "../src/lib/bodyBalance.js";
+const dashUrl = "http://127.0.0.1:9000/data/dashboard:data.json" + NS;
+const putDash = (d) => fetch(dashUrl, { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify(JSON.stringify(d)) });
+
+test("cleanup (pure): strips only bodyPhotos[].thumbnail; running it again changes nothing", () => {
+  const d = { config: {}, jc: { bodyPhotos: [{ date: "1 Nov 2026", name: "front.jpg", type: "baseline", thumbnail: "iVBORw0KGgoAAA" }], bodyAnalysis: { x: 1 } }, becks: { exercises: {} } };
+  expect(stripPhotoFragments(d)).toBe(true);
+  expect(d).toEqual({ config: {}, jc: { bodyPhotos: [{ date: "1 Nov 2026", name: "front.jpg", type: "baseline" }], bodyAnalysis: { x: 1 } }, becks: { exercises: {} } });
+  expect(stripPhotoFragments(d)).toBe(false);
+});
+
+test("old fragments are removed on load; a new Body Type Photos analysis stores no image data", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const d = await getDash();
+  d.jc.bodyPhotos = [{ date: "1 Nov 2026", name: "front.jpg", type: "baseline", thumbnail: "/9j/4AAQSkZJRgABAQ" + "A".repeat(400) }];
+  await putDash(d);
+  expect(await rawRoot()).toMatch(IMAGE_LIKE);                                          // the old fragment is there
+  await page.reload();
+  await expect.poll(async () => (await getDash()).jc.bodyPhotos[0].thumbnail).toBeUndefined();
+  expect((await getDash()).jc.bodyPhotos[0]).toEqual({ date: "1 Nov 2026", name: "front.jpg", type: "baseline" });
+  expect(await rawRoot()).not.toMatch(IMAGE_LIKE);
+  // a fresh Body Type Photos analysis
+  await page.route("https://api.anthropic.com/**", (r) => /"type":"image"/.test(r.request().postData() || "") ? r.fulfill(ai({ bodyType: "mesomorph", summary: "test" })) : r.fallback());
+  await tab(page, "Home");
+  await page.getByRole("button", { name: "▼ My Profile" }).click();
+  await page.getByRole("button", { name: "My Details" }).click();
+  await page.locator('input[type="file"][data-share="bodytype"]').setInputFiles([IMG("front.png"), IMG("side.png")]);
+  await expect.poll(async () => ((await getDash()).jc.bodyPhotos || []).length).toBe(3);
+  const added = (await getDash()).jc.bodyPhotos.slice(1);
+  for (const ph of added) expect(Object.keys(ph).sort()).toEqual(["date", "name", "type"]);
+  expect(await rawRoot()).not.toMatch(IMAGE_LIKE);
+  expect(errors.filter((e) => !/JSON/i.test(e))).toEqual([]);
+});

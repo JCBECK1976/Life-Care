@@ -10,6 +10,17 @@ export var REGIONS = [
 ];
 export var CHECK_EVERY_DAYS = 28;
 
+// v2.12.1 one-off cleanup (idempotent): older Body Type Photos entries kept the first 500 characters of the image's
+// base64 as "thumbnail". Remove that field only; date, name, type and everything else stay. Returns true if changed.
+export function stripPhotoFragments(d) {
+  var changed = false;
+  Object.keys(d || {}).forEach(function(k) {
+    var arr = d[k] && Array.isArray(d[k].bodyPhotos) ? d[k].bodyPhotos : null; if (!arr) return;
+    arr.forEach(function(ph) { if (ph && Object.prototype.hasOwnProperty.call(ph, "thumbnail")) { delete ph.thumbnail; changed = true; } });
+  });
+  return changed;
+}
+
 // "chest: 98 → 101 (wk 3 → wk 15)" per measurement type, oldest vs latest
 export function measurementTrends(measurements) {
   var out = [];
