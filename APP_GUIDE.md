@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.13.3 · 11 November 2026
+> Last updated: v2.14.0 · 12 November 2026
 
 ---
 
@@ -112,7 +112,7 @@ Every photo you give the app (📷 Snap, 📷 Upload, Body Type Photos, measurem
 Companion Energy shows how much AI energy is left for Companion features, as a percentage. Every time the Companion generates feedback, answers a chat or calculates nutrition, it uses a little energy.
 
 - **100%** is a full recharge; **0%** is empty. The bar goes down gradually as AI features are used. Normal use takes very little, so use the features freely.
-- **↻ Refresh** checks the connection.
+- **↻ Refresh** checks the connection. (On opening the app it is checked at most once a day.)
 - Status labels:
   - *Good energy / Getting low / Running low* — normal operation.
   - *Empty — recharge needed* — the AI service has no energy left. AI features won't work until the app owner recharges it.
@@ -421,9 +421,11 @@ Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
     - **Merge missing exercise weeks** (safe: adds missing weeks, changes nothing else); or
     - **Full restore of data**, which replaces everything in **this app's own data** with the file: the real data on the normal app and Beta, the build copy on the Build test app. It asks twice, and you must type **RESTORE**.
   - A **Firebase Data Viewer** and **Restore Missing Weeks from Comments** are also there. **← Back to Settings** returns you to Settings.
+  - **📊 AI usage** (admin only): how many AI calls were made and how many tokens they used, per day and per feature (Help, Chat, My Eating, photo checks…), with the estimated cost. Only counts are kept, never what anyone typed or photographed. **⚡ Companion Energy** is worked out from these counts: what has been spent since the last **Set as 100%**.
+  - **📝 Tracker** (admin only): everything sent with **💬 Send Feedback** appears here as **Feedback**, status **New** (a red badge shows how many are new). Newest first, with filters for Category (Feedback / Defect / Feature) and Status (New / Triaged / Planned / In progress / Done / Won't do). **Open** shows an item read-only; **Edit** lets the admin re-categorise it as a **Defect** or **Feature**, set the status, a priority (High / Medium / Low), an admin note and a link/ref (e.g. a backlog number like D20, or the version that fixed it), then **Save**. **Remove** takes it out (asks first). **+ Add** adds a Defect or Feature directly. Text only: no screenshots or images are stored.
 
 ### Send Feedback, Privacy Policy
-At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature, describe it, and it opens an email) and **Privacy Policy**. The version number (e.g. v2.1.0) is shown at the very bottom. Test versions of the app show a coloured **BUILD** or **BETA** badge under the Help and Settings buttons at the top (and in the browser tab name), and their version ends in -build… or -beta…; the normal app has no badge.
+At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature, describe it, and it opens an email; it is also saved to the app owner's Tracker) and **Privacy Policy**. The version number (e.g. v2.1.0) is shown at the very bottom. Test versions of the app show a coloured **BUILD** or **BETA** badge under the Help and Settings buttons at the top (and in the browser tab name), and their version ends in -build… or -beta…; the normal app has no badge.
 
 ---
 
