@@ -4,7 +4,7 @@ import { handleApiError } from "../lib/api.js";
 import { sGet, sSet } from "../lib/storage.js";
 import React from "react";
 import { withRuleRating, rateByPortion, frequencyWarning, FREQ_LABEL, bandOf } from "../lib/rag.js";
-import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnMuted, btnOpen, btnPortion } from "../constants/styles.js";
+import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnFilledOn, btnMuted, btnOpen, btnPortion, btnProgress, btnSnap } from "../constants/styles.js";
 import { accentVariant } from "../lib/colour.js";
 import { personName } from "../components/PersonTabs.jsx";
 import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
@@ -182,7 +182,7 @@ export default function EatingSection({ ctx }) {
           var openSnap = function(slotKey) { setPortionResult(null); setPortionPlanned(null); setPortionDesc(""); setPortionUndo(null); setPortionSlot(slotKey); setSnapPre(slotKey); };
           var snapButton = function(slotKey) {
             var busy = portionLoading && portionSlot === slotKey; var on = portionSlot === slotKey;
-            return (<button type="button" aria-label="Snap a photo of your food" title="Snap a photo of your food" onClick={function() { if (!busy) openSnap(slotKey); }} style={{ ...btnPortion, background: on ? "#dbeafe" : btnPortion.background, border: on ? "1px solid #1e3a5f" : btnPortion.border, cursor: busy ? "wait" : "pointer", display: "flex" }}>{busy ? "⏳..." : "📷 Snap"}</button>);
+            return (<button type="button" aria-label="Snap a photo of your food" title="Snap a photo of your food" onClick={function() { if (!busy) openSnap(slotKey); }} style={Object.assign({}, on ? btnFilledOn : btnSnap, { cursor: busy ? "wait" : "pointer" })}>{busy ? "⏳..." : "📷 Snap"}</button>);
           };
           var portionAnalyze = async function(slotKey, file, itemsList, descArg, deep) {
             var desc = (descArg || "").trim();
@@ -1005,7 +1005,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               var limit2 = isJC ? 2200 : 1900;
               var color2 = avg2 === 0 ? "#94a3b8" : avg2 > limit2 ? "#dc2626" : "#16a34a";
               return avg2 > 0 ? (<span style={{ fontSize: 11, fontWeight: 600, color: color2 }}> — Avg {avg2} kcal/day</span>) : null;
-            })()}</span><div style={{ display: "flex", gap: 4, flexShrink: 0 }}><button onClick={function(){ setCopyWeekOpen(!copyWeekOpen); setCopyWeekTargets({}); }} style={Object.assign({}, copyWeekOpen ? btnClose : btnAction)}>{copyWeekOpen ? "✕" : <span>📋 Copy Week</span>}</button><button onClick={function(){setEatWeekEyeOpen(!eatWeekEyeOpen);}} style={Object.assign({}, eatWeekEyeOpen ? btnClose : btnAction)}>{eatWeekEyeOpen ? "✕" : "👁 Progress"}</button></div></div>
+            })()}</span><div style={{ display: "flex", gap: 4, flexShrink: 0 }}><button onClick={function(){ setCopyWeekOpen(!copyWeekOpen); setCopyWeekTargets({}); }} style={Object.assign({}, copyWeekOpen ? btnClose : btnAction)}>{copyWeekOpen ? "✕" : <span>📋 Copy Week</span>}</button><button onClick={function(){setEatWeekEyeOpen(!eatWeekEyeOpen);}} style={eatWeekEyeOpen ? btnFilledOn : btnProgress}>{eatWeekEyeOpen ? "✕ Progress" : "👁 Progress"}</button></div></div>
 
             {copyWeekOpen && (<div style={{ background: accentLight, borderRadius: 8, padding: 10, marginBottom: 10, border: "1px solid " + accentBorder }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Copy this week's day selections to:</div>
@@ -1533,7 +1533,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           {/* Day content */}
           {eatDay !== "week" && <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyDayOpen(!copyDayOpen); setCopyDayTargets({}); }} style={Object.assign({},copyDayOpen?btnClose:btnAction)}>{copyDayOpen ? "✕ Close" : "📋 Copy Day"}</button><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);}} style={Object.assign({},eatDayEyeOpen?btnClose:btnAction)}>{eatDayEyeOpen ? "✕ Close" : "👁 Progress"}</button></div></div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyDayOpen(!copyDayOpen); setCopyDayTargets({}); }} style={Object.assign({},copyDayOpen?btnClose:btnAction)}>{copyDayOpen ? "✕ Close" : "📋 Copy Day"}</button><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);}} style={eatDayEyeOpen ? btnFilledOn : btnProgress}>{eatDayEyeOpen ? "✕ Progress" : "👁 Progress"}</button></div></div>
 
             {copyDayOpen && (<div style={{ background: accentLight, borderRadius: 8, padding: 10, marginBottom: 10, border: "1px solid " + accentBorder }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Copy {eatDay.charAt(0).toUpperCase() + eatDay.slice(1)}'s selections to:</div>

@@ -6,7 +6,7 @@ import { scrollOnMount } from "../lib/scrollIntoView.js";
 import { entrySets, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsDiffer, setsToSave, syncAfterProgChange, weightLabel } from "../lib/exercise.js";
 import React from "react";
 import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
-import { btnAction, btnActionLg, btnDelete, btnEdit, btnMuted, btnOpen, btnP, btnS, inputStyle, labelStyle } from "../constants/styles.js";
+import { btnAction, btnActionLg, btnDelete, btnEdit, btnFilledOn, btnLog, btnMuted, btnOpen, btnP, btnProgress, btnS, inputStyle, labelStyle } from "../constants/styles.js";
 import { FullChart } from "../components/charts.jsx";
 import { TONE_RULES } from "../constants/tone.js";
 import { handleApiError } from "../lib/api.js";
@@ -222,8 +222,8 @@ export default function ExerciseSection({ ctx }) {
                           {ex.status && <div style={{ marginTop: 3 }}><span style={{ fontSize: 9, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap", border: "1px solid " + sColor(ex.status) + "40" }}>{sLabel(ex.status)}</span></div>}
                         </div>
                         <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0,alignItems:"flex-end"}}>
-                        <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} style={{padding:"4px 8px",background:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#1e3a5f":"#f1f5f9",border:"1px solid "+(selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#1e3a5f":"#e2e8f0"),borderRadius:6,fontSize:10,cursor:"pointer",fontWeight:600,color:selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"#fff":"#94a3b8",display:"flex",alignItems:"center",gap:2,whiteSpace:"nowrap"}}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕ Progress":"👁 Progress"}</button>
-                        {!ex.stopped && <button onClick={function(){setSelectedEx({day:day,idx:i});openLogForm(day,i);}} style={{padding:"4px 8px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:6,fontSize:10,cursor:"pointer",fontWeight:600,color:"#94a3b8",display:"flex",alignItems:"center",gap:2,whiteSpace:"nowrap"}}>📋 Log</button>}
+                        <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} style={selectedEx&&selectedEx.day===day&&selectedEx.idx===i?btnFilledOn:btnProgress}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕ Progress":"👁 Progress"}</button>
+                        {!ex.stopped && <button onClick={function(){setSelectedEx({day:day,idx:i});openLogForm(day,i);}} style={btnLog}>📋 Log</button>}
                         </div>
                       </div>
                       {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 6 }}>📋 {ex.notes}</div>}

@@ -1,5 +1,5 @@
 import { calcWeek } from "../lib/utils.js";
-import { btnAction, btnActionLg, btnClose, btnDelete, btnEdit, btnP, btnS, inputStyle, labelStyle } from "../constants/styles.js";
+import { btnAction, btnActionLg, btnClose, btnDelete, btnEdit, btnFilledOn, btnLog, btnP, btnProgress, btnS, inputStyle, labelStyle } from "../constants/styles.js";
 import { handleApiError } from "../lib/api.js";
 import { BodyCard, FullChart } from "../components/charts.jsx";
 import { TONE_RULES } from "../constants/tone.js";
@@ -200,8 +200,8 @@ export default function BodySection({ ctx }) {
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0, alignItems: "flex-end" }}>
-                  <button onClick={function(){ if (measMetricOpen === k) { setMeasMetricOpen(null); setMeasLogKey(null); } else { setMeasMetricOpen(k); setMeasMetricShowAll(false); setMeasLogKey(null); } }} style={{ padding: "4px 8px", background: measMetricOpen === k ? "#1e3a5f" : "#f1f5f9", border: "1px solid " + (measMetricOpen === k ? "#1e3a5f" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", color: measMetricOpen === k ? "#fff" : "#94a3b8", display: "flex", alignItems: "center", gap: 2, whiteSpace: "nowrap" }}>{measMetricOpen === k ? "✕ Progress" : "👁 Progress"}</button>
-                  <button onClick={function(){ if (measLogKey === k) { setMeasLogKey(null); } else { setMeasMetricOpen(k); setMeasLogKey(k); setMeasLogInputs({ week: calcWeek(data.config.trainingStart), value: "", note: "", image: null }); } }} style={{ padding: "4px 8px", background: measLogKey === k ? "#1e3a5f" : "#f1f5f9", border: "1px solid " + (measLogKey === k ? "#1e3a5f" : "#e2e8f0"), borderRadius: 6, fontSize: 10, cursor: "pointer", fontWeight: 600, color: measLogKey === k ? "#fff" : "#94a3b8", display: "flex", alignItems: "center", gap: 2, whiteSpace: "nowrap" }}>📋 Log</button>
+                  <button onClick={function(){ if (measMetricOpen === k) { setMeasMetricOpen(null); setMeasLogKey(null); } else { setMeasMetricOpen(k); setMeasMetricShowAll(false); setMeasLogKey(null); } }} style={measMetricOpen === k ? btnFilledOn : btnProgress}>{measMetricOpen === k ? "✕ Progress" : "👁 Progress"}</button>
+                  <button onClick={function(){ if (measLogKey === k) { setMeasLogKey(null); } else { setMeasMetricOpen(k); setMeasLogKey(k); setMeasLogInputs({ week: calcWeek(data.config.trainingStart), value: "", note: "", image: null }); } }} style={measLogKey === k ? btnFilledOn : btnLog}>{measLogKey === k ? "✕ Log" : "📋 Log"}</button>
                 </div>
               </div>
               {measMetricOpen === k && (<div ref={scrollOnMount} data-testid="meas-panel" style={{ marginTop: 10, padding: 12, background: accentLight, borderRadius: 8, border: "1px solid " + accentBorder, width: "100%" }}>

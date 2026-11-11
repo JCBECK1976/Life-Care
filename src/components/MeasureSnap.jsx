@@ -1,5 +1,6 @@
 import React from "react";
 import { handleApiError } from "../lib/api.js";
+import { btnSnap } from "../constants/styles.js";
 import { parseReading, readingPrompt } from "../lib/measureReading.js";
 
 // v2.13.0 F10: the camera button on a body-measurement Log form works like 📷 Snap.
@@ -30,7 +31,7 @@ export default function MeasureSnap(props) {
   };
   var cancel = function() { fileRef.current = null; setSt(null); };
 
-  if (!st) return (<button type="button" data-testid="meas-snap" aria-label="Snap a photo of the measurement" onClick={function() { setSt({ stage: "pre", desc: "" }); }} style={{ padding: "4px 8px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", color: "#1e3a5f", alignSelf: "flex-end", whiteSpace: "nowrap" }}>📷 Snap</button>);
+  if (!st) return (<button type="button" data-testid="meas-snap" aria-label="Snap a photo of the measurement" onClick={function() { setSt({ stage: "pre", desc: "" }); }} style={Object.assign({}, btnSnap, { alignSelf: "flex-end" })}>📷 Snap</button>);
 
   var setDesc = function(v) { setSt(Object.assign({}, st, { desc: v })); };
   var descInput = <input aria-label="Measurement photo description" value={st.desc || ""} onChange={function(e) { setDesc(e.target.value); }} placeholder="Optional, e.g. 'tape at nipple level', 'reading in inches'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 6, fontSize: 11, marginBottom: 6 }} />;
