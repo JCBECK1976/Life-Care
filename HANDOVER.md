@@ -81,6 +81,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.13.2 | Fix (JC phone test 11 Nov): Open forms and Progress panels scroll into view on open; Open buttons styled like Snap (blue outline, blue text); privacy note on Body Type Photos, measurement Log and Body balance; new meal-slot save text. | build only |
 | v2.13.3 | Layout (JC 11 Nov): shared outlined buttons (`styles.js`): Open and 📷 Snap blue, 👁 Progress violet, 📋 Log green, filled navy when open; Body stat card button moved under the rating (no overlap at 360px). **Beta 11 Nov as v2.13.3-beta.3 (PR #21).** | beta |
 | v2.13.4 | Fix (JC 11 Nov): Weigh In stat cards: 👁 Progress pinned to the card bottom (full-height flex column, `margin-top:auto`), so the buttons line up across each row whatever the card shows. | build only (next beta) |
+| v2.14.0 | Step 1b items 1–4, 8, 9 + tracker (overnight 11–12 Nov): photos shrunk before sending; parallel startup and person-switch loads; Help caching pinned by a test; boot logo WebP (186 → 52 KB, same look); energy ping once a day; AI usage ledger (counts only) driving Companion Energy, with an admin view; Feedback/Defect/Feature Tracker. | build only (next beta) |
 
 ---
 
@@ -2047,3 +2048,30 @@ Measured on `build` @ 6a0076e (v2.13.3) against the emulator, seeded with the re
 - **Flaky test fixed:** the v2.13.2 Eating scroll test sometimes found the dinner unselected. The app was still saving its own Eating data while the test wrote the meal plan. It now waits first, as `open.spec` does: 6/6 passes (it was 3/4). This was most likely the unnamed single failure in the v2.13.3 run.
 - Full suite 124 passed (5 skipped: the on-demand prod-compat tests); lint 0 errors; visual: My Body 20px shorter plus the footer, rebaselined. Deploy run 43105478571 succeeded.
 - **Resume point:** `build` @ 41c80fb (v2.13.4), `beta` @ c75c53a (v2.13.3-beta.3). Next: v2.13.4 goes in the next build → beta PR; JC's beta OK; the Step 1b decisions.
+
+### (Coder) 12 Nov 2026 — overnight STEP 1: v2.14.0 Step 1b + Tracker on build
+One commit per item on `build`, all pushed together: deploy run 43110561770 succeeded (build 15be9e3). Full suite 133 passed (5 on-demand skipped), lint 0 errors. Visual: the footer, plus JC's Settings page (the two new admin cards), checked by eye and rebaselined.
+- **Item 1 (76ae58c): photos shrunk before sending.** `readImageForAI` (`src/lib/image.js`): long edge ≤ 1568 px, JPEG 0.85; images it can't decode go as they are.
+  - Used in: 📷 Snap, add-food photo, Help Me Eat, Food Checker, Body balance, Body Type Photos, measurement Snap. Weigh In 📷 Upload keeps its own 800 px resize. **Not changed:** My Health 📄 Upload (images/PDFs; not in the brief).
+  - Test: an 8.9 MB phone-size photo goes out at about 0.6 MB per image in all five features.
+- **Item 2 (973a721): parallel loading.** The 31 startup reads, the food-list lookup and the 4 past eating weeks now use `Promise.all`, applied in the same order with the same guards. Person switch was already parallel apart from the eating-week loop.
+  - Serial steps: **startup 47 → 5, person switch 15 → 4**; startup reads 53 → 46.
+  - With a simulated 80 ms round trip: **all startup data 3.7 s → 1.5 s, person switch 1.4 s → 0.5 s.** The first screen is unchanged (about 1.1 s).
+  - Person-race, load, people, eating and open tests: 32 passed.
+- **Item 3 (a6c68c7): Help caching.** It already had `cache_control` on the guide system prompt; a new test pins it. **Chat not changed:** about 2k tokens per question; a follow-up would save about $0.005, and it would need the Chat prompt restructured.
+- **Item 4 (f024391): boot/sign-in logo as WebP.** **186 KB PNG → 52 KB**, still 640 px (displayed at 220 px, so sharp on 3× screens). At 412 px / 3× the before and after screenshots differ by at most 9/255, with no pixel over 8: visually identical. Lossless WebP would be 106 KB. The PNG stays in the repo.
+- **Item 8 (282c23f): energy ping once a day.** Opening the app pings only if there was no successful check today (`companion_energy.lastCheck`). ↻ Refresh always pings.
+- **Item 9 (fd04955): AI usage ledger.**
+  - Every AI reply's usage **counts** go to `DATA_ROOT/ai_usage` in a Firebase transaction: per day × feature (Help / Chat / tab, plus "(photo)"), kept 120 days. No content is stored.
+  - **Companion Energy = ledger total − the total at the last Set as 100%.** Older records migrate keeping their spend, and calls finishing together no longer lose counts.
+  - Settings (admin): **📊 AI usage** (14 days, per day and per feature, estimated cost).
+  - Tests: pure, plus a mocked reply (1000 in / 200 out / 12000 cache-read → $0.0096 recorded and added to energy; no content in the ledger; Becks can't see the view).
+- **Item 10 (6fc3942): Tracker.**
+  - Send Feedback also saves `DATA_ROOT/tracker/<id>`: date/time, version, env, **masked account** (`j***@g***.com`), person, text, Feedback / New. The email still opens.
+  - Settings (admin): **📝 Tracker**. Newest first; Category and Status columns; filters; a red "N new" badge. The Open form: Edit category / status / priority / admin note / link-ref → Save, or Remove (orange, confirm). **+ Add** for a Defect or Feature. Text only.
+  - Tests: feedback → Feedback/New; re-categorise to Defect + In progress + High + note + D20; add a Feature; filters; Remove; non-admin sees nothing.
+- **APP_GUIDE** (15be9e3): AI usage, Tracker, Send Feedback is also saved, energy check once a day.
+- **Database rules:** the emulator uses the real `database.rules.json`, and the tests wrote `tracker/` and `ai_usage` under `data`, so the current rules allow both. No rule change was needed.
+- **Observation (decision needed, JC):** the Send Feedback **email address is hard-coded** in `src/components/FeedbackForm.jsx`. This is pre-existing, not from tonight, but it's in the public repo against the "no email address in the repo" rule. Options: move it to a setting stored in the database, or rely on the Tracker and drop the email.
+- **Items 5–7 deferred**, as agreed.
+- **Resume point:** `build` @ 15be9e3 (v2.14.0), `beta` @ c75c53a (v2.13.3-beta.3). Next: Step 2 (automation, prepared only).
