@@ -3,7 +3,7 @@ import OpenForm, { Field, inputStyle } from "./OpenForm.jsx";
 
 // v2.13.0 F9: My Body history (Weigh In metrics and Measurements) uses the same "Open" pattern as Progress weeks.
 // A row shows the key data + Open (no inline-editable fields, no Del). Open → read-only → Edit/Save, or Remove
-// (deep orange, with a confirm) inside the form. Entries are { wk, v, note, img? }.
+// (deep orange, with a confirm) inside the form. Entries are { wk, v, note } (no photos since v2.13.1).
 //   entries   the history array (oldest first)        unit     shown after the value ("cm", "st", "")
 //   limit     rows to show (newest first)             label    the metric's name, for titles and the confirm
 //   onSave(index, { wk, v, note })                    onRemove(index)
@@ -29,7 +29,7 @@ export default function HistoryRows(props) {
       return (<div key={r.i}>
         <div data-testid={pre + "-row"} style={{ display: "flex", gap: 6, alignItems: "center", padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
           <span data-testid={pre + "-wk"} style={{ width: 40, color: "#64748b", fontWeight: 600 }}>{e.wk}</span>
-          <span data-testid={pre + "-v"} style={{ flex: 1, minWidth: 0, fontWeight: 700, color: "#0f172a" }}>{fmt(e.v)}{e.img ? <span style={{ fontSize: 9, color: "#16a34a", marginLeft: 4 }}>📷</span> : null}</span>
+          <span data-testid={pre + "-v"} style={{ flex: 1, minWidth: 0, fontWeight: 700, color: "#0f172a" }}>{fmt(e.v)}</span>
           <button aria-label={"Open week " + e.wk} onClick={function() { setOpen(isOpen ? null : { i: r.i, editing: false, msg: "", draft: { wk: String(e.wk), v: String(e.v), note: e.note || "" } }); }} style={{ padding: "4px 12px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, fontWeight: 600, color: "#1e3a5f", cursor: "pointer", flexShrink: 0 }}>Open</button>
         </div>
         {isOpen && (function() {
@@ -43,7 +43,6 @@ export default function HistoryRows(props) {
             <Field label="Week" testid={pre + "-f-wk"}>{ed ? <input aria-label="Week" type="number" value={d.wk} onChange={function(ev) { setD({ wk: ev.target.value }); }} style={Object.assign({}, inputStyle, { width: 70 })} /> : e.wk}</Field>
             <Field label={"Value" + (unit ? " (" + unit + ")" : "")} testid={pre + "-f-v"}>{ed ? <input aria-label="Value" type="number" step="any" value={d.v} onChange={function(ev) { setD({ v: ev.target.value }); }} style={Object.assign({}, inputStyle, { width: 90 })} /> : fmt(e.v)}</Field>
             <Field label="Note" testid={pre + "-f-note"}>{ed ? <textarea aria-label="Note" value={d.note} onChange={function(ev) { setD({ note: ev.target.value }); }} style={Object.assign({}, inputStyle, { minHeight: 40 })} /> : (e.note || <span style={{ color: "#94a3b8" }}>—</span>)}</Field>
-            {e.img && !ed && <Field label="Photo"><img src={e.img} alt="" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 6, border: "1px solid #e2e8f0" }} /></Field>}
           </OpenForm>);
         })()}
       </div>);

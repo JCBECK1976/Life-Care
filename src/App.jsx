@@ -40,7 +40,7 @@ import PersonTabs, { peopleOf, personName } from "./components/PersonTabs.jsx";
 import { ALLOW_ADD_PERSON } from "./constants/features.js";
 import { PHASE_LABEL, dayPhase, readFeedback, weekPhase } from "./lib/eatPhase.js";
 import SharePicker from "./components/SharePicker.jsx";
-import { stripPhotoFragments } from "./lib/bodyBalance.js";
+import { stripMeasurementPhotos, stripPhotoFragments } from "./lib/bodyBalance.js";
 import { childItems, dateOf, emptyDoc, loadParentLookup, loadWeekDoc, reconcile, recalcChild, saveWeekDoc, viewFromDoc, weekKey, ymd } from "./lib/children.js";
 
 const { useState, useEffect, useCallback, useRef } = React;
@@ -577,6 +577,7 @@ function Dashboard() {
         var migrated = false;
         Object.keys(d).forEach(function(uk) { if (uk !== "config" && d[uk].measurements && !d[uk].measurements.fullBody) { d[uk].measurements = Object.assign({ fullBody: [] }, d[uk].measurements); migrated = true; } });
         if (stripPhotoFragments(d)) migrated = true;   // v2.12.1: remove old base64 fragments from Body Type Photos
+        if (stripMeasurementPhotos(d)) migrated = true; // v2.13.1: remove old photos stored in measurement entries
         if (migrated) await sSet("dashboard:data", JSON.stringify(d));
         setData(d);
       } else {

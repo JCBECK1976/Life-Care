@@ -177,3 +177,38 @@ test("F10: measurement Log 📷 Snap — description, AI reads the value, Confir
   await expect(page.getByTestId("meas-snap-panel")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
+
+// v2.13.1: one-off idempotent cleanup of photos stored in old measurement entries
+import { stripMeasurementPhotos } from "../src/lib/bodyBalance.js";
+const JPEG_URL = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/";
+
+test("v2.13.1 pure: only measurements[].img is removed; a second run changes nothing", () => {
+  const d = { config: { week: 3 }, jc: { measurements: { chest: [{ wk: 1, v: 100, note: "a", img: JPEG_URL }, { wk: 2, v: 101 }], fullBody: [] }, body: { weight: [{ wk: 1, v: 15 }] } }, becks: { measurements: { waist: [{ wk: 1, v: 80, img: JPEG_URL }] } } };
+  expect(stripMeasurementPhotos(d)).toBe(true);
+  expect(d.jc.measurements.chest).toEqual([{ wk: 1, v: 100, note: "a" }, { wk: 2, v: 101 }]);
+  expect(d.becks.measurements.waist).toEqual([{ wk: 1, v: 80 }]);
+  expect(d.jc.body).toEqual({ weight: [{ wk: 1, v: 15 }] });
+  expect(stripMeasurementPhotos(d)).toBe(false);
+});
+
+test("v2.13.1: on load the stored measurement photos are removed; values, weeks and notes unchanged; nothing image-like left", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const d = await getDash();
+  d.jc.measurements = { chest: [{ wk: 1, v: 100, note: "first", img: JPEG_URL }, { wk: 2, v: 101.5, note: "tape at nipple" }], waist: [{ wk: 2, v: 90, img: JPEG_URL }] };
+  d.becks.measurements = Object.assign({}, d.becks.measurements, { calf: [{ wk: 3, v: 38, note: "left", img: JPEG_URL }] });
+  await putDash(d);
+  expect(JSON.stringify(await getDash())).toMatch(IMAGE_LIKE);
+  await page.reload();
+  await tab(page, "My Body");
+  await expect.poll(async () => JSON.stringify(await getDash())).not.toMatch(IMAGE_LIKE);
+  const raw = await (await fetch("http://127.0.0.1:9000/.json" + NS, { headers: { Authorization: "Bearer owner" } })).text();
+  expect(raw).not.toMatch(IMAGE_LIKE);                                                  // whole emulator database
+  const after = await getDash();
+  expect(after.jc.measurements.chest).toEqual([{ wk: 1, v: 100, note: "first" }, { wk: 2, v: 101.5, note: "tape at nipple" }]);
+  expect(after.jc.measurements.waist).toEqual([{ wk: 2, v: 90 }]);
+  expect(after.becks.measurements.calf).toEqual([{ wk: 3, v: 38, note: "left" }]);
+  const before = JSON.stringify(after);                                                 // idempotent: a second load changes nothing
+  await page.reload(); await tab(page, "My Body"); await page.waitForTimeout(500);
+  expect(JSON.stringify(await getDash())).toBe(before);
+  expect(errors).toEqual([]);
+});

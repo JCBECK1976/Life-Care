@@ -21,6 +21,20 @@ export function stripPhotoFragments(d) {
   return changed;
 }
 
+// v2.13.1 one-off cleanup (idempotent): the old measurement Log saved the whole photo as "img" in each entry
+// (measurements.<type>[].img). Remove that field only; week, value, note and everything else stay. Returns true if changed.
+export function stripMeasurementPhotos(d) {
+  var changed = false;
+  Object.keys(d || {}).forEach(function(k) {
+    var m = d[k] && d[k].measurements; if (!m || typeof m !== "object") return;
+    Object.keys(m).forEach(function(t) {
+      if (!Array.isArray(m[t])) return;
+      m[t].forEach(function(e) { if (e && Object.prototype.hasOwnProperty.call(e, "img")) { delete e.img; changed = true; } });
+    });
+  });
+  return changed;
+}
+
 // "chest: 98 → 101 (wk 3 → wk 15)" per measurement type, oldest vs latest
 export function measurementTrends(measurements) {
   var out = [];
