@@ -2075,3 +2075,54 @@ One commit per item on `build`, all pushed together: deploy run 43110561770 succ
 - **Observation (decision needed, JC):** the Send Feedback **email address is hard-coded** in `src/components/FeedbackForm.jsx`. This is pre-existing, not from tonight, but it's in the public repo against the "no email address in the repo" rule. Options: move it to a setting stored in the database, or rely on the Tracker and drop the email.
 - **Items 5–7 deferred**, as agreed.
 - **Resume point:** `build` @ 15be9e3 (v2.14.0), `beta` @ c75c53a (v2.13.3-beta.3). Next: Step 2 (automation, prepared only).
+
+### (Coder) 12 Nov 2026 — overnight STEP 2: automation (P2) prepared, inactive until the secrets are added
+On `build` @ 1a34a76; deploy 43111232779 succeeded, and only the deploy workflow ran. These workflows trigger only from `main` (schedule, workflow_run, push to main), so **nothing runs until they reach main with the next release**. Even then, each job that needs a secret logs "secret not set — skipped" and ends green.
+- **`backup.yml`** (nightly 02:17 UTC + manual "Run workflow", e.g. right before a Prod release):
+  - takes a full snapshot of `data`, **only when its fingerprint changed** (sha256 of the data, sorted);
+  - **encrypts it with gpg AES-256** using BACKUP_KEY; the plaintext is shredded on the runner;
+  - pushes it to the **private vault repo** at `life-care/backups/daily/YYYY-MM-DD.json.gpg`, plus the first of each month at `monthly/YYYY-MM.json.gpg`, keeping **30 daily + 12 monthly**.
+- **`refresh-build.yml`** (nightly 02:43 UTC + manual): `data_build` ← `data`. It **refuses** if the data holds anyone beyond `jc,becks` (privacy rule for pilot users). Logs counts only.
+- **`smoke.yml`** (after each successful deploy + manual):
+  - for prod, beta and build: the page loads, shows "Sign in with Google" with **no console errors** (Google sign-in script noise is ignored), and the deployed version matches that branch's `version.js`;
+  - then `data` and `data_build` are present (key count, size, dashboard present).
+  - It fails visibly if any check fails. It is gated on FIREBASE_SERVICE_ACCOUNT, per "inactive until secrets".
+- **`auto-tag.yml`** (push to main): on a commit starting "Merge pull request … from JCBECK1976/beta", it tags `vX.Y.Z` from `version.js`. It skips if the tag exists, and needs **no secret**, so it becomes active as soon as it reaches main.
+- **Scripts:** `scripts/automation/` (`common`, `backup`, `refresh-build`, `smoke`). `firebase-admin@12.7.0` and `playwright@1.63.0` are installed per job only, not in package.json. Logs show counts and fingerprints only.
+- **Checked locally:**
+  - every script without the secret prints "skipped" and exits 0;
+  - against the **emulator** with a throwaway fake key: snapshot (100 keys), unchanged → skip, Build refresh (2 people);
+  - gpg encrypt/decrypt round trip with a dummy file;
+  - YAML parses.
+- **`.gitignore` widened:** `*backup*.json`, `*export*.json`, `*-rtdb-*.json`, `*dump*.json`, `*.gpg`, `lifecare_backup_*`, `data_export*`, `/out/` and more. No tracked file is caught.
+- **Not done:** seeding the emulator from the vault backup (the earlier ask). It needs the vault and the key on the dev machine; for later.
+
+#### JC: add these secrets (about 10 minutes; nothing runs until they're in and the next release reaches main)
+**Decision needed:** the brief said 2 secrets, but **pushing to the vault needs a third**. This repository's own token can't write to another repository. Without VAULT_DEPLOY_KEY the backup job skips cleanly. The alternative is a fine-grained token limited to the vault, which would expire and need renewing.
+
+**1. FIREBASE_SERVICE_ACCOUNT** (lets the jobs read the database and write the Build copy; it bypasses the database rules, so treat it like a master key)
+1. Go to console.firebase.google.com and open project **life-care-app-64d04**.
+2. Click ⚙ (next to Project Overview) → **Project settings** → **Service accounts** tab.
+3. Under "Firebase Admin SDK", click **Generate new private key** → **Generate key**. A `.json` file downloads.
+4. Open that file in Notepad, select all and copy.
+5. Go to github.com/JCBECK1976/Life-Care → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**.
+6. Name: `FIREBASE_SERVICE_ACCOUNT`; Secret: paste the copied text → **Add secret**.
+7. Delete the downloaded `.json` file (or move it into the vault). Never email it or put it in the Life-Care repo.
+
+**2. BACKUP_KEY** (the passphrase that encrypts every backup; without it no backup can ever be opened)
+1. In your password manager, generate a passphrase of **at least 40 characters** and save it as "Lifecare backup key". Also keep a copy in the vault.
+2. GitHub → Life-Care → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**.
+3. Name: `BACKUP_KEY`; Secret: paste the passphrase → **Add secret**.
+
+**3. VAULT_DEPLOY_KEY** (lets the backup job write to the vault repo, and only the vault)
+1. On your PC, open **PowerShell** and run: `ssh-keygen -t ed25519 -C lifecare-backup -f vault_deploy -N '""'`. It makes two files, `vault_deploy` and `vault_deploy.pub`.
+2. Go to github.com/JCBECK1976/**vault** → **Settings** → **Deploy keys** → **Add deploy key**.
+3. Title: `Life-Care backups`; Key: paste the contents of **`vault_deploy.pub`**. Tick **Allow write access** → **Add key**.
+4. GitHub → **Life-Care** → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**.
+5. Name: `VAULT_DEPLOY_KEY`; Secret: paste the contents of **`vault_deploy`** (the file without .pub, including the BEGIN/END lines) → **Add secret**.
+6. Delete both files from the PC.
+
+**After the next release reaches main:** go to **Actions** → "Backup data (encrypted, to the vault)" → **Run workflow**. Within about a minute a `life-care/backups/daily/<today>.json.gpg` file should appear in the vault. Then run "Refresh Build data from real data" and "Smoke test after deploy" the same way.
+
+**To open a backup later:** `gpg -d 2026-11-12.json.gpg > backup.json` and enter BACKUP_KEY. The file is in Download-backup format, so Data tools → Restore accepts it.
+- **Resume point:** `build` @ 1a34a76. Next: Step 3 (docs on main).
