@@ -594,39 +594,72 @@ function Dashboard() {
   // Load saved feedback + history
   useEffect(() => { (async () => {
     const who = activeTab; const stillSelected = () => activeTabRef.current === who; // v2.5.1
-    const r = await sGet("feedback_results"); if (r) setFeedbackResults(JSON.parse(r));
-    const bfAll = await sGet("body_feedback"); if (bfAll) { var bfObj = JSON.parse(bfAll); setBodyFbAll(bfObj); setBodyFeedback(bfObj[activeTabRef.current] || null); }
-    const hfAll = await sGet("health_feedback"); if (hfAll) { var hfObj = JSON.parse(hfAll); setHealthFbAll(hfObj); setHealthFb(hfObj[activeTabRef.current] || null); }
-    const mfAll = await sGet("meas_feedback"); if (mfAll) { var mfObj = JSON.parse(mfAll); setMeasFbAll(mfObj); setMeasFeedback(mfObj[activeTabRef.current] || null); }
-    const h = await sGet("feedback_history"); if (h) setFeedbackHistory(JSON.parse(h));
-    const efb = await sGet("eat_feedback"); if (efb) setEatFbResults(JSON.parse(efb));
-    const ce = await sGet("custom_exercises"); if (ce) setCustomExercises(JSON.parse(ce));
-    const cs = await sGet("custom_snacks"); if (cs) setCustomSnacks(JSON.parse(cs));
-    const cdr = await sGet("custom_drinks"); if (cdr) setCustomDrinks(JSON.parse(cdr));
-    const cde = await sGet("custom_desserts"); if (cde) setCustomDesserts(JSON.parse(cde));
-    const mt = await sGet("meal_tracking:" + activeTab); if (mt && stillSelected()) setMealTracking(JSON.parse(mt));
-    const po = await sGet("portion_overrides:" + activeTab); if (po && stillSelected()) setPortionOverrides(JSON.parse(po));
-    const cb = await sGet("custom_breakfasts"); if (cb) setCustomBreakfasts(JSON.parse(cb));
-    const cl = await sGet("custom_lunches"); if (cl) setCustomLunches(JSON.parse(cl));
-    const md = await sGet("meal_defaults"); if (md) setMealDefaults(JSON.parse(md));
-    const cmn = await sGet("custom_med_names"); if (cmn) setCustomMedNames(JSON.parse(cmn));
-    const cbt = await sGet("custom_blood_tests"); if (cbt) setCustomBloodTests(JSON.parse(cbt));
-    const sm = await sGet("supermarket_pref"); if (sm) setSupermarket(sm);
-    const sd = await sGet("shop_defaults"); if (sd) setShopDefaults(JSON.parse(sd));
-    const cmt = await sGet("custom_meas_types"); if (cmt) setCustomMeasTypes(JSON.parse(cmt));
-    
-    // Load saved session feedback
-    var sfAll = await sGet("session_feedback_all"); if (sfAll) { setSessionFeedback(JSON.parse(sfAll)); }
-const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
-    const gt = await sGet("google_token_" + activeTab); if (gt && stillSelected()) { setGoogleToken(gt); setGoogleConnected(true); }
-    const qa = await sGet("qa_history"); if (qa) setQaHistory(JSON.parse(qa));
-    const hh = await sGet("help_history"); if (hh) setHelpHistory(JSON.parse(hh));
-    const savedMood = await sGet("user_mood_" + activeTab); if (savedMood && stillSelected()) setUserMood(JSON.parse(savedMood));
-    const savedJournal = await sGet("journal_" + activeTab); if (savedJournal && stillSelected()) setJournalEntries(JSON.parse(savedJournal));
-    const savedDailyMood = await sGet("daily_mood_" + activeTab); if (savedDailyMood && stillSelected()) { var dm = JSON.parse(savedDailyMood); var todayStr = new Date().toISOString().split("T")[0]; if (dm && dm.date === todayStr) setDailyMood(dm); else setDailyMood(null); }
-    const savedColour = await sGet("user_colour_" + activeTab); if (stillSelected()) { if (savedColour) setUserColour(savedColour); else setUserColour(null); }
-    const savedWbFlags = await sGet("wellbeing_flags_" + activeTab); if (savedWbFlags && stillSelected()) setWellbeingFlags(JSON.parse(savedWbFlags));
-    const cen = await sGet("companion_energy"); if (cen) setCompanionEnergy(JSON.parse(cen));
+    // v2.14.0 Step 1b item 2: all of these are read IN PARALLEL (one round trip instead of 31 one after another),
+    // then applied in the same order as before, with the same stillSelected() guards.
+    const [r, bfAll, hfAll, mfAll, h, efb, ce, cs, cdr, cde, mt, po, cb, cl, md, cmn, cbt, sm, sd, cmt, sfAll, ak, gt, qa, hh, savedMood, savedJournal, savedDailyMood, savedColour, savedWbFlags, cen] = await Promise.all([
+      sGet("feedback_results"),
+      sGet("body_feedback"),
+      sGet("health_feedback"),
+      sGet("meas_feedback"),
+      sGet("feedback_history"),
+      sGet("eat_feedback"),
+      sGet("custom_exercises"),
+      sGet("custom_snacks"),
+      sGet("custom_drinks"),
+      sGet("custom_desserts"),
+      sGet("meal_tracking:" + activeTab),
+      sGet("portion_overrides:" + activeTab),
+      sGet("custom_breakfasts"),
+      sGet("custom_lunches"),
+      sGet("meal_defaults"),
+      sGet("custom_med_names"),
+      sGet("custom_blood_tests"),
+      sGet("supermarket_pref"),
+      sGet("shop_defaults"),
+      sGet("custom_meas_types"),
+      sGet("session_feedback_all"),
+      sGet("anthropic_api_key"),
+      sGet("google_token_" + activeTab),
+      sGet("qa_history"),
+      sGet("help_history"),
+      sGet("user_mood_" + activeTab),
+      sGet("journal_" + activeTab),
+      sGet("daily_mood_" + activeTab),
+      sGet("user_colour_" + activeTab),
+      sGet("wellbeing_flags_" + activeTab),
+      sGet("companion_energy")
+    ]);
+    if (r) setFeedbackResults(JSON.parse(r));
+    if (bfAll) { var bfObj = JSON.parse(bfAll); setBodyFbAll(bfObj); setBodyFeedback(bfObj[activeTabRef.current] || null); }
+    if (hfAll) { var hfObj = JSON.parse(hfAll); setHealthFbAll(hfObj); setHealthFb(hfObj[activeTabRef.current] || null); }
+    if (mfAll) { var mfObj = JSON.parse(mfAll); setMeasFbAll(mfObj); setMeasFeedback(mfObj[activeTabRef.current] || null); }
+    if (h) setFeedbackHistory(JSON.parse(h));
+    if (efb) setEatFbResults(JSON.parse(efb));
+    if (ce) setCustomExercises(JSON.parse(ce));
+    if (cs) setCustomSnacks(JSON.parse(cs));
+    if (cdr) setCustomDrinks(JSON.parse(cdr));
+    if (cde) setCustomDesserts(JSON.parse(cde));
+    if (mt && stillSelected()) setMealTracking(JSON.parse(mt));
+    if (po && stillSelected()) setPortionOverrides(JSON.parse(po));
+    if (cb) setCustomBreakfasts(JSON.parse(cb));
+    if (cl) setCustomLunches(JSON.parse(cl));
+    if (md) setMealDefaults(JSON.parse(md));
+    if (cmn) setCustomMedNames(JSON.parse(cmn));
+    if (cbt) setCustomBloodTests(JSON.parse(cbt));
+    if (sm) setSupermarket(sm);
+    if (sd) setShopDefaults(JSON.parse(sd));
+    if (cmt) setCustomMeasTypes(JSON.parse(cmt));
+    if (sfAll) { setSessionFeedback(JSON.parse(sfAll)); }
+    if (ak) window._anthropicKey = ak;
+    if (gt && stillSelected()) { setGoogleToken(gt); setGoogleConnected(true); }
+    if (qa) setQaHistory(JSON.parse(qa));
+    if (hh) setHelpHistory(JSON.parse(hh));
+    if (savedMood && stillSelected()) setUserMood(JSON.parse(savedMood));
+    if (savedJournal && stillSelected()) setJournalEntries(JSON.parse(savedJournal));
+    if (savedDailyMood && stillSelected()) { var dm = JSON.parse(savedDailyMood); var todayStr = new Date().toISOString().split("T")[0]; if (dm && dm.date === todayStr) setDailyMood(dm); else setDailyMood(null); }
+    if (stillSelected()) { if (savedColour) setUserColour(savedColour); else setUserColour(null); }
+    if (savedWbFlags && stillSelected()) setWellbeingFlags(JSON.parse(savedWbFlags));
+    if (cen) setCompanionEnergy(JSON.parse(cen));
   })(); }, []);
 
   // Check for health data changes and prompt RAG recalculation
@@ -737,11 +770,10 @@ const ak = await sGet("anthropic_api_key"); if (ak) window._anthropicKey = ak;
       if (skRef.current !== mySk) return;
       setWeekChildren(doc); setMeals(viewFromDoc(doc));
       /* Past 4 weeks for the frequency rules (children; old plans converted in memory only) */
-      var past = [];
-      for (var pw = 1; pw <= 4; pw++) {
+      var past = await Promise.all([1, 2, 3, 4].map(function(pw) {   // v2.14.0: read-only, in parallel (same order)
         var pws = new Date(ws); pws.setDate(pws.getDate() - (pw * 7));
-        past.push(await loadWeekDoc(who, pws, { write: false, lookup: lookup }));
-      }
+        return loadWeekDoc(who, pws, { write: false, lookup: lookup });
+      }));
       if (skRef.current !== mySk) return;
       setPastWeeksMeals(past);
       setMealLoading(false);

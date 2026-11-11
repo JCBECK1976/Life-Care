@@ -115,8 +115,9 @@ export function ragNote(c, parent) {
 export async function loadParentLookup() {
   var lookup = {};
   [].concat(BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, POTATO_SIDES, SNACKS, VEG_SIDES).forEach(function(it) { if (it && it.id) lookup[it.id] = it; });
+  var raws = await Promise.all(LIST_KEYS.map(function(k) { return sGet(k); }));   // v2.14.0: in parallel, applied in order
   for (var i = 0; i < LIST_KEYS.length; i++) {
-    var raw = await sGet(LIST_KEYS[i]); var arr = []; try { arr = raw ? (typeof raw === "string" ? JSON.parse(raw) : raw) : []; } catch (e) {}
+    var raw = raws[i]; var arr = []; try { arr = raw ? (typeof raw === "string" ? JSON.parse(raw) : raw) : []; } catch (e) {}
     (arr || []).forEach(function(it) { if (it && it.id) lookup[it.id] = it; });
   }
   return lookup;
