@@ -826,9 +826,17 @@ function Dashboard() {
   }, [activeTab]);
 
   // Auto-refresh companion energy on app load
-  const checkCompanionEnergy = useCallback(async function() {
+  // v2.14.0 Step 1b item 8: on app open the energy ping runs at most ONCE A DAY (after a successful check today the
+  // stored level is used). ↻ Refresh (Home) always pings.
+  const checkCompanionEnergy = useCallback(async function(opts) {
     setEnergyLoading(true);
+    var today = new Date().toISOString().split("T")[0];
+    var stamp = function(o) { o.lastCheck = today; return o; };
     try {
+      if (opts && opts.daily === true) {
+        var already = await sGet("companion_energy"); var ap = null; try { ap = already ? JSON.parse(already) : null; } catch (pe) {}
+        if (ap && ap.lastCheck === today && ap.keyStatus === "active") { window._setCompanionEnergy(ap); setEnergyLoading(false); return; }
+      }
       var ak = await window.ensureApiKey();
       if (!ak) { window._setCompanionEnergy({ balance: 0, pct: 0, keyStatus: "no_key", initial: 5, spent: 0 }); setEnergyLoading(false); return; }
       var pingResp = await window._origFetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": ak, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1, messages: [{ role: "user", content: "hi" }] }) });
@@ -842,11 +850,11 @@ function Dashboard() {
           parsed.depleted = false;
           parsed.needsCalibration = (parsed.pct <= 0 || parsed.balance <= 0);
           window._setCompanionEnergy(parsed);
-          await sSet("companion_energy", JSON.stringify(parsed));
+          await sSet("companion_energy", JSON.stringify(stamp(parsed)));
         } else {
           var fresh = { balance: 5.00, initial: 5.00, pct: 100, keyStatus: "active", spent: 0 };
           window._setCompanionEnergy(fresh);
-          await sSet("companion_energy", JSON.stringify(fresh));
+          await sSet("companion_energy", JSON.stringify(stamp(fresh)));
         }
       } else {
         var errData = null; try { errData = await pingResp.json(); } catch(e2) {}
@@ -859,12 +867,12 @@ function Dashboard() {
           else if (status === "empty") { parsed2.balance = 0; parsed2.pct = 0; parsed2.depleted = true; parsed2.needsCalibration = false; parsed2.keyStatus = "active"; }
           else if (status === "active") { parsed2.depleted = false; parsed2.needsCalibration = (parsed2.pct <= 0 || parsed2.balance <= 0); }
           window._setCompanionEnergy(parsed2);
-          await sSet("companion_energy", JSON.stringify(parsed2));
+          await sSet("companion_energy", JSON.stringify(stamp(parsed2)));
         } else {
           var bal2 = status === "invalid_key" ? 0 : 5;
           var en = { balance: bal2, initial: 5, pct: status === "invalid_key" ? 0 : 100, keyStatus: status, spent: 0 };
           window._setCompanionEnergy(en);
-          await sSet("companion_energy", JSON.stringify(en));
+          await sSet("companion_energy", JSON.stringify(stamp(en)));
         }
       }
     } catch(e) {
@@ -879,7 +887,7 @@ function Dashboard() {
     }
     setEnergyLoading(false);
   }, []);
-  useEffect(() => { checkCompanionEnergy(); }, []);
+  useEffect(() => { checkCompanionEnergy({ daily: true }); }, []);
 
   const openLogForm = (day, idx) => {
     window._dualLogState = null;

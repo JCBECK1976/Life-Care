@@ -71,3 +71,18 @@ test("item 4: the boot/sign-in logo is the small WebP file, same 640px resolutio
   const r = await img.evaluate((i) => ({ src: i.currentSrc, nw: i.naturalWidth, w: i.getBoundingClientRect().width }));
   expect(r.src).toMatch(/app-logo-640\.webp$/); expect(r.nw).toBe(640); expect(r.w).toBe(220);
 });
+
+test("item 8: the energy ping runs once a day on open; ↻ Refresh still pings", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const pings = []; page.on("request", (r) => { if (/api\.anthropic\.com/.test(r.url()) && (r.postData() || "").includes('"max_tokens":1,')) pings.push(1); });
+  await page.waitForTimeout(1500);
+  const NSx = "?ns=life-care-app-64d04-default-rtdb";
+  const ce = JSON.parse(await (await fetch("http://127.0.0.1:9000/data/companion_energy.json" + NSx, { headers: { Authorization: "Bearer owner" } })).json());
+  expect(ce.lastCheck).toBe(new Date().toISOString().split("T")[0]);                     // the first open today pinged and stamped the day
+  pings.length = 0;                                                                      // (the first open's ping may land after openApp returns)
+  await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 }); await page.waitForTimeout(1500);
+  expect(pings.length).toBe(0);                                                          // second open today: no ping
+  await page.getByRole("button", { name: /Refresh/ }).first().click();
+  await expect.poll(() => pings.length).toBe(1);                                         // manual refresh always pings
+  expect(errors).toEqual([]);
+});
