@@ -6,6 +6,7 @@ import { TONE_RULES } from "../constants/tone.js";
 import { getMoodContext } from "../lib/aiContext.js";
 import { sSet } from "../lib/storage.js";
 import React from "react";
+import BodyBalance from "./BodyBalance.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -345,6 +346,8 @@ export default function BodySection({ ctx }) {
             </div>
           </div>
 
+          {/* v2.12.0 F2: body balance from progress photos (analyse-and-discard) */}
+          <BodyBalance p={p} data={data} activeTab={activeTab} saveData={saveData} />
         </div>
   );
 }

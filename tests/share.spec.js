@@ -50,7 +50,7 @@ test("picker: 'What is this?' → Food hands the image to the Food Checker, then
   expect(errors).toEqual([]);
 });
 
-test("the shared image is kept until signed in; Later keeps it, Discard deletes it; no Progress photo option yet", async ({ page }) => {
+test("the shared image is kept until signed in; Later keeps it; Progress photo goes to the Body balance check; Discard deletes", async ({ page }) => {
   const { errors } = await openApp(page);
   await shareImage(page);
   await expect(page.getByTestId("share-picker")).toBeVisible({ timeout: 20000 });  // a pending share shows on any signed-in load
@@ -65,10 +65,20 @@ test("the shared image is kept until signed in; Later keeps it, Discard deletes 
   await expect(page.getByTestId("share-picker")).toHaveCount(0);
   await page.reload();
   await expect(page.getByTestId("share-picker")).toBeVisible({ timeout: 20000 });  // still there next time
-  await expect(page.getByRole("button", { name: /📸 Progress/ })).toHaveCount(0);       // hidden until F2 is built (11 Nov decision)
-  await expect(page.getByRole("button", { name: /📏 Body measurements/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /🍽 Food/ })).toBeVisible();
-  await page.getByRole("button", { name: "Discard" }).click();
+  // v2.12.0: Progress photo is back and routes into the Body balance check (opted in here)
+  const NSX = "?ns=life-care-app-64d04-default-rtdb"; const dk = "http://127.0.0.1:9000/data/dashboard:data.json" + NSX;
+  const dash = JSON.parse(await (await fetch(dk, { headers: { Authorization: "Bearer owner" } })).json()); dash.jc.bodyBalance = { optIn: true };
+  await fetch(dk, { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify(JSON.stringify(dash)) });
+  await page.reload();
+  await expect(page.getByTestId("share-picker")).toBeVisible({ timeout: 20000 });
+  const calls = [];
+  const REG = ["upperChest","lowerChest","shoulders","shoulderWaist","armsLR","back","core","glutes","quads","calves"];
+  await page.route("https://api.anthropic.com/**", (r) => { const t = r.request().postData() || ""; if (!/assessing body BALANCE/.test(t)) return r.fallback(); calls.push(t); return r.fulfill(aiJson({ poses: ["front"], scores: Object.fromEntries(REG.map((k) => [k, { score: 3, note: "ok" }])), changes: [], flags: [], summary: "Even." })); });
+  await page.getByRole("button", { name: /📸 Progress photo/ }).click();
+  await expect(page.getByTestId("bb-msg")).toHaveText("✓ Checked front. Photos were not saved.");
+  expect(calls.length).toBe(1);
+  await expect(page.getByTestId("share-picker")).toHaveCount(0);
+  expect(await page.evaluate(async () => (await (await caches.open("lc-share")).keys()).length)).toBe(0);
   await shareImage(page);
   await page.goto("./?share=1");
   await page.getByRole("button", { name: "Discard" }).click();

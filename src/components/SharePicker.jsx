@@ -35,7 +35,7 @@ async function handTo(kind, files) {
 
 var KINDS = [
   { k: "body", label: "📏 Body measurements", hint: "a screenshot from your scales or measurement app" },
-  // "Progress photo" is hidden until F2 (progress-photo storage) is built — Architect/JC 11 Nov.
+  { k: "progress", label: "📸 Progress photo", hint: "body balance check (analysed, never stored)" },
   { k: "food", label: "🍽 Food", hint: "checked in the Food Checker" },
 ];
 
