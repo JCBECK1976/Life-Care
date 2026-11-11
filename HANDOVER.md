@@ -79,6 +79,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.13.0 | Layout (JC phone test 11 Nov): button standard in all Open forms (Edit deep blue · Remove deep orange · Delete red · Close/Cancel grey, single words, fit at 360px); D17–D19 labels; D20 fix (older-week edit/remove no longer changes the status pill); D21 Range/Form chip when viewing; F9 My Body history Open rows; F10 measurement 📷 Snap. | build only |
 | v2.13.1 | Fix (JC 11 Nov): one-off idempotent cleanup on load removes photos stored in old measurement entries (`measurements.*[].img`); week, value and note unchanged; saves only if something was removed. | build only |
 | v2.13.2 | Fix (JC phone test 11 Nov): Open forms and Progress panels scroll into view on open; Open buttons styled like Snap (blue outline, blue text); privacy note on Body Type Photos, measurement Log and Body balance; new meal-slot save text. | build only |
+| v2.13.3 | Layout (JC 11 Nov): shared outlined buttons (`styles.js`): Open and 📷 Snap blue, 👁 Progress violet, 📋 Log green, filled navy when open; Body stat card button moved under the rating (no overlap at 360px). **Beta 11 Nov as v2.13.3-beta.3 (PR #21).** | beta |
 
 ---
 
@@ -1977,3 +1978,16 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   - the Open buttons now look tappable;
   - the privacy notes.
 - **Resume point:** `build` @ 899777c (v2.13.2). Next: JC's /build/ test; then the beta PR when asked (APP_GUIDE for v2.8.0–v2.13.2).
+
+### (Coder) 11 Nov 2026 — v2.13.3 shared outlined buttons; build → beta (PR #21)
+- **v2.13.3 (build @ 64f21ea, deploy 43099130478):**
+  - **Shared styles in `src/constants/styles.js`:** `btnOpen` = `btnSnap` (blue), `btnProgress` (violet), `btnLog` (green), one outlined shape; `btnFilledOn` is the open state ("✕ Progress", "✕ Log").
+  - **Applied:** My Body (stat cards, Measurements 👁/📋, measurement Snap), My Exercise (👁/📋), My Eating (Snap, day and week 👁 Progress).
+  - **Left as they were** (not Progress/Log/Snap): 📋 Record, 📷 Upload, 📋 Copy Day and the large "📋 Log <measurement>" button inside the panel.
+  - The Body stat card's 👁 Progress used to sit on top of the rating text at 360px; it now sits under the rating.
+  - Test `tests/v2133.spec.js`: colours, one shared shape, filled when open, not truncated and not covering card text at 360px. Full suite 123 passed (4 skipped). One run had a single failure that passed on rerun; I didn't capture which test. Lint 0 errors; visual rebaselined after checking it by eye.
+- **APP_GUIDE (build @ a8ae8fe):** updated for v2.8.0–v2.13.3, plus the Step 1b install troubleshooting row ("already installed" / "Could not open app").
+- **Prod compat:** new test for the v2.8.0–v2.13.3 data shapes (meal variations, body balance records, no photo fields, cleared status). Run against a v2.6.0 worktree: 2 passed (build @ 6a0076e).
+- **PR #21 build → beta merged** as `c75c53a`; deploy run 43101203446 succeeded. Beta should show **v2.13.3-beta.3**. This sandbox can't reach github.io, so I couldn't check the beta footer: Architect or JC, please check it. On first load, beta runs the two one-off cleanups on the shared `data`: `bodyPhotos[].thumbnail` and `measurements.*[].img` (JC took a backup first). **Not merged to main.**
+- **JC to test on /beta/:** close and reopen; footer v2.13.3-beta.3; the v2.8.0–v2.13.3 features.
+- **Resume point:** `beta` @ c75c53a, `build` @ 6a0076e. Next: Step 1b measurement (no build), then `beta → main` only after JC's OK.
