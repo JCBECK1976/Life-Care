@@ -1856,3 +1856,22 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
 - **R5:** "Progress photo" is removed from the share picker until F2 is built; Body measurements and Food remain.
 - Tests: a new open.spec test (600 kcal photo → ×1.5 = 900 → ½ = 300; the parent is unchanged); share.spec now asserts there's no Progress option. Full suite 106 passed (4 skipped), lint 0 errors, visual footer only. Deploy 42920204308 succeeded.
 - **Resume point:** `build` @ fd9c49c (v2.11.1). Next: the beta PR (with APP_GUIDE for v2.8.0–v2.11.1) when asked; F2 waits for JC.
+
+### (Architect) 11 Nov 2026 06:25 — DECISION (JC): F2 photo storage = Firebase Storage, per-UID, keep the last 3 per pose
+- **Option 1 approved:**
+  - Firebase Storage, path `progress/<uid>/<person>/<YYYY-MM-DD>_<pose>.jpg`.
+  - Owner-only rules; resized to ~1280px JPEG 0.8 before upload.
+  - The DB keeps metadata `{date, week, pose, path, analysis}` under `progressPhotos`.
+  - Excluded from Download backup by default, with an explicit "include photos" option.
+  - Delete-photo action.
+  - **Per-person opt-in.**
+  - Poses: front / side / back; suggested every 4 weeks.
+- **JC rule: keep only the last 3 images per pose per person.** When a 4th is uploaded, the oldest image of that pose is deleted from Storage. **Its text `analysis` is kept**, so long-term trends still work from the analyses plus measurements, and comparisons always use the latest images.
+  - The 5 GB free tier is **project-wide**, not per user. At ~300 KB × 3 poses × 3 kept ≈ 2.7 MB per person, this keeps storage tiny at any realistic scale and minimises the sensitive data held.
+- **Storage location:** europe-west1 (same as the DB).
+- **Storage rules** (Architect gives to JC; also commit as `storage.rules`):
+  - read + delete: owner UID only;
+  - create/update: owner UID only, < 1.5 MB, image/*;
+  - everything else denied.
+- **Emulator:** add the Storage emulator, with the same rules, to the tests.
+
