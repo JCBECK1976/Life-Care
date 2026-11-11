@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { openApp, tab } from "./helpers.js";
+import { addToLedger, energyFromLedger, featureOf, costOf, summarise } from "../src/lib/aiUsage.js";
 
 // v2.14.0 Step 1b + tracker.
 const NS = "?ns=life-care-app-64d04-default-rtdb";
@@ -84,5 +85,52 @@ test("item 8: the energy ping runs once a day on open; ↻ Refresh still pings",
   expect(pings.length).toBe(0);                                                          // second open today: no ping
   await page.getByRole("button", { name: /Refresh/ }).first().click();
   await expect.poll(() => pings.length).toBe(1);                                         // manual refresh always pings
+  expect(errors).toEqual([]);
+});
+
+test("item 9 pure: ledger counts per day/feature, energy from the ledger total, feature names", () => {
+  const u = { input_tokens: 1000, output_tokens: 200, cache_read_input_tokens: 5000, cache_creation_input_tokens: 0 };
+  expect(costOf(u, "claude-sonnet-4-6")).toBeCloseTo((1000 * 3 + 5000 * 0.3 + 200 * 15) / 1e6, 9);
+  let L = addToLedger(null, u, "claude-sonnet-4-6", "Help", new Date(2026, 10, 12));
+  L = addToLedger(L, u, "claude-sonnet-4-6", "Help", new Date(2026, 10, 12));
+  L = addToLedger(L, { input_tokens: 10, output_tokens: 5 }, "claude-sonnet-4-6", "My Eating (photo)", new Date(2026, 10, 12));
+  expect(L.days["2026-11-12"].Help).toMatchObject({ n: 2, in: 2000, out: 400, cr: 10000 });
+  expect(L.total.n).toBe(3);
+  const old = addToLedger(L, u, "claude-sonnet-4-6", "Help", new Date(2027, 3, 1));        // >120 days later: old days dropped
+  expect(Object.keys(old.days)).toEqual(["2027-04-01"]);
+  // energy: an old record (spent 1.00 of 5) keeps its spend AND counts this call (0.25), then follows the ledger
+  let e = energyFromLedger({ initial: 5, spent: 1 }, 3, 2.75);
+  expect(e).toMatchObject({ ledgerAtCalibration: 1.75, spent: 1.25, pct: 75 });
+  e = energyFromLedger(e, 3.5, 3); expect(e).toMatchObject({ spent: 1.75, pct: 65 });
+  expect(featureOf('{"system":[{"text":"=== APP GUIDE ==="}]}', { section: "meals" })).toBe("Help");
+  expect(featureOf('{"messages":[{"content":[{"type":"image"}]}]}', { section: "meals" })).toBe("My Eating (photo)");
+  expect(featureOf("{}", { section: "weights", chatOpen: true })).toBe("Chat");
+  expect(summarise(L, 14).byFeature[0].feature).toBe("Help");
+});
+
+test("item 9: a mocked AI reply's token counts are recorded (counts only) and drive Companion Energy; admin sees AI usage, Becks doesn't", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const NSx = "?ns=life-care-app-64d04-default-rtdb"; const get = async (k) => { const v = await (await fetch("http://127.0.0.1:9000/data/" + k + ".json" + NSx, { headers: { Authorization: "Bearer owner" } })).json(); return v == null ? null : JSON.parse(v); };
+  await page.waitForTimeout(1500);
+  const before = await get("companion_energy");
+  await page.route("https://api.anthropic.com/**", (r) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id: "m", type: "message", role: "assistant", model: "claude-sonnet-4-6", content: [{ type: "text", text: "Go to My Body → Measurements." }], stop_reason: "end_turn", usage: { input_tokens: 1000, output_tokens: 200, cache_read_input_tokens: 12000, cache_creation_input_tokens: 0 } }) }));
+  await page.getByRole("button", { name: /^Help/ }).first().click();
+  await page.locator("#help-input-jc").fill("Where is my secret question text?");
+  await page.locator("#help-input-jc").locator("xpath=following::button[1]").click();
+  await expect.poll(async () => { const L = await get("ai_usage"); return L && L.total && L.total.n; }).toBe(1);
+  const L = await get("ai_usage"); const day = Object.keys(L.days)[0];
+  expect(L.days[day].Help).toEqual({ n: 1, in: 1000, out: 200, cw: 0, cr: 12000, cost: 0.0096 });
+  expect(JSON.stringify(L)).not.toContain("secret question");                              // counts only, no content
+  const after = await get("companion_energy");
+  expect(after.spent - (before.spent || 0)).toBeCloseTo(0.0096, 6);
+  expect(after.ledgerAtCalibration).toBeDefined();
+  await page.keyboard.press("Escape").catch(() => {});
+  await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
+  await page.locator("button").nth(1).click();                                           // Settings gear
+  const card = page.getByTestId("ai-usage"); await card.getByRole("button", { name: /AI usage/ }).click();
+  await expect(card.getByTestId("ai-usage-total")).toHaveText("All recorded: 1 calls · $0.010");
+  await expect(card.getByTestId("ai-usage-features")).toContainText("Help");
+  await page.getByRole("button", { name: "Becks", exact: true }).first().click();
+  await expect(page.getByTestId("ai-usage")).toHaveCount(0);
   expect(errors).toEqual([]);
 });

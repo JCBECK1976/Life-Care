@@ -3,6 +3,7 @@ import { sSet } from "../lib/storage.js";
 import { btnAction, btnClear, btnDelete, btnMuted, btnP, btnStop, inputStyle, labelStyle } from "../constants/styles.js";
 import { DEFAULT_DATA } from "../constants/defaultData.js";
 import AccountCard from "../components/AccountCard.jsx";
+import AiUsageCard from "../components/AiUsageCard.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -60,6 +61,9 @@ export default function SettingsSection({ ctx }) {
             <button disabled style={{ width: "100%", padding: 10, background: "#e2e8f0", color: "#94a3b8", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>🔗 Connect Apple Health — Coming Soon</button>
           </div>
 
+          {/* v2.14.0 item 9: AI usage ledger — Admin only */}
+          {isAdmin && <AiUsageCard />}
+
           {/* API Key — Admin only */}
           {isAdmin && (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🔑 API Keys</div>
@@ -82,7 +86,7 @@ export default function SettingsSection({ ctx }) {
               <button onClick={async function() {
                 var el = document.getElementById("energy-topup-input"); var amt = el ? parseFloat(el.value) : NaN;
                 if (!(amt > 0)) { setFormMsg("Enter the balance after top-up, e.g. 10.00"); setTimeout(function(){ setFormMsg(""); }, 3000); return; }
-                var en = Object.assign({}, companionEnergy || {}, { initial: amt, balance: amt, spent: 0, pct: 100, depleted: false, needsCalibration: false, calibratedAt: new Date().toISOString(), keyStatus: (companionEnergy && companionEnergy.keyStatus) || "active" });
+                var en = Object.assign({}, companionEnergy || {}, { initial: amt, balance: amt, spent: 0, pct: 100, depleted: false, needsCalibration: false, calibratedAt: new Date().toISOString(), ledgerAtCalibration: await window.aiUsageTotal() /* v2.14.0 item 9 */, keyStatus: (companionEnergy && companionEnergy.keyStatus) || "active" });
                 window._setCompanionEnergy(en); await sSet("companion_energy", JSON.stringify(en)); if (el) el.value = "";
                 setFormMsg("✓ Companion Energy set to 100%"); setTimeout(function(){ setFormMsg(""); }, 3000);
               }} style={{ ...btnAction, padding: "8px 12px", fontSize: 12 }}>Set as 100%</button>

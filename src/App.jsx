@@ -53,6 +53,7 @@ function Dashboard() {
   const activeTabRef = useRef(activeTab);
   activeTabRef.current = activeTab;
   const [section, setSection] = useState("overview"); // always starts on Home
+  useEffect(() => { window._lcSection = section; }, [section]);   // v2.14.0 item 9: AI usage per feature
   const [weekOff, setWeekOff] = useState(function() { var diff = Math.floor((new Date() - new Date(2026, 6, 19)) / (7*24*60*60*1000)); return diff; });
   const [meals, setMeals] = useState({});
   const [mealLoading, setMealLoading] = useState(true);
@@ -89,6 +90,7 @@ function Dashboard() {
   const [qaHistory, setQaHistory] = useState({ jc: [], becks: [] });
   const [showQaHistory, setShowQaHistory] = useState(false);
   const [qaOpen, setQaOpen] = useState(false);
+  useEffect(() => { window._lcChatOpen = qaOpen; }, [qaOpen]);   // v2.14.0 item 9: AI usage per feature
   const [helpOpen, setHelpOpen] = useState(false);
   const [helpLoading, setHelpLoading] = useState(false);
   const [helpMsg, setHelpMsg] = useState("");
