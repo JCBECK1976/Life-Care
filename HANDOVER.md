@@ -1867,7 +1867,8 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   - **Per-person opt-in.**
   - Poses: front / side / back; suggested every 4 weeks.
 - **JC rule: keep only the last 3 images per pose per person.** When a 4th is uploaded, the oldest image of that pose is deleted from Storage. **Its text `analysis` is kept**, so long-term trends still work from the analyses plus measurements, and comparisons always use the latest images.
-  - The 5 GB free tier is **project-wide**, not per user. At ~300 KB × 3 poses × 3 kept ≈ 2.7 MB per person, this keeps storage tiny at any realistic scale and minimises the sensitive data held.
+  - **Correction (06:30):** the no-cost Storage tier applies only to US buckets (us-central1/east1/west1). A europe-west1 bucket is billed from the first byte at standard Cloud Storage rates, which is pennies at this size. europe-west1 is kept for UK/EU data residency of body images.
+  - Any quota is **project-wide**, not per user. At ~300 KB × 3 poses × 3 kept ≈ 2.7 MB per person, this keeps storage tiny at any realistic scale and minimises the sensitive data held.
 - **Storage location:** europe-west1 (same as the DB).
 - **Storage rules** (Architect gives to JC; also commit as `storage.rules`):
   - read + delete: owner UID only;
