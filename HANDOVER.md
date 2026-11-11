@@ -80,6 +80,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.13.1 | Fix (JC 11 Nov): one-off idempotent cleanup on load removes photos stored in old measurement entries (`measurements.*[].img`); week, value and note unchanged; saves only if something was removed. | build only |
 | v2.13.2 | Fix (JC phone test 11 Nov): Open forms and Progress panels scroll into view on open; Open buttons styled like Snap (blue outline, blue text); privacy note on Body Type Photos, measurement Log and Body balance; new meal-slot save text. | build only |
 | v2.13.3 | Layout (JC 11 Nov): shared outlined buttons (`styles.js`): Open and 📷 Snap blue, 👁 Progress violet, 📋 Log green, filled navy when open; Body stat card button moved under the rating (no overlap at 360px). **Beta 11 Nov as v2.13.3-beta.3 (PR #21).** | beta |
+| v2.13.4 | Fix (JC 11 Nov): Weigh In stat cards: 👁 Progress pinned to the card bottom (full-height flex column, `margin-top:auto`), so the buttons line up across each row whatever the card shows. | build only (next beta) |
 
 ---
 
@@ -2034,3 +2035,15 @@ Measured on `build` @ 6a0076e (v2.13.3) against the emulator, seeded with the re
 - **APP_GUIDE install tip** (Step 1b scope): done in the v2.13.3 guide update. The Troubleshooting row "This app is already installed" / "Could not open app" is on beta.
 - **Decision needed (JC):** which of 1–8 to build, and in what order.
 - **Resume point:** `build` @ 6a0076e, `beta` @ c75c53a (v2.13.3-beta.3). Nothing built for 1b. Next: JC's beta test of v2.13.3 and the 1b go/no-go per item.
+
+### (Coder) 11 Nov 2026 — v2.13.4 Weigh In Progress buttons aligned (build, for the next beta)
+- PR #21 was already merged, so this is **v2.13.4 on build** for the next beta.
+- `BodyCard` (in `src/components/charts.jsx`): the card is a full-height flex column, and grid rows already stretch cards to equal height. The 👁 Progress button is pinned to the bottom with `margin-top:auto`. Weight ("+2.9lb") / Body Fat and BMR / Body Age ("Actual: 49") now line up. Checked at 360px by eye.
+- **Other card grids checked:**
+  - Home and Health two-column grids hold only form fields.
+  - Measurements and exercise rows keep their buttons in a right-hand column per row.
+  - No change needed in either.
+- Test (`v2133.spec.js`): at 360px and 412px, each row's cards have equal tops and bottoms, the buttons share a bottom edge, and each button sits at the card bottom. On the old code it fails (bottoms 426 vs 441); with the fix it passes.
+- **Flaky test fixed:** the v2.13.2 Eating scroll test sometimes found the dinner unselected. The app was still saving its own Eating data while the test wrote the meal plan. It now waits first, as `open.spec` does: 6/6 passes (it was 3/4). This was most likely the unnamed single failure in the v2.13.3 run.
+- Full suite 124 passed (5 skipped: the on-demand prod-compat tests); lint 0 errors; visual: My Body 20px shorter plus the footer, rebaselined. Deploy run 43105478571 succeeded.
+- **Resume point:** `build` @ 41c80fb (v2.13.4), `beta` @ c75c53a (v2.13.3-beta.3). Next: v2.13.4 goes in the next build → beta PR; JC's beta OK; the Step 1b decisions.
