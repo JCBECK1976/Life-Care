@@ -43,3 +43,20 @@ test("item 1: every photo feature sends a shrunk photo (request < 1 MB, long edg
   console.log("ORIGINAL " + photo.buffer.length + " bytes; SENT per request: " + sizes.map((s) => s.bytes).join(", "));
   expect(errors).toEqual([]);
 });
+
+test("item 3: Help sends the guide as a cached system prompt (cache_control), the question after it", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const bodies = [];
+  page.on("request", (r) => { if (/api\.anthropic\.com/.test(r.url())) { try { const b = r.postDataJSON(); if (b && b.system) bodies.push(b); } catch {} } });
+  await page.getByRole("button", { name: /^Help/ }).first().click();
+  await page.locator("#help-input-jc").fill("How do I log a measurement?");
+  await page.locator("#help-input-jc").locator("xpath=following::button[1]").click();
+  await expect.poll(() => bodies.length).toBe(1);
+  const sys = bodies[0].system;
+  expect(sys.at(-1).cache_control).toEqual({ type: "ephemeral" });                    // breakpoint on the guide
+  expect(sys.at(-1).text).toContain("=== APP GUIDE ===");
+  expect(sys.at(-1).text.length).toBeGreaterThan(4 * 1024 * 4);                        // well over the 1,024-token minimum
+  expect(JSON.stringify(sys)).not.toContain("How do I log a measurement?");             // the question is after the cached prefix
+  expect(bodies[0].messages.at(-1).content).toContain("How do I log a measurement?");
+  expect(errors).toEqual([]);
+});
