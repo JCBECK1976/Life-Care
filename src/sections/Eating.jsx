@@ -1,3 +1,4 @@
+import { readImageForAI } from "../lib/image.js";
 import { BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, POTATO_SIDES, SNACKS, VEG_SIDES } from "../constants/food.js";
 import { calcWeek, fmtDate, getWeekDates, mealKey } from "../lib/utils.js";
 import { handleApiError } from "../lib/api.js";
@@ -200,9 +201,8 @@ export default function EatingSection({ ctx }) {
               setPortionPlanned({ name: planned.name, kcal: isJC2 ? (planned.jcKcal || planned.kcal || 0) : (planned.beckKcal || planned.kcal || 0), protein: planned.protein || 0, fat: planned.fat || 0, satFat: planned.satFat || 0, addedSugar: planned.addedSugar || 0, carbs: planned.carbs || 0, fibre: planned.fibre || 0, salt: planned.salt || 0 });
             }
             try {
-              var reader = new FileReader();
-              var base64 = await new Promise(function(res, rej) { reader.onload = function() { res(reader.result.split(",")[1]); }; reader.onerror = function() { rej(new Error("Read failed")); }; reader.readAsDataURL(file); });
-              var mediaType = file.type || "image/jpeg";
+              var _img = await readImageForAI(file);   /* v2.14.0: shrunk before sending */
+              var base64 = _img.data; var mediaType = _img.mediaType;
               var apiKey = await window.ensureApiKey();
               var isJC3 = activeTab === "jc";
               var plannedName = planned ? planned.name : "unknown food";
@@ -309,9 +309,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             setNewItemLoading(true);
             setFormMsg("📷 Analysing image...");
             try {
-              var reader = new FileReader();
-              var base64 = await new Promise(function(res, rej) { reader.onload = function() { res(reader.result.split(",")[1]); }; reader.onerror = function() { rej(new Error("Read failed")); }; reader.readAsDataURL(file); });
-              var mediaType = file.type || "image/jpeg";
+              var _img = await readImageForAI(file);   /* v2.14.0: shrunk before sending */
+              var base64 = _img.data; var mediaType = _img.mediaType;
               var descHint = newItemName.trim() ? " The user describes this as: " + newItemName.trim() + "." : "";
               var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Identify this food or product." + descHint + " Read any nutrition label if visible. Classify as 'packaged' if it is a pre-made supermarket product (e.g. Aldi chicken sizzler, protein bar, ready meal) or 'ingredient' if it is a home-made recipe or meal cooked from scratch (e.g. spag bol, curry, stir fry). If 'ingredient', also list the individual ingredients needed to make it. Return ONLY JSON: {\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"rating\":\"GREAT or AMBER or RED based on healthiness\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[\"ingredient1\",\"ingredient2\"] (empty array if packaged)}" }] }] }) });
               var result = await resp.json();
@@ -2232,9 +2231,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         var file = e.target.files[0];
                         setHelpEatLoading(true);
                         try {
-                          var reader = new FileReader();
-                          var base64 = await new Promise(function(res, rej) { reader.onload = function() { res(reader.result.split(",")[1]); }; reader.onerror = function() { rej(new Error("Read failed")); }; reader.readAsDataURL(file); });
-                          var mediaType = file.type || "image/jpeg";
+                          var _img = await readImageForAI(file);   /* v2.14.0: shrunk before sending */
+                          var base64 = _img.data; var mediaType = _img.mediaType;
                           var isJC2 = activeTab === "jc";
                           var personCtx = isJC2 ? "JC, male 49, 2000-2200 kcal/day target, 110-130g protein, under 20g sat fat, under 25g added sugar, 30-35g fibre. Thyroid issues (TSH 14.2), statin 20mg, HbA1c 43." : "Becks, female 48, 1700-1900 kcal/day target, 90-110g protein, under 20g sat fat (critical — LDL 7.2, Total Cholesterol 9.6, suspected FH), under 25g added sugar, 25-30g fibre. Perimenopausal, citalopram, atorvastatin.";
                           var locationHint = helpEatText.trim() ? " The user is at or considering: " + helpEatText.trim() + "." : "";

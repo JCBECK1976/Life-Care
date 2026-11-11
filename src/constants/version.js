@@ -1,5 +1,5 @@
 // The app version. Change APP_VERSION_BASE only: feature/layout = v2.X.0, bug fix = v2.X.Y.
-export const APP_VERSION_BASE = "v2.13.4";
+export const APP_VERSION_BASE = "v2.14.0";
 
 // Which environment this build is for, set by the deploy workflow: "build", "beta" or "prod".
 export const APP_ENV = import.meta.env.VITE_APP_ENV || "prod";

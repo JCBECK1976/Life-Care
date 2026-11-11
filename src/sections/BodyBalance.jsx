@@ -1,3 +1,4 @@
+import { readImageForAI } from "../lib/image.js";
 import React from "react";
 import PrivacyNote from "../components/PrivacyNote.jsx";
 import { handleApiError } from "../lib/api.js";
@@ -25,8 +26,8 @@ export default function BodyBalance(props) {
     try {
       var images = [];
       for (var i = 0; i < files.length; i++) {
-        var b64 = await new Promise(function(res, rej) { var r = new FileReader(); r.onload = function() { res(String(r.result).split(",")[1]); }; r.onerror = function() { rej(new Error("Couldn't read the photo")); }; r.readAsDataURL(files[i]); });
-        images.push({ type: "image", source: { type: "base64", media_type: files[i].type || "image/jpeg", data: b64 } });
+        var _img = await readImageForAI(files[i]); var b64 = _img.data;   /* v2.14.0: shrunk before sending */
+        images.push({ type: "image", source: { type: "base64", media_type: _img.mediaType, data: b64 } });
       }
       var prompt = buildPrompt({ name: name, prev: latestStructured(p.progressPhotos), trends: measurementTrends(p.measurements) });
       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },

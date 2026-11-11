@@ -1,3 +1,4 @@
+import { readImageForAI } from "../lib/image.js";
 import { calcWeek, mealKey } from "../lib/utils.js";
 import { sGet, sSet } from "../lib/storage.js";
 import { withRuleRating } from "../lib/rag.js";
@@ -53,9 +54,8 @@ export default function ShopSection({ ctx }) {
                       var file = e.target.files[0];
                       setFoodCheckerLoading(true);
                       try {
-                        var reader = new FileReader();
-                        var base64 = await new Promise(function(res, rej) { reader.onload = function() { res(reader.result.split(",")[1]); }; reader.onerror = function() { rej(new Error("Read failed")); }; reader.readAsDataURL(file); });
-                        var mediaType = file.type || "image/jpeg";
+                        var _img = await readImageForAI(file);   /* v2.14.0: shrunk before sending */
+                        var base64 = _img.data; var mediaType = _img.mediaType;
                         var isJC2 = activeTab === "jc";
                         var fcDescHint = foodCheckerText.trim() ? " The user describes this as: \"" + foodCheckerText.trim() + "\". PREFER the user's description over your own size or product guess." : "";
                         var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Identify this food or product." + fcDescHint + " Read any nutrition label if visible. Classify as 'packaged' if it is a pre-made supermarket product or 'ingredient' if it is a home-made recipe cooked from scratch. If 'ingredient', list the individual ingredients needed. Return ONLY JSON: {\"assumed\":\"the size or weight these values are for, e.g. 28g bar\",\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[\"item1\",\"item2\"] (empty array if packaged),\"suitability\":\"ONE sentence suitability for " + (isJC2 ? "JC, male 49, 2000-2200 kcal target, <20g sat fat, thyroid issues" : "Becks, female 48, 1700-1900 kcal target, <20g sat fat, LDL 7.2") + "\"}" }] }] }) });
