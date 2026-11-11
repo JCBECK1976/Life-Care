@@ -42,3 +42,20 @@ test("shared outlined buttons: same shape, own colours, filled when open, not tr
   expect([...shapes]).toHaveLength(1);                                                  // one shared shape
   expect(errors).toEqual([]);
 });
+
+test("v2.13.4: Weigh In stat cards — every 👁 Progress button in a row lines up (360px and 412px)", async ({ page }) => {
+  const { errors } = await openApp(page);
+  for (const width of [360, 412]) {
+    await page.setViewportSize({ width, height: 900 });
+    await tab(page, "My Body");
+    const boxes = await page.locator('button[title^="View "]').evaluateAll((bs) => bs.map((b) => { const r = b.getBoundingClientRect(); const c = b.parentElement.getBoundingClientRect(); return { top: Math.round(c.top), cardBottom: Math.round(c.bottom), bottom: Math.round(r.bottom) }; }));
+    expect(boxes.length).toBeGreaterThan(4);
+    for (let i = 0; i + 1 < boxes.length; i += 2) {                                    // two cards per row
+      expect(boxes[i].top).toBe(boxes[i + 1].top);
+      expect(boxes[i].cardBottom).toBe(boxes[i + 1].cardBottom);                          // equal height
+      expect(boxes[i].bottom).toBe(boxes[i + 1].bottom);                                  // buttons aligned
+      expect(boxes[i].cardBottom - boxes[i].bottom).toBeLessThan(16);                     // pinned to the bottom
+    }
+  }
+  expect(errors).toEqual([]);
+});

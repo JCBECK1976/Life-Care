@@ -64,10 +64,11 @@ test("Eating: meal-slot Open and Update Lists Open scroll into view at 360px; ne
   const { errors } = await openApp(page);
   await page.setViewportSize(PHONE);
   const { key, today, childKey } = thisWeek();
+  await tab(page, "My Eating"); await page.waitForTimeout(500);                      // let the app finish its own Eating loads/writes first (as open.spec does)
   const dinner = { id: "t_fish", name: "Test Fish & Potato", jcKcal: 500, beckKcal: 450, protein: 30, satFat: 4, addedSugar: 0, rating: "GOOD" };
   await setKey("custom_meals", [dinner, ...((await getKey("custom_meals")) || [])]);
   await setKey(key, { [today]: { d: dinner.id } });
-  await fetch(url(childKey), { method: "DELETE", headers: { Authorization: "Bearer owner" } });
+  await page.waitForTimeout(300); await fetch(url(childKey), { method: "DELETE", headers: { Authorization: "Bearer owner" } });
   await page.reload(); await tab(page, "My Eating");
   await opensIntoView(page, page.getByRole("button", { name: "Open this meal" }).first(), page.getByTestId("slot-open-form"));
   const form = page.getByTestId("slot-open-form");
