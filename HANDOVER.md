@@ -74,6 +74,7 @@ JC and Beck have a comprehensive Life Care Plan (PDF, built in ReportLab Python)
 | v2.9.0 | F6 Eating Feedback: days before today = **eaten** (logged children), today onwards = **plan**, a fully future week = **plan review**; the prompt and the panel say which ("What you ate" / "Your plan" / "Plan review" / "So far this week + the rest of your plan"). Cut-off, empty and unreadable feedback is reported; chat replies show failures (message kept) and cut-offs. | build only |
 | v2.11.0 | F8 Share to Lifecare Companion (Android): `share_target` (images) in each environment's manifest; `sw.js` handles only the POST to `<scope>share-target` and keeps the image on the device (Cache Storage "lc-share"); the signed-in "What is this?" picker hands it to the existing upload (📏 My Body upload / 📸 Body Type Photos / 🍽 Food Checker), then deletes it. "Later" keeps it; "Discard" deletes it. (v2.10.0 skipped: F2 not built.) | build only |
 | v2.11.1 | Fix (Architect/JC 11 Nov): changing the portion of a photo-checked selection scales the **photo** values (kept as `portion.photoValues`, always the base), not list × factor; the share picker hides "Progress photo" until F2. | build only |
+| v2.12.0 | F2 Body balance check (JC 11 Nov: **analyse-and-discard**, supersedes the 06:25 Storage decision): progress photos go to the AI only, never stored; a fixed 10-region checklist scored 1–5 + notes is saved under `progressPhotos`; the next check compares with the previous one + tape trends and flags imbalances with suggestions to accept; per-person opt-in; the share picker's Progress photo routes here. No Firebase Storage, no storage.rules. | build only |
 
 ---
 
@@ -1876,3 +1877,23 @@ JC: "we really need to get using the app properly ourselves", so P5 moves up.
   - everything else denied.
 - **Emulator:** add the Storage emulator, with the same rules, to the tests.
 
+
+### (Coder) 11 Nov 2026 — v2.12.0 F2 Body balance check (analyse-and-discard) on `build` (ffa3352)
+- **Decision (JC, supersedes 06:25):** no image storage. **No Firebase Storage and no `storage.rules` were added.**
+- **My Body → 📸 Body balance check** (`src/sections/BodyBalance.jsx`, logic in `src/lib/bodyBalance.js`):
+  - **Per-person opt-in** (`bodyBalance.optIn`, with "Turn off").
+  - The status line says "No progress photos yet. Take front, side and back photos…", or gives the last check and the next suggested date (+28 days).
+- **One check:** up to 3 photos are read **in memory only**, sent in one AI request (temperature 0), then dropped. The prompt carries:
+  - the fixed checklist: upper chest, lower chest, shoulders, shoulder:waist ratio, left/right arm symmetry, back, core/waist, glutes, quads, calves, each scored 1–5 with a note;
+  - the **previous structured analysis** (or "This is the FIRST check");
+  - the **tape measurement trends** ("tape can't separate upper/lower chest").
+  - The answer is validated (every region must be scored 1–5) and **only** `{date, week, pose, scores, notes, changes, flags, summary, analysis}` is appended to `progressPhotos`. `analysis` = the summary, so the existing Home check-in context keeps working.
+- **Display:** a score table (●●●○○) with the change against the previous check (▲ 2→4 / ▼ 3→2 / =), the notes and the summary. Flags show the region + issue + one training suggestion, and **Accept suggestion** records `accepted: true`. Suggestions only; nothing changes the plan.
+- **Share picker:** 📸 Progress photo is back and routes to this check (My Body). The Home "Body Type Photos" input is now `data-share="bodytype"` and is no longer a share route.
+- **Tests** (mocked AI): `tests/body-balance.spec.js`:
+  - pure: validation and a record with only allowed keys;
+  - UI: opt-in → "No progress photos yet" → first check (3 images, temperature 0, first-check prompt) → scores saved, **a scan of the whole emulator database finds nothing image-like** (PNG/JPEG/GIF/WEBP signatures, `data:image`) → Accept → second check sends the previous scores and shows ▲/▼ per region → a second scan is still clean.
+  - share.spec: Progress photo → Body balance check.
+  - Full suite 108 passed (4 skipped), lint 0 errors, visual: the My Body card added. Deploy 42973460544 succeeded.
+- **Note (pre-existing, not changed):** Home → Body Type Photos still saves a 500-character base64 fragment per photo in `bodyPhotos[].thumbnail` (not a viewable image, but image-derived data). **Question:** remove that field (and stop writing it) to match "photos never stored anywhere"?
+- **Resume point:** `build` @ ffa3352 (v2.12.0). Next: the beta PR when asked, with APP_GUIDE for v2.8.0–v2.12.0.
