@@ -2079,3 +2079,53 @@ On `build` @ 1a34a76; deploy 43111232779 succeeded, and only the deploy workflow
 - **TEST_STRATEGY (draft 1)** covers: principles (emulator only, mocked AI, a regression test per defect, 360px), test levels, test data, pre-deploy checklist, flaky-test policy, known gaps.
 - **Not written:** SAD, DPIA, threat model (Architect, private). The remaining public statements (privacy notice, terms, intended use, accessibility, payments) are listed in the index as "to write".
 - **Resume point:** `main` @ this commit (docs); `build` @ 1a34a76 (v2.14.0 + automation); `beta` @ c75c53a. Next: the Architect reviews Steps 1–3; then a build → beta PR (v2.13.4 + v2.14.0 + workflows) when JC is ready.
+
+### (Coder) 12 Nov 2026 — v2.14.1: decisions (1)–(3) recorded, feedback email setting, no-food photo fix (build)
+**Decisions (Architect/JC, 12 Nov)**
+1. **VAULT_DEPLOY_KEY:** the backup job writes to the vault with a **vault-only deploy key with write access**, so there are **3 secrets** in total. Rejected: a fine-grained token (it expires, and is broader than one repo's deploy key).
+2. **Send Feedback email:** moved **out of the code** into an admin setting stored in the database. Empty = no email, Tracker only.
+3. **Auto-tagging accepted;** the Architect verifies the first automatic tag. (Earlier: the Architect tagged by hand.)
+
+**v2.14.1 (build @ d50f346, deploy 43181400304 succeeded)**
+- **Feedback email:**
+  - Settings → **📧 Feedback email** (admin only; key `feedback_email`; checked as an email address).
+  - Send Feedback saves to the Tracker and opens an email **only if** the setting holds an address.
+  - The **Privacy Policy** shows the same address as the contact; without one it says to use 💬 Send Feedback.
+  - **The address is gone from `src/`** (a test scans `src/` and `index.html` for it). **`public/legacy.html` still contains it:** that's the frozen legacy app, left untouched. **Decision needed:** remove `legacy.html` (it no longer works since v2.6.0 sign-in), or blank the address in it?
+  - **After the release JC must enter the address once** in Settings; until then feedback goes to the Tracker only.
+- **No food in a photo:**
+  - **Food photos** (📷 Snap first check and Re-check, Food Checker, add food by photo, Help Me Eat): the prompts return `isFood`.
+  - With no food: *"No food found in this photo — try another photo, or add a description and Re-check"*, with **no rating and no nutrition**, **Confirm disabled**, and only Re-check (with an optional description) and Cancel. **Nothing is saved.** Older replies without the flag behave as before.
+  - **Measurement Snap** returns `readable`. Unreadable gives the same kind of message, with Confirm disabled.
+  - Shared `NoFoodPanel` component; the Help Me Eat and Food Checker photo handlers became functions so Re-check can reuse the same in-memory photo.
+- **Tests:** `tests/v2141.spec.js`:
+  - pure flags;
+  - the address isn't in the source;
+  - the setting (empty → no email + Tracker; invalid rejected; set → mailto to it; Privacy Policy shows it; admin only);
+  - no food on Snap in an empty and a filled slot (Confirm disabled, Re-check works, no rating/values/assumed, eating data unchanged);
+  - no food in Food Checker, add-by-photo (Re-check sends the description) and Help Me Eat (lists unchanged);
+  - unreadable measurement (Confirm disabled, nothing filled or saved).
+- **Results:** full suite **140 passed** (5 on-demand skipped); lint 0 errors; visual: the footer plus JC's Settings page (the new card), rebaselined. One earlier full run had a single failure in `open.spec` "F1"; it passed 4/4 alone and the next full run passed everything. It's a candidate flaky test, to watch.
+
+#### JC: add these 3 secrets (replaces the guide in the 12 Nov Step 2 entry; same steps, now final)
+Nothing runs until all three are in **and** the workflows reach main with the next release. A job missing a secret logs "secret not set — skipped" and ends green.
+1. **FIREBASE_SERVICE_ACCOUNT** (read the data; write the Build copy):
+   1. console.firebase.google.com → project **life-care-app-64d04** → ⚙ **Project settings** → **Service accounts** → **Generate new private key** → **Generate key** (a `.json` file downloads).
+   2. Open it in Notepad and copy all.
+   3. github.com/JCBECK1976/**Life-Care** → **Settings** → **Secrets and variables** → **Actions** → **New repository secret** → Name `FIREBASE_SERVICE_ACCOUNT` → paste → **Add secret**.
+   4. Delete the downloaded file (or move it into the vault).
+2. **BACKUP_KEY** (encrypts every backup; without it no backup can be opened):
+   1. In your password manager, generate a passphrase of **40+ characters**. Save it there and in the vault.
+   2. Life-Care → **Settings** → **Secrets and variables** → **Actions** → **New repository secret** → Name `BACKUP_KEY` → paste → **Add secret**.
+3. **VAULT_DEPLOY_KEY** (lets the backup job write to the vault repo only):
+   1. On your PC open **PowerShell** and run: `ssh-keygen -t ed25519 -C lifecare-backup -f vault_deploy -N '""'`. This makes `vault_deploy` and `vault_deploy.pub`.
+   2. github.com/JCBECK1976/**vault** → **Settings** → **Deploy keys** → **Add deploy key** → Title `Life-Care backups` → paste the contents of **`vault_deploy.pub`** → tick **Allow write access** → **Add key**.
+   3. github.com/JCBECK1976/**Life-Care** → **Settings** → **Secrets and variables** → **Actions** → **New repository secret** → Name `VAULT_DEPLOY_KEY` → paste the contents of **`vault_deploy`** (no .pub; include the BEGIN/END lines) → **Add secret**.
+   4. Delete both files from the PC.
+4. **After the next release reaches main:**
+   1. **Actions** → "Backup data (encrypted, to the vault)" → **Run workflow**. A `life-care/backups/daily/<today>.json.gpg` file should appear in the vault.
+   2. Then run "Refresh Build data from real data" and "Smoke test after deploy" the same way.
+   3. The Architect checks the first automatic tag after the release merge.
+
+- **Next:** when JC confirms his Build test and a fresh backup: PR build → beta for v2.13.4, v2.14.0, v2.14.1 and the workflows. APP_GUIDE is already updated on build (AI usage, Tracker, Feedback email, no-food handling).
+- **Resume point:** `build` @ d50f346 (v2.14.1), `beta` @ c75c53a (v2.13.3-beta.3). Waiting for JC's Build test + backup confirmation before the beta PR.
