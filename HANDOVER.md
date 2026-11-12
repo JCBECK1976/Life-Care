@@ -28,7 +28,7 @@ The version table (changelog) is in **[docs/CHANGELOG.md](docs/CHANGELOG.md)** (
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: v2.6.0 (5 November 2026) in prod; **v2.7.0-beta.2 on beta** (10 Nov 2026, awaiting JC test + release). Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
+- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = v2.15.1-beta.0 until the next promotion. Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -2281,3 +2281,14 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **Done:** PR #24 merged into `beta` as `fffb32b`. Deploy run 43311458374 succeeded, so `/beta/` should show **v2.15.1-beta.6**. Not merged to main.
 - **JC to test (/beta/):** footer v2.15.1-beta.6; Settings → Data & backups shows only Download backup, Restore and Data viewer; Data tools has no "Clear old eating history".
 - **Resume point:** `beta` @ fffb32b (v2.15.1-beta.6) = `build` content @ 71041b0. Next: JC's beta OK → (Architect) beta → main release.
+
+### (Coder) 12 Nov 2026 — Release v2.15.1 to prod (PR #25 beta → main)
+- **Done:**
+  - **Release PR:** PR #25 `beta → main` merged as `1dbd277` (asked for explicitly). Before the merge, the merged tree was built locally: lint 0 errors, prod build ok, `check-pages` ok (prod `APP_GUIDE.md` + `plan.json`, indexable, installable app files).
+  - **Deploy:** run 43312466044 succeeded on the updated actions (checkout v7, setup-node v7, configure-pages v6, upload-pages-artifact v5, deploy-pages v5). Prod's check now requires `plan.json`, so `/Life-Care/plan.json` is published.
+  - **Auto-tag:** run 43312466123 created annotated tag **v2.15.1** on `1dbd277` (github-actions[bot]).
+  - **Secret-dependent workflows:** smoke ran after the deploy (43312680690); backup (43312811420) and Build refresh (43312817469) were run once by hand. All three were green with "secret not set — skipped" (backup names all 3 missing secrets).
+  - **Docs:** Live Product line, CHANGELOG statuses + release note, plan R2 Done.
+- **Not checked from here:** the sandbox can't reach github.io. JC to confirm the prod footer shows v2.15.1 and that `/Life-Care/plan.json` opens. The Tracker now reads that copy first.
+- **JC to test (prod):** close and reopen the app; the footer shows v2.15.1; quick look at each tab; Settings (as JC) → Tracker loads the plan.
+- **Resume point:** `main` @ 1dbd277 (prod v2.15.1, tag v2.15.1); beta/build hold the same code. Next: JC adds the 3 secrets (plan R3), then run each workflow once by hand.
