@@ -134,7 +134,7 @@ export default function SettingsSection({ ctx }) {
 
           {isAdmin && <AdminSection id="data" title="Data & backups" help="Each opens the Data tools page at that tool. Recovery is Download backup, then Restore." />}
           {isAdmin && (<div data-testid="data-links" style={card}>
-            {[["backup", "⬇️ Download backup", "Saves all data to a file on this device."], ["restore-export", "♻️ Restore", "Paste a backup file: preview, then Merge (safe) or Full restore."], ["clear-history", "🧹 Clear old eating history", "Deletes meal weeks before a date (dry run first)."], ["data-viewer", "🗂 Data viewer", "Read-only view of the stored data and raw keys."]].map(function(r) { return (<div key={r[0]} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid #f1f5f9" }}>
+            {[["backup", "⬇️ Download backup", "Saves all data to a file on this device."], ["restore-export", "♻️ Restore", "Paste a backup file: preview, then Merge (safe) or Full restore."], ["data-viewer", "🗂 Data viewer", "Read-only view of the stored data and raw keys."]].map(function(r) { return (<div key={r[0]} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid #f1f5f9" }}>
               <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>{r[1]}</div><div style={{ fontSize: 10, color: "#64748b" }}>{r[2]}</div></div>
               <button aria-label={"Open " + r[1].replace(/^\S+\s/, "")} onClick={function() { window._lcDataFocus = r[0]; setSection("data"); window.scrollTo(0, 0); }} style={btnOpen}>Open</button>
             </div>); })}

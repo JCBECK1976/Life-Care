@@ -2,7 +2,6 @@ import firebase, { DATA_ROOT } from "../lib/firebase.js";
 import { btnMuted } from "../constants/styles.js";
 import { personName } from "../components/PersonTabs.jsx";
 import { useEffect, useState } from "react";
-import { currentWeekSunday, planClearHistory } from "../lib/meals.js";
 import { APP_ENV } from "../constants/version.js";
 import { backupCounts, parseBackupInput, restoreTarget } from "../lib/backup.js";
 
@@ -19,15 +18,6 @@ async function readBackup() {
   // Beta/Prod), so Beta/Prod bundles contain no code or name for the build copy.
   if (DATA_ROOT !== "data") { var own = await firebase.database().ref(DATA_ROOT).once("value"); out[DATA_ROOT] = own.val() || {}; }
   return out;
-}
-
-/* v2.6.5 Clear old eating history: read every stored meal week plan (and nothing else) */
-async function loadMealPlans() {
-  var snap = await firebase.database().ref(DATA_ROOT).orderByKey().startAt("mealplan:").endAt("mealplan:\uf8ff").once("value");
-  var snap2 = await firebase.database().ref(DATA_ROOT).orderByKey().startAt("eat_children:").endAt("eat_children:\uf8ff").once("value");
-  var plans = {}; var raw = Object.assign({}, snap.val() || {}, snap2.val() || {});
-  Object.keys(raw).forEach(function(k) { try { plans[k] = typeof raw[k] === "string" ? JSON.parse(raw[k]) : raw[k]; } catch (e) { plans[k] = null; } });
-  return plans;
 }
 
 export default function DataSection({ ctx }) {
@@ -116,28 +106,6 @@ export default function DataSection({ ctx }) {
             }
             return { nd: nd, restored: restored };
   };
-  const [clearBefore, setClearBefore] = useState(currentWeekSunday());
-  const [clearPlan, setClearPlan] = useState(null);   // last dry-run result
-  const [clearBusy, setClearBusy] = useState(false);
-  const [clearMsg, setClearMsg] = useState("");
-  var clearDryRun = async function() {
-    setClearBusy(true); setClearMsg("");
-    try { setClearPlan(Object.assign(planClearHistory(await loadMealPlans(), clearBefore), { before: clearBefore })); }
-    catch (e) { setClearMsg("Dry run failed: " + String(e.message || e).substring(0, 120)); }
-    setClearBusy(false);
-  };
-  var clearDelete = async function() {
-    var cp = clearPlan; if (!cp || !cp.weeks || cp.before !== clearBefore) return;
-    if (!confirm("Delete " + cp.weeks + " meal week plan" + (cp.weeks === 1 ? "" : "s") + " (" + cp.selections + " selections) from before " + cp.before + "? Food lists, exercise, body, health and settings are not touched. This cannot be undone.")) return;
-    setClearBusy(true);
-    try {
-      var upd = {}; cp.keys.forEach(function(k) { if (/^(mealplan|eat_children):/.test(k)) upd[k] = null; });   // meal weeks only
-      await firebase.database().ref(DATA_ROOT).update(upd);
-      setClearMsg("✓ Deleted " + Object.keys(upd).length + " meal weeks from before " + cp.before + ".");
-      setClearPlan(null);
-    } catch (e) { setClearMsg("Delete failed: " + String(e.message || e).substring(0, 120)); }
-    setClearBusy(false);
-  };
 
   return (
 <div>
@@ -148,19 +116,6 @@ export default function DataSection({ ctx }) {
     <div style={{ fontSize: 10, color: "#475569", marginBottom: 6, lineHeight: 1.4 }}>Downloads all real data ("data", shared by the app and beta) {DATA_ROOT !== "data" ? <> and this test app's own copy ({DATA_ROOT})</> : null} as one dated file, in the same layout as a Firebase console export. Keep it somewhere safe; it contains health data.</div>
     <button onClick={downloadBackup} disabled={backupBusy} style={{ width: "100%", padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{backupBusy ? "Preparing…" : "⬇️ Download backup"}</button>
     {backupMsg && <div data-testid="backup-msg" style={{ fontSize: 11, fontWeight: 600, color: backupMsg.charAt(0) === "✓" ? "#166534" : "#991b1b", marginTop: 6 }}>{backupMsg}</div>}
-  </div>
-  <div data-testid="clear-history" style={{ padding: 10, background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca", marginBottom: 12 }}>
-    <div style={{ fontSize: 12, fontWeight: 700, color: "#991b1b", marginBottom: 4 }}>Clear old eating history</div>
-    <div style={{ fontSize: 10, color: "#475569", marginBottom: 6, lineHeight: 1.4 }}>Deletes only the meal selections (what was planned or eaten each day) for weeks starting before the date below. Food lists, exercise, body, health and settings are never touched. Take a backup first. Run the dry run to see the counts, then Delete.</div>
-    <label style={{ fontSize: 10, color: "#475569", display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>Delete weeks starting before
-      <input type="date" aria-label="Delete weeks starting before" value={clearBefore} onChange={function(e) { setClearBefore(e.target.value); setClearPlan(null); setClearMsg(""); }} style={{ padding: 4, border: "1px solid #fecaca", borderRadius: 6, fontSize: 11 }} />
-    </label>
-    <div style={{ display: "flex", gap: 6 }}>
-      <button onClick={clearDryRun} disabled={clearBusy || !clearBefore} style={{ flex: 1, padding: 8, background: "#fff", border: "1px solid #dc2626", color: "#991b1b", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{clearBusy ? "Working…" : "Dry run (counts only)"}</button>
-      <button onClick={clearDelete} disabled={clearBusy || !clearPlan || !clearPlan.weeks} style={{ flex: 1, padding: 8, background: (!clearPlan || !clearPlan.weeks) ? "#e2e8f0" : "#dc2626", border: "none", color: "#fff", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Delete</button>
-    </div>
-    {clearPlan && <div data-testid="clear-history-result" style={{ fontSize: 11, color: "#0f172a", marginTop: 6, lineHeight: 1.5 }}>Before {clearPlan.before}: {clearPlan.weeks} week plans · {clearPlan.selections} selections{Object.keys(clearPlan.perPerson).map(function(w) { var pp = clearPlan.perPerson[w]; return " · " + (w === "shared (old format)" ? w : personName(data, w)) + ": " + pp.weeks + " weeks, " + pp.selections + " selections"; }).join("")}</div>}
-    {clearMsg && <div data-testid="clear-history-msg" style={{ fontSize: 11, fontWeight: 600, color: clearMsg.charAt(0) === "✓" ? "#166534" : "#991b1b", marginTop: 6 }}>{clearMsg}</div>}
   </div>
   <div data-testid="data-viewer" style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>Data viewer</div>
   {(() => {

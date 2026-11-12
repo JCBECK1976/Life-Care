@@ -121,7 +121,7 @@ test("v2.15.0: admin Settings in sections; Reset to Default Data is gone; Data &
   await expect(page.getByTestId("docs-links").getByRole("link", { name: "Plan (plan.json)" })).toHaveAttribute("href", "https://jcbeck1976.github.io/Life-Care/plan.json");
   await expect(page.getByTestId("vault-docs")).toContainText("DPIA");
   await expect(page.getByTestId("vault-docs").getByRole("link")).toHaveCount(0);
-  for (const [name, id] of [["Open Download backup", "backup"], ["Open Restore", "restore-export"], ["Open Clear old eating history", "clear-history"]]) {
+  for (const [name, id] of [["Open Download backup", "backup"], ["Open Restore", "restore-export"]]) {
     await page.getByRole("button", { name }).click();
     await expect(page.getByTestId(id)).toBeInViewport();
     await page.getByRole("button", { name: "← Back to Settings" }).click();

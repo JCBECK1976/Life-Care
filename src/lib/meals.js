@@ -101,31 +101,5 @@ export function generatorSummary(src, allowed) {
   return parts.join(" · ") + (empty ? " · " + empty + " slot" + (empty === 1 ? "" : "s") + " left empty" + (noList.length ? " (no items in the " + noList.join("/") + " list)" : "") : "");
 }
 
-// v2.6.5 (JC decision, replaces the snapshot repair): "Clear old eating history".
-// Picks ONLY meal weeks — children (eat_children:<person>:<YYYY-MM-DD>) and old plans (mealplan:<YYYY-MM-DD>[:person]) —
-// whose week starts before `before` (YYYY-MM-DD).
-// Returns counts per person and the keys to delete. Nothing else is ever selected.
-export function planClearHistory(plans, before) {
-  var r = { weeks: 0, selections: 0, perPerson: {}, keys: [] };
-  Object.keys(plans || {}).sort().forEach(function(key) {
-    var m = /^mealplan:(\d{4}-\d{2}-\d{2})(?::(.+))?$/.exec(key); var c = /^eat_children:([^:]+):(\d{4}-\d{2}-\d{2})$/.exec(key);
-    if (!m && !c) return;
-    var date = m ? m[1] : c[2]; if (date >= before) return;
-    var who = m ? (m[2] || "shared (old format)") : c[1]; var plan = plans[key]; var n = 0;
-    if (c) { n = Object.keys((plan && plan.children) || {}).length; }      // v2.6.5 children: one per selection
-    else if (plan && typeof plan === "object") Object.keys(plan).forEach(function(day) {
-      if (day.charAt(0) === "_") return; var dm = plan[day];
-      if (typeof dm === "string") { if (dm && dm !== "__empty__") n++; return; }
-      if (dm && typeof dm === "object") Object.keys(dm).forEach(function(sl) { var v = dm[sl]; if (typeof v === "string" && v && v !== "__empty__" && v !== "__placeholder__") n++; });
-    });
-    if (!r.perPerson[who]) r.perPerson[who] = { weeks: 0, selections: 0 };
-    r.perPerson[who].weeks++; r.perPerson[who].selections += n; r.weeks++; r.selections += n; r.keys.push(key);
-  });
-  return r;
-}
-
-// The Sunday that starts the current week (weeks run Sunday–Saturday), as YYYY-MM-DD.
-export function currentWeekSunday(now) {
-  var d = now ? new Date(now) : new Date(); d.setDate(d.getDate() - d.getDay());
-  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-}
+// v2.15.1: "Clear old eating history" (planClearHistory, currentWeekSunday; v2.6.5) removed: its one-off job is done.
+// Recovery = Download backup + Restore. The code is in git history (e.g. commit 6853af4).

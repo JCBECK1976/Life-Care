@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.15.0 · 12 November 2026
+> Last updated: v2.15.1 · 12 November 2026
 
 ---
 
@@ -418,14 +418,13 @@ Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
 - **🍎 Apple Health** (iOS) — coming soon.
 - **Admin-only settings** (for the app owner) are grouped in sections, each with a short explanation:
   - **App & AI:** **🔑 API Keys** (Claude API key from console.anthropic.com → API Keys), **⚡ Companion Energy Level** (enter the balance after a recharge; it becomes 100%), **📊 AI usage**, **📧 Feedback email** and **🔧 Debug Mode**. Debug Mode, once turned on, stays on for this device and shows a red **🔧 DEBUG ON** badge in the header. It logs a safe summary of Home check-in feedback, eating feedback and Ask a Question calls: status, stop reason and token counts, never the question, the reply or any key. The log clears when the app reloads. **Turn Off** stops it. Measurement types can also be added there.
-  - **Data & backups:** **Open** next to Download backup, Restore, Clear old eating history or Data viewer opens the 🗂 Data tools page at that tool (described below). Recovery is **Download backup** then **Restore**. The old "Reset to Default Data" button was removed in v2.15.0.
+  - **Data & backups:** **Open** next to Download backup, Restore or Data viewer opens the 🗂 Data tools page at that tool (described below). Recovery is **Download backup** then **Restore**. The old "Reset to Default Data" button was removed in v2.15.0, and "Clear old eating history" in v2.15.1 (its one-off job is done).
   - **Firebase:** the project, which data this app uses, and links to the Firebase console (database, rules, sign-in users). Rules and data are never changed from the app.
   - **GitHub & releases:** this version, and links to the repository, deploys, releases, the changelog and the three versions of the app (App, Beta, Build).
   - **Integrations:** the Google OAuth Client ID (for Google Health Connect).
   - **Tracker** and **Documentation** (links to the app guide, design and test documents, changelog, backlogs and the plan; private documents are listed by name only, they're in the vault).
 - **🗂 Data tools** (admin only):
   - **⬇️ Download backup** saves all the real data as one dated file, e.g. *lifecare_backup_beta_2026-11-10-2049.json*, in the same layout as a Firebase export. On the Build test app it also includes the build copy. It shows the file size and counts only. Keep it somewhere safe: it contains health data. Photos are never in it (they're never stored).
-  - **Clear old eating history** deletes **only** meal selections for weeks before a date you choose (the default is this week's Sunday). Run the **Dry run** first to see how many weeks and selections per person; then **Delete** (asks first). Food lists, exercise, body, health and settings are never touched.
   - **Restore from Firebase Export**: paste a Download-backup file (or a Firebase export) and press **Preview** to see what it contains (counts only). Then choose:
     - **Merge missing exercise weeks** (safe: adds missing weeks, changes nothing else); or
     - **Full restore of data**, which replaces everything in **this app's own data** with the file: the real data on the normal app and Beta, the build copy on the Build test app. It asks twice, and you must type **RESTORE**.
