@@ -2145,3 +2145,22 @@ Nothing runs until all three are in **and** the workflows reach main with the ne
   - Measurement: a calf photo on Bicep disables Confirm, and nothing is filled or saved.
 - **Results:** full suite **144 passed** (5 on-demand skipped); lint 0 errors; visual footer only; deploy run 43221023271 succeeded.
 - **Resume point:** `build` @ 482cdcd (v2.14.2). Next: PR build → beta (v2.13.4 + v2.14.0 + v2.14.1 + v2.14.2 + workflows + legacy removal); JC has tested v2.14.1 on Build and taken a backup. **Do not merge to main.**
+
+### (Coder) 12 Nov 2026 — PR #22 build → beta merged: v2.14.2-beta.4 on /beta/ (not main)
+- **PR #22** (v2.13.4 + v2.14.0 + v2.14.1 + v2.14.2 + automation workflows + legacy.html removal) merged as **`3aa271c`**. Deploy run 43222052049 succeeded with no failure annotations, so `/beta/` should show **v2.14.2-beta.4**. This sandbox can't open github.io: JC or the Architect, please check the footer.
+- **Before the PR:**
+  - APP_GUIDE now covers body-photo recognition and the wrong body part (build `91b012f`).
+  - New prod-compat test for v2.14.x data (tracker node, AI usage, feedback email, energy fields): **the live v2.6.0 runs cleanly**, 3/3 passed.
+  - Beta's own Data tools also handle the `tracker` node.
+  - The merged tree is identical to `build`.
+- **On first use, beta writes to the shared `data`** (all additive): `ai_usage`, `tracker/<id>` (from Send Feedback), `companion_energy.lastCheck` / `ledgerAtCalibration`, and `feedback_email` when the admin sets it.
+- **JC to test on /beta/:**
+  1. Close and reopen the app; check the footer shows v2.14.2-beta.4.
+  2. Settings → 📧 Feedback email: enter your address.
+  3. Send Feedback appears in Settings → 📝 Tracker.
+  4. 📊 AI usage counts calls.
+  5. Snap a non-food photo: Confirm stays greyed out.
+  6. Body balance with a wrong pose: no scores, nothing saved.
+  7. Startup feels faster.
+- **The workflows do nothing yet:** they run only from main, and the three secrets aren't added. Auto-tag acts on the first beta → main release merge; the Architect checks that tag.
+- **Resume point:** `beta` @ 3aa271c (v2.14.2-beta.4), `build` @ 91b012f. Next: JC's beta test → (Architect) PR beta → main (release v2.14.2). Then add the 3 secrets and run the workflows once by hand.
