@@ -1,7 +1,8 @@
+import { readImageForAI } from "../lib/image.js";
 import React from "react";
 import { handleApiError } from "../lib/api.js";
 import { btnSnap } from "../constants/styles.js";
-import { parseReading, readingPrompt } from "../lib/measureReading.js";
+import { UNREADABLE_MSG, parseReading, readingPrompt, wrongPartMsg } from "../lib/measureReading.js";
 
 // v2.13.0 F10: the camera button on a body-measurement Log form works like 📷 Snap.
 // Optional description first → take a photo (tape measure, scale screen…) → the AI reads the value → result panel with
@@ -20,9 +21,9 @@ export default function MeasureSnap(props) {
     fileRef.current = file;
     setSt({ stage: "busy", desc: desc, first: deep && st ? st.result : null });
     try {
-      var b64 = await new Promise(function(res, rej) { var r = new FileReader(); r.onload = function() { res(String(r.result).split(",")[1]); }; r.onerror = function() { rej(new Error("Couldn't read the photo")); }; r.readAsDataURL(file); });
+      var _img = await readImageForAI(file); var b64 = _img.data;   /* v2.14.0: shrunk before sending */
       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 300, temperature: 0, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: file.type || "image/jpeg", data: b64 } }, { type: "text", text: readingPrompt({ label: props.label, unit: unit, desc: desc, previous: props.previous, deep: deep }) }] }] }) });
+        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 300, temperature: 0, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: _img.mediaType, data: b64 } }, { type: "text", text: readingPrompt({ label: props.label, unit: unit, desc: desc, previous: props.previous, deep: deep }) }] }] }) });
       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
       var txt = ""; (result.content || []).forEach(function(c) { if (c.text) txt += c.text; });
       var r = parseReading(txt); r._deep = !!deep;
@@ -48,7 +49,7 @@ export default function MeasureSnap(props) {
     </div>)}
     {st.stage === "result" && (<div data-testid="meas-snap-result">
       <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{st.result._deep ? "🔎 Re-check deep dive" : "📷 " + props.label}</div>
-      <div data-testid="meas-snap-value" style={{ fontSize: 16, fontWeight: 800, color: st.result.value != null ? "#0f172a" : "#991b1b", marginBottom: 2 }}>{st.result.value != null ? st.result.value + " " + unit : "Couldn't read a value"}</div>
+      <div data-testid="meas-snap-value" style={{ fontSize: 16, fontWeight: 800, color: st.result.value != null ? "#0f172a" : "#991b1b", marginBottom: 2 }}>{st.result.value != null ? st.result.value + " " + unit : st.result.wrongPart ? wrongPartMsg(st.result.seenPart, props.label) : UNREADABLE_MSG}</div>
       {st.result.reading && <div style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{st.result.reading}{st.result.confidence ? " (" + st.result.confidence + " confidence)" : ""}</div>}
       {st.result._deep && st.first && st.first.value != null && <div data-testid="meas-snap-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>First check: {st.first.value} {unit}{st.first.value === st.result.value ? " (same)" : ""}</div>}
       {descInput}

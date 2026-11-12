@@ -1,0 +1,27 @@
+# Tags a release automatically when a beta → main release PR is merged: reads APP_VERSION_BASE from
+# src/constants/version.js and pushes tag vX.Y.Z on that merge commit (skipped if the tag already exists).
+# Needs no secrets (uses this repository's own token). Runs from main only.
+name: Tag release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    if: startsWith(github.event.head_commit.message, 'Merge pull request') && contains(github.event.head_commit.message, 'from JCBECK1976/beta')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Tag the release
+        run: |
+          v=$(sed -n 's/.*APP_VERSION_BASE = "\(v[0-9.]*\)".*/\1/p' src/constants/version.js)
+          [ -n "$v" ] || { echo "No version found — not tagged."; exit 0; }
+          if git rev-parse -q --verify "refs/tags/$v" >/dev/null; then echo "Tag $v already exists — nothing to do."; exit 0; fi
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$v" -m "Release $v" && git push origin "$v" && echo "Tagged $v."

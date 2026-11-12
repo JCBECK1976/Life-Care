@@ -1,3 +1,5 @@
+import { readImageForAI } from "../lib/image.js";
+import NoFoodPanel from "../components/NoFoodPanel.jsx";
 import { BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, POTATO_SIDES, SNACKS, VEG_SIDES } from "../constants/food.js";
 import { calcWeek, fmtDate, getWeekDates, mealKey } from "../lib/utils.js";
 import { handleApiError } from "../lib/api.js";
@@ -10,7 +12,7 @@ import { personName } from "../components/PersonTabs.jsx";
 import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
 import { parseRecalc, recalcPrompt, renameKcal, stripKcal as stripKcalName } from "../lib/nutrition.js";
 import { applyDefaultsTo, generatorSummary, mergeGenerated, selectionName } from "../lib/meals.js";
-import { compareLine, gramsLine, requestBody } from "../lib/snap.js";
+import { NO_FOOD_MSG, NO_FOOD_RULE, compareLine, gramsLine, noFood, requestBody } from "../lib/snap.js";
 import { PHASE_LABEL } from "../lib/eatPhase.js";
 import { foodKey, loadWeekDoc, makeChild, occurrences, ragNote, reconcile, saveWeekDoc, viewFromDoc } from "../lib/children.js";
 
@@ -200,9 +202,8 @@ export default function EatingSection({ ctx }) {
               setPortionPlanned({ name: planned.name, kcal: isJC2 ? (planned.jcKcal || planned.kcal || 0) : (planned.beckKcal || planned.kcal || 0), protein: planned.protein || 0, fat: planned.fat || 0, satFat: planned.satFat || 0, addedSugar: planned.addedSugar || 0, carbs: planned.carbs || 0, fibre: planned.fibre || 0, salt: planned.salt || 0 });
             }
             try {
-              var reader = new FileReader();
-              var base64 = await new Promise(function(res, rej) { reader.onload = function() { res(reader.result.split(",")[1]); }; reader.onerror = function() { rej(new Error("Read failed")); }; reader.readAsDataURL(file); });
-              var mediaType = file.type || "image/jpeg";
+              var _img = await readImageForAI(file);   /* v2.14.0: shrunk before sending */
+              var base64 = _img.data; var mediaType = _img.mediaType;
               var apiKey = await window.ensureApiKey();
               var isJC3 = activeTab === "jc";
               var plannedName = planned ? planned.name : "unknown food";
@@ -226,7 +227,7 @@ export default function EatingSection({ ctx }) {
           /* v2.6.5 Snap Confirm writes the CHILD directly (parents are never changed here). The only question asked is
              "Save … to your … list?", and only when the food is not already in the list. */
           var confirmPortion = async function() {
-            if (!portionResult || !portionSlot) return;
+            if (!portionResult || !portionSlot || noFood(portionResult)) return;   // v2.14.1: nothing is saved when there's no food
             var pr = portionResult; var slot = portionSlot; var day = eatDay; var cat = slotCategory(slot);
             var vals = { kcal: pr.kcal || 0, protein: pr.protein || 0, fat: pr.fat || 0, satFat: pr.satFat || 0, addedSugar: pr.addedSugar || 0, carbs: pr.carbs || 0, fibre: pr.fibre || 0, salt: pr.salt || 0 };
             var portion = { source: "photo", values: vals, assumed: gramsLine(pr) || pr.assumed || "", grams: parseFloat(pr.totalGrams) || null, check: pr._deep ? "deep dive" : "first check" };
@@ -304,20 +305,22 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           var clearWeek = function() { if (!confirm("Clear ALL meals for this week? This cannot be undone.")) return; var n = {}; setMeals(n); saveMeals(n); setFormMsg("Week cleared"); setTimeout(function() { setFormMsg(""); }, 3000); };
 
           
-          var addFromCamera = async function(file) {
+          var addFromCamera = async function(file, descArg) {
             if (!file) return;
+            window._lcAddPhoto = file;   /* v2.14.1: kept in memory only, for Re-check when no food was found */
             setNewItemLoading(true);
             setFormMsg("📷 Analysing image...");
             try {
-              var reader = new FileReader();
-              var base64 = await new Promise(function(res, rej) { reader.onload = function() { res(reader.result.split(",")[1]); }; reader.onerror = function() { rej(new Error("Read failed")); }; reader.readAsDataURL(file); });
-              var mediaType = file.type || "image/jpeg";
-              var descHint = newItemName.trim() ? " The user describes this as: " + newItemName.trim() + "." : "";
-              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Identify this food or product." + descHint + " Read any nutrition label if visible. Classify as 'packaged' if it is a pre-made supermarket product (e.g. Aldi chicken sizzler, protein bar, ready meal) or 'ingredient' if it is a home-made recipe or meal cooked from scratch (e.g. spag bol, curry, stir fry). If 'ingredient', also list the individual ingredients needed to make it. Return ONLY JSON: {\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"rating\":\"GREAT or AMBER or RED based on healthiness\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[\"ingredient1\",\"ingredient2\"] (empty array if packaged)}" }] }] }) });
+              var _img = await readImageForAI(file);   /* v2.14.0: shrunk before sending */
+              var base64 = _img.data; var mediaType = _img.mediaType;
+              var descText = (descArg != null ? String(descArg) : newItemName).trim();
+              var descHint = descText ? " The user describes this as: " + descText + "." : "";
+              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Identify this food or product." + descHint + NO_FOOD_RULE + " Read any nutrition label if visible. Classify as 'packaged' if it is a pre-made supermarket product (e.g. Aldi chicken sizzler, protein bar, ready meal) or 'ingredient' if it is a home-made recipe or meal cooked from scratch (e.g. spag bol, curry, stir fry). If 'ingredient', also list the individual ingredients needed to make it. Return ONLY JSON: {\"isFood\":true/false,\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"rating\":\"GREAT or AMBER or RED based on healthiness\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[\"ingredient1\",\"ingredient2\"] (empty array if packaged)}" }] }] }) });
               var result = await resp.json();
               var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
               var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
               var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
+              if (noFood(info)) { setCameraPreview({ noFood: true, name: info.name || "", desc: descText }); setFormMsg(""); setNewItemLoading(false); return; }   // v2.14.1: no food → no values, no rating, Confirm disabled
               setCameraPreview(withRuleRating({ name: info.name || newItemName.trim() || "Unknown item", kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, addedSugar: info.addedSugar || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0, rating: info.rating || "AMBER", itemType: info.itemType || "packaged", ingredients: info.ingredients || [], originalIngredients: (info.ingredients || []).join(", "), category: addingCategory }));
               setReviewCategories([addingCategory]);
               setReviewSideType("");
@@ -338,6 +341,29 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             setTimeout(function() { setFormMsg(""); }, 4000);
           };
 
+          /* v2.14.1: Help Me Eat photo analysis as a function, so a "no food" result can be re-checked with the same photo
+             (kept in memory only) and the description. */
+          window._lcHelpEatPhoto = async function(file) {
+            window._lcHelpEatFile = file;
+            setHelpEatLoading(true);
+                        try {
+                          var _img = await readImageForAI(file);   /* v2.14.0: shrunk before sending */
+                          var base64 = _img.data; var mediaType = _img.mediaType;
+                          var isJC2 = activeTab === "jc";
+                          var personCtx = isJC2 ? "JC, male 49, 2000-2200 kcal/day target, 110-130g protein, under 20g sat fat, under 25g added sugar, 30-35g fibre. Thyroid issues (TSH 14.2), statin 20mg, HbA1c 43." : "Becks, female 48, 1700-1900 kcal/day target, 90-110g protein, under 20g sat fat (critical — LDL 7.2, Total Cholesterol 9.6, suspected FH), under 25g added sugar, 25-30g fibre. Perimenopausal, citalopram, atorvastatin.";
+                          var locationHint = helpEatText.trim() ? " The user is at or considering: " + helpEatText.trim() + "." : "";
+                          var catLabel = helpEatCat;
+                          var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "This person needs help choosing a " + catLabel + " option." + locationHint + " Person profile: " + personCtx + " Analyse the image (menu, buffet, shelf, food options). FIRST decide whether the photo shows any food, drink, menu or food options at all. If it does NOT (for example a person, a room, a blank, dark or blurred photo), set \"isFood\": false, every value 0, and say briefly what you see in \"name\"; otherwise set \"isFood\": true. Recommend the BEST suitable option and explain why. Include portion advice if relevant (e.g. 'have half portion', 'skip the side'). Return ONLY JSON: {\"isFood\":true/false,\"name\":\"recommended food/meal name\",\"kcal\":estimated_calories,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED\",\"recommendation\":\"2-3 sentences explaining why this is the best choice and any portion/modification advice\",\"alternatives\":\"1 sentence naming one alternative if available\"}" }] }] }) });
+                          var result = await resp.json();
+                          var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+                          var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
+                          var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
+                          if (noFood(info)) { setHelpEatResult({ noFood: true, name: info.name || "" }); setHelpEatLoading(false); return; }   // v2.14.1
+                          setHelpEatResult(withRuleRating({ name: info.name || "Unknown", kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, addedSugar: info.addedSugar || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0, rating: info.rating || "AMBER", recommendation: info.recommendation || "", alternatives: info.alternatives || "", category: helpEatCat }));
+                        } catch(ce) { setFormMsg(window.aiErrorMsg(ce)); setTimeout(function(){setFormMsg("");},10000); }
+            setHelpEatLoading(false);
+          };
+          window._lcRecheckAddPhoto = function(desc) { if (window._lcAddPhoto) { setCameraPreview(null); addFromCamera(window._lcAddPhoto, desc); } };
           var addNewItem = async function() {
             if (!newItemName.trim()) return;
             setNewItemLoading(true);
@@ -895,7 +921,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               </div>)}
 
               {/* Single review form — shown once after add */}
-              {cameraPreview && (<div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, marginTop: 6, border: "1px solid #86efac" }}>
+              {cameraPreview && cameraPreview.noFood && (<div style={{ background: "#fff", borderRadius: 8, padding: 10, marginTop: 6, border: "1px solid #fde68a" }}><NoFoodPanel testid="review-no-food" desc={cameraPreview.desc} busy={newItemLoading} onRecheck={function(d) { window._lcRecheckAddPhoto(d); }} onCancel={function() { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); }} /></div>)}
+              {cameraPreview && !cameraPreview.noFood && (<div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, marginTop: 6, border: "1px solid #86efac" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Review Item</div>
                   <button onClick={function() { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); }} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
@@ -1791,22 +1818,22 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   </div>
                 </div>)}
                 {portionResult && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
-                  {portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
+                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
                     <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
                     <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
                     <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
                   </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
-                  {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
-                  {(function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
-                  {portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
+                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
+                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
                   {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
-                  {gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
+                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
                   <div style={{ marginBottom: 8 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /></div>
-                  {portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
                   <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-                    <button onClick={confirmPortion} style={Object.assign({}, btnActionLg, snapBtn)}>Confirm</button>
+                    <button onClick={confirmPortion} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
                     <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
                     <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
                   </div>
@@ -1866,22 +1893,22 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   </div>
                 </div>)}
                 {portionResult && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
-                  {portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
+                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
                     <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
                     <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
                     <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
                   </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
-                  {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
-                  {(function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
-                  {portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
+                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
+                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
                   {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
-                  {gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
+                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
                   <div style={{ marginBottom: 8 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /></div>
-                  {portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
                   <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-                    <button onClick={confirmPortion} style={Object.assign({}, btnActionLg, snapBtn)}>Confirm</button>
+                    <button onClick={confirmPortion} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
                     <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
                     <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
                   </div>
@@ -1964,22 +1991,22 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   </div>
                 </div>)}
                 {portionResult && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
-                  {portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
+                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
                     <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
                     <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
                     <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
                   </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
-                  {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
-                  {(function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
-                  {portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
+                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
+                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
                   {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
-                  {gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
+                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
                   <div style={{ marginBottom: 8 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /></div>
-                  {portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
                   <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-                    <button onClick={confirmPortion} style={Object.assign({}, btnActionLg, snapBtn)}>Confirm</button>
+                    <button onClick={confirmPortion} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
                     <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
                     <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
                   </div>
@@ -2032,22 +2059,22 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   </div>
                 </div>)}
                 {portionResult && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
-                  {portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
+                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
                     <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
                     <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
                     <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
                   </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
-                  {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
-                  {(function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
-                  {portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
+                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
+                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
                   {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
-                  {gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
+                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
                   <div style={{ marginBottom: 8 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /></div>
-                  {portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
                   <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-                    <button onClick={confirmPortion} style={Object.assign({}, btnActionLg, snapBtn)}>Confirm</button>
+                    <button onClick={confirmPortion} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
                     <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
                     <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
                   </div>
@@ -2100,22 +2127,22 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   </div>
                 </div>)}
                 {portionResult && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
-                  {portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
+                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
                     <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
                     <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
                     <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
                   </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
-                  {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
-                  {(function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
-                  {portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
+                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
+                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
                   {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
-                  {gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
+                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
                   <div style={{ marginBottom: 8 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /></div>
-                  {portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
                   <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-                    <button onClick={confirmPortion} style={Object.assign({}, btnActionLg, snapBtn)}>Confirm</button>
+                    <button onClick={confirmPortion} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
                     <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
                     <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
                   </div>
@@ -2165,22 +2192,22 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   </div>
                 </div>)}
                 {portionResult && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
-                  {portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
+                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
                     <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
                     <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
                     <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
                   </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
-                  {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
-                  {(function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
-                  {portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
+                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
+                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
                   {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
-                  {gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
+                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
                   <div style={{ marginBottom: 8 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /></div>
-                  {portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
                   <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-                    <button onClick={confirmPortion} style={Object.assign({}, btnActionLg, snapBtn)}>Confirm</button>
+                    <button onClick={confirmPortion} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
                     <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
                     <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
                   </div>
@@ -2229,24 +2256,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       📷
                       <input type="file" accept="image/*" capture="environment" onChange={async function(e) {
                         if (!e.target.files || !e.target.files[0]) return;
-                        var file = e.target.files[0];
-                        setHelpEatLoading(true);
-                        try {
-                          var reader = new FileReader();
-                          var base64 = await new Promise(function(res, rej) { reader.onload = function() { res(reader.result.split(",")[1]); }; reader.onerror = function() { rej(new Error("Read failed")); }; reader.readAsDataURL(file); });
-                          var mediaType = file.type || "image/jpeg";
-                          var isJC2 = activeTab === "jc";
-                          var personCtx = isJC2 ? "JC, male 49, 2000-2200 kcal/day target, 110-130g protein, under 20g sat fat, under 25g added sugar, 30-35g fibre. Thyroid issues (TSH 14.2), statin 20mg, HbA1c 43." : "Becks, female 48, 1700-1900 kcal/day target, 90-110g protein, under 20g sat fat (critical — LDL 7.2, Total Cholesterol 9.6, suspected FH), under 25g added sugar, 25-30g fibre. Perimenopausal, citalopram, atorvastatin.";
-                          var locationHint = helpEatText.trim() ? " The user is at or considering: " + helpEatText.trim() + "." : "";
-                          var catLabel = helpEatCat;
-                          var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "This person needs help choosing a " + catLabel + " option." + locationHint + " Person profile: " + personCtx + " Analyse the image (menu, buffet, shelf, food options). Recommend the BEST suitable option and explain why. Include portion advice if relevant (e.g. 'have half portion', 'skip the side'). Return ONLY JSON: {\"name\":\"recommended food/meal name\",\"kcal\":estimated_calories,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED\",\"recommendation\":\"2-3 sentences explaining why this is the best choice and any portion/modification advice\",\"alternatives\":\"1 sentence naming one alternative if available\"}" }] }] }) });
-                          var result = await resp.json();
-                          var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-                          var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
-                          var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
-                          setHelpEatResult(withRuleRating({ name: info.name || "Unknown", kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, addedSugar: info.addedSugar || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0, rating: info.rating || "AMBER", recommendation: info.recommendation || "", alternatives: info.alternatives || "", category: helpEatCat }));
-                        } catch(ce) { setFormMsg(window.aiErrorMsg(ce)); setTimeout(function(){setFormMsg("");},10000); }
-                        setHelpEatLoading(false);
+                        await window._lcHelpEatPhoto(e.target.files[0]);
                         e.target.value = "";
                       }} style={{ display: "none" }} />
                     </label>
@@ -2268,6 +2278,14 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       setHelpEatLoading(false);
                     }} disabled={helpEatLoading || !helpEatText.trim()} style={{ width: "100%", padding: "8px 12px", background: helpEatLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{helpEatLoading ? <span>Finding best options <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Find Best Option"}</button>
                 </div>)}
+              </div>) : helpEatResult.noFood ? (<div data-testid="help-eat-no-food">
+                <div role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div>
+                <input aria-label="Help me eat description" value={helpEatText} onChange={function(e) { setHelpEatText(e.target.value); }} placeholder="e.g. M&S services, hotel buffet, Pizza Express..." style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, marginBottom: 6 }} />
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button disabled style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, opacity: 0.45, cursor: "not-allowed" }}>Confirm</button>
+                  <button disabled={helpEatLoading} onClick={function() { if (window._lcHelpEatFile) window._lcHelpEatPhoto(window._lcHelpEatFile); }} style={{ flex: 1, padding: 8, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>{helpEatLoading ? "⏳…" : "Re-check"}</button>
+                  <button onClick={function() { setHelpEatResult(null); setHelpEatCat(""); setHelpEatText(""); }} style={{ flex: 1, padding: 8, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>Cancel</button>
+                </div>
               </div>) : (<div>
                 <div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, border: "1px solid #86efac", marginBottom: 6 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🍽 {helpEatResult.name}</div>

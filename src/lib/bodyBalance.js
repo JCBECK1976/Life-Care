@@ -1,3 +1,4 @@
+import { balanceCheckRule } from "./bodyPhotoCheck.js";
 // v2.12.0 F2 Body balance — ANALYSE-AND-DISCARD (JC, 11 Nov; supersedes the Storage decision of 06:25).
 // Photos are read in memory, sent to the AI, and never stored anywhere (not the database, not Storage, not backups).
 // Only a STRUCTURED analysis is kept, under progressPhotos: { date, week, pose, scores, notes, flags, summary }.
@@ -51,12 +52,13 @@ export function buildPrompt(o) {
   var list = REGIONS.map(function(r) { return r.k + " (" + r.l + ")"; }).join(", ");
   var prev = o.prev ? "PREVIOUS CHECK (" + o.prev.date + ", week " + o.prev.week + "): scores " + JSON.stringify(o.prev.scores) + "; notes " + JSON.stringify(o.prev.notes || {}) + "." : "This is the FIRST check: there is nothing to compare with yet, so leave \"changes\" empty.";
   return "You are a strength coach assessing body BALANCE from progress photos of " + (o.name || "the user") + " (front, side and back poses; identify which pose each photo is). " +
+    balanceCheckRule(o.count) +
     "Score EVERY item of this fixed checklist from 1 (clearly under-developed relative to the rest of the body) to 5 (clearly well developed), with a short note each: " + list + ". " +
     "For armsLR score symmetry (5 = symmetrical) and say which side is behind if not. For shoulderWaist score the V-taper ratio. " +
     prev + " " +
     (o.trends && o.trends.length ? "MEASUREMENT TRENDS (tape): " + o.trends.join("; ") + ". Use them alongside the photos; tape measurements cannot separate upper and lower chest. " : "No tape measurements yet. ") +
     "Then flag any region developing disproportionately fast or slow, or a left/right imbalance, with ONE suggested training adjustment each (exercise swap, emphasis or volume). Suggestions only: never tell them to change their plan automatically. " +
-    "Return ONLY JSON: {\"poses\":[\"front\",\"side\",\"back\"],\"scores\":{\"upperChest\":{\"score\":1-5,\"note\":\"short\"},...every checklist key...},\"changes\":[{\"region\":\"key\",\"from\":n,\"to\":n,\"note\":\"short\"}],\"flags\":[{\"region\":\"key\",\"issue\":\"short\",\"suggestion\":\"one training adjustment\"}],\"summary\":\"two sentences\"}";
+    "Return ONLY JSON: {\"photos\":[{\"photo\":1,\"isPerson\":true,\"isFullBody\":true,\"pose\":\"front\",\"matchesPose\":true}],\"poses\":[\"front\",\"side\",\"back\"],\"scores\":{\"upperChest\":{\"score\":1-5,\"note\":\"short\"},...every checklist key...},\"changes\":[{\"region\":\"key\",\"from\":n,\"to\":n,\"note\":\"short\"}],\"flags\":[{\"region\":\"key\",\"issue\":\"short\",\"suggestion\":\"one training adjustment\"}],\"summary\":\"two sentences\"}";
 }
 
 // Validate the AI's answer: every checklist key must have a 1–5 score. Returns a clean analysis or throws.
