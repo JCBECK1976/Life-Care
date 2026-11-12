@@ -2164,3 +2164,42 @@ Nothing runs until all three are in **and** the workflows reach main with the ne
   7. Startup feels faster.
 - **The workflows do nothing yet:** they run only from main, and the three secrets aren't added. Auto-tag acts on the first beta → main release merge; the Architect checks that tag.
 - **Resume point:** `beta` @ 3aa271c (v2.14.2-beta.4), `build` @ 91b012f. Next: JC's beta test → (Architect) PR beta → main (release v2.14.2). Then add the 3 secrets and run the workflows once by hand.
+
+### (Architect) 12 Nov 2026 16:35 — OUTSTANDING WORK OUTLINE (source list for the Tracker backlog seed)
+Sizes are % of a weekly allowance, including Architect checks.
+
+**1 Finish release**
+- v2.14.3 small fixes (feedback email form closes on save; Send Feedback wording) — 1%
+- Tracker backlog sync + Size column — 2–3%
+- Prod release v2.14.x (+ verify updated workflow actions + first auto-tag) — 2%
+- JC adds 3 GitHub secrets; run each workflow once; Architect verifies the first backup / Build refresh / smoke test — 2–3%
+
+**2 House in order**
+- Security design (private, incl. threat model) — 6–9%
+- DPIA (private) — 3–5%
+- Service design + runbooks (restore, key rotation, emergency rules reopen, incident) — 3–5%
+- Decision log (ADRs) — 1–2%
+- Review the HLD + test strategy drafts — 1–2%
+
+**3 Deferred efficiency (decide after the security design)**
+- App-shell caching in the service worker + update prompt (1b #5) — 3–4%
+- On-device data copy for an instant start (1b #6; needs the security design first) — 4–6%
+- Code splitting (1b #7) — 2–3%
+
+**4 Before pilot users**
+- Sign-in redesign: email link, Apple sign-in, computer hint, fresh-device tests — 5–8%
+- Step 2 full security: account deletion, data export, audit trail — 6–10%
+- Public docs: privacy notice, terms, intended use (wellness, not medical), accessibility, payments statement — 4–6%
+- Supplier/processor register + DPAs, ROPA, risk register (private) — 2–3%
+- Independent penetration test (external; Architect prepares the scope) — 1%
+
+**5 Go-live**
+- Step 3: remove hard-coded data — 8–12%
+- Step 4: onboarding with AI-built plans — 10–15%
+- Step 5: individual accounts + privacy design (random IDs, names on device) — 12–20%
+- Step 6: server AI proxy (hides the key), automatic email notifications for new Tracker items, energy packs/payments, on-device encryption of medical and free-text fields — 15–25%
+- Own domain + per-environment hosting — 2–3%
+- Website — 6–10%
+- Optional app store versions — 8–12%
+- Admin tech Q&A chat bot — 3–5%
+
