@@ -2276,3 +2276,8 @@ Sizes are % of a weekly allowance, including Architect checks.
   - **Release timing (Coder):** v2.15.1 is on build only and was not added to PR #23. JC's message asked for v2.15.0 to go to beta, and the removal hadn't been tested yet. It goes to beta with the next build → beta PR.
 - **JC to test (/beta/):** footer v2.15.0-beta.5; Settings sections; Tracker (plan, Outstanding, Token %); Feedback email Edit → Save; Debug Mode. On /build/: Data & backups shows only Download backup, Restore and Data viewer.
 - **Resume point:** `beta` @ 447fb9e (v2.15.0-beta.5), `build` @ 71041b0 (v2.15.1). Next: JC's beta test → (Architect) beta → main release; v2.15.1 to beta with the next build → beta PR when asked.
+
+### (Coder) 12 Nov 2026 — PR #24 build → beta (v2.15.1)
+- **Done:** PR #24 merged into `beta` as `fffb32b`. Deploy run 43311458374 succeeded, so `/beta/` should show **v2.15.1-beta.6**. Not merged to main.
+- **JC to test (/beta/):** footer v2.15.1-beta.6; Settings → Data & backups shows only Download backup, Restore and Data viewer; Data tools has no "Clear old eating history".
+- **Resume point:** `beta` @ fffb32b (v2.15.1-beta.6) = `build` content @ 71041b0. Next: JC's beta OK → (Architect) beta → main release.
