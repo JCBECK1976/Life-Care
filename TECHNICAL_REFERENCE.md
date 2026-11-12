@@ -1,7 +1,7 @@
 # Technical Reference — Life Care Companion
 
 > **Purpose**: Complete technical architecture reference for any developer continuing this project.  
-> **Version**: v2.6.0 (Vite build, 5 Nov 2026) | **Source**: `src/` (component files)  
+> **Version**: v2.7.0 (Vite build, 10 Nov 2026) | **Source**: `src/` (component files)  
 > **Live**: https://jcbeck1976.github.io/Life-Care  
 > **Repo**: https://github.com/JCBECK1976/Life-Care
 
@@ -521,6 +521,17 @@ Generates meal suggestions using only custom-added items (with RAG status), neve
 - `saveEditItem(cat)` with `editDraft` state — Update Item panel, same two-step flow; uncontrolled inputs `edit-item-name-{id}` / `edit-item-ingredients-{id}`.
 - New items store `suitability` (description).
 - Add box closes after add when `addingSource !== "manage"`.
+
+### Eating data model (v2.7.0): parent list items + child selections
+- **Parents** are the list items (`custom_breakfasts`, `custom_lunches`, `custom_meals`, `custom_snacks`, `custom_drinks`, `custom_desserts`, plus the built-in defaults). They change only through Update Lists.
+- **Children** are the selections: `eat_children:<person>:<Sunday YYYY-MM-DD>` = `{ v, children: { "c_<date>_<slot>": child }, empty: ["<weekday>:<slot>"], notes }`.
+  - Child fields: `parentId` (null when ad hoc), `date`, `weekday`, `slot`, `snapshot`, `portion` (`{factor}` or `{source:"photo", values, assumed, grams, check}`), `variations`, `nutrition`, its own `rating`/`ragFreq`/`band`, `parentBand`, `tracked`, `source`, `notes`.
+  - See `src/lib/children.js`.
+- The screens use a weekday view (`meals[weekday][slot] = childId`). `childItems()` builds list-item-shaped stand-ins so every lookup (totals, warnings, feedback, Home, Shop) reads the **child**. `reconcile()` turns an edited view back into children; `App.setChildAt()` writes one child directly (Snap).
+- **Migration:** a week with an old `mealplan:<Sunday>:<person>` and no children is converted once, when opened. For the current week only, `portion_overrides:<person>` and `meal_tracking:<person>` (day-name keyed) are folded into the children and then deleted.
+- **RAG** (`src/lib/rag.js`): portion-based rule bands on satFat/20g and addedSugar/25g, with a fibre/protein credit and a kcal-share rule. Applied to list items when they are saved, and to each child from its own nutrition. Frequency rules count children.
+- **Photo checks** (`src/lib/snap.js`): the first check runs at temperature 0 with grams per component; Re-check is an independent deep dive.
+- **Data tools:** Download backup (real `data` + `data_build`, console-export shape); Restore (`src/lib/backup.js`: preview → merge missing exercise weeks, or a full restore of `data`, or `data_build` on Build, after typing RESTORE); Clear old eating history (`mealplan:*` and `eat_children:*` before a date).
 
 ## 11b. Help & Chat
 - **💬 Chat** (`qaOpen`, `askQuestion`, Firebase `qa_history`) — questions about the person's own data; full data context in the prompt.

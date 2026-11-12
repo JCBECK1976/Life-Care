@@ -15,6 +15,13 @@ on:
 permissions:
   contents: read
 
+# Runs queue instead of colliding: a build push and a doc commit to main within seconds used to start two deploys,
+# and the second failed with "in progress deployment" (harmless, but it sent a failure email). A newer queued run
+# replaces an older queued one, which is fine: every run rebuilds all three environments.
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: false
+
 jobs:
   request-deploy:
     if: github.event_name == 'push' && github.ref != 'refs/heads/main'
@@ -34,11 +41,11 @@ jobs:
       group: pages-build
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0   # all branches and history (beta.N counts promotions since the last release)
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -46,9 +53,9 @@ jobs:
       - name: Build prod, beta and build, then check the result
         run: bash scripts/build-pages.sh dist-pages
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dist-pages
 
@@ -66,4 +73,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

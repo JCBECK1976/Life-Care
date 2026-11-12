@@ -1,0 +1,79 @@
+# Nightly (and manual, e.g. right before a Prod release) ENCRYPTED backup of the real data (`data`).
+# Prepared 12 Nov 2026, inactive until JC adds the secrets (HANDOVER "JC: add these secrets"):
+#   FIREBASE_SERVICE_ACCOUNT  read the database      BACKUP_KEY  encryption passphrase      VAULT_DEPLOY_KEY  write to the vault
+# Any missing → the job says "secret not set — skipped" and ends green. Nothing personal is ever printed or stored here:
+# the snapshot is encrypted (gpg AES-256) before it leaves the runner and pushed to the PRIVATE vault repo, never this one.
+# A full snapshot is saved only when the data's fingerprint changed. Retention: 30 daily + 12 monthly.
+name: Backup data (encrypted, to the vault)
+
+on:
+  schedule:
+    - cron: "17 2 * * *"      # 02:17 UTC nightly
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      BACKUP_KEY: ${{ secrets.BACKUP_KEY }}
+      VAULT_DEPLOY_KEY: ${{ secrets.VAULT_DEPLOY_KEY }}
+    steps:
+      - name: Check the secrets are set
+        id: s
+        run: |
+          missing=""
+          for n in FIREBASE_SERVICE_ACCOUNT BACKUP_KEY VAULT_DEPLOY_KEY; do [ -n "${!n}" ] || missing="$missing $n"; done
+          if [ -n "$missing" ]; then echo "Secret not set —$missing — skipped (nothing read or written)."; echo "skip=true" >> "$GITHUB_OUTPUT"; else echo "skip=false" >> "$GITHUB_OUTPUT"; fi
+
+      - if: steps.s.outputs.skip == 'false'
+        uses: actions/checkout@v7
+
+      - if: steps.s.outputs.skip == 'false'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Install the Firebase admin library (job only)
+        if: steps.s.outputs.skip == 'false'
+        run: npm install --no-save --no-package-lock --prefix scripts/automation firebase-admin@12.7.0
+
+      - name: Open the vault (deploy key, write access to the vault repo only)
+        if: steps.s.outputs.skip == 'false'
+        run: |
+          set +x
+          mkdir -p ~/.ssh && printf '%s\n' "$VAULT_DEPLOY_KEY" > ~/.ssh/vault && chmod 600 ~/.ssh/vault
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/vault -o IdentitiesOnly=yes" git clone --depth 1 git@github.com:JCBECK1976/vault.git vault
+          mkdir -p vault/life-care/backups/daily vault/life-care/backups/monthly
+
+      - name: Snapshot (only if the data changed)
+        if: steps.s.outputs.skip == 'false'
+        run: LAST_FINGERPRINT="$(cat vault/life-care/backups/LAST_FINGERPRINT 2>/dev/null || true)" node scripts/automation/backup.mjs
+
+      - name: Encrypt, keep 30 daily + 12 monthly, push to the vault
+        if: steps.s.outputs.skip == 'false'
+        run: |
+          set +x
+          if [ -f out/unchanged ]; then echo "No change — nothing pushed."; exit 0; fi
+          d=$(date -u +%F); m=$(date -u +%Y-%m); B=vault/life-care/backups
+          printf '%s' "$BACKUP_KEY" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 --symmetric --cipher-algo AES256 --compress-algo zlib -o "$B/daily/$d.json.gpg" out/backup.json
+          shred -u out/backup.json
+          [ -f "$B/monthly/$m.json.gpg" ] || cp "$B/daily/$d.json.gpg" "$B/monthly/$m.json.gpg"
+          ls -1 "$B/daily"/*.json.gpg | sort | head -n -30 | xargs -r rm -f
+          ls -1 "$B/monthly"/*.json.gpg | sort | head -n -12 | xargs -r rm -f
+          cp out/fingerprint "$B/LAST_FINGERPRINT"
+          cd vault && git config user.name "lifecare-backup" && git config user.email "actions@users.noreply.github.com"
+          git add -A life-care/backups && git commit -q -m "life-care backup $d" && GIT_SSH_COMMAND="ssh -i ~/.ssh/vault -o IdentitiesOnly=yes" git push -q
+          echo "Encrypted backup $d pushed to the vault."
+
+      - name: Clean up
+        if: always()
+        run: rm -rf ~/.ssh/vault out vault

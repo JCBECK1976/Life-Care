@@ -38,12 +38,14 @@ test("service worker is network-only and leaves other origins and environments a
   expect(src).toContain("NETWORK-ONLY");
   // Run the generated worker for prod with a fake service-worker global.
   const body = `const SCOPE = "/Life-Care/";\nconst SKIP = ["/Life-Care/beta/","/Life-Care/build/"];\n` +
-    src.slice(src.indexOf('self.addEventListener("install"'), src.indexOf("`;\n}"));
+    src.slice(src.indexOf('const SHARE = SCOPE'), src.indexOf("`;\n}"));     // v2.11.0: includes the share-target handler
   const handlers = {};
   const self = { location: { origin: "https://jcbeck1976.github.io" }, addEventListener: (t, f) => (handlers[t] = f), skipWaiting() {}, clients: { claim() {} } };
   const fetchCalls = [];
-  new Function("self", "fetch", body)(self, (r) => { fetchCalls.push(r.url); return Promise.resolve("net"); });
-  const handled = (url, method = "GET") => { let used = false; handlers.fetch({ request: { url, method }, respondWith: () => (used = true) }); return used; };
+  const caches = { open: async () => ({ keys: async () => [], delete: async () => true, put: async () => {} }) };
+  const Response = { redirect: (u, c) => ({ redirect: u, status: c }) };
+  new Function("self", "fetch", "caches", "Response", body)(self, (r) => { fetchCalls.push(r.url); return Promise.resolve("net"); }, caches, Response);
+  const handled = (url, method = "GET") => { let used = false; handlers.fetch({ request: { url, method, formData: async () => ({ getAll: () => [] }) }, respondWith: (p) => { used = true; Promise.resolve(p).catch(() => {}); } }); return used; };
   expect(handled("https://jcbeck1976.github.io/Life-Care/")).toBe(true);
   expect(handled("https://jcbeck1976.github.io/Life-Care/assets/index.js")).toBe(true);
   expect(handled("https://jcbeck1976.github.io/Life-Care/beta/")).toBe(false);
@@ -52,5 +54,10 @@ test("service worker is network-only and leaves other origins and environments a
   expect(handled("https://api.anthropic.com/v1/messages", "POST")).toBe(false);
   expect(handled("https://api.anthropic.com/v1/models")).toBe(false);
   expect(handled("https://jcbeck1976.github.io/Life-Care/x", "POST")).toBe(false);
-  expect(src).not.toMatch(/caches\.|CacheStorage/); // nothing is cached
+  expect(handled("https://jcbeck1976.github.io/Life-Care/share-target", "POST")).toBe(true);     // v2.11.0 F8: only the share POST
+  expect(handled("https://jcbeck1976.github.io/Life-Care/share-target")).toBe(true);             // (a GET there is just passed to the network)
+  // The only cache use is the shared-image store inside receiveShare; no app file is ever cached.
+  const swSrc = src.slice(src.indexOf("function swSource"), src.indexOf("function pwa("));
+  const outside = swSrc.slice(0, swSrc.indexOf("async function receiveShare")) + swSrc.slice(swSrc.indexOf('self.addEventListener("install"'));
+  expect(outside).not.toMatch(/caches\.|CacheStorage/);
 });

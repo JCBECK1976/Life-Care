@@ -1,11 +1,20 @@
+import { readImageForAI } from "../lib/image.js";
+import NoFoodPanel from "../components/NoFoodPanel.jsx";
 import { BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, POTATO_SIDES, SNACKS, VEG_SIDES } from "../constants/food.js";
 import { calcWeek, fmtDate, getWeekDates, mealKey } from "../lib/utils.js";
 import { handleApiError } from "../lib/api.js";
 import { sGet, sSet } from "../lib/storage.js";
 import React from "react";
-import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnMuted, btnPortion } from "../constants/styles.js";
+import { withRuleRating, rateByPortion, frequencyWarning, FREQ_LABEL, bandOf } from "../lib/rag.js";
+import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnFilledOn, btnMuted, btnOpen, btnPortion, btnProgress, btnSnap } from "../constants/styles.js";
 import { accentVariant } from "../lib/colour.js";
 import { personName } from "../components/PersonTabs.jsx";
+import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
+import { parseRecalc, recalcPrompt, renameKcal, stripKcal as stripKcalName } from "../lib/nutrition.js";
+import { applyDefaultsTo, generatorSummary, mergeGenerated, selectionName } from "../lib/meals.js";
+import { NO_FOOD_MSG, NO_FOOD_RULE, compareLine, gramsLine, noFood, requestBody } from "../lib/snap.js";
+import { PHASE_LABEL } from "../lib/eatPhase.js";
+import { foodKey, loadWeekDoc, makeChild, occurrences, ragNote, reconcile, saveWeekDoc, viewFromDoc } from "../lib/children.js";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -19,7 +28,7 @@ export default function EatingSection({ ctx }) {
     helpEatCat, helpEatLoading, helpEatResult, helpEatText, isJC, manageListsOpen, mealDefaults, mealTracking,
     meals, newItemLoading, newItemName, offLoading, offResults, openAddForm, p, pastWeeksMeals,
     portionLoading, portionOverrides, portionPlanned, portionResult, portionSlot, quickPrepMins, ragRecalcLoading, ragRecalcMsg,
-    recalculateAllRag, renderThread, reviewCategories, reviewSideType, saveMeals, searchOFF, setAddingCategory, setAddingNew,
+    recalculateAllRag, renderThread, reviewCategories, reviewSideType, saveMeals: saveMealsCtx, setChildAt, weekChildren, childItemsList, searchOFF, setAddingCategory, setAddingNew,
     setAddingSlotDay, setAddingSlotKey, setBulkReviewItems, setCameraPreview, setCopyDayOpen, setCopyDayTargets, setCopyWeekOpen, setCopyWeekTargets,
     setCustomBreakfasts, setCustomDesserts, setCustomDrinks, setCustomLunches, setCustomMeals, setCustomSnacks, setDefScopes, setEatDay,
     setEatDayChartOpen, setEatDayEyeOpen, setEatFbExpanded, setEatWeekEyeOpen, setEditDraft, setEditingItem, setFormMsg, setGenerating,
@@ -28,6 +37,20 @@ export default function EatingSection({ ctx }) {
     setPortionSlot, setQuickPrepMins, setRagRecalcMsg, setReviewCategories, setReviewSideType, setSaving, setWeekOff, updateEatDayFb,
     updateEatWeekFb, weekLabel, weekOff, weekStart
   } = ctx;
+  /* v2.6.2 D10/F7: Undo for a replaced item, and the optional photo description */
+  const [portionUndo, setPortionUndo] = React.useState(null);
+  const [portionDesc, setPortionDesc] = React.useState("");
+  /* v2.6.3 bulk upload: own category (D4), batch progress/retry (D3), real cancel (D5), OK message (F4) */
+  const [bulkCat, setBulkCat] = React.useState("");
+  const [bulkRun, setBulkRun] = React.useState(null);   // { done, total, failed: [lines], cat }
+  const [bulkDone, setBulkDone] = React.useState(null); // message that needs OK
+  const [bulkUndo, setBulkUndo] = React.useState(null); // { cat, ids } kept before a cancel
+  const bulkToken = React.useRef(null);
+  const [listJob, setListJob] = React.useState("");
+  const [itemOpen, setItemOpen] = React.useState(null);  // v2.8.0 F5: list item open read-only (id)
+  const [slotOpen, setSlotOpen] = React.useState(null);  // v2.8.0 F5: meal selection open { day, slot, editing, draft, msg }
+  const [snapPre, setSnapPre] = React.useState("");
+  const [portionFirst, setPortionFirst] = React.useState(null); // D15: the first check, for the deep-dive comparison     // v2.6.5 Snap: slot whose description bar is open (before the photo)     // v2.6.5: "rerate" | "recheck" while running
  try {
           var allBfast = [].concat(BREAKFASTS, customBreakfasts, DEFAULT_BREAKFASTS);
           var allLunch = [].concat(LUNCHES, customLunches, DEFAULT_LUNCHES);
@@ -50,31 +73,89 @@ export default function EatingSection({ ctx }) {
           /* Build lookup of all items by id for rating check */
           var allItemsLookup = {};
           [].concat(dispBfast, dispLunch, dispDinners, dispOther, dispDrinks, dispDesserts).forEach(function(it) { allItemsLookup[it.id] = it; });
-          /* Collect all meal IDs used this week (current meals state) */
-          var thisWeekIds = function() {
-            var ids = [];
-            var DAYS_CK = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
-            DAYS_CK.forEach(function(d) {
-              var dm = meals[d]; if (!dm) return;
-              ["b","l","d"].forEach(function(s) { if (dm[s] && dm[s] !== "__empty__") ids.push(dm[s]); });
-              for (var i = 2; i <= 10; i++) { if (dm["b"+i]) ids.push(dm["b"+i]); if (dm["l"+i]) ids.push(dm["l"+i]); if (dm["d"+i]) ids.push(dm["d"+i]); }
-            });
-            return ids;
+          /* v2.6.5: the week's CHILDREN (selections) stand in for their ids, so every lookup and total reads the child */
+          var _listLookup = {};
+          [].concat(allItems, allDrinks, allDesserts, POTATO_SIDES || [], VEG_SIDES || []).forEach(function(it) { if (it && it.id && !_listLookup[it.id]) _listLookup[it.id] = it; });
+          Object.keys(allItemsLookup).forEach(function(id) { if (!_listLookup[id]) _listLookup[id] = allItemsLookup[id]; });
+          (childItemsList || []).forEach(function(it) { [allBfast, allLunch, allDinners, allOther, allDrinks, allDesserts, allItems].forEach(function(arr) { arr.push(it); }); allItemsLookup[it.id] = it; });
+          var saveMeals = function(n, source) { return saveMealsCtx(n, source, _listLookup); };
+          var getSnap = function() { return null; };
+          /* ═══ v2.8.0 F5: a meal selection (the CHILD) opens in the shared form: portion + variations → the AI
+             recalculates the child's nutrition → its RAG is recalculated (D11 bands). The list item is never changed.
+             "Remove from this meal" is the only destructive action; deleting from the list happens only in Update Lists. ═══ */
+          var slotButtons = function(slotKey, idx) {
+            var v = getMeal(eatDay, slotKey); var filled = !!v && v !== "__empty__";
+            var first = idx === 1 && /^[bld]$/.test(slotKey);
+            return (<>
+              <button aria-label={filled ? "Open this meal" : "Add to this meal"} onClick={function() {
+                if (filled) { setSlotOpen(slotOpen && slotOpen.slot === slotKey && slotOpen.day === eatDay ? null : { day: eatDay, slot: slotKey, first: first, editing: false, msg: "" }); }
+                else { setSlotOpen(null); openAddForm(slotCategory(slotKey), "defaults", "", slotKey, eatDay); }
+              }} style={btnOpen}>Open</button>
+              {!filled && !first && v !== undefined && v !== "" && <button aria-label="Remove this empty row" onClick={function() { setMeal(eatDay, slotKey, ""); }} style={{...btnDelete, fontSize: 10, flexShrink: 0}}>✕</button>}
+            </>);
           };
-          /* Collect all meal IDs used in past 4 weeks (for RED monthly check) */
-          var pastMonthIds = function() {
-            var ids = [];
-            pastWeeksMeals.forEach(function(wk) {
-              if (!wk) return;
-              Object.keys(wk).forEach(function(d) {
-                if (d.startsWith("_")) return;
-                var dm = wk[d]; if (!dm || typeof dm !== "object") return;
-                ["b","l","d"].forEach(function(s) { if (dm[s] && dm[s] !== "__empty__") ids.push(dm[s]); });
-                for (var i = 2; i <= 10; i++) { if (dm["b"+i]) ids.push(dm["b"+i]); if (dm["l"+i]) ids.push(dm["l"+i]); if (dm["d"+i]) ids.push(dm["d"+i]); }
-              });
-            });
-            return ids;
+          var recalcWithVariations = async function(c, factor, text) {
+            var base = c.snapshot || {};
+            var prompt = "A meal item is \"" + base.name + "\". One standard portion has: " + (base.kcal || 0) + " kcal, " + (base.protein || 0) + "g protein, " + (base.fat || 0) + "g fat, " + (base.satFat || 0) + "g saturated fat, " + (base.addedSugar || 0) + "g added sugar, " + (base.carbs || 0) + "g carbs, " + (base.fibre || 0) + "g fibre, " + (base.salt || 0) + "g salt. The person ate " + factor + " × that portion, with these changes: \"" + text + "\". Work out the nutrition of what they actually ate. Return ONLY JSON: {\"kcal\":number,\"protein\":g,\"fat\":g,\"satFat\":g,\"addedSugar\":added_sugar_g,\"carbs\":g,\"fibre\":g,\"salt\":g,\"change\":\"one short sentence on what changed\"}";
+            var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 400, temperature: 0, messages: [{ role: "user", content: prompt }] }) });
+            var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+            var txt = ""; (result.content || []).forEach(function(x) { if (x.text) txt += x.text; });
+            var m = txt.replace(/```json|```/g, "").trim().match(/\{[\s\S]*\}/); if (!m) throw new Error("the AI did not return nutrition values");
+            var r = JSON.parse(m[0]); if (!(parseFloat(r.kcal) > 0)) throw new Error("no calorie value came back");
+            return r;
           };
+          var renderSlotForm = function() {
+            var o = slotOpen; var c = childAt(o.day, o.slot); if (!c) return null;
+            var parent = c.parentId ? _listLookup[c.parentId] : null; var n = c.nutrition || {};
+            var d = o.draft || { factor: String((c.portion && c.portion.factor) || 1), text: (c.variations && c.variations.text) || "" };
+            var setD = function(patch) { setSlotOpen(Object.assign({}, o, { draft: Object.assign({}, d, patch), msg: "" })); };
+            var portionText = c.portion && c.portion.values ? (c.portion.source === "variations" ? "×" + (c.portion.factor || 1) + " with changes" : "checked by photo" + (c.portion.factor && c.portion.factor !== 1 ? " ×" + c.portion.factor : "") + (c.portion.assumed ? " — " + c.portion.assumed : "")) : "×" + ((c.portion && c.portion.factor) || 1) + " of the list portion";
+            var note = ragNote(c, parent);
+            var save = async function() {
+              var factor = parseFloat(d.factor) || 1; var text = (d.text || "").trim();
+              var next = Object.assign({}, c, { variations: { text: text, subs: (c.variations && c.variations.subs) || [] } });
+              try {
+                if (text) {
+                  setSlotOpen(Object.assign({}, o, { draft: d, msg: "⏳ Recalculating this meal…" }));
+                  var r = await recalcWithVariations(c, factor, text);
+                  next.portion = { factor: factor, source: "variations", values: { kcal: Math.round(parseFloat(r.kcal)), protein: parseFloat(r.protein) || 0, fat: parseFloat(r.fat) || 0, satFat: parseFloat(r.satFat) || 0, addedSugar: parseFloat(r.addedSugar) || 0, carbs: parseFloat(r.carbs) || 0, fibre: parseFloat(r.fibre) || 0, salt: parseFloat(r.salt) || 0 }, change: r.change || "" };
+                } else if (c.portion && c.portion.values && c.portion.source !== "variations") {
+                  /* v2.11.1: a photo-checked portion is scaled from the PHOTO values (kept as photoValues), never reset to the list */
+                  var pv = c.portion.photoValues || c.portion.values; var sc = {};
+                  Object.keys(pv).forEach(function(k) { var v = parseFloat(pv[k]) || 0; sc[k] = k === "kcal" ? Math.round(v * factor) : Math.round(v * factor * 10) / 10; });
+                  next.portion = Object.assign({}, c.portion, { factor: factor, photoValues: pv, values: sc });
+                } else if (factor !== ((c.portion && c.portion.factor) || 1) || (c.portion && c.portion.source === "variations")) {
+                  next.portion = { factor: factor };
+                }
+                await setChildAt(o.day, o.slot, next);
+                setSlotOpen({ day: o.day, slot: o.slot, first: o.first, editing: false, msg: "✓ Saved for this meal only. To update the list item permanently, please go to 'Update Eating Lists'." });
+              } catch (e) { setSlotOpen(Object.assign({}, o, { draft: d, msg: "⚠️ Couldn't recalculate: " + String(e.message || e).substring(0, 90) + ". Nothing was changed." })); }
+            };
+            var srcLabel = { manual: "picked", default: "your default", generator: "generated", snap: "📷 snap", adhoc: "📷 snap", copy: "copied", migrated: "earlier" }[c.source] || c.source;
+            return (<OpenForm testid="slot-open-form" title={c.snapshot.name} subtitle={(parent ? "From your list" : "This meal only (not in your lists)") + " · " + srcLabel} editing={o.editing} message={o.msg}
+              onEdit={function() { setSlotOpen(Object.assign({}, o, { editing: true, draft: d, msg: "" })); }}
+              onCancelEdit={function() { setSlotOpen(Object.assign({}, o, { editing: false, draft: null, msg: "" })); }}
+              onSave={save}
+              dangerKind="remove" onDanger={function() { if (!confirm("Remove " + c.snapshot.name + " from this meal? Your list is not changed.")) return; setSlotOpen(null); setMeal(o.day, o.slot, o.first ? "__empty__" : ""); }}
+              onClose={function() { setSlotOpen(null); }}>
+              <Field label="Portion" testid="slot-portion">{o.editing ? <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+                  {["0.5", "1", "1.5", "2"].map(function(f) { return <button key={f} type="button" onClick={function() { setD({ factor: f }); }} style={{ ...btnMuted, color: String(d.factor) === f ? "#1e3a5f" : "#94a3b8", borderColor: String(d.factor) === f ? "#1e3a5f" : "#e2e8f0" }}>{f === "0.5" ? "½" : f === "1.5" ? "1½" : f}×</button>; })}
+                  <input aria-label="Portion factor" value={d.factor} onChange={function(e) { setD({ factor: e.target.value }); }} style={Object.assign({}, openInput, { width: 60 })} />
+                </div> : portionText}</Field>
+              <Field label="Changes" testid="slot-variations">{o.editing ? <textarea aria-label="Changes to this meal" value={d.text} onChange={function(e) { setD({ text: e.target.value }); }} placeholder="e.g. chips instead of potato, peas instead of beans, no sauce" style={Object.assign({}, openInput, { minHeight: 44 })} /> : ((c.variations && c.variations.text) || <span style={{ color: "#94a3b8" }}>none</span>)}</Field>
+              {c.portion && c.portion.change && !o.editing && <Field label="What changed">{c.portion.change}</Field>}
+              {nutritionRows(n, n.kcal)}
+              <Field label="Rating today" testid="slot-rating"><span style={{ fontWeight: 700, color: c.rating === "RED" ? "#dc2626" : c.rating === "AMBER" ? "#d97706" : "#15803d" }}>{ragText(c)}</span>{c.ragReason ? <div style={{ fontSize: 10, color: "#64748b" }}>{c.ragReason}</div> : null}</Field>
+              {parent && <Field label="Your list item" testid="slot-parent-rating">{ragText(parent)}{note ? <div data-testid="slot-rag-diff" style={{ fontSize: 10, color: "#64748b" }}>Differs today: {note}</div> : null}</Field>}
+            </OpenForm>);
+          };
+          var childAt = function(dayKey, slot) { var v = getMeal(dayKey, slot); var it = v ? allItemsLookup[v] : null; return it && it._child ? it._child : null; };
+          /* Frequency rules count CHILDREN (their own RAG), by food: the parent, or the name when ad hoc */
+          var foodOf = function(id) { var it = allItemsLookup[id]; return it && it._child ? foodKey(it._child) : id; };
+          var thisWeekIds = function() { return occurrences(weekChildren).map(function(o) { return o.food; }); };
+          var pastMonthIds = function() { var ids = []; (pastWeeksMeals || []).forEach(function(doc) { occurrences(doc).forEach(function(o) { ids.push(o.food); }); }); return ids; };
+          var weekOcc = function() { return occurrences(weekChildren); };
+          var pastOcc = function() { var out = []; (pastWeeksMeals || []).forEach(function(doc) { out = out.concat(occurrences(doc)); }); return out; };
           /* Check if selecting itemId in a slot would breach RAG rules.
              excludeDay/excludeSlot: the slot being set (exclude its current value from count).
              Returns null if OK, or a warning string if breached. */
@@ -82,55 +163,51 @@ export default function EatingSection({ ctx }) {
             if (!itemId || itemId === "__empty__") return null;
             var item = allItemsLookup[itemId];
             if (!item || !item.rating || !item._isCustom) return null;
-            if (item.rating === "GREAT") return null;
-            if (item.rating === "AMBER") {
-              /* Max once per week — check if already used elsewhere this week */
-              var weekIds = thisWeekIds();
-              /* Remove the current slot's existing value from count */
-              if (excludeDay && excludeSlot) {
-                var curVal = meals[excludeDay] && meals[excludeDay][excludeSlot];
-                if (curVal === itemId) return null; /* Same item already there */
-              }
-              var count = weekIds.filter(function(id) { return id === itemId; }).length;
-              /* If already present, warn */
-              if (count > 0) return "Not recommended — already selected this week (AMBER: max once per week)";
-            }
-            if (item.rating === "RED") {
-              /* Max once per month — check current week + past 4 weeks */
-              var allIds = thisWeekIds().concat(pastMonthIds());
-              if (excludeDay && excludeSlot) {
-                var curVal2 = meals[excludeDay] && meals[excludeDay][excludeSlot];
-                if (curVal2 === itemId) return null;
-              }
-              var countAll = allIds.filter(function(id) { return id === itemId; }).length;
-              if (countAll > 0) return "Not recommended — already selected within the past month (RED: max once per month)";
-            }
-            return null;
+            if (item.rating === "GREAT" || item.rating === "GOOD") return null;
+            /* v2.6.5: AMBER up to 3 a week · RED weekly treat once a week · RED monthly treat once a month — counted on children */
+            var food = foodOf(itemId);
+            var occ = weekOcc().filter(function(o) { return o.food === food && !(o.weekday === excludeDay && o.slot === excludeSlot); });
+            var cWeek = occ.length;
+            var cMonth = cWeek + pastOcc().filter(function(o) { return o.food === food; }).length;
+            return frequencyWarning(item, cWeek, cMonth);
           };
           var currentWeek = calcWeek(data.config.trainingStart);
-          var DAYS = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+          var DAYS = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"]; /* v2.6.4 C1: the week (stored Sunday-start) is shown Sunday first */
           var DAY_LABELS = { monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu", friday: "Fri", saturday: "Sat", sunday: "Sun" };
           // States moved to component top level
           var sk = mealKey(weekStart) + ":" + activeTab;
 
-          var portionAnalyze = async function(slotKey, file, itemsList) {
+          /* ═══ v2.6.5 📷 Snap (replaces Portion): every slot, optional description first, nothing saved before Confirm ═══ */
+          var listForSlot = function(slotKey) { var c = slotCategory(slotKey); return c === "breakfast" ? allBfast : c === "lunch" ? allLunch : c === "dessert" ? allDesserts : c === "drink" ? allDrinks : c === "snack" ? allOther : allDinners; };
+          /* one row, equal size: Confirm (deep blue) · Re-check (as Re-rate) · Cancel (grey) */
+          var snapBtn = { flex: 1, minWidth: 0, height: 38, padding: "0 4px", whiteSpace: "nowrap", fontSize: 12, fontWeight: 600, justifyContent: "center", display: "inline-flex", alignItems: "center", boxSizing: "border-box" };
+          var openSnap = function(slotKey) { setPortionResult(null); setPortionPlanned(null); setPortionDesc(""); setPortionUndo(null); setPortionSlot(slotKey); setSnapPre(slotKey); };
+          var snapButton = function(slotKey) {
+            var busy = portionLoading && portionSlot === slotKey; var on = portionSlot === slotKey;
+            return (<button type="button" aria-label="Snap a photo of your food" title="Snap a photo of your food" onClick={function() { if (!busy) openSnap(slotKey); }} style={Object.assign({}, on ? btnFilledOn : btnSnap, { cursor: busy ? "wait" : "pointer" })}>{busy ? "⏳..." : "📷 Snap"}</button>);
+          };
+          var portionAnalyze = async function(slotKey, file, itemsList, descArg, deep) {
+            var desc = (descArg || "").trim();
+            window._lcPortionLast = { slotKey: slotKey, file: file, itemsList: itemsList };
+            setPortionUndo(null);
             setPortionSlot(slotKey);
             setPortionLoading(true);
             setPortionResult(null);
             var val = getMeal(eatDay, slotKey);
-            var planned = itemsList.find(function(it) { return it.id === val; });
+            var planned = (val && val !== "__empty__") ? itemsList.find(function(it) { return it.id === val; }) : null;
+            setSnapPre("");
+            if (!planned) setPortionPlanned(null);
             if (planned) {
               var isJC2 = activeTab === "jc";
-              setPortionPlanned({ name: planned.name, kcal: isJC2 ? (planned.jcKcal || planned.kcal || 0) : (planned.beckKcal || planned.kcal || 0), protein: planned.protein || 0, fat: planned.fat || 0, satFat: planned.satFat || 0, carbs: planned.carbs || 0, fibre: planned.fibre || 0, salt: planned.salt || 0 });
+              setPortionPlanned({ name: planned.name, kcal: isJC2 ? (planned.jcKcal || planned.kcal || 0) : (planned.beckKcal || planned.kcal || 0), protein: planned.protein || 0, fat: planned.fat || 0, satFat: planned.satFat || 0, addedSugar: planned.addedSugar || 0, carbs: planned.carbs || 0, fibre: planned.fibre || 0, salt: planned.salt || 0 });
             }
             try {
-              var reader = new FileReader();
-              var base64 = await new Promise(function(res, rej) { reader.onload = function() { res(reader.result.split(",")[1]); }; reader.onerror = function() { rej(new Error("Read failed")); }; reader.readAsDataURL(file); });
-              var mediaType = file.type || "image/jpeg";
+              var _img = await readImageForAI(file);   /* v2.14.0: shrunk before sending */
+              var base64 = _img.data; var mediaType = _img.mediaType;
               var apiKey = await window.ensureApiKey();
               var isJC3 = activeTab === "jc";
               var plannedName = planned ? planned.name : "unknown food";
-              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 600, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Analyze this food portion. The planned meal was: " + plannedName + ". Estimate the ACTUAL portion shown. Return ONLY JSON: {\"name\":\"what you see\",\"matchesPlanned\":true/false,\"kcal\":calories,\"protein\":grams,\"fat\":total_fat,\"satFat\":sat_fat,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED\",\"portionNote\":\"ONE sentence comparing portion size to standard\"}" }] }] }) });
+              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify(requestBody({ plannedName: planned ? plannedName : "", desc: desc, deep: !!deep }, { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } })) });
               var result = await resp.json();
               var apiErr = handleApiError(result);
               if (apiErr) throw new Error(apiErr);
@@ -140,33 +217,59 @@ export default function EatingSection({ ctx }) {
               var jm = jsonStr.match(/{[\s\S]*}/);
               if (!jm) throw new Error("No JSON");
               var info = JSON.parse(jm[0]);
+              if (deep) info._deep = true; else setPortionFirst(info);
               setPortionResult(info);
             } catch(ce) { setFormMsg(window.aiErrorMsg(ce)); setTimeout(function(){setFormMsg("");},10000); setPortionSlot(""); }
             setPortionLoading(false);
           };
 
+          var slotCategory = function(slotKey) { return /^ds/.test(slotKey) ? "dessert" : /^dr/.test(slotKey) ? "drink" : /^b/.test(slotKey) ? "breakfast" : /^l/.test(slotKey) ? "lunch" : /^o/.test(slotKey) ? "snack" : "dinner"; };
+          /* v2.6.5 Snap Confirm writes the CHILD directly (parents are never changed here). The only question asked is
+             "Save … to your … list?", and only when the food is not already in the list. */
           var confirmPortion = async function() {
-            if (!portionResult || !portionSlot) return;
-            var newOverrides = Object.assign({}, portionOverrides);
-            if (!newOverrides[eatDay]) newOverrides[eatDay] = {};
-            newOverrides[eatDay][portionSlot] = { kcal: portionResult.kcal || 0, protein: portionResult.protein || 0, fat: portionResult.fat || 0, satFat: portionResult.satFat || 0, carbs: portionResult.carbs || 0, fibre: portionResult.fibre || 0, salt: portionResult.salt || 0, name: portionResult.name || "" };
-            setPortionOverrides(newOverrides);
-            await sSet("portion_overrides:" + activeTab, JSON.stringify(newOverrides));
-            setFormMsg("Portion logged ✓");
-            setPortionSlot("");
-            setPortionResult(null);
-            setPortionPlanned(null);
-            setTimeout(function(){setFormMsg("");}, 3000);
+            if (!portionResult || !portionSlot || noFood(portionResult)) return;   // v2.14.1: nothing is saved when there's no food
+            var pr = portionResult; var slot = portionSlot; var day = eatDay; var cat = slotCategory(slot);
+            var vals = { kcal: pr.kcal || 0, protein: pr.protein || 0, fat: pr.fat || 0, satFat: pr.satFat || 0, addedSugar: pr.addedSugar || 0, carbs: pr.carbs || 0, fibre: pr.fibre || 0, salt: pr.salt || 0 };
+            var portion = { source: "photo", values: vals, assumed: gramsLine(pr) || pr.assumed || "", grams: parseFloat(pr.totalGrams) || null, check: pr._deep ? "deep dive" : "first check" };
+            var cur = childAt(day, slot);
+            var sameFood = !!(cur && portionPlanned && pr.matchesPlanned !== false);
+            var child, msg;
+            if (sameFood) {
+              child = Object.assign({}, cur, { portion: portion, notes: portionDesc || cur.notes || "" });
+              msg = "✓ Portion logged for " + cur.snapshot.name;
+            } else {
+              var nm = function(x) { return stripKcalName(x || "").toLowerCase().trim(); };
+              var match = bulkListFor(cat).find(function(x) { return nm(x.name) === nm(pr.name); });
+              var parent = match || null;
+              if (!match && confirm("Save \u201c" + (pr.name || "this food") + "\u201d to your " + catLabel(cat) + " list for future selection?")) {
+                var cpS = { name: pr.name || "Photo item", kcal: vals.kcal, protein: vals.protein, fat: vals.fat, satFat: vals.satFat, addedSugar: vals.addedSugar, carbs: vals.carbs, fibre: vals.fibre, salt: vals.salt, rating: pr.rating || "AMBER", itemType: "packaged", ingredients: [], source: "photo", servingSize: pr.assumed || "" };
+                var resS = await addReviewedItem(cpS, [cat], null, null, cat, "");
+                parent = resS.itemId ? (_listLookup[resS.itemId] || null) : null;
+              }
+              child = makeChild(parent || Object.assign({ name: pr.name || "Food", jcKcal: vals.kcal, beckKcal: vals.kcal }, vals), { date: "", weekday: day, slot: slot, source: parent ? "snap" : "adhoc", isJC: isJC, parentId: parent ? parent.id : null, portion: portion, notes: portionDesc || "" });
+              msg = parent ? "✓ " + child.snapshot.name + (match ? " (from your list)" : " saved to your list") + " logged" : "✓ " + child.snapshot.name + " logged for this meal only";
+            }
+            var prev = await setChildAt(day, slot, child);
+            if (cur && !sameFood) setPortionUndo({ day: day, slot: slot, prev: prev, name: child.snapshot.name, original: cur.snapshot.name });
+            else { setFormMsg(msg); setTimeout(function(){ setFormMsg(""); }, 3000); }
+            setPortionSlot(""); setPortionResult(null); setPortionPlanned(null); setSnapPre("");
           };
 
+          var undoPortionReplace = async function() {
+            var u0 = portionUndo; if (!u0) return;
+            await setChildAt(u0.day, u0.slot, u0.prev);
+            setPortionUndo(null); setFormMsg("Restored " + u0.original); setTimeout(function(){ setFormMsg(""); }, 3000);
+          };
+          var recheckPortion = function() { var l0 = window._lcPortionLast; if (l0) portionAnalyze(l0.slotKey, l0.file, l0.itemsList, portionDesc, true); /* D15: independent deep dive */ };
           var cancelPortion = function() {
+            setSnapPre("");
             setPortionSlot("");
             setPortionResult(null);
             setPortionPlanned(null);
           };
 
           var getEffective = function(dayKey, slotKey, item) {
-            if (portionOverrides[dayKey] && portionOverrides[dayKey][slotKey]) return portionOverrides[dayKey][slotKey];
+            var c0 = childAt(dayKey, slotKey); if (c0 && c0.portion && c0.portion.values) return c0.portion.values;
             return null;
           };
 
@@ -202,21 +305,23 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           var clearWeek = function() { if (!confirm("Clear ALL meals for this week? This cannot be undone.")) return; var n = {}; setMeals(n); saveMeals(n); setFormMsg("Week cleared"); setTimeout(function() { setFormMsg(""); }, 3000); };
 
           
-          var addFromCamera = async function(file) {
+          var addFromCamera = async function(file, descArg) {
             if (!file) return;
+            window._lcAddPhoto = file;   /* v2.14.1: kept in memory only, for Re-check when no food was found */
             setNewItemLoading(true);
             setFormMsg("📷 Analysing image...");
             try {
-              var reader = new FileReader();
-              var base64 = await new Promise(function(res, rej) { reader.onload = function() { res(reader.result.split(",")[1]); }; reader.onerror = function() { rej(new Error("Read failed")); }; reader.readAsDataURL(file); });
-              var mediaType = file.type || "image/jpeg";
-              var descHint = newItemName.trim() ? " The user describes this as: " + newItemName.trim() + "." : "";
-              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Identify this food or product." + descHint + " Read any nutrition label if visible. Classify as 'packaged' if it is a pre-made supermarket product (e.g. Aldi chicken sizzler, protein bar, ready meal) or 'ingredient' if it is a home-made recipe or meal cooked from scratch (e.g. spag bol, curry, stir fry). If 'ingredient', also list the individual ingredients needed to make it. Return ONLY JSON: {\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[\"ingredient1\",\"ingredient2\"] (empty array if packaged)}" }] }] }) });
+              var _img = await readImageForAI(file);   /* v2.14.0: shrunk before sending */
+              var base64 = _img.data; var mediaType = _img.mediaType;
+              var descText = (descArg != null ? String(descArg) : newItemName).trim();
+              var descHint = descText ? " The user describes this as: " + descText + "." : "";
+              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Identify this food or product." + descHint + NO_FOOD_RULE + " Read any nutrition label if visible. Classify as 'packaged' if it is a pre-made supermarket product (e.g. Aldi chicken sizzler, protein bar, ready meal) or 'ingredient' if it is a home-made recipe or meal cooked from scratch (e.g. spag bol, curry, stir fry). If 'ingredient', also list the individual ingredients needed to make it. Return ONLY JSON: {\"isFood\":true/false,\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"rating\":\"GREAT or AMBER or RED based on healthiness\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[\"ingredient1\",\"ingredient2\"] (empty array if packaged)}" }] }] }) });
               var result = await resp.json();
               var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
               var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
               var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
-              setCameraPreview({ name: info.name || newItemName.trim() || "Unknown item", kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0, rating: info.rating || "AMBER", itemType: info.itemType || "packaged", ingredients: info.ingredients || [], originalIngredients: (info.ingredients || []).join(", "), category: addingCategory });
+              if (noFood(info)) { setCameraPreview({ noFood: true, name: info.name || "", desc: descText }); setFormMsg(""); setNewItemLoading(false); return; }   // v2.14.1: no food → no values, no rating, Confirm disabled
+              setCameraPreview(withRuleRating({ name: info.name || newItemName.trim() || "Unknown item", kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, addedSugar: info.addedSugar || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0, rating: info.rating || "AMBER", itemType: info.itemType || "packaged", ingredients: info.ingredients || [], originalIngredients: (info.ingredients || []).join(", "), category: addingCategory }));
               setReviewCategories([addingCategory]);
               setReviewSideType("");
               setFormMsg("");
@@ -236,19 +341,42 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             setTimeout(function() { setFormMsg(""); }, 4000);
           };
 
+          /* v2.14.1: Help Me Eat photo analysis as a function, so a "no food" result can be re-checked with the same photo
+             (kept in memory only) and the description. */
+          window._lcHelpEatPhoto = async function(file) {
+            window._lcHelpEatFile = file;
+            setHelpEatLoading(true);
+                        try {
+                          var _img = await readImageForAI(file);   /* v2.14.0: shrunk before sending */
+                          var base64 = _img.data; var mediaType = _img.mediaType;
+                          var isJC2 = activeTab === "jc";
+                          var personCtx = isJC2 ? "JC, male 49, 2000-2200 kcal/day target, 110-130g protein, under 20g sat fat, under 25g added sugar, 30-35g fibre. Thyroid issues (TSH 14.2), statin 20mg, HbA1c 43." : "Becks, female 48, 1700-1900 kcal/day target, 90-110g protein, under 20g sat fat (critical — LDL 7.2, Total Cholesterol 9.6, suspected FH), under 25g added sugar, 25-30g fibre. Perimenopausal, citalopram, atorvastatin.";
+                          var locationHint = helpEatText.trim() ? " The user is at or considering: " + helpEatText.trim() + "." : "";
+                          var catLabel = helpEatCat;
+                          var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "This person needs help choosing a " + catLabel + " option." + locationHint + " Person profile: " + personCtx + " Analyse the image (menu, buffet, shelf, food options). FIRST decide whether the photo shows any food, drink, menu or food options at all. If it does NOT (for example a person, a room, a blank, dark or blurred photo), set \"isFood\": false, every value 0, and say briefly what you see in \"name\"; otherwise set \"isFood\": true. Recommend the BEST suitable option and explain why. Include portion advice if relevant (e.g. 'have half portion', 'skip the side'). Return ONLY JSON: {\"isFood\":true/false,\"name\":\"recommended food/meal name\",\"kcal\":estimated_calories,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED\",\"recommendation\":\"2-3 sentences explaining why this is the best choice and any portion/modification advice\",\"alternatives\":\"1 sentence naming one alternative if available\"}" }] }] }) });
+                          var result = await resp.json();
+                          var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+                          var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
+                          var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
+                          if (noFood(info)) { setHelpEatResult({ noFood: true, name: info.name || "" }); setHelpEatLoading(false); return; }   // v2.14.1
+                          setHelpEatResult(withRuleRating({ name: info.name || "Unknown", kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, addedSugar: info.addedSugar || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0, rating: info.rating || "AMBER", recommendation: info.recommendation || "", alternatives: info.alternatives || "", category: helpEatCat }));
+                        } catch(ce) { setFormMsg(window.aiErrorMsg(ce)); setTimeout(function(){setFormMsg("");},10000); }
+            setHelpEatLoading(false);
+          };
+          window._lcRecheckAddPhoto = function(desc) { if (window._lcAddPhoto) { setCameraPreview(null); addFromCamera(window._lcAddPhoto, desc); } };
           var addNewItem = async function() {
             if (!newItemName.trim()) return;
             setNewItemLoading(true);
             try {
               var isJC2 = activeTab === "jc";
               // Use Claude for nutritional lookup with full detail
-              var prompt = "Find nutritional info for: " + newItemName + ". Classify as 'packaged' if it is a pre-made supermarket product (e.g. Aldi chicken sizzler, protein bar, ready meal) or 'ingredient' if it is a home-made recipe cooked from scratch (e.g. spag bol, curry, stir fry). If 'ingredient', list the individual ingredients needed. Return ONLY JSON: {\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[\"item1\",\"item2\"] (empty array if packaged),\"suitability\":\"ONE sentence suitability for " + (isJC2 ? "JC, male 49, 2000-2200 kcal target, <20g sat fat, thyroid issues" : "Becks, female 48, 1700-1900 kcal target, <20g sat fat, LDL 7.2") + "\"}";
+              var prompt = "Find nutritional info for: " + newItemName + ". Classify as 'packaged' if it is a pre-made supermarket product (e.g. Aldi chicken sizzler, protein bar, ready meal) or 'ingredient' if it is a home-made recipe cooked from scratch (e.g. spag bol, curry, stir fry). If 'ingredient', list the individual ingredients needed. Return ONLY JSON: {\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[\"item1\",\"item2\"] (empty array if packaged),\"suitability\":\"ONE sentence suitability for " + (isJC2 ? "JC, male 49, 2000-2200 kcal target, <20g sat fat, thyroid issues" : "Becks, female 48, 1700-1900 kcal target, <20g sat fat, LDL 7.2") + "\"}";
               var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: prompt }] }) });
               var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
               var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
               if (txt) {
                 var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
-                setCameraPreview({ name: info.name || newItemName, kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0, rating: info.rating || "AMBER", itemType: info.itemType || "packaged", ingredients: info.ingredients || [], originalIngredients: (info.ingredients || []).join(", "), suitability: info.suitability || "", category: addingCategory });
+                setCameraPreview(withRuleRating({ name: info.name || newItemName, kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, addedSugar: info.addedSugar || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0, rating: info.rating || "AMBER", itemType: info.itemType || "packaged", ingredients: info.ingredients || [], originalIngredients: (info.ingredients || []).join(", "), suitability: info.suitability || "", category: addingCategory }));
                 setReviewCategories(addingCategory ? [addingCategory] : []);
                 setReviewSideType("");
               }
@@ -257,6 +385,41 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           };
 
           /* ═══ Shared confirm handler for Review Item (inline + overlay) ═══ */
+          /* Shared add-item step (list insertion, duplicate check, assign to slot). Used by confirmReviewItem and
+             by the portion photo when it shows a different food (v2.6.2 D10). */
+          var addReviewedItem = async function(cp, cats, slotDay, slotKey, slotCategory, sideType) {
+              var addedTo = []; var dupeFound = [];
+              for (var ci = 0; ci < cats.length; ci++) {
+                var cat = cats[ci];
+                var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
+                var dupeName = cp.name.toLowerCase().trim();
+                if (listItems.some(function(x) { return x.name.toLowerCase().trim() === dupeName; })) { dupeFound.push(cat); continue; }
+                var newItem = withRuleRating({ id: "custom_" + Date.now() + "_" + ci, name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, addedSugar: cp.addedSugar || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, rating: cp.rating, itemType: cp.itemType || "packaged", ingredients: cp.ingredients || [], freq: "Daily", isCustom: true, source: cp.source || "manual", barcode: cp.barcode || "", servingSize: cp.servingSize || "", suitability: cp.suitability || "" }); /* D11: rule rating */
+                if (cat === "dinner" && !sideType) { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = cp.itemType === "ingredient" ? (cp.ingredients || []) : [cp.name]; }
+                if (cat === "dinner" && sideType) { newItem.sideType = sideType; }
+                var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
+                var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : cat === "drink" ? "custom_drinks" : cat === "dessert" ? "custom_desserts" : "custom_snacks";
+                var u = [].concat(listItems, [newItem]); setList(u); await sSet(storageKey, JSON.stringify(u));
+                _listLookup[newItem.id] = newItem; /* D6: so the slot gets its snapshot straight away */
+                addedTo.push(cat); listItems = u;
+              }
+              if (slotKey) {
+                var assignId = null;
+                if (addedTo.length > 0 && newItem) { assignId = newItem.id; }
+                else if (dupeFound.length > 0) {
+                  var dupeList = slotCategory === "breakfast" ? customBreakfasts : slotCategory === "lunch" ? customLunches : slotCategory === "dinner" ? customMeals : slotCategory === "drink" ? customDrinks : slotCategory === "dessert" ? customDesserts : customSnacks;
+                  var dupeMatch = dupeList.find(function(x) { return x.name.toLowerCase().trim() === cp.name.toLowerCase().trim(); });
+                  if (dupeMatch) assignId = dupeMatch.id;
+                }
+                if (assignId) {
+                  if (slotDay) { setMeal(slotDay, slotKey, assignId); }
+                  else { saveDef(slotKey, assignId, "individual"); }
+                }
+              }
+            var itemId = (addedTo.length > 0 && newItem) ? newItem.id : null;
+            if (!itemId && dupeFound.length > 0) { var dl = bulkListFor(cats[0]); var dm0 = dl.find(function(x) { return x.name.toLowerCase().trim() === cp.name.toLowerCase().trim(); }); if (dm0) itemId = dm0.id; }
+            return { addedTo: addedTo, dupeFound: dupeFound, assignId: slotKey ? assignId : null, itemId: itemId };
+          };
           var confirmReviewItem = async function(isOverlay) {
             var nameId = isOverlay ? "review-item-name-overlay" : "review-item-name";
             var ingId = isOverlay ? "review-item-ingredients-overlay" : "review-item-ingredients";
@@ -272,19 +435,22 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             if (cp.itemType === "ingredient" && cp.originalIngredients !== undefined && editedIngredients.join(", ") !== cp.originalIngredients) {
               setFormMsg("🔄 Recalculating nutritional values...");
               try {
-                var recalcPrompt = "Calculate nutritional info for a homemade dish called \"" + cp.name + "\" with these specific ingredients and portions: " + editedIngredients.join(", ") + ". Return ONLY JSON: {\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\"}";
-                var recResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 300, messages: [{ role: "user", content: recalcPrompt }] }) });
-                var recResult = await recResp.json();
-                var recErr = handleApiError(recResult); if (recErr) throw new Error(recErr);
-                var recTxt = ""; if (recResult.content) { for (var ri3=0; ri3<recResult.content.length; ri3++) { if(recResult.content[ri3].text) recTxt += recResult.content[ri3].text; } }
-                var recJson = recTxt.replace(/```json|```/g, "").trim(); var recMatch = recJson.match(/\{[\s\S]*\}/);
-                if (recMatch) {
-                  var recInfo = JSON.parse(recMatch[0]);
-                  setCameraPreview(Object.assign({}, cp, { kcal: recInfo.kcal || cp.kcal, protein: recInfo.protein || cp.protein, fat: recInfo.fat || cp.fat, satFat: recInfo.satFat || cp.satFat, carbs: recInfo.carbs || cp.carbs, fibre: recInfo.fibre || cp.fibre, salt: recInfo.salt || cp.salt, rating: recInfo.rating || cp.rating, originalIngredients: editedIngredients.join(", "), recalculated: true }));
-                  setFormMsg("✅ Nutritional values updated. Press Continue to add, or Edit Again to change the ingredients.");
-                  return;
-                }
-                throw new Error("AI did not return nutrition values");
+                /* v2.6.5 D7 on the Review path: same whole-recipe prompt, plausibility retry, apply only real values */
+                var askRec = async function(note) {
+                  var recResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 600, messages: [{ role: "user", content: recalcPrompt(cp.name, editedIngredients, note) }] }) });
+                  var recResult = await recResp.json();
+                  var recErr = handleApiError(recResult); if (recErr) throw new Error(recErr);
+                  var recTxt = ""; if (recResult.content) { for (var ri3=0; ri3<recResult.content.length; ri3++) { if(recResult.content[ri3].text) recTxt += recResult.content[ri3].text; } }
+                  return parseRecalc(recTxt);
+                };
+                var prr = await askRec("");
+                if (prr.implausible) prr = await askRec("A previous answer was implausible: " + prr.problem + ". Recheck every ingredient amount.");
+                if (!prr.values) throw new Error(prr.problem + " — nothing was changed");
+                var rv = prr.values;
+                setCameraPreview(withRuleRating(Object.assign({}, cp, { kcal: rv.kcal, jcKcal: rv.kcal, beckKcal: rv.kcal, protein: rv.protein, fat: rv.fat, satFat: rv.satFat, addedSugar: rv.addedSugar, carbs: rv.carbs, fibre: rv.fibre, salt: rv.salt, name: renameKcal(cp.name, rv.kcal), assumed: prr.assumed, originalIngredients: editedIngredients.join(", "), recalculated: true })));
+                if (nameEl) nameEl.value = renameKcal(cp.name, rv.kcal);
+                setFormMsg("✅ Nutritional values updated: " + (cp.kcal || 0) + " → " + rv.kcal + " kcal, protein " + (cp.protein || 0) + " → " + rv.protein + "g, sat fat " + (cp.satFat || 0) + " → " + rv.satFat + "g" + (prr.assumed.length ? ". Assumed: " + prr.assumed.join(", ") : "") + ". Press Continue to add, or Edit Again to change the ingredients.");
+                return;
               } catch(re) {
                 if (window.isEnergyEmpty(re)) { setFormMsg(window.energyEmptyMsg); }
                 else { setFormMsg("⚠️ Recalculation failed: " + String(re.message || re).substring(0, 80) + ". Press Confirm to retry or Cancel."); }
@@ -292,34 +458,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               }
             }
 
-            /* Step 2: Add item to selected categories */
-            var addedTo = []; var dupeFound = [];
-            for (var ci = 0; ci < cats.length; ci++) {
-              var cat = cats[ci];
-              var listItems = cat === "breakfast" ? customBreakfasts : cat === "lunch" ? customLunches : cat === "dinner" ? customMeals : cat === "drink" ? customDrinks : cat === "dessert" ? customDesserts : customSnacks;
-              var dupeName = cp.name.toLowerCase().trim();
-              if (listItems.some(function(x) { return x.name.toLowerCase().trim() === dupeName; })) { dupeFound.push(cat); continue; }
-              var newItem = { id: "custom_" + Date.now() + "_" + ci, name: cp.name, jcKcal: cp.kcal, beckKcal: cp.kcal, protein: cp.protein || 0, fat: cp.fat || 0, satFat: cp.satFat || 0, carbs: cp.carbs || 0, fibre: cp.fibre || 0, salt: cp.salt || 0, rating: cp.rating, itemType: cp.itemType || "packaged", ingredients: cp.ingredients || [], freq: "Daily", isCustom: true, source: cp.source || "manual", barcode: cp.barcode || "", servingSize: cp.servingSize || "", suitability: cp.suitability || "" };
-              if (cat === "dinner" && !reviewSideType) { newItem.jcProt = cp.protein; newItem.beckProt = cp.protein; newItem.jcFat = cp.fat; newItem.beckFat = cp.fat; newItem.time = 30; newItem.shop = cp.itemType === "ingredient" ? (cp.ingredients || []) : [cp.name]; }
-              if (cat === "dinner" && reviewSideType) { newItem.sideType = reviewSideType; }
-              var setList = cat === "breakfast" ? setCustomBreakfasts : cat === "lunch" ? setCustomLunches : cat === "dinner" ? setCustomMeals : cat === "drink" ? setCustomDrinks : cat === "dessert" ? setCustomDesserts : setCustomSnacks;
-              var storageKey = cat === "breakfast" ? "custom_breakfasts" : cat === "lunch" ? "custom_lunches" : cat === "dinner" ? "custom_meals" : cat === "drink" ? "custom_drinks" : cat === "dessert" ? "custom_desserts" : "custom_snacks";
-              var u = [].concat(listItems, [newItem]); setList(u); await sSet(storageKey, JSON.stringify(u));
-              addedTo.push(cat); listItems = u;
-            }
-            if (addingSlotKey) {
-              var assignId = null;
-              if (addedTo.length > 0 && newItem) { assignId = newItem.id; }
-              else if (dupeFound.length > 0) {
-                var dupeList = addingCategory === "breakfast" ? customBreakfasts : addingCategory === "lunch" ? customLunches : addingCategory === "dinner" ? customMeals : addingCategory === "drink" ? customDrinks : addingCategory === "dessert" ? customDesserts : customSnacks;
-                var dupeMatch = dupeList.find(function(x) { return x.name.toLowerCase().trim() === cp.name.toLowerCase().trim(); });
-                if (dupeMatch) assignId = dupeMatch.id;
-              }
-              if (assignId) {
-                if (addingSlotDay) { setMeal(addingSlotDay, addingSlotKey, assignId); }
-                else { saveDef(addingSlotKey, assignId, "individual"); }
-              }
-            }
+            /* Step 2: Add item to selected categories (shared step) */
+            var _added = await addReviewedItem(cp, cats, addingSlotDay, addingSlotKey, addingCategory, reviewSideType);
+            var addedTo = _added.addedTo; var dupeFound = _added.dupeFound;
             if (dupeFound.length > 0 && addedTo.length === 0) { setFormMsg("⚠️ " + cp.name + " already exists in " + dupeFound.join(", ")); }
             else if (dupeFound.length > 0) { setFormMsg("✅ Added to " + addedTo.join(", ") + " (already in " + dupeFound.join(", ") + ")"); }
             else { setFormMsg("✅ Added " + cp.name + " to " + addedTo.join(", ")); }
@@ -338,28 +479,34 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             var editedName = (nameEl && nameEl.value.trim()) || d.name;
             var editedIng = ingEl ? ingEl.value.split(",").map(function(x){return x.trim();}).filter(function(x){return x.length > 0;}) : (d.ingredients || []);
             var dd = Object.assign({}, d, { name: editedName, ingredients: editedIng });
-            if (dd.itemType === "ingredient" && editedIng.length > 0 && editedIng.join(", ") !== dd.originalIngredients) {
+            if (dd.itemType === "ingredient" && editedIng.length > 0 && (editedIng.join(", ") !== dd.originalIngredients || (/^Nutrition looks off/.test(dd.checkReason || "") && !dd.recalculated))) { /* D7: a doubtful item recalculates on Confirm */
               setFormMsg("🔄 Recalculating nutritional values...");
               try {
-                var recalcPrompt = "Calculate nutritional info for a homemade dish called \"" + dd.name + "\" with these specific ingredients and portions: " + editedIng.join(", ") + ". Return ONLY JSON: {\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\"}";
-                var recResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 300, messages: [{ role: "user", content: recalcPrompt }] }) });
-                var recResult = await recResp.json();
-                var recErr = handleApiError(recResult); if (recErr) throw new Error(recErr);
-                var recTxt = ""; if (recResult.content) { for (var re4 = 0; re4 < recResult.content.length; re4++) { if (recResult.content[re4].text) recTxt += recResult.content[re4].text; } }
-                var recMatch = recTxt.replace(/```json|```/g, "").trim().match(/\{[\s\S]*\}/);
-                if (!recMatch) throw new Error("AI did not return nutrition values");
-                var ri = JSON.parse(recMatch[0]);
-                var upd = { jcKcal: ri.kcal || dd.jcKcal, beckKcal: ri.kcal || dd.beckKcal, protein: ri.protein || dd.protein, fat: ri.fat || dd.fat, satFat: ri.satFat || dd.satFat, carbs: ri.carbs || dd.carbs, fibre: ri.fibre || dd.fibre, salt: ri.salt || dd.salt, rating: ri.rating || dd.rating, originalIngredients: editedIng.join(", "), recalculated: true };
+                /* v2.6.2 D7: whole recipe, no anchoring on the name, plausibility check (one retry), apply only real values */
+                var askRecalc = async function(note) {
+                  var recResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 600, messages: [{ role: "user", content: recalcPrompt(dd.name, editedIng, note) }] }) });
+                  var recResult = await recResp.json();
+                  var recErr = handleApiError(recResult); if (recErr) throw new Error(recErr);
+                  var recTxt = ""; if (recResult.content) { for (var re4 = 0; re4 < recResult.content.length; re4++) { if (recResult.content[re4].text) recTxt += recResult.content[re4].text; } }
+                  return parseRecalc(recTxt);
+                };
+                var pr = await askRecalc("");
+                if (pr.implausible) pr = await askRecalc("A previous answer was implausible: " + pr.problem + ". Recheck every ingredient amount.");
+                if (!pr.values) throw new Error(pr.problem + " — nothing was changed");
+                var ri = pr.values;
+                var oldK = isJC ? dd.jcKcal : dd.beckKcal;
+                var upd = { jcKcal: ri.kcal, beckKcal: ri.kcal, protein: ri.protein, fat: ri.fat, satFat: ri.satFat, addedSugar: ri.addedSugar, carbs: ri.carbs, fibre: ri.fibre, salt: ri.salt, rating: ri.rating || dd.rating, originalIngredients: editedIng.join(", "), recalculated: true, name: renameKcal(dd.name, ri.kcal), assumed: pr.assumed };
                 if (dd.jcProt !== undefined) { upd.jcProt = upd.protein; upd.beckProt = upd.protein; upd.jcFat = upd.fat; upd.beckFat = upd.fat; }
                 if (dd.shop !== undefined) { upd.shop = editedIng; }
-                setEditDraft(Object.assign({}, dd, upd));
-                setFormMsg("✅ Nutritional values updated. Press Continue to save, or Edit Again to change the ingredients.");
+                setEditDraft(withRuleRating(Object.assign({}, dd, upd))); /* D11: rule rating */
+                var nameEl2 = document.getElementById("edit-item-name-" + d.id); if (nameEl2) nameEl2.value = upd.name;
+                setFormMsg("✅ Nutritional values updated: " + (oldK || 0) + " → " + ri.kcal + " kcal, protein " + (dd.protein || 0) + " → " + ri.protein + "g, sat fat " + (dd.satFat || 0) + " → " + ri.satFat + "g" + (pr.assumed.length ? ". Assumed: " + pr.assumed.join(", ") : "") + ". Press Continue to save, or Edit Again to change the ingredients.");
               } catch(re) {
                 setFormMsg(window.isEnergyEmpty(re) ? window.energyEmptyMsg : "⚠️ Recalculation failed: " + String(re.message || re).substring(0, 80) + ". Press Confirm to retry or Cancel.");
               }
               return;
             }
-            var saved = Object.assign({}, dd); delete saved.originalIngredients; delete saved.recalculated;
+            var saved = withRuleRating(Object.assign({}, dd)); delete saved.originalIngredients; delete saved.recalculated; delete saved.checkMe; delete saved.checkReason; delete saved._ragChanged; /* F4: checked */
             var u = cat.customs.map(function(x) { return x.id === d.id ? saved : x; });
             cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u));
             setEditingItem(null); setEditDraft(null);
@@ -367,49 +514,161 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             setTimeout(function(){ setFormMsg(""); }, 3000);
           };
 
-          /* ═══ Bulk paste add — auto-adds items without per-item review ═══ */
-          var bulkPasteAdd = async function(bulkCat) {
+          /* ═══ Bulk paste add — auto-adds items without per-item review (v2.6.3: batches, cancel, Check me) ═══ */
+          var BULK_BATCH = 10;
+          var bulkListFor = function(c) { return c === "breakfast" ? customBreakfasts : c === "lunch" ? customLunches : c === "dinner" ? customMeals : c === "drink" ? customDrinks : c === "dessert" ? customDesserts : customSnacks; };
+          var bulkSetterFor = function(c) { return c === "breakfast" ? setCustomBreakfasts : c === "lunch" ? setCustomLunches : c === "dinner" ? setCustomMeals : c === "drink" ? setCustomDrinks : c === "dessert" ? setCustomDesserts : setCustomSnacks; };
+          var bulkKeyFor = function(c) { return c === "breakfast" ? "custom_breakfasts" : c === "lunch" ? "custom_lunches" : c === "dinner" ? "custom_meals" : c === "drink" ? "custom_drinks" : c === "dessert" ? "custom_desserts" : "custom_snacks"; };
+          var catLabel = function(c) { return c === "snack" ? "Snacks" : c === "drink" ? "Drinks" : c === "dessert" ? "Desserts" : c.charAt(0).toUpperCase() + c.slice(1); };
+          var bulkPasteAdd = async function(bulkCatArg, retryLines) {
+            if (!bulkCatArg) { setFormMsg("Choose a category first"); return; }
             var pasteEl = document.getElementById("bulk-paste-textarea");
-            if (!pasteEl || !pasteEl.value.trim()) { setFormMsg("Paste your items first"); return; }
-            var lines = pasteEl.value.split(/[\n\r,]+/).map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
-            if (lines.length === 0) { setFormMsg("No items found"); return; }
+            var lines = retryLines || (pasteEl ? pasteEl.value : "").split(/[\n\r,]+/).map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
+            if (lines.length === 0) { setFormMsg(retryLines ? "Nothing to retry" : "Paste your items first"); return; }
+            if (!retryLines && !confirm("Add " + lines.length + " item" + (lines.length === 1 ? "" : "s") + " to " + catLabel(bulkCatArg) + "?")) return;
+            var token = { cancelled: false, ctrl: typeof AbortController !== "undefined" ? new AbortController() : null, addedIds: [], cat: bulkCatArg };
+            bulkToken.current = token;
+            setBulkUndo(null); setBulkDone(null);
             setNewItemLoading(true);
-            setFormMsg("🔍 Analysing " + lines.length + " item" + (lines.length > 1 ? "s" : "") + "...");
-            try {
-              var isJC2 = activeTab === "jc";
-              var targetsStr = isJC2 ? "Daily targets: 2000-2200 kcal, 110-130g protein, <20g sat fat, <25g added sugar, 30-35g fibre, <6g salt" : "Daily targets: 1700-1900 kcal, 90-110g protein, <20g sat fat (critical - LDL 7.2 high cholesterol/suspected FH), <25g added sugar, 25-30g fibre, <6g salt";
-              var prompt = "I have a list of food items to add to a meal planning app. For each item, find the closest nutritional match and assign a RAG colour rating.\n\nRating rules:\n- GREAT (green): Fits well within daily targets, healthy choice\n- AMBER: Acceptable but has some nutritional concerns\n- RED: Should be limited — high in sat fat, sugar, or calories\n\nClassification: 'packaged' if pre-made supermarket product, 'ingredient' if home-made recipe. If 'ingredient', list individual ingredients needed.\n\nPerson's profile: " + targetsStr + "\n\nItems to look up:\n" + lines.join("\n") + "\n\nReturn ONLY a JSON array. For each item: {\"name\":\"item name (corrected spelling)\",\"kcal\":number,\"protein\":number,\"fat\":number,\"satFat\":number,\"carbs\":number,\"fibre\":number,\"salt\":number,\"rating\":\"GREAT or AMBER or RED\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[],\"suitability\":\"ONE sentence\",\"matched\":true}. If cannot identify: {\"name\":\"original name\",\"matched\":false}. Per typical serving. ONLY JSON array.";
-              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4000, messages: [{ role: "user", content: prompt }] }) });
-              var result = await resp.json();
-              var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-              var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
-              var jsonStr = txt.replace(/```json|```/g, "").trim();
-              var arrMatch = jsonStr.match(/\[[\s\S]*\]/); if (!arrMatch) throw new Error("No JSON array found");
-              var items = JSON.parse(arrMatch[0]);
-              var listItems = bulkCat === "breakfast" ? customBreakfasts : bulkCat === "lunch" ? customLunches : bulkCat === "dinner" ? customMeals : bulkCat === "drink" ? customDrinks : bulkCat === "dessert" ? customDesserts : customSnacks;
-              var setList = bulkCat === "breakfast" ? setCustomBreakfasts : bulkCat === "lunch" ? setCustomLunches : bulkCat === "dinner" ? setCustomMeals : bulkCat === "drink" ? setCustomDrinks : bulkCat === "dessert" ? setCustomDesserts : setCustomSnacks;
-              var storageKey2 = bulkCat === "breakfast" ? "custom_breakfasts" : bulkCat === "lunch" ? "custom_lunches" : bulkCat === "dinner" ? "custom_meals" : bulkCat === "drink" ? "custom_drinks" : bulkCat === "dessert" ? "custom_desserts" : "custom_snacks";
-              var addedCount = 0; var skippedCount = 0;
-              for (var bi = 0; bi < items.length; bi++) {
-                var it = items[bi];
-                if (!it.matched && it.matched !== undefined) { skippedCount++; continue; }
-                var dupeName2 = (it.name || "").toLowerCase().trim();
-                if (listItems.some(function(x) { return x.name.toLowerCase().trim() === dupeName2; })) { skippedCount++; continue; }
-                var newItem = { id: "custom_" + Date.now() + "_" + bi, name: it.name || "Unknown", jcKcal: it.kcal || 0, beckKcal: it.kcal || 0, protein: it.protein || 0, fat: it.fat || 0, satFat: it.satFat || 0, carbs: it.carbs || 0, fibre: it.fibre || 0, salt: it.salt || 0, rating: it.rating || "AMBER", itemType: it.itemType || "packaged", ingredients: it.ingredients || [], freq: "Daily", isCustom: true, suitability: it.suitability || "" };
-                if (bulkCat === "dinner") { newItem.jcProt = it.protein; newItem.beckProt = it.protein; newItem.jcFat = it.fat; newItem.beckFat = it.fat; newItem.time = 30; newItem.shop = it.itemType === "ingredient" ? (it.ingredients || []) : [it.name]; }
-                listItems = [].concat(listItems, [newItem]);
-                addedCount++;
+            var batches = []; for (var bs = 0; bs < lines.length; bs += BULK_BATCH) batches.push(lines.slice(bs, bs + BULK_BATCH));
+            var isJC2 = activeTab === "jc";
+            var targetsStr = isJC2 ? "Daily targets: 2000-2200 kcal, 110-130g protein, <20g sat fat, <25g added sugar, 30-35g fibre, <6g salt" : "Daily targets: 1700-1900 kcal, 90-110g protein, <20g sat fat (critical - LDL 7.2 high cholesterol/suspected FH), <25g added sugar, 25-30g fibre, <6g salt";
+            var listItems = bulkListFor(bulkCatArg); var setList = bulkSetterFor(bulkCatArg); var storageKey2 = bulkKeyFor(bulkCatArg);
+            var addedCount = 0; var skippedCount = 0; var failed = []; var lastErr = "";
+            for (var bn = 0; bn < batches.length; bn++) {
+              var batch = batches[bn];
+              setBulkRun({ done: bn * BULK_BATCH, total: lines.length, failed: failed, cat: bulkCatArg });
+              setFormMsg("🔍 Rating " + (bn * BULK_BATCH + 1) + "–" + (bn * BULK_BATCH + batch.length) + " of " + lines.length + "…");
+              try {
+                var prompt = "I have a list of food items to add to a meal planning app. For each item, find the closest nutritional match and assign a RAG colour rating.\n\nRating rules:\n- GREAT (green): Fits well within daily targets, healthy choice\n- AMBER: Acceptable but has some nutritional concerns\n- RED: Should be limited — high in sat fat, sugar, or calories\n\nClassification: 'packaged' if pre-made supermarket product, 'ingredient' if home-made recipe. If 'ingredient', list individual ingredients needed.\n\nPerson's profile: " + targetsStr + "\n\nItems to look up:\n" + batch.join("\n") + "\n\nReturn ONLY a JSON array. For each item: {\"name\":\"item name (corrected spelling)\",\"kcal\":number,\"protein\":number,\"fat\":number,\"satFat\":number,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"carbs\":number,\"fibre\":number,\"salt\":number,\"rating\":\"GREAT or AMBER or RED\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[],\"suitability\":\"ONE sentence\",\"matched\":true}. If cannot identify: {\"name\":\"original name\",\"matched\":false}. Per typical serving. ONLY JSON array.";
+                var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", signal: token.ctrl ? token.ctrl.signal : undefined, headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4000, messages: [{ role: "user", content: prompt }] }) });
+                var result = await resp.json();
+                if (token.cancelled) break;                                     /* D5: late results are discarded */
+                var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+                var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
+                var arrMatch = txt.replace(/```json|```/g, "").trim().match(/\[[\s\S]*\]/); if (!arrMatch) throw new Error("No JSON array found");
+                var items = JSON.parse(arrMatch[0]);
+                var batchNew = [];
+                for (var bi = 0; bi < items.length; bi++) {
+                  var it = items[bi];
+                  if (!it.matched && it.matched !== undefined) { skippedCount++; continue; }
+                  var dupeName2 = (it.name || "").toLowerCase().trim();
+                  if (listItems.concat(batchNew).some(function(x) { return x.name.toLowerCase().trim() === dupeName2; })) { skippedCount++; continue; }
+                  var newItem = withRuleRating({ id: "custom_" + Date.now() + "_" + bn + "_" + bi, name: it.name || "Unknown", jcKcal: it.kcal || 0, beckKcal: it.kcal || 0, protein: it.protein || 0, fat: it.fat || 0, satFat: it.satFat || 0, addedSugar: it.addedSugar || 0, carbs: it.carbs || 0, fibre: it.fibre || 0, salt: it.salt || 0, rating: it.rating || "AMBER", itemType: it.itemType || "packaged", ingredients: it.ingredients || [], freq: "Daily", isCustom: true, suitability: it.suitability || "", checkMe: true }); /* D11: rule rating */
+                  if (bulkCatArg === "dinner") { newItem.jcProt = it.protein; newItem.beckProt = it.protein; newItem.jcFat = it.fat; newItem.beckFat = it.fat; newItem.time = 30; newItem.shop = it.itemType === "ingredient" ? (it.ingredients || []) : [it.name]; }
+                  batchNew.push(newItem);
+                }
+                if (token.cancelled) break;
+                if (batchNew.length) {
+                  listItems = [].concat(listItems, batchNew);                     /* each batch is saved as it succeeds */
+                  setList(listItems); await sSet(storageKey2, JSON.stringify(listItems));
+                  batchNew.forEach(function(x) { token.addedIds.push(x.id); });
+                  addedCount += batchNew.length;
+                }
+              } catch(e) {
+                if (token.cancelled) break;
+                if (window.isEnergyEmpty(e)) { lastErr = window.energyEmptyMsg; failed = failed.concat(batches.slice(bn).reduce(function(a, b) { return a.concat(b); }, [])); break; }
+                lastErr = String(e.message || e).substring(0, 100);
+                failed = failed.concat(batch);                                     /* D3: keep going; this batch can be retried */
               }
-              setList(listItems); await sSet(storageKey2, JSON.stringify(listItems));
-              var msg = "✅ " + addedCount + " item" + (addedCount !== 1 ? "s" : "") + " added to " + bulkCat;
-              if (skippedCount > 0) msg += " (" + skippedCount + " skipped — duplicates or unrecognised)";
-              msg += ". Edit any item to check descriptions.";
-              setFormMsg(msg);
-              pasteEl.value = "";
-              setBulkReviewItems(null);
-            } catch(e) { setFormMsg(window.isEnergyEmpty(e) ? window.energyEmptyMsg : "⚠️ " + String(e.message || e).substring(0, 100)); }
+            }
             setNewItemLoading(false);
-            setTimeout(function(){setFormMsg("");}, 8000);
+            if (token.cancelled) return;                                           /* cancelBulk has already reported */
+            bulkToken.current = null;
+            setBulkRun(failed.length ? { done: lines.length - failed.length, total: lines.length, failed: failed, cat: bulkCatArg } : null);
+            if (failed.length) {
+              setFormMsg("⚠️ " + addedCount + " added to " + catLabel(bulkCatArg) + "; " + failed.length + " item" + (failed.length === 1 ? "" : "s") + " could not be rated (" + lastErr + "). Press Retry to try them again.");
+            } else {
+              setFormMsg(skippedCount > 0 ? skippedCount + " skipped — duplicates or unrecognised" : "");
+              if (pasteEl) pasteEl.value = "";
+              setBulkReviewItems(null); setBulkCat("");
+            }
+            if (addedCount > 0 && !failed.length) setBulkDone(addedCount + " item" + (addedCount === 1 ? "" : "s") + " added to " + catLabel(bulkCatArg) + ". Ratings are AI estimates. Open each item and check the weight, portion and ingredients match what you actually have, then update where needed.");
+          };
+          /* D5: Cancel stops the requests and discards anything that arrives afterwards */
+          var cancelBulk = function() {
+            var t = bulkToken.current;
+            if (t) {
+              t.cancelled = true; if (t.ctrl) { try { t.ctrl.abort(); } catch(e) {} }
+              bulkToken.current = null;
+              setNewItemLoading(false); setBulkRun(null);
+              if (t.addedIds.length) { setBulkUndo({ cat: t.cat, ids: t.addedIds.slice() }); setFormMsg("Cancelled — " + t.addedIds.length + " item" + (t.addedIds.length === 1 ? "" : "s") + " from earlier batches were already added to " + catLabel(t.cat) + "."); }
+              else setFormMsg("Cancelled — nothing was added");
+            }
+            setBulkReviewItems(null); setBulkCat("");
+          };
+          /* ═══ v2.6.5 list-wide actions: D11 re-rate (rules) and D7 re-check nutrition (flags only) ═══ */
+          var LIST_CATS = ["breakfast", "lunch", "dinner", "snack", "dessert", "drink"];
+          var askJsonArray = async function(prompt) {
+            var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 3000, messages: [{ role: "user", content: prompt }] }) });
+            var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+            var txt = ""; (result.content || []).forEach(function(c) { if (c.text) txt += c.text; });
+            var m = txt.replace(/```json|```/g, "").trim().match(/\[[\s\S]*\]/); if (!m) throw new Error("No JSON array found");
+            return JSON.parse(m[0]);
+          };
+          var inBatches = async function(items, size, fn) { for (var i = 0; i < items.length; i += size) await fn(items.slice(i, i + size), i); };
+          var reRateAll = async function() {
+            if (listJob) return;
+            setListJob("rerate"); setRagRecalcMsg("Re-rating all lists by portion…");
+            try {
+              var total = 0, changed = 0;
+              for (var ci = 0; ci < LIST_CATS.length; ci++) {
+                var c = LIST_CATS[ci]; var list = bulkListFor(c).slice(); if (!list.length) continue;
+                var need = list.filter(function(x) { return x.addedSugar == null; });
+                var est = {};
+                await inBatches(need, 20, async function(batch, off) {
+                  setRagRecalcMsg("Estimating added sugar for " + catLabel(c) + " (" + (off + 1) + "–" + (off + batch.length) + " of " + need.length + ")…");
+                  var arr = await askJsonArray("For each food item below, estimate the ADDED sugar in grams (sugars added in processing or cooking, syrups, honey; NOT sugar naturally in fruit, vegetables or plain milk) for the portion its values describe. Items: " + batch.map(function(x) { return x.id + ": " + x.name + " (" + (x.jcKcal || x.kcal || 0) + " kcal, carbs " + (x.carbs || 0) + "g)"; }).join("; ") + ". Return ONLY a JSON array: [{\"id\":\"item_id\",\"addedSugar\":grams}]");
+                  arr.forEach(function(r) { if (r && r.id != null) est[r.id] = parseFloat(r.addedSugar) || 0; });
+                });
+                var out = list.map(function(x) {
+                  var y = Object.assign({}, x); if (y.addedSugar == null && est[y.id] != null) y.addedSugar = est[y.id];
+                  var r = rateByPortion(y); total++;
+                  var was = bandOf(x);
+                  y.rating = r.rating; y.ragFreq = r.ragFreq; y.ragReason = r.reason;
+                  if (was !== r.band) { changed++; y.prevRating = was; y._ragChanged = true; y._ragChangedSeen = false; y.checkMe = true; y.checkReason = "Rating changed from " + was + " to " + r.band + ": " + r.reason; }
+                  return y;
+                });
+                bulkSetterFor(c)(out); await sSet(bulkKeyFor(c), JSON.stringify(out));
+              }
+              setRagRecalcMsg("✅ Re-rated " + total + " items by portion: " + changed + " changed (marked Check me).");
+            } catch(e) { setRagRecalcMsg("Error: " + (window.isEnergyEmpty(e) ? window.energyEmptyMsg : String(e.message || e).substring(0, 100)) + " — lists already finished were saved."); }
+            setListJob("");
+          };
+          var recheckNutrition = async function() {
+            if (listJob) return;
+            if (!confirm("Re-check nutrition for recipe items? Values are NOT changed; doubtful items are marked \"Check me\" for you to open and review.")) return;
+            setListJob("recheck"); setRagRecalcMsg("Re-checking nutrition…");
+            try {
+              var checked = 0, flagged = 0;
+              for (var ci = 0; ci < LIST_CATS.length; ci++) {
+                var c = LIST_CATS[ci]; var list = bulkListFor(c).slice();
+                var recipes = list.filter(function(x) { return (x.ingredients || []).length > 0; }); if (!recipes.length) continue;
+                var verdict = {};
+                await inBatches(recipes, 10, async function(batch, off) {
+                  setRagRecalcMsg("Re-checking " + catLabel(c) + " (" + (off + 1) + "–" + (off + batch.length) + " of " + recipes.length + ")…");
+                  var arr = await askJsonArray("For each recipe below, add up the calories of the WHOLE recipe exactly as listed (do not divide into servings; assume typical amounts where none are given). Recipes: " + batch.map(function(x) { return x.id + ": " + stripKcalName(x.name) + " = " + x.ingredients.join(", "); }).join(" | ") + ". Return ONLY a JSON array: [{\"id\":\"item_id\",\"kcal\":total,\"breakdownSum\":sum_of_ingredient_kcal}]");
+                  arr.forEach(function(r) { if (r && r.id != null) verdict[r.id] = r; });
+                });
+                var touched = false;
+                var out = list.map(function(x) {
+                  var v = verdict[x.id]; if (!v) return x; checked++;
+                  var stored = x.jcKcal || x.kcal || 0; var ref = Math.max(parseFloat(v.kcal) || 0, parseFloat(v.breakdownSum) || 0);
+                  if (ref > 0 && (stored < ref * 0.8 || stored > ref * 1.25)) { flagged++; touched = true; return Object.assign({}, x, { checkMe: true, checkReason: "Nutrition looks off: saved " + stored + " kcal, ingredients add up to about " + Math.round(ref) + " kcal. Open it and Confirm to recalculate." }); }
+                  return x;
+                });
+                if (touched) { bulkSetterFor(c)(out); await sSet(bulkKeyFor(c), JSON.stringify(out)); }
+              }
+              setRagRecalcMsg("✅ Re-checked " + checked + " recipe items: " + flagged + " look doubtful (marked Check me). Nothing else was changed.");
+            } catch(e) { setRagRecalcMsg("Error: " + (window.isEnergyEmpty(e) ? window.energyEmptyMsg : String(e.message || e).substring(0, 100))); }
+            setListJob("");
+          };
+
+          var undoBulk = async function() {
+            var u = bulkUndo; if (!u) return;
+            var keep = bulkListFor(u.cat).filter(function(x) { return u.ids.indexOf(x.id) < 0; });
+            bulkSetterFor(u.cat)(keep); await sSet(bulkKeyFor(u.cat), JSON.stringify(keep));
+            setBulkUndo(null); setFormMsg("Removed " + u.ids.length + " item" + (u.ids.length === 1 ? "" : "s") + " from " + catLabel(u.cat));
           };
 
           var deleteCustomItem = async function(itemId) {
@@ -420,35 +679,34 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             setFormMsg("Item deleted"); setTimeout(function(){setFormMsg("");}, 2000);
           };
 
+          /* v2.6.5: write another person's or another week's selections as CHILDREN (never the old plan keys) */
+          var editWeekChildren = async function(person, ws, editView, source, otherChildren) {
+            var doc = await loadWeekDoc(person, ws, { write: true, lookup: _listLookup });
+            var view = viewFromDoc(doc); editView(view);
+            var nd = reconcile(doc, view, _listLookup, { weekStart: ws, isJC: person === "jc", source: source, otherChildren: otherChildren });
+            await saveWeekDoc(person, ws, nd);
+          };
           var applyDefaults = async function() {
-            var defs = mealDefaults[activeTab] || {};
-            var n = Object.assign({}, meals);
-            DAYS.forEach(function(d) {
-              if (!n[d]) n[d] = {};
-              if (defs.b && !n[d].b) n[d].b = defs.b;
-              if (defs.l && !n[d].l) n[d].l = defs.l;
-              if (defs.d && !n[d].d) n[d].d = defs.d;
-              for (var i = 1; i <= 7; i++) { if (defs["o" + i] && !n[d]["o" + i]) n[d]["o" + i] = defs["o" + i]; }
-            });
-            setMeals(n); saveMeals(n);
+            var planned = applyDefaultsTo(meals, mealDefaults[activeTab]); /* D9: keep selections, then defaults */
+            var n = planned.meals;
+            setMeals(n); saveMeals(n, "default");
             var otherPeople = Object.keys(data).filter(function(k) { return k !== "config" && k !== activeTab; });
             for (var opi = 0; opi < otherPeople.length; opi++) {
               var op = otherPeople[opi];
               var opDefs = mealDefaults[op] || {};
               if (Object.keys(opDefs).length === 0) continue;
-              var opSk = mealKey(weekStart) + ":" + op;
-              var opRaw = await sGet(opSk);
-              var opM = opRaw ? JSON.parse(opRaw) : {};
-              DAYS.forEach(function(d) {
-                if (!opM[d]) opM[d] = {};
-                if (opDefs.b && !opM[d].b) opM[d].b = opDefs.b;
-                if (opDefs.l && !opM[d].l) opM[d].l = opDefs.l;
-                if (opDefs.d && !opM[d].d) opM[d].d = opDefs.d;
-                for (var i = 1; i <= 7; i++) { if (opDefs["o" + i] && !opM[d]["o" + i]) opM[d]["o" + i] = opDefs["o" + i]; }
-              });
-              await sSet(opSk, JSON.stringify(opM));
+              await editWeekChildren(op, weekStart, function(opM) {
+                DAYS.forEach(function(d) {
+                  if (!opM[d]) opM[d] = {};
+                  if (opDefs.b && !opM[d].b) opM[d].b = opDefs.b;
+                  if (opDefs.l && !opM[d].l) opM[d].l = opDefs.l;
+                  if (opDefs.d && !opM[d].d) opM[d].d = opDefs.d;
+                  for (var i = 1; i <= 7; i++) { if (opDefs["o" + i] && !opM[d]["o" + i]) opM[d]["o" + i] = opDefs["o" + i]; }
+                });
+              }, "default");
             }
             setFormMsg("Defaults applied (all people)"); setTimeout(function() { setFormMsg(""); }, 2000);
+            return planned;
           };
 
           var saveDef = function(key, val, scope) {
@@ -468,6 +726,26 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           var otherSlots = [];
           for (var oi = 1; oi <= 20; oi++) { if (dayMeals["o" + oi] || oi <= Math.max(getOtherCount(eatDay), 1) || dayMeals["o" + oi] === "__empty__") otherSlots.push(oi); }
 
+          /* v2.8.0 F5: a list item opened read-only. Edit = the Update Item editor; Delete from list lives ONLY here. */
+          var nutritionRows = function(n, kcal) { return (<>
+            <Field label="Calories" testid="view-kcal">{kcal} kcal</Field>
+            <Field label="Nutrition">{(n.protein || 0) + "g protein · " + (n.fat || 0) + "g fat · " + (n.satFat || 0) + "g sat fat · " + (n.addedSugar || 0) + "g added sugar · " + (n.carbs || 0) + "g carbs · " + (n.fibre || 0) + "g fibre · " + (n.salt || 0) + "g salt"}</Field>
+          </>); };
+          var ragText = function(it) { var b = bandOf(it); return b ? (b.indexOf("RED") === 0 ? "RED" : b) + (FREQ_LABEL[b] ? " · " + FREQ_LABEL[b] : "") : "—"; };
+          var renderItemView = function(item, cat) {
+            var kcal = isJC ? item.jcKcal : item.beckKcal;
+            return (<OpenForm testid="item-view" title={item.name} subtitle={"In your " + cat.label + " list"} editing={false}
+              onEdit={function() { setItemOpen(null); setEditingItem(item.id); setEditDraft(Object.assign({}, item, { originalIngredients: (item.ingredients || []).join(", "), recalculated: false })); setFormMsg(""); }}
+              dangerKind="delete" onDanger={async function() { if (!confirm("Delete " + item.name + " from your " + cat.label + " list? Meals you already logged keep their own copy.")) return; var u = cat.customs.filter(function(x){return x.id !== item.id;}); cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u)); setItemOpen(null); setFormMsg("Deleted " + item.name); setTimeout(function(){setFormMsg("");},2000); }}
+              onClose={function() { setItemOpen(null); }}>
+              {nutritionRows(item, kcal)}
+              <Field label="Rating" testid="view-rating"><span style={{ fontWeight: 700, color: item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#15803d" }}>{ragText(item)}</span>{item.ragReason ? <div style={{ fontSize: 10, color: "#64748b" }}>{item.ragReason}</div> : null}</Field>
+              <Field label="Type">{item.itemType === "ingredient" ? "🍳 Ingredient prepared" : "📦 Packaged"}{item.servingSize ? " · " + item.servingSize : ""}</Field>
+              {(item.ingredients || []).length > 0 && <Field label="Ingredients">{item.ingredients.join(", ")}</Field>}
+              {item.checkMe && <Field label="Check me">{item.checkReason || "Added by bulk upload: check it, then Edit and Save."}</Field>}
+              {item.suitability && <Field label="About">{item.suitability}</Field>}
+            </OpenForm>);
+          };
           var MealSelect = function(props) {
             var items = props.items; var value = props.value; var onChange = props.onChange; var placeholder = props.placeholder || "Select...";
             var _s = React.useState(""); var search = _s[0]; var setSearch = _s[1];
@@ -475,25 +753,47 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             var sorted = items.slice().sort(function(a,b) { return a.name.localeCompare(b.name); });
             var filtered = search ? sorted.filter(function(it) { return it.name.toLowerCase().indexOf(search.toLowerCase()) >= 0; }) : sorted;
             var selected = value ? items.find(function(it) { return it.id === value; }) : null;
-            var fallbackName = (!selected && value && value !== "__empty__") ? value.replace(/_/g, " ").replace(/\b\w/g, function(c) { return c.toUpperCase(); }) : null;
-            var displayName = selected ? selected.name : fallbackName;
+            var displayName = value && value !== "__empty__" ? selectionName(value, props.snap, selected || allItemsLookup[value] || allItemsLookup["gb_" + value]) : null; // D6: never the raw id
             var inputRef = React.useRef(null);
+            var pickerPhone = typeof window !== "undefined" && !!window.matchMedia && window.matchMedia("(max-width: 600px)").matches;
+            var readVV = function() { var v = typeof window !== "undefined" && window.visualViewport; return v ? { top: v.offsetTop, height: v.height } : { top: 0, height: typeof window !== "undefined" ? window.innerHeight : 600 }; };
+            var _vv = React.useState(readVV); var vv = _vv[0]; var setVV = _vv[1];
+            React.useEffect(function() {
+              if (!open || !pickerPhone || !window.visualViewport) return;
+              var onVV = function() { setVV(readVV()); };
+              onVV(); window.visualViewport.addEventListener("resize", onVV); window.visualViewport.addEventListener("scroll", onVV);
+              return function() { window.visualViewport.removeEventListener("resize", onVV); window.visualViewport.removeEventListener("scroll", onVV); };
+            }, [open, pickerPhone, setVV]);
             if (!open) {
               return (<div style={{position:"relative"}}>
                 <div onClick={function(){setOpen(true);setSearch("");setTimeout(function(){if(inputRef.current)inputRef.current.focus();},50);}} style={{width:"100%",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,background:"#fff",cursor:"pointer",boxSizing:"border-box",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <span style={{color:displayName?"#0f172a":"#94a3b8"}}>{displayName || placeholder}</span>
+                  {(function() { var it = value && value !== "__empty__" ? (selected || allItemsLookup[value]) : null; var rc = !displayName ? "#94a3b8" : !it || !it.rating ? "#0f172a" : it.rating === "RED" ? "#dc2626" : it.rating === "AMBER" ? "#d97706" : "#15803d"; /* D14: the selection's own (child) RAG colour, as in the lists */ return <span data-testid="selected-item" data-rag={it && it.rating ? it.rating : ""} title={it && it.ragReason ? it.ragReason : ""} style={{ color: rc, fontWeight: it && it._child ? 600 : 400 }}>{displayName || placeholder}</span>; })()}
                   <span style={{fontSize:8,color:"#94a3b8"}}>▼</span>
                 </div>
+              </div>);
+            }
+            var rowsEl = (<>
+                {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var isAdded = item._isCustom !== false; var color = isAdded ? (item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#15803d") : "#94a3b8"; var hasRagChange = item._ragChanged && !item._ragChangedSeen; return (<div key={item.id} onMouseDown={function(e){e.preventDefault();onChange({target:{value:item.id}});setOpen(false);setSearch("");}} style={{padding:"6px 10px",fontSize:11,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f8fafc",color:color}}>
+                  <span>{hasRagChange ? "🔄 " : ""}{item.name} ({kcal} kcal){!isAdded ? " — not added" : ""}{item.checkMe && <span data-testid="check-me" title={item.checkReason || "Added by bulk upload: open and save it once you have checked it"} style={{ marginLeft: 4, fontSize: 9, fontWeight: 600, color: "#64748b", border: "1px solid #cbd5e1", borderRadius: 4, padding: "0 4px", whiteSpace: "nowrap" }}>Check me</span>}{hasRagChange ? " (was " + item.prevRating + ")" : ""}</span>
+
+                </div>); })}
+                <div onMouseDown={function(e){e.preventDefault();onChange({target:{value:"__add_new__", searchText: search}});setOpen(false);setSearch("");}} style={{padding:"8px 10px",fontSize:11,fontWeight:600,color:accent,cursor:"pointer",borderTop:"1px solid #e2e8f0"}}>+ Add new item...</div>
+            </>);
+            /* D16: on phones the picker is a full-height sheet sized to the VISIBLE viewport (visualViewport), search at the
+               top and results straight under it, so the keyboard can never cover the list. */
+            if (pickerPhone) {
+              return (<div role="dialog" aria-label="Choose an item" data-testid="picker-sheet" style={{position:"fixed",left:0,right:0,top:vv.top,height:vv.height,zIndex:95,background:"#fff",display:"flex",flexDirection:"column",boxShadow:"0 -4px 24px rgba(0,0,0,0.2)"}}>
+                <div style={{display:"flex",gap:6,padding:"10px 12px",borderBottom:"1px solid #e2e8f0",alignItems:"center"}}>
+                  <input ref={inputRef} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Type to search..." aria-label="Search items" style={{flex:1,minWidth:0,padding:"10px 12px",border:"1px solid "+accent,borderRadius:8,fontSize:16,background:"#fff",boxSizing:"border-box"}} />
+                  <button onClick={function(){setOpen(false);setSearch("");}} style={{padding:"10px 12px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:8,fontSize:12,fontWeight:600,color:"#475569",cursor:"pointer"}}>Close</button>
+                </div>
+                <div data-testid="picker-results" style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>{rowsEl}</div>
               </div>);
             }
             return (<div style={{position:"relative"}}>
               <input ref={inputRef} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Type to search..." style={{width:"100%",padding:"8px 10px",border:"1px solid "+accent,borderRadius:6,fontSize:11,background:"#fff",boxSizing:"border-box"}} onBlur={function(){setTimeout(function(){setOpen(false);},200);}} />
               <div style={{position:"absolute",top:"100%",left:0,right:0,zIndex:50,background:"#fff",border:"1px solid #e2e8f0",borderRadius:6,maxHeight:200,overflowY:"auto",boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}>
-                {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var isAdded = item._isCustom !== false; var color = isAdded ? (item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#15803d") : "#94a3b8"; var hasRagChange = item._ragChanged && !item._ragChangedSeen; return (<div key={item.id} onMouseDown={function(e){e.preventDefault();onChange({target:{value:item.id}});setOpen(false);setSearch("");}} style={{padding:"6px 10px",fontSize:11,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f8fafc",color:color}}>
-                  <span>{hasRagChange ? "🔄 " : ""}{item.name} ({kcal} kcal){!isAdded ? " — not added" : ""}{hasRagChange ? " (was " + item.prevRating + ")" : ""}</span>
-
-                </div>); })}
-                <div onMouseDown={function(e){e.preventDefault();onChange({target:{value:"__add_new__", searchText: search}});setOpen(false);setSearch("");}} style={{padding:"8px 10px",fontSize:11,fontWeight:600,color:accent,cursor:"pointer",borderTop:"1px solid #e2e8f0"}}>+ Add new item...</div>
+                {rowsEl}
               </div>
             </div>);
           };
@@ -509,7 +809,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           {/* Update My List + Recalculate RAG + Clear Week */}
           <div style={{ display: "flex", gap: 8, marginBottom: 0, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={function(){ setManageListsOpen(!manageListsOpen); }} style={Object.assign({}, manageListsOpen ? btnClose : btnAction)}>{manageListsOpen ? "✕ Close" : "Update Eating Lists"}</button>
-            <button onClick={recalculateAllRag} disabled={ragRecalcLoading} style={Object.assign({}, btnMuted, { fontSize: 10, padding: "4px 10px", opacity: ragRecalcLoading ? 0.6 : 1 })}>{ragRecalcLoading ? "⏳ Recalculating..." : "🔄 Re-evaluate Ratings"}</button>
+            <button onClick={reRateAll} disabled={!!listJob} style={Object.assign({}, btnMuted, { fontSize: 10, padding: "4px 10px", opacity: listJob ? 0.6 : 1 })}>{listJob === "rerate" ? "⏳ Re-rating…" : "🔄 Re-rate all lists"}</button>
+            <button onClick={recheckNutrition} disabled={!!listJob} style={Object.assign({}, btnMuted, { fontSize: 10, padding: "4px 10px", opacity: listJob ? 0.6 : 1 })}>{listJob === "recheck" ? "⏳ Re-checking…" : "🔎 Re-check nutrition"}</button>
             <button onClick={clearWeek} style={Object.assign({}, btnClear, { marginLeft: "auto" })}>Clear Week</button>
           </div>
 
@@ -537,11 +838,11 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#15803d";
                     var hasRagChange = item._ragChanged && !item._ragChangedSeen;
                     return (<div key={item.id}><div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
-                      <span style={{ flex: 1, color: color }}>{hasRagChange && <span onClick={function(){alert("Rating changed from " + (item.prevRating || "?") + " to " + item.rating + (item.ragReason ? ".\n\nReason: " + item.ragReason : "") + "\n\nBased on your current health profile and dietary guidelines.");var u=cat.customs.map(function(x){return x.id===item.id?Object.assign({},x,{_ragChangedSeen:true}):x;});cat.setCustoms(u);sSet(cat.storageKey,JSON.stringify(u));}} style={{cursor:"pointer"}} title={"Changed from " + (item.prevRating || "?")}>🔄 </span>}{item.name} ({kcal} kcal)</span>
-                      <button onClick={function() { if (editingItem === item.id) { setEditingItem(null); setEditDraft(null); } else { setEditingItem(item.id); setEditDraft(Object.assign({}, item, { originalIngredients: (item.ingredients || []).join(", "), recalculated: false })); } setFormMsg(""); }} style={{...btnEdit, fontSize: 9, marginRight: 4}}>{editingItem === item.id ? "Cancel" : "✎ Update"}</button><button onClick={async function() { if(confirm("Delete " + item.name + "?")) { var u = cat.customs.filter(function(x){return x.id !== item.id;}); cat.setCustoms(u); await sSet(cat.storageKey, JSON.stringify(u)); setFormMsg("Deleted " + item.name); setTimeout(function(){setFormMsg("");},2000); }}} style={{...btnDelete, fontSize: 9}}>🗑 Del</button>
+                      <span style={{ flex: 1, color: color }}>{hasRagChange && <span onClick={function(){alert("Rating changed from " + (item.prevRating || "?") + " to " + item.rating + (item.ragReason ? ".\n\nReason: " + item.ragReason : "") + "\n\nBased on your current health profile and dietary guidelines.");var u=cat.customs.map(function(x){return x.id===item.id?Object.assign({},x,{_ragChangedSeen:true}):x;});cat.setCustoms(u);sSet(cat.storageKey,JSON.stringify(u));}} style={{cursor:"pointer"}} title={"Changed from " + (item.prevRating || "?")}>🔄 </span>}{item.name} ({kcal} kcal){item.checkMe && <span data-testid="check-me" title={item.checkReason || "Added by bulk upload: open and save it once you have checked it"} style={{ marginLeft: 4, fontSize: 9, fontWeight: 600, color: "#64748b", border: "1px solid #cbd5e1", borderRadius: 4, padding: "0 4px", whiteSpace: "nowrap" }}>Check me</span>}</span>
+                      <button aria-label={"Open " + item.name} onClick={function() { setEditingItem(null); setEditDraft(null); setItemOpen(itemOpen === item.id ? null : item.id); setFormMsg(""); }} style={btnOpen}>Open</button>
                     </div>
-                    {editingItem === item.id && editDraft && editDraft.id === item.id && (<div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, margin: "4px 0 8px", border: "1px solid #86efac" }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Update Item</div>
+                    {itemOpen === item.id && renderItemView(item, cat)}
+                    {editingItem === item.id && editDraft && editDraft.id === item.id && (<OpenForm testid="item-open-form" title={item.name} subtitle="Editing the list item. Past meals keep their own copy." editing={true} hideActions={true}>
                       <div style={{ marginBottom: 6 }}>
                         <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 2 }}>Name</div>
                         <input id={"edit-item-name-" + item.id} defaultValue={editDraft.name} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, boxSizing: "border-box" }} />
@@ -570,9 +871,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       {formMsg && <div style={{ padding: 8, borderRadius: 6, marginBottom: 8, fontSize: 11, fontWeight: 600, lineHeight: 1.4, background: formMsg.indexOf("✅") === 0 ? "#dcfce7" : formMsg.indexOf("🔄") === 0 ? "#e0f2fe" : "#fee2e2", color: formMsg.indexOf("✅") === 0 ? "#166534" : formMsg.indexOf("🔄") === 0 ? "#0c4a6e" : "#991b1b" }}>{formMsg}</div>}
                       <div style={{ display: "flex", gap: 6 }}>
                         <button disabled={formMsg.indexOf("🔄") === 0} onClick={function() { saveEditItem(cat); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: formMsg.indexOf("🔄") === 0 ? 0.5 : 1}}>{formMsg.indexOf("🔄") === 0 ? "Recalculating…" : editDraft.recalculated ? "✓ Continue — Save" : "✓ Confirm"}</button>
-                        <button onClick={function() { if (editDraft.recalculated) { setEditDraft(function(prev) { return Object.assign({}, prev, { recalculated: false }); }); } else { setEditingItem(null); setEditDraft(null); } setFormMsg(""); }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>{editDraft.recalculated ? "Edit Again" : "Cancel"}</button>
+                        <button onClick={function() { if (editDraft.recalculated) { setEditDraft(function(prev) { return Object.assign({}, prev, { recalculated: false }); }); } else { setEditingItem(null); setEditDraft(null); setItemOpen(editDraft.id); } setFormMsg(""); }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>{editDraft.recalculated ? "Edit Again" : "Cancel"}</button>
                       </div>
-                    </div>)}
+                    </OpenForm>)}
                     </div>);
                   })}
                   {cat.customs.length === 0 && <div style={{ fontSize: 10, color: "#94a3b8", padding: 4 }}>No custom items yet</div>}
@@ -589,7 +890,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     📷
                     <input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} />
                   </label>
-                  <button onClick={function() { setBulkReviewItems(bulkReviewItems ? null : "paste"); }} style={{ padding: "6px 8px", background: bulkReviewItems === "paste" ? "#dbeafe" : "#f0f9ff", border: "1px solid " + (bulkReviewItems === "paste" ? "#2563eb" : "#bae6fd"), borderRadius: 6, fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0, color: "#1e3a5f", fontWeight: 600 }} title="Paste multiple items to bulk add">📋 Bulk</button>
+                  <button onClick={function() { if (bulkReviewItems) { cancelBulk(); } else { setBulkCat(""); setBulkRun(null); setBulkReviewItems("paste"); } }} style={{ padding: "6px 8px", background: bulkReviewItems === "paste" ? "#dbeafe" : "#f0f9ff", border: "1px solid " + (bulkReviewItems === "paste" ? "#2563eb" : "#bae6fd"), borderRadius: 6, fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0, color: "#1e3a5f", fontWeight: 600 }} title="Paste multiple items to bulk add">📋 Bulk</button>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={function() { setOffResults([]); addNewItem(); }} disabled={newItemLoading || !newItemName.trim()} style={{ flex: 1, padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? <span>Adding <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Add"}</button>
@@ -620,7 +921,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               </div>)}
 
               {/* Single review form — shown once after add */}
-              {cameraPreview && (<div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, marginTop: 6, border: "1px solid #86efac" }}>
+              {cameraPreview && cameraPreview.noFood && (<div style={{ background: "#fff", borderRadius: 8, padding: 10, marginTop: 6, border: "1px solid #fde68a" }}><NoFoodPanel testid="review-no-food" desc={cameraPreview.desc} busy={newItemLoading} onRecheck={function(d) { window._lcRecheckAddPhoto(d); }} onCancel={function() { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); }} /></div>)}
+              {cameraPreview && !cameraPreview.noFood && (<div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, marginTop: 6, border: "1px solid #86efac" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Review Item</div>
                   <button onClick={function() { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); }} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
@@ -682,22 +984,25 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {bulkReviewItems === "paste" && (<div style={{ background: "#fffbeb", borderRadius: 8, padding: 12, marginTop: 10, border: "1px solid #fcd34d" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>📋 Bulk Add Items</div>
-                  <button onClick={function() { setBulkReviewItems(null); }} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
+                  <button aria-label="Close bulk add" onClick={cancelBulk} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
                 </div>
                 <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: 8, borderRadius: 6, marginBottom: 8, lineHeight: 1.4 }}>Paste your list of items below (one per line or comma-separated). Items will be added automatically with AI-calculated nutrition. You can edit any item afterwards for accuracy.</div>
+                <div style={{ fontSize: 10, color: "#92400e", marginBottom: 6 }}>Long lists are rated {BULK_BATCH} at a time; each finished batch is saved straight away.</div>
+                {bulkRun && newItemLoading && <div role="progressbar" aria-valuemin={0} aria-valuemax={bulkRun.total} aria-valuenow={bulkRun.done} data-testid="bulk-progress" style={{ height: 6, background: "#fde68a", borderRadius: 3, marginBottom: 8, overflow: "hidden" }}><div style={{ width: Math.round(100 * bulkRun.done / Math.max(1, bulkRun.total)) + "%", height: "100%", background: "#d97706" }} /></div>}
                 <textarea id="bulk-paste-textarea" placeholder={"e.g.\nOvernight oats\nGreek yogurt\nChicken wrap\nProtein shake"} style={{ width: "100%", padding: "8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 80, resize: "vertical", boxSizing: "border-box", lineHeight: 1.5, marginBottom: 8 }} />
                 <div style={{ marginBottom: 8 }}>
                   <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Add to category</div>
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                     {["breakfast","lunch","dinner","snack","dessert","drink"].map(function(c) {
-                      var sel = addingCategory === c;
-                      return (<button key={c} onClick={function() { setAddingCategory(c); }} style={{ padding: "5px 10px", border: "1px solid " + (sel ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: sel ? "#eff6ff" : "#fff", color: sel ? "#1e3a5f" : "#94a3b8", textTransform: "capitalize" }}>{sel ? "✓ " : ""}{c}</button>);
+                      var sel = bulkCat === c;
+                      return (<button key={c} disabled={newItemLoading} onClick={function() { setBulkCat(c); }} style={{ padding: "5px 10px", border: "1px solid " + (sel ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: sel ? "#eff6ff" : "#fff", color: sel ? "#1e3a5f" : "#94a3b8", textTransform: "capitalize" }}>{sel ? "✓ " : ""}{c}</button>);
                     })}
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button disabled={!addingCategory || newItemLoading} onClick={function() { bulkPasteAdd(addingCategory); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: !addingCategory ? 0.5 : 1}}>{newItemLoading ? <span>Uploading <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Upload Items"}</button>
-                  <button onClick={function() { setBulkReviewItems(null); }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
+                  <button disabled={!bulkCat || newItemLoading} onClick={function() { bulkPasteAdd(bulkCat); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: !bulkCat ? 0.5 : 1}}>{newItemLoading ? <span>Uploading <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : !bulkCat ? "Choose a category first" : "Upload Items"}</button>
+                  {bulkRun && bulkRun.failed && bulkRun.failed.length > 0 && !newItemLoading && <button onClick={function() { bulkPasteAdd(bulkRun.cat, bulkRun.failed); }} style={{...btnActionLg, borderRadius: 6}}>Retry {bulkRun.failed.length}</button>}
+                  <button onClick={cancelBulk} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
                 </div>
               </div>)}
           </div>)}
@@ -727,7 +1032,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               var limit2 = isJC ? 2200 : 1900;
               var color2 = avg2 === 0 ? "#94a3b8" : avg2 > limit2 ? "#dc2626" : "#16a34a";
               return avg2 > 0 ? (<span style={{ fontSize: 11, fontWeight: 600, color: color2 }}> — Avg {avg2} kcal/day</span>) : null;
-            })()}</span><div style={{ display: "flex", gap: 4, flexShrink: 0 }}><button onClick={function(){ setCopyWeekOpen(!copyWeekOpen); setCopyWeekTargets({}); }} style={Object.assign({}, copyWeekOpen ? btnClose : btnAction)}>{copyWeekOpen ? "✕" : <span>📋 Copy Week</span>}</button><button onClick={function(){setEatWeekEyeOpen(!eatWeekEyeOpen);}} style={Object.assign({}, eatWeekEyeOpen ? btnClose : btnAction)}>{eatWeekEyeOpen ? "✕" : "👁 Progress"}</button></div></div>
+            })()}</span><div style={{ display: "flex", gap: 4, flexShrink: 0 }}><button onClick={function(){ setCopyWeekOpen(!copyWeekOpen); setCopyWeekTargets({}); }} style={Object.assign({}, copyWeekOpen ? btnClose : btnAction)}>{copyWeekOpen ? "✕" : <span>📋 Copy Week</span>}</button><button onClick={function(){setEatWeekEyeOpen(!eatWeekEyeOpen);}} style={eatWeekEyeOpen ? btnFilledOn : btnProgress}>{eatWeekEyeOpen ? "✕ Progress" : "👁 Progress"}</button></div></div>
 
             {copyWeekOpen && (<div style={{ background: accentLight, borderRadius: 8, padding: 10, marginBottom: 10, border: "1px solid " + accentBorder }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Copy this week's day selections to:</div>
@@ -762,11 +1067,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   setSaving(true);
                   for (var ti = 0; ti < targets.length; ti++) {
                     var tws = new Date(baseStart); tws.setDate(tws.getDate() + (targets[ti] * 7));
-                    var tsk = mealKey(tws) + ":" + activeTab;
-                    var existRaw = await sGet(tsk);
-                    var existMeals = existRaw ? JSON.parse(existRaw) : {};
-                    DAYS.forEach(function(d) { if (dayData[d]) existMeals[d] = JSON.parse(JSON.stringify(dayData[d])); });
-                    await sSet(tsk, JSON.stringify(existMeals));
+                    await editWeekChildren(activeTab, tws, function(existMeals) { DAYS.forEach(function(d) { if (dayData[d]) existMeals[d] = JSON.parse(JSON.stringify(dayData[d])); }); }, "copy", weekChildren.children);
                   }
                   setSaving(false);
                   setCopyWeekOpen(false); setCopyWeekTargets({});
@@ -1002,7 +1303,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 4 }}>
-                {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(function(d2) {
+                {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(function(d2) {
                   return (<label key={d2} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "#475569", cursor: "pointer" }}>
                     <input type="checkbox" id={"qp-" + d2 + "-" + activeTab} style={{ width: 14, height: 14 }} />
                     {d2}
@@ -1155,11 +1456,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             var genBf = customBreakfasts.filter(function(it) { return it.rating; });
             var genLu = customLunches.filter(function(it) { return it.rating; });
             var genDin = customMeals.filter(function(it) { return it.rating; });
-            if (genBf.length < 3 || genLu.length < 3 || genDin.length < 3) {
-              setFormMsg("Please use 'Update Eating Lists' to add your choice of food items. Once added, the food items will be colour coded for use by the meal generator and yourself.");
-              setTimeout(function() { setFormMsg(""); }, 8000);
-              return;
-            }
+            /* D9: a short list no longer stops the whole generator; an empty one leaves its slots empty (said in the summary) */
             /* Check items can logically fill 7 days following RAG rules:
                GREEN = every day, AMBER = max 1/week, RED = max 1/month.
                Need enough GREEN items to cover days not filled by AMBER/RED */
@@ -1175,55 +1472,57 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               if (greens === 0 && greenDays > 0) return label;
               return null;
             };
-            var failCat = checkCanFill(genBf, "breakfasts") || checkCanFill(genLu, "lunches") || checkCanFill(genDin, "dinners");
-            if (failCat) {
+            /* D9: a slot whose list can't fill the week is left empty (and said so); only stop if none can */
+            var _can = { b: genBf.length > 0 && !checkCanFill(genBf, "b"), l: genLu.length > 0 && !checkCanFill(genLu, "l"), d: genDin.length > 0 && !checkCanFill(genDin, "d") };
+            if (!_can.b && !_can.l && !_can.d) {
               setFormMsg("Please use 'Update Eating Lists' to add your choice of food items. Once added, the food items will be colour coded for use by the meal generator and yourself.");
               setTimeout(function() { setFormMsg(""); }, 8000);
               return;
             }
-            await applyDefaults();
+            var planned = await applyDefaults(); /* D9: work from the plan WITH defaults, not the stale state */
+            var _allowed = { b: _can.b ? genBf.map(function(x){return x.id;}) : [], l: _can.l ? genLu.map(function(x){return x.id;}) : [], d: _can.d ? genDin.filter(function(x){return x.id !== "none";}).map(function(x){return x.id;}) : [] };
             setGenerating(true); setFormMsg("Applying defaults and generating meals...");
             try {
               var prof = p.profile || {};
-              var dinnerList = genDin.filter(function(d2) { return d2.id !== "none"; }).map(function(d2) { return d2.id + ":" + d2.name + "[" + (d2.rating||"GREAT") + "](" + (isJC ? d2.jcKcal : d2.beckKcal) + "kcal," + (d2.time||30) + "min)"; }).join(";");
-              var bfastList = genBf.map(function(b) { return b.id + ":" + b.name + "[" + (b.rating||"GREAT") + "]"; }).join(";");
-              var lunchList = genLu.map(function(l) { return l.id + ":" + l.name + "[" + (l.rating||"GREAT") + "]"; }).join(";");
+              var dinnerList = genDin.filter(function(d2) { return d2.id !== "none"; }).map(function(d2) { return d2.id + ":" + d2.name + "[" + (bandOf(d2)||"GREAT") + "](" + (isJC ? d2.jcKcal : d2.beckKcal) + "kcal," + (d2.time||30) + "min)"; }).join(";");
+              var bfastList = genBf.map(function(b) { return b.id + ":" + b.name + "[" + (bandOf(b)||"GREAT") + "]"; }).join(";");
+              var lunchList = genLu.map(function(l) { return l.id + ":" + l.name + "[" + (bandOf(l)||"GREAT") + "]"; }).join(";");
               /* Build past weeks history for RED monthly limit checking */
               var pastHistory = "";
               /* AMBER: already used this week — do not reuse */
               var weekIds = thisWeekIds();
-              var amberUsed = weekIds.filter(function(id) { var it = allItemsLookup[id]; return it && it.rating === "AMBER"; });
-              if (amberUsed.length > 0) { pastHistory += " AMBER items already selected this week (DO NOT reuse — max once per week): " + amberUsed.filter(function(v, i, a) { return a.indexOf(v) === i; }).join(",") + "."; }
+              var uniq = function(arr) { return arr.filter(function(v, i, a) { return a.indexOf(v) === i; }); };
+              var _wo = weekOcc(); /* v2.6.5: children's own RAG */
+              var amberFull = uniq(_wo.filter(function(o) { return o.band === "AMBER"; }).map(function(o) { return o.food; })).filter(function(f) { return _wo.filter(function(o) { return o.food === f; }).length >= 3 && f.indexOf("adhoc:") !== 0; });
+              if (amberFull.length > 0) { pastHistory += " AMBER items already used 3 times this week (DO NOT reuse — a few times a week): " + amberFull.join(",") + "."; }
+              var redWeekUsed = uniq(_wo.filter(function(o) { return o.band === "RED-weekly" && o.food.indexOf("adhoc:") !== 0; }).map(function(o) { return o.food; }));
+              if (redWeekUsed.length > 0) { pastHistory += " RED weekly-treat items already used this week (DO NOT reuse — weekly treat): " + redWeekUsed.join(",") + "."; }
               /* RED: used in past 4 weeks — do not reuse */
               if (pastWeeksMeals.length > 0) {
                 var pastIds = pastMonthIds();
                 var allRedIds = weekIds.concat(pastIds);
-                var pastRedUsed = allRedIds.filter(function(id) { var it = allItemsLookup[id]; return it && it.rating === "RED"; });
-                if (pastRedUsed.length > 0) { pastHistory += " RED items used in past 4 weeks (DO NOT reuse — max once per month): " + pastRedUsed.filter(function(v, i, a) { return a.indexOf(v) === i; }).join(",") + "."; }
+                var pastRedUsed = _wo.concat(pastOcc()).filter(function(o) { return o.band === "RED-monthly" && o.food.indexOf("adhoc:") !== 0; }).map(function(o) { return o.food; });
+                if (pastRedUsed.length > 0) { pastHistory += " RED monthly-treat items used in past 4 weeks (DO NOT reuse — monthly treat): " + pastRedUsed.filter(function(v, i, a) { return a.indexOf(v) === i; }).join(",") + "."; }
               }
               var fmt = '{"monday":{"b":"id","l":"id","d":"id"},"tuesday":{"b":"id","l":"id","d":"id"},"wednesday":{"b":"id","l":"id","d":"id"},"thursday":{"b":"id","l":"id","d":"id"},"friday":{"b":"id","l":"id","d":"id"},"saturday":{"b":"id","l":"id","d":"id"},"sunday":{"b":"id","l":"id","d":"id"}}';
-              var prompt = "Generate a week of meals for " + (prof.name || "user") + " (" + (isJC ? "2000-2200 kcal" : "1700-1900 kcal") + " target). Only fill EMPTY slots - keep existing selections. CRITICAL: You MUST ONLY use item IDs from the lists below - never invent new IDs. FREQUENCY RULES based on RAG rating: GREAT items can appear every day, AMBER items maximum once per week, RED items maximum once per month. Each item shows its rating in [brackets]. Respect these limits strictly." + pastHistory + " Current: " + JSON.stringify(meals) + ". Breakfasts: " + bfastList + ". Lunches: " + lunchList + ". Dinners: " + dinnerList + ". Vary daily. Return ONLY JSON: " + fmt;
+              var prompt = "Generate a week of meals for " + (prof.name || "user") + " (" + (isJC ? "2000-2200 kcal" : "1700-1900 kcal") + " target). Only fill EMPTY slots - keep existing selections. CRITICAL: You MUST ONLY use item IDs from the lists below - never invent new IDs. FREQUENCY RULES based on the rating in [brackets]: GREAT = any day, GOOD = daily, AMBER = a few times a week (max 3), RED-weekly = weekly treat (max once a week), RED-monthly = monthly treat (max once a month). Respect these limits strictly." + pastHistory + " Current: " + JSON.stringify(planned.meals, function(k, v) { if (k === "_snap" || k === "_notes") return undefined; var it = typeof v === "string" ? allItemsLookup[v] : null; return it && it._child ? (it.parentId || it.name) : v; }) + ". Breakfasts: " + (_can.b ? bfastList : "(none — leave breakfast slots empty)") + ". Lunches: " + (_can.l ? lunchList : "(none — leave lunch slots empty)") + ". Dinners: " + (_can.d ? dinnerList : "(none — leave dinner slots empty)") + ". Vary daily. Return ONLY JSON: " + fmt;
               var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }) });
               var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
               var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
               if (txt) {
                 var gen = JSON.parse(txt.replace(/```json|```/g, "").trim());
-                var n = Object.assign({}, meals);
-                DAYS.forEach(function(d2) { if (gen[d2]) { if (!n[d2]) n[d2] = {}; if (gen[d2].b && !n[d2].b) n[d2].b = gen[d2].b; if (gen[d2].l && !n[d2].l) n[d2].l = gen[d2].l; if (gen[d2].d && !n[d2].d) n[d2].d = gen[d2].d; } });
-                setMeals(n); saveMeals(n);
+                var merged = mergeGenerated(planned, gen, _allowed); /* D9: only empty slots, only ids from that slot's list */
+                var n = merged.meals;
+                setMeals(n); saveMeals(n, "generator");
                 var otherPeople2 = Object.keys(data).filter(function(k) { return k !== "config" && k !== activeTab; });
                 for (var opi2 = 0; opi2 < otherPeople2.length; opi2++) {
                   var op2 = otherPeople2[opi2];
-                  var opSk2 = mealKey(weekStart) + ":" + op2;
-                  var opRaw2 = await sGet(opSk2);
-                  var opM2 = opRaw2 ? JSON.parse(opRaw2) : {};
-                  DAYS.forEach(function(d2) { if (gen[d2]) { if (!opM2[d2]) opM2[d2] = {}; if (gen[d2].d && !opM2[d2].d) opM2[d2].d = gen[d2].d; } });
-                  await sSet(opSk2, JSON.stringify(opM2));
+                  await editWeekChildren(op2, weekStart, function(opM2) { DAYS.forEach(function(d2) { if (gen[d2]) { if (!opM2[d2]) opM2[d2] = {}; if (gen[d2].d && !opM2[d2].d && _allowed.d.indexOf(gen[d2].d) >= 0) opM2[d2].d = gen[d2].d; } }); }, "generator");
                 }
-                setFormMsg("Week meals generated (all people)");
+                setFormMsg("Week meals generated — " + generatorSummary(merged.src, _allowed));
               }
             } catch(e) { setFormMsg(window.aiErrorMsg(e)); }
-            setTimeout(function() { setFormMsg(""); }, 4000); setGenerating(false);
+            setTimeout(function() { setFormMsg(""); }, 10000); setGenerating(false);
           }} disabled={generating} style={{ width: "100%", padding: 12, marginTop: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: generating ? "not-allowed" : "pointer", background: generating ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{generating ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Meals Generator"}</button>
           <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>Applies your default choices where stated and generates recommended breakfast, lunch, and dinner slots where left empty. These can be updated on individual days if required.</div>
             </div>
@@ -1235,7 +1534,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {(eatFbResults[activeTab] || {})["week"] && <button onClick={function(){ setEatFbExpanded(!eatFbExpanded); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer", marginBottom: 6 }}>{eatFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>}
               {eatFbExpanded && (eatFbResults[activeTab] || {})["week"] && (function() { var efb = eatFbResults[activeTab]["week"]; return React.createElement("div", { style: { marginBottom: 10 } },
                 React.createElement("div", { style: { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" } },
-                  efb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", efb._when, " for ", isJC ? "JC" : "Becks"),
+                  efb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", efb._when, " for ", isJC ? "JC" : "Becks", efb._phase ? React.createElement("span", { "data-testid": "eat-fb-phase", style: { marginLeft: 6, fontWeight: 700, color: "#1e3a5f" } }, "· " + (PHASE_LABEL[efb._phase] || efb._phase)) : null),
                   React.createElement("div", { style: { padding: "8px 14px", borderBottom: "1px solid #e2e8f0" } }, React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6 } }, React.createElement("span", { style: { fontSize: 14 } }, "🍽️"), React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f" } }, "Eating Companion Check-in — Weekly"))),
                   React.createElement("div", { style: { padding: "12px 14px", borderBottom: "1px solid #e2e8f0" } },
                     React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#0c4a6e" } }, "What went well this week"),
@@ -1261,7 +1560,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           {/* Day content */}
           {eatDay !== "week" && <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyDayOpen(!copyDayOpen); setCopyDayTargets({}); }} style={Object.assign({},copyDayOpen?btnClose:btnAction)}>{copyDayOpen ? "✕ Close" : "📋 Copy Day"}</button><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);}} style={Object.assign({},eatDayEyeOpen?btnClose:btnAction)}>{eatDayEyeOpen ? "✕ Close" : "👁 Progress"}</button></div></div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyDayOpen(!copyDayOpen); setCopyDayTargets({}); }} style={Object.assign({},copyDayOpen?btnClose:btnAction)}>{copyDayOpen ? "✕ Close" : "📋 Copy Day"}</button><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);}} style={eatDayEyeOpen ? btnFilledOn : btnProgress}>{eatDayEyeOpen ? "✕ Progress" : "👁 Progress"}</button></div></div>
 
             {copyDayOpen && (<div style={{ background: accentLight, borderRadius: 8, padding: 10, marginBottom: 10, border: "1px solid " + accentBorder }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Copy {eatDay.charAt(0).toUpperCase() + eatDay.slice(1)}'s selections to:</div>
@@ -1497,30 +1796,46 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var _ragChg = _slotItem && _slotItem._ragChanged && !_slotItem._ragChangedSeen;
                   return (<div key={"b"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={dispBfast} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
+                      <MealSelect snap={getSnap(eatDay, slotKey)} items={dispBfast} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("breakfast", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
                     </div>
                     {_ragChg && <span onClick={function(){alert("Rating changed from " + (_slotItem.prevRating || "?") + " to " + _slotItem.rating + (_slotItem.ragReason ? ".\n\nReason: " + _slotItem.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem.prevRating||"?") + " → " + _slotItem.rating}>🔄</span>}
                     {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
-                    {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allBfast); e.target.value=""; }} style={{ display: "none" }} /></label>)}
-                    {_hasItem && <button onClick={function() { if (!confirm("Remove this meal? This cannot be undone.")) return; setMeal(eatDay, slotKey, idx === 1 ? "__empty__" : ""); }} style={btnDelete}>🗑 Del</button>}
-                    {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                    {snapButton(slotKey)}
+                    {slotButtons(slotKey, idx)}
+                    {(function(){ var _c = childAt(eatDay, slotKey); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
-              {portionSlot && portionSlot.match(/^b\d*$/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
-                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
-                {portionResult && portionPlanned && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+              {slotOpen && slotOpen.day === eatDay && /^b\d*$/.test(slotOpen.slot) && renderSlotForm()}
+              {portionSlot && portionSlot.match(/^b\d*$/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
+                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
+                {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 Snap a photo of your food</div>
+                  <input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: size and detail, e.g. 'large plate', '2 sausages', '28g bar', 'half eaten'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 11, marginBottom: 6 }} />
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <label style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", textAlign: "center" }}>📷 Take photo<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(portionSlot, e.target.files[0], listForSlot(portionSlot), portionDesc); e.target.value=""; }} style={{ display: "none" }} /></label>
+                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>
+                </div>)}
+                {portionResult && (<div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
+                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
                     <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
                     <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
                     <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
-                  </div>
-                  {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Confirm Portion</button>
-                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
+                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
+                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
+                  {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
+                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
+                  <div style={{ marginBottom: 8 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /></div>
+                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+                    <button onClick={confirmPortion} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
+                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
+                    <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
                   </div>
                 </div>)}
               </div>)}
@@ -1556,30 +1871,46 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var _ragChg2 = _slotItem2 && _slotItem2._ragChanged && !_slotItem2._ragChangedSeen;
                   return (<div key={"l"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={dispLunch} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
+                      <MealSelect snap={getSnap(eatDay, slotKey)} items={dispLunch} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("lunch", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
                     </div>
                     {_ragChg2 && <span onClick={function(){alert("Rating changed from " + (_slotItem2.prevRating || "?") + " to " + _slotItem2.rating + (_slotItem2.ragReason ? ".\n\nReason: " + _slotItem2.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem2.prevRating||"?") + " → " + _slotItem2.rating}>🔄</span>}
                     {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
-                    {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allLunch); e.target.value=""; }} style={{ display: "none" }} /></label>)}
-                    {_hasItem && <button onClick={function() { if (!confirm("Remove this meal? This cannot be undone.")) return; setMeal(eatDay, slotKey, idx === 1 ? "__empty__" : ""); }} style={btnDelete}>🗑 Del</button>}
-                    {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                    {snapButton(slotKey)}
+                    {slotButtons(slotKey, idx)}
+                    {(function(){ var _c = childAt(eatDay, slotKey); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
-              {portionSlot && portionSlot.match(/^l\d*$/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
-                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
-                {portionResult && portionPlanned && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+              {slotOpen && slotOpen.day === eatDay && /^l\d*$/.test(slotOpen.slot) && renderSlotForm()}
+              {portionSlot && portionSlot.match(/^l\d*$/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
+                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
+                {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 Snap a photo of your food</div>
+                  <input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: size and detail, e.g. 'large plate', '2 sausages', '28g bar', 'half eaten'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 11, marginBottom: 6 }} />
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <label style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", textAlign: "center" }}>📷 Take photo<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(portionSlot, e.target.files[0], listForSlot(portionSlot), portionDesc); e.target.value=""; }} style={{ display: "none" }} /></label>
+                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>
+                </div>)}
+                {portionResult && (<div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
+                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
                     <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
                     <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
                     <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
-                  </div>
-                  {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Confirm Portion</button>
-                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
+                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
+                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
+                  {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
+                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
+                  <div style={{ marginBottom: 8 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /></div>
+                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+                    <button onClick={confirmPortion} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
+                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
+                    <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
                   </div>
                 </div>)}
               </div>)}
@@ -1620,13 +1951,13 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   return (<div key={"d"+idx}>
                     <div style={{ display: "flex", gap: 4, marginBottom: _isPackaged ? 2 : 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={dispDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
+                      <MealSelect snap={getSnap(eatDay, slotKey)} items={dispDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dinner", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
                     </div>
                     {_ragChg3 && <span onClick={function(){alert("Rating changed from " + (_slotItem3.prevRating || "?") + " to " + _slotItem3.rating + (_slotItem3.ragReason ? ".\n\nReason: " + _slotItem3.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem3.prevRating||"?") + " → " + _slotItem3.rating}>🔄</span>}
                     {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
-                    {_hasItem && (<label style={{ ...btnPortion, background: portionSlot === slotKey ? "#dbeafe" : btnPortion.background, border: portionSlot === slotKey ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === slotKey ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === slotKey ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(slotKey, e.target.files[0], allDinners); e.target.value=""; }} style={{ display: "none" }} /></label>)}
-                    {_hasItem && <button onClick={function() { if (!confirm("Remove this meal? This cannot be undone.")) return; setMeal(eatDay, slotKey, idx === 1 ? "__empty__" : ""); }} style={btnDelete}>🗑 Del</button>}
-                    {portionOverrides[eatDay] && portionOverrides[eatDay][slotKey] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                    {snapButton(slotKey)}
+                    {slotButtons(slotKey, idx)}
+                    {(function(){ var _c = childAt(eatDay, slotKey); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                     </div>
                     {_isPackaged && (<div style={{ marginLeft: 12, marginBottom: 6, paddingLeft: 8, borderLeft: "2px solid #bfdbfe" }}>
                       <div style={{ fontSize: 9, color: "#64748b", marginBottom: 2, fontWeight: 600 }}>📦 Sides for packaged product</div>
@@ -1648,20 +1979,36 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   </div>);
                 });
               })()}
-              {portionSlot && portionSlot.match(/^d\d*$/) && !portionSlot.match(/^d[sr]/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
-                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
-                {portionResult && portionPlanned && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+              {slotOpen && slotOpen.day === eatDay && /^d\d*$/.test(slotOpen.slot) && renderSlotForm()}
+              {portionSlot && portionSlot.match(/^d\d*$/) && !portionSlot.match(/^d[sr]/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
+                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
+                {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 Snap a photo of your food</div>
+                  <input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: size and detail, e.g. 'large plate', '2 sausages', '28g bar', 'half eaten'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 11, marginBottom: 6 }} />
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <label style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", textAlign: "center" }}>📷 Take photo<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(portionSlot, e.target.files[0], listForSlot(portionSlot), portionDesc); e.target.value=""; }} style={{ display: "none" }} /></label>
+                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>
+                </div>)}
+                {portionResult && (<div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
+                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
                     <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
                     <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
                     <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
-                  </div>
-                  {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Confirm Portion</button>
-                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
+                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
+                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
+                  {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
+                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
+                  <div style={{ marginBottom: 8 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /></div>
+                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+                    <button onClick={confirmPortion} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
+                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
+                    <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
                   </div>
                 </div>)}
               </div>)}
@@ -1692,28 +2039,44 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 return slots.map(function(idx) {
                   return (<div key={"ds"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={dispDesserts} value={getMeal(eatDay, "ds" + idx) === "__empty__" ? "" : getMeal(eatDay, "ds" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults", e.target.searchText, "ds" + idx, eatDay); } else { setMeal(eatDay, "ds" + idx, e.target.value); } }} placeholder="Select dessert..." />
+                      <MealSelect snap={getSnap(eatDay, "ds" + idx)} items={dispDesserts} value={getMeal(eatDay, "ds" + idx) === "__empty__" ? "" : getMeal(eatDay, "ds" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("dessert", "defaults", e.target.searchText, "ds" + idx, eatDay); } else { setMeal(eatDay, "ds" + idx, e.target.value); } }} placeholder="Select dessert..." />
                     </div>
-                    {getMeal(eatDay, "ds" + idx) && getMeal(eatDay, "ds" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("ds" + idx) ? "#dbeafe" : btnPortion.background, border: portionSlot === ("ds" + idx) ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === ("ds" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("ds" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("ds" + idx, e.target.files[0], allDesserts); e.target.value=""; }} style={{ display: "none" }} /></label>)}
-                    {getMeal(eatDay, "ds" + idx) && <button onClick={function() { if (!confirm("Remove this snack? This cannot be undone.")) return; setMeal(eatDay, "ds" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
-                    {portionOverrides[eatDay] && portionOverrides[eatDay]["ds" + idx] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                    {snapButton("ds" + idx)}
+                    {slotButtons("ds" + idx, idx)}
+                    {(function(){ var _c = childAt(eatDay, "ds" + idx); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
-              {portionSlot && portionSlot.match(/^ds/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
-                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
-                {portionResult && portionPlanned && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+              {slotOpen && slotOpen.day === eatDay && /^ds/.test(slotOpen.slot) && renderSlotForm()}
+              {portionSlot && portionSlot.match(/^ds/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
+                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
+                {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 Snap a photo of your food</div>
+                  <input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: size and detail, e.g. 'large plate', '2 sausages', '28g bar', 'half eaten'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 11, marginBottom: 6 }} />
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <label style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", textAlign: "center" }}>📷 Take photo<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(portionSlot, e.target.files[0], listForSlot(portionSlot), portionDesc); e.target.value=""; }} style={{ display: "none" }} /></label>
+                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>
+                </div>)}
+                {portionResult && (<div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
+                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
                     <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
                     <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
                     <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
-                  </div>
-                  {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Confirm Portion</button>
-                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
+                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
+                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
+                  {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
+                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
+                  <div style={{ marginBottom: 8 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /></div>
+                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+                    <button onClick={confirmPortion} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
+                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
+                    <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
                   </div>
                 </div>)}
               </div>)}
@@ -1744,28 +2107,44 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 return slots.map(function(idx) {
                   return (<div key={"dr"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect items={dispDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults", e.target.searchText, "dr" + idx, eatDay); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Select drink..." />
+                      <MealSelect snap={getSnap(eatDay, "dr" + idx)} items={dispDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("drink", "defaults", e.target.searchText, "dr" + idx, eatDay); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Select drink..." />
                     </div>
-                    {getMeal(eatDay, "dr" + idx) && getMeal(eatDay, "dr" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("dr" + idx) ? "#dbeafe" : btnPortion.background, border: portionSlot === ("dr" + idx) ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === ("dr" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("dr" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("dr" + idx, e.target.files[0], allDrinks); e.target.value=""; }} style={{ display: "none" }} /></label>)}
-                    {getMeal(eatDay, "dr" + idx) && <button onClick={function() { if (!confirm("Remove this drink? This cannot be undone.")) return; setMeal(eatDay, "dr" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
-                    {portionOverrides[eatDay] && portionOverrides[eatDay]["dr" + idx] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                    {snapButton("dr" + idx)}
+                    {slotButtons("dr" + idx, idx)}
+                    {(function(){ var _c = childAt(eatDay, "dr" + idx); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
-              {portionSlot && portionSlot.match(/^dr/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
-                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
-                {portionResult && portionPlanned && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+              {slotOpen && slotOpen.day === eatDay && /^dr/.test(slotOpen.slot) && renderSlotForm()}
+              {portionSlot && portionSlot.match(/^dr/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
+                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
+                {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 Snap a photo of your food</div>
+                  <input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: size and detail, e.g. 'large plate', '2 sausages', '28g bar', 'half eaten'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 11, marginBottom: 6 }} />
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <label style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", textAlign: "center" }}>📷 Take photo<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(portionSlot, e.target.files[0], listForSlot(portionSlot), portionDesc); e.target.value=""; }} style={{ display: "none" }} /></label>
+                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>
+                </div>)}
+                {portionResult && (<div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
+                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
                     <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
                     <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
                     <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
-                  </div>
-                  {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Confirm Portion</button>
-                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
+                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
+                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
+                  {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
+                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
+                  <div style={{ marginBottom: 8 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /></div>
+                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+                    <button onClick={confirmPortion} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
+                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
+                    <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
                   </div>
                 </div>)}
               </div>)}
@@ -1794,27 +2173,43 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             {otherSlots.map(function(idx) {
               return (<div key={idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                 <div style={{ flex: 1 }}>
-                  <MealSelect items={dispOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults", e.target.searchText, "o" + idx, eatDay); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Select snack..." />
+                  <MealSelect snap={getSnap(eatDay, "o" + idx)} items={dispOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { openAddForm("snack", "defaults", e.target.searchText, "o" + idx, eatDay); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Select snack..." />
                 </div>
-                {getMeal(eatDay, "o" + idx) && getMeal(eatDay, "o" + idx) !== "__empty__" && (<label style={{ ...btnPortion, background: portionSlot === ("o" + idx) ? "#dbeafe" : btnPortion.background, border: portionSlot === ("o" + idx) ? "1px solid #1e3a5f" : btnPortion.border, cursor: portionLoading && portionSlot === ("o" + idx) ? "wait" : "pointer", display: "flex" }} title="Portion check">{portionLoading && portionSlot === ("o" + idx) ? "⏳..." : "📷 Portion"}<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze("o" + idx, e.target.files[0], allOther); e.target.value=""; }} style={{ display: "none" }} /></label>)}
-                {getMeal(eatDay, "o" + idx) && <button onClick={function() { if (!confirm("Remove this item? This cannot be undone.")) return; setMeal(eatDay, "o" + idx, ""); }} style={btnDelete}>🗑 Del</button>}
-                {portionOverrides[eatDay] && portionOverrides[eatDay]["o" + idx] && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
+                {snapButton("o" + idx)}
+                {slotButtons("o" + idx, idx)}
+                {(function(){ var _c = childAt(eatDay, "o" + idx); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
               </div>);
             })}
-            {portionSlot && portionSlot.match(/^o/) && (portionLoading || portionResult) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
-                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Analyzing portion...</div>}
-                {portionResult && portionPlanned && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{portionResult.matchesPlanned === false ? "⚠️ Different food detected" : "📷 Portion Analysis"}</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+            {slotOpen && slotOpen.day === eatDay && /^o/.test(slotOpen.slot) && renderSlotForm()}
+              {portionSlot && portionSlot.match(/^o/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
+                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
+                {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 Snap a photo of your food</div>
+                  <input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: size and detail, e.g. 'large plate', '2 sausages', '28g bar', 'half eaten'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 11, marginBottom: 6 }} />
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <label style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", textAlign: "center" }}>📷 Take photo<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(portionSlot, e.target.files[0], listForSlot(portionSlot), portionDesc); e.target.value=""; }} style={{ display: "none" }} /></label>
+                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>
+                </div>)}
+                {portionResult && (<div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
+                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
                     <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
                     <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#dc2626" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#2563eb" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
                     <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
                     <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#dc2626" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
-                  </div>
-                  {portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={confirmPortion} style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Confirm Portion</button>
-                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
+                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult); return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: rr.rating === "RED" ? "#dc2626" : rr.rating === "AMBER" ? "#d97706" : "#15803d" }}>{rr.rating} · {rr.freqLabel}</div>; })()}
+                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
+                  {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
+                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
+                  <div style={{ marginBottom: 8 }}><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 6, fontSize: 10 }} /></div>
+                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+                    <button onClick={confirmPortion} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
+                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
+                    <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
                   </div>
                 </div>)}
               </div>)}
@@ -1861,24 +2256,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       📷
                       <input type="file" accept="image/*" capture="environment" onChange={async function(e) {
                         if (!e.target.files || !e.target.files[0]) return;
-                        var file = e.target.files[0];
-                        setHelpEatLoading(true);
-                        try {
-                          var reader = new FileReader();
-                          var base64 = await new Promise(function(res, rej) { reader.onload = function() { res(reader.result.split(",")[1]); }; reader.onerror = function() { rej(new Error("Read failed")); }; reader.readAsDataURL(file); });
-                          var mediaType = file.type || "image/jpeg";
-                          var isJC2 = activeTab === "jc";
-                          var personCtx = isJC2 ? "JC, male 49, 2000-2200 kcal/day target, 110-130g protein, under 20g sat fat, under 25g added sugar, 30-35g fibre. Thyroid issues (TSH 14.2), statin 20mg, HbA1c 43." : "Becks, female 48, 1700-1900 kcal/day target, 90-110g protein, under 20g sat fat (critical — LDL 7.2, Total Cholesterol 9.6, suspected FH), under 25g added sugar, 25-30g fibre. Perimenopausal, citalopram, atorvastatin.";
-                          var locationHint = helpEatText.trim() ? " The user is at or considering: " + helpEatText.trim() + "." : "";
-                          var catLabel = helpEatCat;
-                          var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "This person needs help choosing a " + catLabel + " option." + locationHint + " Person profile: " + personCtx + " Analyse the image (menu, buffet, shelf, food options). Recommend the BEST suitable option and explain why. Include portion advice if relevant (e.g. 'have half portion', 'skip the side'). Return ONLY JSON: {\"name\":\"recommended food/meal name\",\"kcal\":estimated_calories,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED\",\"recommendation\":\"2-3 sentences explaining why this is the best choice and any portion/modification advice\",\"alternatives\":\"1 sentence naming one alternative if available\"}" }] }] }) });
-                          var result = await resp.json();
-                          var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-                          var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
-                          var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
-                          setHelpEatResult({ name: info.name || "Unknown", kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0, rating: info.rating || "AMBER", recommendation: info.recommendation || "", alternatives: info.alternatives || "", category: helpEatCat });
-                        } catch(ce) { setFormMsg(window.aiErrorMsg(ce)); setTimeout(function(){setFormMsg("");},10000); }
-                        setHelpEatLoading(false);
+                        await window._lcHelpEatPhoto(e.target.files[0]);
                         e.target.value = "";
                       }} style={{ display: "none" }} />
                     </label>
@@ -1890,16 +2268,24 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         var isJC2 = activeTab === "jc";
                         var personCtx = isJC2 ? "JC, male 49, 2000-2200 kcal/day target, 110-130g protein, under 20g sat fat, under 25g added sugar, 30-35g fibre. Thyroid issues (TSH 14.2), statin 20mg, HbA1c 43." : "Becks, female 48, 1700-1900 kcal/day target, 90-110g protein, under 20g sat fat (critical — LDL 7.2, Total Cholesterol 9.6, suspected FH), under 25g added sugar, 25-30g fibre. Perimenopausal, citalopram, atorvastatin.";
                         var catLabel = helpEatCat;
-                        var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: "This person needs help choosing a " + catLabel + " option. They are at or considering: " + helpEatText.trim() + ". Person profile: " + personCtx + " Research what food options this place/situation typically offers and recommend the BEST suitable " + catLabel + " option. Include portion advice if relevant (e.g. 'have half portion', 'skip the side'). Classify as 'packaged' if it is a pre-made supermarket product or 'ingredient' if it is home-made/cooked from scratch. If 'ingredient', list individual ingredients needed. Return ONLY JSON: {\"name\":\"recommended food/meal name\",\"kcal\":estimated_calories,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[\"item1\",\"item2\"] (empty array if packaged),\"recommendation\":\"2-3 sentences explaining why this is the best choice and any portion/modification advice\",\"alternatives\":\"1 sentence naming one alternative if available\"}" }] }) });
+                        var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: "This person needs help choosing a " + catLabel + " option. They are at or considering: " + helpEatText.trim() + ". Person profile: " + personCtx + " Research what food options this place/situation typically offers and recommend the BEST suitable " + catLabel + " option. Include portion advice if relevant (e.g. 'have half portion', 'skip the side'). Classify as 'packaged' if it is a pre-made supermarket product or 'ingredient' if it is home-made/cooked from scratch. If 'ingredient', list individual ingredients needed. Return ONLY JSON: {\"name\":\"recommended food/meal name\",\"kcal\":estimated_calories,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[\"item1\",\"item2\"] (empty array if packaged),\"recommendation\":\"2-3 sentences explaining why this is the best choice and any portion/modification advice\",\"alternatives\":\"1 sentence naming one alternative if available\"}" }] }) });
                         var result = await resp.json();
                         var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                         var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
                         var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
-                        setHelpEatResult({ name: info.name || helpEatText, kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0, rating: info.rating || "AMBER", itemType: info.itemType || "packaged", ingredients: info.ingredients || [], recommendation: info.recommendation || "", alternatives: info.alternatives || "", category: helpEatCat });
+                        setHelpEatResult(withRuleRating({ name: info.name || helpEatText, kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, addedSugar: info.addedSugar || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0, rating: info.rating || "AMBER", itemType: info.itemType || "packaged", ingredients: info.ingredients || [], recommendation: info.recommendation || "", alternatives: info.alternatives || "", category: helpEatCat }));
                       } catch(ce) { setFormMsg(window.aiErrorMsg(ce)); setTimeout(function(){setFormMsg("");},10000); }
                       setHelpEatLoading(false);
                     }} disabled={helpEatLoading || !helpEatText.trim()} style={{ width: "100%", padding: "8px 12px", background: helpEatLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{helpEatLoading ? <span>Finding best options <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Find Best Option"}</button>
                 </div>)}
+              </div>) : helpEatResult.noFood ? (<div data-testid="help-eat-no-food">
+                <div role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div>
+                <input aria-label="Help me eat description" value={helpEatText} onChange={function(e) { setHelpEatText(e.target.value); }} placeholder="e.g. M&S services, hotel buffet, Pizza Express..." style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, marginBottom: 6 }} />
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button disabled style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, opacity: 0.45, cursor: "not-allowed" }}>Confirm</button>
+                  <button disabled={helpEatLoading} onClick={function() { if (window._lcHelpEatFile) window._lcHelpEatPhoto(window._lcHelpEatFile); }} style={{ flex: 1, padding: 8, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>{helpEatLoading ? "⏳…" : "Re-check"}</button>
+                  <button onClick={function() { setHelpEatResult(null); setHelpEatCat(""); setHelpEatText(""); }} style={{ flex: 1, padding: 8, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>Cancel</button>
+                </div>
               </div>) : (<div>
                 <div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, border: "1px solid #86efac", marginBottom: 6 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🍽 {helpEatResult.name}</div>
@@ -1919,7 +2305,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={async function() {
                     var hr = helpEatResult; var cat = hr.category;
-                    var newItem = { id: "custom_" + Date.now(), name: hr.name, jcKcal: hr.kcal, beckKcal: hr.kcal, protein: hr.protein || 0, fat: hr.fat || 0, satFat: hr.satFat || 0, carbs: hr.carbs || 0, fibre: hr.fibre || 0, salt: hr.salt || 0, rating: hr.rating, itemType: hr.itemType || "packaged", ingredients: hr.ingredients || [], freq: "Daily", isCustom: true };
+                    var newItem = withRuleRating({ id: "custom_" + Date.now(), name: hr.name, jcKcal: hr.kcal, beckKcal: hr.kcal, protein: hr.protein || 0, fat: hr.fat || 0, satFat: hr.satFat || 0, addedSugar: hr.addedSugar || 0, carbs: hr.carbs || 0, fibre: hr.fibre || 0, salt: hr.salt || 0, rating: hr.rating, itemType: hr.itemType || "packaged", ingredients: hr.ingredients || [], freq: "Daily", isCustom: true }); /* D11: rule rating */
                     var slotKey = "";
                     var exists = null;
                     if (cat === "breakfast") {
@@ -1973,7 +2359,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {(eatFbResults[activeTab] || {})[eatDay] && <button onClick={function(){ setEatFbExpanded(!eatFbExpanded); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer", marginBottom: 6 }}>{eatFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>}
               {eatFbExpanded && (eatFbResults[activeTab] || {})[eatDay] && (function() { var efb = eatFbResults[activeTab][eatDay]; return React.createElement("div", { style: { marginBottom: 10 } },
                 React.createElement("div", { style: { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" } },
-                  efb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", efb._when, " for ", isJC ? "JC" : "Becks"),
+                  efb._when && React.createElement("div", { style: { padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" } }, "Generated ", efb._when, " for ", isJC ? "JC" : "Becks", efb._phase ? React.createElement("span", { "data-testid": "eat-fb-phase", style: { marginLeft: 6, fontWeight: 700, color: "#1e3a5f" } }, "· " + (PHASE_LABEL[efb._phase] || efb._phase)) : null),
                   React.createElement("div", { style: { padding: "8px 14px", borderBottom: "1px solid #e2e8f0" } }, React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6 } }, React.createElement("span", { style: { fontSize: 14 } }, "🍽️"), React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: "#1e3a5f" } }, "Eating Companion Check-in — Daily"))),
                   React.createElement("div", { style: { padding: "12px 14px", borderBottom: "1px solid #e2e8f0" } },
                     React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#0c4a6e" } }, "What went well"),
@@ -1998,6 +2384,23 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
         
 
+          {bulkDone && (<div role="dialog" aria-modal="true" aria-label="Bulk upload finished" style={{ position: "fixed", inset: 0, zIndex: 70, background: "rgba(15,23,42,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+            <div style={{ background: "#fff", borderRadius: 12, padding: 16, maxWidth: 380, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}>
+              <div data-testid="bulk-done" style={{ fontSize: 13, color: "#0f172a", lineHeight: 1.5, marginBottom: 12 }}>✅ {bulkDone}</div>
+              <div style={{ fontSize: 11, color: "#64748b", marginBottom: 12 }}>New items show a <b>Check me</b> badge until you open and save them.</div>
+              <button onClick={function(){ setBulkDone(null); }} style={{ ...btnActionLg, width: "100%", borderRadius: 8 }}>OK</button>
+            </div>
+          </div>)}
+          {bulkUndo && (<div role="status" data-testid="bulk-cancelled" style={{ position: "fixed", left: 12, right: 12, bottom: 76, zIndex: 60, background: "#0f172a", color: "#fff", borderRadius: 8, padding: "10px 12px", fontSize: 12, display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ flex: 1 }}>Cancelled — {bulkUndo.ids.length} item{bulkUndo.ids.length === 1 ? "" : "s"} from earlier batches were kept in {catLabel(bulkUndo.cat)}.</span>
+            <button onClick={undoBulk} style={{ background: "#fff", color: "#0f172a", border: "none", borderRadius: 6, padding: "4px 10px", fontWeight: 700, cursor: "pointer" }}>Undo</button>
+            <button aria-label="Dismiss" onClick={function(){ setBulkUndo(null); }} style={{ background: "none", color: "#fff", border: "none", cursor: "pointer" }}>✕</button>
+          </div>)}
+          {portionUndo && (<div role="status" data-testid="portion-replaced" style={{ position: "fixed", left: 12, right: 12, bottom: 76, zIndex: 60, background: "#0f172a", color: "#fff", borderRadius: 8, padding: "10px 12px", fontSize: 12, display: "flex", gap: 8, alignItems: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.25)" }}>
+            <span style={{ flex: 1 }}>Looks like <b>{portionUndo.name}</b>, not {portionUndo.original} — updated</span>
+            <button onClick={undoPortionReplace} style={{ background: "#fff", color: "#0f172a", border: "none", borderRadius: 6, padding: "4px 10px", fontWeight: 700, cursor: "pointer" }}>Undo</button>
+            <button aria-label="Dismiss" onClick={function(){ setPortionUndo(null); }} style={{ background: "none", color: "#fff", border: "none", cursor: "pointer" }}>✕</button>
+          </div>)}
           {/* Generate meals */}
           
         </div>); } catch(eatErr) { return (<div style={{ padding: 20, color: "#dc2626" }}>Eating section error: {String(eatErr)}</div>); } }

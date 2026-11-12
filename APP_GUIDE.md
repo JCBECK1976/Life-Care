@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.6.0 · 5 November 2026
+> Last updated: v2.15.1 · 12 November 2026
 
 ---
 
@@ -69,14 +69,38 @@ You can install Lifecare Companion like a normal app, with its own icon on your 
 - **Samsung Internet:** its menu option **Add page to** → **Install as web app** may be **blocked by Google Play Protect** ("Unsafe app blocked … built for an older version of Android"). That warning is about the package Samsung Internet builds, not about Lifecare Companion. Don't tap "Install anyway": press **OK** and install from **Chrome** instead. (**Add page to** → **Home screen** only adds a bookmark that opens in the browser.)
 - The **BETA** and **BUILD** test versions install as **separate apps** (named "Lifecare BETA" and "Lifecare BUILD", with purple and orange icons), so you can tell them apart from the normal app.
 - Installed apps always load the latest version; nothing is stored offline.
+- If Chrome says **"This app is already installed"** but then **"Could not open app"**, see Troubleshooting (section 13).
+
+### Share to Lifecare Companion (Android)
+Once the app is installed, you can send a photo straight from your Gallery, Camera or another app: tap **Share** → **Lifecare Companion**. The app opens and asks **"What is this?"**:
+- **📏 Body measurements**: a screenshot from your scales or measurement app (goes to My Body → 📷 Upload).
+- **📸 Progress photo**: goes to the **Body balance check** (My Body). Analysed, never stored.
+- **🍽 Food**: checked in the Food Checker (My Shop).
+- **Later (keep it)** keeps the image on the phone until you choose; **Discard** throws it away.
+
+### Photos and privacy
+Every photo you give the app (📷 Snap, 📷 Upload, Body Type Photos, measurement Snap, Body balance check, shared images) is **sent to the Companion to be analysed and then discarded: it is never stored**, not in the app's data and not in backups. Only the result is kept (values, ratings, scores and notes). You'll see this note under the photo buttons: *"Images are analysed and then discarded — they're never stored."*
+- **No food in the photo?** If a food photo (📷 Snap, Food Checker, adding food by photo, Help Me with What to Eat) shows no food, you'll see *"No food found in this photo — try another photo, or add a description and Re-check"*. No rating or nutrition is shown and **Confirm** is greyed out: use **Re-check** (optionally with a description) or **Cancel**. Nothing is saved. The measurement 📷 Snap works the same way when it can't read a value, or when the photo shows a different body part (e.g. a calf photo when logging Bicep).
+- **Body photos must be recognised.** In the **📸 Body balance check** each photo must be a person, full body, in the pose asked for (photo 1 front, photo 2 side, photo 3 back); in **Body Type Photos** each must be a person in one of the requested poses. If one isn't, you'll see e.g. *"Photo 2: This doesn't look like a full-body side photo — please retake it"*, no scores or analysis, and **Save** greyed out: use **Retake** or **Cancel**. Nothing is saved until every photo is valid.
 
 ### Common patterns used everywhere
 - **My Companion … Feedback** buttons (deep blue) — generate AI feedback for that area. After it is generated, **▼ Show Feedback / ▲ Hide Feedback** opens or closes it.
 - **Conversation threads** — under most feedback you can type a reply ("Respond to this feedback…") and the Companion answers. Your messages appear on the right in your colour; the Companion's replies appear on the left in dark grey. Earlier conversation is remembered next time feedback is generated, so it respects what you pushed back on.
 - **Feedback History** — older feedback is kept and can be shown with Show/Hide.
-- **🗑 Del / 🗑 Delete** — delete buttons always ask you to confirm. Deletions cannot be undone.
-- **✎ Edit / ✎ Update** — edit an item in place.
-- **Grey buttons** sit inside content (Progress, Log, Edit); **deep blue buttons** are main actions.
+- **Open** — anything you've saved (a Progress week, a food list item, a meal you've chosen, a weigh-in or measurement entry) is shown as a short row with an **Open** button. Open shows it **read-only** first ("Viewing"). From there:
+  - **Edit** makes it editable ("Editing"), then **Save** or **Cancel**;
+  - **Remove** or **Delete** (see below) sits inside the form, never in the row, and always asks you to confirm;
+  - **Close** closes it.
+  The form slides into view when it opens, so it's never hidden below the screen.
+- **Button colours (the same everywhere):**
+  | Button | Colour | Means |
+  |---|---|---|
+  | **Edit** | deep blue | change it |
+  | **Remove** | deep orange | take it out of a week, a meal or a history (your lists are not touched) |
+  | **Delete** | red | permanently delete a list item or a measurement type |
+  | **Close / Cancel** | grey | close without changing anything |
+- **Outlined buttons** open things inside a card, each in its own colour: **Open** and **📷 Snap** (blue), **👁 Progress** (violet), **📋 Log** (green). While a panel is open its button turns solid dark blue (e.g. **✕ Progress**); tap it again to close.
+- **Deep blue buttons** are main actions (e.g. the **My Companion … Feedback** buttons).
 - Messages (green ✓ for success, red for problems) appear near the top of the page or inside the panel you're using.
 
 ---
@@ -90,7 +114,7 @@ You can install Lifecare Companion like a normal app, with its own icon on your 
 Companion Energy shows how much AI energy is left for Companion features, as a percentage. Every time the Companion generates feedback, answers a chat or calculates nutrition, it uses a little energy.
 
 - **100%** is a full recharge; **0%** is empty. The bar goes down gradually as AI features are used. Normal use takes very little, so use the features freely.
-- **↻ Refresh** checks the connection.
+- **↻ Refresh** checks the connection. (On opening the app it is checked at most once a day.)
 - Status labels:
   - *Good energy / Getting low / Running low* — normal operation.
   - *Empty — recharge needed* — the AI service has no energy left. AI features won't work until the app owner recharges it.
@@ -129,7 +153,7 @@ Tap **Save Setup** to save answers. 🔒 Your information is private and used on
 
 **My Companion Recommendations** (in My Profile) generates personalised **daily nutrition targets** (calories, protein, saturated fat, added sugar, fibre) and **body composition goals** (target weight, body fat, waist, visceral fat), split into 🏋️ Activities, 🥗 Dietary and 🏥 Medical advice. Complete the other tabs first for the best result.
 
-**📸 Body Type Photos / 🔍 My Companion Body Type Check** — upload photos (front relaxed, bicep flex, side profile, back, quad flex and calf raise) and the Companion assesses body type, muscle fibre dominance and an ideal weight range, combined with your answers and body comp data. Results are estimates from photos, not clinical measurements.
+**📸 Body Type Photos / 🔍 My Companion Body Type Check** — upload photos (front relaxed, bicep flex, side profile, back, quad flex and calf raise) and the Companion assesses body type, muscle fibre dominance and an ideal weight range, combined with your answers and body comp data. Results are estimates from photos, not clinical measurements. The photos are analysed and then discarded: only the date, the file name and the analysis are kept.
 
 **📊 Baseline body composition** — upload a screenshot from your scales app so the app has a starting point.
 
@@ -146,16 +170,28 @@ Tracks body composition, usually from a smart scale:
 
 - **📋 Record** — type in today's values.
 - **📷 Upload** — upload a screenshot from your scales app; the Companion reads the values ("✓ Values extracted — review and save"). Check them, then save.
-- **Progress** — each stat has a history table (WK / VALUE / NOTES) and a chart once there are 2+ entries. Entries can be deleted.
+- **👁 Progress** (under each stat) — the history, newest first, one row per week (week + value) with **Open**, and a chart once there are 2+ entries. **Open** shows the entry read-only (week, value, note); **Edit** to change it and **Save**, or **Remove** to take it out (asks first).
 - **Google Health Connect** (Android) can sync weight, body fat, steps and activities automatically. See Settings.
 
 ### My Body Measurements
 Tape measurements in cm (e.g. chest, waist, hips, arms, thighs).
-- For each measurement: **Log** today's value (shows **Previous** for comparison), optional **Note** and optional **photo** (✓ Photo; tap to view full size).
-- **Progress** shows a WEEK / CM table and chart.
-- **Measurement Settings** — ✎ rename or 🗑 delete a measurement.
+- For each measurement: **📋 Log** today's value (shows **Previous** for comparison) with an optional **Note**.
+- **📷 Snap** (in the Log form) reads the value from a photo, e.g. a tape measure or a scale screen:
+  1. Optionally describe it first ("tape at nipple level", "reading in inches"), then take the photo.
+  2. The Companion shows the value it read and where it read it. You can still edit the description.
+  3. **Confirm** fills in the value (then press **Save**); **Re-check** asks for an independent, closer look and shows the first reading for comparison; **Cancel** keeps nothing. Nothing is saved until you Confirm and Save, and the photo is never stored.
+- **👁 Progress** shows the history (week + cm, with **Open** on each row) and a chart. Open → **Edit** / **Save**, or **Remove** (asks first).
+- **Measurement Settings** — **Edit** (rename) or **Delete** (red: deletes the measurement type and all its data; asks first).
 - **+ Add Body Measurement** — add any body part to track (e.g. Hips, Neck, Thigh).
 - **When:** re-check every 4 weeks. Measure chest at nipple level and waist at the midpoint between the lowest rib and the hip bone, the same way each time.
+
+### 📸 Body balance check
+At the bottom of My Body. It's off until you tap **Turn on body balance checks** (each person chooses for themselves).
+- About **every 4 weeks**, choose **front, side and back** photos (same light, same distance, relaxed). Until you have done one, it says "No progress photos yet".
+- The Companion scores the same checklist each time from 1 to 5, with a short note each: upper chest, lower chest, shoulders, shoulder-to-waist ratio, left/right arm symmetry, back, core/waist, glutes, quads and calves.
+- From the second check on, it compares with your last check (▲ / ▼ with the old and new score) and with your tape measurements.
+- It may flag a region that is developing faster or slower, or a left/right difference, with **one suggested training adjustment**. Suggestions only: tap **Accept suggestion** if you want your Companion to keep it in mind. Nothing in your plan changes by itself.
+- **The photos are analysed and never stored**; only the scores and notes are kept. **Turn off body balance checks** at the bottom.
 
 ### Feedback
 - **My Companion Body Feedback** — reviews body comp and measurement trends (weight, body fat, muscle) cross-referenced with your eating, activity and health data.
@@ -190,20 +226,23 @@ Tape measurements in cm (e.g. chest, waist, hips, arms, thighs).
   | **Maintaining** | Deliberately holding at this weight. |
   | **Reduce** | Weight has been dropped (e.g. form or recovery). |
 - **📋 NOTES FROM LAST SESSION** — notes you left last time, carried forward.
-- **👁 Progress** (grey) — opens the progress panel.
-- **📋 Log** (grey) — opens the log form.
+- **👁 Progress** (violet outline) — opens the progress panel.
+- **📋 Log** (green outline) — opens the log form.
 
 ### Logging a session (📋 Log)
-- Enter each **set** (weight and reps, or the right measure for the exercise type).
-- **Session Quality** toggles: **Full Range of Motion** (or **Completed in One** for cardio-type exercises) and **Good Form**, each *Good* or *Working Towards*. If Full Range is "Working Towards", the Companion won't recommend increasing weight. It will tell you to master the full controlled range first, using a 3-second lowering phase.
+- The form says who it is for (**Logging for JC**). It belongs to that person: if you switch person in the header while it is open, the app asks first ("Discard JC's unsaved log entries and switch to Becks?"), so you never log one person's sets against another.
+- Enter each **set** separately: weight and reps per set (e.g. 63 kg × 10, 56 kg × 8, 63 kg × 8), or the right measure for the exercise type. A new log is pre-filled with each set from your last session.
+- **Session Quality:** for **Range** (Full Range of Motion, or Completed in One for cardio-type exercises) and **Form**, tap **Working towards** or **Good**. **Neither is chosen for you**, and you can't save until both are chosen. If you try, the missing one is outlined in red with "Choose Form and Range to save". If Range is "Working towards", the Companion won't recommend increasing weight; it will tell you to master the full controlled range first, using a 3-second lowering phase.
 - **Progression** choice: *Standard (follow progression rules)*, *Move Up* (override: ready to increase), *Hold* (keep current weight) or *Reduce* (drop weight).
-- **Notes (carried to next session)** — appear on the card next time.
-- **Logging for more than one person:** the log form has person tabs (e.g. JC / Becks), which scroll sideways if there are many. You can switch to another person and log their sets for the same exercise in the same sitting. **Switching here makes that person the active person** (their colour and data show). Both people's logs are saved when you press Save.
+- **Notes (carried to next session)** appear on the card next time.
+- **Logging for more than one person:** the person tabs inside the form let you log someone else's sets for the same exercise in the same sitting. When you press Save, the person shown must have Form and Range chosen. Anyone else you filled in is saved **only if** their Form and Range are chosen too. One line confirms it, e.g. "Saved for JC · Becks not saved (Form and Range not chosen)".
 - **Save** (or **Update** when editing a previous entry). **Edit Previous Entry** lets you correct a past week; **Cancel Edit — Log New Instead** returns to a new log.
 - **Why honesty matters:** the Companion bases its progression advice on what you log. Inflating reps leads to bad recommendations.
 
 ### Progress panel (👁 Progress)
-- Table of weeks with weight and reps; **+ Add Week** to add a missed week; chart once there are 2+ weeks.
+- One row per week: week, weight, reps, Form/Range marks (✓ good, … working towards) and **Open**. **+ Add Week** adds a missed week; a chart appears once there are 2+ weeks. When the sets in a week used different weights, the row (and the card) shows the range, e.g. **56–63kg**, with a **Sets:** line underneath (63kg×10, 56kg×8, 63kg×8).
+- **Open week N** shows that week read-only: each set, **Range** and **Form** (as a chip: **Good** or **Working towards**) and the note. **Edit** lets you change the week number, any set (**+ Add set**), Range, Form and the note, then **Save**. **Remove** takes the week out (asks first).
+- Changing or removing an **older** week never changes the exercise card or its status badge. Only the latest week does: if you change or remove it, the card shows the new latest week and the status clears until your next session feedback.
 - **Strength vs Population** — an estimate of where your performance sits against people of your sex and age (untrained, and including trained). Estimated from cable machine performance, so treat it as a guide, not a test result.
 - **ℹ️ Exercise Information:** **📖 Exercise Guide** (how to perform it), **🧘 Pre & Post Exercise** (prep and stretches), **Progression Rules** (your editable rules, e.g. build to 15 reps before increasing weight). Guides are AI-generated, so review them for accuracy. Older exercises can use **🔄 Generate / Update Guides**.
 - **Exercise Settings:**
@@ -239,69 +278,93 @@ Generate after logging a session. It includes:
 ## 6. My Eating
 
 ### Layout
-- **Update Eating Lists** — manage your food lists (see below).
-- **🔄 Re-evaluate Ratings** — re-rates all your food items against your current health profile.
-- **Clear Week** — removes all meal selections for the week (asks first).
-- **Day tabs:** **Week** (whole-week view) and **Mon–Sun**, each showing that day's calories.
+- **Update Eating Lists** manages your food lists (see below).
+- **🔄 Re-rate all lists** re-rates every list item using the portion bands below. Items whose rating changes get a 🔄 and a **Check me** badge.
+- **🔎 Re-check nutrition** looks for recipe items whose saved calories don't add up from their ingredients and marks them **Check me** ("Nutrition looks off: saved 387 kcal, ingredients add up to about 610"). It changes nothing itself: open the item and press **✓ Confirm** to recalculate.
+- **Clear Week** removes all meal selections for the week (asks first).
+- **Day tabs:** **Week** (whole-week view) and **Sun–Sat**. The week runs Sunday to Saturday, the same as exercise. Each tab shows that day's calories.
 
 ### The rating system (RAG)
-Every food item has a colour rating, worked out for **you** (your targets, health conditions and bloods):
-| Rating | Colour | Meaning | How often |
-|---|---|---|---|
-| **GREAT** | Dark green | Fits your daily targets well; a healthy choice. | Any day |
-| **AMBER** | Amber | Acceptable but has some concerns (e.g. sat fat, sugar, calories). | At most **once a week** |
-| **RED** | Red | Should be limited. | At most **once a month** |
+Every food is rated for **one portion as you eat it**, against the daily limits of **20 g saturated fat** and **25 g added sugar** (sugar added in cooking or processing, not the natural sugar in fruit or plain milk). The higher of the two decides:
 
-If you pick an AMBER item already used this week, or a RED item used in the past month, a ⚠️ appears next to it. Tap it to see why. Ratings can change after **Re-evaluate Ratings** (for example after new blood results). Changed items show 🔄; tap it to see the old rating, the new one and the reason.
+| Rating | One portion uses | How often |
+|---|---|---|
+| **GREAT** | up to 10% of a daily limit | any day |
+| **GOOD** | up to 25% | daily |
+| **AMBER** | up to 50% | a few times a week (up to 3) |
+| **RED — weekly treat** | up to 80% | once a week |
+| **RED — monthly treat** | over 80%, or more than 40% of your day's calories | once a month |
+
+Plenty of fibre (5 g+) or protein (20 g+) lifts an item one band (never above AMBER if it's over 50%). For example, 3 biscuits come out AMBER and a large brownie with ice cream comes out RED monthly treat. The rating is calculated the same way every time, and the reason shows when you hover or tap (e.g. "AMBER: one portion is 10g added sugar = 40% of the 25g daily limit").
+
+**Your meals have their own rating.** When you log a food, that meal keeps its own copy of the food and its own rating, worked out from what you actually ate (e.g. a bigger portion). The selected item's text is coloured by that rating. The ⚠️ warnings ("already 3 times this week") count what you actually logged. Editing or deleting a list item **never changes past days**.
 
 ### A day tab
-**Daily Eating Tracker** with **Breakfast, Lunch, Dinner, Desserts, Snacks, Drinks** and other items:
-- Each slot is a searchable dropdown of your list items, colour coded by rating. Type to search.
-- **+ Add New** adds another row for that meal (e.g. a second breakfast item).
-- **🗑 Del** removes a row. On the **first** breakfast, lunch or dinner row it clears the selection but keeps the box.
-- **📷 Portion** — photograph your plate. The Companion compares **Planned** vs **Actual** (including sat fat) and flags if a different food is detected. **Confirm Portion** to use the actual values (✓ Portion verified).
-- **Dinner sides** — for packaged products, add 🥔 Potato and 🥗 Veg sides.
-- **+ Add new item…** at the bottom of any dropdown lets you add a food that isn't on your list (see "Adding food" below). After it's added, it's selected in that slot and the add box closes.
-- **Day notes** — e.g. "Ate out, exam stress, birthday". Gives the Companion context.
-- **📋 Copy Day** — copy this day's selections to other days.
-- **Nutrition Overview (g)** — totals for the day (kcal, protein, fat, sat fat, carbs, fibre, salt) and **Daily Percentage of Recommendations**.
-- **🍽 Help Me with What to Eat** — when you're out: describe where you are (e.g. "M&S services", "hotel buffet", "Pizza Express"), optionally upload a photo of the menu, buffet or shelf, and say what you're looking for. The Companion picks the **best option** for you and lists others to **Also consider**. **✓ Confirm & Add** puts it in your day.
-- **My Companion Eating Feedback** — feedback on the day.
+**Daily Eating Tracker** with **Breakfast, Lunch, Dinner, Desserts, Snacks, Drinks**:
+- Each slot is a searchable picker of your list items, colour coded by rating. On a phone the picker opens as a full-screen sheet with the search box at the top, so the keyboard never hides the results.
+- **+ Add New** adds another row for that meal; an empty extra row has a **✕** to remove it.
+- **Open** (next to 📷 Snap) on a filled slot opens **that meal's own copy** of the food, read-only: portion, changes, nutrition, its rating today and your list item's rating (with why they differ, if they do).
+  - **Edit** → set the **Portion** (½×, 1×, 1½×, 2× or type a number) and any **Changes** ("chips instead of potato", "no sauce"). With changes, the Companion recalculates the nutrition of what you actually ate and the rating is worked out again. A portion change on a photo-checked meal scales the photo's values.
+  - **Save** shows *"Saved for this meal only. To update the list item permanently, please go to 'Update Eating Lists'."* Your list item is never changed here.
+  - **Remove** takes the food out of this meal (asks first). It doesn't touch your list.
+  - **Open** on an empty slot starts adding a food to that meal.
+- **📷 Snap** (on every slot, empty or filled) photographs your food:
+  1. Optionally describe it first ("large plate", "2 sausages", "28g bar", "half eaten"); the Companion gives your description priority. Then **📷 Take photo**.
+  2. The result shows the food, its values, its rating and the weight it assumed, e.g. **"Assumed: ~450g — rice 200g, frankfurters 120g, beans 130g"**.
+  3. **Confirm** saves it; **↻ Re-check** asks for an independent **deep dive** (component by component, with grams), shown as "Re-check deep dive — re-assessed outcome" with a comparison line ("First check: large · RED → Deep dive: medium · GOOD"). You can change the description and re-check again. **Cancel** saves nothing.
+  4. On Confirm:
+     - the **same food** as the slot updates this meal's portion only;
+     - a **different food** updates the slot (with **Undo**);
+     - a food that **isn't in your list** asks once: **"Save <food> to your <slot> list for future selection?"** Yes adds it to your list; No keeps it for this meal only.
+  5. A ✓ shows the portion was checked by photo.
+- **Dinner sides**: for packaged products, add 🥔 Potato and 🥗 Veg sides.
+- **+ Add new item…** at the bottom of any picker adds a food that isn't on your list (see "Adding food").
+- **Day notes**, e.g. "Ate out, exam stress, birthday", give the Companion context.
+- **📋 Copy Day** copies this day's selections to other days. Copies start fresh: portions and ticks are not copied.
+- **Nutrition Overview (g)** shows the day's totals (from what you logged) and the **Daily Percentage of Recommendations**.
+- **🍽 Help Me with What to Eat**: when you're out, describe where you are, optionally add a photo of the menu or shelf, and the Companion picks the **best option**. **✓ Confirm & Add** puts it in your day.
+- **My Companion Eating Feedback** gives feedback on the day. It knows the difference between what you've **eaten** (days before today) and what is still **planned** (today onwards): the feedback is headed **What you ate** or **Your plan**, and for a plan it talks about what you're about to eat rather than judging it as eaten. If feedback is cut off or doesn't come back, it says so; press the button again.
 - The reminder line: *It's important to track accurate and honest information for your companion to give you the most appropriate feedback. Use 'Update Eating Lists' to update eating selection list items.*
 
 ### The Week tab
-- **My Week** — average kcal/day; **📋 Copy Week** copies the week's day selections to future weeks.
-- **Week — Nutrition Overview (g)** — a table per day plus **Daily Totals**, **Recommended** and **Weekly Percentage of Recommendations** (kcal, protein, sat fat, carbs, fibre, salt).
-- **⏱ Quick Prep Days** — tick days when you're short of time and set a minutes limit. The meal generator will only choose dinners within that prep time on those days.
-- **Set Defaults** — default meals for each slot (Breakfast, Lunch, Dinner, Dessert, Drink, Snacks). **Individual** applies to the current person only; **All** applies to everyone. **+ Add New** adds more default rows; **🗑 Del** removes one.
-- **My Companion Meals Generator** — applies your defaults and fills any empty breakfast, lunch and dinner slots with recommended choices from your lists, respecting ratings and quick prep days. You can change any day afterwards.
-- **My Companion Week's Feedback** — patterns and nutritional trends across the week.
-- Then go to **My Shop** to generate your shopping list.
+- **My Week** shows average kcal/day. **📋 Copy Week** copies the week's selections to future weeks.
+- **Week — Nutrition Overview (g)** has a table per day plus totals and percentages of your recommendations.
+- **⏱ Quick Prep Days**: tick days when you're short of time; the generator then picks dinners within that prep time.
+- **Set Defaults** sets default meals for each slot (**Individual** or **All**).
+- **My Companion Meals Generator**, for every day and slot:
+  1. keeps what you've already chosen;
+  2. otherwise uses your **default**;
+  3. only then fills the empty slot from that slot's list.
+
+  It never invents items. If a list is empty, those slots stay empty and the summary says so (e.g. "Breakfast: your default · Lunch: 1 kept, 6 generated · 1 slot left empty").
+- **My Companion Week's Feedback** shows patterns and trends across the week. It's headed **What you ate** (a past week), **Plan review** (a week that hasn't started) or **So far this week + the rest of your plan**.
+- Then go to **My Shop** for your shopping list.
 
 ### Update Eating Lists (your food lists)
-Tap **Update Eating Lists** to open **🍽️ My Eating Lists**: Breakfasts, Lunches, Dinners, Snacks, Desserts and Drinks, each listing your items (colour coded, with kcal).
-- **✎ Update** — opens an **Update Item** panel under the item: name, nutrition, rating, description, type (📦 Packaged or 🍳 Ingredient Prepared) and ingredients. Edit, then **✓ Confirm**. If you changed ingredients, the Companion recalculates the nutrition first. You'll see "Nutritional values updated", then press **✓ Continue — Save** to save or **Edit Again** to change more. Nothing is saved with old values if the recalculation fails.
-- **🗑 Del** — delete an item.
-- **+ Add New Item to Lists** — add a single item (below).
-- **📋 Bulk** — add many at once (below).
-- **✕ Close** — close the lists.
+Tap **Update Eating Lists** to open **🍽️ My Eating Lists** (Breakfasts, Lunches, Dinners, Snacks, Desserts, Drinks), colour coded with kcal.
+- **Check me** badge: items added by bulk upload, or flagged by Re-rate or Re-check nutrition, show **Check me** next to the name (keeping their rating colour), here and in the meal pickers. Tap or hover for the reason. It clears once you open the item and save it.
+- Each row has **Open**, which shows the item read-only: calories, nutrition, rating (and why), type, ingredients. **Edit** opens the **Update Item** panel: name, nutrition, rating, type (📦 Packaged / 🍳 Ingredient Prepared) and ingredients.
+  - If you change an ingredient, **✓ Confirm** recalculates the **whole recipe** and shows **before → after** (e.g. "387 → 612 kcal, protein 18.2 → 27g"), plus any amounts it had to assume ("Assumed: 7g honey (1 tsp)"). The "(N kcal)" in the name updates too.
+  - Totals that don't add up are re-checked once and then refused ("nothing was changed").
+  - Press **✓ Continue — Save** to save or **Edit Again**.
+- **Delete** (red, inside the Open form) deletes an item from your list (asks first). This is the only place a list item can be deleted. Past days keep their own copy, so nothing you logged changes.
+- **+ Add New Item to Lists** adds one item; **📋 Bulk** adds many.
+- **✕ Close** closes the lists.
 
 ### Adding food — one item
-1. Type a name (e.g. "Costa Rocky Road" or "Overnight oats with berries"). UK products from **Open Food Facts** appear as you type; tap one to use its label data (per 100g). Or tap **Add** for an AI lookup. **📷** lets you photograph the product or meal instead.
-2. The **Review Item** panel shows the nutrition values, rating and a description of how it suits you.
-3. Choose the **Type**: **📦 Packaged** (a shop-bought product) or **🍳 Ingredient Prepared** (something you make). For prepared items, edit the **🧾 Ingredients** with your actual amounts (e.g. "Rolled oats (85g), Almond milk (300ml)…"), separated by commas.
-4. Choose which lists to add it to (**Add to categories**); for dinner, say whether it's a main or a side (potato, veg or salad).
-5. Press **✓ Confirm**.
-   - If you changed the ingredients, the Companion **recalculates** the nutrition ("Recalculating…"), then shows **"Nutritional values updated"**. Press **✓ Continue — Add** to add it, or **Edit Again** to keep editing.
-   - If you didn't change anything, it's added straight away.
-   - If the recalculation fails, you'll see why and can try again or cancel. **An item is never added with values that don't match its ingredients.**
-6. Duplicates are detected; if the item already exists, you're told and (when adding from a meal slot) the existing item is selected.
+1. Type a name (UK products from **Open Food Facts** appear as you type), or tap **Add** for an AI lookup, or **📷** to photograph it.
+2. **Review Item** shows the values, the rating and how it suits you.
+3. Choose **📦 Packaged** or **🍳 Ingredient Prepared**. For prepared items, edit the **🧾 Ingredients** with your real amounts.
+4. Choose the lists to add it to (for dinner: main or side).
+5. **✓ Confirm.** Changed ingredients are recalculated the same careful way as Update Item (whole recipe, before → after, sanity check), then **✓ Continue — Add**.
+6. Duplicates are detected.
 
 ### Adding food — bulk
-Tap **📋 Bulk**, paste a list (one per line or comma-separated), choose **one category**, then **Upload Items**. The Companion calculates baseline nutrition, ratings and descriptions for all of them and **adds them automatically, without reviewing each one**. Duplicates and items it couldn't identify are skipped and counted. Because bulk items aren't individually checked, **open any item with ✎ Update to confirm its description and ingredients for accuracy**.
-
-### Re-evaluate Ratings
-Re-rates every item in your lists against your current health profile, targets and bloods. Use it after new blood results, a change in health conditions or new targets.
+Tap **📋 Bulk** and paste a list (one per line or comma-separated).
+- **Choose a category**: none is pre-selected, and the button says "Choose a category first" until you do. You're asked to confirm, e.g. "Add 14 items to Drinks?".
+- Long lists are rated **10 at a time** with a progress bar, and each batch is saved as soon as it's done. If a batch fails, **Retry** re-sends just that batch.
+- **Cancel** really stops: anything still on its way is ignored. If earlier batches were already saved, you're told how many, with **Undo**.
+- When it finishes, a message (tap **OK**) reminds you that ratings are AI estimates. New items show **Check me** until you've opened and saved them.
 
 ### Ingredients and the shopping list
 For prepared dinners, the ingredients become shopping list items. For packaged items, the product itself goes on the list.
@@ -311,7 +374,7 @@ For prepared dinners, the ingredients become shopping list items. For packaged i
 ## 7. My Shop
 
 - **🛒 Choose My Supermarket** — your preferred supermarket. Shopping suggestions are tailored to it.
-- **📷 Food Checker** — type a food or scan a product (photo) to check its nutrition and rating for you. Then **Add to which list?** to put it in your eating lists.
+- **📷 Food Checker** — type a food or scan a product (photo) to check its nutrition and rating for you. The text box doubles as an optional description for the photo (e.g. '28g bar', 'brand'), which the Companion gives priority, and the result says what size it assumed ("Assumed: 28g bar — 125 kcal"). Then **Add to which list?** to put it in your eating lists.
 - **My Companion Shopping Generator** — builds the shopping list from the week planned in **My Eating**. Plan your week first.
 - **My Shopping List:**
   - Items generated from your eating plan, plus items you add (**Add item to shopping list…** → **+ Add**).
@@ -340,7 +403,7 @@ For prepared dinners, the ingredients become shopping list items. For packaged i
 ## 9. Chat and Help
 
 ### 💬 Chat with your Companion
-Ask anything about your health, training, nutrition or progress, e.g. "Why did my bicep curl reps drop?", "Am I eating enough protein?", "What should I focus on next?". The Companion answers using your full data. Recent messages show as a conversation; **Show older messages** reveals earlier ones.
+Ask anything about your health, training, nutrition or progress, e.g. "Why did my bicep curl reps drop?", "Am I eating enough protein?", "What should I focus on next?". The Companion answers using your full data. The **latest exchange is at the top**, so you see it straight away. **Show older messages** (at the end) reveals earlier ones. All Companion conversations, including Help and the feedback replies, work the same way, with the reply box above the conversation.
 
 ### Help ?
 Tap **Help ?** at the top right of the screen, next to the Settings gear. Ask how to use the app: where something is, what something means, how to do something, why it works the way it does. The Help companion answers from this guide, in the same conversation style. It helps with the **app**; for questions about your own health data, use 💬 Chat.
@@ -353,10 +416,25 @@ Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
 - **🎨 My Colour Theme** — Blue, Purple, Green, Teal, Rose, Amber, Indigo or Slate. Changes your highlighted tabs, info boxes and accents. Each person has their own colour.
 - **📱 Google Health Connect** (Android only) — syncs body composition and activity data from your phone. Setup: download Google Health Connect from the Play Store, connect your scales/health apps to it, then tap **🔗 Connect Google Health**. Use **🔄 Sync Google Health Data** to sync and **⏹ Disconnect** to stop.
 - **🍎 Apple Health** (iOS) — coming soon.
-- **Admin-only tools** (for the app owner): **⚡ Companion Energy Level** (enter the balance after a recharge; it becomes 100%), **🔑 API Keys** (Claude API key from console.anthropic.com → API Keys; Google OAuth Client ID for Health Connect), **⚠ Reset Data** (overwrites everything with default data; cannot be undone), **🔧 Debug Mode** and measurement types. **🗂 Data tools** (Settings → Open Data tools; admin only): a Firebase Data Viewer to look at the stored data, plus recovery tools to restore missing weeks and to restore from a Firebase export. **← Back to Settings** returns you to Settings.
+- **Admin-only settings** (for the app owner) are grouped in sections, each with a short explanation:
+  - **App & AI:** **🔑 API Keys** (Claude API key from console.anthropic.com → API Keys), **⚡ Companion Energy Level** (enter the balance after a recharge; it becomes 100%), **📊 AI usage**, **📧 Feedback email** and **🔧 Debug Mode**. Debug Mode, once turned on, stays on for this device and shows a red **🔧 DEBUG ON** badge in the header. It logs a safe summary of Home check-in feedback, eating feedback and Ask a Question calls: status, stop reason and token counts, never the question, the reply or any key. The log clears when the app reloads. **Turn Off** stops it. Measurement types can also be added there.
+  - **Data & backups:** **Open** next to Download backup, Restore or Data viewer opens the 🗂 Data tools page at that tool (described below). Recovery is **Download backup** then **Restore**. The old "Reset to Default Data" button was removed in v2.15.0, and "Clear old eating history" in v2.15.1 (its one-off job is done).
+  - **Firebase:** the project, which data this app uses, and links to the Firebase console (database, rules, sign-in users). Rules and data are never changed from the app.
+  - **GitHub & releases:** this version, and links to the repository, deploys, releases, the changelog and the three versions of the app (App, Beta, Build).
+  - **Integrations:** the Google OAuth Client ID (for Google Health Connect).
+  - **Tracker** and **Documentation** (links to the app guide, design and test documents, changelog, backlogs and the plan; private documents are listed by name only, they're in the vault).
+- **🗂 Data tools** (admin only):
+  - **⬇️ Download backup** saves all the real data as one dated file, e.g. *lifecare_backup_beta_2026-11-10-2049.json*, in the same layout as a Firebase export. On the Build test app it also includes the build copy. It shows the file size and counts only. Keep it somewhere safe: it contains health data. Photos are never in it (they're never stored).
+  - **Restore from Firebase Export**: paste a Download-backup file (or a Firebase export) and press **Preview** to see what it contains (counts only). Then choose:
+    - **Merge missing exercise weeks** (safe: adds missing weeks, changes nothing else); or
+    - **Full restore of data**, which replaces everything in **this app's own data** with the file: the real data on the normal app and Beta, the build copy on the Build test app. It asks twice, and you must type **RESTORE**.
+  - A **Firebase Data Viewer** and **Restore Missing Weeks from Comments** are also there. **← Back to Settings** returns you to Settings.
+  - **📊 AI usage** (admin only): how many AI calls were made and how many tokens they used, per day and per feature (Help, Chat, My Eating, photo checks…), with the estimated cost. Only counts are kept, never what anyone typed or photographed. **⚡ Companion Energy** is worked out from these counts: what has been spent since the last **Set as 100%**.
+  - **📝 Tracker** (admin only): everything sent with **💬 Send Feedback** appears here as **Feedback**, status **New** (a red badge shows how many are new). It also shows **the plan**: each time you open the Tracker it loads the plan (plan.json) and adds or updates its items (defects, features and tasks, by phase). Filters: Category (Feedback / Defect / Feature / Task), Phase, Status and Priority. Status starts on **Outstanding** (everything not Done or Won't do); choose **Completed** or **All** to see finished items. A box above the list totals the **Token %** of open plan items per phase (the estimated share of a weekly allowance). **Open** shows an item read-only. For feedback and items you added, **Edit** lets you re-categorise it, set the status, a priority, an admin note and a link/ref, then **Save**; **Remove** takes it out (asks first). Plan items say **Managed by plan**: only their admin note can be edited here, and your note is kept when the plan changes. **+ Add** adds a Defect, Feature or Task. Text only: no screenshots or images are stored.
+  - **📧 Feedback email** (admin only): shows the address 💬 Send Feedback emails go to (also the contact in the Privacy Policy). Press **Edit**, change it, then **Save**: the form closes and shows **✓ Saved**. Leave it empty for no email: feedback is still saved to the 📝 Tracker.
 
 ### Send Feedback, Privacy Policy
-At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature, describe it, and it opens an email) and **Privacy Policy**. The version number (e.g. v2.1.0) is shown at the very bottom. Test versions of the app show a coloured **BUILD** or **BETA** badge under the Help and Settings buttons at the top (and in the browser tab name), and their version ends in -build… or -beta…; the normal app has no badge.
+At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature and describe it; it is always saved to the app owner's Tracker. If the owner has set a feedback email address, your phone's email app then opens with the message filled in: **press Send there** to email it too, because the app can't send email itself) and **Privacy Policy**. The version number (e.g. v2.1.0) is shown at the very bottom. Test versions of the app show a coloured **BUILD** or **BETA** badge under the Help and Settings buttons at the top (and in the browser tab name), and their version ends in -build… or -beta…; the normal app has no badge.
 
 ---
 
@@ -372,12 +450,12 @@ At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature
 
 ## 12. A typical week (when to do what)
 
-- **Daily:** set your mood; tick off or adjust today's meals; use 📷 Portion when portions differ; add day notes; write a journal entry when useful.
+- **Daily:** set your mood; tick off or adjust today's meals; use 📷 Snap when portions differ or you ate something unplanned; add day notes; write a journal entry when useful.
 - **After each training session:** log every exercise honestly (with quality toggles), then generate **My Companion Session Feedback** and Accept/Decline its recommendations.
 - **Weekly (e.g. Sunday):** set defaults and quick prep days, run the **Meals Generator**, adjust days, then generate the shopping list in **My Shop**. Generate **Week's Feedback** at the end of the week.
 - **Weekly or fortnightly:** record body stats (same time of day, same conditions).
-- **Every 4 weeks:** tape measurements and progress photos.
-- **When they happen:** add blood results, medication changes and health notes, then **Re-evaluate Ratings** if your health picture changed.
+- **Every 4 weeks:** tape measurements and the **📸 Body balance check** (front, side and back photos).
+- **When they happen:** add blood results, medication changes and health notes, then **🔄 Re-rate all lists** if your health picture or your lists changed.
 - **After recharging AI credit (app owner):** ⚙ Settings → ⚡ Companion Energy Level → **Set as 100%**.
 
 ## 13. Troubleshooting
@@ -396,6 +474,8 @@ At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature
 | A ⚠️ next to a meal | That AMBER/RED item has already been used this week/month. Tap the ⚠️ for details. |
 | A 🔄 next to a food | Its rating changed after re-evaluation. Tap it to see why. |
 | The app looks out of date after an update | Close the tab completely and reopen the link; check the version number at the bottom. |
+| Chrome says "This app is already installed" but then "Could not open app" | An old install is left over. On the phone: **Settings → Apps**, remove any leftover Lifecare / LC app. Then in Chrome: **⋮ → Settings → Site settings → All sites** → the app's site → **Delete & reset**. Install again from Chrome (section 2, Installing the app). |
+| An Open form or panel seems to be missing | It opens just below the card and scrolls into view; if you scrolled away, scroll back up to the card. |
 
 ## 14. Glossary
 
@@ -411,6 +491,9 @@ At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature
 - **Eccentric tempo** — the lowering phase of a lift, done slowly (about 3 seconds) for control and training effect.
 - **Status** — Building, Consolidating, Ready to Move, Moved Up, Maintaining, Reduce.
 - **Stopped exercise** — paused, hidden, view-only until restarted.
+- **Open form** — the read-only view of a saved entry, with Edit, Remove/Delete and Close.
+- **Remove / Delete** — Remove takes something out of a week, meal or history; Delete permanently deletes a list item or measurement type.
+- **Body balance check** — the 4-weekly photo check that scores the same checklist each time (photos never stored).
 - **Training week** — the week number since your programme started (shown in the header).
 - **Body comp** — body composition (weight, fat, muscle, water etc.).
 - **BMR** — basal metabolic rate: calories your body uses at rest.

@@ -87,6 +87,8 @@ for (const n of [1, 2, 5, 8]) for (const width of [360, 412]) {
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     const last = names[names.length - 1];
+    // D12 (v2.6.1): each person's entry saved from this form needs Form and Range, including the opener's
+    for (const b of await page.getByRole("button", { name: "Good", exact: true }).all()) await b.click();
     await page.getByTestId("log-person-tabs").getByRole("button", { name: label(last), exact: true }).click();
     await expect(title(page)).toHaveText(last);            // the header follows the log switch
     await expectSelectedVisible(page, last);               // and the header tab row scrolled to it
@@ -95,6 +97,7 @@ for (const n of [1, 2, 5, 8]) for (const width of [360, 412]) {
       const reps = page.getByPlaceholder("Reps").first();
       await expect(reps).toBeVisible();
       await reps.fill("8");
+      for (const b of await page.getByRole("button", { name: "Good", exact: true }).all()) await b.click(); // D12: Form and Range must be chosen
       await page.getByRole("button", { name: "Save", exact: true }).click();
       await expect(page.getByTestId("log-person-tabs")).toHaveCount(0);   // the log was saved and the form closed
       await expect(title(page)).toHaveText(last);

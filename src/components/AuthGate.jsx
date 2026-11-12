@@ -43,7 +43,7 @@ export default function AuthGate({ children }) {
 
   if (s.phase === "ok") return children;
   if (s.phase === "checking") return <LoadingScreen />;
-  const logo = <img src={import.meta.env.BASE_URL + "brand/app-logo-640.png"} alt="Lifecare Companion" width="220" height="220" />;
+  const logo = <img src={import.meta.env.BASE_URL + "brand/app-logo-640.webp"} alt="Lifecare Companion" width="220" height="220" />;
   if (s.phase === "signedOut") return (
     <div className="boot" data-testid="sign-in">
       {logo}

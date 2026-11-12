@@ -70,3 +70,61 @@ export function autoStatus(newWeight, newReps, prevProg, notes) {
   
   return "building";
 }
+
+
+// D2 (v2.6.1): weight and reps per set. New log entries carry sets: [{ w, r }] (w without "kg");
+// older entries only have w ("16kg", set 1) and r ("10x3" etc.), which still read correctly.
+export function entrySets(entry) {
+  if (entry && Array.isArray(entry.sets) && entry.sets.length) return entry.sets.map(function(s) { return { w: String(s.w == null ? "" : s.w), r: String(s.r == null ? "" : s.r) }; });
+  var reps = entry && entry.r ? parseReps(entry.r) : [];
+  var w = entry && entry.w ? String(entry.w).replace("kg", "") : "";
+  return (reps.length ? reps : [""]).map(function(r) { return { w: w, r: String(r) }; });
+}
+// Fill the log form (at least 3 sets) from an entry, repeating the last set if it had fewer.
+export function logSetsFrom(entry, n) {
+  var sets = entrySets(entry); var out = [];
+  for (var i = 0; i < Math.max(n || 3, 3); i++) out.push(sets[i] || { w: sets.length ? sets[sets.length - 1].w : "", r: sets.length ? sets[sets.length - 1].r : "" });
+  return out;
+}
+// True when an entry's sets used different weights (compared as numbers).
+export function setsDiffer(entry) {
+  if (!entry || !Array.isArray(entry.sets) || entry.sets.length < 2) return false;
+  var w0 = parseFloat(entry.sets[0].w);
+  return entry.sets.some(function(s) { return parseFloat(s.w) !== w0; });
+}
+// The weight to show for an entry: the range ("56–63kg") when sets differ, else the old single weight.
+export function weightLabel(entry) {
+  if (!entry) return "";
+  if (setsDiffer(entry)) {
+    var ws = entry.sets.map(function(s) { return parseFloat(s.w); }).filter(function(n) { return !isNaN(n); });
+    return Math.min.apply(null, ws) + "–" + Math.max.apply(null, ws) + "kg";
+  }
+  return entry.w || "";
+}
+// One line for display and AI prompts: "16kg×10, 22kg×8, 22kg×8" when weights differ, else the old "16kg 10x3" style.
+export function fmtEntry(entry) {
+  if (!entry) return "";
+  if (setsDiffer(entry)) return entry.sets.map(function(s) { return s.w + "kg×" + s.r; }).join(", ");
+  return (entry.w || "") + " " + (entry.r || "");
+}
+// The sets to save from the form; a blank weight on a later set means "same as set 1".
+export function setsToSave(logSets) {
+  var w1 = String((logSets[0] && logSets[0].w) || "").trim();
+  return logSets.map(function(s) { return { w: String(s.w || "").trim() || w1, r: String(s.r || "").trim() }; });
+}
+
+// v2.13.0 D20: after a Progress week is edited or removed, the card (current, reps, notes) and the status pill follow
+// the designed logic: they come from the LATEST week only. Changing or removing an OLDER week changes none of them.
+// If the latest week itself changed (or was removed), the card shows the new latest week and the status pill is
+// cleared, exactly as when a new week is logged (the status is set by the AI session feedback, never recomputed here).
+// `ex.prog` must already hold the change; `before` is the latest entry as it was before the change.
+export function latestKey(e) { return e ? [e.wk, e.w, e.r, JSON.stringify(e.sets || null)].join("|") : ""; }
+export function syncAfterProgChange(ex, before) {
+  var prog = (ex.prog || []).slice().sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
+  var latest = prog.length ? prog[prog.length - 1] : null;
+  if (latest && before && latestKey(latest) === latestKey(before)) return false;   // an older week: nothing on the card changes
+  if (latest) { ex.current = latest.w; ex.reps = latest.r; ex.notes = latest.note || ""; }
+  else { ex.current = ""; ex.reps = ""; ex.notes = ""; }
+  ex.status = ""; delete ex.target;
+  return true;
+}

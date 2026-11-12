@@ -1,4 +1,6 @@
 import { sGet, sSet } from "./storage.js";
+import firebase, { DATA_ROOT } from "./firebase.js";
+import { PRICES, addToLedger, costOf, energyFromLedger, featureOf } from "./aiUsage.js";
 
 window.ensureApiKey = async function() {
   if (window._anthropicKey) return window._anthropicKey;
@@ -7,22 +9,17 @@ window.ensureApiKey = async function() {
   return "";
 };
 
-/* Track API usage cost against companion energy balance */
-/* USD per million tokens: [input, 5-min cache write, cache read, output] — Anthropic list prices */
-window.API_PRICES = { "claude-sonnet-4-6": [3, 3.75, 0.30, 15] };
-
-window.trackApiUsage = async function(usage, model) {
+/* v2.14.0 item 9: every AI reply's token counts go into the usage ledger (src/lib/aiUsage.js), and Companion Energy
+   is worked out from the ledger total (spent since the last "Set as 100%"). Counts only, never content. */
+window.API_PRICES = PRICES;
+window.trackApiUsage = async function(usage, model, feature) {
   try {
-    usage = usage || {};
-    var pr = window.API_PRICES[model] || window.API_PRICES["claude-sonnet-4-6"];
-    var cost = ((usage.input_tokens || 0) * pr[0] + (usage.cache_creation_input_tokens || 0) * pr[1] + (usage.cache_read_input_tokens || 0) * pr[2] + (usage.output_tokens || 0) * pr[3]) / 1000000;
+    var ref = firebase.database().ref(DATA_ROOT + "/ai_usage");
+    var res = await ref.transaction(function(cur) { var L = null; try { L = cur ? JSON.parse(cur) : null; } catch (e) {} return JSON.stringify(addToLedger(L, usage, model, feature || "Other")); });
+    var total = JSON.parse(res.snapshot.val()).total.cost;
     var stored = await sGet("companion_energy");
     if (!stored) return;
-    var energy = JSON.parse(stored);
-    energy.spent = (energy.spent || 0) + cost;
-    if (!(energy.initial > 0)) energy.initial = 5; /* records saved without a starting level computed 0% */
-    energy.balance = Math.max(0, energy.initial - energy.spent);
-    energy.pct = Math.round((energy.balance / energy.initial) * 100);
+    var energy = energyFromLedger(JSON.parse(stored), total, total - costOf(usage, model));
     energy.lastUsed = new Date().toISOString();
     await sSet("companion_energy", JSON.stringify(energy));
     /* Update state if the app component can see it */
@@ -31,6 +28,8 @@ window.trackApiUsage = async function(usage, model) {
     if (window._setCompanionEnergy) window._setCompanionEnergy(energy);
   } catch(e) {}
 };
+// The ledger's running cost total (for "Set as 100%").
+window.aiUsageTotal = async function() { try { var v = (await firebase.database().ref(DATA_ROOT + "/ai_usage").once("value")).val(); return v ? JSON.parse(v).total.cost : 0; } catch (e) { return 0; } };
 
 /* Intercept all Anthropic API calls to track usage and block when empty */
 export var _origFetch = window.fetch;
@@ -46,11 +45,13 @@ window.fetch = function() {
        The old client-side gate here blocked every call once its own estimate drifted
        past 95% of a hardcoded $5, which made all AI features fail while real credit
        was fine, and never reliably reset. */
+    var opts = arguments[1] || {};
+    var feature = featureOf(typeof opts.body === "string" ? opts.body : "", { section: window._lcSection, chatOpen: window._lcChatOpen });
     return _origFetch.apply(this, arguments).then(function(resp) {
       var cloned = resp.clone();
       cloned.json().then(function(data) {
         if (data && data.usage) {
-          window.trackApiUsage(data.usage, data.model);
+          window.trackApiUsage(data.usage, data.model, feature);
         }
       }).catch(function() {});
       return resp;

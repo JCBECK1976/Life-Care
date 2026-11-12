@@ -7,11 +7,11 @@ test("admin (JC): Settings → Open Data tools shows the Data Viewer; Back retur
   const { errors } = await openApp(page);
   await person(page, "JC");
   await openSettings(page);
-  await expect(page.getByText("🗂 Data tools")).toBeVisible();
-  await page.getByRole("button", { name: "Open Data tools" }).click();
+  await expect(page.getByText("Data & backups", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Open Data viewer" }).click();
   await expect(page.getByText("Firebase Data Viewer")).toBeVisible();
   await page.getByRole("button", { name: "← Back to Settings" }).click();
-  await expect(page.getByRole("button", { name: "Open Data tools" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open Data viewer" })).toBeVisible();
   await expect(page.getByText("Firebase Data Viewer")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
@@ -20,11 +20,11 @@ test("not admin (Becks): no Data tools button, and the viewer hides on switching
   const { errors } = await openApp(page);
   await person(page, "JC");
   await openSettings(page);
-  await page.getByRole("button", { name: "Open Data tools" }).click();
+  await page.getByRole("button", { name: "Open Data viewer" }).click();
   await expect(page.getByText("Firebase Data Viewer")).toBeVisible();
   await person(page, "Becks");
   await expect(page.getByText("Firebase Data Viewer")).toHaveCount(0);
   await openSettings(page);
-  await expect(page.getByRole("button", { name: "Open Data tools" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Open Data viewer" })).toHaveCount(0);
   expect(errors).toEqual([]);
 });

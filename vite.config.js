@@ -24,6 +24,27 @@ function appGuide() {
   };
 }
 
+// v2.15.0: the plan (docs/plan.json, edited on main) is published next to index.html, so prod serves it as
+// /Life-Care/plan.json after every main deploy (doc-only commits included). Every environment reads the prod copy.
+// An invalid plan.json fails the build (prod then doesn't deploy, live stays as it was). No file = nothing emitted.
+function planJson() {
+  const file = "docs/plan.json";
+  const read = () => { const src = fs.readFileSync(file, "utf8"); const j = JSON.parse(src); if (!Array.isArray(j.items)) throw new Error(file + ": no items array"); return src; };
+  return {
+    name: "plan-json",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (!req.url || !req.url.split("?")[0].endsWith("/plan.json")) return next();
+        if (!fs.existsSync(file)) { res.statusCode = 404; res.end("no plan"); return; }
+        res.setHeader("Content-Type", "application/json; charset=utf-8"); res.end(read());
+      });
+    },
+    generateBundle() {
+      if (fs.existsSync(file)) this.emitFile({ type: "asset", fileName: "plan.json", source: read() });
+    },
+  };
+}
+
 // Build and beta pages: no search-engine indexing, and the environment name in the tab title.
 function envHtml(appEnv) {
   return {
@@ -48,14 +69,30 @@ const PWA = {
 
 function swSource(scope, skip) {
   return `// Lifecare Companion service worker: NETWORK-ONLY. It exists so the app can be installed.
-// It caches nothing. It only passes this app's own GET requests straight to the network and
+// It caches no app files. It only passes this app's own GET requests straight to the network and
 // leaves everything else alone (Firebase, Anthropic, Google, fonts, other environments).
+// v2.11.0 F8: the ONE exception is the Android share target: a POST to SCOPE + "share-target" (images shared
+// from another app). The images are kept on this device (Cache Storage "lc-share") until the signed-in app
+// hands them to an upload, then the app deletes them.
 const SCOPE = ${JSON.stringify(scope)};
 const SKIP = ${JSON.stringify(skip)};
+const SHARE = SCOPE + "share-target";
+async function receiveShare(req) {
+  try {
+    const form = await req.formData();
+    const files = form.getAll("images").filter((f) => f && typeof f === "object" && f.size);
+    const cache = await caches.open("lc-share");
+    for (const k of await cache.keys()) await cache.delete(k);
+    let i = 0;
+    for (const f of files) await cache.put(new Request(SCOPE + "__share/" + (i++)), new Response(f, { headers: { "Content-Type": f.type || "image/jpeg", "X-Name": encodeURIComponent(f.name || "shared.jpg") } }));
+  } catch (e) {}
+  return Response.redirect(new URL(SCOPE + "?share=1", self.location.origin).href, 303);
+}
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 self.addEventListener("fetch", (event) => {
   const req = event.request;
+  if (req.method === "POST" && new URL(req.url).origin === self.location.origin && new URL(req.url).pathname === SHARE) { event.respondWith(receiveShare(req)); return; }
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
@@ -71,6 +108,8 @@ function pwa(appEnv) {
   const manifest = () => JSON.stringify({
     id: base, name: PWA[env].name, short_name: PWA[env].short_name,
     start_url: base, scope: base, display: "standalone",
+    // v2.11.0 F8: appear in Android's share sheet for images (handled by sw.js, then the in-app "What is this?" picker)
+    share_target: { action: base + "share-target", method: "POST", enctype: "multipart/form-data", params: { title: "title", text: "text", files: [{ name: "images", accept: ["image/*"] }] } },
     theme_color: "#0f172a", background_color: "#ffffff",
     icons: [
       { src: base + PWA[env].icons + "icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
@@ -109,7 +148,7 @@ function pwa(appEnv) {
 export default defineConfig(({ mode }) => ({
   // "next" mode = preview build served from /Life-Care/next/ ; otherwise production /Life-Care/
   base: mode === "next" ? "/Life-Care/next/" : "/Life-Care/",
-  plugins: [react(), appGuide(), envHtml(loadEnv(mode, process.cwd(), "VITE_").VITE_APP_ENV), pwa(loadEnv(mode, process.cwd(), "VITE_").VITE_APP_ENV)],
+  plugins: [react(), appGuide(), planJson(), envHtml(loadEnv(mode, process.cwd(), "VITE_").VITE_APP_ENV), pwa(loadEnv(mode, process.cwd(), "VITE_").VITE_APP_ENV)],
   build: { outDir: "dist", emptyOutDir: true, chunkSizeWarningLimit: 3000 },
   server: { host: "127.0.0.1", port: 5173, strictPort: true },
 }));

@@ -1,9 +1,15 @@
+import React from "react";
+import { loadContactEmail } from "../lib/contact.js";
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
 export default function PrivacyPolicy({ ctx }) {
   const {
     accent, setShowPrivacy, showPrivacy
   } = ctx;
+  /* v2.14.1: the contact address is an admin setting (not in the source); without one, people use Send Feedback */
+  var _c = React.useState(""); var email = _c[0]; var setEmail = _c[1];
+  React.useEffect(function() { if (showPrivacy) loadContactEmail().then(setEmail).catch(function() {}); }, [showPrivacy, setEmail]);
+  var contact = email || "the app owner, using 💬 Send Feedback at the bottom of the app";
 
   return (<>
 {showPrivacy && (<div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
@@ -60,7 +66,7 @@ export default function PrivacyPolicy({ ctx }) {
             <p style={{ marginBottom: 4, paddingLeft: 12 }}>• Request correction of inaccurate data</p>
             <p style={{ marginBottom: 4, paddingLeft: 12 }}>• Request deletion of your data</p>
             <p style={{ marginBottom: 4, paddingLeft: 12 }}>• Export your data in a portable format</p>
-            <p style={{ marginBottom: 14, paddingLeft: 12 }}>To exercise any of these rights, contact jc.zaluski@gmail.com.</p>
+            <p style={{ marginBottom: 14, paddingLeft: 12 }}>To exercise any of these rights, contact {contact}</p>
 
             <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: "#0f172a" }}>9. Data Retention</div>
             <p style={{ marginBottom: 14 }}>Your data is retained for as long as you use the app. If you request deletion, all data associated with your account will be permanently removed from Firebase within 30 days.</p>
@@ -75,7 +81,7 @@ export default function PrivacyPolicy({ ctx }) {
             <p style={{ marginBottom: 8 }}>For any questions about this privacy policy or your data:</p>
             <p style={{ marginBottom: 4, paddingLeft: 12 }}>Jan-Christian Zaluski</p>
             <p style={{ marginBottom: 4, paddingLeft: 12 }}>Companion Apps Studio™</p>
-            <p style={{ marginBottom: 14, paddingLeft: 12 }}>Email: jc.zaluski@gmail.com</p>
+            <p style={{ marginBottom: 14, paddingLeft: 12 }}>Contact: {contact}</p>
           </div>
 
           <button onClick={function(){ setShowPrivacy(false); }} style={{ width: "100%", padding: "10px 0", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", marginTop: 8 }}>Close</button>
