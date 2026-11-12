@@ -35,6 +35,7 @@ import PrivacyPolicy from "./components/PrivacyPolicy.jsx";
 import FeedbackForm from "./components/FeedbackForm.jsx";
 import { APP_VERSION } from "./constants/version.js";
 import EnvBadge from "./components/EnvBadge.jsx";
+import { loadDebugMode, redact, summariseReply } from "./lib/debugLog.js";
 import LoadingScreen from "./components/LoadingScreen.jsx";
 import PersonTabs, { peopleOf, personName } from "./components/PersonTabs.jsx";
 import { ALLOW_ADD_PERSON } from "./constants/features.js";
@@ -551,7 +552,7 @@ function Dashboard() {
   const [defScopes, setDefScopes] = useState({});
   const [generating, setGenerating] = useState(false);
   const [formMsg, setFormMsg] = useState("");
-  const [debugMode, setDebugMode] = useState(false);
+  const [debugMode, setDebugMode] = useState(loadDebugMode);   /* v2.15.0: remembered on this device */
   const [debugLog, setDebugLog] = useState([]);
   const fileRef = useRef(null);
   const logFormRef = useRef(null);
@@ -1207,7 +1208,7 @@ function Dashboard() {
       const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1200, messages: [{ role: "user", content: prompt }] }) });
       if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Feedback API", status: response.status, statusText: response.statusText }].concat(prev).slice(0, 20); });
       const result = await response.json();
-      if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Feedback Response", data: JSON.stringify(result).substring(0, 500) }].concat(prev).slice(0, 20); });
+      if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Feedback Response", data: summariseReply(result) }].concat(prev).slice(0, 20); });
       var apiErr = handleApiError(result);
       if (apiErr) throw new Error(apiErr);
       var text = (result.content || []).map(function(blk) { return blk.text || ""; }).join("");
@@ -1232,7 +1233,7 @@ function Dashboard() {
       setFeedbackResults(updated);
       await sSet("feedback_results", JSON.stringify(updated));
     } catch(fbErr) {
-      if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Feedback Error", data: String(fbErr).substring(0, 300) }].concat(prev).slice(0, 20); });
+      if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Feedback Error", data: redact(fbErr) }].concat(prev).slice(0, 20); });
       const updated = Object.assign({}, feedbackResults); updated[tab] = { good: [window.isEnergyEmpty(fbErr) ? window.energyEmptyMsg : "Error: " + String(fbErr).substring(0, 150)], opportunities: [], focus: window.isEnergyEmpty(fbErr) ? [] : ["Check debug log for details"], _when: "failed" };
       setFeedbackResults(updated);
     }
@@ -1387,7 +1388,7 @@ function Dashboard() {
       setEatFbResults(updated);
       await sSet(fbStoreKey, JSON.stringify(updated));
     } catch(err) {
-      if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "EatFeedback Error", data: String(err).substring(0, 300) }].concat(prev).slice(0, 20); });
+      if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "EatFeedback Error", data: redact(err) }].concat(prev).slice(0, 20); });
       const updated = Object.assign({}, eatFbResults);
       if (!updated[tab]) updated[tab] = {};
       updated[tab][dayKey] = { wins: [window.isEnergyEmpty(err) ? window.energyEmptyMsg : "Error: " + String(err).substring(0, 150)], tweaks: [], outlook: window.isEnergyEmpty(err) ? "" : "Check debug log", _when: "failed" };
@@ -1521,7 +1522,7 @@ function Dashboard() {
       setEatFbResults(updated);
       await sSet(fbStoreKey, JSON.stringify(updated));
     } catch(err) {
-      if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "WeekEatFeedback Error", data: String(err).substring(0, 300) }].concat(prev).slice(0, 20); });
+      if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "WeekEatFeedback Error", data: redact(err) }].concat(prev).slice(0, 20); });
       const updated = Object.assign({}, eatFbResults);
       if (!updated[tab]) updated[tab] = {};
       updated[tab]["week"] = { wins: [window.isEnergyEmpty(err) ? window.energyEmptyMsg : "Error: " + String(err).substring(0, 150)], tweaks: [], outlook: window.isEnergyEmpty(err) ? "" : "Check debug log", _when: "failed" };
@@ -1800,7 +1801,7 @@ function Dashboard() {
       });
       if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Ask API", status: response.status, statusText: response.statusText }].concat(prev).slice(0, 20); });
       var result = await response.json();
-      if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Ask Response", data: JSON.stringify(result).substring(0, 500) }].concat(prev).slice(0, 20); });
+      if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Ask Response", data: summariseReply(result) }].concat(prev).slice(0, 20); });
       var apiErr2 = handleApiError(result);
       if (apiErr2) { setQaMsg(apiErr2); setQaLoading(false); return; }
       var answer = "";
@@ -1895,6 +1896,7 @@ function Dashboard() {
               <button onClick={() => { setSection("admin"); setShowOnboarding(false); setSetupTab("profile"); }} style={{ background: section === "admin" ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease", marginTop: 2 }} title="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
           </div>
           <EnvBadge />
+          {debugMode && <span data-testid="debug-badge" title="Debug Mode is on (Settings → App & AI)" style={{ display: "inline-block", padding: "2px 8px", borderRadius: 6, background: "#dc2626", color: "#fff", fontSize: 10, fontWeight: 800, letterSpacing: "0.08em" }}>🔧 DEBUG ON</span>}
           </div>
         </div>
         <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Week {calcWeek(data.config.trainingStart)} · Updated {data.config.lastUpdate}{saving ? " · Saving..." : ""}</div>

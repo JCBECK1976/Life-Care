@@ -35,7 +35,7 @@ test("emulator: dry run counts only → Delete removes only old meal week plans 
   const old = Object.keys(before).filter((k) => dateOfKey(k) && dateOfKey(k) < sunday);
   await person(page, "JC");
   await openSettings(page);
-  await page.getByRole("button", { name: "Open Data tools" }).click();
+  await page.getByRole("button", { name: "Open Data viewer" }).click();
   await expect(page.getByLabel("Delete weeks starting before")).toHaveValue(sunday);
   await page.waitForTimeout(500); before = await getRaw();                              // after the app's own loading writes
   await page.getByRole("button", { name: "Dry run (counts only)" }).click();

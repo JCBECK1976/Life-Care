@@ -1,7 +1,7 @@
 import firebase, { DATA_ROOT } from "../lib/firebase.js";
 import { btnMuted } from "../constants/styles.js";
 import { personName } from "../components/PersonTabs.jsx";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { currentWeekSunday, planClearHistory } from "../lib/meals.js";
 import { APP_ENV } from "../constants/version.js";
 import { backupCounts, parseBackupInput, restoreTarget } from "../lib/backup.js";
@@ -34,6 +34,8 @@ export default function DataSection({ ctx }) {
   const {
     accent, accentBorder, accentLight, data, dataExpandEx, saveData, setDataExpandEx, setFormMsg, setSection
   } = ctx;
+  /* v2.15.0: Settings → Data & backups opens this page at the chosen tool */
+  useEffect(function() { var t = window._lcDataFocus; window._lcDataFocus = null; if (!t) return; var el = document.querySelector('[data-testid="' + t + '"]'); if (el && el.scrollIntoView) el.scrollIntoView({ block: "start" }); }, []);
   const [backupBusy, setBackupBusy] = useState(false);
   const [backupMsg, setBackupMsg] = useState("");
   var downloadBackup = async function() {
@@ -160,6 +162,7 @@ export default function DataSection({ ctx }) {
     {clearPlan && <div data-testid="clear-history-result" style={{ fontSize: 11, color: "#0f172a", marginTop: 6, lineHeight: 1.5 }}>Before {clearPlan.before}: {clearPlan.weeks} week plans · {clearPlan.selections} selections{Object.keys(clearPlan.perPerson).map(function(w) { var pp = clearPlan.perPerson[w]; return " · " + (w === "shared (old format)" ? w : personName(data, w)) + ": " + pp.weeks + " weeks, " + pp.selections + " selections"; }).join("")}</div>}
     {clearMsg && <div data-testid="clear-history-msg" style={{ fontSize: 11, fontWeight: 600, color: clearMsg.charAt(0) === "✓" ? "#166534" : "#991b1b", marginTop: 6 }}>{clearMsg}</div>}
   </div>
+  <div data-testid="data-viewer" style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>Data viewer</div>
   {(() => {
     if (!data) return (<div style={{fontSize:11,color:"#94a3b8"}}>No data loaded</div>);
     var people = Object.keys(data).filter(function(k) { return data[k] && data[k].exercises; });
@@ -309,7 +312,7 @@ export default function DataSection({ ctx }) {
           setTimeout(function(){setFormMsg("");}, 30000);
         }} style={{ width: "100%", padding: 8, background: "#dc2626", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Restore Missing Weeks from Comments</button>
       </div>
-      <div style={{ marginTop: 10, padding: 10, background: "#ecfdf5", borderRadius: 8, border: "1px solid #86efac" }}>
+      <div data-testid="restore-export" style={{ marginTop: 10, padding: 10, background: "#ecfdf5", borderRadius: 8, border: "1px solid #86efac" }}>
         <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6, color: "#0c4a6e" }}>Restore from Firebase Export</div>
         <div style={{ fontSize: 10, color: "#475569", marginBottom: 6 }}>Paste a Download-backup file or a Firebase JSON export and press Preview. Merge adds missing exercise weeks only; Full restore replaces everything in data (on Build: the build copy) and asks you to type RESTORE first.</div>
         <textarea id="restore-json" placeholder="Paste the full JSON here..." style={{ width: "100%", padding: 8, border: "1px solid #86efac", borderRadius: 6, fontSize: 10, minHeight: 80, resize: "vertical", boxSizing: "border-box", marginBottom: 6, fontFamily: "monospace" }}></textarea>

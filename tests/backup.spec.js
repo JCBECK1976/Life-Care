@@ -15,7 +15,7 @@ test("Download backup (Beta/Prod build): one dated file with data only, confirma
   await fetch("http://127.0.0.1:9000/data_build/backup_test_b.json" + NS, { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify("[]") });
   await person(page, "JC");
   await openSettings(page);
-  await page.getByRole("button", { name: "Open Data tools" }).click();
+  await page.getByRole("button", { name: "Open Data viewer" }).click();
   const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "⬇️ Download backup" }).click()]);
   expect(dl.suggestedFilename()).toMatch(/^lifecare_backup_prod_\d{4}-\d{2}-\d{2}-\d{4}\.json$/);   // dev server runs as "prod"
   const file = JSON.parse(fs.readFileSync(await dl.path(), "utf8"));
@@ -38,7 +38,7 @@ test("Download backup (Beta/Prod build): one dated file with data only, confirma
 const put = (path, v) => fetch("http://127.0.0.1:9000/" + path + ".json" + NS, { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify(v) });
 async function downloadFile(page) {
   await person(page, "JC"); await openSettings(page);
-  await page.getByRole("button", { name: "Open Data tools" }).click();
+  await page.getByRole("button", { name: "Open Data viewer" }).click();
   const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "⬇️ Download backup" }).click()]);
   return JSON.parse(fs.readFileSync(await dl.path(), "utf8"));
 }

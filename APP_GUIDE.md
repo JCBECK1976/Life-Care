@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.14.3 · 12 November 2026
+> Last updated: v2.15.0 · 12 November 2026
 
 ---
 
@@ -416,7 +416,14 @@ Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
 - **🎨 My Colour Theme** — Blue, Purple, Green, Teal, Rose, Amber, Indigo or Slate. Changes your highlighted tabs, info boxes and accents. Each person has their own colour.
 - **📱 Google Health Connect** (Android only) — syncs body composition and activity data from your phone. Setup: download Google Health Connect from the Play Store, connect your scales/health apps to it, then tap **🔗 Connect Google Health**. Use **🔄 Sync Google Health Data** to sync and **⏹ Disconnect** to stop.
 - **🍎 Apple Health** (iOS) — coming soon.
-- **Admin-only tools** (for the app owner): **⚡ Companion Energy Level** (enter the balance after a recharge; it becomes 100%), **🔑 API Keys** (Claude API key from console.anthropic.com → API Keys; Google OAuth Client ID for Health Connect), **⚠ Reset Data** (overwrites everything with default data; cannot be undone), **🔧 Debug Mode** and measurement types. **🗂 Data tools** (Settings → Open Data tools; admin only):
+- **Admin-only settings** (for the app owner) are grouped in sections, each with a short explanation:
+  - **App & AI:** **🔑 API Keys** (Claude API key from console.anthropic.com → API Keys), **⚡ Companion Energy Level** (enter the balance after a recharge; it becomes 100%), **📊 AI usage**, **📧 Feedback email** and **🔧 Debug Mode**. Debug Mode, once turned on, stays on for this device and shows a red **🔧 DEBUG ON** badge in the header. It logs a safe summary of Home check-in feedback, eating feedback and Ask a Question calls: status, stop reason and token counts, never the question, the reply or any key. The log clears when the app reloads. **Turn Off** stops it. Measurement types can also be added there.
+  - **Data & backups:** **Open** next to Download backup, Restore, Clear old eating history or Data viewer opens the 🗂 Data tools page at that tool (described below). Recovery is **Download backup** then **Restore**. The old "Reset to Default Data" button was removed in v2.15.0.
+  - **Firebase:** the project, which data this app uses, and links to the Firebase console (database, rules, sign-in users). Rules and data are never changed from the app.
+  - **GitHub & releases:** this version, and links to the repository, deploys, releases, the changelog and the three versions of the app (App, Beta, Build).
+  - **Integrations:** the Google OAuth Client ID (for Google Health Connect).
+  - **Tracker** and **Documentation** (links to the app guide, design and test documents, changelog, backlogs and the plan; private documents are listed by name only, they're in the vault).
+- **🗂 Data tools** (admin only):
   - **⬇️ Download backup** saves all the real data as one dated file, e.g. *lifecare_backup_beta_2026-11-10-2049.json*, in the same layout as a Firebase export. On the Build test app it also includes the build copy. It shows the file size and counts only. Keep it somewhere safe: it contains health data. Photos are never in it (they're never stored).
   - **Clear old eating history** deletes **only** meal selections for weeks before a date you choose (the default is this week's Sunday). Run the **Dry run** first to see how many weeks and selections per person; then **Delete** (asks first). Food lists, exercise, body, health and settings are never touched.
   - **Restore from Firebase Export**: paste a Download-backup file (or a Firebase export) and press **Preview** to see what it contains (counts only). Then choose:
@@ -424,7 +431,7 @@ Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
     - **Full restore of data**, which replaces everything in **this app's own data** with the file: the real data on the normal app and Beta, the build copy on the Build test app. It asks twice, and you must type **RESTORE**.
   - A **Firebase Data Viewer** and **Restore Missing Weeks from Comments** are also there. **← Back to Settings** returns you to Settings.
   - **📊 AI usage** (admin only): how many AI calls were made and how many tokens they used, per day and per feature (Help, Chat, My Eating, photo checks…), with the estimated cost. Only counts are kept, never what anyone typed or photographed. **⚡ Companion Energy** is worked out from these counts: what has been spent since the last **Set as 100%**.
-  - **📝 Tracker** (admin only): everything sent with **💬 Send Feedback** appears here as **Feedback**, status **New** (a red badge shows how many are new). Newest first, with filters for Category (Feedback / Defect / Feature) and Status (New / Triaged / Planned / In progress / Done / Won't do). **Open** shows an item read-only; **Edit** lets the admin re-categorise it as a **Defect** or **Feature**, set the status, a priority (High / Medium / Low), an admin note and a link/ref (e.g. a backlog number like D20, or the version that fixed it), then **Save**. **Remove** takes it out (asks first). **+ Add** adds a Defect or Feature directly. Text only: no screenshots or images are stored.
+  - **📝 Tracker** (admin only): everything sent with **💬 Send Feedback** appears here as **Feedback**, status **New** (a red badge shows how many are new). It also shows **the plan**: each time you open the Tracker it loads the plan (plan.json) and adds or updates its items (defects, features and tasks, by phase). Filters: Category (Feedback / Defect / Feature / Task), Phase, Status and Priority. Status starts on **Outstanding** (everything not Done or Won't do); choose **Completed** or **All** to see finished items. A box above the list totals the **Token %** of open plan items per phase (the estimated share of a weekly allowance). **Open** shows an item read-only. For feedback and items you added, **Edit** lets you re-categorise it, set the status, a priority, an admin note and a link/ref, then **Save**; **Remove** takes it out (asks first). Plan items say **Managed by plan**: only their admin note can be edited here, and your note is kept when the plan changes. **+ Add** adds a Defect, Feature or Task. Text only: no screenshots or images are stored.
   - **📧 Feedback email** (admin only): shows the address 💬 Send Feedback emails go to (also the contact in the Privacy Policy). Press **Edit**, change it, then **Save**: the form closes and shows **✓ Saved**. Leave it empty for no email: feedback is still saved to the 📝 Tracker.
 
 ### Send Feedback, Privacy Policy
