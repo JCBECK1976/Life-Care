@@ -2203,3 +2203,8 @@ Sizes are % of a weekly allowance, including Architect checks.
 - Optional app store versions — 8–12%
 - Admin tech Q&A chat bot — 3–5%
 
+
+### (Coder) 12 Nov 2026 — v2.14.3 on build (feedback email form, Send Feedback wording)
+- **Done:** Settings → 📧 Feedback email now shows the saved address with **Edit**; Save closes the form and shows **✓ Saved** for ~3 s (Cancel keeps the old value). Send Feedback says plainly: always saved to the Tracker; with an address set, the email app opens pre-filled and the person must press **Send** there (the app can't send email). APP_GUIDE updated. Tests `tests/v2143.spec.js` (2) + v2.14.1 test adjusted. Full suite 146 passed, lint 0 errors. `build` @ 3eefa5a, deploy run 43263024828 succeeded.
+- **JC to test (/build/):** Settings → Feedback email → Edit → Save (form closes, "✓ Saved"); Send Feedback with and without an address.
+- **Resume point:** `build` @ 3eefa5a (v2.14.3). Next: v2.15.0 (plan in the Tracker, admin Settings tidy-up, Debug Mode) on build; no beta/main PRs.
