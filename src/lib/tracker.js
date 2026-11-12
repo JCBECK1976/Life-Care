@@ -7,7 +7,7 @@ export var CATEGORIES = ["Feedback", "Defect", "Feature"];
 export var STATUSES = ["New", "Triaged", "Planned", "In progress", "Done", "Won't do"];
 export var PRIORITIES = ["High", "Medium", "Low"];
 
-// "jc.someone@gmail.com" → "j***@g***.com": enough to tell accounts apart, not the address itself.
+// "name@example.com" → "n***@e***.com": enough to tell accounts apart, not the address itself.
 export function maskEmail(email) {
   var m = /^([^@]+)@([^.]+)\.(.+)$/.exec(String(email || "")); if (!m) return email ? "***" : "";
   return m[1].charAt(0) + "***@" + m[2].charAt(0) + "***." + m[3];

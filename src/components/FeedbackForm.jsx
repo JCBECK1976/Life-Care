@@ -1,6 +1,7 @@
 import { btnP, btnS } from "../constants/styles.js";
 import { APP_VERSION } from "../constants/version.js";
 import { currentEmail, feedbackEntry, saveEntry } from "../lib/tracker.js";
+import { loadContactEmail } from "../lib/contact.js";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -33,11 +34,12 @@ export default function FeedbackForm({ ctx }) {
                 var screenInfo = window.screen ? window.screen.width + "x" + window.screen.height : "Unknown";
                 var emailBody = "Type: " + (feedbackType === "bug" ? "Bug Report" : "Feature Request") + "%0A%0A" + (feedbackType === "bug" ? "What I was trying to do:%0A" : "Feature description:%0A") + encodeURIComponent(feedbackText.trim()) + "%0A%0A--- Device Info ---%0AUser: " + (activeTab || "Unknown") + "%0ADevice: " + encodeURIComponent(deviceInfo) + "%0AScreen: " + screenInfo + "%0AApp Version: " + APP_VERSION;
                 var emailSubject = encodeURIComponent("[Life Care " + (feedbackType === "bug" ? "Bug" : "Feature") + "] " + feedbackText.trim().substring(0, 50));
-                window.open("mailto:jc.zaluski@gmail.com?subject=" + emailSubject + "&body=" + emailBody, "_self");
+                var toEmail = await loadContactEmail();   /* v2.14.1: an admin setting (Settings → 📧 Feedback email); empty = Tracker only */
+                if (toEmail) window.open("mailto:" + toEmail + "?subject=" + emailSubject + "&body=" + emailBody, "_self");
                 setFeedbackOpen(false);
                 setFeedbackSent(true);
                 setTimeout(function(){ setFeedbackSent(false); }, 4000);
-              } catch(e) { alert("Could not open email client. Please email jc.zaluski@gmail.com directly."); }
+              } catch(e) { alert("Could not open the email app. Your feedback was saved for the app owner."); }
               setFeedbackSending(false);
             }} disabled={feedbackSending || !feedbackText.trim()} style={{ ...btnP(!!feedbackText.trim()), flex: 1 }}>{feedbackSending ? "Sending..." : "Send Feedback"}</button>
             <button onClick={function(){ setFeedbackOpen(false); }} style={btnS}>Cancel</button>

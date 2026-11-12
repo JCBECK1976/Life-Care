@@ -69,6 +69,7 @@ test("item 4: the boot/sign-in logo is the small WebP file, same 640px resolutio
   await page.goto("./");
   const img = page.locator('img[alt="Lifecare Companion"]').first();
   await expect(img).toBeVisible();
+  await expect.poll(() => img.evaluate((i) => i.complete && i.getBoundingClientRect().width)).toBe(220);   // loaded and laid out
   const r = await img.evaluate((i) => ({ src: i.currentSrc, nw: i.naturalWidth, w: i.getBoundingClientRect().width }));
   expect(r.src).toMatch(/app-logo-640\.webp$/); expect(r.nw).toBe(640); expect(r.w).toBe(220);
 });
@@ -142,6 +143,7 @@ const openTracker = async (page) => { await page.locator("button").nth(1).click(
 
 test("item 10: Send Feedback also saves a Feedback/New tracker entry (masked account, no images); the email still opens", async ({ page }) => {
   const { errors } = await openApp(page); await clearTracker();
+  await fetch("http://127.0.0.1:9000/data/feedback_email.json?ns=life-care-app-64d04-default-rtdb", { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify("owner@example.com") });   // v2.14.1: an admin setting
   await page.evaluate(() => { window._mailto = []; window.open = (u) => { window._mailto.push(String(u)); return null; }; });
   await page.getByRole("button", { name: "💬 Send Feedback" }).click();
   await page.getByRole("button", { name: "✨ Feature" }).click();
@@ -150,9 +152,9 @@ test("item 10: Send Feedback also saves a Feedback/New tracker entry (masked acc
   await expect.poll(async () => Object.keys(await trackerAll()).length).toBe(1);
   const e = Object.values(await trackerAll())[0];
   expect(e).toMatchObject({ category: "Feedback", status: "New", kind: "feature", person: "jc", text: "Please add a water tracker", env: "prod", source: "feedback" });
-  expect(e.version).toMatch(/^v2\.14\.0/); expect(e.created).toMatch(/^\d{4}-\d\d-\d\dT/);
+  expect(e.version).toMatch(/^v2\.14\./); expect(e.created).toMatch(/^\d{4}-\d\d-\d\dT/);
   expect(e.account).toMatch(/^.\*\*\*@.\*\*\*\..+$/);                                    // masked, never the address
-  expect(await page.evaluate(() => window._mailto.length)).toBe(1);                       // existing email behaviour kept
+  await expect.poll(() => page.evaluate(() => window._mailto.length)).toBe(1);           // existing email behaviour kept (to the admin setting)
   expect(errors).toEqual([]);
 });
 

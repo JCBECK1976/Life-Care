@@ -5,6 +5,7 @@ import { DEFAULT_DATA } from "../constants/defaultData.js";
 import AccountCard from "../components/AccountCard.jsx";
 import AiUsageCard from "../components/AiUsageCard.jsx";
 import Tracker from "../components/Tracker.jsx";
+import ContactEmailCard from "../components/ContactEmailCard.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -64,6 +65,7 @@ export default function SettingsSection({ ctx }) {
 
           {/* v2.14.0 item 10: Feedback, Defect & Feature tracker — Admin only */}
           {isAdmin && <Tracker person={activeTab} />}
+          {isAdmin && <ContactEmailCard />}
 
           {/* v2.14.0 item 9: AI usage ledger — Admin only */}
           {isAdmin && <AiUsageCard />}

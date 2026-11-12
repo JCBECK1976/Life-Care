@@ -5,7 +5,13 @@
 //    one-line comparison against the first check. Confirm uses whichever result is shown last.
 import { rateByPortion } from "./rag.js";
 
-var JSON_SHAPE = '{"name":"what you see","matchesPlanned":true/false,"portionSize":"small or medium or large","components":[{"name":"component name","grams":estimated_grams}],"totalGrams":total_estimated_grams,"kcal":calories,"protein":grams,"fat":total_fat,"satFat":sat_fat,"addedSugar":added_sugar_grams_only_not_natural_sugars,"carbs":carbs_grams,"fibre":fibre_grams,"salt":salt_grams,"portionNote":"ONE sentence comparing portion size to standard"}';
+var JSON_SHAPE = '{"isFood":true/false,"name":"what you see","matchesPlanned":true/false,"portionSize":"small or medium or large","components":[{"name":"component name","grams":estimated_grams}],"totalGrams":total_estimated_grams,"kcal":calories,"protein":grams,"fat":total_fat,"satFat":sat_fat,"addedSugar":added_sugar_grams_only_not_natural_sugars,"carbs":carbs_grams,"fibre":fibre_grams,"salt":salt_grams,"portionNote":"ONE sentence comparing portion size to standard"}';
+
+// v2.14.1: every food photo prompt must say whether there is food at all. With no food the app shows NO_FOOD_MSG,
+// no rating and no nutrition, and Confirm is disabled (only Re-check and Cancel).
+export var NO_FOOD_RULE = " FIRST decide whether the photo shows food or drink at all. If it does NOT (for example a person, a room, a screen, a blank, dark or blurred photo), set \"isFood\": false, set every nutrition value to 0 and say briefly what you see in \"name\". Otherwise set \"isFood\": true.";
+export var NO_FOOD_MSG = "No food found in this photo — try another photo, or add a description and Re-check";
+export function noFood(info) { return !info || info.isFood === false || info.isFood === "false"; }
 
 export function snapPrompt(o) {
   var planned = o.plannedName ? "The planned meal was: " + o.plannedName + "." : "Nothing was planned for this slot: identify the food (one combined meal if several foods are on the plate).";
@@ -13,9 +19,9 @@ export function snapPrompt(o) {
   if (o.deep) {
     return "Re-check deep dive: give an independent, careful second opinion on this food photo. " + planned + desc
       + " Work component by component: list every food on the plate separately and estimate the weight in grams of each, using the plate size, cutlery, packaging and other portion cues in the photo. Then work out the nutrition of each component and add them up."
-      + " Return ONLY JSON: " + JSON_SHAPE;
+      + NO_FOOD_RULE + " Return ONLY JSON: " + JSON_SHAPE;
   }
-  return "Analyze this food portion. " + planned + desc + " Estimate the ACTUAL portion shown, with an estimated weight in grams for each component. Return ONLY JSON: " + JSON_SHAPE;
+  return "Analyze this food portion. " + planned + desc + " Estimate the ACTUAL portion shown, with an estimated weight in grams for each component." + NO_FOOD_RULE + " Return ONLY JSON: " + JSON_SHAPE;
 }
 
 export function requestBody(o, image) {

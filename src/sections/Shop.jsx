@@ -1,3 +1,4 @@
+import { NO_FOOD_MSG, NO_FOOD_RULE, noFood } from "../lib/snap.js";
 import { readImageForAI } from "../lib/image.js";
 import { calcWeek, mealKey } from "../lib/utils.js";
 import { sGet, sSet } from "../lib/storage.js";
@@ -18,6 +19,27 @@ export default function ShopSection({ ctx }) {
     setShopDefaults, setShopLoading, setSupermarket, setWeekOff, shopDefaults, shopList, shopLoading, supermarket,
     weekLabel, weekStart
   } = ctx;
+
+  /* v2.14.1: the Food Checker photo analysis as a function, so a "no food" result can be re-checked with the same photo
+     (kept in memory only) and the description. */
+  var runFoodPhoto = async function(file) {
+    window._lcFoodPhoto = file;
+    setFoodCheckerLoading(true);
+                      try {
+                        var _img = await readImageForAI(file);   /* v2.14.0: shrunk before sending */
+                        var base64 = _img.data; var mediaType = _img.mediaType;
+                        var isJC2 = activeTab === "jc";
+                        var fcDescHint = foodCheckerText.trim() ? " The user describes this as: \"" + foodCheckerText.trim() + "\". PREFER the user's description over your own size or product guess." : "";
+                        var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Identify this food or product." + fcDescHint + NO_FOOD_RULE + " Read any nutrition label if visible. Classify as 'packaged' if it is a pre-made supermarket product or 'ingredient' if it is a home-made recipe cooked from scratch. If 'ingredient', list the individual ingredients needed. Return ONLY JSON: {\"isFood\":true/false,\"assumed\":\"the size or weight these values are for, e.g. 28g bar\",\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[\"item1\",\"item2\"] (empty array if packaged),\"suitability\":\"ONE sentence suitability for " + (isJC2 ? "JC, male 49, 2000-2200 kcal target, <20g sat fat, thyroid issues" : "Becks, female 48, 1700-1900 kcal target, <20g sat fat, LDL 7.2") + "\"}" }] }] }) });
+                        var result = await resp.json();
+                        var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+                        var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
+                        var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
+                        if (noFood(info)) { setFoodCheckerPreview({ noFood: true, name: info.name || "" }); setFoodCheckerLoading(false); return; }   // v2.14.1
+                        setFoodCheckerPreview(withRuleRating({ assumed: info.assumed || "", name: info.name || foodCheckerText.trim() || "Unknown", kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, addedSugar: info.addedSugar || 0, rating: info.rating || "AMBER", itemType: info.itemType || "packaged", ingredients: info.ingredients || [], suitability: info.suitability || "" }));
+                      } catch(ce) { setFormMsg(window.aiErrorMsg(ce)); setTimeout(function(){setFormMsg("");},10000); }
+    setFoodCheckerLoading(false);
+  };
 
   return (
 <div>
@@ -51,21 +73,7 @@ export default function ShopSection({ ctx }) {
                     📷
                     <input type="file" data-share="food" accept="image/*" capture="environment" onChange={async function(e) {
                       if (!e.target.files || !e.target.files[0]) return;
-                      var file = e.target.files[0];
-                      setFoodCheckerLoading(true);
-                      try {
-                        var _img = await readImageForAI(file);   /* v2.14.0: shrunk before sending */
-                        var base64 = _img.data; var mediaType = _img.mediaType;
-                        var isJC2 = activeTab === "jc";
-                        var fcDescHint = foodCheckerText.trim() ? " The user describes this as: \"" + foodCheckerText.trim() + "\". PREFER the user's description over your own size or product guess." : "";
-                        var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Identify this food or product." + fcDescHint + " Read any nutrition label if visible. Classify as 'packaged' if it is a pre-made supermarket product or 'ingredient' if it is a home-made recipe cooked from scratch. If 'ingredient', list the individual ingredients needed. Return ONLY JSON: {\"assumed\":\"the size or weight these values are for, e.g. 28g bar\",\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[\"item1\",\"item2\"] (empty array if packaged),\"suitability\":\"ONE sentence suitability for " + (isJC2 ? "JC, male 49, 2000-2200 kcal target, <20g sat fat, thyroid issues" : "Becks, female 48, 1700-1900 kcal target, <20g sat fat, LDL 7.2") + "\"}" }] }] }) });
-                        var result = await resp.json();
-                        var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-                        var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
-                        var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
-                        setFoodCheckerPreview(withRuleRating({ assumed: info.assumed || "", name: info.name || foodCheckerText.trim() || "Unknown", kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, addedSugar: info.addedSugar || 0, rating: info.rating || "AMBER", itemType: info.itemType || "packaged", ingredients: info.ingredients || [], suitability: info.suitability || "" }));
-                      } catch(ce) { setFormMsg(window.aiErrorMsg(ce)); setTimeout(function(){setFormMsg("");},10000); }
-                      setFoodCheckerLoading(false);
+                      await runFoodPhoto(e.target.files[0]);
                       e.target.value = "";
                     }} style={{ display: "none" }} />
                   </label>
@@ -85,6 +93,14 @@ export default function ShopSection({ ctx }) {
                     setFoodCheckerLoading(false);
                   }} disabled={foodCheckerLoading || !foodCheckerText.trim()} style={{ width: "100%", padding: "8px 12px", background: foodCheckerLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{foodCheckerLoading ? <span>Checking <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Check"}</button>
                 <div style={{ fontSize: 10, color: "#64748b", marginTop: 4 }}>Type a food name or scan a product, with or without a short description, to check nutritional information</div>
+              </div>) : foodCheckerPreview.noFood ? (<div data-testid="checker-no-food">
+                <div role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div>
+                <input aria-label="Food description" value={foodCheckerText} onChange={function(e) { setFoodCheckerText(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, marginBottom: 6 }} />
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button disabled style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, opacity: 0.45, cursor: "not-allowed" }}>Confirm</button>
+                  <button disabled={foodCheckerLoading} onClick={function() { if (window._lcFoodPhoto) runFoodPhoto(window._lcFoodPhoto); }} style={{ flex: 1, padding: 8, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>{foodCheckerLoading ? "⏳…" : "Re-check"}</button>
+                  <button onClick={function() { setFoodCheckerPreview(null); setFoodCheckerText(""); }} style={{ flex: 1, padding: 8, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>Cancel</button>
+                </div>
               </div>) : (<div>
                 <div style={{ background: "#f0fdf4", borderRadius: 8, padding: 10, border: "1px solid #86efac", marginBottom: 6 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 {foodCheckerPreview.name}</div>

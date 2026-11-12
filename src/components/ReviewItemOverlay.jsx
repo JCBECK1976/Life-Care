@@ -1,4 +1,5 @@
 import { btnActionLg, btnClose } from "../constants/styles.js";
+import NoFoodPanel from "./NoFoodPanel.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -15,6 +16,7 @@ export default function ReviewItemOverlay({ ctx }) {
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Review Item</div>
             <button onClick={function() { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); }} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
           </div>
+          {cameraPreview.noFood ? (<NoFoodPanel testid="review-no-food" desc={cameraPreview.desc} onRecheck={function(d) { if (window._lcRecheckAddPhoto) window._lcRecheckAddPhoto(d); }} onCancel={function() { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); }} />) : (<>
           <div style={{ marginBottom: 6 }}>
             <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 2 }}>Name</div>
             <input id="review-item-name-overlay" defaultValue={cameraPreview.name} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, boxSizing: "border-box" }} />
@@ -64,6 +66,7 @@ export default function ReviewItemOverlay({ ctx }) {
             <button disabled={reviewCategories.length === 0 || formMsg.indexOf("🔄") === 0} onClick={function() { window._confirmReviewItem(true); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: (reviewCategories.length === 0 || formMsg.indexOf("🔄") === 0) ? 0.5 : 1}}>{formMsg.indexOf("🔄") === 0 ? "Recalculating…" : cameraPreview.recalculated ? "✓ Continue — Add" : "✓ Confirm" + (reviewCategories.length > 1 ? " (" + reviewCategories.length + " lists)" : "")}</button>
             <button onClick={function() { if (cameraPreview.recalculated) { setCameraPreview(function(prev) { return Object.assign({}, prev, { recalculated: false }); }); setFormMsg(""); } else { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); setAddingSlotKey(null); setAddingSlotDay(null); setFormMsg(""); } }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>{cameraPreview.recalculated ? "Edit Again" : "Cancel"}</button>
           </div>
+          </>)}
         </div>
       </div>)}
   </>);
