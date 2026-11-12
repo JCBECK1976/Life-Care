@@ -1,5 +1,7 @@
 import { readImageForAI } from "../lib/image.js";
 import PrivacyNote from "../components/PrivacyNote.jsx";
+import React from "react";
+import { bodyTypeCheckRule, looseJson, photoIssues } from "../lib/bodyPhotoCheck.js";
 import { btnDelete, btnMuted, btnP, inputStyle, labelStyle } from "../constants/styles.js";
 import { latestFirst } from "../lib/chat.js";
 import { accentVariant } from "../lib/colour.js";
@@ -23,6 +25,34 @@ export default function HomeSection({ ctx }) {
     setShowFullJournal, setShowMyDay, setShowOnboarding, setShowProfile, setShowRecentJournal, setUserMood, setupDirty, setupTab,
     showFbHistory, showFullJournal, showMyDay, showOnboarding, showProfile, showRecentJournal, updateHomeFb, userMood
   } = ctx;
+
+  /* v2.14.2: Body Type Photos — every photo is checked first (a person, one of the requested poses). If any photo is not
+     recognised: a message per photo, no analysis, Save disabled (Retake / Cancel only) and NOTHING is saved. */
+  var _bt = React.useState(null); var bodyTypeIssues = _bt[0]; var setBodyTypeIssues = _bt[1];
+  var runBodyTypePhotos = async function(files) {
+    if (!files || files.length === 0) return;
+    setBodyTypeIssues(null); setFormMsg("Generating from photos...");
+    var n = Math.min(files.length, 5); var imageContents = [];
+    for (var fi = 0; fi < n; fi++) { try { var _img = await readImageForAI(files[fi]); imageContents.push({ type: "image", source: { type: "base64", media_type: _img.mediaType, data: _img.data } }); } catch (re) {} }   /* v2.14.0: shrunk before sending */
+    if (!imageContents.length) { setFormMsg(""); return; }
+    try {
+      var content = imageContents.concat([{ type: "text", text: "Analyse this person's physique. " + bodyTypeCheckRule() + "Then determine: 1) Somatotype, 2) Upper or lower body dominant, 3) Fast-twitch or slow-twitch dominant, 4) Notable strengths. Return ONLY JSON: {\"photos\":[{\"photo\":1,\"isPerson\":true,\"pose\":\"front relaxed\",\"matchesPose\":true}],\"bodyType\":\"...\",\"dominance\":\"...\",\"fibreType\":\"...\",\"strengths\":\"...\",\"notes\":\"...\"}" }]);
+      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: content }] }) });
+      var result = await resp.json(); var txt = ""; (result.content || []).forEach(function(c) { if (c.text) txt += c.text; });
+      var parsed = looseJson(txt);
+      if (!parsed) throw new Error("The analysis came back in a form I couldn't read — please try again");
+      var issues = photoIssues(parsed, imageContents.length, "bodytype");
+      if (issues.length) { setBodyTypeIssues(issues); setFormMsg(""); return; }
+      var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].bodyPhotos) nd[activeTab].bodyPhotos = [];
+      for (var k = 0; k < n; k++) nd[activeTab].bodyPhotos.push({ date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), name: files[k].name, type: "baseline" /* v2.12.1: no image data is kept */ });
+      if (!nd[activeTab].profile) nd[activeTab].profile = {};
+      if (parsed.bodyType) nd[activeTab].profile.bodyType = parsed.bodyType + (parsed.dominance ? ", " + parsed.dominance : "");
+      if (parsed.fibreType) nd[activeTab].profile.fibreType = parsed.fibreType;
+      delete parsed.photos; nd[activeTab].bodyAnalysis = parsed;
+      if (nd[activeTab].bodyPhotos.length > 20) nd[activeTab].bodyPhotos = nd[activeTab].bodyPhotos.slice(-20);
+      await saveData(nd); setFormMsg("✓ Photos analysed"); setTimeout(function() { setFormMsg(""); }, 4000);
+    } catch (ae) { setFormMsg("⚠️ " + String(ae.message || ae).substring(0, 120)); setTimeout(function() { setFormMsg(""); }, 6000); }
+  };
 
   return (
 <div>
@@ -293,9 +323,18 @@ export default function HomeSection({ ctx }) {
                     <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>Upload photos for AI body type analysis. Best results from:<br/>• Front relaxed (full body, arms at sides)<br/>• Bicep flex (single arm, side on)<br/>• Side profile (relaxed)<br/>• Back relaxed or flexed<br/>• Legs: quad flex and calf raise</div>
                     <label style={{ display: "block", padding: 10, background: "#fff", border: "2px dashed #93c5fd", borderRadius: 8, textAlign: "center", cursor: "pointer", fontSize: 11, color: "#1e3a5f" }}>
                       📷 Upload Body Type Photos
-                      <input type="file" data-share="bodytype" accept="image/*" multiple onChange={async function(e) { var files = e.target.files; if (!files || files.length === 0) return; setFormMsg("Generating from photos..."); var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].bodyPhotos) nd[activeTab].bodyPhotos = []; var imageContents = []; for (var fi = 0; fi < Math.min(files.length, 5); fi++) { try { var _img = await readImageForAI(files[fi]); var b64 = _img.data;   /* v2.14.0: shrunk before sending */ nd[activeTab].bodyPhotos.push({ date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), name: files[fi].name, type: "baseline" /* v2.12.1: no image data is kept */ }); imageContents.push({ type: "image", source: { type: "base64", media_type: _img.mediaType, data: b64 } }); } catch(re) {} } if (imageContents.length > 0) { try { var content = imageContents.concat([{ type: "text", text: "Analyse this person's physique. Determine: 1) Somatotype, 2) Upper or lower body dominant, 3) Fast-twitch or slow-twitch dominant, 4) Notable strengths. Return ONLY JSON: {\"bodyType\":\"...\",\"dominance\":\"...\",\"fibreType\":\"...\",\"strengths\":\"...\",\"notes\":\"...\"}" }]); var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: content }] }) }); var result = await resp.json(); var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt = txt + result.content[ci].text; } } if (txt) { var parsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); if (!nd[activeTab].profile) nd[activeTab].profile = {}; if (parsed.bodyType) nd[activeTab].profile.bodyType = parsed.bodyType + (parsed.dominance ? ", " + parsed.dominance : ""); if (parsed.fibreType) nd[activeTab].profile.fibreType = parsed.fibreType; nd[activeTab].bodyAnalysis = parsed; } } catch(ae) {} } if (nd[activeTab].bodyPhotos.length > 20) nd[activeTab].bodyPhotos = nd[activeTab].bodyPhotos.slice(-20); await saveData(nd); setFormMsg("✓ Photos analysed"); setTimeout(function() { setFormMsg(""); }, 4000); e.target.value = ""; }} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)", border: 0 }} />
+                      <input id="bodytype-photos" type="file" data-share="bodytype" accept="image/*" multiple onChange={function(e) { var picked = Array.prototype.slice.call(e.target.files || []); e.target.value = ""; runBodyTypePhotos(picked); }} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)", border: 0 }} />
                     </label>
                     <PrivacyNote />
+                    {bodyTypeIssues && (<div data-testid="bodytype-issues" style={{ marginTop: 8, padding: 8, borderRadius: 8, background: "#fffbeb", border: "1px solid #fde68a" }}>
+                      {bodyTypeIssues.map(function(x) { return <div key={x.photo} role="alert" data-testid="bodytype-issue" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", marginBottom: 4 }}>Photo {x.photo}: {x.msg}</div>; })}
+                      <div style={{ fontSize: 10, color: "#64748b", marginBottom: 6 }}>No analysis was done and nothing was saved.</div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button disabled style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, opacity: 0.45, cursor: "not-allowed" }}>Save</button>
+                        <button onClick={function() { var el = document.getElementById("bodytype-photos"); if (el) el.click(); }} style={{ flex: 1, padding: 8, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>Retake</button>
+                        <button onClick={function() { setBodyTypeIssues(null); }} style={{ flex: 1, padding: 8, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>Cancel</button>
+                      </div>
+                    </div>)}
                   </div>
 
                   {/* My Companion Body Type Check */}

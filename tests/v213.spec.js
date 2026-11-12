@@ -131,7 +131,7 @@ test("F9: Weigh In and Measurements history rows = key data + Open; Edit/Save an
 
 test("F10 pure: the reading prompt and parser", () => {
   expect(readingPrompt({ label: "Chest", unit: "cm", desc: "inches tape", previous: 101, deep: true })).toMatch(/DEEP DIVE.*Read the value in cm/s);
-  expect(parseReading('```json {"value":"98.46","reading":"at the 98.5 mark","confidence":"high"} ```')).toEqual({ value: 98.5, reading: "at the 98.5 mark", confidence: "high" });
+  expect(parseReading('```json {"value":"98.46","reading":"at the 98.5 mark","confidence":"high"} ```')).toMatchObject({ value: 98.5, reading: "at the 98.5 mark", confidence: "high" });
   expect(parseReading('{"value":null,"reading":"blurred"}').value).toBe(null);
 });
 

@@ -2,7 +2,7 @@ import { readImageForAI } from "../lib/image.js";
 import React from "react";
 import { handleApiError } from "../lib/api.js";
 import { btnSnap } from "../constants/styles.js";
-import { UNREADABLE_MSG, parseReading, readingPrompt } from "../lib/measureReading.js";
+import { UNREADABLE_MSG, parseReading, readingPrompt, wrongPartMsg } from "../lib/measureReading.js";
 
 // v2.13.0 F10: the camera button on a body-measurement Log form works like 📷 Snap.
 // Optional description first → take a photo (tape measure, scale screen…) → the AI reads the value → result panel with
@@ -49,7 +49,7 @@ export default function MeasureSnap(props) {
     </div>)}
     {st.stage === "result" && (<div data-testid="meas-snap-result">
       <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{st.result._deep ? "🔎 Re-check deep dive" : "📷 " + props.label}</div>
-      <div data-testid="meas-snap-value" style={{ fontSize: 16, fontWeight: 800, color: st.result.value != null ? "#0f172a" : "#991b1b", marginBottom: 2 }}>{st.result.value != null ? st.result.value + " " + unit : UNREADABLE_MSG}</div>
+      <div data-testid="meas-snap-value" style={{ fontSize: 16, fontWeight: 800, color: st.result.value != null ? "#0f172a" : "#991b1b", marginBottom: 2 }}>{st.result.value != null ? st.result.value + " " + unit : st.result.wrongPart ? wrongPartMsg(st.result.seenPart, props.label) : UNREADABLE_MSG}</div>
       {st.result.reading && <div style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{st.result.reading}{st.result.confidence ? " (" + st.result.confidence + " confidence)" : ""}</div>}
       {st.result._deep && st.first && st.first.value != null && <div data-testid="meas-snap-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>First check: {st.first.value} {unit}{st.first.value === st.result.value ? " (same)" : ""}</div>}
       {descInput}
