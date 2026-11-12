@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.14.2 · 12 November 2026
+> Last updated: v2.14.3 · 12 November 2026
 
 ---
 
@@ -425,10 +425,10 @@ Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
   - A **Firebase Data Viewer** and **Restore Missing Weeks from Comments** are also there. **← Back to Settings** returns you to Settings.
   - **📊 AI usage** (admin only): how many AI calls were made and how many tokens they used, per day and per feature (Help, Chat, My Eating, photo checks…), with the estimated cost. Only counts are kept, never what anyone typed or photographed. **⚡ Companion Energy** is worked out from these counts: what has been spent since the last **Set as 100%**.
   - **📝 Tracker** (admin only): everything sent with **💬 Send Feedback** appears here as **Feedback**, status **New** (a red badge shows how many are new). Newest first, with filters for Category (Feedback / Defect / Feature) and Status (New / Triaged / Planned / In progress / Done / Won't do). **Open** shows an item read-only; **Edit** lets the admin re-categorise it as a **Defect** or **Feature**, set the status, a priority (High / Medium / Low), an admin note and a link/ref (e.g. a backlog number like D20, or the version that fixed it), then **Save**. **Remove** takes it out (asks first). **+ Add** adds a Defect or Feature directly. Text only: no screenshots or images are stored.
-  - **📧 Feedback email** (admin only): the address 💬 Send Feedback emails go to, also shown as the contact in the Privacy Policy. Leave it empty for no email: feedback is still saved to the 📝 Tracker.
+  - **📧 Feedback email** (admin only): shows the address 💬 Send Feedback emails go to (also the contact in the Privacy Policy). Press **Edit**, change it, then **Save**: the form closes and shows **✓ Saved**. Leave it empty for no email: feedback is still saved to the 📝 Tracker.
 
 ### Send Feedback, Privacy Policy
-At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature and describe it; it is saved to the app owner's Tracker, and opens an email if the owner has set a feedback email address) and **Privacy Policy**. The version number (e.g. v2.1.0) is shown at the very bottom. Test versions of the app show a coloured **BUILD** or **BETA** badge under the Help and Settings buttons at the top (and in the browser tab name), and their version ends in -build… or -beta…; the normal app has no badge.
+At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature and describe it; it is always saved to the app owner's Tracker. If the owner has set a feedback email address, your phone's email app then opens with the message filled in: **press Send there** to email it too, because the app can't send email itself) and **Privacy Policy**. The version number (e.g. v2.1.0) is shown at the very bottom. Test versions of the app show a coloured **BUILD** or **BETA** badge under the Help and Settings buttons at the top (and in the browser tab name), and their version ends in -build… or -beta…; the normal app has no badge.
 
 ---
 
