@@ -2251,3 +2251,14 @@ Sizes are % of a weekly allowance, including Architect checks.
   4. Debug Mode → Turn On → red badge; Ask a Question → log shows status/tokens only; reload → still on; Turn Off.
   5. Data & backups → each Open lands on that tool.
 - **Resume point:** `build` @ 6853af4 (v2.15.0), `main` docs incl. `docs/plan.json`. Next: Architect checks `/build/`; then the build → beta PR **when asked** (no beta/main PRs yet). Plan updates: edit `docs/plan.json` on main whenever an item starts or finishes.
+
+### (Coder) 12 Nov 2026 — plan: R5 Activity calorie adjustment added (not built)
+- **Done:** `docs/plan.json` gains **R5 "Activity calorie adjustment"** (Release, Feature, Medium, 4%, Planned; needs R4). JC asked to replace an optional "Weight-trend calibration" item, but no such item was in the plan, so R5 is added and nothing was removed.
+- **Decision (JC, 12 Nov):** this is what R5 covers:
+  - **Setting:** a per-person adjustment, default 100%, applied to the Google Health activity calorie credit.
+  - **AI suggestion:** Body + General feedback compare predicted vs actual weight trend after 3–4 weeks and may suggest a new value with the reason. The value changes only if the user accepts.
+  - **Manual change:** the AI acknowledges it once, explains the effect and offers its recommended value + reason.
+  - **Declined:** the decision is recorded and respected; later advice quietly allows for the accuracy gap without repeating the offer. It re-offers only when new evidence differs meaningfully (e.g. after another 4 weeks).
+  - **History:** suggestions and decisions are stored as values + dates only.
+  - Build later, after R4.
+- **Resume point:** unchanged: `build` @ 6853af4 (v2.15.0). Next: Architect checks `/build/`; build → beta PR when asked.
