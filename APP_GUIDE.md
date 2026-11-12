@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.14.1 · 12 November 2026
+> Last updated: v2.14.2 · 12 November 2026
 
 ---
 
@@ -80,7 +80,8 @@ Once the app is installed, you can send a photo straight from your Gallery, Came
 
 ### Photos and privacy
 Every photo you give the app (📷 Snap, 📷 Upload, Body Type Photos, measurement Snap, Body balance check, shared images) is **sent to the Companion to be analysed and then discarded: it is never stored**, not in the app's data and not in backups. Only the result is kept (values, ratings, scores and notes). You'll see this note under the photo buttons: *"Images are analysed and then discarded — they're never stored."*
-- **No food in the photo?** If a food photo (📷 Snap, Food Checker, adding food by photo, Help Me with What to Eat) shows no food, you'll see *"No food found in this photo — try another photo, or add a description and Re-check"*. No rating or nutrition is shown and **Confirm** is greyed out: use **Re-check** (optionally with a description) or **Cancel**. Nothing is saved. The measurement 📷 Snap works the same way when it can't read a value.
+- **No food in the photo?** If a food photo (📷 Snap, Food Checker, adding food by photo, Help Me with What to Eat) shows no food, you'll see *"No food found in this photo — try another photo, or add a description and Re-check"*. No rating or nutrition is shown and **Confirm** is greyed out: use **Re-check** (optionally with a description) or **Cancel**. Nothing is saved. The measurement 📷 Snap works the same way when it can't read a value, or when the photo shows a different body part (e.g. a calf photo when logging Bicep).
+- **Body photos must be recognised.** In the **📸 Body balance check** each photo must be a person, full body, in the pose asked for (photo 1 front, photo 2 side, photo 3 back); in **Body Type Photos** each must be a person in one of the requested poses. If one isn't, you'll see e.g. *"Photo 2: This doesn't look like a full-body side photo — please retake it"*, no scores or analysis, and **Save** greyed out: use **Retake** or **Cancel**. Nothing is saved until every photo is valid.
 
 ### Common patterns used everywhere
 - **My Companion … Feedback** buttons (deep blue) — generate AI feedback for that area. After it is generated, **▼ Show Feedback / ▲ Hide Feedback** opens or closes it.

@@ -84,3 +84,21 @@ test("prod tolerates v2.8.0–v2.13.3 data shapes (meal variations, body balance
   console.log("PROD VERSION UNDER TEST: " + (body.match(/v\d+\.\d+\.\d+\S*/) || ["?"])[0]);
   expect(errors).toEqual([]);
 });
+
+test("prod tolerates v2.14.x data (tracker node, AI usage ledger, feedback email, energy fields)", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const put = (k, v) => fetch("http://127.0.0.1:9000/data/" + k + ".json" + NS, { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify(v) });
+  await put("tracker", { t1: { id: "t1", created: "2026-11-12T08:00:00.000Z", category: "Defect", status: "New", text: "x", account: "j***@g***.com", source: "feedback" } });
+  await put("ai_usage", JSON.stringify({ total: { n: 1, in: 10, out: 5, cw: 0, cr: 0, cost: 0.0001 }, days: { "2026-11-12": { Help: { n: 1, in: 10, out: 5, cw: 0, cr: 0, cost: 0.0001 } } } }));
+  await put("feedback_email", "owner@example.com");
+  const ce = await getKey("companion_energy") || {}; await setKey("companion_energy", Object.assign(ce, { lastCheck: "2026-11-12", ledgerAtCalibration: 0 }));
+  await page.reload();
+  await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
+  for (const t of ["Home", "My Body", "My Exercise", "My Eating", "My Health", "My Shop"]) { await tab(page, t); await page.waitForTimeout(300); }
+  await page.locator("button").nth(1).click(); await page.waitForTimeout(500);                        // Settings
+  const dt = page.getByRole("button", { name: /Data tools/ }); if (await dt.count()) { await dt.first().click(); await page.waitForTimeout(800); }
+  const body = await page.locator("body").innerText();
+  expect(body).not.toMatch(/section error|\[object Object\]|undefined kcal|NaN/);
+  console.log("PROD VERSION UNDER TEST: " + (body.match(/v\d+\.\d+\.\d+\S*/) || ["?"])[0]);
+  expect(errors).toEqual([]);
+});
