@@ -17,7 +17,7 @@ const jsOf = (dir) => {
 };
 
 // Installable app (v2.4.0+): if an environment has a manifest, it must be complete and correct.
-// Not required, so a rollback to the legacy single file still deploys.
+// Not required, so a branch without the Vite app (e.g. a reverted cutover) still deploys.
 const NAMES = { prod: "Lifecare Companion", beta: "Lifecare BETA", build: "Lifecare BUILD" };
 function checkPwa(env, dir, base) {
   const p = [];
@@ -38,7 +38,7 @@ function checkPwa(env, dir, base) {
 
 // ---- prod (root): strict
 const prodProblems = [];
-for (const f of ["index.html", "APP_GUIDE.md", "legacy.html"]) exists(f) ? ok("prod " + f) : prodProblems.push("prod " + f + " missing");
+for (const f of ["index.html", "APP_GUIDE.md"]) exists(f)   /* v2.14.2: legacy.html removed (rollback = revert to the previous v2 release) */ ? ok("prod " + f) : prodProblems.push("prod " + f + " missing");
 if (exists("index.html")) {
   const html = read("index.html");
   /noindex/.test(html) ? prodProblems.push("prod has noindex") : ok("prod is indexable");
@@ -58,7 +58,6 @@ for (const env of ["beta", "build"]) {
   if (!exists(env)) { console.log("note: " + env + " not in the artifact (no branch, or skipped earlier)"); continue; }
   const problems = [];
   for (const f of ["index.html", "APP_GUIDE.md"]) exists(env + "/" + f) ? ok(env + " " + f) : problems.push(env + " " + f + " missing");
-  if (exists(env + "/legacy.html")) problems.push(env + " has legacy.html (root only)");
   const html = exists(env + "/index.html") ? read(env + "/index.html") : "", js = jsOf(env);
   // Branches made before v2.1.0 have no environment support yet: report, don't skip.
   const envAware = /VITE_APP_ENV|env-badge/.test(js) || /noindex/.test(html);

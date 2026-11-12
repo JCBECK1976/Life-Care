@@ -58,7 +58,6 @@ build_env() {  # name ref base data_root dest
        && npm run lint \
        && VITE_APP_ENV=$name VITE_DATA_ROOT=$root VITE_BUILD_SHA=$sha VITE_BETA_N=$n \
             npx vite build --base "$base" --outDir "$OUT/$dest" --emptyOutDir --logLevel warn ); then
-    [ "$name" = prod ] || rm -f "$OUT/$dest/legacy.html"   # the rollback page lives at the root only
     echo "- ✅ $name: \`${ref#*/}\` @ $sha → \`$base\`" >> "$SUMMARY"
   elif [ "$name" = prod ]; then
     echo "::error title=prod build failed::main @ $sha failed to install, lint or build. Nothing was deployed."
