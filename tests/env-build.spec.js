@@ -34,7 +34,7 @@ test("build environment: its own installable app (name, scope, tinted icons)", a
 test("build environment: Download backup has data + data_build; Full restore targets data_build", async ({ page }) => {
   const { errors } = await openApp(page);
   await page.locator("button").nth(1).click();                                 // Settings
-  await page.getByRole("button", { name: "Open Data tools" }).click();
+  await page.getByRole("button", { name: "Open Data viewer" }).click();
   const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "⬇️ Download backup" }).click()]);
   expect(dl.suggestedFilename()).toMatch(/^lifecare_backup_build_\d{4}-\d{2}-\d{2}-\d{4}\.json$/);
   const file = JSON.parse(fs.readFileSync(await dl.path(), "utf8"));

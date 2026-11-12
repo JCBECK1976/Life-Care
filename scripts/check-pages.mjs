@@ -38,7 +38,7 @@ function checkPwa(env, dir, base) {
 
 // ---- prod (root): strict
 const prodProblems = [];
-for (const f of ["index.html", "APP_GUIDE.md"]) exists(f)   /* v2.14.2: legacy.html removed (rollback = revert to the previous v2 release) */ ? ok("prod " + f) : prodProblems.push("prod " + f + " missing");
+for (const f of ["index.html", "APP_GUIDE.md", "plan.json"] /* v2.15.0: the plan, read by every environment */) exists(f)   /* v2.14.2: legacy.html removed (rollback = revert to the previous v2 release) */ ? ok("prod " + f) : prodProblems.push("prod " + f + " missing");
 if (exists("index.html")) {
   const html = read("index.html");
   /noindex/.test(html) ? prodProblems.push("prod has noindex") : ok("prod is indexable");

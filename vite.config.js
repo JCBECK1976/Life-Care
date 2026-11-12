@@ -24,6 +24,27 @@ function appGuide() {
   };
 }
 
+// v2.15.0: the plan (docs/plan.json, edited on main) is published next to index.html, so prod serves it as
+// /Life-Care/plan.json after every main deploy (doc-only commits included). Every environment reads the prod copy.
+// An invalid plan.json fails the build (prod then doesn't deploy, live stays as it was). No file = nothing emitted.
+function planJson() {
+  const file = "docs/plan.json";
+  const read = () => { const src = fs.readFileSync(file, "utf8"); const j = JSON.parse(src); if (!Array.isArray(j.items)) throw new Error(file + ": no items array"); return src; };
+  return {
+    name: "plan-json",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (!req.url || !req.url.split("?")[0].endsWith("/plan.json")) return next();
+        if (!fs.existsSync(file)) { res.statusCode = 404; res.end("no plan"); return; }
+        res.setHeader("Content-Type", "application/json; charset=utf-8"); res.end(read());
+      });
+    },
+    generateBundle() {
+      if (fs.existsSync(file)) this.emitFile({ type: "asset", fileName: "plan.json", source: read() });
+    },
+  };
+}
+
 // Build and beta pages: no search-engine indexing, and the environment name in the tab title.
 function envHtml(appEnv) {
   return {
@@ -127,7 +148,7 @@ function pwa(appEnv) {
 export default defineConfig(({ mode }) => ({
   // "next" mode = preview build served from /Life-Care/next/ ; otherwise production /Life-Care/
   base: mode === "next" ? "/Life-Care/next/" : "/Life-Care/",
-  plugins: [react(), appGuide(), envHtml(loadEnv(mode, process.cwd(), "VITE_").VITE_APP_ENV), pwa(loadEnv(mode, process.cwd(), "VITE_").VITE_APP_ENV)],
+  plugins: [react(), appGuide(), planJson(), envHtml(loadEnv(mode, process.cwd(), "VITE_").VITE_APP_ENV), pwa(loadEnv(mode, process.cwd(), "VITE_").VITE_APP_ENV)],
   build: { outDir: "dist", emptyOutDir: true, chunkSizeWarningLimit: 3000 },
   server: { host: "127.0.0.1", port: 5173, strictPort: true },
 }));

@@ -34,16 +34,17 @@ test("v2.14.1: Settings → Feedback email (admin); empty = Tracker only, no ema
   const { errors } = await openApp(page); await del("feedback_email"); await del("tracker");
   await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
   await page.evaluate(() => { window._mailto = []; window.open = (u) => { window._mailto.push(String(u)); return null; }; });
-  const send = async (text) => { await page.getByRole("button", { name: "💬 Send Feedback" }).click(); await page.getByPlaceholder(/What were you trying to do/).fill(text); await page.getByRole("button", { name: "Send Feedback", exact: true }).click(); await expect(page.getByText("✓ Feedback sent — thank you!")).toBeVisible(); };
+  const send = async (text) => { await page.getByRole("button", { name: "💬 Send Feedback" }).click(); await page.getByPlaceholder(/What were you trying to do/).fill(text); await page.getByRole("button", { name: "Send Feedback", exact: true }).click(); await expect(page.getByTestId("feedback-done")).toBeVisible(); };
   await send("no email set");
   expect(await page.evaluate(() => window._mailto.length)).toBe(0);                                  // empty = no email
   await expect.poll(async () => Object.keys((await getRaw("tracker")) || {}).length).toBe(1);        // still saved to the Tracker
   await page.locator("button").nth(1).click();
   const card = page.getByTestId("contact-email");
+  await card.getByRole("button", { name: "Edit" }).click();
   await card.getByLabel("Feedback email").fill("not-an-email"); await card.getByRole("button", { name: "Save" }).click();
   await expect(card.getByRole("status")).toHaveText("⚠️ That doesn't look like an email address");
   await card.getByLabel("Feedback email").fill("owner@example.com"); await card.getByRole("button", { name: "Save" }).click();
-  await expect(card.getByRole("status")).toHaveText("✓ Saved: feedback emails go to this address");
+  await expect(card.getByRole("status")).toHaveText("✓ Saved");
   expect(await getRaw("feedback_email")).toBe("owner@example.com");
   await page.waitForTimeout(4500);
   await send("email set");
