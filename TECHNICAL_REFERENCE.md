@@ -47,7 +47,7 @@ SheetJS (xlsx) was dropped in v2.0.0: nothing used it after the file import was 
 | `src/components/` | `ReviewItemOverlay`, `HelpPanel`, `ChatPanel`, `PrivacyPolicy`, `FeedbackForm`, `ErrorBoundary`, `EnvBadge` (BUILD/BETA badge, under Help/Settings), `PersonTabs` (scrollable person tabs for the header and the exercise log; `personName`, `peopleOf`, `tabLabel`), `LoadingScreen` (same markup as the static loading screen in `index.html`, class `boot`), `charts.jsx` (`MiniChart`, `FullChart`, `BodyCard`) |
 | `src/lib/` | `firebase.js` (config; dev-only emulator switch), `storage.js` (`sGet`/`sSet`), `api.js` (`ensureApiKey`, `API_PRICES`, `trackApiUsage`, the `window.fetch` wrapper, `isEnergyEmpty`, `aiErrorMsg`, `handleApiError`), `aiContext.js` (mood/profile/journal context), `exercise.js` (type helpers, `nextPin`, reps parsing, `autoStatus`), `utils.js` (dates, `mealKey`, status colours, `parseStLb`, `fbIcon`, `calcWeek`), `colour.js` (HSL helpers, `accentVariant`) |
 | `src/constants/` | `features.js` (`ALLOW_ADD_PERSON = false` until Steps 3/5), `version.js` (**`APP_VERSION_BASE`, the only place the version is set**; adds `-beta.N` / `-build.<sha>` per environment), `tone.js`, `mood.js`, `themes.js`, `defaultData.js`, `food.js`, `exercise.js`, `health.js`, `styles.js` (static button/input styles) |
-| `public/legacy.html` | The v1.374.2 single file, served at `/Life-Care/legacy.html` (rollback) |
+| ~~`public/legacy.html`~~ | Removed in v2.14.2 (decision 12 Nov 2026). The v1.374.2 single file stays in git history at tag `legacy-v1.374.2`. |
 | `public/brand/`, `brand/source/` | JC's logos and prepared icons (from Chat). In use since v2.3.0: `app-logo-640.png` (loading screen), `header-mark-288.png` (header, 44px white disc). App icons wired in by v2.4.0 (installable app) |
 | `APP_GUIDE.md` (root) | The user guide. One copy only: `vite.config.js` serves it in dev and copies it next to `index.html` in builds (Help fetches it with a relative URL) |
 | `tests/` | Playwright: `smoke-load`, `eating`, `exercise`, `companion`, `error-boundary`, `data-tools`, `pwa` (manifest, installability, service-worker routing), `people` (1/2/5/8 people at 360/412px), `person-race` (slowed emulator), `env-build`, opt-in `visual`; `mock-ai.js` answers by prompt shape |
@@ -537,8 +537,8 @@ Generates meal suggestions using only custom-added items (with RAG status), neve
 | build | `/Life-Care/build/` | `build` | `data_build` (copy, re-seeded by Chat) | `v2.X.Y-build.<sha>` |
 - **Flow:** commit to `build` → Chat verifies → PR `build → beta` (merge commit) → JC tests → PR `beta → main` = release → Chat verifies and tags. No source pushes straight to `beta` or `main`; doc-only commits go straight to `main`.
 - **Pipeline:** Settings → Pages → Source = **GitHub Actions**. `.github/workflows/deploy.yml`: only **main's** run builds and deploys; pushes to `build`/`beta` ask it to run (`workflow_dispatch`). `scripts/build-pages.sh` builds all three branches (each `npm ci`, lint, `vite build --base …` with `VITE_APP_ENV`, `VITE_DATA_ROOT`, `VITE_BUILD_SHA`, `VITE_BETA_N`) into one artifact; `scripts/check-pages.mjs` checks it. **Prod is strict** (any failure stops the deploy); a beta/build failure leaves that folder out, is reported loudly (log, annotation, job summary), and prod still deploys.
-- Build/beta: BUILD/BETA badge, tab-title prefix, `noindex`; `legacy.html` only at the root. Each environment has its own `APP_GUIDE.md`.
-- Rollback: revert the bad merge on `main` (the previous v2 release redeploys). Since v2.6.0 the database needs Google sign-in, so `/Life-Care/legacy.html` (v1.374.2, no sign-in) no longer works once the rules are applied; in an emergency the rules can be reopened in the Firebase console.
+- Build/beta: BUILD/BETA badge, tab-title prefix, `noindex`. Each environment has its own `APP_GUIDE.md`.
+- Rollback: revert the bad release merge on `main`; the previous v2 release redeploys. (The v1.374.2 `legacy.html` page was removed in v2.14.2; it had stopped working once sign-in and the database rules arrived in v2.6.0. It remains in history at tag `legacy-v1.374.2`.) In an emergency the database rules can be reopened in the console (Architect/JC only).
 - **Sign-in (v2.6.0):** `AuthGate` (Google popup, redirect fallback; access probe on `DATA_ROOT`) wraps the app; `database.rules.json` is the source of truth for the console rules (allowed account UID on `data/` and `data_build/`); the emulator runs a generated copy with a test UID. If `main` has no `package.json`, prod is published as plain files (legacy).
 
 ### Pre-Deploy Checklist
@@ -619,6 +619,6 @@ All feedback supports conversational follow-up via `threadReply()`:
 | `TRANSFER_GAPS.md` | GitHub repo | 12 identified risks and recommended first actions |
 | `TECHNICAL_REFERENCE.md` | GitHub repo | This document — full architecture reference |
 | `src/`, `index.html` | GitHub repo | The application (Vite) — see §2 |
-| `public/legacy.html` | GitHub repo | v1.374.2 single file (rollback) |
+| ~~`public/legacy.html`~~ | GitHub history | v1.374.2 single file, tag `legacy-v1.374.2` (removed from the repo in v2.14.2) |
 | `CLAUDE.md` | GitHub repo | Rules for Claude Code sessions |
 | `HANDOVER_ARCHIVE.md` | GitHub repo | Older Session Log entries |

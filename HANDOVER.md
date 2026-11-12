@@ -2129,3 +2129,19 @@ Nothing runs until all three are in **and** the workflows reach main with the ne
 
 - **Next:** when JC confirms his Build test and a fresh backup: PR build → beta for v2.13.4, v2.14.0, v2.14.1 and the workflows. APP_GUIDE is already updated on build (AI usage, Tracker, Feedback email, no-food handling).
 - **Resume point:** `build` @ d50f346 (v2.14.1), `beta` @ c75c53a (v2.13.3-beta.3). Waiting for JC's Build test + backup confirmation before the beta PR.
+
+### (Coder) 12 Nov 2026 — v2.14.2: body photos must be recognised; legacy.html removed (build)
+**Decision (Architect/JC, 12 Nov):** delete `public/legacy.html`. Rollback is now "revert to the previous v2 release"; the v1.374.2 file stays in history at tag `legacy-v1.374.2`. Rejected: blanking the address in it (it no longer works since v2.6.0 sign-in anyway).
+- **v2.14.2 (build @ 83485fa):**
+  - **Body balance:** the prompt asks for a per-photo `isPerson / isFullBody / pose / matchesPose` (photo 1 = front, 2 = side, 3 = back). Any failure shows "Photo N: This doesn't look like a full-body <pose> photo — please retake it". **No scores** are shown, Save is disabled (**Retake** reopens the picker, **Cancel**), and **nothing is saved**.
+  - **Body Type Photos:** per photo `isPerson / pose / matchesPose` against the six requested poses; same handling. The photo records and the analysis are now saved **only from a valid set**: the handler became a function, and records used to be added before the analysis.
+  - **Measurement Snap:** `matchesPart / seenPart`, e.g. "This photo looks like a calf, not Bicep — please retake it", with Confirm disabled.
+  - Replies without the new flags behave as before. Shared logic is in `src/lib/bodyPhotoCheck.js`.
+- **legacy.html removed (build @ 482cdcd):** `check-pages.mjs` no longer requires it in prod, and `build-pages.sh` no longer strips it. Main's deploy uses main's own copy of those scripts until the release. Rollback notes are updated in `CLAUDE.md`, `TECHNICAL_REFERENCE.md` and `docs/HLD.md` (this commit, main).
+- **Tests:** `tests/v2142.spec.js`:
+  - pure checks;
+  - Body balance: not a person, wrong pose, not full body. Each shows its message, Save is disabled, no scores appear and `progressPhotos` is not saved; Cancel clears it; a valid set still saves.
+  - Body Type: an invalid photo means nothing is saved; a valid set saves date/name/type plus the analysis.
+  - Measurement: a calf photo on Bicep disables Confirm, and nothing is filled or saved.
+- **Results:** full suite **144 passed** (5 on-demand skipped); lint 0 errors; visual footer only; deploy run 43221023271 succeeded.
+- **Resume point:** `build` @ 482cdcd (v2.14.2). Next: PR build → beta (v2.13.4 + v2.14.0 + v2.14.1 + v2.14.2 + workflows + legacy removal); JC has tested v2.14.1 on Build and taken a backup. **Do not merge to main.**

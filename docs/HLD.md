@@ -79,7 +79,7 @@ The full assessment is the DPIA (private).
 
 ## 9. Quality, operations and constraints
 - Tests and checks: see [TEST_STRATEGY.md](TEST_STRATEGY.md).
-- Releases only after JC has tested beta; rollback = revert the release merge on main.
+- Releases only after JC has tested beta; rollback = revert the release merge on main, so the previous v2 release redeploys. (The old v1.374.2 single-file fallback was removed in v2.14.2; it remains in git history at tag `legacy-v1.374.2`.)
 - Automation (prepared, inactive until secrets are added): nightly encrypted backup to the vault, nightly Build refresh, post-deploy smoke test, release tagging.
 - Constraints: one bundle (no code splitting yet); no offline data; Realtime Database values are mostly JSON strings (one key per area), so a save writes the whole area.
 

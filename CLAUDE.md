@@ -20,7 +20,7 @@ Owner: JC (not a developer). Live app used daily by JC and Becks. Full brief: `M
    - **After every action** (each version shipped, each checkpoint, each preview or deploy, each fix): add a dated entry to the **Session Log** in `HANDOVER.md` with what was done, the version and commit, what JC needs to test, and anything left open. Update the version table and the "Live Product" version line. Commit and push it in the same step, so it's never left unrecorded.
    - **After every design decision** (yours, JC's, or one JC passes on from Chat): record the decision, the reason and any alternatives rejected under a **Decisions** heading in the Session Log. A decision that isn't written down didn't happen.
    - Keep entries short and factual. Add new Session Log entries at the **end** of the file so diffs stay small. When the Session Log passes about 150 lines, move older entries into `HANDOVER_ARCHIVE.md` (not read routinely) and leave a one-line pointer. Update `TECHNICAL_REFERENCE.md` when the code structure changes and `APP_GUIDE.md` when anything user-visible changes.
-10. **Never read `src/App.jsx` or `public/legacy.html` in full** (~870KB each). Use grep and line ranges; do mechanical moves with scripts.
+10. **Never read `src/App.jsx` in full** (large). Use grep and line ranges; do mechanical moves with scripts.
 11. Keep this file short (under 60 lines).
 
 ## Session limits and where things go
@@ -42,7 +42,7 @@ npm test                  # Playwright smoke tests (emulator + mocked Claude API
 
 ## Deploy (since v2.1.0)
 A push to `main`, `beta` or `build` rebuilds all three into Pages: prod `/Life-Care/` (data `data`), `/beta/` (data `data`), `/build/` (data `data_build`). Only main's workflow deploys. Prod failures stop the deploy; beta/build failures skip that environment.
-Releases only after JC has tested beta and approved. Rollback: `git revert` the bad merge on `main`. Since v2.6.0 the app needs Google sign-in, so `legacy.html` no longer works once the rules are applied; in an emergency the rules can be reopened in the console.
+Releases only after JC has tested beta and approved. Rollback: `git revert` the bad release merge on `main` (the previous v2 release redeploys). `legacy.html` was removed in v2.14.2 (history: tag `legacy-v1.374.2`); in an emergency the rules can be reopened in the console.
 After a deploy, tell JC to close the tab and reopen it, and check the footer version.
 
 ## Pointers
