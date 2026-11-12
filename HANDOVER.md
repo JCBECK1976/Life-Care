@@ -2262,3 +2262,17 @@ Sizes are % of a weekly allowance, including Architect checks.
   - **History:** suggestions and decisions are stored as values + dates only.
   - Build later, after R4.
 - **Resume point:** unchanged: `build` @ 6853af4 (v2.15.0). Next: Architect checks `/build/`; build → beta PR when asked.
+
+### (Coder) 12 Nov 2026 — PR #23 build → beta (v2.15.0); v2.15.1 on build; plan R6, H7, K4
+- **Done:**
+  - **Beta:** PR #23 merged into `beta` as `447fb9e` (v2.14.3 + v2.15.0, APP_GUIDE updated). Deploy run 43307793856 succeeded, so `/beta/` should show **v2.15.0-beta.5**. Not merged to main.
+  - **v2.15.1 on build (`71041b0`):** "Clear old eating history" removed from Data tools and from Settings → Data & backups. Its code is in git history (commit 6853af4), and the old `clear-history.spec.js` is replaced by `tests/v2151.spec.js`. Full suite 153 passed, lint 0 errors, visual shows footer + Settings 40px shorter (rebaselined). Deploy run 43308845545 succeeded. Changelog row added.
+  - **Plan:**
+    - **R6 "Calorie target from measured burn"** (Release, Feature, Medium, 5%, Planned, not built; needs R4, R5 depends on it), with JC's spec in the notes: Katch-McArdle BMR from the last 3–4 weigh-ins, activity credit = total burned − BMR × R5 adjustment, labelled; target = BMR + credit − deficit; no data → BMR × 1.2 (estimate); shown next to the fixed targets until JC approves per person.
+    - **H7 "Data retention rule (DPIA)"** (House in order, 1%). User deletion/export was already covered by P2 (Step 2), so it's not duplicated.
+    - **K4** (removal) Done v2.15.1; **R1b** Done.
+- **Decisions:**
+  - **Clear old eating history (JC, 12 Nov):** removed; recovery = Download backup + Restore.
+  - **Release timing (Coder):** v2.15.1 is on build only and was not added to PR #23. JC's message asked for v2.15.0 to go to beta, and the removal hadn't been tested yet. It goes to beta with the next build → beta PR.
+- **JC to test (/beta/):** footer v2.15.0-beta.5; Settings sections; Tracker (plan, Outstanding, Token %); Feedback email Edit → Save; Debug Mode. On /build/: Data & backups shows only Download backup, Restore and Data viewer.
+- **Resume point:** `beta` @ 447fb9e (v2.15.0-beta.5), `build` @ 71041b0 (v2.15.1). Next: JC's beta test → (Architect) beta → main release; v2.15.1 to beta with the next build → beta PR when asked.
