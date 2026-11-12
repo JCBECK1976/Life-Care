@@ -22,6 +22,7 @@ Owner: JC (not a developer). Live app used daily by JC and Becks. Full brief: `M
    - Keep entries short and factual. Add new Session Log entries at the **end** of the file so diffs stay small. When the Session Log passes about 150 lines, move older entries into `HANDOVER_ARCHIVE.md` (not read routinely) and leave a one-line pointer. Update `TECHNICAL_REFERENCE.md` when the code structure changes and `APP_GUIDE.md` when anything user-visible changes.
 10. **Never read `src/App.jsx` in full** (large). Use grep and line ranges; do mechanical moves with scripts.
 11. Keep this file short (under 60 lines).
+12. **Keep the plan live.** Update `docs/plan.json` (on `main`) whenever an item starts or finishes: status, version, notes. Main deploys publish it as `/Life-Care/plan.json`; the admin Tracker loads it (v2.15.0+).
 
 ## Session limits and where things go
 - Docs (HANDOVER.md etc.) are committed **straight to `main`**. Source: commit to **`build`** → the Architect verifies `/build/` → PR `build → beta` (merge commit) → JC tests `/beta/` → PR `beta → main` (release; the Architect tags it). Never push source straight to `beta` or `main`.
@@ -46,4 +47,4 @@ Releases only after JC has tested beta and approved. Rollback: `git revert` the 
 After a deploy, tell JC to close the tab and reopen it, and check the footer version.
 
 ## Pointers
-`HANDOVER.md` (memory, session log) · `TECHNICAL_REFERENCE.md` (architecture) · `APP_GUIDE.md` (user guide, read live by Help) · `MIGRATION_BRIEF.md` (the job).
+`HANDOVER.md` (memory, session log) · `docs/plan.json` (the plan) · `TECHNICAL_REFERENCE.md` (architecture) · `APP_GUIDE.md` (user guide, read live by Help) · `MIGRATION_BRIEF.md` (the job).

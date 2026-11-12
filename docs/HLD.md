@@ -66,7 +66,7 @@ All AI calls use the Anthropic Messages API with `claude-sonnet-4-6`.
 Every reply's token counts go to the **AI usage ledger**; Companion Energy is the ledger's spend since the admin last set the balance to 100%.
 
 ## 7. Feedback, Defect & Feature tracker
-💬 Send Feedback saves an entry (time, version, environment, masked account, person, text; *Feedback / New*) and opens an email as before. The admin triages entries in Settings → 📝 Tracker (re-categorise, status, priority, note, ref) and can add Defects and Features directly. Approved items get IDs in [backlog/](backlog/), which is the planned record.
+💬 Send Feedback saves an entry (time, version, environment, masked account, person, text; *Feedback / New*) and opens an email as before. The admin triages entries in Settings → 📝 Tracker (re-categorise, status, priority, note, ref) and can add Defects and Features directly. Approved items get IDs in [backlog/](backlog/), which is the planned record. The **plan** (`docs/plan.json`, every item with phase, status, priority and Token %) is published with each main deploy as `/Life-Care/plan.json`; opening the Tracker loads it and updates its items by id (the admin's notes are kept, feedback is untouched).
 
 ## 8. Privacy principles
 - **Minimum data:** only what the features need. Photos are never stored; the AI usage ledger and the tracker hold no images; the tracker stores a masked account.

@@ -3,6 +3,7 @@
 **How defects are captured and recorded**
 - **New reports go into the in-app Tracker** (Settings → 📝 Tracker, admin only, from v2.14.0). Everything sent with 💬 Send Feedback lands there as *Feedback / New*. The admin triages it: re-categorise it as a **Defect**, set status and priority, and add a ref.
 - **This file is the planned and approved record:** a defect gets a D-number here once it is approved for fixing. The Tracker entry's "Link / ref" then holds that number, e.g. `D20`.
+- **Live status is in [`docs/plan.json`](../plan.json)** (from 12 Nov), shown in the Tracker; this file keeps the approved record.
 - Full context for each item is in the dated `HANDOVER.md` Session Log entries (and `HANDOVER_ARCHIVE.md`). This file is the index.
 
 Status: **Fixed in vX** (shipped to build; see [CHANGELOG](../CHANGELOG.md) for how far it has got) · **Open** · **Superseded**.

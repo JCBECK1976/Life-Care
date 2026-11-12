@@ -2208,3 +2208,46 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **Done:** Settings → 📧 Feedback email now shows the saved address with **Edit**; Save closes the form and shows **✓ Saved** for ~3 s (Cancel keeps the old value). Send Feedback says plainly: always saved to the Tracker; with an address set, the email app opens pre-filled and the person must press **Send** there (the app can't send email). APP_GUIDE updated. Tests `tests/v2143.spec.js` (2) + v2.14.1 test adjusted. Full suite 146 passed, lint 0 errors. `build` @ 3eefa5a, deploy run 43263024828 succeeded.
 - **JC to test (/build/):** Settings → Feedback email → Edit → Save (form closes, "✓ Saved"); Send Feedback with and without an address.
 - **Resume point:** `build` @ 3eefa5a (v2.14.3). Next: v2.15.0 (plan in the Tracker, admin Settings tidy-up, Debug Mode) on build; no beta/main PRs.
+
+### (Coder) 12 Nov 2026 — v2.15.0 on build: plan in the Tracker, admin Settings sections, Reset removed, Debug Mode; Google Health report
+- **Done (build @ 6853af4):**
+  - **Plan (B):** `docs/plan.json` on main is the single source (76 items: D1–D21, X1–X5, F1–F11, C1, 1b, T, K1–K3 as Done with version; open items R/H/E/P/G per JC's seed list, plus I1–I2 ideas). Vite now publishes it next to `index.html`, so after the release every main deploy (doc-only too) serves `/Life-Care/plan.json`. Prod's deploy check then requires it, and invalid JSON stops the prod build. All environments read the prod copy first, then GitHub main's `docs/plan.json` (so `/build/` works before the release). Opening the Tracker upserts plan items by id as `tracker/plan_<id>`: plan fields are overwritten, the admin note is kept, and feedback/admin entries are untouched. Plan items show "Managed by plan" (only the note can be edited; no Remove). New category **Task**, status **Blocked**. Filters: Category, Phase, Status (**Outstanding** by default; Completed/All on request), Priority. A box totals open Token % per phase.
+  - **Admin tidy-up (C):** sections App & AI · Data & backups (Open → Data tools at that tool) · Firebase · GitHub & releases · Integrations (Google Client ID moved here) · Tracker · Documentation (public links; vault docs by name only). **Reset to Default Data removed.** It wrote `life_care_data`, a key the app never reads, so it did nothing. Recovery = Download backup + Restore.
+  - **Debug Mode:** Turn On worked, but it wasn't remembered and logged raw AI replies (up to 500 chars, which can include health text). Now it's remembered on the device (localStorage), shows a red "🔧 DEBUG ON" header badge, and logs only status, stop reason, token counts and redacted errors. The log stays in memory (cleared on reload). It covers Home check-in feedback, eating feedback and Ask a Question.
+  - Tests `tests/v2150.spec.js` (8): plan items appear, the note survives a sync, feedback is untouched, the Outstanding default, Completed only when chosen, phase totals, no-plan message, sections and Reset gone, 360px, Becks sees none, debug on/badge/safe log/persist/off. Full suite 153 passed + v214 fix, lint 0 errors; visual: footer version + Settings (checked by eye, rebaselined). Deploy run 43265516468 succeeded (no failure annotations).
+  - Docs (main): `docs/plan.json`, plan rule in CLAUDE.md (rule 12) and MIGRATION_BRIEF §0 rule 12, docs/README, backlogs, HLD §7, TECHNICAL_REFERENCE; APP_GUIDE on build.
+- **Decisions (Coder):**
+  - A = v2.14.3 (fix) and B+C = v2.15.0 (feature), one deploy each (rule 4).
+  - Plan entries are stored in the tracker node (`plan_<id>`), so admin notes persist. Rejected: showing the plan read-only without storing it (notes would be lost).
+  - The plan loads when the Tracker is opened, not on every Settings visit (fewer reads).
+  - Fallback to GitHub main's copy until the first release publishes `/Life-Care/plan.json`. Rejected: copying plan.json onto `build` (add/add merge conflicts at release).
+  - Publication is a Vite plugin, not a `build-pages.sh` step, so it also works locally. Either way it takes effect only at the release.
+  - Added P4 (supplier register/DPAs/ROPA, 2%) from the Architect's 12 Nov outline although it wasn't in JC's list; R1b (this work, 3%) added under Release.
+- **Google Health (E), report only, nothing built:**
+  - **What exists** (since the first repo commit, imported from v1; no HANDOVER/TRANSFER_GAPS notes on why it paused):
+    - Settings card "📱 Google Health Connect" (per person). Its Setup text says install the Health Connect app, link Fitdays, then Connect.
+    - `connectGoogle` (App.jsx) uses a Google Identity Services token client (index.html loads `gsi/client`). The Client ID is hard-coded (same Google Cloud project as Firebase) and overridable by the admin `google_client_id`.
+    - Scopes: `googlehealth.activity_and_fitness.readonly`, `googlehealth.health_metrics_and_measurements.readonly`.
+    - `syncGoogleHealth` reads `health.googleapis.com/v4/users/me/dataTypes/{weight,body-fat,steps,exercise}/dataPoints`. It writes weight (as stone) and body fat into body history, and steps and sessions into `activity` (only used as AI context).
+    - **No calories are read, and nothing credits the eating score.** Kcal targets are hard-coded per person (JC 2000–2200, Becks 1700–1900).
+  - **What blocks it / problems in the code:**
+    1. The access token (≈1 h, no refresh) is stored in plain text in the shared database (`google_token_<person>`).
+    2. A 401/403 doesn't throw (fetch), so an expired token shows "✓ Synced" with nothing read.
+    3. The weight filter hard-codes 2026-07-01, and the response fields are guessed (`dataPoint`, `floatValue`) and unverified.
+    4. The Setup text mixes up Health Connect (on-device Android store, which a web app can't read) and the cloud Google Health API.
+    5. The OAuth consent screen needs the Health scopes, with JC and Becks as test users. Sensitive/restricted-scope verification is needed before pilot users. To verify in Google Cloud: whether the API is enabled for the project and its current access terms.
+  - **Remaining steps:**
+    1. Google Cloud: enable the API, set up the consent screen and test users; confirm the calories data type (active/total energy burned), its fields and quotas.
+    2. Per-person connect: each person signs in with their own Google account (login hint = their app account). Keep the token in memory/on the device, not in Firebase. Re-consent silently on sync; server-side refresh tokens come with Step 6.
+    3. Read daily calories for the eating week (Sun–Sat) and store only daily totals per person with source and sync time.
+    4. Credit rule in code (like `rag.js`), **JC to decide**: what share of active calories is added to the weekly kcal budget (e.g. 50% or 100%, capped). Show "+N kcal from activity (Google)" on My Eating, and include it in eating feedback.
+    5. Fix 1–4 above; tests with a mocked Google API.
+    6. Privacy: Google becomes a health-data source (DPIA/SAD, privacy notice, consent text).
+    - Estimate ~7% (plan R4).
+- **JC to test (/build/, as JC):**
+  1. Settings shows the 7 sections.
+  2. Tracker → opens with "Plan: 76 items…" (read from GitHub until the release); Outstanding list, Token % per phase; Status → Completed shows D1–D21 etc.
+  3. Open a plan item → only Admin note editable; Save; reopen the Tracker → note kept.
+  4. Debug Mode → Turn On → red badge; Ask a Question → log shows status/tokens only; reload → still on; Turn Off.
+  5. Data & backups → each Open lands on that tool.
+- **Resume point:** `build` @ 6853af4 (v2.15.0), `main` docs incl. `docs/plan.json`. Next: Architect checks `/build/`; then the build → beta PR **when asked** (no beta/main PRs yet). Plan updates: edit `docs/plan.json` on main whenever an item starts or finishes.

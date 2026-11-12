@@ -3,6 +3,7 @@
 **How features are captured and recorded**
 - **New ideas go into the in-app Tracker** (Settings → 📝 Tracker, admin only, from v2.14.0). Send Feedback entries arrive as *Feedback / New*; the admin re-categorises them as **Feature** and can also **+ Add** a Feature directly.
 - **This file is the planned and approved record:** a feature gets an F-number (or a step/item number) here once JC approves it. The Tracker entry's "Link / ref" then holds that number.
+- **Live status is in [`docs/plan.json`](../plan.json)** (from 12 Nov), shown in the Tracker; this file keeps the approved record.
 - Defects are kept separately in [DEFECTS.md](DEFECTS.md). Detail and decisions for each item are in the dated `HANDOVER.md` Session Log entries.
 
 ## Done (for reference)
