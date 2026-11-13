@@ -128,3 +128,35 @@ export function syncAfterProgChange(ex, before) {
   ex.status = ""; delete ex.target;
   return true;
 }
+
+/* v2.16.0 D23: one source of truth for weeks in the Log form and the overwrite check.
+   Weeks can be stored as numbers or strings, and prog is not always in week order. */
+export function wkNum(e) { return parseInt(e && e.wk, 10) || 0; }
+export function findWeekIdx(prog, wk) {
+  var n = parseInt(wk, 10) || 0; if (!prog || !n) return -1;
+  for (var i = 0; i < prog.length; i++) { if (wkNum(prog[i]) === n) return i; }
+  return -1;
+}
+/** The person's latest logged entry BEFORE the current training week (null if none). */
+export function previousEntry(prog, currentWeek) {
+  var best = null;
+  (prog || []).forEach(function(e) { var w = wkNum(e); if (w && w < currentWeek && (!best || w > wkNum(best))) best = e; });
+  return best;
+}
+
+/* v2.16.0 F11: the Companion's per-exercise feedback is kept with the logged week it was about,
+   with the person's Accept / Reject and note. Entries without it are unchanged (backward compatible). */
+export function latestEntry(prog) {
+  var best = null; (prog || []).forEach(function(e) { if (!best || wkNum(e) >= wkNum(best)) best = e; }); return best;
+}
+export function attachCompanion(ex, fbEx, when) {
+  var e = ex && latestEntry(ex.prog); if (!e || !fbEx) return null;
+  var keep = e.companion && e.companion.decision ? { decision: e.companion.decision, decisionNote: e.companion.decisionNote || "" } : {};
+  e.companion = Object.assign({ verdict: String(fbEx.verdict || ""), recommendation: String(fbEx.recommendation || (fbEx.newStatus ? "Recommendation: " + fbEx.newStatus : "")), at: when || "" }, keep);
+  return e;
+}
+export function setCompanionDecision(ex, decision, note) {
+  var e = ex && latestEntry(ex.prog); if (!e || !e.companion) return null;
+  e.companion.decision = decision; e.companion.decisionNote = (note || "").trim();
+  return e;
+}

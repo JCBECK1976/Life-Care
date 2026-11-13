@@ -2348,7 +2348,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             {/* Day notes */}
 
               <div style={{ marginTop: 8 }}>
-              <span style={{ fontSize: 10, color: "#94a3b8" }}>Day notes</span>
+              <span style={{ fontSize: 10, color: "#94a3b8" }}>My Notes</span>
               <textarea defaultValue={dayMeals._note || ""} onBlur={function(e) { setMeal(eatDay, "_note", e.target.value); }} placeholder="e.g. Ate out, exam stress, birthday..." style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, minHeight: 30, resize: "vertical", boxSizing: "border-box" }} />
             </div>
             </div>

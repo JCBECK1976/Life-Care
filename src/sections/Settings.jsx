@@ -8,6 +8,7 @@ import AccountCard from "../components/AccountCard.jsx";
 import AiUsageCard from "../components/AiUsageCard.jsx";
 import Tracker from "../components/Tracker.jsx";
 import ContactEmailCard from "../components/ContactEmailCard.jsx";
+import { DOCS_INDEX, VAULT_DOCS } from "../constants/docsIndex.js";
 
 // v2.15.0 C: admin sections. "Reset to Default Data" was removed (recovery = Download backup + Restore).
 var REPO = "https://github.com/JCBECK1976/Life-Care";
@@ -171,8 +172,11 @@ export default function SettingsSection({ ctx }) {
 
           {isAdmin && <AdminSection id="docs" title="Documentation" help="Public documents are in the repository. Private ones are in the vault and are not linked here." />}
           {isAdmin && (<div data-testid="docs-links" style={card}>
-            <Links items={[["App guide", DOC + "APP_GUIDE.md"], ["Docs index", DOC + "docs/README.md"], ["High-level design", DOC + "docs/HLD.md"], ["Test strategy", DOC + "docs/TEST_STRATEGY.md"], ["Changelog", DOC + "docs/CHANGELOG.md"], ["Product backlog", DOC + "docs/backlog/PRODUCT_BACKLOG.md"], ["Defects backlog", DOC + "docs/backlog/DEFECTS.md"], ["Plan (plan.json)", PAGES + "plan.json"], ["Technical reference", DOC + "TECHNICAL_REFERENCE.md"]]} />
-            <div data-testid="vault-docs" style={{ fontSize: 10, color: "#64748b", marginTop: 6, lineHeight: 1.5 }}>Private, in the vault (not linked): SAD incl. threat model, DPIA, SDD and runbooks, supplier register. Some are still being written (see the plan).</div>
+            {DOCS_INDEX.map(function(g) { return (<div key={g.group} data-testid={"docs-group"} style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: g.draft ? "#9a3412" : "#334155" }}>{g.group}</div>
+              <Links items={g.docs.map(function(d) { return [d[0], d[1].indexOf("@pages:") === 0 ? PAGES + d[1].slice(7) : DOC + d[1]]; })} />
+            </div>); })}
+            <div data-testid="vault-docs" style={{ fontSize: 10, color: "#475569", marginTop: 6, lineHeight: 1.5 }}><b>Private, in the vault (not linked):</b><ul style={{ margin: "2px 0 0", paddingLeft: 16 }}>{VAULT_DOCS.map(function(v) { return <li key={v}>{v}</li>; })}</ul></div>
           </div>)}
 
           <AccountCard />

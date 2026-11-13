@@ -3,7 +3,7 @@ import { calcWeek, fbIcon, sBg, sColor, sLabel } from "../lib/utils.js";
 import { buildExProfileInfo, getMoodContext } from "../lib/aiContext.js";
 import { sSet } from "../lib/storage.js";
 import { scrollOnMount } from "../lib/scrollIntoView.js";
-import { entrySets, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsDiffer, setsToSave, syncAfterProgChange, weightLabel } from "../lib/exercise.js";
+import { attachCompanion, setCompanionDecision, entrySets, findWeekIdx, previousEntry, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsDiffer, setsToSave, syncAfterProgChange, weightLabel } from "../lib/exercise.js";
 import React from "react";
 import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
 import { btnAction, btnActionLg, btnDelete, btnEdit, btnFilledOn, btnLog, btnMuted, btnOpen, btnP, btnProgress, btnS, inputStyle, labelStyle } from "../constants/styles.js";
@@ -116,7 +116,7 @@ export default function ExerciseSection({ ctx }) {
           };
           const openEntry = (day, exIdx, progIdx) => {
             var e = data[activeTab].exercises[day][exIdx].prog[progIdx];
-            setOpenProg({ day: day, exIdx: exIdx, progIdx: progIdx, editing: false, msg: "", draft: { wk: String(e.wk), sets: logSetsFrom(e, Math.max(1, (e.sets || []).length || parseReps(e.r).length || 3)), fullRange: e.fullRange || "", goodForm: e.goodForm || "", note: e.note || "" } });
+            setOpenProg({ day: day, exIdx: exIdx, progIdx: progIdx, editing: false, msg: "", draft: { wk: String(e.wk), sets: logSetsFrom(e, Math.max(1, (e.sets || []).length || parseReps(e.r).length || 3)), fullRange: e.fullRange || "", goodForm: e.goodForm || "", note: e.note || "", companion: e.companion ? Object.assign({}, e.companion) : null } });
           };
           const setDraft = (patch) => setOpenProg(function(o) { return Object.assign({}, o, { draft: Object.assign({}, o.draft, patch), msg: "" }); });
           const saveEntry = async () => {
@@ -129,6 +129,7 @@ export default function ExerciseSection({ ctx }) {
             var before = ex2.prog.slice().sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); }).pop(); before = Object.assign({}, before);
             e.wk = parseInt(d.wk) || e.wk; e.sets = sets; e.w = String(sets[0].w).replace(/kg$/, "") + "kg"; e.r = fmtReps(sets.map(function(x) { return parseInt(x.r) || 0; }));
             e.fullRange = d.fullRange; e.goodForm = d.goodForm; e.note = d.note.trim();
+            if (d.companion && e.companion) { if (d.companion.decision) e.companion.decision = d.companion.decision; else delete e.companion.decision; e.companion.decisionNote = (d.companion.decisionNote || "").trim(); } // F11
             ex2.prog.sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
             syncAfterProgChange(ex2, before);   // D20
             await saveData(nd);
@@ -154,7 +155,20 @@ export default function ExerciseSection({ ctx }) {
               {ed && <button type="button" onClick={function() { setDraft({ sets: d.sets.concat([{ w: (d.sets[d.sets.length - 1] || {}).w || "", r: "" }]) }); }} style={{...btnMuted, marginBottom: 6}}>+ Add set</button>}
               {group("fullRange", "Range")}
               {group("goodForm", "Form")}
-              <Field label="Notes" testid="entry-note">{ed ? <textarea aria-label="Notes" value={d.note} onChange={function(e) { setDraft({ note: e.target.value }); }} style={Object.assign({}, openInput, { minHeight: 44 })} /> : (d.note || <span style={{ color: "#94a3b8" }}>—</span>)}</Field>
+              <Field label="My Notes" testid="entry-note">{ed ? <textarea aria-label="My Notes" value={d.note} onChange={function(e) { setDraft({ note: e.target.value }); }} style={Object.assign({}, openInput, { minHeight: 44 })} /> : (d.note || <span style={{ color: "#64748b" }}>—</span>)}</Field>
+              {d.companion && (function() { var c = d.companion; var setC = function(patch) { setDraft({ companion: Object.assign({}, c, patch) }); };
+                var decLabel = c.decision === "accepted" ? "✓ Accepted" : c.decision === "rejected" ? "✕ Rejected" : "No decision yet";
+                return (<div data-testid="entry-companion" style={{ margin: "8px 0 4px", padding: 8, borderRadius: 8, background: "#eff6ff", border: "1px solid #bfdbfe" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#1e40af", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Companion Feedback{c.at ? <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, color: "#475569" }}> · {c.at}</span> : null}</div>
+                  {c.verdict && <div data-testid="entry-companion-verdict" style={{ fontSize: 11, color: "#1e293b", lineHeight: 1.5 }}>{c.verdict}</div>}
+                  {c.recommendation && <div style={{ fontSize: 11, color: "#9a3412", fontWeight: 600, marginTop: 3 }}>{c.recommendation}</div>}
+                  {ed ? (<div style={{ marginTop: 6 }}>
+                    <div role="group" aria-label="Your decision" style={{ display: "flex", border: "1px solid #cbd5e1", borderRadius: 6, overflow: "hidden" }}>
+                      {[["accepted", "✓ Accept"], ["rejected", "✕ Reject"]].map(function(o) { var on = c.decision === o[0]; return <button key={o[0]} type="button" aria-pressed={on} onClick={function() { setC({ decision: on ? "" : o[0] }); }} style={{ flex: 1, padding: "6px 4px", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", background: on ? (o[0] === "accepted" ? "#166534" : "#475569") : "#fff", color: on ? "#fff" : "#334155" }}>{o[1]}</button>; })}
+                    </div>
+                    <textarea aria-label="Note on the feedback" placeholder="Note on the feedback (optional)" value={c.decisionNote || ""} onChange={function(e) { setC({ decisionNote: e.target.value }); }} style={Object.assign({}, openInput, { minHeight: 36, marginTop: 6 })} />
+                  </div>) : (<div data-testid="entry-companion-decision" style={{ fontSize: 11, marginTop: 4, color: "#334155" }}><b>Your decision:</b> {decLabel}{c.decisionNote ? " — " + c.decisionNote : ""}</div>)}
+                </div>); })()}
             </OpenForm>);
           };
           const deleteProg = async (day, exIdx, progIdx) => {
@@ -232,16 +246,16 @@ export default function ExerciseSection({ ctx }) {
                       {ex.stopped ? <div style={{fontSize:11,color:"#64748b",background:"#f1f5f9",padding:"8px 10px",borderRadius:6,textAlign:"center"}}>⏸ Stopped — view only. Restart in Exercise Settings to log again.</div> : <button onClick={function() { openLogForm(day, i); }} style={btnActionLg}>📋 Log {ex.name}</button>}
                       {logEx && logEx.day === day && logEx.idx === i && (() => {
             const ex = p.exercises[logEx.day] && p.exercises[logEx.day][logEx.idx]; if (!ex) return null;
-            const prev = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
+            const prev = previousEntry(ex.prog, currentWeek); // D23: latest logged week before the current week
             return (<div ref={logFormRef} style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginTop: 10, marginBottom: 14 }}>
               <div data-testid="log-for" style={{ fontSize: 11, fontWeight: 700, color: accent, marginBottom: 2 }}>Logging for {personName(data, activeTab)}</div>
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Log: {ex.name}</div>
-              <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Previous: {prev ? fmtEntry(prev) + " (Wk " + prev.wk + ")" : "No data"}</div>
+              <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}><span data-testid="log-previous">Previous: {prev ? fmtEntry(prev) + " (Wk " + prev.wk + ")" : "No data"}</span></div>
               {prevComment && (<div style={{ padding: 8, background: "#fef3c7", borderRadius: 8, marginBottom: 8, border: "1px solid #fcd34d" }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>📋 NOTES FROM LAST SESSION</div>
                 <div style={{ fontSize: 11, color: "#92400e", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{prevComment}</div>
               </div>)}
-              {prev && <button onClick={() => { setEditPrev(!editPrev); if (!editPrev) { setLogSets(logSetsFrom(prev, 3)); setLogWeek(String(prev.wk)); } else { setLogSets(logSetsFrom(prev, 3).map(function(x) { return { w: x.w, r: "" }; })); (function() { var mwk = 0; var cex = data[activeTab].exercises[logEx.day][logEx.idx]; if (cex && cex.prog) { for (var mi = 0; mi < cex.prog.length; mi++) { if (cex.prog[mi].wk > mwk) mwk = cex.prog[mi].wk; } } setLogWeek(String(mwk > 0 ? mwk + 1 : calcWeek(data.config.trainingStart))); })(); } }} style={{ ...btnST, marginBottom: 8, fontSize: 11, background: editPrev ? "#fef3c7" : "#f1f5f9" }}>{editPrev ? "Cancel Edit — Log New Instead" : "Edit Previous Entry"}</button>}
+              {prev && <button onClick={() => { setEditPrev(!editPrev); if (!editPrev) { window._lcEditWk = prev.wk; setLogSets(logSetsFrom(prev, 3)); setLogWeek(String(prev.wk)); setLogFullRange(prev.fullRange || ""); setLogGoodForm(prev.goodForm || ""); setLogComment(prev.note || ""); } else { setLogSets(logSetsFrom(prev, 3).map(function(x) { return { w: x.w, r: "" }; })); window._lcEditWk = null; setLogWeek(String(currentWeek)); setLogFullRange(""); setLogGoodForm(""); setLogComment(""); } }} style={{ ...btnST, marginBottom: 8, fontSize: 11, background: editPrev ? "#fef3c7" : "#f1f5f9" }}>{editPrev ? "Cancel Edit — Log New Instead" : "Edit Previous Entry"}</button>}
               <div style={{ marginBottom: 8 }}><label style={labelStyle}>Week</label><input type="number" value={logWeek} onChange={e => setLogWeek(e.target.value)} style={{ ...inputStyle, width: 80 }} /></div>
               {(() => { var exTypeName = ex.exType || getExerciseType(ex.name); var etc = getExerciseTypeConfig(exTypeName); var numSets = ex.sets || 3; var showM1 = etc.metric1 !== "none"; var m1ph = etc.metric1Label ? etc.metric1Label.replace(/\s*\(.*\)/,"") : "value"; var m2ph = etc.metric2Label ? etc.metric2Label.replace(/\s*\(.*\)/,"") : "value"; var showM2 = etc.metric2 !== "none"; var setsLabel = etc.hasSets ? "Sets" : "Log"; return (<div><div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>{etc.hasSets ? setsLabel + " (" + (showM1 ? m1ph : "") + (showM1 && showM2 ? " × " : "") + (showM2 ? m2ph : "") + ")" : "Log (" + (showM1 ? m1ph : "") + (showM1 && showM2 ? " / " : "") + (showM2 ? m2ph : "") + ")"}</div>
               {logSets.slice(0, etc.hasSets ? numSets : 1).map((s, i) => (<div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}>{etc.hasSets && <span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", width: 20 }}>S{i + 1}</span>}{showM1 && <input type="number" placeholder={m1ph} value={s.w} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], w: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} />}{showM1 && showM2 && <span style={{ color: "#94a3b8" }}>×</span>}{showM2 && <input type="number" placeholder={m2ph} value={s.r} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], r: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} />}</div>))}</div>); })()}
@@ -275,7 +289,7 @@ export default function ExerciseSection({ ctx }) {
                   <option value="reduce">Reduce (override — drop weight)</option>
                 </select>
               </div>
-              <div style={{ marginTop: 4 }}><label style={labelStyle}>Notes (carried to next session)</label><textarea value={logComment} onChange={e => setLogComment(e.target.value)} placeholder="Notes for next session..." style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
+              <div style={{ marginTop: 4 }}><label style={labelStyle}>My Notes (carried to next session)</label><textarea value={logComment} onChange={e => setLogComment(e.target.value)} placeholder="Notes for next session..." style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
               <div style={{ marginTop: 8, marginBottom: 4 }}>
                 <div style={{ display: "flex", background: accentMid, borderRadius: 6, padding: 2, marginBottom: 6 }}>
                   <PersonTabs testId="log-person-tabs" people={peopleOf(data)} activeKey={activeTab} rowStyle={{ gap: 0 }}
@@ -308,7 +322,7 @@ export default function ExerciseSection({ ctx }) {
                         if (otherEx) {
                           var otherCurWk = calcWeek(data.config.trainingStart);
                           var otherCurEntry = null;
-                          if (otherEx.prog) { for (var oci = 0; oci < otherEx.prog.length; oci++) { if (otherEx.prog[oci].wk === otherCurWk) { otherCurEntry = otherEx.prog[oci]; break; } } }
+                          var _oci = findWeekIdx(otherEx.prog, otherCurWk); if (_oci >= 0) otherCurEntry = otherEx.prog[_oci]; // D23
                           if (otherCurEntry) {
                             // Current week data exists — pre-fill from it
                             var ocReps = otherCurEntry.r ? parseReps(otherCurEntry.r) : [];
@@ -325,17 +339,17 @@ export default function ExerciseSection({ ctx }) {
                             window._dualLogState[tab] = { sets: ocSets, comment: ocComment, override: "standard", week: String(otherCurWk), fullRange: ocFR, goodForm: ocGF, _edited: false, _orig: { sets: ocSets.map(function(s){return s.w+"x"+s.r;}).join(","), comment: ocComment } };
                           } else {
                             // No current week data — load from last entry as before
-                            var otherLast = otherEx.prog && otherEx.prog.length > 0 ? otherEx.prog[otherEx.prog.length - 1] : null;
+                            var otherLast = previousEntry(otherEx.prog, otherCurWk); // D23
                             var oReps = otherLast && otherLast.r ? parseReps(otherLast.r) : [];
                             var oSets = otherLast ? logSetsFrom(otherLast, 3) : [{ w: "", r: "" }, { w: "", r: "" }, { w: "", r: "" }];
                             setLogSets(oSets);
                             setLogComment("");
-                            setLogOverride("standard");
+                            setLogOverride("standard"); setLogWeek(String(otherCurWk)); // D23: never inherit the other person's week
                             var olFR = ""; var olGF = ""; // D12: a new entry starts unselected
                             setLogFullRange(olFR); setLogGoodForm(olGF);
                             // Record original state for edit detection
                             if (!window._dualLogState) window._dualLogState = {};
-                            window._dualLogState[tab] = { sets: oSets, comment: "", override: "standard", week: logWeek, fullRange: olFR, goodForm: olGF, _edited: false, _orig: { sets: oSets.map(function(s){return s.w+"x"+s.r;}).join(","), comment: "" } };
+                            window._dualLogState[tab] = { sets: oSets, comment: "", override: "standard", week: String(otherCurWk), fullRange: olFR, goodForm: olGF, _edited: false, _orig: { sets: oSets.map(function(s){return s.w+"x"+s.r;}).join(","), comment: "" } };
                           }
                         }
                       }
@@ -362,9 +376,9 @@ export default function ExerciseSection({ ctx }) {
                       <span data-testid="prog-wk" style={{ width: 40, textAlign: "center", fontWeight: 600, color: "#334155" }}>{pr.wk}</span>
                       <span data-testid="prog-weight" style={{ width: 70, fontSize: 11 }}>{weightLabel(pr) || pr.w}</span>
                       <span style={{ width: 65, fontSize: 11 }}>{pr.r}</span>
-                      <span style={{ flex: 1, minWidth: 0, fontSize: 9, color: "#64748b" }}>{pr.goodForm || pr.fullRange ? "Form " + (pr.goodForm === "good" ? "✓" : pr.goodForm ? "…" : "–") + " · Range " + (pr.fullRange === "good" ? "✓" : pr.fullRange ? "…" : "–") : ""}</span>
-                      <button aria-label={"Open week " + pr.wk} onClick={function() { openEntry(day, exIdx, realPi); }} style={btnOpen}>Open</button>
-                    </div>{setsDiffer(pr) && <div data-testid="prog-sets" style={{ fontSize: 10, color: "#64748b", padding: "0 0 4px 44px" }}>Sets: {fmtEntry(pr)}</div>}{openProg && openProg.day === day && openProg.exIdx === exIdx && openProg.progIdx === realPi && renderEntryForm(ex)}</div>); })}
+                      <span style={{ flex: 1, minWidth: 0 }}></span>
+                      <button aria-label={"Open week " + pr.wk} onClick={function() { openEntry(day, exIdx, realPi); }} style={Object.assign({}, btnOpen, { flexShrink: 0 })}>Open</button>
+                    </div>{setsDiffer(pr) && <div data-testid="prog-sets" style={{ fontSize: 10, color: "#64748b", padding: "0 0 4px 44px" }}>Sets: {fmtEntry(pr)}</div>}{(pr.goodForm || pr.fullRange) && <div data-testid="prog-chips" style={{ display: "flex", flexWrap: "wrap", gap: 4, padding: "0 0 4px 44px" }}>{[["Form", pr.goodForm], ["Range", pr.fullRange]].map(function(c) { var good = c[1] === "good"; var txt = c[0] + (good ? " ✓ Good" : c[1] ? " … Working towards" : " – not recorded"); return <span key={c[0]} style={{ fontSize: 10, fontWeight: 600, padding: "1px 7px", borderRadius: 10, whiteSpace: "nowrap", color: good ? "#166534" : c[1] ? "#92400e" : "#475569", background: good ? "#dcfce7" : c[1] ? "#fef3c7" : "#f1f5f9" }}>{txt}</span>; })}</div>}{openProg && openProg.day === day && openProg.exIdx === exIdx && openProg.progIdx === realPi && renderEntryForm(ex)}</div>); })}
                     {(!ex.prog || ex.prog.length === 0) && <div style={{ fontSize: 10, color: "#94a3b8" }}>No progression data yet</div>}
                     {ex.prog && ex.prog.length > 4 && <button onClick={function(){setSelectedEx(Object.assign({},selectedEx,{showAll:!selectedEx.showAll}));}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:accent,cursor:"pointer",marginBottom:6}}>{selectedEx && selectedEx.showAll ? "▲ Show less" : "▼ View more (" + (ex.prog.length - 4) + " entries)"}</button>}
                     <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var wk = calcWeek(nd.config.trainingStart); var existWk = -1; for (var awi = 0; awi < nd[activeTab].exercises[day][exIdx].prog.length; awi++) { if (nd[activeTab].exercises[day][exIdx].prog[awi].wk === wk) { existWk = awi; break; } }
@@ -485,7 +499,7 @@ export default function ExerciseSection({ ctx }) {
                         <textarea value={addExConfirm.progression} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{progression:e.target.value}));}} style={{...inputStyle,width:"100%",minHeight:60,resize:"vertical",boxSizing:"border-box"}} />
                       </div>
                       <div style={{marginBottom:10}}>
-                        <label style={labelStyle}>Equipment / Form Notes</label>
+                        <label style={labelStyle}>My Notes (equipment / form)</label>
                         <textarea value={addExConfirm.notes||""} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{notes:e.target.value}));}} placeholder="Optional notes..." style={{...inputStyle,width:"100%",minHeight:40,resize:"vertical",boxSizing:"border-box"}} />
                       </div>
                       <div style={{marginBottom:10}}>
@@ -602,7 +616,7 @@ export default function ExerciseSection({ ctx }) {
                         <textarea value={addExConfirm.progression} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{progression:e.target.value}));}} style={{...inputStyle,width:"100%",minHeight:60,resize:"vertical",boxSizing:"border-box"}} />
                       </div>
                       <div style={{marginBottom:10}}>
-                        <label style={labelStyle}>Equipment / Form Notes</label>
+                        <label style={labelStyle}>My Notes (equipment / form)</label>
                         <textarea value={addExConfirm.notes||""} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{notes:e.target.value}));}} placeholder="Optional notes..." style={{...inputStyle,width:"100%",minHeight:40,resize:"vertical",boxSizing:"border-box"}} />
                       </div>
                       {/* Update Guides button — regenerate AI guides */}
@@ -871,6 +885,7 @@ export default function ExerciseSection({ ctx }) {
                         fb._feedbackWeek = fbWeekNum;
                         fb._feedbackFor = activeTab;
                         if (fb.exercises) { fb.exercises.forEach(function(fbEx) { var srcEx = exList.find(function(e) { return e.name === fbEx.name; }); if (srcEx) { var srcLatest = srcEx.prog && srcEx.prog.length > 0 ? srcEx.prog[srcEx.prog.length - 1] : null; if (srcLatest) fbEx._prevData = srcLatest.w + " " + srcLatest.r; } }); }
+                        if (fb.exercises && fb.exercises.length) { var ndF = JSON.parse(JSON.stringify(data)); var nF = 0; fb.exercises.forEach(function(fbEx) { var tgt = (ndF[activeTab].exercises[day] || []).find(function(e) { return e.name === fbEx.name; }); if (attachCompanion(tgt, fbEx, fb._generatedAt)) nF++; }); if (nF) await saveData(ndF); } // F11: keep it with the logged week
                         setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb })); var sfUpdate = Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb }); await sSet("session_feedback_all", JSON.stringify(sfUpdate));
                         // Recommendations shown to user - they accept/decline individually
                         }
@@ -919,6 +934,7 @@ export default function ExerciseSection({ ctx }) {
                               break;
                             }
                           }
+                          (function() { var ne = document.getElementById("user-note-"+ei+"-"+day); setCompanionDecision(dayExs3.find(function(e) { return e.name === ex.name; }), "accepted", ne ? ne.value : ""); })(); // F11
                           await saveData(nd3);
                           var el = document.getElementById("rec-" + ei + "-" + day);
                           var noteEl = document.getElementById("user-note-"+ei+"-"+day); var userNote = noteEl ? noteEl.value.trim() : ""; ex._decision = "accepted"; ex._userNote = userNote;  if (userNote) { var exRef = nd3[activeTab].exercises[day]; if (exRef && exRef[di3]) { exRef[di3].notes = (exRef[di3].notes ? exRef[di3].notes + "; " : "") + "Wk" + currentWeek + " accepted: " + userNote; } } var sfbKey = activeTab + "_" + day; var curFb = sessionFeedback[sfbKey]; if (curFb && curFb.exercises) { curFb.exercises[ei]._decision = "accepted"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#e0f2fe"; el.style.borderColor = "#86efac"; el.innerHTML = "<div style=\"font-size:11px;color:#0c4a6e;font-weight:600;padding:4px\">\u2705 Accepted — " + ex.name + " updated to " + ex.newStatus + ". Activity updated.</div>"; }
@@ -956,6 +972,7 @@ export default function ExerciseSection({ ctx }) {
                               break;
                             }
                           }
+                          setCompanionDecision(dayExs4.find(function(e) { return e.name === ex.name; }), "rejected", userNote2); // F11
                           saveData(nd4);
                           var sfbKey2 = activeTab + "_" + day; var curFb2 = sessionFeedback[sfbKey2]; if (curFb2 && curFb2.exercises) { curFb2.exercises[ei]._decision = "declined"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#f1f5f9"; el.style.borderColor = "#e2e8f0"; el.innerHTML = "<div style=\"font-size:11px;color:#64748b;padding:4px\">\u21a9 Declined — no changes made to Activity.</div>"; }
                         }} style={{ padding: "5px 14px", background: "#e2e8f0", color: "#475569", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Decline</button>

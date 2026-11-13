@@ -14,7 +14,7 @@ import { BLOOD_TESTS, DEFAULT_MEDS, DEFAULT_SUPPS, IDEALS } from "./constants/he
 import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnMuted, btnP, btnPortion, btnS, btnStop, inputStyle, labelStyle } from "./constants/styles.js";
 import { accentVariant, hexToHsl, hslToHex } from "./lib/colour.js";
 import { buildExProfileInfo, getJournalWellbeingCtx, getMoodContext } from "./lib/aiContext.js";
-import { autoStatus, entrySets, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsToSave } from "./lib/exercise.js";
+import { autoStatus, entrySets, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, findWeekIdx, logSetsFrom, parseReps, previousEntry, setsToSave } from "./lib/exercise.js";
 import { calcWeek, countStatus, fbIcon, fmtDate, getWeekDates, mealKey, sBg, sColor, sLabel } from "./lib/utils.js";
 import { sGet, sSet } from "./lib/storage.js";
 import { handleApiError } from "./lib/api.js";
@@ -896,7 +896,7 @@ function Dashboard() {
     window._dualLogState = null;
 
     const ex = data[activeTab].exercises[day][idx];
-    const last = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
+    const last = previousEntry(ex.prog, calcWeek(data.config.trainingStart)); // D23: latest week BEFORE the current one
     setLogEx({ day, idx, who: activeTab }); setLogNeedChoice(""); // D1: the form belongs to this person
     var targetW = "";
     var targetR = "";
@@ -915,15 +915,13 @@ function Dashboard() {
     var wFor = function(i) { return targetW || (lastSets[i] ? lastSets[i].w : useW); }; // D2: last session's per-set weights
     if (last && Array.isArray(last.sets) && last.sets.length) setLogSets(logSetsFrom(last, 3)); // each set from the previous entry
     else setLogSets([{ w: wFor(0), r: r1 }, { w: wFor(1), r: r2 }, { w: wFor(2), r: r3 }]);
-    (function() {
-      var maxWk = 0;
-      if (ex.prog) { for (var mwi = 0; mwi < ex.prog.length; mwi++) { if (ex.prog[mwi].wk > maxWk) maxWk = ex.prog[mwi].wk; } }
-      setLogWeek(String(maxWk > 0 ? maxWk + 1 : calcWeek(data.config.trainingStart)));
-    })();
-    // Check if current week already has saved data — if so, pre-fill from it
+    // D23: the Week always defaults to the CURRENT training week (the header week)
     var currentCalcWk2 = calcWeek(data.config.trainingStart);
-    var currentWkEntry = null;
-    if (ex.prog) { for (var cwi = 0; cwi < ex.prog.length; cwi++) { if (ex.prog[cwi].wk === currentCalcWk2) { currentWkEntry = ex.prog[cwi]; break; } } }
+    setLogWeek(String(currentCalcWk2));
+    // If the current week is already logged, the form opens that entry for editing (never a new log over it)
+    var _cwi = findWeekIdx(ex.prog, currentCalcWk2);
+    var currentWkEntry = _cwi >= 0 ? ex.prog[_cwi] : null;
+    window._lcEditWk = currentWkEntry ? currentCalcWk2 : null;
     if (currentWkEntry) {
       setLogSets(logSetsFrom(currentWkEntry, 3)); // D2: per-set
       setLogWeek(String(currentCalcWk2));
@@ -957,9 +955,11 @@ function Dashboard() {
     if (!logGoodForm || !logFullRange) { setLogNeedChoice("Choose Form and Range to save"); return; }
     setLogNeedChoice("");
     var _sets = setsToSave(logSets); // D2: weight and reps per set
-    if (editPrev && ex.prog.length > 0) {
+    var _editIdx = editPrev ? findWeekIdx(ex.prog, window._lcEditWk) : -1; // D23: edit the entry that was opened, not the last array item
+    if (editPrev && _editIdx < 0 && ex.prog.length > 0) _editIdx = ex.prog.length - 1;
+    if (editPrev && _editIdx >= 0) {
       // Edit previous entry
-      const prev = ex.prog[ex.prog.length - 1];
+      const prev = ex.prog[_editIdx];
       prev.w = (logSets[0].w || prev.w.replace("kg", "")) + "kg";
       prev.r = fmtReps(logSets.map(s => parseInt(s.r) || 0));
       prev.wk = parseInt(logWeek) || prev.wk;
@@ -972,10 +972,7 @@ function Dashboard() {
     } else {
       // New entry - check for duplicates
       var logWk = parseInt(logWeek) || calcWeek(data.config.trainingStart);
-      var existingIdx = -1;
-      for (var di = 0; di < ex.prog.length; di++) {
-        if (ex.prog[di].wk === logWk) { existingIdx = di; break; }
-      }
+      var existingIdx = findWeekIdx(ex.prog, logWk); // D23: same week source as the Log form
       if (existingIdx >= 0) {
         var action = confirm("Week " + logWk + " already has an entry for " + ex.name + " (" + ex.prog[existingIdx].w + " " + ex.prog[existingIdx].r + ").\n\nOK = Update existing entry\nCancel = Go back");
         if (!action) return;
@@ -1037,8 +1034,7 @@ function Dashboard() {
             var otW = otState.sets[0].w + "kg";
             var otReps = fmtReps(otState.sets.map(function(s) { return parseInt(s.r) || 0; }));
             var otWk = parseInt(otState.week || logWeek) || calcWeek(data.config.trainingStart);
-            var otExistIdx = -1;
-            for (var oti2 = 0; oti2 < otEx.prog.length; oti2++) { if (otEx.prog[oti2].wk === otWk) { otExistIdx = oti2; break; } }
+            var otExistIdx = findWeekIdx(otEx.prog, otWk); // D23
             if (otExistIdx >= 0) {
               otEx.prog[otExistIdx].w = otW;
               otEx.prog[otExistIdx].r = otReps;

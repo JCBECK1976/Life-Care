@@ -43,7 +43,7 @@ export default function HistoryRows(props) {
             dangerKind="remove" onDanger={async function() { if (!confirm("Remove week " + e.wk + " from " + props.label + "?")) return; setOpen(null); await props.onRemove(r.i); }}>
             <Field label="Week" testid={pre + "-f-wk"}>{ed ? <input aria-label="Week" type="number" value={d.wk} onChange={function(ev) { setD({ wk: ev.target.value }); }} style={Object.assign({}, inputStyle, { width: 70 })} /> : e.wk}</Field>
             <Field label={"Value" + (unit ? " (" + unit + ")" : "")} testid={pre + "-f-v"}>{ed ? <input aria-label="Value" type="number" step="any" value={d.v} onChange={function(ev) { setD({ v: ev.target.value }); }} style={Object.assign({}, inputStyle, { width: 90 })} /> : fmt(e.v)}</Field>
-            <Field label="Note" testid={pre + "-f-note"}>{ed ? <textarea aria-label="Note" value={d.note} onChange={function(ev) { setD({ note: ev.target.value }); }} style={Object.assign({}, inputStyle, { minHeight: 40 })} /> : (e.note || <span style={{ color: "#94a3b8" }}>—</span>)}</Field>
+            <Field label="My Notes" testid={pre + "-f-note"}>{ed ? <textarea aria-label="My Notes" value={d.note} onChange={function(ev) { setD({ note: ev.target.value }); }} style={Object.assign({}, inputStyle, { minHeight: 40 })} /> : (e.note || <span style={{ color: "#94a3b8" }}>—</span>)}</Field>
           </OpenForm>);
         })()}
       </div>);

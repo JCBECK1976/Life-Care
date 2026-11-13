@@ -384,7 +384,7 @@ export default function HomeSection({ ctx }) {
                   <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     {[["bodyType","Body Type"],["fibreType","Fibre Type"],["idealWeight","Ideal Weight"]].map(function(pair) { return (<div key={pair[0]} style={pair[0] === "bodyType" ? { gridColumn: "1 / -1" } : {}}><label style={labelStyle}>{pair[1]}</label><input value={profileInputs[pair[0]] || prof[pair[0]] || ""} onChange={function(e) { setProfileInputs(function(q) { var n = Object.assign({}, q); n[pair[0]] = e.target.value; return n; }); }} style={inputStyle} /></div>); })}
                   </div>
-                  <div style={{ marginTop: 8 }}><label style={labelStyle}>Notes</label><textarea value={profileInputs.notes || prof.notes || ""} onChange={function(e) { setProfileInputs(function(q) { return Object.assign({}, q, { notes: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
+                  <div style={{ marginTop: 8 }}><label style={labelStyle}>My Notes</label><textarea value={profileInputs.notes || prof.notes || ""} onChange={function(e) { setProfileInputs(function(q) { return Object.assign({}, q, { notes: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
                 </div>)}
 
                 {/* ═══ MY FAMILY ═══ */}
@@ -500,7 +500,7 @@ export default function HomeSection({ ctx }) {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {[["name","Name"],["age","Age"],["sex","Sex"],["height","Height"],["bodyType","Body Type"],["fibreType","Fibre Type"],["idealWeight","Ideal Weight"]].map(function(pair) { return (<div key={pair[0]}><label style={labelStyle}>{pair[1]}</label><input value={profileInputs[pair[0]] || ""} onChange={function(e) { setProfileInputs(function(q) { var n = Object.assign({}, q); n[pair[0]] = e.target.value; return n; }); }} style={inputStyle} /></div>); })}
               </div>
-              <div style={{ marginTop: 8 }}><label style={labelStyle}>Notes</label><textarea value={profileInputs.notes || ""} onChange={function(e) { setProfileInputs(function(q) { return Object.assign({}, q, { notes: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
+              <div style={{ marginTop: 8 }}><label style={labelStyle}>My Notes</label><textarea value={profileInputs.notes || ""} onChange={function(e) { setProfileInputs(function(q) { return Object.assign({}, q, { notes: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
               <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].profile = profileInputs; await saveData(nd); setShowProfile(false); setFormMsg("✓ Profile updated"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(), marginTop: 8 }}>Save Profile</button>
             </div>)}
 
