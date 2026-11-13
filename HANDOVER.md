@@ -2050,7 +2050,7 @@ On `build` @ 1a34a76; deploy 43111232779 succeeded, and only the deploy workflow
 7. Delete the downloaded `.json` file (or move it into the vault). Never email it or put it in the Life-Care repo.
 
 **2. BACKUP_KEY** (the passphrase that encrypts every backup; without it no backup can ever be opened)
-1. In your password manager, generate a passphrase of **at least 40 characters** and save it as "Lifecare backup key". Also keep a copy in the vault.
+1. In your password manager, generate a passphrase of **at least 40 characters** and save it as "Lifecare backup key". Keep one **offline copy** too (e.g. printed, stored safely). **Never store it in the vault**: the vault holds the encrypted backups, so the key must live elsewhere. *(Corrected 13 Nov, Architect.)*
 2. GitHub → Life-Care → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**.
 3. Name: `BACKUP_KEY`; Secret: paste the passphrase → **Add secret**.
 
@@ -2115,7 +2115,7 @@ Nothing runs until all three are in **and** the workflows reach main with the ne
    3. github.com/JCBECK1976/**Life-Care** → **Settings** → **Secrets and variables** → **Actions** → **New repository secret** → Name `FIREBASE_SERVICE_ACCOUNT` → paste → **Add secret**.
    4. Delete the downloaded file (or move it into the vault).
 2. **BACKUP_KEY** (encrypts every backup; without it no backup can be opened):
-   1. In your password manager, generate a passphrase of **40+ characters**. Save it there and in the vault.
+   1. In your password manager, generate a passphrase of **40+ characters**. Save it there plus one **offline copy**. **Never in the vault** (it holds the encrypted backups). *(Corrected 13 Nov.)*
    2. Life-Care → **Settings** → **Secrets and variables** → **Actions** → **New repository secret** → Name `BACKUP_KEY` → paste → **Add secret**.
 3. **VAULT_DEPLOY_KEY** (lets the backup job write to the vault repo only):
    1. On your PC open **PowerShell** and run: `ssh-keygen -t ed25519 -C lifecare-backup -f vault_deploy -N '""'`. This makes `vault_deploy` and `vault_deploy.pub`.
