@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.15.1 · 12 November 2026
+> Last updated: v2.15.2 · 13 November 2026
 
 ---
 
@@ -29,6 +29,10 @@ The Companion is the AI built into the app (it uses Anthropic's Claude). It:
 - generates **meal plans, shopping lists, exercise guides and warm-ups**.
 
 It speaks to you directly ("you"), warmly and honestly, and adapts its tone to the mood you set on the Home page.
+
+The Companion never suggests starting, stopping or changing any medication or dose: if medication comes up, it suggests asking your GP or pharmacist.
+
+You can pinch to zoom anywhere in the app (since v2.15.2).
 
 ---
 

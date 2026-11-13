@@ -1,4 +1,5 @@
 import { sGet, sSet } from "./storage.js";
+import { withMedicationRule } from "./safety.js";
 import firebase, { DATA_ROOT } from "./firebase.js";
 import { PRICES, addToLedger, costOf, energyFromLedger, featureOf } from "./aiUsage.js";
 
@@ -47,7 +48,10 @@ window.fetch = function() {
        was fine, and never reliably reset. */
     var opts = arguments[1] || {};
     var feature = featureOf(typeof opts.body === "string" ? opts.body : "", { section: window._lcSection, chatOpen: window._lcChatOpen });
-    return _origFetch.apply(this, arguments).then(function(resp) {
+    /* v2.15.2 P7: every Messages API request carries the medication safety rule (src/lib/safety.js) */
+    var args = Array.prototype.slice.call(arguments);
+    if (url.indexOf("/v1/messages") !== -1 && typeof opts.body === "string") args[1] = Object.assign({}, opts, { body: withMedicationRule(opts.body) });
+    return _origFetch.apply(this, args).then(function(resp) {
       var cloned = resp.clone();
       cloned.json().then(function(data) {
         if (data && data.usage) {
