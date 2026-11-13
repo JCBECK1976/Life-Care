@@ -1,6 +1,6 @@
 {
  "about": "Single source of the plan. Published with every main deploy as /Life-Care/plan.json and loaded into Settings → 📝 Tracker. Update it whenever an item starts or finishes (Coder and Architect). tokenPct = estimated % of a weekly allowance. Statuses: New, Planned, In progress, Blocked, Done, Won't do.",
- "updated": "2026-11-12",
+ "updated": "2026-11-13",
  "phases": ["Release", "JC actions", "House in order", "Efficiency (deferred)", "Before pilot users", "Go-live", "Ideas", "Delivered"],
  "items": [
   {"id": "D1", "title": "Switching person while Log Exercise was open mixed people's entries", "category": "Defect", "phase": "Delivered", "status": "Done", "priority": "", "tokenPct": null, "version": "v2.6.1", "notes": ""},
@@ -111,6 +111,11 @@
   {"id": "G11", "title": "Own domain + website", "category": "Feature", "phase": "Go-live", "status": "Planned", "priority": "Low", "tokenPct": 10, "version": "", "notes": ""},
   {"id": "G12", "title": "Admin tech Q&A bot", "category": "Feature", "phase": "Go-live", "status": "Planned", "priority": "Low", "tokenPct": 4, "version": "", "notes": "Over the private docs, never credentials"},
   {"id": "I1", "title": "In-app Install app button", "category": "Feature", "phase": "Ideas", "status": "New", "priority": "", "tokenPct": null, "version": "", "notes": "Not approved (4 Nov)"},
-  {"id": "I2", "title": "Chat prompt caching", "category": "Feature", "phase": "Ideas", "status": "New", "priority": "", "tokenPct": null, "version": "", "notes": "Not approved (12 Nov); small saving"}
+  {"id": "I2", "title": "Chat prompt caching", "category": "Feature", "phase": "Ideas", "status": "New", "priority": "", "tokenPct": null, "version": "", "notes": "Not approved (12 Nov); small saving"},
+  {"id": "D23", "title": "Log Exercise defaulted to the wrong Week and Previous", "category": "Defect", "phase": "Release", "status": "Done", "priority": "", "tokenPct": null, "version": "v2.16.0", "notes": "Week = current training week; Previous = latest logged week before it (same source as the overwrite check). Regression test."},
+  {"id": "D24", "title": "Progress rows: Form/Range text overlapped Open", "category": "Defect", "phase": "Release", "status": "Done", "priority": "", "tokenPct": null, "version": "v2.16.0", "notes": "Chip row under the key data; checked at 360px."},
+  {"id": "F11b", "title": "Companion feedback stored per exercise week, with Accept/Reject + note (Architect F11, 13 Nov)", "category": "Feature", "phase": "Release", "status": "Done", "priority": "", "tokenPct": null, "version": "v2.16.0", "notes": "Plan id F11 was already used (feedback email), so this is F11b. Shown in the exercise Open form between My Notes and the buttons; editable in Edit."},
+  {"id": "F12", "title": "User-written notes fields labelled \"My Notes\" app-wide", "category": "Feature", "phase": "Release", "status": "Done", "priority": "", "tokenPct": null, "version": "v2.16.0", "notes": "Labels only; data unchanged."},
+  {"id": "F13", "title": "Settings → Documentation up to date, from a small docs index", "category": "Feature", "phase": "Release", "status": "Done", "priority": "", "tokenPct": null, "version": "v2.16.0", "notes": "src/constants/docsIndex.js; legal drafts labelled; vault docs 01–05 named only."}
  ]
 }

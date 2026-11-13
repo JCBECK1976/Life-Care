@@ -234,14 +234,15 @@ At the bottom of My Body. It's off until you tap **Turn on body balance checks**
 - Enter each **set** separately: weight and reps per set (e.g. 63 kg × 10, 56 kg × 8, 63 kg × 8), or the right measure for the exercise type. A new log is pre-filled with each set from your last session.
 - **Session Quality:** for **Range** (Full Range of Motion, or Completed in One for cardio-type exercises) and **Form**, tap **Working towards** or **Good**. **Neither is chosen for you**, and you can't save until both are chosen. If you try, the missing one is outlined in red with "Choose Form and Range to save". If Range is "Working towards", the Companion won't recommend increasing weight; it will tell you to master the full controlled range first, using a 3-second lowering phase.
 - **Progression** choice: *Standard (follow progression rules)*, *Move Up* (override: ready to increase), *Hold* (keep current weight) or *Reduce* (drop weight).
-- **Notes (carried to next session)** appear on the card next time.
+- **Week** starts at the **current training week** (the week in the header). If you've already logged this week, the form opens that entry so you **Update** it instead of logging over it. **Previous** shows your latest logged week before this one.
+- **My Notes (carried to next session)** appear on the card next time. Every box for your own notes is called **My Notes** across the app, so you can tell it apart from the Companion's feedback.
 - **Logging for more than one person:** the person tabs inside the form let you log someone else's sets for the same exercise in the same sitting. When you press Save, the person shown must have Form and Range chosen. Anyone else you filled in is saved **only if** their Form and Range are chosen too. One line confirms it, e.g. "Saved for JC · Becks not saved (Form and Range not chosen)".
 - **Save** (or **Update** when editing a previous entry). **Edit Previous Entry** lets you correct a past week; **Cancel Edit — Log New Instead** returns to a new log.
 - **Why honesty matters:** the Companion bases its progression advice on what you log. Inflating reps leads to bad recommendations.
 
 ### Progress panel (👁 Progress)
-- One row per week: week, weight, reps, Form/Range marks (✓ good, … working towards) and **Open**. **+ Add Week** adds a missed week; a chart appears once there are 2+ weeks. When the sets in a week used different weights, the row (and the card) shows the range, e.g. **56–63kg**, with a **Sets:** line underneath (63kg×10, 56kg×8, 63kg×8).
-- **Open week N** shows that week read-only: each set, **Range** and **Form** (as a chip: **Good** or **Working towards**) and the note. **Edit** lets you change the week number, any set (**+ Add set**), Range, Form and the note, then **Save**. **Remove** takes the week out (asks first).
+- One row per week: week, weight, reps and **Open**, with **Form** and **Range** chips underneath (✓ Good, … Working towards). **+ Add Week** adds a missed week; a chart appears once there are 2+ weeks. When the sets in a week used different weights, the row (and the card) shows the range, e.g. **56–63kg**, with a **Sets:** line underneath (63kg×10, 56kg×8, 63kg×8).
+- **Open week N** shows that week read-only: each set, **Range** and **Form** (as a chip: **Good** or **Working towards**), **My Notes**, and the **Companion Feedback** for that week (if any) with **your decision** (Accepted / Rejected and your note). **Edit** lets you change the week number, any set (**+ Add set**), Range, Form, My Notes and your decision on the feedback, then **Save**. **Remove** takes the week out (asks first).
 - Changing or removing an **older** week never changes the exercise card or its status badge. Only the latest week does: if you change or remove it, the card shows the new latest week and the status clears until your next session feedback.
 - **Strength vs Population** — an estimate of where your performance sits against people of your sex and age (untrained, and including trained). Estimated from cable machine performance, so treat it as a guide, not a test result.
 - **ℹ️ Exercise Information:** **📖 Exercise Guide** (how to perform it), **🧘 Pre & Post Exercise** (prep and stretches), **Progression Rules** (your editable rules, e.g. build to 15 reps before increasing weight). Guides are AI-generated, so review them for accuracy. Older exercises can use **🔄 Generate / Update Guides**.
@@ -319,7 +320,7 @@ Plenty of fibre (5 g+) or protein (20 g+) lifts an item one band (never above AM
   5. A ✓ shows the portion was checked by photo.
 - **Dinner sides**: for packaged products, add 🥔 Potato and 🥗 Veg sides.
 - **+ Add new item…** at the bottom of any picker adds a food that isn't on your list (see "Adding food").
-- **Day notes**, e.g. "Ate out, exam stress, birthday", give the Companion context.
+- **My Notes** (day notes), e.g. "Ate out, exam stress, birthday", give the Companion context.
 - **📋 Copy Day** copies this day's selections to other days. Copies start fresh: portions and ticks are not copied.
 - **Nutrition Overview (g)** shows the day's totals (from what you logged) and the **Daily Percentage of Recommendations**.
 - **🍽 Help Me with What to Eat**: when you're out, describe where you are, optionally add a photo of the menu or shelf, and the Companion picks the **best option**. **✓ Confirm & Add** puts it in your day.
@@ -388,7 +389,7 @@ For prepared dinners, the ingredients become shopping list items. For packaged i
 ## 8. My Health
 
 - **Personal Health Profile** — lasting information: smoker/non-smoker, alcohol, allergies, neurodiversities, disabilities, family health history, menopause status.
-- **General Health Notes** — current or temporary matters: recovering from a cold, an injury, fatigue, stress, sleep issues, pain, symptoms to track. **Why:** the Companion uses these, e.g. it will adapt exercise advice for an injury.
+- **My Notes (general health)** — current or temporary matters: recovering from a cold, an injury, fatigue, stress, sleep issues, pain, symptoms to track. **Why:** the Companion uses these, e.g. it will adapt exercise advice for an injury.
 - **Health Log** — dated notes: symptoms, observations, changes, appointments.
 - **My Vital Observations** — **Record Vitals**: date, time, blood pressure (systolic/diastolic), heart rate, SpO2 %. **History** lists past readings.
 - **My Medications** —
@@ -422,7 +423,7 @@ Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
   - **Firebase:** the project, which data this app uses, and links to the Firebase console (database, rules, sign-in users). Rules and data are never changed from the app.
   - **GitHub & releases:** this version, and links to the repository, deploys, releases, the changelog and the three versions of the app (App, Beta, Build).
   - **Integrations:** the Google OAuth Client ID (for Google Health Connect).
-  - **Tracker** and **Documentation** (links to the app guide, design and test documents, changelog, backlogs and the plan; private documents are listed by name only, they're in the vault).
+  - **Tracker** and **Documentation**: grouped links to the guides, design (HLD, LLD, decisions/ADRs, test strategy), the plan, and the legal drafts (marked **Draft — for legal review**). Private documents (01 SAD, 02 DPIA, 03 Service design + runbooks, 04 Risk register, 05 Supplier register + ROPA) are named only; they're in the vault.
 - **🗂 Data tools** (admin only):
   - **⬇️ Download backup** saves all the real data as one dated file, e.g. *lifecare_backup_beta_2026-11-10-2049.json*, in the same layout as a Firebase export. On the Build test app it also includes the build copy. It shows the file size and counts only. Keep it somewhere safe: it contains health data. Photos are never in it (they're never stored).
   - **Restore from Firebase Export**: paste a Download-backup file (or a Firebase export) and press **Preview** to see what it contains (counts only). Then choose:

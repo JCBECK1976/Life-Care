@@ -36,13 +36,13 @@ Version 1, 13 Nov 2026 (prod v2.15.1). Public document. It describes **how the c
 | `src/lib/rag.js` | Portion-based RAG bands and frequency allowance (rules in code). |
 | `src/lib/nutrition.js`, `snap.js` | Nutrition recalculation and plausibility; photo portion checks and the "no food" rule. |
 | `src/lib/bodyBalance.js`, `bodyPhotoCheck.js`, `measureReading.js` | Body balance prompt and parsing; body-photo recognition flags; measurement reading from a photo. |
-| `src/lib/exercise.js` | Exercise types, per-set weights and reps, progression status. |
+| `src/lib/exercise.js` | Exercise types, per-set weights and reps, progression status; week helpers (`findWeekIdx`, `previousEntry`, `latestEntry`) used by the Log form and the overwrite check; Companion feedback per week (`attachCompanion`, `setCompanionDecision`). |
 | `src/lib/chat.js`, `aiContext.js` | Conversation ordering (latest exchange first); mood, profile and journal context for prompts. |
 | `src/lib/backup.js` | Parse a backup or console export; counts; restore targets. Writes nothing itself. |
 | `src/lib/tracker.js`, `plan.js` | Tracker entries; plan loading and upsert (`syncPlan`, `planEntry`, `phaseTotals`). |
 | `src/lib/contact.js`, `debugLog.js` | Feedback email setting; safe Debug Mode summaries. |
 | `src/lib/safety.js` | v2.15.2: `MEDICATION_RULE`, added by the `api.js` fetch wrapper to the system prompt of every Messages API request (first block in a block-list system prompt, so Help's cached prefix stays identical). |
-| `src/constants/` | Version, styles (button standard), themes, tone rules, defaults, food and exercise constants. |
+| `src/constants/` | Version, styles (button standard), themes, tone rules, defaults, food and exercise constants, the admin Documentation list (`docsIndex.js`). |
 | `scripts/automation/` | Nightly backup, Build refresh, post-deploy smoke test (run by GitHub Actions). |
 
 ## 3. Data (Realtime Database)
@@ -50,7 +50,7 @@ One root per environment: `data` (prod and beta) or `data_build` (Build). Most v
 
 | Key | Shape (summary) |
 |---|---|
-| `dashboard:data` | `{ config: { week, session, trainingStart, lastUpdate }, <person>: { profile, exercises: { <day>: [ { name, current, reps, status, prog: [ { wk, w, r, sets: [ {w, r} ], fullRange, goodForm, note } ] } ] }, body: { weight: [ {wk, v, date?, source?} ], bodyFat, muscleMass, … }, measurements: { <part>: [ {wk, v, date?} ] }, healthLog, bloods, progressPhotos: [ … ], bodyPhotos: [ … ], activity: [ … ] } }` |
+| `dashboard:data` | `{ config: { week, session, trainingStart, lastUpdate }, <person>: { profile, exercises: { <day>: [ { name, current, reps, status, prog: [ { wk, w, r, sets: [ {w, r} ], companion?: { verdict, recommendation, at, decision?: accepted|rejected, decisionNote? }, fullRange, goodForm, note } ] } ] }, body: { weight: [ {wk, v, date?, source?} ], bodyFat, muscleMass, … }, measurements: { <part>: [ {wk, v, date?} ] }, healthLog, bloods, progressPhotos: [ … ], bodyPhotos: [ … ], activity: [ … ] } }` |
 | `custom_breakfasts`, `custom_lunches`, `custom_meals`, `custom_snacks`, `custom_desserts`, `custom_drinks` | Food lists (**parents**): `[ { id, name, kcal, protein, fat, satFat, addedSugar, carbs, fibre, salt, rating, ragFreq, band, itemType, ingredients, suitability } ]` |
 | `eat_children:<person>:<Sunday YYYY-MM-DD>` | `{ v, children: { "c_<date>_<slot>": { parentId, date, weekday, slot, snapshot, portion, variations, nutrition, rating, ragFreq, band, parentBand, tracked, source, notes } }, empty: [ "<weekday>:<slot>" ], notes }` |
 | `mealplan:…`, `meal_tracking:<person>`, `portion_overrides:<person>` | Older eating formats, converted to children once when a week is opened. |

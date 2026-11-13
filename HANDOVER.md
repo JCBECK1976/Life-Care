@@ -2440,3 +2440,15 @@ Sizes are % of a weekly allowance, including Architect checks.
   - The tier features follow the Architect's 12 Nov draft until JC finalises them (configurable in admin, no code change needed).
   - **Household:** JC and Becks keep logging for each other through a "household" link between individual accounts.
 
+
+### (Coder) 14 Nov 2026 — overnight Step 1: v2.16.0 on build
+- **Read first:** Architect 13 Nov 22:10 (HANDOVER @ b49e801).
+- **v2.16.0 (`build` b623496):**
+  - **D23:** Log Exercise Week = current training week; Previous = latest logged week *before* it; the overwrite check, the "Edit Previous Entry" toggle and the person tabs inside the form all use the same week helpers (`findWeekIdx`, `previousEntry` in `src/lib/exercise.js`; weeks compared as numbers, prog order ignored). If the current week is already logged, the form opens it for **Update**. Likely root cause: switching person inside the form copied the first person's week (and `prog` isn't always in week order).
+  - **D24:** Form/Range chips moved to a row under each Progress row (text + colour). Checked at 360px.
+  - **F11 (plan id F11b — F11 was already used):** the Companion's per-exercise verdict/recommendation is saved with the latest logged week (`prog[].companion`) when session feedback is generated; Accept/Decline also records the decision + note there. The Open form shows it between My Notes and the buttons; Edit changes decision + note. Older entries show nothing.
+  - **F12:** "My Notes" labels (exercise log + Open form, measurements, meds, profile, eating day notes, general health notes, history rows). Data unchanged.
+  - **Documentation:** grouped from `src/constants/docsIndex.js` (adds LLD, ADRs, handover, legal drafts labelled "Draft — for legal review"; vault docs 01–05 by name only).
+  - Tests `tests/v2160.spec.js` (7); `exercise-log` D2 test updated for D23. Full suite 161 passed (1 timing flake in `open.spec` F1, passes on re-run), lint 0 errors, 360px screenshot checked.
+- **JC to test (/build/):** Log an exercise in Week 17 (Becks too, via the person tabs) → Week shows 17, Previous shows Wk 16. Progress rows: chips under the row. Generate session feedback → Open the week → Companion Feedback block; Edit → Accept/Reject + note.
+- **Resume point:** `build` @ b623496 (v2.16.0), prod v2.15.1. Next: Step 2 (v2.16.1 security code parts).
