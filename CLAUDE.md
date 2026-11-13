@@ -35,7 +35,7 @@ Owner: JC (not a developer). Live app used daily by JC and Becks. Full brief: `M
 ```
 npm install
 npm run emulator          # terminal 1: local Firebase emulator on :9000
-npm run seed              # load the backup into the emulator under /data
+npm run seed              # synthetic test data into the emulator (real backup only with SEED_REAL=1)
 npm run dev               # http://127.0.0.1:5173/Life-Care/ (uses the emulator)
 npm run lint              # ESLint: no-undef + React hooks rules, must show 0 errors
 npm test                  # Playwright smoke tests (emulator + mocked Claude API)

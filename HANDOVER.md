@@ -2479,3 +2479,15 @@ Sizes are % of a weekly allowance, including Architect checks.
    - GP appointment prep summary (3)
 5. **JC note:** a side-business declaration at work is needed (no conflict expected). Go-to-market plan + website to be developed during the pilot (Architect to draft a GTM plan later).
 
+
+### (Coder) 14 Nov 2026 — overnight Step 2: v2.16.1 on build (security Phase A, code parts)
+- **v2.16.1 (`build` c96d3a1):**
+  - **SAD-A2:** the 21 `dangerouslySetInnerHTML` were all constant loading dots → `LoadingDots` component; no raw HTML rendering is left in `src`. Two `innerHTML` writes that included AI-returned text (session-feedback Accept/Decline) → `setPlainNote` (text only). **CSP** meta tag on every page from the `csp()` plugin in `vite.config.js` (allowed hosts in `CSP_HOSTS`; inline scripts only by hash; dev adds the local emulators). DOMPurify not needed (nothing renders HTML).
+  - **SAD-A5:** `.github/dependabot.yml` (npm + GitHub Actions, weekly, PRs to `build`) and `.github/workflows/codeql.yml`. Both act only once on `main` (next release).
+  - **SAD-A6:** `.github/workflows/rules-drift.yml` + `scripts/automation/rules-drift.mjs`: daily, reads the deployed rules with the service account, compares with `database.rules.json` (main); drift → fails → GitHub emails the owner. Prints only "match"/"drift" + a count. Skips without the secret.
+  - **SAD-A9:** `scripts/make-fixture.mjs` synthetic data (two made-up people, same shapes, deterministic). `npm run seed` and the tests now use it; the real backup only with `SEED_REAL=1`.
+  - Tests `tests/v2161.spec.js` (5). Full suite **167 passed on synthetic data**, lint 0 errors.
+- **JC to test (/build/):** sign in, use each tab, Help/Chat, a photo check, Open Food Facts search → all still work (the CSP would block anything not on the list). If anything breaks on /build/, tell the Coder which screen: the fix is one host in `CSP_HOSTS`.
+- **JC actions (J1, after the next release puts these files on main):** Settings → Code security: turn on **Dependabot alerts**, **Dependabot security updates**, **Secret scanning** + **Push protection**. CodeQL runs by itself (results under Security → Code scanning).
+- **Open:** the drift check needs the service account to be allowed to read the rules (the existing backup service account should be). First real run: after the next release, from Actions → "Database rules drift check" → Run workflow.
+- **Resume point:** `build` @ c96d3a1 (v2.16.1), prod v2.15.1. Next: Step 3 (calories R6/R4/R5, v2.17.0).

@@ -26,7 +26,7 @@ Draft 1.1, 13 Nov 2026 (prod v2.15.1; Architect review applied). How changes are
 | Manual | JC on his phone (`/build/` when asked, `/beta/` always) | Real device, real data, real AI | Each release |
 
 ## 3. Test data
-- Seeded per test from the backup into the emulator (`npm run seed`); each test that changes data reseeds first.
+- Seeded per test with **synthetic** data (`scripts/make-fixture.mjs`, two made-up people with the same data shapes; `npm run seed`); each test that changes data reseeds first. Seeding from the real backup is opt-in only (`SEED_REAL=1`), never by default (SAD-A9, v2.16.1).
 - Tests that need special shapes write them through the emulator's REST API (owner token), then reload.
 - No real photos: tests generate images in the browser (e.g. a phone-size image for the "under 1 MB" check).
 

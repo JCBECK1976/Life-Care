@@ -19,6 +19,7 @@ Version 1, 13 Nov 2026 (prod v2.15.1). Public document. It describes **how the c
   - `scripts/build-pages.sh` builds all three branches into one Pages artifact.
   - `scripts/check-pages.mjs` checks it: prod/beta never refer to the Build data copy; required files are present.
   - `.github/workflows/deploy.yml`: only main's run deploys.
+- **Test data:** `scripts/make-fixture.mjs` makes synthetic data (the default emulator seed).
 
 ## 2. Modules
 | Path | Responsibility |
@@ -43,7 +44,7 @@ Version 1, 13 Nov 2026 (prod v2.15.1). Public document. It describes **how the c
 | `src/lib/contact.js`, `debugLog.js` | Feedback email setting; safe Debug Mode summaries. |
 | `src/lib/safety.js` | v2.15.2: `MEDICATION_RULE`, added by the `api.js` fetch wrapper to the system prompt of every Messages API request (first block in a block-list system prompt, so Help's cached prefix stays identical). |
 | `src/constants/` | Version, styles (button standard), themes, tone rules, defaults, food and exercise constants, the admin Documentation list (`docsIndex.js`). |
-| `scripts/automation/` | Nightly backup, Build refresh, post-deploy smoke test (run by GitHub Actions). |
+| `scripts/automation/` | Nightly backup, Build refresh, post-deploy smoke test, daily database-rules drift check (run by GitHub Actions). Also `.github/workflows/codeql.yml` (code scanning) and `.github/dependabot.yml` (weekly dependency PRs to `build`). |
 
 ## 3. Data (Realtime Database)
 One root per environment: `data` (prod and beta) or `data_build` (Build). Most values are **JSON strings under flat keys**, so a save rewrites that whole key. Keys are sanitised (`. # $ / [ ]` → `_`).
@@ -105,7 +106,8 @@ Replies are parsed defensively. Cut-off or unreadable replies are reported to th
 
 ## 6. Tests
 See [TEST_STRATEGY.md](TEST_STRATEGY.md).
-- **How they run:** Playwright with the local Firebase emulator (seeded from a backup kept outside the repo) and a mocked AI (`tests/mock-ai.js` plus per-test mocks).
+- **How they run:** Playwright with the local Firebase emulator (seeded with synthetic data from `scripts/make-fixture.mjs`; the real backup only by opt-in) and a mocked AI (`tests/mock-ai.js` plus per-test mocks).
 - **Per version:** each version has its own spec (`tests/v2xx.spec.js`), plus feature specs (eating, exercise, backup, people, pwa, env-build, visual).
 - **Pure helpers** (`rag`, `children`, `plan`, `measureReading`, `bodyPhotoCheck`, `debugLog`) are tested directly.
 - **Prod compatibility:** checked on demand against the released version.
+- **Security (v2.16.1):** a Content-Security-Policy meta tag is added to every page by the `csp()` plugin in `vite.config.js` (allowed hosts in `CSP_HOSTS`; inline scripts only by hash; the dev server adds the local emulators). No component renders raw HTML (`LoadingDots`, `setPlainNote`). `tests/v2161.spec.js` injects script through an AI reply and a food name.
