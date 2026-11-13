@@ -2292,3 +2292,14 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **Not checked from here:** the sandbox can't reach github.io. JC to confirm the prod footer shows v2.15.1 and that `/Life-Care/plan.json` opens. The Tracker now reads that copy first.
 - **JC to test (prod):** close and reopen the app; the footer shows v2.15.1; quick look at each tab; Settings (as JC) → Tracker loads the plan.
 - **Resume point:** `main` @ 1dbd277 (prod v2.15.1, tag v2.15.1); beta/build hold the same code. Next: JC adds the 3 secrets (plan R3), then run each workflow once by hand.
+
+### (Architect) 13 Nov 2026 12:25 — automation LIVE: 3 secrets added, first runs verified
+- JC added `FIREBASE_SERVICE_ACCOUNT`, `BACKUP_KEY` and `VAULT_DEPLOY_KEY` (vault deploy key, read/write, titled "Life-Care backups").
+- **The first BACKUP_KEY was displayed on screen and in a chat screenshot, so it was rotated before any backup ran.** The current key exists only in JC's password manager and in his offline copy.
+- Manual runs:
+  - **backup** succeeded: `life-care/backups/daily/2026-11-13.json.gpg` (74 KB) is in the vault.
+  - **refresh-build** succeeded (19 s).
+  - **smoke** succeeded.
+- **Correction to the Coder's secrets guide:** do **NOT** keep a copy of BACKUP_KEY in the vault. The vault holds the encrypted backups, so the key must live elsewhere (password manager + offline copy). Coder: fix that line in the guide and in any doc that repeats it.
+- Plan item R3 (add secrets + verify) → Done.
+
