@@ -1,6 +1,6 @@
 # Lifecare Companion™ — High-Level Design (HLD)
 
-Draft 1, 12 Nov 2026 (v2.14.0). Public document. It describes **what the system is made of and how the parts work together**. Security architecture, threat model, access control detail and data-protection assessment are in the private SAD and DPIA (vault), not here. The low-level design is [`TECHNICAL_REFERENCE.md`](../TECHNICAL_REFERENCE.md).
+Draft 1, 12 Nov 2026 (v2.14.0). Public document. It describes **what the system is made of and how the parts work together**. Security architecture, threat model, access control detail and data-protection assessment are in the private SAD and DPIA (vault), not here. The low-level design is [LLD.md](LLD.md).
 
 ## 1. Purpose and scope
 Lifecare Companion is a personal **wellness** companion (not a medical device) for a household. It brings together exercise logs, eating plans and food ratings, body composition and measurements, health notes, mood and journal. An AI "Companion" turns that data into feedback, answers questions and checks photos.
@@ -84,4 +84,4 @@ The full assessment is the DPIA (private).
 - Constraints: one bundle (no code splitting yet); no offline data; Realtime Database values are mostly JSON strings (one key per area), so a save writes the whole area.
 
 ## 10. Related documents
-`TECHNICAL_REFERENCE.md` (LLD) · `APP_GUIDE.md` (user guide, read live by Help) · [CHANGELOG](CHANGELOG.md) · [backlog](backlog/) · `MIGRATION_BRIEF.md` · private: SAD (incl. threat model), DPIA, SDD.
+[LLD.md](LLD.md) · `APP_GUIDE.md` (user guide, read live by Help) · [CHANGELOG](CHANGELOG.md) · [backlog](backlog/) · `MIGRATION_BRIEF.md` · private: SAD (incl. threat model), DPIA, SDD.

@@ -19,7 +19,7 @@ Owner: JC (not a developer). Live app used daily by JC and Becks. Full brief: `M
    - **Label every entry you write `(Code)`**, e.g. `### (Code) 4 Nov 2026 — v2.0.0 cutover`. Entries written from Chat are labelled `(Chat)`. The labels let each side read only what the other has added since its own last entry.
    - **After every action** (each version shipped, each checkpoint, each preview or deploy, each fix): add a dated entry to the **Session Log** in `HANDOVER.md` with what was done, the version and commit, what JC needs to test, and anything left open. Update the version table and the "Live Product" version line. Commit and push it in the same step, so it's never left unrecorded.
    - **After every design decision** (yours, JC's, or one JC passes on from Chat): record the decision, the reason and any alternatives rejected under a **Decisions** heading in the Session Log. A decision that isn't written down didn't happen.
-   - Keep entries short and factual. Add new Session Log entries at the **end** of the file so diffs stay small. When the Session Log passes about 150 lines, move older entries into `HANDOVER_ARCHIVE.md` (not read routinely) and leave a one-line pointer. Update `TECHNICAL_REFERENCE.md` when the code structure changes and `APP_GUIDE.md` when anything user-visible changes.
+   - Keep entries short and factual. Add new Session Log entries at the **end** of the file so diffs stay small. When the Session Log passes about 150 lines, move older entries into `HANDOVER_ARCHIVE.md` (not read routinely) and leave a one-line pointer. Update `docs/LLD.md` when the code structure changes and `APP_GUIDE.md` when anything user-visible changes.
 10. **Never read `src/App.jsx` in full** (large). Use grep and line ranges; do mechanical moves with scripts.
 11. Keep this file short (under 60 lines).
 12. **Keep the plan live.** Update `docs/plan.json` (on `main`) whenever an item starts or finishes: status, version, notes. Main deploys publish it as `/Life-Care/plan.json`; the admin Tracker loads it (v2.15.0+).
@@ -47,4 +47,4 @@ Releases only after JC has tested beta and approved. Rollback: `git revert` the 
 After a deploy, tell JC to close the tab and reopen it, and check the footer version.
 
 ## Pointers
-`HANDOVER.md` (memory, session log) · `docs/plan.json` (the plan) · `TECHNICAL_REFERENCE.md` (architecture) · `APP_GUIDE.md` (user guide, read live by Help) · `MIGRATION_BRIEF.md` (the job).
+`HANDOVER.md` (memory, session log) · `docs/plan.json` (the plan) · `docs/LLD.md` (low-level design; `TECHNICAL_REFERENCE.md` points there) · `APP_GUIDE.md` (user guide, read live by Help) · `MIGRATION_BRIEF.md` (the job).
