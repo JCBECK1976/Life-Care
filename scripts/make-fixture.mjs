@@ -60,7 +60,7 @@ function person(name, sex, age, scale, cw) {
     ],
     medsHistory: [{ date: "2026-10-01", snapshot: "Vitamin D 1000IU; Omega 3 1g" }],
     attachments: [],
-    body: { weight: series(sex === "Male" ? 84 : 66, 2), bodyFat: series(sex === "Male" ? 22 : 28, 1), muscleMass: series(sex === "Male" ? 60 : 45, 1),
+    body: { weight: series(sex === "Male" ? 13.2 : 10.4, 0.3) /* stone, as the app stores it */, bodyFat: series(sex === "Male" ? 22 : 28, 1), muscleMass: series(sex === "Male" ? 60 : 45, 1),
       visceralFat: series(9, 1), bmr: series(sex === "Male" ? 1750 : 1400, 30), bodyWater: series(55, 1), bodyAge: series(age, 2) },
     measurements: { fullBody: [], bicep: [{ wk: cw - 2, v: 33 }], forearm: [], calf: [{ wk: cw - 2, v: 38 }], quad: [], chest: [{ wk: cw - 2, v: 100 }], waist: [{ wk: cw - 2, v: 88 }], shoulders: [] },
     bloods: [{ date: "2026-09-01", tests: { tsh: 2.1, ldl: 3.0, hba1c: 36, cholRatio: 3.5 } }],

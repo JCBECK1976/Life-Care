@@ -2,6 +2,7 @@
 // Only changes: these imports replace CDN globals, and `export default`
 // replaces the ReactDOM render call (now in main.jsx).
 import React from "react";
+import { GH, fetchWeekCalories, forgetToken, loadToken, mergeDaily, saveToken } from "./lib/googleHealth.js";
 import LoadingDots from "./components/LoadingDots.jsx";
 import firebase, { DATA_ROOT } from "./lib/firebase.js";
 import { latestFirst } from "./lib/chat.js";
@@ -417,125 +418,43 @@ function Dashboard() {
 
   // Google Health Connect - OAuth + Fitness API
   const GOOGLE_CLIENT_ID = "464885753789-a8flgh64f1u9qeocktt6uljvjvsd0sf2.apps.googleusercontent.com";
-  const GOOGLE_SCOPES = "https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly";
 
+  // v2.16.2 R4: rebuilt. The token stays on this device (googleHealth.js), never in the database.
   const connectGoogle = function() {
-    var clientId = "";
     sGet("google_client_id").then(function(id) {
-      clientId = id || GOOGLE_CLIENT_ID;
-      if (!clientId) { setFormMsg("Set Google Client ID in Admin first"); setTimeout(function() { setFormMsg(""); }, 3000); return; }
+      var clientId = id || GOOGLE_CLIENT_ID;
+      if (typeof google === "undefined" || !google.accounts) { setFormMsg("✗ Google sign-in didn't load — check the connection and try again"); setTimeout(function() { setFormMsg(""); }, 4000); return; }
+      var who = activeTab;
       var client = google.accounts.oauth2.initTokenClient({
-        client_id: clientId,
-        scope: GOOGLE_SCOPES,
+        client_id: clientId, scope: GH.scope,
         callback: function(response) {
-          if (response.access_token) {
-            setGoogleToken(response.access_token);
-            setGoogleConnected(true);
-            sSet("google_token_" + activeTab, response.access_token);
-            setFormMsg("✓ Google Health connected"); setTimeout(function() { setFormMsg(""); }, 3000);
-          }
+          if (response && response.access_token) {
+            saveToken(who, response.access_token, response.expires_in);
+            setGoogleToken(response.access_token); setGoogleConnected(true);
+            setFormMsg("✓ Google Health connected on this device"); setTimeout(function() { setFormMsg(""); }, 3000);
+          } else { setFormMsg("✗ Google Health not connected" + (response && response.error ? " (" + response.error + ")" : "")); setTimeout(function() { setFormMsg(""); }, 4000); }
         }
       });
       client.requestAccessToken();
     });
   };
-
   const syncGoogleHealth = async function() {
-    var token = googleToken;
-    if (!token) { try { token = await sGet("google_token_" + activeTab); } catch(e) {} }
-    if (!token) { setFormMsg("Connect Google Health first"); setTimeout(function() { setFormMsg(""); }, 3000); return; }
-    setSyncLoading(true); setFormMsg("Syncing health data...");
-    var nd = JSON.parse(JSON.stringify(data));
-    var now = Date.now();
-    var thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
-    var headers = { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
-
+    var who = activeTab; var t = loadToken(who);
+    if (!t) { setGoogleConnected(false); setFormMsg("Connect Google Health on this device first"); setTimeout(function() { setFormMsg(""); }, 3000); return; }
+    setSyncLoading(true); setFormMsg("⏳ Reading this week's calories from Google Health…");
+    var nd = JSON.parse(JSON.stringify(data)); var at = new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
     try {
-      // Fetch body weight
-      var weightResp = await fetch("https://health.googleapis.com/v4/users/me/dataTypes/weight/dataPoints?pageSize=30&filter=weight.update_time.physical_time%20%3E%3D%20%222026-07-01T00:00:00Z%22", {
-        method: "GET", headers: headers
-      });
-      var weightData = await weightResp.json();
-      if (weightData.dataPoint) {
-        for (var bi = 0; bi < weightData.dataPoint.length; bi++) {
-          var pt = weightData.dataPoint[bi];
-          var kg = pt.value && pt.value.floatValue ? pt.value.floatValue : (pt.value && pt.value.intValue ? pt.value.intValue : 0);
-          if (!kg && pt.value) { for (var vk in pt.value) { if (typeof pt.value[vk] === "number" && pt.value[vk] > 20) { kg = pt.value[vk]; break; } } }
-          if (kg > 0) {
-            var stone = (kg * 0.157473).toFixed(2);
-            var dt = pt.startTime ? new Date(pt.startTime) : new Date();
-            var existing = (nd[activeTab].body.weight || []).find(function(w) { return w.v === parseFloat(stone); });
-            if (!existing) { nd[activeTab].body.weight.push({ wk: nd.config.week || 8, v: parseFloat(stone), date: dt.toLocaleDateString("en-GB"), source: "Google" }); }
-          }
-        }
-      }
-
-      // Fetch body fat
-      var fatResp = await fetch("https://health.googleapis.com/v4/users/me/dataTypes/body-fat/dataPoints?pageSize=30", {
-        method: "GET", headers: headers
-      });
-      var fatData = await fatResp.json();
-      if (fatData.dataPoint) {
-        for (var fi = 0; fi < fatData.dataPoint.length; fi++) {
-          var fp = fatData.dataPoint[fi];
-          var fatPct = fp.value && fp.value.floatValue ? fp.value.floatValue : 0;
-          if (!fatPct && fp.value) { for (var fk in fp.value) { if (typeof fp.value[fk] === "number" && fp.value[fk] > 0 && fp.value[fk] < 100) { fatPct = fp.value[fk]; break; } } }
-          if (fatPct > 0) {
-            var existing2 = (nd[activeTab].body.bodyFat || []).find(function(f) { return f.v === parseFloat(fatPct.toFixed(1)); });
-            if (!existing2) { nd[activeTab].body.bodyFat.push({ wk: nd.config.week || 8, v: parseFloat(fatPct.toFixed(1)), source: "Google" }); }
-          }
-        }
-      }
-
-      // Fetch steps (last 7 days)
-      var sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
-      var stepsResp = await fetch("https://health.googleapis.com/v4/users/me/dataTypes/steps/dataPoints?pageSize=7", {
-        method: "GET", headers: headers
-      });
-      var stepsData = await stepsResp.json();
-      if (!nd[activeTab].activity) nd[activeTab].activity = [];
-      if (stepsData.dataPoint) {
-        for (var si = 0; si < stepsData.dataPoint.length; si++) {
-          var sp = stepsData.dataPoint[si];
-          var steps = sp.value && sp.value.intValue ? sp.value.intValue : 0;
-          if (!steps && sp.value) { for (var sk in sp.value) { if (typeof sp.value[sk] === "number") { steps = sp.value[sk]; break; } } }
-          var dayDate = sp.startTime ? new Date(sp.startTime).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB");
-          if (steps > 0) {
-            var existingAct = nd[activeTab].activity.find(function(a) { return a.date === dayDate; });
-            if (existingAct) { existingAct.steps = steps; existingAct.source = "Google"; }
-            else { nd[activeTab].activity.push({ date: dayDate, steps: steps, type: "daily", source: "Google" }); }
-          }
-        }
-      }
-
-      // Fetch exercise sessions
-      var sessResp = await fetch("https://health.googleapis.com/v4/users/me/dataTypes/exercise/dataPoints?pageSize=10", {
-        method: "GET", headers: headers
-      });
-      var sessData = await sessResp.json();
-      if (sessData.dataPoint) {
-        for (var sei = 0; sei < sessData.dataPoint.length; sei++) {
-          var sess = sessData.dataPoint[sei];
-          var sessDate = sess.startTime ? new Date(sess.startTime).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB");
-          var durMin = (sess.startTime && sess.endTime) ? Math.round((new Date(sess.endTime) - new Date(sess.startTime)) / 60000) : 0;
-          var actName = (sess.value && sess.value.stringValue) || "Exercise";
-          var existingSess = nd[activeTab].activity.find(function(a) { return a.date === sessDate && a.activity === actName; });
-          if (!existingSess) {
-            nd[activeTab].activity.push({ date: sessDate, activity: actName, duration: durMin, type: "session", source: "Google" });
-          }
-        }
-      }
-
-      if (nd[activeTab].activity.length > 90) nd[activeTab].activity = nd[activeTab].activity.slice(-90);
+      var totals = await fetchWeekCalories(t.token, new Date());
+      mergeDaily(nd[who], totals);
+      var n = Object.keys(totals).length;
+      nd[who].googleSync = { at: at, days: n };
       await saveData(nd);
-      setFormMsg("✓ Synced — weight, body fat, steps, and activities updated");
-    } catch(err) {
-      if (String(err).indexOf("401") >= 0 || String(err).indexOf("403") >= 0) {
-        setGoogleConnected(false); setGoogleToken(null);
-        setFormMsg("Google session expired — reconnect in profile");
-      } else {
-        setFormMsg("Sync error: " + String(err).substring(0, 100));
-      }
+      setFormMsg(n ? "✓ Synced — " + n + " day(s) of calories burned this week" : "No calorie data from Google Health for this week yet");
+    } catch (err) {
+      if (err.expired) { forgetToken(who); setGoogleConnected(false); setGoogleToken(null); }
+      nd[who].googleSync = { at: at, days: 0, error: String(err.message || err).slice(0, 80) };
+      try { await saveData(nd); } catch (e2) { /* status only */ }
+      setFormMsg("✗ " + String(err.message || err).slice(0, 100));
     }
     setTimeout(function() { setFormMsg(""); }, 5000);
     setSyncLoading(false);
@@ -623,7 +542,7 @@ function Dashboard() {
       sGet("custom_meas_types"),
       sGet("session_feedback_all"),
       sGet("anthropic_api_key"),
-      sGet("google_token_" + activeTab),
+      Promise.resolve(null), /* v2.16.2: Google token no longer read from the database (device only) */
       sGet("qa_history"),
       sGet("help_history"),
       sGet("user_mood_" + activeTab),
@@ -655,7 +574,7 @@ function Dashboard() {
     if (cmt) setCustomMeasTypes(JSON.parse(cmt));
     if (sfAll) { setSessionFeedback(JSON.parse(sfAll)); }
     if (ak) window._anthropicKey = ak;
-    if (gt && stillSelected()) { setGoogleToken(gt); setGoogleConnected(true); }
+    void gt; if (stillSelected()) { var _ght = loadToken(activeTab); setGoogleToken(_ght ? _ght.token : null); setGoogleConnected(!!_ght); }
     if (qa) setQaHistory(JSON.parse(qa));
     if (hh) setHelpHistory(JSON.parse(hh));
     if (savedMood && stillSelected()) setUserMood(JSON.parse(savedMood));
@@ -1852,7 +1771,7 @@ function Dashboard() {
   const accentBtnBorder = accentVariant(accent, 80);
   const accentChatUser = accentVariant(accent, 88);
   /* Per-person settings — shared by the top name tabs and the switch inside the exercise log */
-  const loadUserSettings = function(k) { activeTabRef.current = k; var stale = function() { return activeTabRef.current !== k; }; /* v2.5.1 */ if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); sGet("meal_tracking:" + k).then(function(mt) { if (stale()) return; if (mt) setMealTracking(JSON.parse(mt)); else setMealTracking({}); }); sGet("user_mood_" + k).then(function(m) { if (stale()) return; if (m) setUserMood(JSON.parse(m)); else setUserMood(null); }); sGet("journal_" + k).then(function(j) { if (stale()) return; if (j) setJournalEntries(JSON.parse(j)); else setJournalEntries([]); }); sGet("daily_mood_" + k).then(function(dm) { if (stale()) return; if (dm) { var parsed = JSON.parse(dm); var todayStr = new Date().toISOString().split("T")[0]; if (parsed && parsed.date === todayStr) setDailyMood(parsed); else setDailyMood(null); } else setDailyMood(null); }); sGet("wellbeing_flags_" + k).then(function(wf) { if (stale()) return; if (wf) setWellbeingFlags(JSON.parse(wf)); else setWellbeingFlags({}); }); sGet("user_colour_" + k).then(function(uc) { if (stale()) return; if (uc) setUserColour(uc); else setUserColour(null); }); sGet("portion_overrides:" + k).then(function(po) { if (stale()) return; setPortionOverrides(po ? JSON.parse(po) : {}); }); sGet("google_token_" + k).then(function(gt) { if (stale()) return; if (gt) { setGoogleToken(gt); setGoogleConnected(true); } else { setGoogleToken(null); setGoogleConnected(false); } }); };
+  const loadUserSettings = function(k) { activeTabRef.current = k; var stale = function() { return activeTabRef.current !== k; }; /* v2.5.1 */ if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); sGet("meal_tracking:" + k).then(function(mt) { if (stale()) return; if (mt) setMealTracking(JSON.parse(mt)); else setMealTracking({}); }); sGet("user_mood_" + k).then(function(m) { if (stale()) return; if (m) setUserMood(JSON.parse(m)); else setUserMood(null); }); sGet("journal_" + k).then(function(j) { if (stale()) return; if (j) setJournalEntries(JSON.parse(j)); else setJournalEntries([]); }); sGet("daily_mood_" + k).then(function(dm) { if (stale()) return; if (dm) { var parsed = JSON.parse(dm); var todayStr = new Date().toISOString().split("T")[0]; if (parsed && parsed.date === todayStr) setDailyMood(parsed); else setDailyMood(null); } else setDailyMood(null); }); sGet("wellbeing_flags_" + k).then(function(wf) { if (stale()) return; if (wf) setWellbeingFlags(JSON.parse(wf)); else setWellbeingFlags({}); }); sGet("user_colour_" + k).then(function(uc) { if (stale()) return; if (uc) setUserColour(uc); else setUserColour(null); }); sGet("portion_overrides:" + k).then(function(po) { if (stale()) return; setPortionOverrides(po ? JSON.parse(po) : {}); }); (function() { var _t = loadToken(k); setGoogleToken(_t ? _t.token : null); setGoogleConnected(!!_t); })(); /* v2.16.2: device only */ };
   const accentBorder = accentVariant(accent, 78);
   const btnST = Object.assign({}, btnS, { background: accentBtnLight, border: "1px solid " + accentBtnBorder });
   const btnMT = Object.assign({}, btnMuted, { background: accentBtnLight, border: "1px solid " + accentBtnBorder });
@@ -1946,7 +1865,7 @@ function Dashboard() {
         {/* HEALTH */}
         {section === "bloods" && <ErrorBoundary name="Health"><HealthSection ctx={{ accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, bloodInputs, customBloodTests, customMedNames, data, editHealthText, editMedIdx, editingHealthLog, getCrossSectionCtx, getOnboardingCtx, healthComment, healthFb, healthFbAll, healthFbExpanded, healthFbLoading, healthView, isJC, medInputs, p, saveData, setBloodInputs, setCustomMedNames, setEditHealthText, setEditMedIdx, setEditingHealthLog, setFormMsg, setHealthComment, setHealthFb, setHealthFbExpanded, setHealthFbLoading, setHealthView, setMedInputs, setShowBloodForm, setShowBloodResults, setShowMedForm, setVitalsInput, setWeekOff, showBloodForm, showBloodResults, showMedForm, userMood, vitalsInput, weekLabel }} /></ErrorBoundary>}
 
-{section === "admin" && (<ErrorBoundary name="Settings"><SettingsSection ctx={{ accentBtnLight, activeTab, companionEnergy, connectGoogle, customMeasTypes, debugLog, debugMode, googleConnected, isAdmin, isJC, measInputs, setCustomMeasTypes, setDebugLog, setDebugMode, setFormMsg, setGoogleConnected, setGoogleToken, setMeasInputs, setUserColour, syncGoogleHealth, syncLoading, userColour , setSection}} /></ErrorBoundary>)}
+{section === "admin" && (<ErrorBoundary name="Settings"><SettingsSection ctx={{ data, saveData, accentBtnLight, activeTab, companionEnergy, connectGoogle, customMeasTypes, debugLog, debugMode, googleConnected, isAdmin, isJC, measInputs, setCustomMeasTypes, setDebugLog, setDebugMode, setFormMsg, setGoogleConnected, setGoogleToken, setMeasInputs, setUserColour, syncGoogleHealth, syncLoading, userColour , setSection}} /></ErrorBoundary>)}
 
 {section === "data" && isAdmin && (<ErrorBoundary name="Data"><DataSection ctx={{ accent, accentBorder, accentLight, data, dataExpandEx, saveData, setDataExpandEx, setFormMsg, setSection }} /></ErrorBoundary>)}
 

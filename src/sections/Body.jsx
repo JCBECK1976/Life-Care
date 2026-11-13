@@ -1,4 +1,6 @@
 import { calcWeek } from "../lib/utils.js";
+import CalorieCard from "../components/CalorieCard.jsx";
+import { applyAiAdj, leanMass, r5PromptContext } from "../lib/calories.js";
 import LoadingDots from "../components/LoadingDots.jsx";
 import { btnAction, btnActionLg, btnClose, btnDelete, btnEdit, btnFilledOn, btnLog, btnP, btnProgress, btnS, inputStyle, labelStyle } from "../constants/styles.js";
 import { handleApiError } from "../lib/api.js";
@@ -118,6 +120,8 @@ export default function BodySection({ ctx }) {
           </div>); })()}
           </div>{/* end grey sub-container */}
 
+          {/* v2.16.2 R6/R5: calorie target from measured burn (body composition is its source) */}
+          <div style={{ marginTop: 14 }}><CalorieCard data={data} who={activeTab} saveData={saveData} /></div>
           {/* Weigh-In Companion Feedback */}
           <div style={{ marginTop: 14 }}>
             <button onClick={async function() {
@@ -152,7 +156,7 @@ export default function BodySection({ ctx }) {
                   (function(){ var hp = p.healthProfile; var mn = ""; if (p.meds && p.meds.length > 0) mn = "Meds: " + p.meds.filter(function(m){return m.active;}).map(function(m){return m.name+" "+(m.dose||m.dosage||"");}).join(", ") + ". "; var bl = ""; if (p.bloods && p.bloods.length > 0) { var lb = p.bloods[p.bloods.length-1]; bl = "Latest bloods(" + lb.date + "): " + Object.entries(lb.tests).map(function(e){return e[0]+"="+e[1];}).join(", ") + ". "; } return (hp ? "Health: " + hp + ". " : "") + mn + bl; })() +
                   (function(){ var ec = ""; if (p.exercises) { var exDays = Object.keys(p.exercises); ec = "Exercise programme: " + exDays.map(function(d) { return d + ": " + p.exercises[d].map(function(e){ var lat = e.prog && e.prog.length > 0 ? e.prog[e.prog.length-1] : null; var ql = ""; if (lat) { var et = e.exType || "weights"; var fl = ["weights","bodyweight","timed_hold","stretching"].indexOf(et) >= 0 ? "FR" : "CIO"; ql = " [" + fl + ":" + (lat.fullRange === "good" ? "Good" : "WT") + ",GF:" + (lat.goodForm === "good" ? "Good" : "WT") + "]"; } return e.name + " " + e.current + " " + e.reps + " (" + e.status + ")" + ql;}).join(", "); }).join("; ") + ". "; } return ec; })() +
                   (function(){ var ac = ""; if (p.activity && p.activity.length > 0) { ac = "Recent activity: " + p.activity.slice(-5).map(function(a){return a.date+": "+(a.steps||"")+"steps "+(a.activity||"");}).join(", ") + ". "; } return ac; })() +
-                  getOnboardingCtx(activeTab) + prevBodyCtx + getCrossSectionCtx(activeTab, "bodycomp") + "\n\n" +
+                  getOnboardingCtx(activeTab) + prevBodyCtx + getCrossSectionCtx(activeTab, "bodycomp") + (leanMass(p.body) ? r5PromptContext(p) : "") /* v2.16.2 R5 */ + "\n\n" +
                   "RULES FOR RESPONSE:\n" +
                   "1. 'wins': 2-3 things going well — cover BOTH body comp AND measurements. Reference actual numbers and week-on-week changes.\n" +
                   "2. 'tweaks': 1-2 constructive suggestions. NEVER say 'you need to fix this'. Instead: 'If you [specific action] over the next 4 weeks, expect to see [specific outcome]'. Translate into a real-world outcome they care about.\n" +
@@ -162,7 +166,7 @@ export default function BodySection({ ctx }) {
                 var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1200, messages: [{ role: "user", content: prompt }] }) });
                 var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                 var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-                if (txt) { var bfParsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); bfParsed._at = new Date().toLocaleString("en-GB"); bfParsed._when = new Date().toLocaleString("en-GB"); setBodyFeedback(bfParsed); sSet("body_feedback", JSON.stringify(Object.assign({}, bodyFbAll || {}, { [activeTab]: bfParsed }))); }
+                if (txt) { var bfParsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); if (leanMass(p.body)) { var ndR5 = JSON.parse(JSON.stringify(data)); var beforeR5 = JSON.stringify(ndR5[activeTab].calorieSettings || null); applyAiAdj(ndR5[activeTab], bfParsed.adjSuggestion); if (JSON.stringify(ndR5[activeTab].calorieSettings || null) !== beforeR5) await saveData(ndR5); } delete bfParsed.adjSuggestion; /* v2.16.2 R5: suggestion lives in calorieSettings */ bfParsed._at = new Date().toLocaleString("en-GB"); bfParsed._when = new Date().toLocaleString("en-GB"); setBodyFeedback(bfParsed); sSet("body_feedback", JSON.stringify(Object.assign({}, bodyFbAll || {}, { [activeTab]: bfParsed }))); }
               } catch(e) { setBodyFeedback({ wins: [], tweaks: [window.isEnergyEmpty(e) ? window.energyEmptyMsg : "Error: " + String(e).substring(0, 80)], outlook: "" }); }
               setBodyFbLoading(false);
             }} disabled={bodyFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: bodyFbLoading ? "not-allowed" : "pointer", background: bodyFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", marginBottom: 6 }}>{bodyFbLoading ? React.createElement("span", null, "Generating, please wait ", React.createElement(LoadingDots)) : "My Companion Body Feedback"}</button>

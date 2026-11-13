@@ -1,4 +1,6 @@
 import { COLOUR_THEMES } from "../constants/themes.js";
+import { forgetToken, ghStatus } from "../lib/googleHealth.js";
+import { settingsOf } from "../lib/calories.js";
 import LoadingDots from "../components/LoadingDots.jsx";
 import { sSet } from "../lib/storage.js";
 import { btnAction, btnClear, btnOpen, btnP, btnStop, inputStyle, labelStyle } from "../constants/styles.js";
@@ -30,7 +32,7 @@ function Links(props) { return <div style={{ display: "flex", flexWrap: "wrap", 
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
 export default function SettingsSection({ ctx }) {
   const {
-    accentBtnLight, activeTab, companionEnergy, connectGoogle, customMeasTypes, debugLog, debugMode, googleConnected,
+    data, saveData, accentBtnLight, activeTab, companionEnergy, connectGoogle, customMeasTypes, debugLog, debugMode, googleConnected,
     isAdmin, isJC, measInputs, setCustomMeasTypes, setSection, setDebugLog, setDebugMode, setFormMsg, setGoogleConnected,
     setGoogleToken, setMeasInputs, setUserColour, syncGoogleHealth, syncLoading, userColour
   } = ctx;
@@ -54,23 +56,28 @@ export default function SettingsSection({ ctx }) {
 
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Data Admin</div>
 
-          {/* Google Health Connect */}
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid " + (googleConnected ? "#86efac" : "#e2e8f0"), padding: 14, marginTop: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📱 Google Health Connect</div>
-            <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.5, marginBottom: 8 }}>
-              <strong>Android Only</strong> — Syncs body composition and activity data from your phone via Google Health Connect.<br/>
-              <strong>Setup:</strong> 1) Download <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata" target="_blank" style={{ color: "#2563eb" }}>Google Health Connect</a> from Play Store. 2) Open it and connect your Fitdays / health apps. 3) Tap Connect below.
+          {/* v2.16.2 R4: Google Health (cloud API), rebuilt — token on this device only, honest status */}
+          {(function() { var gp = data && data[activeTab]; var st = ghStatus(activeTab, gp); var cs = settingsOf(gp); return (
+          <div data-testid="gh-card" style={{ background: "#fff", borderRadius: 12, border: "1px solid " + (googleConnected ? "#86efac" : "#e2e8f0"), padding: 14, marginTop: 14, marginBottom: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📱 Google Health — calories burned</div>
+            <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>
+              Reads your <b>daily total calories burned</b> for this week (Sunday–Saturday) from your Google account, so your calorie target can follow what you actually burn. Only the daily totals are saved; the Google sign-in stays on this device.
             </div>
+            <div data-testid="gh-status" role="status" style={{ padding: 8, background: st.lastSync && st.lastSync.error ? "#fee2e2" : googleConnected ? "#e0f2fe" : "#f1f5f9", borderRadius: 6, fontSize: 11, color: st.lastSync && st.lastSync.error ? "#991b1b" : "#0c4a6e", fontWeight: 600, marginBottom: 8 }}>{st.text}</div>
             {googleConnected ? (
               <div>
-                <div style={{ padding: 8, background: "#e0f2fe", borderRadius: 6, fontSize: 11, color: "#0c4a6e", fontWeight: 600, marginBottom: 8 }}>✓ Connected to Google Health</div>
-                <button onClick={syncGoogleHealth} disabled={syncLoading} style={{ width: "100%", padding: 10, background: syncLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: syncLoading ? "not-allowed" : "pointer" }}>{syncLoading ? <span>Syncing, please wait <LoadingDots /></span> : "🔄 Sync Google Health Data"}</button>
-                <button onClick={function() { setGoogleConnected(false); setGoogleToken(null); sSet("google_token_" + activeTab, ""); }} style={{...btnStop, width: "100%", marginTop: 4}}>⏹ Disconnect</button>
+                <button onClick={syncGoogleHealth} disabled={syncLoading} style={{ width: "100%", padding: 10, background: syncLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: syncLoading ? "not-allowed" : "pointer" }}>{syncLoading ? <span>Syncing, please wait <LoadingDots /></span> : "🔄 Sync this week's calories"}</button>
+                <button onClick={function() { forgetToken(activeTab); setGoogleConnected(false); setGoogleToken(null); }} style={{...btnStop, width: "100%", marginTop: 4}}>⏹ Disconnect on this device</button>
               </div>
             ) : (
               <button onClick={connectGoogle} style={{ width: "100%", padding: 10, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>🔗 Connect Google Health</button>
             )}
-          </div>
+            {isAdmin && gp && (<div data-testid="r6-admin" style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid #e2e8f0", fontSize: 11, color: "#334155" }}>
+              <b>Admin:</b> use the calculated calorie target for {(gp.profile && gp.profile.name) || activeTab}?{" "}
+              <button aria-pressed={cs.r6Active} data-testid="r6-switch" onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].calorieSettings) nd[activeTab].calorieSettings = {}; nd[activeTab].calorieSettings.r6Active = !cs.r6Active; await saveData(nd); setFormMsg(cs.r6Active ? "Calculated target switched off — fixed targets used" : "✓ Calculated target switched on"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ padding: "4px 10px", borderRadius: 12, border: "1px solid " + (cs.r6Active ? "#166534" : "#cbd5e1"), background: cs.r6Active ? "#166534" : "#fff", color: cs.r6Active ? "#fff" : "#334155", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>{cs.r6Active ? "On" : "Off"}</button>
+              <div style={{ fontSize: 10, color: "#475569", marginTop: 4 }}>Off (default): the calculated target is only shown, labelled "calculated (not active)". On: My Eating and Home use it, and activity calories are credited.</div>
+            </div>)}
+          </div>); })()}
 
           {/* Apple Health Integration */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14, opacity: 0.7 }}>
