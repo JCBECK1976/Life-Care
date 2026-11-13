@@ -2497,3 +2497,30 @@ Sizes are % of a weekly allowance, including Architect checks.
    - Record it as an **ADR** and in docs/design/ACCOUNTS_TIERS_ENERGY.md.
    - **Don't over-engineer:** build only the seams a second app needs. If the overnight Step 4 is already built, adapt it in the next session.
 
+
+### (Coder) 14 Nov 2026 — overnight Step 3: v2.16.2 on build (calories R6, R4, R5)
+- **v2.16.2 (`build` 40b7a24):**
+  - **R6:** `src/lib/calories.js`: lean mass = rolling average of the last 3–4 weigh-ins (weights are stored in **stone**, converted) × (1 − body fat); BMR = 370 + 21.6 × lean kg; activity credit = Google daily total − BMR (never below 0) × R5 %; target = BMR + credit − deficit; no Google data → BMR × 1.2 "estimate". **CalorieCard** on My Body (and in Home's Recommendations): label "N kcal burned · N deducted for your BMR (from body composition) · +N kcal from activity", badge **Calculated (not active)**. Admin switch per person (Settings → Google Health card), **default off**; when on, the badge says Active, Home's Calories target and My Eating's daily limit use it (the only place the credit is applied).
+  - **R4 (rebuilt):** `src/lib/googleHealth.js`. Reads only **daily total calories burned** for the Sun–Sat week; stores `googleDaily` (daily totals, 12-month retention) + `googleSync` status per person. Token: device only (localStorage, per person), **no longer written to or read from the database**. 401/403 → "expired or not allowed — reconnect" and disconnects; other HTTP errors shown; "✓ Synced" only with data. The old v1 weight/body-fat/steps/sessions import is **dropped** (unverified fields, stone mix-ups).
+  - **R5:** per-person adjustment % (Change → manual, recorded); Body Feedback prompt gets the R5 context and may return `adjSuggestion` → shown on the card with Accept/Decline; a decline is respected for 28 days; a manual change is acknowledged once. History stores values + dates only.
+  - Tests `tests/v2162.spec.js` (7): maths, R5 rules, Google client with a fake service (ok/401/500), UI sync (token never in the DB), expired session, AI suggestion + decline. Full suite **174 passed**, lint 0 errors, 360px card screenshot checked.
+- **Decisions (Coder):**
+  - The card sits on **My Body** (body composition is its source) as well as Home's Recommendations, because Home's Recommendations only show inside the expanded assessment.
+  - Old Google token keys `google_token_<person>` in the database are now ignored, not deleted (deleting real data needs JC's OK) → question 2 below.
+  - Version numbers: the overnight steps are v2.16.0 → v2.16.4, then accessibility v2.17.0, following the brief's labels (Step 2 = v2.16.1, Step 6 = v2.17.x).
+- **Questions for JC (skipped, defaults used):**
+  1. Deficit: default **500 kcal/day** for both. Keep, or set per person?
+  2. OK to delete the old `google_token_jc` / `google_token_becks` keys from the database (expired tokens, no longer used)?
+- **J10 — JC's Google Cloud setup (one action per step):**
+  1. Open console.cloud.google.com and choose the project **life-care-app-64d04**.
+  2. APIs & Services → **Library** → search "Google Health API" → **Enable**.
+  3. APIs & Services → **OAuth consent screen** → User type **External** → app name "Lifecare Companion" + your support email → **Save and continue**.
+  4. **Scopes** → **Add or remove scopes** → tick `…/auth/googlehealth.activity_and_fitness.readonly` → **Update** → **Save and continue**.
+  5. **Test users** → **Add users** → your Google account → **Save**.
+  6. **Test users** → **Add users** → Becks's Google account → **Save**.
+  7. APIs & Services → **Credentials** → open the existing **OAuth 2.0 Client ID** (Web, ending `…0sf2`).
+  8. **Authorised JavaScript origins** → **Add URI** → `https://jcbeck1976.github.io` → **Save**.
+  9. Tell the Architect it's done. The Architect checks the API reference for the **daily total calories** data type name and fields; the Coder changes `GH.totalCalories` if it differs.
+  10. On /build/: Settings → Google Health → **Connect** → **Sync this week's calories** → tell the Coder what the status line says.
+- **JC to test (/build/):** My Body → calorie card shows "Calculated (not active)" with your numbers (estimate until Google works). Change the adjustment → saved. Admin: switch on for yourself → badge "Active"; switch off again.
+- **Resume point:** `build` @ 40b7a24 (v2.16.2), prod v2.15.1. Next: Step 4 (accounts/tiers/energy design + local functions, v2.16.3), applying the Architect's 22:40 hard rule and 22:46 platform note.
