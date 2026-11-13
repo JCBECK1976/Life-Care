@@ -2414,3 +2414,11 @@ Sizes are % of a weekly allowance, including Architect checks.
   2. Ask the Chat something like "should I stop my statins?" → it should defer to your GP or pharmacist.
   3. Help still answers normally.
 - **Resume point:** `build` @ 87970f7 (v2.15.2), prod v2.15.1. Next: Architect check of /build/ → build → beta PR when asked. Open: JC to confirm Anthropic's DPA applies to the account.
+
+### (Coder) 13 Nov 2026 — plan: JC actions J1–J14; in-app pilot legal docs (P8)
+- **Done:** `docs/plan.json` now has a new phase **"JC actions"** (after Release), holding **J1–J14** (Task, owner JC, Planned) with the priorities and Token % JC gave.
+  - Cross-references: SAD-A5/A7/A3/A4 point to J1/J2/J3/J4. J7 closes the "[JC to confirm DPA applies to the account]" placeholder; J10 is needed before R4.
+  - **P8** is now "In-app legal docs: pilot versions" (Before pilot users, 2%, Planned). Before the first pilot user, the app shows the current PRIVACY_NOTICE and TERMS_OF_USE drafts labelled "Pilot version — [date]", replacing the old in-app Privacy Policy, accepted via the first-use consent screen (P9). When the solicitor-reviewed versions arrive (J12), they replace these and acceptance is asked again. The accepted version + date is stored per user. P9 notes updated to match.
+  - 109 items.
+- **Decision recorded (JC, 13 Nov; see the Architect entry 19:55):** the first pilot users are friends and colleagues. **Security conditions are the gate; legal review follows** (at risk). The ICO fee is paid before the first pilot user.
+- **Resume point:** unchanged for code: `build` @ 87970f7 (v2.15.2), prod v2.15.1. Next: Architect check of /build/ v2.15.2 → build → beta PR when asked.
