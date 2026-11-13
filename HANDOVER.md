@@ -2491,3 +2491,9 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **JC actions (J1, after the next release puts these files on main):** Settings → Code security: turn on **Dependabot alerts**, **Dependabot security updates**, **Secret scanning** + **Push protection**. CodeQL runs by itself (results under Security → Code scanning).
 - **Open:** the drift check needs the service account to be allowed to read the rules (the existing backup service account should be). First real run: after the next release, from Actions → "Database rules drift check" → Run workflow.
 - **Resume point:** `build` @ c96d3a1 (v2.16.1), prod v2.15.1. Next: Step 3 (calories R6/R4/R5, v2.16.2). Architect 22:40 queue noted: its hard design rule (admin can't read other users' health data) is applied in Step 4; the plan additions (N1–N10, J17, pilot features) are left for the next session as asked.
+6. **(Added 22:46, JC approved) Companion platform design note for Step 4/5/6:**
+   - Design accounts/households, entitlements/tiers, the energy ledger, the AI proxy (EU), payments and the Tracker as a **reusable "Companion platform"** for the parent brand **CompanionApps.studio**. Lifecare Companion is the first app.
+   - App-specific data stays separate per app (`appId` in paths), with per-app tier/energy/AI config.
+   - Record it as an **ADR** and in docs/design/ACCOUNTS_TIERS_ENERGY.md.
+   - **Don't over-engineer:** build only the seams a second app needs. If the overnight Step 4 is already built, adapt it in the next session.
+
