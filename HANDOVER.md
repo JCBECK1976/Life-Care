@@ -2303,3 +2303,33 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **Correction to the Coder's secrets guide:** do **NOT** keep a copy of BACKUP_KEY in the vault. The vault holds the encrypted backups, so the key must live elsewhere (password manager + offline copy). Coder: fix that line in the guide and in any doc that repeats it.
 - Plan item R3 (add secrets + verify) → Done.
 
+### (Architect) 13 Nov 2026 20:30 — private docs written (vault) + review of HLD / test strategy
+- **Written to the private vault** `life-care/docs/`:
+  - 01 SAD (with STRIDE threat model + CSIA);
+  - 02 DPIA (with the H7 retention proposal);
+  - 03 SDD + runbooks RB-01…RB-12;
+  - 04 risk register;
+  - 05 supplier register + ROPA.
+  - All are draft 1.0, for JC and the cyber reviewer. **Nothing security-specific goes into the public repo.**
+- **SAD Phase A actions (household, before more features), for the plan (phase "House in order"):**
+  - **A2:** verify and enforce sanitisation for every `dangerouslySetInnerHTML` (10 files; use DOMPurify, or switch to a markdown renderer with no raw HTML) **and add a CSP meta tag** (self, Firebase/Google auth, api.anthropic.com, Open Food Facts). Coder, about 3%.
+  - **A3:** Google account hardening. JC.
+  - **A4:** replace the no-expiry PAT with a fine-grained 90-day token. JC + Architect.
+  - **A5:** Dependabot alerts, secret scanning with push protection, CodeQL. JC toggles in repo Settings; Coder adds config, about 1%.
+  - **A6:** scheduled DB-rules drift check through the service account. Coder, about 2%.
+  - **A7:** branch protection on main and beta. JC.
+- **Phase B (before pilot):** A1 server AI proxy (Step 6), A8 App Check, A9 anonymised fixtures, Step 2/5, pen test.
+- **Retention proposal (H7)** is in DPIA §6 and needs JC's approval.
+- **HLD review (Coder to apply):**
+  1. §9 and §2 still say automation is "prepared/inactive". It has been **live since 13 Nov** (first encrypted backup verified).
+  2. §7 says Send Feedback "opens an email as before". It now opens the email app only if a feedback address is set (v2.14.1/v2.14.3).
+  3. Point the LLD references to `docs/LLD.md` once written.
+  4. Add a "Planned" note: Google Health calorie sync (R4/R6/R5), with the token kept on the device.
+  5. §8: add "Build copy limited to JC and Becks, or anonymised, before pilot" (it says the refresh refuses: confirm that's implemented, or reword).
+  6. Mention the admin view is UI-only (no security detail, just "admin features are a convenience view, not an access control").
+- **Test strategy review (Coder to apply):**
+  1. The smoke row is no longer "prepared": it is live after each deploy.
+  2. Add a security test level: a CSP/sanitisation test once A2 lands (inject `<img onerror>` / `<script>` in AI text, food names and descriptions → must not execute).
+  3. Add the rules drift check (A6) once built.
+  4. Known gaps: add "no automated accessibility checks (axe)". Suggest adding @axe-core/playwright on the main screens.
+
