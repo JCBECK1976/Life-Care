@@ -2361,3 +2361,19 @@ Sizes are % of a weekly allowance, including Architect checks.
   - Before pilot users: **SAD-A1** (= G4, the Step 6 proxy; 0% here so it isn't counted twice), **SAD-A8** App Check (2%), **SAD-A9** anonymised fixtures (2%).
   - 92 items.
 - **Resume point:** unchanged; code untouched (prod v2.15.1). Next: open questions from the 13 Nov Coder report; SAD-A2/A5/A6 when asked.
+
+### (Architect) 13 Nov 2026 19:55 — DECISION (JC): pilot may proceed AT RISK on legal review only
+- The solicitor review of the privacy notice and terms (J12) may complete **after** the pilot starts. JC accepts the risk.
+- **Not waived:** the security pre-pilot conditions remain blockers:
+  - SAD-A1 server proxy (Vertex AI EU);
+  - Step 5 individual accounts;
+  - consent screens;
+  - Step 2 export/delete;
+  - fixes from the cyber review (JC contacting the reviewer the weekend of 14–15 Nov);
+  - a pen test, strongly recommended.
+- **Mitigations for the legal risk:**
+  - a small invited pilot;
+  - pilot terms + privacy notice shown at sign-up with explicit consent;
+  - the ICO fee paid before the first pilot user;
+  - solicitor changes applied promptly.
+
