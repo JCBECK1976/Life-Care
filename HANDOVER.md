@@ -2351,3 +2351,13 @@ Sizes are % of a weekly allowance, including Architect checks.
   - The accessibility gaps come from a quick code review, not an audit: zoom is blocked by the viewport tag (`user-scalable=no`), light-grey 8–10px text, about 53 of 357 buttons have explicit labels.
 - **Open questions:** see the Coder's report of 13 Nov (to JC/Architect).
 - **Resume point:** `main` docs @ this commit; code unchanged (prod v2.15.1, `build` @ 71041b0). Next: JC/Architect answer the open questions; legal review of `docs/legal/`; Coder items A2, A5 config, A6, P6, P7 when asked.
+
+### (Coder) 13 Nov 2026 — item 9: Architect review notes + SAD actions in the plan
+- **Review notes:** the Architect's HLD and test-strategy notes from "(Architect) 13 Nov 2026 20:30" were already applied in `f780b62`:
+  - HLD: all 6 notes.
+  - TEST_STRATEGY: smoke live; planned security (CSP/sanitisation) and rules-drift levels; axe gap.
+- **plan.json:**
+  - House in order: the Phase A items are renamed to **SAD-A2** (Coder 3%), **SAD-A5** (Coder 1%; JC toggles), **SAD-A6** (Coder 2%), **SAD-A3** (JC), **SAD-A4** (JC + Architect), **SAD-A7** (JC).
+  - Before pilot users: **SAD-A1** (= G4, the Step 6 proxy; 0% here so it isn't counted twice), **SAD-A8** App Check (2%), **SAD-A9** anonymised fixtures (2%).
+  - 92 items.
+- **Resume point:** unchanged; code untouched (prod v2.15.1). Next: open questions from the 13 Nov Coder report; SAD-A2/A5/A6 when asked.
