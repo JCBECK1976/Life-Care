@@ -1,4 +1,5 @@
 import { BLOOD_TESTS, DEFAULT_MEDS, DEFAULT_SUPPS } from "../constants/health.js";
+import LoadingDots from "../components/LoadingDots.jsx";
 import { calcWeek } from "../lib/utils.js";
 import { btnAction, btnClose, btnDelete, btnEdit, btnMuted, btnP, btnStop, inputStyle, labelStyle } from "../constants/styles.js";
 import { sSet } from "../lib/storage.js";
@@ -192,7 +193,7 @@ export default function HealthSection({ ctx }) {
               try { await sSet("health_fb_" + activeTab, JSON.stringify(fb)); } catch(se) {}
             } catch(e) { setFormMsg(window.aiErrorMsg(e)); setTimeout(function() { setFormMsg(""); }, 10000); }
             setHealthFbLoading(false);
-          }} disabled={healthFbLoading} style={{ width: "100%", padding: 12, marginTop: 14, background: healthFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: healthFbLoading ? "default" : "pointer" }}>{healthFbLoading ? <span>Generating<span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Health Feedback"}</button>
+          }} disabled={healthFbLoading} style={{ width: "100%", padding: 12, marginTop: 14, background: healthFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: healthFbLoading ? "default" : "pointer" }}>{healthFbLoading ? <span>Generating<LoadingDots /></span> : "My Companion Health Feedback"}</button>
                   <button onClick={function(){setHealthFbExpanded(!healthFbExpanded);}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#64748b",cursor:"pointer",marginTop:4}}>{healthFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>
 
           {healthFbExpanded && healthFb && (<div style={{ marginTop: 10, marginBottom: 10 }}>

@@ -1,4 +1,5 @@
 import { readImageForAI } from "../lib/image.js";
+import LoadingDots from "../components/LoadingDots.jsx";
 import PrivacyNote from "../components/PrivacyNote.jsx";
 import React from "react";
 import { bodyTypeCheckRule, looseJson, photoIssues } from "../lib/bodyPhotoCheck.js";
@@ -234,7 +235,7 @@ export default function HomeSection({ ctx }) {
                       }
                     } catch(e) { setFormMsg(window.isEnergyEmpty(e) ? window.energyEmptyMsg : "✗ Could not generate — check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
                     setGenPlanLoading(false);
-                  }} disabled={genPlanLoading} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: genPlanLoading ? "not-allowed" : "pointer", background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{genPlanLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Recommendations"}</button>
+                  }} disabled={genPlanLoading} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: genPlanLoading ? "not-allowed" : "pointer", background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{genPlanLoading ? <span>Generating, please wait <LoadingDots /></span> : "My Companion Recommendations"}</button>
 
                   {/* Assessment toggle */}
                   {(assessment || p.profileAssessment) && <button onClick={function(){ setAssessmentExpanded(!assessmentExpanded); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer", marginTop: 8, marginBottom: 6 }}>{assessmentExpanded ? "▲ Hide Recommendations" : "▼ Show Recommendations"}</button>}
@@ -370,7 +371,7 @@ export default function HomeSection({ ctx }) {
                         }
                       } catch(e) { setFormMsg(window.isEnergyEmpty(e) ? window.energyEmptyMsg : "\u2717 Could not generate \u2014 check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
                       setGenPlanLoading(false);
-                    }} disabled={genPlanLoading} style={{ width: "100%", padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: genPlanLoading ? "not-allowed" : "pointer", background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{genPlanLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "\ud83d\udd0d My Companion Body Type Check"}</button>
+                    }} disabled={genPlanLoading} style={{ width: "100%", padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: genPlanLoading ? "not-allowed" : "pointer", background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{genPlanLoading ? <span>Analysing, please wait <LoadingDots /></span> : "\ud83d\udd0d My Companion Body Type Check"}</button>
                   </div>
 
                   {/* Baseline Body Comp Upload */}
@@ -708,7 +709,7 @@ export default function HomeSection({ ctx }) {
             </div>
           </div>
 
-          <button onClick={generateFeedback} disabled={feedbackLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: feedbackLoading ? "not-allowed" : "pointer", opacity: feedbackLoading ? 0.7 : 1, background: feedbackLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", marginBottom: 14 }}>{feedbackLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Feedback"}</button>
+          <button onClick={generateFeedback} disabled={feedbackLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: feedbackLoading ? "not-allowed" : "pointer", opacity: feedbackLoading ? 0.7 : 1, background: feedbackLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", marginBottom: 14 }}>{feedbackLoading ? <span>Generating, please wait <LoadingDots /></span> : "My Companion Feedback"}</button>
           <button onClick={function(){setHomeFbExpanded(!homeFbExpanded);}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#64748b",cursor:"pointer",marginTop:4}}>{homeFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>
           {homeFbExpanded && feedbackResults[activeTab] && (() => { const fb = feedbackResults[activeTab]; return (<div style={{ marginBottom: 14 }}><div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" }}>
             {fb._when && <div style={{ padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" }}>Generated {fb._when} for {isJC ? "JC" : "Becks"}</div>}

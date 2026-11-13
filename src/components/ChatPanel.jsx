@@ -1,4 +1,5 @@
 import { btnClose } from "../constants/styles.js";
+import LoadingDots from "./LoadingDots.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -37,7 +38,7 @@ export default function ChatPanel({ ctx }) {
             {qaMsg && <div style={{ marginBottom: 6, padding: 8, borderRadius: 6, background: qaMsg.startsWith("Error") ? "#fee2e2" : "#dbeafe", color: qaMsg.startsWith("Error") ? "#991b1b" : "#1e40af", fontSize: 11, fontWeight: 600 }}>{qaMsg}</div>}
             <div style={{ display: "flex", gap: 6 }}>
               <textarea id={"qa-input-" + activeTab} disabled={qaLoading} placeholder={qaHistory[activeTab] && qaHistory[activeTab].length > 0 ? "Continue the conversation..." : "e.g. Am I eating enough protein? What should I focus on next?"} style={{ flex: 1, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, resize: "vertical", minHeight: 40, boxSizing: "border-box", fontFamily: "inherit", opacity: qaLoading ? 0.6 : 1 }} />
-              <button onClick={askQuestion} disabled={qaLoading} style={{ padding: "8px 14px", background: qaLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: qaLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>{qaLoading ? <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /> : "Send"}</button>
+              <button onClick={askQuestion} disabled={qaLoading} style={{ padding: "8px 14px", background: qaLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: qaLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>{qaLoading ? <LoadingDots /> : "Send"}</button>
             </div>
           </div>
         </div>

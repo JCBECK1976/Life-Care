@@ -48,3 +48,13 @@ export function calcWeek(startDate) {
   var now = new Date();
   return Math.floor((now - start) / (7 * 24 * 60 * 60 * 1000)) + 1;
 }
+
+/* v2.16.1 SAD-A2: replace an element's content with plain text in a styled div — never HTML,
+   so AI-returned names or statuses can't inject markup or script. */
+export function setPlainNote(el, text, css) {
+  if (!el) return;
+  var div = document.createElement("div");
+  Object.assign(div.style, css || {});
+  div.textContent = String(text == null ? "" : text);
+  el.replaceChildren(div);
+}

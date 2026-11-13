@@ -1,0 +1,28 @@
+# v2.16.1 SAD-A6: daily check that the database rules deployed in Firebase match database.rules.json (main).
+# Drift → the run fails and GitHub emails the repo owner (Actions failure notifications). Prints no rule content.
+# Without the FIREBASE_SERVICE_ACCOUNT secret it says "secret not set — skipped" and ends green.
+name: Database rules drift check
+on:
+  schedule: [{ cron: "41 5 * * *" }]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+    steps:
+      - name: Check the secret is set
+        id: s
+        run: if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then echo "FIREBASE_SERVICE_ACCOUNT secret not set — skipped."; echo "skip=true" >> "$GITHUB_OUTPUT"; else echo "skip=false" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.s.outputs.skip == 'false'
+        uses: actions/checkout@v7
+        with: { ref: main }
+      - if: steps.s.outputs.skip == 'false'
+        uses: actions/setup-node@v7
+        with: { node-version: 22 }
+      - if: steps.s.outputs.skip == 'false'
+        run: npm install --no-save --no-package-lock --prefix scripts/automation firebase-admin@12.7.0
+      - if: steps.s.outputs.skip == 'false'
+        run: node scripts/automation/rules-drift.mjs

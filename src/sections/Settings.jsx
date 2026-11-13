@@ -1,4 +1,5 @@
 import { COLOUR_THEMES } from "../constants/themes.js";
+import LoadingDots from "../components/LoadingDots.jsx";
 import { sSet } from "../lib/storage.js";
 import { btnAction, btnClear, btnOpen, btnP, btnStop, inputStyle, labelStyle } from "../constants/styles.js";
 import firebase, { DATA_ROOT } from "../lib/firebase.js";
@@ -63,7 +64,7 @@ export default function SettingsSection({ ctx }) {
             {googleConnected ? (
               <div>
                 <div style={{ padding: 8, background: "#e0f2fe", borderRadius: 6, fontSize: 11, color: "#0c4a6e", fontWeight: 600, marginBottom: 8 }}>✓ Connected to Google Health</div>
-                <button onClick={syncGoogleHealth} disabled={syncLoading} style={{ width: "100%", padding: 10, background: syncLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: syncLoading ? "not-allowed" : "pointer" }}>{syncLoading ? <span>Syncing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🔄 Sync Google Health Data"}</button>
+                <button onClick={syncGoogleHealth} disabled={syncLoading} style={{ width: "100%", padding: 10, background: syncLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: syncLoading ? "not-allowed" : "pointer" }}>{syncLoading ? <span>Syncing, please wait <LoadingDots /></span> : "🔄 Sync Google Health Data"}</button>
                 <button onClick={function() { setGoogleConnected(false); setGoogleToken(null); sSet("google_token_" + activeTab, ""); }} style={{...btnStop, width: "100%", marginTop: 4}}>⏹ Disconnect</button>
               </div>
             ) : (

@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
+import crypto from "node:crypto";
 
 // APP_GUIDE.md lives once, at the repo root (docs are edited on main).
 // This plugin serves it in dev and emits it next to index.html in builds,
@@ -42,6 +43,43 @@ function planJson() {
     generateBundle() {
       if (fs.existsSync(file)) this.emitFile({ type: "asset", fileName: "plan.json", source: read() });
     },
+  };
+}
+
+// v2.16.1 SAD-A2: Content-Security-Policy meta tag. Only the app itself, Firebase/Google sign-in and database,
+// the Claude API, Open Food Facts and the Google Health API are allowed. Inline scripts are allowed only by
+// their exact hash (computed here from the final HTML), so injected script can't run. Dev adds the local emulators.
+export const CSP_HOSTS = {
+  script: ["https://accounts.google.com", "https://apis.google.com", "https://*.firebasedatabase.app"],
+  connect: ["https://api.anthropic.com", "https://world.openfoodfacts.org", "https://health.googleapis.com", "https://www.googleapis.com", "https://oauth2.googleapis.com",
+    "https://identitytoolkit.googleapis.com", "https://securetoken.googleapis.com", "https://*.firebasedatabase.app", "wss://*.firebasedatabase.app",
+    "https://raw.githubusercontent.com", "https://jcbeck1976.github.io", "https://accounts.google.com"],
+  img: ["data:", "blob:", "https://images.openfoodfacts.org", "https://static.openfoodfacts.org", "https://lh3.googleusercontent.com"],
+  frame: ["https://accounts.google.com", "https://life-care-app-64d04.firebaseapp.com"],
+  style: ["https://accounts.google.com"],
+};
+const DEV_HOSTS = ["http://127.0.0.1:9000", "ws://127.0.0.1:9000", "http://127.0.0.1:9099", "ws://127.0.0.1:5173", "ws://127.0.0.1:5175", "http://127.0.0.1:5001"];
+export function buildCsp(html, dev) {
+  const hashes = [];
+  html.replace(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g, (m, body) => { if (body.trim()) hashes.push("'sha256-" + crypto.createHash("sha256").update(body).digest("base64") + "'"); return m; });
+  const h = CSP_HOSTS, d = dev ? DEV_HOSTS : [];
+  return ["default-src 'self'",
+    "script-src 'self' " + hashes.concat(h.script, dev ? ["http://127.0.0.1:9000"] : []).join(" "),
+    "connect-src 'self' " + h.connect.concat(d).join(" "),
+    "img-src 'self' " + h.img.join(" "),
+    "style-src 'self' 'unsafe-inline' " + h.style.join(" "),
+    "font-src 'self' data:",
+    "frame-src " + h.frame.concat(dev ? ["http://127.0.0.1:9099"] : []).join(" "),
+    "worker-src 'self'", "manifest-src 'self' data:", "object-src 'none'", "base-uri 'self'", "form-action 'self'"].join("; ");
+}
+function csp() {
+  let dev = false;
+  return {
+    name: "csp",
+    configResolved(c) { dev = c.command === "serve"; },
+    transformIndexHtml: { order: "post", handler(html) {
+      return html.replace("<head>", '<head>\n  <meta http-equiv="Content-Security-Policy" content="' + buildCsp(html, dev) + '">');
+    } },
   };
 }
 
@@ -148,7 +186,7 @@ function pwa(appEnv) {
 export default defineConfig(({ mode }) => ({
   // "next" mode = preview build served from /Life-Care/next/ ; otherwise production /Life-Care/
   base: mode === "next" ? "/Life-Care/next/" : "/Life-Care/",
-  plugins: [react(), appGuide(), planJson(), envHtml(loadEnv(mode, process.cwd(), "VITE_").VITE_APP_ENV), pwa(loadEnv(mode, process.cwd(), "VITE_").VITE_APP_ENV)],
+  plugins: [react(), appGuide(), planJson(), envHtml(loadEnv(mode, process.cwd(), "VITE_").VITE_APP_ENV), pwa(loadEnv(mode, process.cwd(), "VITE_").VITE_APP_ENV), csp()],
   build: { outDir: "dist", emptyOutDir: true, chunkSizeWarningLimit: 3000 },
   server: { host: "127.0.0.1", port: 5173, strictPort: true },
 }));

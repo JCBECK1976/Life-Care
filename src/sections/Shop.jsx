@@ -1,4 +1,5 @@
 import { NO_FOOD_MSG, NO_FOOD_RULE, noFood } from "../lib/snap.js";
+import LoadingDots from "../components/LoadingDots.jsx";
 import { readImageForAI } from "../lib/image.js";
 import { calcWeek, mealKey } from "../lib/utils.js";
 import { sGet, sSet } from "../lib/storage.js";
@@ -91,7 +92,7 @@ export default function ShopSection({ ctx }) {
                       setFoodCheckerPreview(withRuleRating({ assumed: info.assumed || "", name: info.name || foodCheckerText, kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, addedSugar: info.addedSugar || 0, rating: info.rating || "AMBER", itemType: info.itemType || "packaged", ingredients: info.ingredients || [], suitability: info.suitability || "" }));
                     } catch(ce) { setFormMsg(window.aiErrorMsg(ce)); setTimeout(function(){setFormMsg("");},10000); }
                     setFoodCheckerLoading(false);
-                  }} disabled={foodCheckerLoading || !foodCheckerText.trim()} style={{ width: "100%", padding: "8px 12px", background: foodCheckerLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{foodCheckerLoading ? <span>Checking <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Check"}</button>
+                  }} disabled={foodCheckerLoading || !foodCheckerText.trim()} style={{ width: "100%", padding: "8px 12px", background: foodCheckerLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{foodCheckerLoading ? <span>Checking <LoadingDots /></span> : "Check"}</button>
                 <div style={{ fontSize: 10, color: "#64748b", marginTop: 4 }}>Type a food name or scan a product, with or without a short description, to check nutritional information</div>
               </div>) : foodCheckerPreview.noFood ? (<div data-testid="checker-no-food">
                 <div role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div>
@@ -193,7 +194,7 @@ export default function ShopSection({ ctx }) {
               setGeneratedShop(shopData);
             } catch(shopErr) { setFormMsg("Error: " + String(shopErr).substring(0, 100)); setTimeout(() => setFormMsg(""), 10000); }
             setShopLoading(false);
-          }} disabled={shopLoading} style={{ ...btnP(!shopLoading), marginBottom: 6, background: shopLoading ? "linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", opacity: shopLoading ? 0.85 : 1 }}>{shopLoading ? <span>Generating<span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Shopping Generator"}</button>
+          }} disabled={shopLoading} style={{ ...btnP(!shopLoading), marginBottom: 6, background: shopLoading ? "linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", opacity: shopLoading ? 0.85 : 1 }}>{shopLoading ? <span>Generating<LoadingDots /></span> : "My Companion Shopping Generator"}</button>
           <div style={{ textAlign: "center", fontSize: 10, color: "#94a3b8", marginBottom: 14, lineHeight: 1.4 }}>Plan your week food choices in <b>'My Eating'</b> to get your shopping list suggestions</div>
           {/* Shopping List — grey sub-container */}
           <div style={{ background: accentLight, borderRadius: 8, padding: 12, border: "1px solid " + accentBorder, marginBottom: 14 }}>
@@ -246,7 +247,7 @@ export default function ShopSection({ ctx }) {
               } catch(err) { setFormMsg(window.aiErrorMsg(err)); }
               setShopLoading(false);
               setTimeout(function(){setFormMsg("");}, 3000);
-            }} disabled={shopLoading} style={{...btnActionLg, flex: 1, justifyContent: "center", fontSize: 11, opacity: shopLoading ? 0.85 : 1}}>{shopLoading ? <span>Grouping<span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "Group by Aisle"}</button>
+            }} disabled={shopLoading} style={{...btnActionLg, flex: 1, justifyContent: "center", fontSize: 11, opacity: shopLoading ? 0.85 : 1}}>{shopLoading ? <span>Grouping<LoadingDots /></span> : "Group by Aisle"}</button>
             {generatedShop && <button onClick={function() { setGeneratedShop(null); setFormMsg("Shopping list cleared"); setTimeout(function(){setFormMsg("");}, 2000); }} style={{...btnClear, padding: "8px 16px", fontSize: 11, borderRadius: 8}}>Clear List</button>}
           </div>)}
           {/* Add item input */}

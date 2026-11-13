@@ -1,4 +1,5 @@
 import { btnClose } from "../constants/styles.js";
+import LoadingDots from "./LoadingDots.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -37,7 +38,7 @@ export default function HelpPanel({ ctx }) {
             {helpMsg && <div style={{ marginBottom: 6, padding: 8, borderRadius: 6, background: "#fee2e2", color: "#991b1b", fontSize: 11, fontWeight: 600 }}>{helpMsg}</div>}
             <div style={{ display: "flex", gap: 6 }}>
               <textarea id={"help-input-" + activeTab} disabled={helpLoading} placeholder={helpHistory[activeTab] && helpHistory[activeTab].length > 0 ? "Ask another question..." : "e.g. How do I add a food to my lists? What does AMBER mean? Where do I log my session?"} style={{ flex: 1, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, resize: "vertical", minHeight: 40, boxSizing: "border-box", fontFamily: "inherit", opacity: helpLoading ? 0.6 : 1 }} />
-              <button onClick={askHelp} disabled={helpLoading} style={{ padding: "8px 14px", background: helpLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: helpLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>{helpLoading ? <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /> : "Send"}</button>
+              <button onClick={askHelp} disabled={helpLoading} style={{ padding: "8px 14px", background: helpLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: helpLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>{helpLoading ? <LoadingDots /> : "Send"}</button>
             </div>
           </div>
         </div>

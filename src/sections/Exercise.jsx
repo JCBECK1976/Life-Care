@@ -1,5 +1,6 @@
 import { DEFAULT_EXERCISES, EXERCISE_DATABASE, EXERCISE_TYPES } from "../constants/exercise.js";
-import { calcWeek, fbIcon, sBg, sColor, sLabel } from "../lib/utils.js";
+import LoadingDots from "../components/LoadingDots.jsx";
+import { calcWeek, fbIcon, sBg, sColor, sLabel, setPlainNote } from "../lib/utils.js";
 import { buildExProfileInfo, getMoodContext } from "../lib/aiContext.js";
 import { sSet } from "../lib/storage.js";
 import { scrollOnMount } from "../lib/scrollIntoView.js";
@@ -518,7 +519,7 @@ export default function ExerciseSection({ ctx }) {
                           } catch(ae3) { console.error("Guide update failed:", ae3); }
                           setAddExLoading(false);
                         }} disabled={addExLoading} style={{width:"100%",fontSize:11,padding:"8px 0",color:"#fff",border:"none",borderRadius:6,fontWeight:600,cursor:addExLoading?"not-allowed":"pointer",opacity:addExLoading?0.7:1,background:addExLoading?"#94a3b8":"linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",textAlign:"center",display:"flex",justifyContent:"center",alignItems:"center",gap:4}}>
-                          {addExLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🔄 Generate / Update Guides"}
+                          {addExLoading ? <span>Generating <LoadingDots /></span> : "🔄 Generate / Update Guides"}
                         </button>
                         {!addExConfirm.exerciseGuide && !addExConfirm.prePostGuide && <div style={{fontSize:9,color:"#94a3b8",textAlign:"center",marginTop:4,fontStyle:"italic"}}>This exercise was added before guides were available — tap above to generate them</div>}
                       </div>
@@ -637,7 +638,7 @@ export default function ExerciseSection({ ctx }) {
                           } catch(ae3) { console.error("Guide update failed:", ae3); }
                           setAddExLoading(false);
                         }} disabled={addExLoading} style={{width:"100%",fontSize:11,padding:"8px 0",color:"#fff",border:"none",borderRadius:6,fontWeight:600,cursor:addExLoading?"not-allowed":"pointer",opacity:addExLoading?0.7:1,background:addExLoading?"#94a3b8":"linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",textAlign:"center",display:"flex",justifyContent:"center",alignItems:"center",gap:4}}>
-                          {addExLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🔄 Generate / Update Guides"}
+                          {addExLoading ? <span>Generating <LoadingDots /></span> : "🔄 Generate / Update Guides"}
                         </button>
                         {!addExConfirm.exerciseGuide && !addExConfirm.prePostGuide && <div style={{fontSize:9,color:"#94a3b8",textAlign:"center",marginTop:4,fontStyle:"italic"}}>This exercise was added before guides were available — tap above to generate them</div>}
                       </div>
@@ -783,7 +784,7 @@ export default function ExerciseSection({ ctx }) {
                         } catch(ge) { console.error("Session guide generation failed:", ge); setFormMsg(window.isEnergyEmpty(ge) ? window.energyEmptyMsg : "✗ Could not generate — check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
                         setSessionGuideLoading(false);
                       }} disabled={sessionGuideLoading} style={{ width: "100%", padding: "6px 0", background: sessionGuideLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, color: "#fff", cursor: sessionGuideLoading ? "not-allowed" : "pointer", opacity: sessionGuideLoading ? 0.7 : 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 4 }}>
-                        {sessionGuideLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : (p.sessionGuides && p.sessionGuides[day] ? "🔄 Regenerate Warm-Up & Cool-Down" : "🔥 Generate Warm-Up & Cool-Down")}
+                        {sessionGuideLoading ? <span>Analysing, please wait <LoadingDots /></span> : (p.sessionGuides && p.sessionGuides[day] ? "🔄 Regenerate Warm-Up & Cool-Down" : "🔥 Generate Warm-Up & Cool-Down")}
                       </button>
                     </div>
                   )}
@@ -891,7 +892,7 @@ export default function ExerciseSection({ ctx }) {
                         }
                     } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: { exercises: [], summary: window.isEnergyEmpty(e) ? window.energyEmptyMsg : "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
                     setSessionFbLoading(false);
-                  }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{sessionFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Session Feedback"}</button>
+                  }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{sessionFbLoading ? <span>Generating <LoadingDots /></span> : "My Companion Session Feedback"}</button>
                   <button onClick={function(){setFbExpanded(!fbExpanded);}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#64748b",cursor:"pointer",marginTop:4}}>{fbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>
                   {fbExpanded && sessionFeedback && sessionFeedback[activeTab + "_" + day] && (<div style={{ marginTop: 10 }}>
                     <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 8 }}>
@@ -937,7 +938,7 @@ export default function ExerciseSection({ ctx }) {
                           (function() { var ne = document.getElementById("user-note-"+ei+"-"+day); setCompanionDecision(dayExs3.find(function(e) { return e.name === ex.name; }), "accepted", ne ? ne.value : ""); })(); // F11
                           await saveData(nd3);
                           var el = document.getElementById("rec-" + ei + "-" + day);
-                          var noteEl = document.getElementById("user-note-"+ei+"-"+day); var userNote = noteEl ? noteEl.value.trim() : ""; ex._decision = "accepted"; ex._userNote = userNote;  if (userNote) { var exRef = nd3[activeTab].exercises[day]; if (exRef && exRef[di3]) { exRef[di3].notes = (exRef[di3].notes ? exRef[di3].notes + "; " : "") + "Wk" + currentWeek + " accepted: " + userNote; } } var sfbKey = activeTab + "_" + day; var curFb = sessionFeedback[sfbKey]; if (curFb && curFb.exercises) { curFb.exercises[ei]._decision = "accepted"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#e0f2fe"; el.style.borderColor = "#86efac"; el.innerHTML = "<div style=\"font-size:11px;color:#0c4a6e;font-weight:600;padding:4px\">\u2705 Accepted — " + ex.name + " updated to " + ex.newStatus + ". Activity updated.</div>"; }
+                          var noteEl = document.getElementById("user-note-"+ei+"-"+day); var userNote = noteEl ? noteEl.value.trim() : ""; ex._decision = "accepted"; ex._userNote = userNote;  if (userNote) { var exRef = nd3[activeTab].exercises[day]; if (exRef && exRef[di3]) { exRef[di3].notes = (exRef[di3].notes ? exRef[di3].notes + "; " : "") + "Wk" + currentWeek + " accepted: " + userNote; } } var sfbKey = activeTab + "_" + day; var curFb = sessionFeedback[sfbKey]; if (curFb && curFb.exercises) { curFb.exercises[ei]._decision = "accepted"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#e0f2fe"; el.style.borderColor = "#86efac"; setPlainNote(el, "\u2705 Accepted — " + ex.name + " updated to " + ex.newStatus + ". Activity updated.", { fontSize: "11px", color: "#0c4a6e", fontWeight: "600", padding: "4px" }); }
                         }} style={{ padding: "5px 14px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Accept</button>
                         <button onClick={function() {
                           var el = document.getElementById("rec-" + ei + "-" + day);
@@ -974,7 +975,7 @@ export default function ExerciseSection({ ctx }) {
                           }
                           setCompanionDecision(dayExs4.find(function(e) { return e.name === ex.name; }), "rejected", userNote2); // F11
                           saveData(nd4);
-                          var sfbKey2 = activeTab + "_" + day; var curFb2 = sessionFeedback[sfbKey2]; if (curFb2 && curFb2.exercises) { curFb2.exercises[ei]._decision = "declined"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#f1f5f9"; el.style.borderColor = "#e2e8f0"; el.innerHTML = "<div style=\"font-size:11px;color:#64748b;padding:4px\">\u21a9 Declined — no changes made to Activity.</div>"; }
+                          var sfbKey2 = activeTab + "_" + day; var curFb2 = sessionFeedback[sfbKey2]; if (curFb2 && curFb2.exercises) { curFb2.exercises[ei]._decision = "declined"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#f1f5f9"; el.style.borderColor = "#e2e8f0"; setPlainNote(el, "\u21a9 Declined — no changes made to Activity.", { fontSize: "11px", color: "#64748b", padding: "4px" }); }
                         }} style={{ padding: "5px 14px", background: "#e2e8f0", color: "#475569", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Decline</button>
                       </div></div>)}
                     </div>)}
