@@ -2333,3 +2333,21 @@ Sizes are % of a weekly allowance, including Architect checks.
   3. Add the rules drift check (A6) once built.
   4. Known gaps: add "no automated accessibility checks (axe)". Suggest adding @axe-core/playwright on the main screens.
 
+
+### (Coder) 13 Nov 2026 — documentation batch (docs only, main)
+- **Done (doc-only commits on `main`, no app code):**
+  - **ADRs 0001–0010** in `docs/adr/` with index: environments and release flow (+ hotfix route), shared DB + expand/contract, nightly Build refresh, parent/child eating, photos analysed then discarded, portion-based RAG in code, plan.json single source, automation via GitHub secrets (BACKUP_KEY never stored with the backups), Google sign-in + locked DB (no rule detail), Companion Energy from usage.
+  - **`docs/LLD.md`** (modules, data keys/shapes incl. eat_children, tracker, ai_usage, progressPhotos; AI call map; patterns; tests; no security specifics). `TECHNICAL_REFERENCE.md` is now a pointer (old content: `git show c698e2d:TECHNICAL_REFERENCE.md`); CLAUDE.md rule 9 and the pointers now name `docs/LLD.md`.
+  - **`docs/legal/`:** PRIVACY_NOTICE, TERMS_OF_USE, INTENDED_USE, PAYMENTS_STATEMENT, ACCESSIBILITY. Each is marked **"DRAFT — for legal review before any users other than JC and Becks"**, with placeholders in [brackets].
+  - **BACKUP_KEY fix:** both secrets-guide lines now say password manager + offline copy, **never the vault**.
+  - **Architect's 13 Nov review applied:** HLD (automation live, Send Feedback wording, LLD link, planned Google Health row, Build copy limited to JC and Becks (refresh-build refuses otherwise; confirmed in the script), admin view is not an access control); TEST_STRATEGY (smoke live, planned security and rules-drift levels, axe gap).
+  - **plan.json:**
+    - Done: R3, H4, H5, H8 (LLD).
+    - In progress: P3, H1–H3, P4, H7.
+    - New: P6 accessibility fixes + audit (4%), P7 explicit no-medication prompt rule (1%), A2–A7 SAD Phase A actions (House in order, High).
+  - docs/README index updated.
+- **Decisions (Coder):**
+  - The legal drafts name the controller and say "contact address shown in the app"; no email address in the repo.
+  - The accessibility gaps come from a quick code review, not an audit: zoom is blocked by the viewport tag (`user-scalable=no`), light-grey 8–10px text, about 53 of 357 buttons have explicit labels.
+- **Open questions:** see the Coder's report of 13 Nov (to JC/Architect).
+- **Resume point:** `main` docs @ this commit; code unchanged (prod v2.15.1, `build` @ 71041b0). Next: JC/Architect answer the open questions; legal review of `docs/legal/`; Coder items A2, A5 config, A6, P6, P7 when asked.

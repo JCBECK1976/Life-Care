@@ -1,6 +1,6 @@
 # Lifecare Companion™ — Test strategy
 
-Draft 1, 12 Nov 2026 (v2.14.0). How changes are checked before they reach JC and Becks.
+Draft 1.1, 13 Nov 2026 (prod v2.15.1; Architect review applied). How changes are checked before they reach JC and Becks.
 
 ## 1. Principles
 - **Nothing reaches prod untested by a person:** every change goes build → beta → prod. The Architect checks `/build/`, JC tests `/beta/` on his phone, and only then is it released.
@@ -20,7 +20,9 @@ Draft 1, 12 Nov 2026 (v2.14.0). How changes are checked before they reach JC and
 | Visual | Screenshot comparison per section, both people (`VISUAL=1`), baselines kept outside the repo | Unintended layout changes; each diff is looked at by eye before rebaselining | Before every deploy |
 | Prod compatibility | The released prod version run against new data shapes (`PROD_COMPAT_URL`, on demand) | Beta and prod share real data, so new shapes must not break prod | Before every beta PR |
 | Bundle guard | `scripts/check-pages.mjs` in the deploy | Prod/beta bundles never refer to the build data copy; installable-app files complete | Every deploy |
-| Smoke (prepared) | `smoke.yml` after each deploy | Each environment loads with no console errors and runs the expected version; data present (counts only) | After deploy, once secrets are added |
+| Smoke (live since 13 Nov) | `smoke.yml` after each deploy | Each environment loads with no console errors and runs the expected version; data present (counts only) | After deploy, once secrets are added |
+| Security (planned) | Playwright, once SAD action A2 lands | Injected `<img onerror>` / `<script>` in AI text, food names and descriptions must not execute (sanitisation + Content Security Policy) | Full suite |
+| Rules drift (planned) | Scheduled job, once SAD action A6 is built | The live database rules match the repository's rules file | Nightly |
 | Manual | JC on his phone (`/build/` when asked, `/beta/` always) | Real device, real data, real AI | Each release |
 
 ## 3. Test data
@@ -43,3 +45,4 @@ A test that fails once and passes on a rerun is **investigated, not ignored**: f
 - Real AI quality isn't tested automatically (mocked); prompts are reviewed and checked by hand on `/build/`.
 - Load time is measured, not tested continuously; see the Step 1b entries in HANDOVER.
 - Sign-in on a brand-new device (backlog S1) needs a manual release test on Windows, Mac, Android and iPhone before pilot users.
+- No automated accessibility checks yet: add `@axe-core/playwright` on the main screens (plan P6).

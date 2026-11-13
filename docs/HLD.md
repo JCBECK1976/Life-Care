@@ -1,6 +1,6 @@
 # Lifecare Companion™ — High-Level Design (HLD)
 
-Draft 1, 12 Nov 2026 (v2.14.0). Public document. It describes **what the system is made of and how the parts work together**. Security architecture, threat model, access control detail and data-protection assessment are in the private SAD and DPIA (vault), not here. The low-level design is [LLD.md](LLD.md).
+Draft 1.1, 13 Nov 2026 (prod v2.15.1; Architect review applied). Public document. It describes **what the system is made of and how the parts work together**. Security architecture, threat model, access control detail and data-protection assessment are in the private SAD and DPIA (vault), not here. The low-level design is [LLD.md](LLD.md).
 
 ## 1. Purpose and scope
 Lifecare Companion is a personal **wellness** companion (not a medical device) for a household. It brings together exercise logs, eating plans and food ratings, body composition and measurements, health notes, mood and journal. An AI "Companion" turns that data into feedback, answers questions and checks photos.
@@ -15,7 +15,7 @@ Current users: JC and Becks. The design anticipates more users (Steps 3–5 in `
    ├── reads / writes data ───────────── Firebase Realtime Database (one data root per environment)
    ├── AI requests ────────────────────── Anthropic Messages API (claude-sonnet-4-6)
    └── product search ─────────────────── Open Food Facts (public, no personal data sent)
- GitHub Actions: build + deploy all three environments; (prepared) backups, Build refresh, smoke tests, tagging
+ GitHub Actions: build + deploy all three environments; nightly encrypted backups, Build refresh, smoke tests, tagging (live since 13 Nov)
 ```
 There is **no application server**: the app is static files; data lives in Firebase; AI calls go from the app to Anthropic.
 
@@ -62,17 +62,18 @@ All AI calls use the Anthropic Messages API with `claude-sonnet-4-6`.
 | Food rating and recalculation | Item name/ingredients, portion, changes | Nutrition values | Ratings then come from rules in code. Recalculations are checked for plausibility. |
 | Photo checks (📷 Snap, Food Checker, Help Me Eat, measurement Snap, Body Type Photos, Body balance) | A photo, **shrunk before sending** (≤ 1568 px), optional description | Values, assessment or structured scores | **Images are analysed and then discarded: never stored**, not in the database, not in backups. Only the result is kept. A Re-check is an independent second look. |
 | Energy check | A minimal request, at most once a day | OK / error | Drives the Companion Energy status. |
+| *Planned:* Google Health calorie sync (plan R4, R6, R5) | Each person's own Google account: daily calories burned | A labelled activity credit and a calorie target from measured burn | Not built. The Google token is to be kept on the device, not in the database. |
 
 Every reply's token counts go to the **AI usage ledger**; Companion Energy is the ledger's spend since the admin last set the balance to 100%.
 
 ## 7. Feedback, Defect & Feature tracker
-💬 Send Feedback saves an entry (time, version, environment, masked account, person, text; *Feedback / New*) and opens an email as before. The admin triages entries in Settings → 📝 Tracker (re-categorise, status, priority, note, ref) and can add Defects and Features directly. Approved items get IDs in [backlog/](backlog/), which is the planned record. The **plan** (`docs/plan.json`, every item with phase, status, priority and Token %) is published with each main deploy as `/Life-Care/plan.json`; opening the Tracker loads it and updates its items by id (the admin's notes are kept, feedback is untouched).
+💬 Send Feedback saves an entry (time, version, environment, masked account, person, text; *Feedback / New*) and, only if the admin has set a feedback email address, opens the phone's email app pre-filled (the person presses Send there; v2.14.1/v2.14.3). The admin triages entries in Settings → 📝 Tracker (re-categorise, status, priority, note, ref) and can add Defects and Features directly. Admin features (Settings sections, Tracker, Data tools) are a convenience view for the app owner, not an access control. Approved items get IDs in [backlog/](backlog/), which is the planned record. The **plan** (`docs/plan.json`, every item with phase, status, priority and Token %) is published with each main deploy as `/Life-Care/plan.json`; opening the Tracker loads it and updates its items by id (the admin's notes are kept, feedback is untouched).
 
 ## 8. Privacy principles
 - **Minimum data:** only what the features need. Photos are never stored; the AI usage ledger and the tracker hold no images; the tracker stores a masked account.
 - **Purpose:** the data is used only to give the household feedback and guidance; it is not shared or sold.
 - **Processors:** Firebase (Google) stores data and handles sign-in; Anthropic processes AI requests; GitHub hosts the static app and the private, encrypted backups.
-- **Separation:** test changes run on the Build copy; pilot users' data will not be copied into test areas without consent (the Build refresh refuses).
+- **Separation:** test changes run on the Build copy. The Build copy is limited to JC and Becks: the nightly refresh refuses to copy if the data holds anyone else. Before pilot users, test areas use only consenting users' data or anonymised data.
 - **Backups:** full snapshots, encrypted before they leave the runner, stored only in a private repository; never in this public repository (`.gitignore` blocks backup/export file names).
 - **Wellness, not medical:** the Companion never gives medical advice; health data adds context to feedback only.
 The full assessment is the DPIA (private).
