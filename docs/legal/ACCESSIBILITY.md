@@ -29,10 +29,10 @@ What works:
 - New form controls (since v2.13) have accessible labels.
 
 ## 3. How to report a problem
-Use **💬 Send Feedback** in the app (choose 🐛 Bug and describe the problem). It goes to the app owner's Tracker, and to the contact email if one is set. Tell us which screen and what assistive technology you use. We aim to reply within [10 working days].
+Use **💬 Send Feedback** in the app (choose 🐛 Bug and describe the problem). It goes to the app owner's Tracker, and to the contact email if one is set. Tell us which screen and what assistive technology you use. We aim to reply within **10 working days**.
 If you aren't happy with our response, you can contact the Equality Advisory and Support Service (EASS).
 
 ## 4. Plan and review
-- Fix the gaps above, starting with zoom, contrast and labels, before any users other than JC and Becks (plan: "Before pilot users").
+- Pinch-zoom is re-enabled in v2.15.2. Fix the other gaps (contrast, labels, focus, target size, colour cues) before any users other than JC and Becks (plan: "Before pilot users").
 - Then a full WCAG 2.2 AA audit with a screen reader (TalkBack and VoiceOver) and keyboard.
 - **Next review of this statement:** [by the pilot-user release, or 13 May 2027 at the latest].

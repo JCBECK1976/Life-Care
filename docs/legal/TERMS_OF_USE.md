@@ -16,7 +16,9 @@ These terms apply to your use of Lifecare Companion (the "app"), provided by Jan
 Feedback, answers, nutrition values, ratings and photo checks are produced with the help of AI and fixed rules. They can be **incomplete, inaccurate or unsuitable for you**. Check anything important, and don't rely on the app alone for decisions about your health.
 
 ## 3. Pilot (beta) status
-The app is in a **pilot**. Features may change, be removed, or contain errors, and data formats may change. We may ask for feedback. [Pilot terms for invited users: to confirm.]
+The app is in a **pilot**. Features may change, be removed, or contain errors, and data formats may change. We may ask for feedback.
+
+**Pilot clause:** during the pilot, access is by invitation only and free unless we tell you otherwise. We may end the pilot or your access with reasonable notice. Pilot features are provided as they are, and your feedback helps shape the app.
 
 ## 4. Your account
 - You sign in with a Google account that we have approved. Keep your Google account secure; you are responsible for activity under it.
@@ -40,12 +42,12 @@ We aim to keep the app available but don't guarantee it will always be available
 [Not applicable yet. Paid features (energy packs, subscriptions) would come with additional terms. See [PAYMENTS_STATEMENT.md](PAYMENTS_STATEMENT.md).]
 
 ## 9. Our liability
-- Nothing in these terms limits liability that cannot be limited by law, including for death or personal injury caused by negligence, or for fraud.
+- **Nothing in these terms limits or excludes our liability for death or personal injury caused by negligence, for fraud or fraudulent misrepresentation, or for anything else that cannot be limited or excluded by law.**
 - Otherwise, we are not liable for:
   - loss caused by relying on AI outputs or guidance in the app instead of professional advice;
   - indirect or consequential loss;
   - loss of data where you could reasonably have kept your own copy.
-- [Cap on liability, e.g. the amount you paid in the last 12 months: to confirm with legal review.]
+- Subject to the first point in this section, our total liability to you is limited to **the greater of the fees you paid us in the 12 months before the claim, or £100**.
 - If you use the app as a consumer, you keep your statutory rights.
 
 ## 10. Changes to these terms

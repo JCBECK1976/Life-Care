@@ -72,7 +72,8 @@ Every reply's token counts go to the **AI usage ledger**; Companion Energy is th
 ## 8. Privacy principles
 - **Minimum data:** only what the features need. Photos are never stored; the AI usage ledger and the tracker hold no images; the tracker stores a masked account.
 - **Purpose:** the data is used only to give the household feedback and guidance; it is not shared or sold.
-- **Processors:** Firebase (Google) stores data and handles sign-in; Anthropic processes AI requests; GitHub hosts the static app and the private, encrypted backups.
+- **Processors:** Firebase (Google) stores data and handles sign-in. Anthropic processes AI requests, currently in the US under Anthropic's Data Processing Addendum. GitHub hosts the static app and the private, encrypted backups.
+- **Planned (before pilot users):** AI processing moves to the EU. Requests will go through a server proxy in an EU region (Cloud Function) to Claude on Google Cloud Vertex AI's EU endpoint, which also removes the API key from the app (plan G4 / SAD-A1).
 - **Separation:** test changes run on the Build copy. The Build copy is limited to JC and Becks: the nightly refresh refuses to copy if the data holds anyone else. Before pilot users, test areas use only consenting users' data or anonymised data.
 - **Backups:** full snapshots, encrypted before they leave the runner, stored only in a private repository; never in this public repository (`.gitignore` blocks backup/export file names).
 - **Wellness, not medical:** the Companion never gives medical advice; health data adds context to feedback only.

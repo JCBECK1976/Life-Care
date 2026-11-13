@@ -25,7 +25,7 @@ Lifecare Companion is a **personal wellness** app for adults. It is for:
 2. **No medication advice:**
    - The AI is instructed never to give medical advice, which covers dosing or changing medicines.
    - Medicines the person records (or reads from a document they upload) are kept as notes and used as context only.
-   - [An explicit "no medication changes or dosing" prompt rule is to be added: open item.]
+   - Since v2.15.2, every AI prompt that sees health data also carries an explicit rule: never suggest starting, stopping or changing medication or doses; defer to the GP or pharmacist.
 3. **Defer to clinicians:**
    - Feedback that touches on health tells the person to check with their GP or a qualified professional.
    - Concerning journal or mood content gets a supportive message and a signpost (GP, NHS 111, Samaritans, Mind), not clinical advice.

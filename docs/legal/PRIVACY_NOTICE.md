@@ -34,7 +34,8 @@ We do not sell your data, use it for advertising, or share it with anyone except
 
 ## 5. AI processing and photos
 - **AI requests:** to generate feedback, the relevant data and your question are sent to **Anthropic** (the provider of the Claude AI model), an external **processor**.
-- **International transfer:** this may involve a transfer outside the UK, for example to the United States. Such transfers rely on the safeguards in the provider's terms [transfer mechanism, e.g. UK International Data Transfer Addendum: to confirm].
+- **International transfer:** AI requests are **currently processed by Anthropic in the United States**, under Anthropic's Data Processing Addendum [JC to confirm the DPA applies to the account].
+- **Planned move to the EU:** before any users other than JC and Becks, AI processing will move to the **EU**. Requests will go through Claude on Google Cloud Vertex AI at an EU regional or multi-region endpoint, under Google's existing terms. This notice will be updated when that happens.
 - **Model training:** according to the provider's terms for its API, data sent through the API is not used to train its models.
 - **Photos are analysed and then discarded:**
   - When you take or choose a photo (food, a measurement, a body-composition screen, body photos), it is shrunk and sent for analysis, then discarded.
@@ -46,7 +47,16 @@ We do not sell your data, use it for advertising, or share it with anyone except
 - **App files:** served by GitHub Pages. They contain no personal data.
 
 ## 7. How long we keep it
-[Retention period — set in DPIA.] Until then, your data is kept while your account is in use and deleted when you ask us to (section 8). Backups roll over: [daily copies for N days, monthly copies for N months — set in DPIA].
+| Data | How long we keep it |
+|---|---|
+| Your account and records | While your account is in use. If you ask us to delete your account, everything is deleted within **30 days**. |
+| Inactive accounts | If an account hasn't been used for **18 months**, we warn you before deleting it. |
+| AI feedback threads and chats | **12 months**, then deleted. |
+| AI usage counts | **120 days**. |
+| Feedback and Tracker entries | **2 years**. |
+| Photos | **Not stored**: analysed and then discarded (section 5). |
+| Google Health daily totals (when available) | While you stay connected, then **12 months**. |
+| Encrypted backups | They age out: every backup is deleted within **12 months**. Deleted data disappears from backups as they age out. |
 
 ## 8. Your rights
 You have the right to:

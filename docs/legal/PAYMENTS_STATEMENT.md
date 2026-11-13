@@ -14,7 +14,7 @@ The app takes **no payments** and stores **no payment data**.
 These are planned for Step 6, together with a server-side AI proxy (plan items G4, G5).
 
 ## 3. How payments will be handled
-- **Provider:** all payments will be taken by a **third-party payment provider**. Options: Google Play Billing, Apple In-App Purchase, or Stripe (hosted checkout) for the web app. [Provider: TBC.]
+- **Provider:** all payments will be taken by a **third-party payment provider**. Provider: **TBC**. Intended approach: **Stripe for the web app; app-store billing only for the store versions** (Google Play Billing, Apple In-App Purchase).
 - **Card data never touches our systems:**
   - Card numbers and security codes are entered only on the provider's own payment pages or app-store sheets.
   - We receive only a confirmation: what was bought, a provider reference and the status.
