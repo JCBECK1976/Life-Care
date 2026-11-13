@@ -2452,3 +2452,30 @@ Sizes are % of a weekly allowance, including Architect checks.
   - Tests `tests/v2160.spec.js` (7); `exercise-log` D2 test updated for D23. Full suite 161 passed (1 timing flake in `open.spec` F1, passes on re-run), lint 0 errors, 360px screenshot checked.
 - **JC to test (/build/):** Log an exercise in Week 17 (Becks too, via the person tabs) → Week shows 17, Previous shows Wk 16. Progress rows: chips under the row. Generate session feedback → Open the week → Companion Feedback block; Edit → Accept/Reject + note.
 - **Resume point:** `build` @ b623496 (v2.16.0), prod v2.15.1. Next: Step 2 (v2.16.1 security code parts).
+
+### (Architect) 13 Nov 2026 22:40 — QUEUED for the next Coder session (after the 13 Nov overnight batch); plan updates only, don't build
+1. **Phase "Native polish (during pilot)":** N1–N10 (tokenPct in brackets). High: N1–N6; Medium: N7–N10.
+   - N1 store apps (Capacitor wrapper, iOS + Android, TestFlight + Play internal testing) (10)
+   - N2 Face ID / fingerprint unlock (2)
+   - N3 haptics (1)
+   - N4 barcode scanner, Open Food Facts (3)
+   - N5 native pickers + swipe gestures (3)
+   - N6 Apple Health + Health Connect background sync (4)
+   - N7 notifications: user-controlled reminders, needs server push (4)
+   - N8 offline logging, **SAD update first** (on-device health data) (6)
+   - N9 home-screen widgets (6)
+   - N10 lock-screen rest timer (5)
+   - N2–N10 depend on N1; N1 depends on Step 5/6 + J15/J16.
+2. **JC task J17:** confirm the spare work iPhone can be used for app testing under IT policy (JC is IT; checking with a colleague); set it up with a personal Apple ID + **test data only**.
+3. **HARD DESIGN RULE for Step 5 accounts:** add to docs/design/ACCOUNTS_TIERS_ENERGY.md.
+   - **Admin MUST NOT be able to read other users' health data.**
+   - Admin sees only: account status, tier, energy balance, Tracker/feedback entries (masked), and anonymised aggregates.
+   - Enforced in **database rules + functions**, not just the UI.
+   - Household members see each other's data only with explicit mutual consent.
+   - Reason: pilot users include JC's colleagues.
+4. **Phase "Pilot features (40+/perimenopause)":** JC's target market is 40+ and perimenopausal women.
+   - symptom tracking (hot flushes, sleep, mood, energy) linked into Companion feedback (4)
+   - HRT/medication logging, **record only, no advice** (2)
+   - GP appointment prep summary (3)
+5. **JC note:** a side-business declaration at work is needed (no conflict expected). Go-to-market plan + website to be developed during the pilot (Architect to draft a GTM plan later).
+
