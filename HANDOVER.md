@@ -2377,3 +2377,40 @@ Sizes are % of a weekly allowance, including Architect checks.
   - the ICO fee paid before the first pilot user;
   - solicitor changes applied promptly.
 
+
+### (Coder) 13 Nov 2026 — JC/Architect decisions on the docs questions applied; v2.15.2 on build
+- **Docs (main):**
+  - Privacy notice §7: retention table filled from DPIA §6.
+  - §5: AI requests are currently processed by Anthropic in the US under Anthropic's DPA ("[JC to confirm DPA applies to the account]"). Before pilot users, AI processing moves to the EU via Claude on Vertex AI (EU endpoint, Google's terms).
+  - Terms: liability cap = greater of fees paid in the previous 12 months or £100, with the death/personal-injury/fraud/non-excludable carve-out; short pilot clause.
+  - Payments: provider TBC; "Stripe for the web app; app-store billing only for store versions".
+  - Accessibility: 10 working days.
+  - Intended use: P7 rule recorded.
+  - HLD: processors + planned EU proxy.
+  - LLD: `safety.js`.
+  - All `docs/legal/` files still marked DRAFT.
+- **v2.15.2 on build (`87970f7`):**
+  - Pinch-zoom re-enabled (viewport).
+  - **P7:** `src/lib/safety.js` adds "never suggest starting, stopping or changing any medication or dose; GP or pharmacist" to the system prompt of every Messages API request, via the `api.js` fetch wrapper. That is a superset of the prompts that see health data, so future prompts can't miss it. In block-list system prompts it goes first, so Help's cached prefix is unchanged. The daily energy ping ("hi", no data) is excluded.
+  - Tests `tests/v2152.spec.js` (3). Full suite 156 passed, lint 0 errors, visual footer/version only (rebaselined). APP_GUIDE updated. Deploy run 43497124866 succeeded.
+- **plan.json:**
+  - G4 / SAD-A1: proxy = Cloud Function in an EU region → Claude on Vertex AI EU endpoint; removes the API key from the app; "confirm model availability on EU endpoints + regional pricing"; not built.
+  - H7 Done; P3, P6 notes; P7 Done v2.15.2.
+  - New: **P8** replace the in-app Privacy Policy after legal review (Blocked); **P9** first-use explicit consent screen (AI, photos, Google Health; 3%); **P10** enforce retention periods in code (3%, Coder addition).
+  - Item 8 (SAD-A1…A9) was already in place from item 9.
+- **Decisions (JC/Architect 13 Nov):**
+  - Retention per DPIA §6.
+  - US processing under Anthropic's DPA now; EU via Vertex AI before pilot.
+  - Liability cap £100 / 12-month fees.
+  - One terms document with a pilot clause.
+  - In-app notice only after legal review.
+  - Consent screen before pilot.
+  - Payments provider TBC.
+  - 10-day accessibility reply.
+  - P7 + zoom now; other accessibility fixes before pilot.
+- **Decision (Coder):** P7 is enforced centrally in the request wrapper rather than by editing about 40 prompts one by one. Rejected: per-prompt edits (easy to miss one, and new prompts would need remembering).
+- **JC to test (/build/ v2.15.2):**
+  1. Pinch-zoom works on the phone.
+  2. Ask the Chat something like "should I stop my statins?" → it should defer to your GP or pharmacist.
+  3. Help still answers normally.
+- **Resume point:** `build` @ 87970f7 (v2.15.2), prod v2.15.1. Next: Architect check of /build/ → build → beta PR when asked. Open: JC to confirm Anthropic's DPA applies to the account.

@@ -41,6 +41,7 @@ Version 1, 13 Nov 2026 (prod v2.15.1). Public document. It describes **how the c
 | `src/lib/backup.js` | Parse a backup or console export; counts; restore targets. Writes nothing itself. |
 | `src/lib/tracker.js`, `plan.js` | Tracker entries; plan loading and upsert (`syncPlan`, `planEntry`, `phaseTotals`). |
 | `src/lib/contact.js`, `debugLog.js` | Feedback email setting; safe Debug Mode summaries. |
+| `src/lib/safety.js` | v2.15.2: `MEDICATION_RULE`, added by the `api.js` fetch wrapper to the system prompt of every Messages API request (first block in a block-list system prompt, so Help's cached prefix stays identical). |
 | `src/constants/` | Version, styles (button standard), themes, tone rules, defaults, food and exercise constants. |
 | `scripts/automation/` | Nightly backup, Build refresh, post-deploy smoke test (run by GitHub Actions). |
 
@@ -78,6 +79,7 @@ One root per environment: `data` (prod and beta) or `data_build` (Build). Most v
 
 ## 4. AI call map
 - **Common settings:**
+  - Every request carries the medication safety rule (`safety.js`), except the daily energy ping, which sends no data.
   - Every call goes from the browser to the Anthropic Messages API with model `claude-sonnet-4-6`.
   - Each request has a `max_tokens` cap set per feature.
   - Every reply passes through the fetch wrapper, which records token counts in the ledger.

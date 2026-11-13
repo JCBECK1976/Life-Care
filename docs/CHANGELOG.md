@@ -74,3 +74,4 @@ For what's planned next see [backlog/PRODUCT_BACKLOG.md](backlog/PRODUCT_BACKLOG
 | v2.15.1 | Removal (12 Nov): **"Clear old eating history" removed** from Data tools and Settings → Data & backups (its one-off job is done; recovery = Download backup + Restore; Build is refreshed nightly once automation runs). Code in git history (commit 6853af4). Data retention → plan H7 (DPIA) and P2 (deletion/export). | released v2.15.1 (12 Nov) |
 
 **Release v2.15.1 (12 Nov 2026, PR #25, tag `v2.15.1`):** prod moved from v2.6.0 to v2.15.1. It contains every row from v2.6.1 to v2.15.1, including v2.7.0, which was never released on its own.
+| v2.15.2 | Fix (13 Nov): pinch-zoom re-enabled (viewport no longer blocks zoom; WCAG 1.4.4). P7: every AI request carries an explicit medication rule ("never suggest starting, stopping or changing medication or doses; defer to GP/pharmacist"), added centrally in the request wrapper (`src/lib/safety.js`). | build only |
