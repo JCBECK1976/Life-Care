@@ -2422,3 +2422,21 @@ Sizes are % of a weekly allowance, including Architect checks.
   - 109 items.
 - **Decision recorded (JC, 13 Nov; see the Architect entry 19:55):** the first pilot users are friends and colleagues. **Security conditions are the gate; legal review follows** (at risk). The ICO fee is paid before the first pilot user.
 - **Resume point:** unchanged for code: `build` @ 87970f7 (v2.15.2), prod v2.15.1. Next: Architect check of /build/ v2.15.2 → build → beta PR when asked.
+
+### (Architect) 13 Nov 2026 22:10 — JC workout defects + features; accounts/tiers/energy direction
+- **D23 (data):** Log Exercise defaults to the wrong week and "Previous". Seen in Week 17 (8–14 Nov), Becks, Face Pull: the form showed "Previous: Wk 15" and Week = **16**. Week 16 already existed (Save warned it would overwrite it).
+  - **Fix:** the Week field defaults to the **current training week** (the week shown in the header).
+  - "Previous" = that person's **latest logged week before the current week**, from the same source the overwrite check uses.
+  - Never default to an existing week. Add a regression test.
+- **D24 (layout):** the Progress rows' "Form ✓ · Range ✓" text is squeezed into the button column and overlaps Open (Bicep Curl, Becks).
+  - **Fix:** a compact chip row under the key data, or icons with labels, never overlapping. Check at 360px.
+- **F11:** store the **Companion feedback for each exercise** with the logged week, plus the user's **Accept / Reject + note**. Show it in the exercise **Open** form, between My Notes and the buttons, editable in Edit.
+- **F12:** rename every user-written notes field app-wide to **"My Notes"**, to separate it from Companion Feedback (labels only; data unchanged).
+- **Accounts, tiers and energy (Step 5/6), JC direction:** Bronze/Silver/Gold account types; user accounts with subscription; buy Companion Energy with a **100% mark-up** (a £5 pack covers £2.50 of AI cost).
+  - **Architect notes:**
+    - card fees (Stripe UK, about 1.5% + 20p) come out of the margin;
+    - VAT applies only if JC becomes VAT-registered;
+    - the energy ledger must be **server-side** (Step 6 proxy) so balances can't be edited in the browser.
+  - The tier features follow the Architect's 12 Nov draft until JC finalises them (configurable in admin, no code change needed).
+  - **Household:** JC and Becks keep logging for each other through a "household" link between individual accounts.
+
