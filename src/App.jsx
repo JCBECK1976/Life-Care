@@ -10,6 +10,7 @@ import { setupComplete, goalCtx, kcalTargetText, dayTable, aimText, personalLimi
 import LegalViewer from "./components/LegalViewer.jsx";
 import { auditLog } from "./lib/audit.js";
 import { removeOldGoogleTokens, stripOldCalorieSettings } from "./lib/cleanup.js";
+import { refreshRatingsOnce } from "./lib/refreshRatings.js";
 import { GH, fetchWeekCalories, fetchWeekSteps, forgetToken, loadToken, mergeDaily, mergeSteps, saveToken } from "./lib/googleHealth.js";
 import LoadingDots from "./components/LoadingDots.jsx";
 import firebase, { DATA_ROOT } from "./lib/firebase.js";
@@ -520,6 +521,7 @@ function Dashboard() {
         if (stripMeasurementPhotos(d)) migrated = true; // v2.13.1: remove old photos stored in measurement entries
         if (stripOldCalorieSettings(d)) migrated = true; // v2.17.2: remove the old kcal deficit + R6 admin switch
         if (migrated) await sSet("dashboard:data", JSON.stringify(d));
+        try { await refreshRatingsOnce(d); } catch (e) { /* v2.18.3: one-off refresh of current/future weeks' stored ratings */ }
         setData(d);
       } else {
         setData(DEFAULT_DATA);

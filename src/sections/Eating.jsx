@@ -159,7 +159,7 @@ export default function EatingSection({ ctx }) {
           var foodOf = function(id) { var it = allItemsLookup[id]; return it && it._child ? foodKey(it._child) : id; };
           var thisWeekIds = function() { return occurrences(weekChildren).map(function(o) { return o.food; }); };
           var pastMonthIds = function() { var ids = []; (pastWeeksMeals || []).forEach(function(doc) { occurrences(doc).forEach(function(o) { ids.push(o.food); }); }); return ids; };
-          var weekOcc = function() { return occurrences(weekChildren); };
+          var weekOcc = function() { return occurrences(weekChildren, personalLimits(data && data[activeTab])); };   /* v2.18.3: the live personal rating the screen shows */
           var pastOcc = function() { var out = []; (pastWeeksMeals || []).forEach(function(doc) { out = out.concat(occurrences(doc)); }); return out; };
           /* Check if selecting itemId in a slot would breach RAG rules.
              excludeDay/excludeSlot: the slot being set (exclude its current value from count).
@@ -168,6 +168,8 @@ export default function EatingSection({ ctx }) {
             if (!itemId || itemId === "__empty__") return null;
             var item = allItemsLookup[itemId];
             if (!item || !item.rating || !item._isCustom) return null;
+            /* v2.18.3: judge by the SAME personal rating the screen shows — a selection is already live-rated; a list item is rated as it would be for this person */
+            if (!item._child) { var _pl = personalLimits(data && data[activeTab]); if (_pl) { var _rr = rateByPortion(Object.assign({}, item, { jcKcal: activeTab === "jc" ? item.jcKcal : item.beckKcal, beckKcal: activeTab === "jc" ? item.jcKcal : item.beckKcal }), _pl); item = Object.assign({}, item, { rating: _rr.rating, ragFreq: _rr.ragFreq }); } }
             if (item.rating === "GREAT" || item.rating === "GOOD") return null;
             /* v2.6.5: AMBER up to 3 a week · RED weekly treat once a week · RED monthly treat once a month — counted on children */
             var food = foodOf(itemId);

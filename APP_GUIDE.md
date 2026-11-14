@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.18.2 · 14 November 2026
+> Last updated: v2.18.3 · 14 November 2026
 
 ---
 
@@ -321,7 +321,7 @@ Every food is rated for **one portion as you eat it**, on saturated fat and adde
 
 Plenty of fibre (5 g+) or protein (20 g+) lifts an item one band (never above AMBER if it's over 50%). For example, 3 biscuits come out AMBER and a large brownie with ice cream comes out RED monthly treat. The rating is calculated the same way every time, and the reason shows when you hover or tap (e.g. "AMBER: one portion is 10g added sugar = 40% of the 25g daily limit").
 
-**Why can a meal be rated differently from the list?** Because your selection is rated against *your* goal. If it differs you'll see a note such as **"RED today — for your goal"** (or "— large portion" / "— with changes" when you changed the portion). Example: a 760 kcal pasta is GREAT on the list (38% of 2,000 kcal) but RED for someone whose goal is 1,767 kcal (43% of their day).
+**Why can a meal be rated differently from the list?** Because your selection is rated against *your* goal. If it differs you'll see a note such as **"RED today — for your goal"** (or "— large portion" / "— with changes" when you changed the portion). Example: a 760 kcal pasta is GREAT on the list (38% of 2,000 kcal) but RED for someone whose goal is 1,767 kcal (43% of their day). The ⚠️ "already … this week" warnings use the same rating you see on your day.
 
 **Your meals have their own rating.** When you log a food, that meal keeps its own copy of the food and its own rating, worked out from what you actually ate (e.g. a bigger portion). The selected item's text is coloured by that rating. The ⚠️ warnings ("already 3 times this week") count what you actually logged. Editing or deleting a list item **never changes past days**.
 

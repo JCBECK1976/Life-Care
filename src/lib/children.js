@@ -107,7 +107,17 @@ export function childItems(doc, lookup, limitsFor) {
 
 // The food a child is (for frequency rules): its parent, or its name when ad hoc.
 export function foodKey(c) { return c.parentId || "adhoc:" + (c.snapshot && c.snapshot.name || "").toLowerCase(); }
-export function occurrences(doc) { return Object.keys((doc && doc.children) || {}).map(function(id) { var c = doc.children[id]; return { food: foodKey(c), band: c.band || bandOf(c), weekday: c.weekday, slot: c.slot }; }); }
+// v2.18.3: with limits, each child's band is the SAME live personal rating the screen shows (not the stored one).
+export function occurrences(doc, limits) { return Object.keys((doc && doc.children) || {}).map(function(id) { var c = doc.children[id]; return { food: foodKey(c), band: limits ? rateChild(c, limits).band : (c.band || bandOf(c)), weekday: c.weekday, slot: c.slot }; }); }
+/** v2.18.3: re-rate a week's stored children against the person's limits (nutrition untouched). Returns the number changed. Idempotent. */
+export function refreshDocRatings(doc, limits) {
+  var n = 0;
+  Object.keys((doc && doc.children) || {}).forEach(function(id) {
+    var c = doc.children[id], r = rateChild(c, limits);
+    if (c.band !== r.band || c.rating !== r.rating || (c.ragFreq || "") !== (r.ragFreq || "")) { doc.children[id] = Object.assign({}, c, { rating: r.rating, ragFreq: r.ragFreq, ragReason: r.reason, band: r.band }); n++; }
+  });
+  return n;
+}
 
 // "RED today — large portion" when the child's RAG differs from its parent's.
 export function ragNote(c, parent, limits) {

@@ -49,8 +49,11 @@ test("F1: Progress rows show key data + Open (no notes, no Del); Open → read-o
   await expect(form.getByRole("button", { name: "Remove", exact: true })).toHaveAttribute("data-kind", "remove");   // D17
   await form.getByRole("button", { name: "Remove", exact: true }).click();
   await expect.poll(async () => (await getKey("dashboard:data")).jc.exercises.sunday[i].prog.length).toBe(1);
-  if (!(await page.getByTestId("prog-wk").count())) await page.getByRole("button", { name: "👁 Progress" }).nth(i).click();
-  await expect(page.getByTestId("prog-wk")).toHaveText(["1"]);                         // remaining row shows the right week (old index bug)
+  // v2.18.3: the panel may be re-rendering after Remove; open it if needed and retry (a single count-then-click could close it)
+  await expect(async () => {
+    if (!(await page.getByTestId("prog-wk").count())) await page.getByRole("button", { name: "👁 Progress" }).nth(i).click();
+    await expect(page.getByTestId("prog-wk")).toHaveText(["1"], { timeout: 1500 });     // remaining row shows the right week (old index bug)
+  }).toPass({ timeout: 10000 });
   expect(errors).toEqual([]);
 });
 
