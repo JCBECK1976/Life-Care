@@ -306,8 +306,8 @@ test("child RAG: recalculated from the child's own nutrition; shown when it diff
   const { errors } = await openApp(page);
   const { today } = await portionSetup(page, { name: "Test Oat Bar", matchesPlanned: true, assumed: "3 bars", kcal: 600, protein: 15, satFat: 13, addedSugar: 20 });
   await page.getByRole("button", { name: "Confirm", exact: true }).click();
-  await expect.poll(async () => (await childOf(today, "b"))?.ragFreq).toBe("weekly");
-  expect((await childOf(today, "b")).rating).toBe("RED");                                       // 13g sat fat = 65%
+  await expect.poll(async () => (await childOf(today, "b"))?.ragFreq).toBe("monthly");          // v2.18.2: against JC's own limits (sugar 24.6 g): 20 g = 81%
+  expect((await childOf(today, "b")).rating).toBe("RED");
   await expect(page.getByTestId("selected-item").filter({ hasText: "Test Oat Bar" }).first()).toHaveAttribute("data-rag", "RED"); // D14: shown by colour
   expect(errors).toEqual([]);
 });
@@ -337,7 +337,7 @@ test("D15: first check at temperature 0 with grams per component; Re-check is an
   await expect(page.getByTestId("portion-assumed")).toHaveText("Assumed: ~450g — rice 200g, frankfurters 120g, beans 130g — 780 kcal");
   await page.getByRole("button", { name: "↻ Re-check" }).click();
   await expect(page.getByText("🔎 Re-check deep dive — re-assessed outcome")).toBeVisible();
-  await expect(page.getByTestId("deep-compare")).toHaveText("First check: large · RED → Deep dive: medium · GOOD");
+  await expect(page.getByTestId("deep-compare")).toHaveText("First check: large · AMBER → Deep dive: medium · GOOD");
   await expect(page.getByTestId("portion-assumed")).toHaveText("Assumed: ~330g — rice 150g, frankfurters 80g, beans 100g — 520 kcal");
   const [b1, b2] = bodies.slice(-2);
   expect(b1.temperature).toBe(0);

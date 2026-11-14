@@ -6,7 +6,7 @@ import { bodyNotesCtx } from "./lib/bodyNotes.js";
 import { allowedBy, consentActive, loadConsent, needsConsent } from "./lib/consent.js";
 import ConsentScreen from "./components/ConsentScreen.jsx";
 import GoalSetup from "./components/GoalSetup.jsx";
-import { setupComplete, goalCtx, kcalTargetText, dayTable, aimText } from "./lib/goals.js";
+import { setupComplete, goalCtx, kcalTargetText, dayTable, aimText, personalLimits } from "./lib/goals.js";
 import LegalViewer from "./components/LegalViewer.jsx";
 import { auditLog } from "./lib/audit.js";
 import { removeOldGoogleTokens, stripOldCalorieSettings } from "./lib/cleanup.js";
@@ -726,10 +726,12 @@ function Dashboard() {
     [].concat(BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, POTATO_SIDES, SNACKS, VEG_SIDES, customBreakfasts, customLunches, customMeals, customSnacks, customDrinks, customDesserts).forEach(function(it) { if (it && it.id) l[it.id] = it; });
     return Object.assign(l, extra || {});
   };
+  /* v2.18.2 (F23): selections are rated against the person's goal and personal limits (null → UK reference) */
+  const limitsForActive = function() { return personalLimits(data && data[activeTab]); };
   /* Screens edit the weekday view; saving turns it into children (parent picks become new children). */
   const saveMeals = async (d, source, extraLookup) => {
     setSaving(true);
-    const doc = reconcile(weekChildrenRef.current, d, parentLookupNow(extraLookup), { weekStart: weekStart, isJC: activeTab === "jc", source: source || "manual" });
+    const doc = reconcile(weekChildrenRef.current, d, parentLookupNow(extraLookup), { weekStart: weekStart, isJC: activeTab === "jc", source: source || "manual", limitsFor: limitsForActive });
     setWeekChildren(doc); setMeals(viewFromDoc(doc));
     await saveWeekDoc(activeTab, weekStart, doc);
     setSaving(false);
@@ -738,13 +740,13 @@ function Dashboard() {
   const setChildAt = async (weekday, slot, child) => {
     const doc = JSON.parse(JSON.stringify(weekChildrenRef.current)); const id = "c_" + dateOf(weekStart, weekday) + "_" + slot;
     const prev = doc.children[id] || null;
-    if (child) { doc.children[id] = recalcChild(Object.assign({}, child, { id: id, date: dateOf(weekStart, weekday), weekday: weekday, slot: slot })); doc.empty = (doc.empty || []).filter(function(k) { return k !== weekday + ":" + slot; }); }
+    if (child) { doc.children[id] = recalcChild(Object.assign({}, child, { id: id, date: dateOf(weekStart, weekday), weekday: weekday, slot: slot }), limitsForActive()); doc.empty = (doc.empty || []).filter(function(k) { return k !== weekday + ":" + slot; }); }
     else delete doc.children[id];
     setWeekChildren(doc); setMeals(viewFromDoc(doc));
     await saveWeekDoc(activeTab, weekStart, doc);
     return prev;
   };
-  const childItemsList = childItems(weekChildren, parentLookupNow());
+  const childItemsList = childItems(weekChildren, parentLookupNow(), limitsForActive);
   const pickMeal = (dk, id) => { const n = { ...meals, [dk]: id }; setMeals(n); saveMeals(n); setEditDay(null); };
   const clearMeal = dk => { const n = { ...meals }; delete n[dk]; setMeals(n); saveMeals(n); };
   const saveData = async (nd) => { setData(nd); await sSet("dashboard:data", JSON.stringify(nd)); };

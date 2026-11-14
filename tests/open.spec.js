@@ -97,9 +97,9 @@ test("F5: a meal selection opens as the CHILD — variations recalculate the chi
   expect(prompts[0].temperature).toBe(0);
   expect(prompts[0].messages[0].content).toContain('with these changes: "chips instead of potato"');
   const c = await childOf(today, "d");
-  expect(c).toMatchObject({ variations: { text: "chips instead of potato" }, nutrition: { kcal: 760, satFat: 14 }, rating: "RED", ragFreq: "monthly", parentId: dinner.id });
+  expect(c).toMatchObject({ variations: { text: "chips instead of potato" }, nutrition: { kcal: 760, satFat: 14 }, rating: "AMBER", ragFreq: "", parentId: dinner.id });   // v2.18.2: against JC's own limits (1,966 kcal, sat fat 19.7 g; protein credit)
   expect((await getKey("custom_meals")).find((x) => x.id === dinner.id)).toEqual(dinner);          // parent untouched
-  await expect(form.getByTestId("slot-rag-diff")).toHaveText("Differs today: RED today — with changes");
+  await expect(form.getByTestId("slot-rag-diff")).toHaveText("Differs today: AMBER today — with changes");
   page.on("dialog", (dg) => dg.accept());
   await expect(form.getByRole("button", { name: "Remove", exact: true })).toHaveAttribute("data-kind", "remove");   // D18
   await form.getByRole("button", { name: "Remove", exact: true }).click();

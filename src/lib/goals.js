@@ -79,6 +79,24 @@ export function targetInUse(p) { var g = goalOf(p); var t = num(g.targetKg); if 
 /** True when the person chose their own target that differs from the Companion's recommendation. */
 export function isOwnTarget(g, rec) { return !!(g && g.targetSource === "own" && num(g.targetKg) && rec && Math.abs(num(g.targetKg) - rec.kg) >= 0.5); }
 
+/* ---------- v2.18.2: personal limits for rating that person's selections (F23) ---------- */
+/**
+ * { kcal, satFat, addedSugar } for rating one person's selections: kcal = their daily goal without exercise
+ * (body burn on a typical day + aim, never below the safe minimum); sat fat and free sugars scale with it from the
+ * 2,000 kcal reference (20 g / 25 g), and never above the reference when a condition makes that nutrient a priority
+ * (e.g. cholesterol → sat fat, blood glucose → sugars). null until the goal setup is complete (then the reference is used).
+ */
+export function personalLimits(p) {
+  if (!setupComplete(p)) return null;
+  var b = bmrOf(p).bmr, a = aimOf(p);
+  var kcal = Math.max(safeMinimum(b, isMale(p)), typicalBurn(p) + a.kcal);
+  var pri = nutrientPriorities([conditionsOf(p), p.healthProfile].join(" ")).join(" ");
+  var sf = 20 * kcal / 2000, su = 25 * kcal / 2000;
+  if (/saturated fat/.test(pri)) sf = Math.min(sf, 20);
+  if (/sugars/.test(pri)) su = Math.min(su, 25);
+  return { kcal: kcal, satFat: Math.round(sf * 10) / 10, addedSugar: Math.round(su * 10) / 10 };
+}
+
 /** Health conditions for "Support my health": My Health → My conditions, or the profile questionnaire's conditions. */
 export function conditionsOf(p) {
   var t = [p && p.healthConditions, p && p.onboarding && p.onboarding.conditions].filter(function(x) { return x && !/^\s*(none|n\/a|no|-)\s*\.?\s*$/i.test(String(x)); });

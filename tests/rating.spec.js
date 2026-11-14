@@ -19,7 +19,7 @@ test("D11: biscuits and brownie land in different bands; half the portion rates 
   expect(rateByPortion({ satFat: 12, addedSugar: 0, jcKcal: 500 }).band).toBe("RED-weekly");      // 60%
   expect(rateByPortion({ satFat: 12, addedSugar: 0, protein: 30, jcKcal: 500 }).band).toBe("AMBER"); // credit, capped at AMBER
   expect(rateByPortion({ satFat: 1, addedSugar: 0, jcKcal: 950 }).band).toBe("RED-monthly");     // > 40% of the day
-  expect(rateByPortion(biscuits).reason).toBe("AMBER (a few times a week): one portion is 10g added sugar = 40% of the 25g daily limit");
+  expect(rateByPortion(biscuits).reason).toBe("AMBER (a few times a week): one portion is 10g added sugar = 40% of the reference 25g daily limit");
   const amber = withRuleRating(biscuits), redW = withRuleRating({ satFat: 12, jcKcal: 500 }), redM = withRuleRating(brownie);
   expect(frequencyWarning(amber, 2, 2)).toBeNull();
   expect(frequencyWarning(amber, 3, 3)).toMatch(/a few times a week/);

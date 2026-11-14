@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.18.1 · 14 November 2026
+> Last updated: v2.18.2 · 14 November 2026
 
 ---
 
@@ -306,7 +306,10 @@ Generate after logging a session. It includes:
 - **Day tabs:** **Week** (whole-week view) and **Sun–Sat**. The week runs Sunday to Saturday, the same as exercise. Each tab shows that day's calories.
 
 ### The rating system (RAG)
-Every food is rated for **one portion as you eat it**, against the daily limits of **20 g saturated fat** and **25 g added sugar** (sugar added in cooking or processing, not the natural sugar in fruit or plain milk). The higher of the two decides:
+Every food is rated for **one portion as you eat it**, on saturated fat and added (free) sugar (sugar added in cooking or processing, not the natural sugar in fruit or plain milk). The higher of the two decides:
+- **Your food lists** (shared by everyone) are rated against the **UK reference intake**: **2,000 kcal**, **20 g saturated fat** and **25 g added sugar**. So a list item has the same rating for everyone.
+- **Your selections** (the meals on your days) are rated against **your own goal and limits**: your daily calorie goal, with saturated fat and sugar limits scaled to it (never above 20 g / 25 g if a condition such as high cholesterol or prediabetes makes them a priority).
+
 
 | Rating | One portion uses | How often |
 |---|---|---|
@@ -314,9 +317,11 @@ Every food is rated for **one portion as you eat it**, against the daily limits 
 | **GOOD** | up to 25% | daily |
 | **AMBER** | up to 50% | a few times a week (up to 3) |
 | **RED — weekly treat** | up to 80% | once a week |
-| **RED — monthly treat** | over 80%, or more than 40% of your day's calories | once a month |
+| **RED — monthly treat** | over 80%, or more than 40% of the day's calories (2,000 kcal for list items, your goal for your selections) | once a month |
 
 Plenty of fibre (5 g+) or protein (20 g+) lifts an item one band (never above AMBER if it's over 50%). For example, 3 biscuits come out AMBER and a large brownie with ice cream comes out RED monthly treat. The rating is calculated the same way every time, and the reason shows when you hover or tap (e.g. "AMBER: one portion is 10g added sugar = 40% of the 25g daily limit").
+
+**Why can a meal be rated differently from the list?** Because your selection is rated against *your* goal. If it differs you'll see a note such as **"RED today — for your goal"** (or "— large portion" / "— with changes" when you changed the portion). Example: a 760 kcal pasta is GREAT on the list (38% of 2,000 kcal) but RED for someone whose goal is 1,767 kcal (43% of their day).
 
 **Your meals have their own rating.** When you log a food, that meal keeps its own copy of the food and its own rating, worked out from what you actually ate (e.g. a bigger portion). The selected item's text is coloured by that rating. The ⚠️ warnings ("already 3 times this week") count what you actually logged. Editing or deleting a list item **never changes past days**.
 
