@@ -1,6 +1,6 @@
 import { readImageForAI } from "../lib/image.js";
 import TodayCard from "../components/TodayCard.jsx";
-import { dayTable, goalDef, aimText, kcalTargetText } from "../lib/goals.js";
+import { dayTable, goalDef, aimText, kcalTargetText, recommendedTarget, isOwnTarget } from "../lib/goals.js";
 import { isoDay } from "../lib/calories.js";
 import LoadingDots from "../components/LoadingDots.jsx";
 import PrivacyNote from "../components/PrivacyNote.jsx";
@@ -197,6 +197,11 @@ export default function HomeSection({ ctx }) {
                     <span style={{ flex: 1 }}><b>My goal:</b> {goalDef(p.goal && p.goal.id) ? (function() { var _t = dayTable(p, isoDay(new Date()), null); return _t.ready ? aimText(_t.aim) : goalDef(p.goal.id).label; })() : "not set yet"}</span>
                     <button type="button" onClick={openGoalSetup} style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "1px solid #1d4ed8", background: "#fff", color: "#1d4ed8" }}>Change my goal</button>
                   </div>
+                  {(function() { var _r = recommendedTarget(p); if (!_r) return null; var _g = p.goal || {}; return (<div data-testid="my-target" style={{ fontSize: 11, color: "#0f172a", padding: 10, marginBottom: 8, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                    <div>Your Companion recommends: <b>{_r.kg} kg</b> (range {_r.minKg}–{_r.maxKg} kg){_r.estimate ? " — estimate" : ""}</div>
+                    <div style={{ color: "#475569", marginTop: 2 }}>{_r.why}</div>
+                    {isOwnTarget(_g, _r) && <div data-testid="my-target-own" style={{ marginTop: 4, padding: 6, borderRadius: 6, background: "#fef3c7", color: "#92400e" }}>Your target: {_g.targetKg} kg. This isn't your Companion's recommendation based on your profile.</div>}
+                  </div>); })()}
 
                   {/* Read-only profile summary */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 11, color: "#475569", padding: 10, background: accentVariant(accent, 88), borderRadius: 8, border: "1px solid " + accentBorder }}>

@@ -1,9 +1,9 @@
 import React from "react";
-import { GOALS, ACTIVITY, MONTHS_MIN, MONTHS_MAX, DEFAULT_MONTHS, goalDef, currentKg, healthyRange, paceCheck, targetAllowed, conditionsOf, setupMissing, typicalBurn } from "../lib/goals.js";
+import { GOALS, ACTIVITY, MONTHS_MIN, MONTHS_MAX, DEFAULT_MONTHS, goalDef, recommendedTarget, isOwnTarget, currentKg, healthyRange, paceCheck, targetAllowed, conditionsOf, setupMissing, typicalBurn } from "../lib/goals.js";
 import { bmrOf, heightCm, ageOf, isMale, isoDay } from "../lib/calories.js";
 
 // v2.18.0 mandatory goal setup (new users at onboarding; existing people once on their next visit until complete).
-// Writes: goal { id, months, targetKg, setAt, startKg }, profile.sex/age/height/activityLevel (+ profile.weightKg when
+// Writes: goal { id, months, targetKg, recommendedKg, targetSource: recommended|own, setAt, startKg }, profile.sex/age/height/activityLevel (+ profile.weightKg when
 // there are no weigh-ins), healthConditions (for "Support my health"). Targets aren't calculated until it's complete.
 var lab = { display: "block", fontSize: 11, fontWeight: 700, color: "#334155", marginBottom: 4 };
 var inp = { width: "100%", boxSizing: "border-box", padding: 8, border: "1px solid #cbd5e1", borderRadius: 6, fontSize: 13 };
@@ -14,7 +14,7 @@ export default function GoalSetup(props) {
   var hasWeighIns = ((p.body && p.body.weight) || []).length > 0;
   var [f, setF] = React.useState(function() {
     var kg = currentKg(p);
-    return { id: g.id || "", months: g.months || DEFAULT_MONTHS, targetKg: g.targetKg || "", sex: /^m/i.test(pr.sex || "") ? "Male" : /^f/i.test(pr.sex || "") ? "Female" : "",
+    return { id: g.id || "", months: g.months || DEFAULT_MONTHS, own: g.targetSource === "own" ? String(g.targetKg || "") : "", changing: g.targetSource === "own", sex: /^m/i.test(pr.sex || "") ? "Male" : /^f/i.test(pr.sex || "") ? "Female" : "",
       age: ageOf(p) || "", height: heightCm(p) || "", weightKg: kg ? Math.round(kg * 10) / 10 : "", activity: pr.activityLevel || "", conditions: p.healthConditions || conditionsOf(p) || "" };
   });
   var [msg, setMsg] = React.useState("");
@@ -26,9 +26,13 @@ export default function GoalSetup(props) {
   if (!hasWeighIns) draft.body = Object.assign({}, draft.body, { weight: [] });
   var cm = parseFloat(f.height) || null, kg = hasWeighIns ? currentKg(p) : parseFloat(f.weightKg) || null;
   var range = healthyRange(cm);
-  var tgt = parseFloat(f.targetKg) || (range && kg > range.maxKg ? range.maxKg : null);
+  // v2.18.1: the app recommends the target; the person accepts it or changes it
+  var rec = recommendedTarget(draft);
+  var ownKg = f.changing ? parseFloat(f.own) || null : null;
+  var tgt = ownKg || (rec ? rec.kg : null);
+  var own = isOwnTarget({ targetSource: ownKg ? "own" : "recommended", targetKg: ownKg }, rec);
   var pace = def && def.timescale && kg && tgt && kg > tgt && f.sex && f.activity ? paceCheck({ currentKg: kg, targetKg: tgt, months: f.months, burn: typicalBurn(draft), bmr: bmrOf(draft).bmr, male: isMale(draft) }) : null;
-  var blocked = f.targetKg && cm && !targetAllowed(parseFloat(f.targetKg), cm);
+  var blocked = ownKg && cm && !targetAllowed(ownKg, cm);
 
   var save = async function() {
     if (blocked) { setMsg("That target is below a healthy weight (BMI 18.5). Please choose " + range.minKg + " kg or more."); return; }
@@ -37,9 +41,9 @@ export default function GoalSetup(props) {
     if (!hasWeighIns && f.weightKg) q.profile.weightKg = parseFloat(f.weightKg);
     if (f.id === "support") q.healthConditions = f.conditions.trim();
     var start = hasWeighIns ? currentKg(p) : parseFloat(f.weightKg);
-    var same = g.id === f.id && g.months === f.months && String(g.targetKg || "") === String(f.targetKg || "");
+    var same = g.id === f.id && g.months === f.months && (g.targetKg || null) === (tgt || null);
     q.goal = Object.assign({}, same ? g : {}, { id: f.id, setAt: same && g.setAt ? g.setAt : isoDay(new Date()), startKg: same && g.startKg ? g.startKg : (start ? Math.round(start * 10) / 10 : null) });
-    if (def && def.timescale) { q.goal.months = f.months; if (f.targetKg) q.goal.targetKg = parseFloat(f.targetKg); else delete q.goal.targetKg; } else { delete q.goal.months; delete q.goal.targetKg; }
+    if (def && def.timescale) { q.goal.months = f.months; if (tgt) { q.goal.targetKg = tgt; q.goal.targetSource = own ? "own" : "recommended"; } if (rec) q.goal.recommendedKg = rec.kg; } else { delete q.goal.months; delete q.goal.targetKg; delete q.goal.targetSource; if (rec) q.goal.recommendedKg = rec.kg; }
     var missing = setupMissing(q);
     if (missing.length) { setMsg("Still needed: " + missing.join(", ") + "."); return; }
     await props.saveData(nd);
@@ -61,9 +65,16 @@ export default function GoalSetup(props) {
       {def && def.timescale && (<div data-testid="goal-timescale" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, padding: 10, marginBottom: 12 }}>
         <label style={lab} htmlFor="goal-months">Timescale: <span data-testid="goal-months-value">{f.months} months</span></label>
         <input id="goal-months" type="range" min={MONTHS_MIN} max={MONTHS_MAX} step="1" value={f.months} onChange={function(e) { set("months", parseInt(e.target.value, 10)); }} style={{ width: "100%" }} />
-        <label style={Object.assign({}, lab, { marginTop: 8 })} htmlFor="goal-target">Target weight (kg, optional)</label>
-        <input id="goal-target" type="number" inputMode="decimal" value={f.targetKg} onChange={function(e) { set("targetKg", e.target.value); }} style={inp} placeholder={range ? "e.g. " + range.maxKg : ""} />
-        {range && <div data-testid="goal-range" style={{ fontSize: 11, color: "#475569", marginTop: 4 }}>A healthy weight for your height is about {range.minKg}–{range.maxKg} kg.{!f.targetKg && kg > range.maxKg ? " Without a target we'll aim for " + range.maxKg + " kg." : ""}</div>}
+        {rec && (<div data-testid="goal-recommend" style={{ marginTop: 8, padding: 8, borderRadius: 6, background: "#f8fafc", border: "1px solid #e2e8f0", fontSize: 12, color: "#0f172a" }}>
+          <div>Your Companion recommends: <b data-testid="goal-recommend-kg">{rec.kg} kg</b> (range {rec.minKg}–{rec.maxKg} kg){rec.estimate ? " — estimate" : ""}</div>
+          <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{rec.why}</div>
+          {!f.changing ? (<div style={{ display: "flex", gap: 6, marginTop: 6, alignItems: "center" }}><span data-testid="goal-target-accepted" style={{ fontSize: 11, color: "#166534", fontWeight: 600 }}>✓ Using the recommended target</span>
+            <button type="button" onClick={function() { set("changing", true); set("own", String(rec.kg)); }} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #cbd5e1", background: "#fff", color: "#334155", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Change</button></div>)
+          : (<div style={{ marginTop: 6 }}><label style={lab} htmlFor="goal-target">My target weight (kg)</label>
+            <div style={{ display: "flex", gap: 6 }}><input id="goal-target" type="number" inputMode="decimal" value={f.own} onChange={function(e) { set("own", e.target.value); }} style={inp} />
+            <button type="button" onClick={function() { set("changing", false); set("own", ""); }} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #166534", background: "#fff", color: "#166534", fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>Accept recommendation</button></div>
+            {own && !blocked && <div data-testid="goal-own-note" style={{ marginTop: 4, padding: 6, borderRadius: 6, background: "#fef3c7", color: "#92400e", fontSize: 11 }}>This isn't your Companion's recommendation based on your profile.</div>}</div>)}
+        </div>)}
         {blocked && <div data-testid="goal-bmi-block" role="alert" style={{ fontSize: 11, color: "#991b1b", marginTop: 4 }}>That's below a healthy weight for your height (BMI 18.5). Please choose {range.minKg} kg or more.</div>}
         {pace && (<div data-testid="goal-pace" data-level={pace.level} style={{ marginTop: 8, padding: 8, borderRadius: 6, background: COL[pace.level][0], color: COL[pace.level][1], fontSize: 11, lineHeight: 1.5 }}>
           {pace.level === "green" ? "✓ A healthy, sustainable pace: about " + pace.kgPerWeek + " kg a week." : (pace.level === "amber" ? "! A brisk pace" : "✕ That pace is too fast to be healthy") + " — about " + pace.kgPerWeek + " kg a week" + (pace.reasons.length ? " (" + pace.reasons.join("; ") + ")" : "") + ". A steadier pace is easier to keep up:"}

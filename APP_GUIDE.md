@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.18.0 · 14 November 2026
+> Last updated: v2.18.1 · 14 November 2026
 
 ---
 
@@ -160,7 +160,7 @@ Between My Day and My Journal. One table with two columns, **Planned** and **Act
 Tap **▼ My Profile** under the greeting to open your setup. It has tabs:
 | Tab | What you enter |
 |---|---|
-| **My Profile** | **My goal** with **Change my goal**, your auto-generated profile summary (name, sex, height, ideal weight, date of birth, body type, fibre dominance) and **My Companion Recommendations**. |
+| **My Profile** | **My goal** with **Change my goal**, your Companion's **recommended target weight**, your auto-generated profile summary (name, sex, height, ideal weight, date of birth, body type, fibre dominance) and **My Companion Recommendations**. |
 | **My Details** | Basic personal information. Also **📸 Body Type Photos** and baseline body composition. |
 | **My Family** | Who you live with and relevant family health history. |
 | **Personality** | Your personality style, which shapes motivation and habit-formation advice. |
@@ -418,11 +418,18 @@ See the table above. In short: *healthy body weight* = steady weight loss to a h
 **Home → ▼ My Profile → My Profile → Change my goal.** Your Companion may also suggest a change (for example, switching to *Maintain* once you've been in the healthy weight range for 6 weeks or more, or a longer timescale if your pace looks hard to keep up). It's only a suggestion: you choose **Accept** or **Not now**.
 
 **How does the timescale slider work, and what are the safety limits?**
-For weight goals you choose **3 to 24 months** and, if you like, a target weight (the app shows a healthy range for your height; without a target it aims for the top of that range). It works out the weekly pace and the daily gap (about **7,700 kcal per kg**). The colour tells you how healthy that pace is:
+For weight goals you choose **3 to 24 months**. Your **target weight is recommended by your Companion** (see below); you can accept it or change it. It works out the weekly pace and the daily gap (about **7,700 kcal per kg**). The colour tells you how healthy that pace is:
 - **green**: a healthy, sustainable pace;
 - **amber**: brisk (more than 0.75% of your body weight a week, or a gap of more than 20% of your body burn);
 - **red**: too fast (more than 1% of your body weight a week, more than 25% of your body burn, or below your safe minimum).
 On amber or red it offers steadier options such as **"Steady: 7 months · Gentle: 10 months"**: tap one to use it. If you keep a red pace anyway, the daily aim is still limited to 25% of your body burn and never below your safe minimum. A target below a healthy weight (**BMI 18.5**) can't be chosen.
+
+**How is my target weight worked out?**
+Your Companion recommends it from your profile; you don't have to come up with a number. It shows as *"Your Companion recommends: 85.6 kg (range 83.5–87.8 kg)"* with a line saying why, in the goal setup and in **My Profile**.
+- **With body composition** (weigh-ins with body fat %): target = your **lean mass ÷ (1 − a healthy body-fat %)** for your sex and age: men 40+ 18–22%, women 40+ 25–31%, a little lower for younger adults. The mid-point gives the target and the ends give the range. This suits muscular people better than BMI. Example: 91.9 kg at 25.5% body fat = 68.5 kg lean ÷ 0.80 = **85.6 kg**.
+- **Without body fat %:** the top half of the healthy range for your height (BMI 22–24.9), labelled **estimate — add body composition for a better target**.
+- **Accept** it, or tap **Change** and type your own. If yours is different you'll see *"This isn't your Companion's recommendation based on your profile"*. Both figures are kept, and your Companion may gently mention the recommended one in feedback. A target below a healthy weight (BMI 18.5) can't be chosen, and the timescale safety limits still apply.
+- The recommendation is recalculated as your body composition changes. If it moves by 2 kg or more, your Companion suggests updating your target on the Today card (**Accept** or **Not now**).
 
 **What is my typical activity level for?**
 On days without step data it decides how much daily living adds to your BMR: *Mostly sitting* ×1.15, *On my feet a fair bit* ×1.3, *Very active* ×1.45. On days with steps from Google Health the app uses ×1.15 plus the steps you actually walked above your allowance, so nothing counts twice.

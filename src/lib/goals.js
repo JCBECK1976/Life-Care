@@ -1,7 +1,7 @@
 // v2.18.0 person goals (docs/design/CALORIES.md §7, ADR 0014). Pure functions, tested with known inputs and a fixed clock.
 // One goal per person drives the daily calorie goal everywhere (Home, My Eating, every companion):
 //   Goal = Body burn (BMR + daily living) + Aim (from the person's goal and timescale) + Exercise.
-import { MET, DEFAULT_MET, MIN_PER_SET, WEEKDAY, bmrOf, dayFoodKcal, exerciseKcal, exerciseOn, heightCm, isMale, ageOf, isoDay, planOf,
+import { MET, DEFAULT_MET, MIN_PER_SET, WEEKDAY, bmrOf, leanMass, dayFoodKcal, exerciseKcal, exerciseOn, heightCm, isMale, ageOf, isoDay, planOf,
   safeMinimum, settingsOf, stepsOn, toKg, weekDates, BASELINE_FACTOR } from "./calories.js";
 
 export var KCAL_PER_KG = 7700;
@@ -42,6 +42,42 @@ export function currentKg(p) {
 export function bmiOf(kg, cm) { return kg && cm ? kg / Math.pow(cm / 100, 2) : null; }
 export function healthyRange(cm) { if (!cm) return null; var m2 = Math.pow(cm / 100, 2); return { minKg: Math.round(BMI_MIN * m2 * 10) / 10, maxKg: Math.round(BMI_HEALTHY_MAX * m2 * 10) / 10 }; }
 export function latestBodyFat(p) { var f = ((p && p.body && p.body.bodyFat) || []).filter(function(e) { return e && num(e.v) > 2; }); return f.length ? num(f[f.length - 1].v) : null; }
+
+/* ---------- v2.18.1: the recommended target weight (the app recommends; the person accepts or changes it) ---------- */
+// Healthy body-fat targets (%), by sex and age; the mid-point is the target. Younger adults slightly lower.
+export var BODY_FAT_TARGET = { male: { "40+": [18, 22], under40: [15, 19] }, female: { "40+": [25, 31], under40: [22, 28] } };
+export var BMI_TARGET = [22, 24.9];   // fallback: the top half of the healthy BMI range
+export var MATERIAL_KG = 2;           // a change in the recommendation big enough to suggest updating
+function r1(x) { return Math.round(x * 10) / 10; }
+/** Lean mass for the recommendation: the rolling average (3–4 weigh-ins with body fat), else the latest weight × (1 − latest body fat). */
+function leanFor(p) {
+  var l = leanMass(p && p.body); if (l) return { leanKg: l.leanKg, bodyFatPct: l.bodyFatPct };
+  var kg = currentKg(p), bf = latestBodyFat(p); return kg && bf ? { leanKg: kg * (1 - bf / 100), bodyFatPct: bf } : null;
+}
+/**
+ * The Companion's recommended target weight: { kg, minKg, maxKg, method: "body-fat" | "bmi", estimate, why } or null.
+ * Body-fat method: lean mass ÷ (1 − target body fat %). Fallback: BMI 22–24.9 for the height (an estimate). Never below BMI 18.5.
+ */
+export function recommendedTarget(p, now) {
+  var cm = heightCm(p); var age = ageOf(p, now); var male = isMale(p);
+  var floor = cm ? BMI_MIN * Math.pow(cm / 100, 2) : 0;
+  var lean = leanFor(p);
+  if (lean) {
+    var band = BODY_FAT_TARGET[male ? "male" : "female"][age != null && age < 40 ? "under40" : "40+"];
+    var mid = (band[0] + band[1]) / 2;
+    var kg = lean.leanKg / (1 - mid / 100), lo = lean.leanKg / (1 - band[0] / 100), hi = lean.leanKg / (1 - band[1] / 100);
+    return { kg: r1(Math.max(kg, floor)), minKg: r1(Math.max(lo, floor)), maxKg: r1(Math.max(hi, floor)), method: "body-fat", estimate: false, bodyFatTarget: band,
+      why: "Based on your lean mass (" + r1(lean.leanKg) + " kg) and a healthy body-fat range for your age and sex (" + band[0] + "–" + band[1] + "%)." };
+  }
+  if (!cm) return null;
+  var m2 = Math.pow(cm / 100, 2);
+  return { kg: r1((BMI_TARGET[0] + BMI_TARGET[1]) / 2 * m2), minKg: r1(BMI_TARGET[0] * m2), maxKg: r1(BMI_TARGET[1] * m2), method: "bmi", estimate: true,
+    why: "Estimate from a healthy weight range for your height — add body composition (body fat %) for a better target." };
+}
+/** The target in use: the person's chosen target, else the current recommendation. */
+export function targetInUse(p) { var g = goalOf(p); var t = num(g.targetKg); if (t) return t; var rec = recommendedTarget(p); return rec ? rec.kg : null; }
+/** True when the person chose their own target that differs from the Companion's recommendation. */
+export function isOwnTarget(g, rec) { return !!(g && g.targetSource === "own" && num(g.targetKg) && rec && Math.abs(num(g.targetKg) - rec.kg) >= 0.5); }
 
 /** Health conditions for "Support my health": My Health → My conditions, or the profile questionnaire's conditions. */
 export function conditionsOf(p) {
@@ -110,7 +146,7 @@ export function aimOf(p) {
   var bmr = bmrOf(p).bmr, burn = typicalBurn(p), male = isMale(p), cm = heightCm(p), kg = currentKg(p);
   var bmi = bmiOf(kg, cm), range = healthyRange(cm);
   var months = Math.min(MONTHS_MAX, Math.max(MONTHS_MIN, num(g.months) || DEFAULT_MONTHS));
-  var target = num(g.targetKg) || (range && kg > range.maxKg ? range.maxKg : null);
+  var target = targetInUse(p);   // v2.18.1: chosen target, else the Companion's recommendation
   var out = { goal: def.id, label: def.label, months: null, targetKg: null, kcal: 0, approach: "maintenance", pace: null, capped: false };
   var byPace = function(capPct) {
     if (!target || !kg || kg <= target) return null;
@@ -231,6 +267,10 @@ export function goalSuggestion(p, now) {
   var dismissed = g.dismissed || {};
   var s = null;
   if ((g.id === "healthy_weight" || g.id === "grow") && healthySixWeeks(p, now)) s = { key: "maintain", to: { id: "maintain" }, text: "You've been in the healthy weight range for 6 weeks or more. Would you like to switch to “Maintain a healthy lifestyle”?" };
+  else if (goalDef(g.id).timescale && g.targetSource !== "own" && num(g.recommendedKg) && recommendedTarget(p, now) && Math.abs(recommendedTarget(p, now).kg - num(g.recommendedKg)) >= MATERIAL_KG) {
+    var nr = recommendedTarget(p, now);
+    s = { key: "target-" + nr.kg, to: { targetKg: nr.kg, recommendedKg: nr.kg, targetSource: "recommended" }, text: "As your body composition has changed, your Companion now recommends a target of " + nr.kg + " kg (was " + num(g.recommendedKg) + " kg). Would you like to update it?" };
+  }
   else {
     var a = aimOf(p), pr = progressOf(p, now);
     if (a && a.pace && (a.pace.level === "red" || (pr && pr.weeks >= 4 && pr.status === "well behind pace"))) {
@@ -247,6 +287,8 @@ export function goalCtx(p, now) {
   if (!def) return "PERSON GOAL: not set yet (setup incomplete) — don't give calorie targets; encourage them to finish the goal setup.";
   var a = aimOf(p), t = dayTable(p, isoDay(new Date(now || Date.now())), null), pr = progressOf(p, now), sug = goalSuggestion(p, now);
   var lines = ["PERSON GOAL: \"" + def.label + "\" — " + def.desc + " Companion focus: " + def.focus + "."];
+  var rec = recommendedTarget(p, now);
+  if (rec && def.timescale) lines.push("Recommended target weight (from their profile): " + rec.kg + " kg (range " + rec.minKg + "–" + rec.maxKg + " kg; " + (rec.method === "body-fat" ? "lean mass and a healthy body-fat range" : "BMI estimate") + ")." + (isOwnTarget(g, rec) ? " They chose their own target of " + num(g.targetKg) + " kg instead; respect their choice, and you may gently refer to the recommended figure where helpful." : ""));
   if (a.months) lines.push("Timescale: " + a.months + " months" + (a.targetKg ? " to " + a.targetKg + " kg" : "") + "; required pace " + a.pace.kgPerWeek + " kg/week (" + a.pace.pctPerWeek + "% of body weight), a daily gap of " + Math.abs(a.kcal) + " kcal" + (a.capped ? " (limited for safety)" : "") + "; pace check: " + a.pace.level + ".");
   if (t.ready) lines.push("Daily calorie goal (the ONLY calorie target to use): body burn " + t.burn + " + aim " + (a.kcal >= 0 ? "+" : "") + a.kcal + " (" + a.approach + ") + logged exercise = " + t.goal.actual + " kcal today" + (t.floored ? " (limited to the safe minimum " + t.minimum + ")" : "") + ".");
   if (pr) lines.push("Progress vs pace: started " + pr.startKg + " kg, now " + pr.currentKg + " kg after " + pr.weeks + " weeks; expected about " + pr.expectedKg + " kg — " + pr.status + ".");
