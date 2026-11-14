@@ -2568,3 +2568,13 @@ Sizes are % of a weekly allowance, including Architect checks.
   - Tests `tests/v2164.spec.js` (3) + updated D24 test. Full suite **180 passed**, lint 0 errors.
 - **JC to test (/build/):** generate session feedback → Open the latest week → Companion Feedback + "Your decision"; Edit → Accept/Reject + note → Save. Older weeks show the feedback only if it was stored for that week. Share a scales screenshot → choose Becks → My Body opens on Becks.
 - **Resume point:** `build` @ e40da6b (v2.16.4). Next: Step B (decisions: per-person deficit, token cleanup, tier defaults).
+
+### (Coder) 14 Nov 2026 — Step B: v2.16.5 on build (JC's decisions applied)
+- **Decisions (JC, 14 Nov), applied in v2.16.5 (`build` c2a5622):**
+  1. **Calorie deficit per person:** defaults JC 500, Becks 400 kcal/day (`DEFICIT_DEFAULTS` in `calories.js`), editable on the calorie card (stored in `calorieSettings.deficit`).
+  2. **Old Google token keys deleted:** a one-off, idempotent cleanup on load removes only `google_token_jc` and `google_token_becks` (`src/lib/cleanup.js`). It acts on real data once released (JC approved).
+  3. **Tiers:** Bronze free (tracking, ratings, Help; ≈£0.20 AI/month), Silver £5.99/mo or £49/yr (+ AI feedback, Snap, meal generator; £1.50), Gold £9.99/mo or £79/yr (+ body balance, AI-built plans, health sync, household; £2.50). Packs £5 (=£2.50 AI) and £10 (=£5 AI), any tier. These are the defaults in `functions/src/config.js` (admin-editable `config/tiers`); the proxy checks the feature switch per request (`help`, `aiFeedback`, `snap` …). Design doc §6 updated.
+  4. Version numbering accepted.
+- Tests `tests/v2165.spec.js` (4) + functions tests (10). Full suite **184 passed**, lint 0 errors.
+- **JC to test (/build/):** My Body → calorie card shows Deficit 500 (Becks 400) → Change works.
+- **Resume point:** `build` @ c2a5622 (v2.16.5). Next: Step C (household & privacy model: design + ADR 0012, then platform build/rules/tests, v2.16.6).

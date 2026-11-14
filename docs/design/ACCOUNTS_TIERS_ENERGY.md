@@ -52,20 +52,17 @@ Needs JC's approval, a fresh backup (Data → Download backup **and** the nightl
 7. Keep the old paths read-only for 30 days, then delete them (separate approval).
 Rollback: switch the flag back; the old paths are unchanged until step 7.
 
-## 6. Tiers (starting draft — JC to finalise; editable in admin)
-The Architect's 12 Nov draft is the intended starting point. It isn't in the repository, so this table is a placeholder with the same shape (question in HANDOVER).
-
-| Feature switch | Bronze | Silver | Gold |
+## 6. Tiers (JC, 14 Nov 2026 — defaults; the admin can change them without a code change)
+| | Bronze | Silver | Gold |
 |---|---|---|---|
-| Logging, history, charts | ✓ | ✓ | ✓ |
-| Companion feedback (AI) | ✓ (uses energy) | ✓ | ✓ |
-| Photo checks (food, measurements, body) | — | ✓ | ✓ |
-| Meal plans and shopping list generator | — | ✓ | ✓ |
-| Google Health / Apple Health calories | — | ✓ | ✓ |
-| Household (log for each other) | — | — | ✓ |
-| Monthly energy included | small | medium | large |
+| Price | free | £5.99/month or £49/year | £9.99/month or £79/year |
+| AI allowance (AI cost included per month) | ≈ £0.20 | £1.50 | £2.50 |
+| Manual tracking, ratings, Help | ✓ | ✓ | ✓ |
+| AI feedback, Snap (photo checks), meal generator | — | ✓ | ✓ |
+| Body balance, AI-built plans, health sync, household | — | — | ✓ |
 
-Features are stored as booleans per tier in `config/tiers`; the client hides switched-off features and the server refuses AI calls for them.
+**Energy packs, any tier:** £5 (= £2.50 of AI cost) and £10 (= £5 of AI cost).
+Stored as switches per tier in `apps/{appId}/config/tiers` (`help`, `aiFeedback`, `snap`, `mealGenerator`, `bodyBalance`, `aiPlans`, `healthSync`, `household`, plus `pricePence`, `yearlyPence`, `allowancePence`). The client hides switched-off features; the server refuses AI calls for them.
 
 ## 7. Subscriptions and Companion Energy
 - **Energy** = money for AI, held as **pence of AI cost** on the server. Each AI call debits its **actual cost** (from the model's token prices). The client shows a percentage only.
