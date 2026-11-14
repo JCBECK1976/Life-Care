@@ -1,6 +1,7 @@
 import { sGet, sSet } from "./storage.js";
 import { withMedicationRule } from "./safety.js";
 import { flag, viaProxy } from "./platform.js";
+import { allowedBy } from "./consent.js";
 import { auth } from "./firebase.js";
 import firebase, { DATA_ROOT } from "./firebase.js";
 import { PRICES, addToLedger, costOf, energyFromLedger, featureOf } from "./aiUsage.js";
@@ -55,6 +56,11 @@ window.fetch = function() {
     if (url.indexOf("/v1/messages") !== -1 && typeof opts.body === "string") args[1] = Object.assign({}, opts, { body: withMedicationRule(opts.body) });
     /* v2.16.3 Step 4: flag "useAiProxy" (default OFF) sends the request to the server proxy instead (EU, energy checked server-side) */
     var _self = this;
+    /* v2.16.7 P9: while pilotConsent is on, AI (and photo) requests need the person's consent */
+    var _isPhoto = typeof opts.body === "string" && opts.body.indexOf('"type":"image"') >= 0;
+    if (url.indexOf("/v1/messages") !== -1 && (!allowedBy(window._lcConsent, "ai") || (_isPhoto && !allowedBy(window._lcConsent, "photos")))) {
+      return Promise.resolve(new Response(JSON.stringify({ type: "error", error: { type: "consent", message: (_isPhoto ? "Photo checks" : "AI features") + " are off in your privacy choices (Settings → Privacy & consent)" } }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    }
     var send = (flag("useAiProxy") && url.indexOf("/v1/messages") !== -1 && typeof opts.body === "string")
       ? auth.currentUser.getIdToken().then(function(t) { return viaProxy(args[1].body, feature, t); })
       : _origFetch.apply(_self, args);

@@ -67,7 +67,9 @@ test("Full restore of data: double confirm (type RESTORE) → every key in data 
   await expect(page.getByTestId("restore-msg")).toHaveText(`✓ Full restore done: ${Object.keys(file.data).length} items written to data. Close and reopen the app.`);
   expect(dialogs[0]).toMatch(/^confirm: Full restore: overwrite EVERYTHING in "data"/);
   expect(dialogs[1]).toBe('prompt: To confirm the full restore of "data", type RESTORE');
-  expect(await raw("data")).toEqual(file.data);                                       // exactly the backup again
+  const after = await raw("data"); const audit = after.audit; delete after.audit;
+  expect(after).toEqual(file.data);                                                   // exactly the backup again
+  expect(Object.values(audit || {}).map((a) => a.action)).toContain("restore");       // v2.16.7: plus the audit trail (kept, + this restore)
   expect(errors).toEqual([]);
 });
 

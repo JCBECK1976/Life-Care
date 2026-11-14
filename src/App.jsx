@@ -2,6 +2,10 @@
 // Only changes: these imports replace CDN globals, and `export default`
 // replaces the ReactDOM render call (now in main.jsx).
 import React from "react";
+import { allowedBy, consentActive, loadConsent, needsConsent } from "./lib/consent.js";
+import ConsentScreen from "./components/ConsentScreen.jsx";
+import LegalViewer from "./components/LegalViewer.jsx";
+import { auditLog } from "./lib/audit.js";
 import { removeOldGoogleTokens } from "./lib/cleanup.js";
 import { GH, fetchWeekCalories, forgetToken, loadToken, mergeDaily, saveToken } from "./lib/googleHealth.js";
 import LoadingDots from "./components/LoadingDots.jsx";
@@ -105,6 +109,9 @@ function Dashboard() {
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  /* v2.16.7 P9: consent for the person being used (only acts while the pilotConsent flag is on) */
+  const [consentRec, setConsentRec] = useState(undefined);
+  useEffect(function() { var live = true; setConsentRec(undefined); loadConsent(activeTab).then(function(c) { if (!live) return; window._lcConsent = c; setConsentRec(c); }); return function() { live = false; }; }, [activeTab]);
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [userColour, setUserColour] = useState(null); // per-user colour key, null = default
   const [showBloodForm, setShowBloodForm] = useState(false);
@@ -422,6 +429,7 @@ function Dashboard() {
 
   // v2.16.2 R4: rebuilt. The token stays on this device (googleHealth.js), never in the database.
   const connectGoogle = function() {
+    if (!allowedBy(window._lcConsent, "health")) { setFormMsg("Google Health is off in your privacy choices (Settings → Privacy & consent)"); setTimeout(function() { setFormMsg(""); }, 4000); return; }
     sGet("google_client_id").then(function(id) {
       var clientId = id || GOOGLE_CLIENT_ID;
       if (typeof google === "undefined" || !google.accounts) { setFormMsg("✗ Google sign-in didn't load — check the connection and try again"); setTimeout(function() { setFormMsg(""); }, 4000); return; }
@@ -1885,7 +1893,9 @@ function Dashboard() {
         <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
 
       {/* Privacy Policy overlay */}
-      <ErrorBoundary name="PrivacyPolicy"><PrivacyPolicy ctx={{ accent, setShowPrivacy, showPrivacy }} /></ErrorBoundary>
+      {consentActive() ? (showPrivacy && <LegalViewer which="privacy" onClose={function() { setShowPrivacy(false); }} />) /* v2.16.7 P8: pilot Privacy Notice replaces the old policy */
+        : <ErrorBoundary name="PrivacyPolicy"><PrivacyPolicy ctx={{ accent, setShowPrivacy, showPrivacy }} /></ErrorBoundary>}
+      {data && consentRec !== undefined && needsConsent(consentRec) && <ConsentScreen person={activeTab} name={personName(data, activeTab)} current={consentRec} onDone={function(c) { window._lcConsent = c; setConsentRec(c); auditLog("consent", activeTab, "pilot legal docs + choices"); }} />}
       <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>{APP_VERSION}
       </div>
 

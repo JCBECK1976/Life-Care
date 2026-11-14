@@ -96,6 +96,9 @@
           "$uid": {
             ".read": "auth != null && auth.uid === $uid"
           }
+        },
+        "audit": {
+          ".read": "auth != null && root.child('platform').child('admins').child(auth.uid).val() === true"
         }
       }
     }

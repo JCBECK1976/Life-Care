@@ -1,6 +1,8 @@
 // Companion platform Cloud Functions (ADR 0011). EMULATOR ONLY until JC's go-live setup (HANDOVER Step 4).
 // Never `firebase deploy` from a Coder session.
 import { onCall, onRequest, HttpsError as FnError } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import { retention } from "./src/retention.js";
 import { defineSecret } from "firebase-functions/params";
 import admin from "firebase-admin";
 import Stripe from "stripe";
@@ -31,4 +33,10 @@ export const createCheckout = onCall({ ...opts, secrets: [STRIPE_KEY] }, wrap((c
 export const stripeWebhook = onRequest({ ...opts, secrets: [STRIPE_KEY, STRIPE_WHSEC] }, async (req, res) => {
   const r = await core.stripeWebhook(req.rawBody, req.headers["stripe-signature"], { stripe: new Stripe(process.env.STRIPE_SECRET_KEY), secret: process.env.STRIPE_WEBHOOK_SECRET, db: db() });
   res.status(r.status).send(r.body);
+});
+
+// v2.16.7 P10: daily retention clean-up (Europe/London 03:10). Emulator-tested only; never deployed by the Coder.
+export const retentionDaily = onSchedule({ ...opts, schedule: "10 3 * * *", timeZone: "Europe/London" }, async () => {
+  const r = await retention(db(), "lifecare");
+  console.log("retention: " + JSON.stringify(r));   // counts only
 });

@@ -1,4 +1,5 @@
 import firebase, { DATA_ROOT } from "../lib/firebase.js";
+import { auditLog } from "../lib/audit.js";
 import { btnMuted } from "../constants/styles.js";
 import { personName } from "../components/PersonTabs.jsx";
 import { useEffect, useState } from "react";
@@ -287,6 +288,7 @@ export default function DataSection({ ctx }) {
             try {
               var r = mergeExerciseWeeks(backup);
               await saveData(r.nd);
+              auditLog("restore", "", "merge " + r.restored + " weeks");
               setRestoreMsg("✓ Merged: " + r.restored + " missing exercise weeks added. Nothing else was changed. Reload the app to see all data.");
               setRestoreParsed(null);
             } catch(e) { setRestoreMsg(window.aiErrorMsg(e)); }
@@ -300,7 +302,9 @@ export default function DataSection({ ctx }) {
             if (typed !== "RESTORE") { setRestoreMsg("Full restore cancelled — nothing was changed."); return; }
             setRestoreBusy(true);
             try {
-              await firebase.database().ref(target).set(src);
+              var keepAudit = (await firebase.database().ref(target + "/audit").once("value")).val(); /* v2.16.7: the audit trail survives a restore */
+              await firebase.database().ref(target).set(keepAudit ? Object.assign({}, src, { audit: Object.assign({}, src.audit || {}, keepAudit) }) : src);
+              await auditLog("restore", "", "full " + n + " items");
               setRestoreMsg("✓ Full restore done: " + n + " items written to " + target + ". Close and reopen the app.");
               setRestoreParsed(null);
             } catch(e) { setRestoreMsg("Full restore failed: " + String(e.message || e).substring(0, 120) + ". Nothing was changed."); }

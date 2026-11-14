@@ -8,6 +8,8 @@ import firebase, { DATA_ROOT } from "../lib/firebase.js";
 import { APP_ENV, APP_VERSION } from "../constants/version.js";
 import { saveDebugMode } from "../lib/debugLog.js";
 import AccountCard from "../components/AccountCard.jsx";
+import PrivacyDataCard from "../components/PrivacyDataCard.jsx";
+import { auditLog } from "../lib/audit.js";
 import AiUsageCard from "../components/AiUsageCard.jsx";
 import Tracker from "../components/Tracker.jsx";
 import ContactEmailCard from "../components/ContactEmailCard.jsx";
@@ -74,7 +76,7 @@ export default function SettingsSection({ ctx }) {
             )}
             {isAdmin && gp && (<div data-testid="r6-admin" style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid #e2e8f0", fontSize: 11, color: "#334155" }}>
               <b>Admin:</b> use the calculated calorie target for {(gp.profile && gp.profile.name) || activeTab}?{" "}
-              <button aria-pressed={cs.r6Active} data-testid="r6-switch" onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].calorieSettings) nd[activeTab].calorieSettings = {}; nd[activeTab].calorieSettings.r6Active = !cs.r6Active; await saveData(nd); setFormMsg(cs.r6Active ? "Calculated target switched off — fixed targets used" : "✓ Calculated target switched on"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ padding: "4px 10px", borderRadius: 12, border: "1px solid " + (cs.r6Active ? "#166534" : "#cbd5e1"), background: cs.r6Active ? "#166534" : "#fff", color: cs.r6Active ? "#fff" : "#334155", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>{cs.r6Active ? "On" : "Off"}</button>
+              <button aria-pressed={cs.r6Active} data-testid="r6-switch" onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].calorieSettings) nd[activeTab].calorieSettings = {}; nd[activeTab].calorieSettings.r6Active = !cs.r6Active; await saveData(nd); auditLog("r6-switch", activeTab, cs.r6Active ? "off" : "on"); setFormMsg(cs.r6Active ? "Calculated target switched off — fixed targets used" : "✓ Calculated target switched on"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ padding: "4px 10px", borderRadius: 12, border: "1px solid " + (cs.r6Active ? "#166534" : "#cbd5e1"), background: cs.r6Active ? "#166534" : "#fff", color: cs.r6Active ? "#fff" : "#334155", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>{cs.r6Active ? "On" : "Off"}</button>
               <div style={{ fontSize: 10, color: "#475569", marginTop: 4 }}>Off (default): the calculated target is only shown, labelled "calculated (not active)". On: My Eating and Home use it, and activity calories are credited.</div>
             </div>)}
           </div>); })()}
@@ -187,6 +189,7 @@ export default function SettingsSection({ ctx }) {
             <div data-testid="vault-docs" style={{ fontSize: 10, color: "#475569", marginTop: 6, lineHeight: 1.5 }}><b>Private, in the vault (not linked):</b><ul style={{ margin: "2px 0 0", paddingLeft: 16 }}>{VAULT_DOCS.map(function(v) { return <li key={v}>{v}</li>; })}</ul></div>
           </div>)}
 
+          <PrivacyDataCard person={activeTab} name={(data && data[activeTab] && data[activeTab].profile && data[activeTab].profile.name) || activeTab} isAdmin={isAdmin} />
           <AccountCard />
         </div>
   );
