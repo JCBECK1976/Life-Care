@@ -3,7 +3,6 @@ import { openApp, tab } from "./helpers.js";
 import { bmrOf, dayBudget, dayCredit, dayFoodKcal, exerciseKcal, planOf, safeMinimum } from "../src/lib/calories.js";
 import { stripOldCalorieSettings } from "../src/lib/cleanupCore.js";
 import { bodyNotes, bodyNotesCtx } from "../src/lib/bodyNotes.js";
-import { weekSoFar } from "../src/lib/weekSoFar.js";
 
 // v2.17.1: calorie model (docs/design/CALORIES.md), My Notes on body records in every companion, Home "Week so far".
 const KEY = (k) => "http://127.0.0.1:9000/data/" + encodeURIComponent(k) + ".json?ns=life-care-app-64d04-default-rtdb";
@@ -103,63 +102,9 @@ test("My Notes on body records: collected newest first, one context line", () =>
   expect(bodyNotesCtx({ body: {} })).toBe("");
 });
 
-test("Week so far with a fixed clock (Wednesday): counts Sun–Tue only; today separate; future never counted", () => {
-  const wed = new Date(2026, 10, 11, 15, 0);     // Wed 11 Nov 2026
-  const wk = Math.floor((new Date(2026, 10, 11, 12) - new Date(2026, 6, 19)) / (7 * 864e5)) + 1;
-  const p = { ...JC, calorieSettings: { deficitPct: 10 }, exercises: { sunday: [{ name: "Squat", prog: [{ wk, w: "60kg", r: "10×3" }] }], monday: [{ name: "Row", prog: [] }], thursday: [{ name: "Press", prog: [] }] } };
-  const target = planOf(p).goal;                  // 1913 (no activity on Mon/Tue; Sun has a session credit)
-  const sunT = dayBudget(p, "2026-11-08", 0).target;
-  const doc = { children: {
-    s: { date: "2026-11-08", nutrition: { kcal: sunT } },                // Sun exactly on target
-    m: { date: "2026-11-09", nutrition: { kcal: Math.round(target * 1.15) } },   // Mon +15% → amber
-    t: { date: "2026-11-10", nutrition: { kcal: Math.round(target * 0.7) } },    // Tue −30% → red
-    w: { date: "2026-11-11", nutrition: { kcal: 500 } },                 // today
-    f: { date: "2026-11-13", nutrition: { kcal: 9999 } } } };           // future: never counted
-  const w = weekSoFar(p, doc, wed);
-  expect(w.days.map((d) => d.weekday)).toEqual(["sunday", "monday", "tuesday"]);
-  expect(w.days.map((d) => d.eatRag)).toEqual(["green", "amber", "red"]);
-  expect(w.eatPct).toBe(Math.round((100 + 85 + 70) / 3));
-  expect(w.exPct).toBe(50);                       // Sun trained, Mon missed (Tue rest)
-  expect(w.overall).toBe(Math.round((w.eatPct + 50) / 2));
-  expect(w.today).toMatchObject({ date: "2026-11-11", food: 500 });
-  expect(JSON.stringify(w.days)).not.toContain("2026-11-13");
-  expect(weekSoFar(p, doc, new Date(2026, 10, 8, 9)).overall).toBe(null);      // Sunday: nothing complete yet
-  expect(w.notLogged).toBe(0);
-  // v2.17.2: a day with nothing logged is skipped (not off track) and counted separately
-  const noMon = { children: { ...doc.children } }; delete noMon.children.m;
-  const w2 = weekSoFar(p, noMon, wed);
-  expect(w2.notLogged).toBe(1);
-  expect(w2.days[1]).toMatchObject({ weekday: "monday", logged: false, eatRag: "none", devPct: null });
-  expect(w2.eatPct).toBe(Math.round((100 + 70) / 2));
-});
+// v2.18.0: the Week so far test moved to tests/v2180.spec.js (Week to date).
 
-test("UI: My Eating day and Home show Goal · Food · Activity · Left, the step note and 'How this is calculated'; deficit % changes", async ({ page }) => {
-  const { errors } = await openApp(page);
-  await tab(page, "Home");
-  const home = page.getByTestId("calorie-home");
-  await expect(home.getByTestId("calorie-line")).toContainText(/Goal [\d,]+ · Food [\d,]+ · Activity \+[\d,]+ \(steps: \+[\d,]+ · exercise: \+[\d,]+\) · Left/);
-  await expect(home.getByTestId("step-allowance")).toContainText(/Your first ~[\d,]+ steps are already in your goal/);
-  await home.getByRole("button", { name: /How this is calculated/ }).click();
-  await expect(home.getByTestId("calorie-how")).toContainText("× 1.15");
-  await home.getByRole("button", { name: "Change deficit" }).click();
-  await home.getByLabel("Deficit %").fill("15");
-  await home.getByRole("button", { name: "Save" }).click();
-  await expect(home.getByTestId("deficit")).toHaveText("15%");
-  const d = JSON.parse(await (await fetch(KEY("dashboard:data"), { headers: H })).json());
-  expect(d.jc.calorieSettings.deficitPct).toBe(15);
-  // v2.17.2: a deficit below the safe minimum says so
-  await home.getByRole("button", { name: "Change deficit" }).click();
-  await home.getByLabel("Deficit %").fill("40");
-  await home.getByRole("button", { name: "Save" }).click();
-  await expect(home.getByTestId("calorie-floor")).toContainText("limited to your safe minimum");
-  await expect(page.getByTestId("week-so-far")).toBeVisible();
-  await expect(page.getByTestId("wsf-today")).toContainText("Today (in progress)");
-  await tab(page, "My Eating");
-  const wd = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][new Date().getDay()];
-  await page.getByRole("button", { name: wd, exact: true }).first().click();
-  await expect(page.getByTestId("calorie-day").getByTestId("calorie-line")).toContainText(/Goal [\d,]+ · Food/);
-  expect(errors).toEqual([]);
-});
+// v2.18.0: the calorie line UI was replaced by the Planned | Actual table (tests/v2180.spec.js).
 
 test("a weigh-in's My Notes reaches the AI request context (Body feedback)", async ({ page }) => {
   const { errors, aiCalls } = await openApp(page);

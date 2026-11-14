@@ -45,7 +45,7 @@ export function leanMass(body, n) {
 export function katchMcArdle(leanKg) { return Math.round(370 + 21.6 * leanKg); }
 export function mifflin(kg, cm, age, male) { return Math.round(10 * kg + 6.25 * cm - 5 * age + (male ? 5 : -161)); }
 
-export function weightKg(p) { var w = lastN(p && p.body && p.body.weight, 4).map(function(e) { return toKg(e.v); }).filter(Boolean); return w.length ? avg(w) : null; }
+export function weightKg(p) { var w = lastN(p && p.body && p.body.weight, 4).map(function(e) { return toKg(e.v); }).filter(Boolean); if (w.length) return avg(w); var s = parseFloat(p && p.profile && p.profile.weightKg); return s > 0 ? s : null; }   // v2.18.0: setup weight when there are no weigh-ins
 export function heightCm(p) {
   var h = String((p && p.profile && p.profile.height) || ""); var m;
   if ((m = /(\d+)\s*'\s*(\d+)?/.exec(h))) return Math.round((parseInt(m[1]) * 12 + (parseInt(m[2]) || 0)) * 2.54);
@@ -80,12 +80,12 @@ export var FLOOR_BMR_PCT = 90, FLOOR_KCAL = { female: 1200, male: 1500 };
 /** The safe minimum goal: 90% of BMR, but never under 1,200 kcal (women) / 1,500 kcal (men). */
 export function safeMinimum(bmr, male) { return Math.max(Math.round(bmr * FLOOR_BMR_PCT / 100), male ? FLOOR_KCAL.male : FLOOR_KCAL.female); }
 /** The person's daily plan: BMR, baseline, goal (floored), basal step allowance. */
-export function planOf(p, now) {
+export function planOf(p, now, goalKcal) {   // v2.18.0: goalKcal = the goal-based daily goal (for the step allowance)
   var b = bmrOf(p, now), s = settingsOf(p);
   var baseline = Math.round(b.bmr * BASELINE_FACTOR);
   var goalRaw = Math.round(baseline * (1 - s.deficitPct / 100));
   var minimum = safeMinimum(b.bmr, isMale(p));
-  var goal = Math.max(goalRaw, minimum);
+  var goal = goalKcal != null ? goalKcal : Math.max(goalRaw, minimum);
   var cm = heightCm(p) || AVG[isMale(p) ? "male" : "female"].cm;
   var stride = cm / 100 * STRIDE_FACTOR;                                      // metres per step
   var allowKcal = 0.15 * b.bmr - 0.10 * goal;                                  // the light movement already inside the baseline

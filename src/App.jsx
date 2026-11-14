@@ -5,6 +5,8 @@ import React from "react";
 import { bodyNotesCtx } from "./lib/bodyNotes.js";
 import { allowedBy, consentActive, loadConsent, needsConsent } from "./lib/consent.js";
 import ConsentScreen from "./components/ConsentScreen.jsx";
+import GoalSetup from "./components/GoalSetup.jsx";
+import { setupComplete, goalCtx, kcalTargetText, dayTable, aimText } from "./lib/goals.js";
 import LegalViewer from "./components/LegalViewer.jsx";
 import { auditLog } from "./lib/audit.js";
 import { removeOldGoogleTokens, stripOldCalorieSettings } from "./lib/cleanup.js";
@@ -110,6 +112,10 @@ function Dashboard() {
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  /* v2.18.0: mandatory goal setup — shown until complete ("Later" hides it until the next visit); also opened from My Profile */
+  const [goalSetupOpen, setGoalSetupOpen] = useState(false);
+  const [goalLater, setGoalLater] = useState({});
+  const openGoalSetup = function() { setGoalSetupOpen(true); };
   /* v2.16.7 P9: consent for the person being used (only acts while the pilotConsent flag is on) */
   const [consentRec, setConsentRec] = useState(undefined);
   useEffect(function() { var live = true; setConsentRec(undefined); loadConsent(activeTab).then(function(c) { if (!live) return; window._lcConsent = c; setConsentRec(c); }); return function() { live = false; }; }, [activeTab]);
@@ -621,8 +627,8 @@ function Dashboard() {
       var personCtx = buildPersonHealthCtx(personData);
       var isJC = activeTab === "jc";
       // Add known targets from project context
-      if (isJC) { personCtx += " Targets: 2000-2200 kcal/day, 110-130g protein, under 20g sat fat, under 25g added sugar, 30-35g fibre. TSH 14.2 (poorly controlled), LDL 3.4, HbA1c 43 (prediabetic range), Cholesterol Ratio 6.3. Levothyroxine 200mcg, Statin 20mg."; }
-      else { personCtx += " Targets: 1700-1900 kcal/day, 90-110g protein, under 20g sat fat (critical), under 25g added sugar, 25-30g fibre. Suspected FH. Total Cholesterol 9.6, LDL 7.2, Triglycerides 2.62, HDL 1.2, Ratio 8.0, Non-HDL 8.4. HbA1c 40, eGFR 67. Perimenopausal. Citalopram. Atorvastatin. Portfolio Diet framework."; }
+      if (isJC) { personCtx += " Targets: " + kcalTargetText(personData) + ", 110-130g protein, under 20g sat fat, under 25g added sugar, 30-35g fibre. TSH 14.2 (poorly controlled), LDL 3.4, HbA1c 43 (prediabetic range), Cholesterol Ratio 6.3. Levothyroxine 200mcg, Statin 20mg."; }
+      else { personCtx += " Targets: " + kcalTargetText(personData) + ", 90-110g protein, under 20g sat fat (critical), under 25g added sugar, 25-30g fibre. Suspected FH. Total Cholesterol 9.6, LDL 7.2, Triglycerides 2.62, HDL 1.2, Ratio 8.0, Non-HDL 8.4. HbA1c 40, eGFR 67. Perimenopausal. Citalopram. Atorvastatin. Portfolio Diet framework."; }
       var totalChanges = 0;
       // Recalculate each category
       if (customBreakfasts.length > 0) {
@@ -1216,7 +1222,7 @@ function Dashboard() {
         });
       });
       // Calorie & macro targets
-      var limKcal = isJ ? 2200 : 1900; var limProt = isJ ? 130 : 110; var limSfat = 20;
+      var _gt = dayTable(p, dateOf(weekStart, dayKey), null); var limKcal = _gt.ready ? _gt.goal.actual + " (their goal: " + aimText(_gt.aim) + ")" : "not set (goal setup incomplete)"; /* v2.18.0: one goal everywhere */ var limProt = isJ ? 130 : 110; var limSfat = 20;
       var limCarbs = isJ ? 300 : 260; var limFib = isJ ? 35 : 30; var limSalt = 6;
       var totPlanned = planned.reduce(function(s,x){return s+x.kcal;},0);
       var totConsumed = consumed.reduce(function(s,x){return s+x.kcal;},0);
@@ -1386,7 +1392,7 @@ function Dashboard() {
           weekSummary.push(dk.slice(0,3) + " " + dateOf(weekStart, dk) + (dayPhase(dateOf(weekStart, dk), ymd(new Date())) === "eaten" ? " (EATEN)" : " (PLAN)") + ": " + dKcal + "kcal, " + dProt + "g prot. Items: " + dayConsumed.map(function(x){return x.name+"("+x.kcal+"kcal,"+x.rating+")";}).join(", ") + (daySkipped.length > 0 ? ". Skipped: " + daySkipped.map(function(x){return x.name;}).join(", ") : ""));
         }
       });
-      var limKcal = isJ ? 2200 : 1900; var limProt = isJ ? 130 : 110; var limSfat = 20;
+      var _gw = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].map(function(dk) { return dayTable(p, dateOf(weekStart, dk), null); }).filter(function(t) { return t.ready; }); var limKcal = _gw.length ? Math.round(_gw.reduce(function(s2, t) { return s2 + t.goal.actual; }, 0) / _gw.length) + " (their goal: " + aimText(_gw[0].aim) + ")" : "not set (goal setup incomplete)"; /* v2.18.0 */ var limProt = isJ ? 130 : 110; var limSfat = 20;
       var avgKcal = daysPlanned > 0 ? Math.round(weekTotKcal / daysPlanned) : 0;
       var avgProt = daysPlanned > 0 ? Math.round(weekTotProt / daysPlanned) : 0;
       var ragSummary = "";
@@ -1468,6 +1474,8 @@ function Dashboard() {
     var lines = [];
     /* v2.17.1: the person's own notes on weigh-ins and measurements, for every companion that sees body data */
     var _bn = bodyNotesCtx(data && data[tab]); if (_bn) lines.push(_bn);
+    /* v2.18.0: the person's goal, timescale, required pace and progress — every companion */
+    try { lines.push(goalCtx(data && data[tab])); } catch (e) { /* goal context is optional */ }
     var addThreadSummary = function(label, fbObj) {
       if (!fbObj) return;
       if (fbObj._thread && fbObj._thread.length > 0) {
@@ -1858,7 +1866,7 @@ function Dashboard() {
       <div style={{ padding: 16 }}>
         {/* HOME */}
         <SharePicker people={data ? peopleOf(data) : []} activeKey={activeTab} accentMid={accentMid} setPerson={function(k) { setActiveTab(k); loadUserSettings(k); }} go={function(kind) { if (kind === "body" || kind === "progress") setSection("body"); else if (kind === "food") setSection("shop"); }} />
-        {section === "overview" && (<ErrorBoundary name="Home"><HomeSection ctx={{ accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, assessment, assessmentExpanded, btnMT, calcAge, checkCompanionEnergy, companionEnergy, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, dailyMood, data, energyLoading, feedbackHistory, feedbackLoading, feedbackResults, genPlanLoading, generateFeedback, generatedTargets, getCrossSectionCtx, homeFbExpanded, isJC, journalEntries, journalText, meals, onboardInputs, p, profileInputs, renderThread, saveData, setAssessment, setAssessmentExpanded, setDailyMood, setEatDay, setExerciseDay, setFormMsg, setGenPlanLoading, setGeneratedTargets, setHomeFbExpanded, setJournalEntries, setJournalText, setOnboardInputs, setProfileInputs, setSection, setSetupDirty, setSetupTab, setShowFbHistory, setShowFullJournal, setShowMyDay, setShowOnboarding, setShowProfile, setShowRecentJournal, setUserMood, setupDirty, setupTab, showFbHistory, showFullJournal, showMyDay, showOnboarding, showProfile, showRecentJournal, updateHomeFb, userMood }} /></ErrorBoundary>)}
+        {section === "overview" && (<ErrorBoundary name="Home"><HomeSection ctx={{ openGoalSetup, accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, assessment, assessmentExpanded, btnMT, calcAge, checkCompanionEnergy, companionEnergy, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, dailyMood, data, energyLoading, feedbackHistory, feedbackLoading, feedbackResults, genPlanLoading, generateFeedback, generatedTargets, getCrossSectionCtx, homeFbExpanded, isJC, journalEntries, journalText, meals, onboardInputs, p, profileInputs, renderThread, saveData, setAssessment, setAssessmentExpanded, setDailyMood, setEatDay, setExerciseDay, setFormMsg, setGenPlanLoading, setGeneratedTargets, setHomeFbExpanded, setJournalEntries, setJournalText, setOnboardInputs, setProfileInputs, setSection, setSetupDirty, setSetupTab, setShowFbHistory, setShowFullJournal, setShowMyDay, setShowOnboarding, setShowProfile, setShowRecentJournal, setUserMood, setupDirty, setupTab, showFbHistory, showFullJournal, showMyDay, showOnboarding, showProfile, showRecentJournal, updateHomeFb, userMood }} /></ErrorBoundary>)}
 
         {/* BODY */}
         {section === "body" && (<ErrorBoundary name="Body"><BodySection ctx={{ accent, accentBorder, accentLight, accentMid, activeTab, addMeasName, addMeasOpen, bodyFbAll, bodyFbExpanded, bodyFbLoading, bodyFeedback, bodyInputs, bodyMetricOpen, bodyMetricShowAll, bodyView, btnST, data, editMeasKey, editMeasName, getCrossSectionCtx, getOnboardingCtx, idealSt, isJC, measFbAll, measFbExpanded2, measFbLoading, measFeedback, measLogInputs, measLogKey, measMetricOpen, measMetricShowAll, p, renderThread, saveBodyComp, saveData, setAddMeasName, setAddMeasOpen, setBodyFbExpanded, setBodyFbLoading, setBodyFeedback, setBodyInputs, setBodyMetricOpen, setBodyMetricShowAll, setBodyView, setEditMeasKey, setEditMeasName, setFormMsg, setMeasFbExpanded2, setMeasFbLoading, setMeasFeedback, setMeasLogInputs, setMeasLogKey, setMeasMetricOpen, setMeasMetricShowAll, setShowBodyForm, showBodyForm, updateBodyFb, updateMeasFb, userMood, weekLabel, wt, wtDelta, wtSign, wtStr }} /></ErrorBoundary>)}
@@ -1901,6 +1909,7 @@ function Dashboard() {
       {consentActive() ? (showPrivacy && <LegalViewer which="privacy" onClose={function() { setShowPrivacy(false); }} />) /* v2.16.7 P8: pilot Privacy Notice replaces the old policy */
         : <ErrorBoundary name="PrivacyPolicy"><PrivacyPolicy ctx={{ accent, setShowPrivacy, showPrivacy }} /></ErrorBoundary>}
       {data && consentRec !== undefined && needsConsent(consentRec) && <ConsentScreen person={activeTab} name={personName(data, activeTab)} current={consentRec} onDone={function(c) { window._lcConsent = c; setConsentRec(c); auditLog("consent", activeTab, "pilot legal docs + choices"); }} />}
+      {data && data[activeTab] && !(consentRec !== undefined && needsConsent(consentRec)) && (goalSetupOpen || (!setupComplete(data[activeTab]) && !goalLater[activeTab])) && <GoalSetup key={activeTab} data={data} who={activeTab} name={personName(data, activeTab)} saveData={saveData} editing={goalSetupOpen && setupComplete(data[activeTab])} onDone={function() { setGoalSetupOpen(false); setFormMsg("✓ Goal saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} onLater={function() { setGoalSetupOpen(false); setGoalLater(function(q) { var o = Object.assign({}, q); o[activeTab] = true; return o; }); }} laterLabel={goalSetupOpen && setupComplete(data[activeTab]) ? "Cancel" : "Later"} />}
       <div style={{ textAlign: "center", fontSize: 9, color: "#475569", paddingBottom: 12 }}>{APP_VERSION}
       </div>
 

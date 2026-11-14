@@ -52,7 +52,7 @@ function exercises(scale, cw) {
 function person(name, sex, age, scale, cw) {
   const series = (base, spread) => [cw - 4, cw - 3, cw - 2, cw - 1].map((wk) => ({ wk, v: round1(base + (r() - 0.5) * spread) }));
   return {
-    profile: { name, age, sex, height: sex === "Male" ? "178cm" : "165cm", bodyType: "Mesomorph", fibreType: "Mixed", idealWeight: sex === "Male" ? "80kg" : "62kg", notes: "Synthetic test person.", dob: (2026 - age) + "-03-15" },
+    profile: { name, age, sex, height: sex === "Male" ? "178cm" : "165cm", bodyType: "Mesomorph", fibreType: "Mixed", idealWeight: sex === "Male" ? "80kg" : "62kg", notes: "Synthetic test person.", activityLevel: "sitting", dob: (2026 - age) + "-03-15" },
     meds: [
       { name: "Vitamin D", dose: "1000IU", freq: "Daily", time: "Morning", notes: "", started: "2026-01-10", active: true },
       { name: "Omega 3", dose: "1g", freq: "Daily", time: "Evening", notes: "", started: "2026-02-01", active: true },
@@ -67,6 +67,8 @@ function person(name, sex, age, scale, cw) {
     exercises: exercises(scale, cw),
     vitals: [{ date: "2026-11-01", time: "08:00", sys: 122, dia: 78, hr: 64, spo2: 98 }],
     healthProfile: "Non-smoker. Synthetic test profile.",
+    /* v2.18.0: goal setup complete for the synthetic people (the setup gate is tested separately) */
+    goal: sex === "Male" ? { id: "healthy_weight", months: 7, setAt: "2026-10-01", startKg: 85 } : { id: "maintain", setAt: "2026-10-01", startKg: 66 },
     healthNotes: "Synthetic: mild knee ache after running.",
     healthLog: [{ date: "2026-11-02", note: "Synthetic log entry." }],
     onboarding: { goals: "Get stronger", activity: "3 gym sessions a week", equipment: "Gym", dietary: "None", allergies: "None", conditions: "None", medications: "Vitamin D" },

@@ -90,13 +90,14 @@ test("UI R5: Body feedback's suggestion appears on Home; Decline is recorded and
   await page.getByRole("button", { name: "My Companion Body Feedback" }).click();
   await expect.poll(async () => { const d = await readData(); return d.jc.calorieSettings && d.jc.calorieSettings.adjHistory && d.jc.calorieSettings.adjHistory.length; }).toBe(1);
   await tab(page, "Home");
-  const sug = page.getByTestId("calorie-home").getByTestId("adj-suggestion");
+  const sug = page.getByTestId("today-card").getByTestId("adj-suggestion");
   await sug.scrollIntoViewIfNeeded();
-  await expect(sug).toContainText("Companion suggests 85% — Weight is falling slower than predicted.");
+  await expect(sug).toContainText("Companion suggests an activity adjustment of 85% — Weight is falling slower than predicted.");
   await sug.getByRole("button", { name: "Decline" }).click();
-  await expect(page.getByTestId("calorie-home").getByTestId("adj-suggestion")).toHaveCount(0);
+  await expect(page.getByTestId("today-card").getByTestId("adj-suggestion")).toHaveCount(0);
   const h = (await readData()).jc.calorieSettings;
   expect(h.adjHistory[0]).toMatchObject({ kind: "suggestion", value: 85, decision: "declined" });
-  await expect(page.getByTestId("calorie-home").getByTestId("adj-pct")).toHaveText("100%");
+  await page.getByTestId("today-card").getByRole("button", { name: /How this is calculated/ }).click();
+  await expect(page.getByTestId("today-card").getByTestId("adj-pct")).toHaveText("100%");
   expect(errors).toEqual([]);
 });

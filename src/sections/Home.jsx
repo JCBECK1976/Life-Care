@@ -1,6 +1,7 @@
 import { readImageForAI } from "../lib/image.js";
-import WeekSoFar from "../components/WeekSoFar.jsx";
-import { planOf } from "../lib/calories.js";
+import TodayCard from "../components/TodayCard.jsx";
+import { dayTable, goalDef, aimText, kcalTargetText } from "../lib/goals.js";
+import { isoDay } from "../lib/calories.js";
 import LoadingDots from "../components/LoadingDots.jsx";
 import PrivacyNote from "../components/PrivacyNote.jsx";
 import React from "react";
@@ -26,7 +27,7 @@ export default function HomeSection({ ctx }) {
     setAssessmentExpanded, setDailyMood, setEatDay, setExerciseDay, setFormMsg, setGenPlanLoading, setGeneratedTargets, setHomeFbExpanded,
     setJournalEntries, setJournalText, setOnboardInputs, setProfileInputs, setSection, setSetupDirty, setSetupTab, setShowFbHistory,
     setShowFullJournal, setShowMyDay, setShowOnboarding, setShowProfile, setShowRecentJournal, setUserMood, setupDirty, setupTab,
-    showFbHistory, showFullJournal, showMyDay, showOnboarding, showProfile, showRecentJournal, updateHomeFb, userMood
+    showFbHistory, showFullJournal, showMyDay, showOnboarding, showProfile, showRecentJournal, updateHomeFb, userMood, openGoalSetup
   } = ctx;
 
   /* v2.14.2: Body Type Photos — every photo is checked first (a person, one of the requested poses). If any photo is not
@@ -191,6 +192,11 @@ export default function HomeSection({ ctx }) {
                 {setupTab === "profile" && (<div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>My Profile</div>
                   <div style={{ fontSize: 10, color: "#475569", marginBottom: 10 }}>Auto-generated from your setup information. Complete the other tabs then generate your profile below.</div>
+                  {/* v2.18.0: the person's goal */}
+                  <div data-testid="my-goal" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 11, color: "#0f172a", padding: 10, marginBottom: 8, background: "#eff6ff", borderRadius: 8, border: "1px solid #bfdbfe" }}>
+                    <span style={{ flex: 1 }}><b>My goal:</b> {goalDef(p.goal && p.goal.id) ? (function() { var _t = dayTable(p, isoDay(new Date()), null); return _t.ready ? aimText(_t.aim) : goalDef(p.goal.id).label; })() : "not set yet"}</span>
+                    <button type="button" onClick={openGoalSetup} style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "1px solid #1d4ed8", background: "#fff", color: "#1d4ed8" }}>Change my goal</button>
+                  </div>
 
                   {/* Read-only profile summary */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 11, color: "#475569", padding: 10, background: accentVariant(accent, 88), borderRadius: 8, border: "1px solid " + accentBorder }}>
@@ -218,7 +224,7 @@ export default function HomeSection({ ctx }) {
                       (function(){ var mn = ""; if (p.meds && p.meds.length > 0) mn = ". Current meds: " + p.meds.filter(function(m){return m.active;}).map(function(m){return m.name+" "+(m.dose||m.dosage||"");}).join(", "); return mn; })() +
                       (function(){ var ac = ""; if (p.activity && p.activity.length > 0) { ac = ". Recent activity: " + p.activity.slice(-5).map(function(a){return a.date+": "+(a.steps||"")+"steps "+(a.activity||"");}).join(", "); } return ac; })() +
                       getCrossSectionCtx(activeTab, "recommendations") +
-                      ". Return ONLY JSON: {\"bodyType\":\"e.g. Compact meso-endomorph\",\"fibreType\":\"e.g. Fast-twitch dominant\",\"idealWeight\":\"e.g. 13st 6lb\",\"notes\":\"key notes — use 'you/your' not third person\",\"assessment\":\"3-4 sentence assessment speaking directly to the user with 'you' — current position and realistic expectations over 6-12 months\",\"priorities\":[\"priority 1\",\"priority 2\",\"priority 3\"],\"targets\":{\"calories\":\"e.g. 2000-2200\",\"protein\":\"e.g. 110-130g\",\"satFat\":\"e.g. under 20g\",\"sugar\":\"e.g. under 25g\",\"fibre\":\"e.g. 30-35g\",\"targetWeight\":\"e.g. 82kg\",\"targetBodyFat\":\"e.g. 18-22%\",\"targetWaist\":\"e.g. under 94cm\"}}";
+                      ". Return ONLY JSON: {\"bodyType\":\"e.g. Compact meso-endomorph\",\"fibreType\":\"e.g. Fast-twitch dominant\",\"idealWeight\":\"e.g. 13st 6lb\",\"notes\":\"key notes — use 'you/your' not third person\",\"assessment\":\"3-4 sentence assessment speaking directly to the user with 'you' — current position and realistic expectations over 6-12 months\",\"priorities\":[\"priority 1\",\"priority 2\",\"priority 3\"],\"targets\":{\"calories\":\"" + kcalTargetText(p) + " (use exactly this)\",\"protein\":\"e.g. 110-130g\",\"satFat\":\"e.g. under 20g\",\"sugar\":\"e.g. under 25g\",\"fibre\":\"e.g. 30-35g\",\"targetWeight\":\"e.g. 82kg\",\"targetBodyFat\":\"e.g. 18-22%\",\"targetWaist\":\"e.g. under 94cm\"}}";
                       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
                       if (txt) {
@@ -265,7 +271,7 @@ export default function HomeSection({ ctx }) {
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 11 }}>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
                           <div style={{ color: "#475569", fontSize: 9 }}>Calories</div>
-                          <div data-testid="target-calories" style={{ fontWeight: 700, color: "#0c4a6e" }}>{planOf(p).goal + " kcal (goal)"}</div>
+                          <div data-testid="target-calories" style={{ fontWeight: 700, color: "#0c4a6e" }}>{(function() { var _t = dayTable(p, isoDay(new Date()), null); return _t.ready ? _t.goal.actual + " kcal (goal)" : "Set up your goal"; })()}</div>
                         </div>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
                           <div style={{ color: "#475569", fontSize: 9 }}>Protein</div>
@@ -633,8 +639,8 @@ export default function HomeSection({ ctx }) {
             </div>);
           })()}
 
-          {/* v2.17.1: today's calories + Week so far (Plan vs Actual) */}
-          <WeekSoFar data={data} who={activeTab} saveData={saveData} />
+          {/* v2.18.0: Today — Planned | Actual (replaces the calorie line and the Week so far box) */}
+          <TodayCard data={data} who={activeTab} saveData={saveData} onSetup={openGoalSetup} />
 
           {/* ── MY JOURNAL ── */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginBottom: 14, overflow: "hidden" }}>

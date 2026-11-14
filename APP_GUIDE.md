@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.17.2 · 14 November 2026
+> Last updated: v2.18.0 · 14 November 2026
 
 ---
 
@@ -136,13 +136,20 @@ Five faces: 😔 Really struggling, 😕 Not great, 😐 OK, 🙂 Good, 😊 Gre
 ### My Day
 A summary of today: **My Eating** (today's planned breakfast, lunch, dinner, snacks and drinks, with an **Open** link to My Eating) and **My Exercises** (today's session, or "No exercises planned"). Buttons take you straight to today in My Eating or My Exercise.
 
-### Week so far: Plan vs Actual
-Between My Day and My Journal, with **Today** (your calorie line) above it.
-- See also "What does the Week so far card show" under My Eating → Questions about calories.
-- Counts only **complete days**: Sunday up to yesterday. Today is shown separately as "in progress"; future days never count.
-- **Eating:** what you ate each day against that day's goal (including activity): ✓ within 10%, ! within 20%, ✕ beyond. A day with nothing logged is **skipped** (not counted either way) and shown as "N days not logged".
-- **Exercise:** sessions done against sessions planned on those days.
-- The overall % is the average of the two. Tap the card for the day-by-day breakdown.
+### Today: Planned vs Actual
+Between My Day and My Journal. One table with two columns, **Planned** and **Actual**:
+| Row | What it means |
+|---|---|
+| **Body burn** (BMR + daily living) | What your body uses on an ordinary day. Same in both columns. |
+| **Aim** | Your goal and timescale, e.g. "Work towards a healthy body weight · 7 months (−359)". A minus is a gentle deficit, a plus a small surplus. Same in both columns. |
+| **Exercise** | Planned: what that day's planned exercises would add. Actual: what your logged exercises and steps (above your allowance) add. |
+| **Goal** (bold) | Body burn + Aim + Exercise. |
+| **Eating** | Planned: the day's selections at their original planned values. Actual: what's stored now, after portion changes, 📷 Snap checks and variations. |
+| **On track** | Actual eating against the actual goal, e.g. "−120 kcal (−6%)": green at or under, red over. |
+- **Week to date ±N%** (top right): everything you ate on the past days of this week that have something logged, against those days' goals. Today and future days never count, and nor do days with nothing logged.
+- **▸ Show earlier days this week** shows the same table for each earlier day.
+- The note under the table: *"Actual includes eating selections stored in the day which need to be kept up to date, plus any exercises logged when completed"*. In other words, keep your eating selections up to date and log exercises when you finish them, and the Actual column stays right.
+- Until your goal setup is done the card says so and offers **Set up my goal**.
 
 ### My Journal
 - **+ Add Journal Entry** — write how you're feeling or what's on your mind. Entries are dated.
@@ -153,7 +160,7 @@ Between My Day and My Journal, with **Today** (your calorie line) above it.
 Tap **▼ My Profile** under the greeting to open your setup. It has tabs:
 | Tab | What you enter |
 |---|---|
-| **My Profile** | Your auto-generated profile summary (name, sex, height, ideal weight, date of birth, body type, fibre dominance) and **My Companion Recommendations**. |
+| **My Profile** | **My goal** with **Change my goal**, your auto-generated profile summary (name, sex, height, ideal weight, date of birth, body type, fibre dominance) and **My Companion Recommendations**. |
 | **My Details** | Basic personal information. Also **📸 Body Type Photos** and baseline body composition. |
 | **My Family** | Who you live with and relevant family health history. |
 | **Personality** | Your personality style, which shapes motivation and habit-formation advice. |
@@ -164,7 +171,7 @@ Tap **▼ My Profile** under the greeting to open your setup. It has tabs:
 
 Tap **Save Setup** to save answers. 🔒 Your information is private and used only by your Companion.
 
-**My Companion Recommendations** (in My Profile) generates personalised **daily nutrition targets** (calories, protein, saturated fat, added sugar, fibre) and **body composition goals** (target weight, body fat, waist, visceral fat), split into 🏋️ Activities, 🥗 Dietary and 🏥 Medical advice. Complete the other tabs first for the best result.
+**My Companion Recommendations** (in My Profile) generates personalised **daily nutrition targets** (calories — always your goal's daily calorie goal — protein, saturated fat, added sugar, fibre) and **body composition goals** (target weight, body fat, waist, visceral fat), split into 🏋️ Activities, 🥗 Dietary and 🏥 Medical advice. Complete the other tabs first for the best result.
 
 **📸 Body Type Photos / 🔍 My Companion Body Type Check** — upload photos (front relaxed, bicep flex, side profile, back, quad flex and calf raise) and the Companion assesses body type, muscle fibre dominance and an ideal weight range, combined with your answers and body comp data. Results are estimates from photos, not clinical measurements. The photos are analysed and then discarded: only the date, the file name and the analysis are kept.
 
@@ -184,7 +191,7 @@ Tracks body composition, usually from a smart scale:
 - **📋 Record** — type in today's values. **My Notes** (e.g. "birthday week", "after a long flight") is saved with that weigh-in; every Companion allows for it when reading your numbers. Measurements have My Notes too.
 - **📷 Upload** — upload a screenshot from your scales app; the Companion reads the values ("✓ Values extracted — review and save"). Check them, then save.
 - **👁 Progress** (under each stat) — the history, newest first, one row per week (week + value) with **Open**, and a chart once there are 2+ entries. **Open** shows the entry read-only (week, value, note); **Edit** to change it and **Save**, or **Remove** to take it out (asks first).
-- Your calorie goal is shown on **Home** and on each day in **My Eating** (see "How your calorie goal works" under My Eating). Weigh-ins with body fat % make it more accurate.
+- Your calorie goal is shown on **Home** and on each day in **My Eating** (see "Your goal and your calorie goal" under My Eating). Weigh-ins with body fat % make it more accurate.
 
 ### My Body Measurements
 Tape measurements in cm (e.g. chest, waist, hips, arms, thighs).
@@ -386,45 +393,66 @@ For prepared dinners, the ingredients become shopping list items. For packaged i
 ---
 
 
-### How your calorie goal works (Home and each day in My Eating)
-One line: **Goal · Food · Activity +N (steps: +a · exercise: +b) · Left**.
-- **Goal:** your BMR (the energy your body uses at rest, from your lean mass: weight and body fat % averaged over your last 3–4 weigh-ins) × 1.15 for everyday life = your **baseline**, minus your **deficit %** (20% to start; **Change deficit**). The goal never goes below your **safe minimum** (90% of your BMR, and never under 1,200 kcal for women or 1,500 kcal for men): then it says "limited to your safe minimum".
-- If there aren't enough weigh-ins with body fat, the BMR is an **estimate** (from weight, height, age and sex, or an average for your age and sex) and says so.
-- **Activity** is added on top, counting only what you burn beyond everyday life:
-  - with **Google Health** total calories burned for the day: what you burned above your baseline (nothing else is added on top, so nothing counts twice);
-  - otherwise **steps** above your own allowance ("Your first ~N steps are already in your goal") plus **logged exercise** (worked out from the type of exercise and how long it took).
-  - **Activity adjustment** (100% to start) scales the credit; the Companion may suggest a change after a few weeks.
-- Steps from Google Health show on that day in My Exercise (👣).
-- **▼ How this is calculated** shows every number used.
+### Your goal and your calorie goal (Home and My Eating)
+Everyone chooses **one goal**. It sets your daily calorie goal everywhere (Home, My Eating and every Companion) and how your Companion frames its feedback.
+
+| Goal | What it means | Calories |
+|---|---|---|
+| **Work towards a healthy body weight** | Lose weight steadily and improve your body composition, at a pace that's healthy and sustainable. | A deficit sized by your **timescale** |
+| **Maintain a healthy lifestyle** | You're in a good place: keep your health, exercise and eating balanced. | Maintenance |
+| **Build fitness & strength** | Grow muscle, strength and fitness, fuelled properly. | A small surplus (about +7.5%); maintenance if body fat is high, to build muscle while losing fat ("recomposition") |
+| **Grow to a healthy lifestyle** | A combined approach: healthier eating, regular exercise and better body composition, together. | A gentle deficit (about 10%) if above a healthy weight, otherwise maintenance |
+| **Support my health** | Shape your eating, exercise and body composition around your health conditions — always alongside your GP's advice. | A modest deficit (up to 10%) only if above a healthy weight; nutrient priorities from your conditions (e.g. saturated fat for cholesterol, sugars for blood glucose). Needs at least one condition in **My Health → My conditions**. |
+
+- **Setting it up (needed once):** your goal (and timescale where it applies), sex, age, height, current weight and your **typical activity level** (*Mostly sitting*, *On my feet a fair bit*, *Very active*). The app opens this for new people and once for existing people; until it's done, the calorie goal isn't worked out. Change it any time: **Home → ▼ My Profile → My Profile → Change my goal**.
+- **Daily calorie goal = Body burn + Aim + Exercise.** Body burn is your BMR (from your lean mass over your last 3–4 weigh-ins) plus daily living. On a day with step data from Google Health it's BMR × 1.15 and steps above your allowance count as exercise; on other days it's BMR × your activity level (1.15 / 1.3 / 1.45).
+- The goal never goes below your **safe minimum** (90% of your BMR, and at least 1,200 kcal for women / 1,500 kcal for men).
+- **▸ How this is calculated** (under the table) shows every number used, and your **activity adjustment %**.
 - This is wellness guidance, not medical advice: talk to your GP before big changes to your diet.
 
-#### Questions about calories
-**How is my calorie goal worked out?**
-Three steps. (1) Your **BMR** is worked out from your body composition (your lean mass). (2) It's multiplied by **1.15** for everyday living (moving about the house, work, chores): that's your **baseline**. (3) Your **deficit %** is taken off. The goal is never below your safe minimum (90% of BMR, at least 1,200 kcal for women / 1,500 kcal for men). Example: BMR 1,849 → baseline 2,126 → at a 20% deficit, goal 1,701 (safe minimum 1,664).
+#### Questions about goals and calories
+**What does each goal mean?**
+See the table above. In short: *healthy body weight* = steady weight loss to a healthy weight by your chosen timescale; *maintain* = keep things balanced at maintenance; *build fitness & strength* = fuel training with a small surplus (or maintenance for recomposition); *grow to a healthy lifestyle* = improve eating, exercise and body composition together with a gentle deficit if needed; *support my health* = shape everything around your health conditions, alongside your GP's advice.
+
+**How do I change my goal?**
+**Home → ▼ My Profile → My Profile → Change my goal.** Your Companion may also suggest a change (for example, switching to *Maintain* once you've been in the healthy weight range for 6 weeks or more, or a longer timescale if your pace looks hard to keep up). It's only a suggestion: you choose **Accept** or **Not now**.
+
+**How does the timescale slider work, and what are the safety limits?**
+For weight goals you choose **3 to 24 months** and, if you like, a target weight (the app shows a healthy range for your height; without a target it aims for the top of that range). It works out the weekly pace and the daily gap (about **7,700 kcal per kg**). The colour tells you how healthy that pace is:
+- **green**: a healthy, sustainable pace;
+- **amber**: brisk (more than 0.75% of your body weight a week, or a gap of more than 20% of your body burn);
+- **red**: too fast (more than 1% of your body weight a week, more than 25% of your body burn, or below your safe minimum).
+On amber or red it offers steadier options such as **"Steady: 7 months · Gentle: 10 months"**: tap one to use it. If you keep a red pace anyway, the daily aim is still limited to 25% of your body burn and never below your safe minimum. A target below a healthy weight (**BMI 18.5**) can't be chosen.
+
+**What is my typical activity level for?**
+On days without step data it decides how much daily living adds to your BMR: *Mostly sitting* ×1.15, *On my feet a fair bit* ×1.3, *Very active* ×1.45. On days with steps from Google Health the app uses ×1.15 plus the steps you actually walked above your allowance, so nothing counts twice.
+
+**What do the rows in the Today table mean?**
+**Body burn** is what your body uses on an ordinary day. **Aim** is your goal's adjustment (− for a deficit, + for a surplus). **Exercise** is what exercise adds: *Planned* from the day's planned exercises, *Actual* from what you logged and your steps. **Goal** is the sum. **Eating**: *Planned* is your selections at their original planned values, *Actual* is what's stored now, after portion changes, 📷 Snap checks and variations. **On track** compares actual eating with the actual goal: green at or under, red over.
+
+**What does the note "Actual includes eating selections stored in the day…" mean?**
+The Actual column can only be as good as what's in the app. Keep each day's eating selections up to date (change portions, Snap or skip what you didn't eat) and log exercises when you finish them, and the Actual column and "Week to date" are right.
+
+**What does "Week to date" show, and why doesn't it count today?**
+It adds up what you ate on the past days of this week and compares it with those days' goals, e.g. "Week to date −4%" (green at or under, red over). It counts only **complete days** (Sunday to yesterday) that have something logged: today isn't finished yet, future days haven't happened, and a day you forgot to log doesn't drag your score down. Tap **▸ Show earlier days this week** for each day's table.
 
 **What is BMR and why does it change?**
-BMR (basal metabolic rate) is the calories your body burns at complete rest. The app uses the Katch-McArdle formula on your **lean mass** (weight minus fat), averaged over your **last 3–4 weigh-ins** that include body fat %. So it moves as your weight and body fat change; more muscle means a higher BMR. If body fat % is missing it's estimated from weight, height, age and sex; with no weight at all, from an average for your age and sex. Either way the card says **"BMR is an estimate"**: add a weigh-in with body fat % for a better figure.
+BMR (basal metabolic rate) is the calories your body burns at complete rest. The app uses the Katch-McArdle formula on your **lean mass** (weight minus fat), averaged over your **last 3–4 weigh-ins** that include body fat %. So it moves as your weight and body fat change; more muscle means a higher BMR. If body fat % is missing it's estimated from weight, height, age and sex (labelled **estimate**): add a weigh-in with body fat % for a better figure.
 
 **Why don't my first few thousand steps add calories?**
-The 1.15 for everyday living already includes a normal amount of walking about. That amount is your personal **step allowance** (worked out from your height, weight and BMR, between 2,000 and 3,500 steps), shown as "Your first ~N steps are already in your goal". Only steps **beyond** it earn extra calories, so they aren't counted twice.
+Daily living already includes a normal amount of walking about. That amount is your personal **step allowance** (worked out from your height, weight and BMR, between 2,000 and 3,500 steps). Only steps **beyond** it count as exercise, so they aren't counted twice.
 
 **How are exercise calories counted?**
-Only the **extra** you burn compared with resting, because resting is already in your goal. Each type of exercise has a **MET** value (how hard it is compared with sitting still: weights 5.0, bodyweight 3.8, cardio 7.0, timed holds 2.8, stretching 2.3). Extra calories = (MET − 1) × your weight in kg × hours. The length is the session time if recorded, otherwise about 3 minutes per set. Example: 30 minutes of weights at 91.9 kg ≈ +184. If Google Health gives your **total calories burned** for the day, that is used instead (what you burned above your baseline), and steps and exercise aren't added on top.
+Only the **extra** you burn compared with resting. Each type of exercise has a **MET** value (weights 5.0, bodyweight 3.8, cardio 7.0, timed holds 2.8, stretching 2.3). Extra calories = (MET − 1) × your weight in kg × hours; the length is the session time if recorded, otherwise about 3 minutes per set. Example: 30 minutes of weights at 91.9 kg ≈ +184. If Google Health gives your **total calories burned** for the day, that is used instead (what you burned above your body burn).
 
-**Why is my activity credit lower than my watch says?**
-Your watch shows **gross** calories: everything burned during the activity, including what your body would have burned anyway at rest. The app counts **net** calories: only the extra on top of your baseline, because that's already in your goal. Nothing is counted twice. Then your **activity adjustment %** applies (100% to start). Watches and formulas often overestimate, so after a few weeks the Companion may compare your weight trend with what you ate and **suggest** a different adjustment (e.g. 80%). You choose **Accept** or **Decline**; you can also set it yourself with **Change adjustment** (50–150%).
-
-**What is the deficit % and how do I change it?**
-The share taken off your baseline to lose weight gradually. It starts at **20%**. Tap **Change deficit** on the calorie card (Home or a day in My Eating), type a number from 0 to 40, and **Save**. 0% means maintaining your weight.
+**Why is my exercise credit lower than my watch says?**
+Your watch shows **gross** calories, including what your body would have burned anyway at rest. The app counts **net** calories, the extra on top of your body burn, so nothing is counted twice. Then your **activity adjustment %** applies (100% to start). After a few weeks the Companion may compare your weight trend with what you ate and **suggest** a different adjustment; you choose **Accept** or **Decline**, or set it yourself under **▸ How this is calculated → Change adjustment** (50–150%).
 
 **What does "limited to your safe minimum" mean?**
-Your deficit would have put the goal below your **safe minimum**: 90% of your BMR (what your body uses at rest), and never under **1,200 kcal for women** or **1,500 kcal for men**. Eating less than that for long is not recommended, so the goal stays at the safe minimum, and the card shows what the deficit would have given. A smaller deficit removes the message. Example: BMR 1,849 → safe minimum 1,664; a 30% deficit (1,488) is limited to 1,664.
-
-**What does the Week so far: Plan vs Actual card show, and why doesn't it count today?**
-It shows how this week has gone so far against your plan: **eating** (what you ate each day against that day's goal plus activity; green within 10%, amber within 20%, red beyond) and **exercise** (sessions done against sessions planned). The overall % is the average of the two; tap the card for each day. It counts only **complete days** (Sunday up to yesterday), because today isn't finished: you may not have eaten dinner or trained yet. Today is shown separately as "in progress" and future days never count. Days with **nothing logged** are skipped rather than counted as off track, and the card shows how many ("2 days not logged"), so a day you forgot to log doesn't drag your score down.
+Your goal would have been below your **safe minimum**: 90% of your BMR, and never under **1,200 kcal for women** or **1,500 kcal for men**. Eating less than that for long isn't recommended, so the goal stays at the safe minimum. A longer timescale removes the message.
 
 **How do My Notes on weigh-ins help?**
-A note such as "birthday week", "after a long flight" or "time of month" is saved with that weigh-in (or measurement). Every Companion that reads your body data sees it, so it can explain a jump in weight instead of treating it as a trend, and its feedback takes it into account.
+A note such as "birthday week" or "after a long flight" is saved with that weigh-in (or measurement). Every Companion that reads your body data sees it, so it can explain a jump in weight instead of treating it as a trend.
 
 ## 7. My Shop
 
@@ -443,6 +471,7 @@ A note such as "birthday week", "after a long flight" or "time of month" is save
 ## 8. My Health
 
 - **Personal Health Profile** — lasting information: smoker/non-smoker, alcohol, allergies, neurodiversities, disabilities, family health history, menopause status.
+- **My conditions** — health conditions you're managing (e.g. high cholesterol, prediabetes). Needed for the *Support my health* goal; every Companion takes them into account.
 - **My Notes (general health)** — current or temporary matters: recovering from a cold, an injury, fatigue, stress, sleep issues, pain, symptoms to track. **Why:** the Companion uses these, e.g. it will adapt exercise advice for an injury.
 - **Health Log** — dated notes: symptoms, observations, changes, appointments.
 - **My Vital Observations** — **Record Vitals**: date, time, blood pressure (systolic/diastolic), heart rate, SpO2 %. **History** lists past readings.
@@ -552,12 +581,15 @@ At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature
 - **Training week** — the week number since your programme started (shown in the header).
 - **Body comp** — body composition (weight, fat, muscle, water etc.).
 - **BMR** — basal metabolic rate: calories your body uses at rest.
-- **Baseline** — BMR × 1.15: what you burn on an ordinary day without exercise.
-- **Deficit %** — the share taken off your baseline to make your calorie goal (20% to start).
+- **Body burn** — BMR + daily living: BMR × 1.15 on days with step data, otherwise BMR × your activity level.
+- **Goal (person goal)** — the one goal you chose (e.g. Work towards a healthy body weight); it sets your daily calorie goal.
+- **Aim** — your goal's daily adjustment: − for a deficit, + for a surplus.
+- **Activity level** — Mostly sitting / On my feet a fair bit / Very active; used on days without step data.
+- **Week to date** — what you ate on this week's past logged days against their goals.
 - **Safe minimum** — the lowest calorie goal the app sets: 90% of your BMR, at least 1,200 kcal (women) / 1,500 kcal (men).
 - **Step allowance** — the steps already included in your baseline; only steps beyond it add calories.
 - **MET** — how hard an exercise is compared with resting; used to count exercise calories.
 - **Activity adjustment %** — scales your activity credit (100% to start); the Companion may suggest a change.
-- **Plan vs Actual** — the Home card comparing this week's complete days with your eating goal and planned sessions.
+- **Planned vs Actual** — the Today table on Home (and in My Eating): body burn, aim, exercise, goal, eating and on track.
 - **Visceral fat** — fat around internal organs; a health marker.
 - **Open Food Facts** — a free UK/global product nutrition database the app searches.

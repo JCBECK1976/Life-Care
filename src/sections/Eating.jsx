@@ -1,7 +1,8 @@
 import { readImageForAI } from "../lib/image.js";
 import RagCue from "../components/RagCue.jsx";
-import { dayFoodKcal, kcalLimit } from "../lib/calories.js";
-import CalorieCard from "../components/CalorieCard.jsx";
+
+import PlanActual, { WeekPlanActual } from "../components/PlanActual.jsx";
+import { goalKcal, kcalTargetText } from "../lib/goals.js";
 import LoadingDots from "../components/LoadingDots.jsx";
 import NoFoodPanel from "../components/NoFoodPanel.jsx";
 import { BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, POTATO_SIDES, SNACKS, VEG_SIDES } from "../constants/food.js";
@@ -334,7 +335,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               try {
                 var p = data[activeTab] || {};
                 var profile = p.profile || {};
-                var suitPrompt = "Food: " + (info.name||"") + " (" + (info.kcal||0) + " kcal, " + (info.protein||0) + "g protein, " + (info.fat||0) + "g fat, " + (info.satFat||0) + "g sat fat, rating: " + (info.rating||"") + "). Person: " + (profile.name||activeTab) + ", targets: " + (isJC ? "2000-2200 kcal, 110-130g protein, <20g sat fat" : "1700-1900 kcal, 90-110g protein, <20g sat fat, LDL 7.2 high cholesterol") + ". Give ONE sentence on suitability for this person. Be specific to their health profile.";
+                var suitPrompt = "Food: " + (info.name||"") + " (" + (info.kcal||0) + " kcal, " + (info.protein||0) + "g protein, " + (info.fat||0) + "g fat, " + (info.satFat||0) + "g sat fat, rating: " + (info.rating||"") + "). Person: " + (profile.name||activeTab) + ", targets: " + (isJC ? "" + kcalTargetText(data && data[activeTab]) + ", 110-130g protein, <20g sat fat" : "" + kcalTargetText(data && data[activeTab]) + ", 90-110g protein, <20g sat fat, LDL 7.2 high cholesterol") + ". Give ONE sentence on suitability for this person. Be specific to their health profile.";
                 var sResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 100, messages: [{ role: "user", content: suitPrompt }] }) });
                 var sResult = await sResp.json();
                 var sTxt = ""; if (sResult.content) { for (var si=0;si<sResult.content.length;si++) { if(sResult.content[si].text) sTxt+=sResult.content[si].text; } }
@@ -354,7 +355,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                           var _img = await readImageForAI(file);   /* v2.14.0: shrunk before sending */
                           var base64 = _img.data; var mediaType = _img.mediaType;
                           var isJC2 = activeTab === "jc";
-                          var personCtx = isJC2 ? "JC, male 49, 2000-2200 kcal/day target, 110-130g protein, under 20g sat fat, under 25g added sugar, 30-35g fibre. Thyroid issues (TSH 14.2), statin 20mg, HbA1c 43." : "Becks, female 48, 1700-1900 kcal/day target, 90-110g protein, under 20g sat fat (critical — LDL 7.2, Total Cholesterol 9.6, suspected FH), under 25g added sugar, 25-30g fibre. Perimenopausal, citalopram, atorvastatin.";
+                          var personCtx = isJC2 ? "JC, male 49, " + kcalTargetText(data && data[activeTab]) + ", 110-130g protein, under 20g sat fat, under 25g added sugar, 30-35g fibre. Thyroid issues (TSH 14.2), statin 20mg, HbA1c 43." : "Becks, female 48, " + kcalTargetText(data && data[activeTab]) + ", 90-110g protein, under 20g sat fat (critical — LDL 7.2, Total Cholesterol 9.6, suspected FH), under 25g added sugar, 25-30g fibre. Perimenopausal, citalopram, atorvastatin.";
                           var locationHint = helpEatText.trim() ? " The user is at or considering: " + helpEatText.trim() + "." : "";
                           var catLabel = helpEatCat;
                           var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "This person needs help choosing a " + catLabel + " option." + locationHint + " Person profile: " + personCtx + " Analyse the image (menu, buffet, shelf, food options). FIRST decide whether the photo shows any food, drink, menu or food options at all. If it does NOT (for example a person, a room, a blank, dark or blurred photo), set \"isFood\": false, every value 0, and say briefly what you see in \"name\"; otherwise set \"isFood\": true. Recommend the BEST suitable option and explain why. Include portion advice if relevant (e.g. 'have half portion', 'skip the side'). Return ONLY JSON: {\"isFood\":true/false,\"name\":\"recommended food/meal name\",\"kcal\":estimated_calories,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED\",\"recommendation\":\"2-3 sentences explaining why this is the best choice and any portion/modification advice\",\"alternatives\":\"1 sentence naming one alternative if available\"}" }] }] }) });
@@ -374,7 +375,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             try {
               var isJC2 = activeTab === "jc";
               // Use Claude for nutritional lookup with full detail
-              var prompt = "Find nutritional info for: " + newItemName + ". Classify as 'packaged' if it is a pre-made supermarket product (e.g. Aldi chicken sizzler, protein bar, ready meal) or 'ingredient' if it is a home-made recipe cooked from scratch (e.g. spag bol, curry, stir fry). If 'ingredient', list the individual ingredients needed. Return ONLY JSON: {\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[\"item1\",\"item2\"] (empty array if packaged),\"suitability\":\"ONE sentence suitability for " + (isJC2 ? "JC, male 49, 2000-2200 kcal target, <20g sat fat, thyroid issues" : "Becks, female 48, 1700-1900 kcal target, <20g sat fat, LDL 7.2") + "\"}";
+              var prompt = "Find nutritional info for: " + newItemName + ". Classify as 'packaged' if it is a pre-made supermarket product (e.g. Aldi chicken sizzler, protein bar, ready meal) or 'ingredient' if it is a home-made recipe cooked from scratch (e.g. spag bol, curry, stir fry). If 'ingredient', list the individual ingredients needed. Return ONLY JSON: {\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[\"item1\",\"item2\"] (empty array if packaged),\"suitability\":\"ONE sentence suitability for " + (isJC2 ? "JC, male 49, " + kcalTargetText(data && data[activeTab]) + ", <20g sat fat, thyroid issues" : "Becks, female 48, " + kcalTargetText(data && data[activeTab]) + ", <20g sat fat, LDL 7.2") + "\"}";
               var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: prompt }] }) });
               var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
               var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
@@ -536,7 +537,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             setNewItemLoading(true);
             var batches = []; for (var bs = 0; bs < lines.length; bs += BULK_BATCH) batches.push(lines.slice(bs, bs + BULK_BATCH));
             var isJC2 = activeTab === "jc";
-            var targetsStr = isJC2 ? "Daily targets: 2000-2200 kcal, 110-130g protein, <20g sat fat, <25g added sugar, 30-35g fibre, <6g salt" : "Daily targets: 1700-1900 kcal, 90-110g protein, <20g sat fat (critical - LDL 7.2 high cholesterol/suspected FH), <25g added sugar, 25-30g fibre, <6g salt";
+            var targetsStr = isJC2 ? "Daily targets: " + kcalTargetText(data && data[activeTab]) + ", 110-130g protein, <20g sat fat, <25g added sugar, 30-35g fibre, <6g salt" : "Daily targets: " + kcalTargetText(data && data[activeTab]) + ", 90-110g protein, <20g sat fat (critical - LDL 7.2 high cholesterol/suspected FH), <25g added sugar, 25-30g fibre, <6g salt";
             var listItems = bulkListFor(bulkCatArg); var setList = bulkSetterFor(bulkCatArg); var storageKey2 = bulkKeyFor(bulkCatArg);
             var addedCount = 0; var skippedCount = 0; var failed = []; var lastErr = "";
             for (var bn = 0; bn < batches.length; bn++) {
@@ -1033,11 +1034,13 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               var totalKcal2 = 0; var dayCount2 = 0;
               DAYS.forEach(function(d) { var dk = getDayKcal(d); if (dk > 0) { totalKcal2 += dk; dayCount2++; } });
               var avg2 = dayCount2 > 0 ? Math.round(totalKcal2 / dayCount2) : 0;
-              var limit2 = kcalLimit(data && data[activeTab], isJC ? 2200 : 1900, activeTab); // v2.17.1 goal + today's activity credit
+              var _wg = DAYS.map(function(d) { return goalKcal(data && data[activeTab], dateOf(weekStart, d), weekChildren); }).filter(function(x) { return x != null; }); var limit2 = _wg.length ? _wg.reduce(function(a, b) { return a + b; }, 0) / _wg.length : Infinity; // v2.18.0: the person's goal
               var color2 = avg2 === 0 ? "#94a3b8" : avg2 > limit2 ? "#dc2626" : "#16a34a";
               return avg2 > 0 ? (<span style={{ fontSize: 11, fontWeight: 600, color: color2 }}> — Avg {avg2} kcal/day</span>) : null;
             })()}</span><div style={{ display: "flex", gap: 4, flexShrink: 0 }}><button onClick={function(){ setCopyWeekOpen(!copyWeekOpen); setCopyWeekTargets({}); }} style={Object.assign({}, copyWeekOpen ? btnClose : btnAction)}>{copyWeekOpen ? "✕" : <span>📋 Copy Week</span>}</button><button onClick={function(){setEatWeekEyeOpen(!eatWeekEyeOpen);}} style={eatWeekEyeOpen ? btnFilledOn : btnProgress}>{eatWeekEyeOpen ? "✕ Progress" : "👁 Progress"}</button></div></div>
 
+            {/* v2.18.0: the same Planned | Actual figures for the week, one row per day */}
+            <WeekPlanActual data={data} who={activeTab} dates={DAYS.map(function(d) { return dateOf(weekStart, d); })} doc={weekChildren} />
             {copyWeekOpen && (<div style={{ background: accentLight, borderRadius: 8, padding: 10, marginBottom: 10, border: "1px solid " + accentBorder }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Copy this week's day selections to:</div>
               <div style={{ maxHeight: 200, overflowY: "auto", marginBottom: 8 }}>
@@ -1092,7 +1095,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var kf = isJC ? "jcKcal" : "beckKcal";
                 var pf = isJC ? "jcProt" : "beckProt";
                 var ff = isJC ? "jcFat" : "beckFat";
-                var limKcal = kcalLimit(data && data[activeTab], isJC ? 2200 : 1900, activeTab); // v2.17.1
+                var _wg2 = DAYS.map(function(d) { return goalKcal(data && data[activeTab], dateOf(weekStart, d), weekChildren); }).filter(function(x) { return x != null; }); var limKcal = _wg2.length ? Math.round(_wg2.reduce(function(a, b) { return a + b; }, 0) / _wg2.length) : Infinity; // v2.18.0: the person's goal (average day)
                 var limProt = isJC ? 130 : 110;
                 var limSfat = 20;
                 var limCarbs = isJC ? 300 : 260;
@@ -1509,7 +1512,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 if (pastRedUsed.length > 0) { pastHistory += " RED monthly-treat items used in past 4 weeks (DO NOT reuse — monthly treat): " + pastRedUsed.filter(function(v, i, a) { return a.indexOf(v) === i; }).join(",") + "."; }
               }
               var fmt = '{"monday":{"b":"id","l":"id","d":"id"},"tuesday":{"b":"id","l":"id","d":"id"},"wednesday":{"b":"id","l":"id","d":"id"},"thursday":{"b":"id","l":"id","d":"id"},"friday":{"b":"id","l":"id","d":"id"},"saturday":{"b":"id","l":"id","d":"id"},"sunday":{"b":"id","l":"id","d":"id"}}';
-              var prompt = "Generate a week of meals for " + (prof.name || "user") + " (" + (isJC ? "2000-2200 kcal" : "1700-1900 kcal") + " target). Only fill EMPTY slots - keep existing selections. CRITICAL: You MUST ONLY use item IDs from the lists below - never invent new IDs. FREQUENCY RULES based on the rating in [brackets]: GREAT = any day, GOOD = daily, AMBER = a few times a week (max 3), RED-weekly = weekly treat (max once a week), RED-monthly = monthly treat (max once a month). Respect these limits strictly." + pastHistory + " Current: " + JSON.stringify(planned.meals, function(k, v) { if (k === "_snap" || k === "_notes") return undefined; var it = typeof v === "string" ? allItemsLookup[v] : null; return it && it._child ? (it.parentId || it.name) : v; }) + ". Breakfasts: " + (_can.b ? bfastList : "(none — leave breakfast slots empty)") + ". Lunches: " + (_can.l ? lunchList : "(none — leave lunch slots empty)") + ". Dinners: " + (_can.d ? dinnerList : "(none — leave dinner slots empty)") + ". Vary daily. Return ONLY JSON: " + fmt;
+              var prompt = "Generate a week of meals for " + (prof.name || "user") + " (" + kcalTargetText(data && data[activeTab]) + "). Only fill EMPTY slots - keep existing selections. CRITICAL: You MUST ONLY use item IDs from the lists below - never invent new IDs. FREQUENCY RULES based on the rating in [brackets]: GREAT = any day, GOOD = daily, AMBER = a few times a week (max 3), RED-weekly = weekly treat (max once a week), RED-monthly = monthly treat (max once a month). Respect these limits strictly." + pastHistory + " Current: " + JSON.stringify(planned.meals, function(k, v) { if (k === "_snap" || k === "_notes") return undefined; var it = typeof v === "string" ? allItemsLookup[v] : null; return it && it._child ? (it.parentId || it.name) : v; }) + ". Breakfasts: " + (_can.b ? bfastList : "(none — leave breakfast slots empty)") + ". Lunches: " + (_can.l ? lunchList : "(none — leave lunch slots empty)") + ". Dinners: " + (_can.d ? dinnerList : "(none — leave dinner slots empty)") + ". Vary daily. Return ONLY JSON: " + fmt;
               var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }) });
               var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
               var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
@@ -1617,6 +1620,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   { label: "Snacks", prefix: "o", items: allOther, multi: false }
                 ];
                 var dayTotalConsumed = 0;
+                var dayGoalK = goalKcal(data && data[activeTab], dateOf(weekStart, eatDay), weekChildren); if (dayGoalK == null) dayGoalK = Infinity; /* v2.18.0: the person's goal */
                 var dayProtConsumed = 0;
                 var dayFatConsumed = 0;
                 var daySfatConsumed = 0;
@@ -1681,7 +1685,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <tfoot>
                       <tr style={{ background: "#e0f2fe", borderTop: "2px solid #0f172a" }}>
                         <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 11, color: "#0c4a6e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Total</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayTotalConsumed > (isJC ? 2200 : 1900) ? "#b91c1c" : "#0c4a6e" }}>{dayTotalConsumed}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayTotalConsumed > dayGoalK ? "#b91c1c" : "#0c4a6e" }}>{dayTotalConsumed}</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayProtConsumed < (isJC ? 110 : 90) ? "#b91c1c" : "#0c4a6e" }}>{dayProtConsumed || "-"}</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: daySfatConsumed > 20 ? "#b91c1c" : "#0c4a6e" }}>{daySfatConsumed || "-"}</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayCarbsConsumed > (isJC ? 300 : 260) ? "#b91c1c" : "#0c4a6e" }}>{dayCarbsConsumed || "-"}</td>
@@ -1690,7 +1694,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       </tr>
                     <tr style={{ background: "#f1f5f9" }}>
                         <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 10, color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Recommended</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{isJC ? "2200" : "1900"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{dayGoalK === Infinity ? "—" : dayGoalK}</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{isJC ? "130" : "110"}</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>20</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{isJC ? "300" : "260"}</td>
@@ -1698,7 +1702,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>6</td>
                       </tr>
                       {(function() {
-                        var limKcal = isJC ? 2200 : 1900;
+                        var limKcal = dayGoalK === Infinity ? dayTotalConsumed : dayGoalK;
                         var limProt = isJC ? 130 : 110;
                         var limSfat = 20;
                         var limCarbs = isJC ? 300 : 260;
@@ -1733,7 +1737,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <div style={{ marginTop: 24, background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: "10px 8px" }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 8, paddingLeft: 4 }}>Daily Percentage of Recommendations</div>
                     {(function() {
-                      var cLimKcal = isJC ? 2200 : 1900;
+                      var cLimKcal = dayGoalK === Infinity ? 0 : dayGoalK;
                       var cLimProt = isJC ? 130 : 110;
                       var cLimSfat = 20;
                       var cLimCarbs = isJC ? 300 : 260;
@@ -2270,7 +2274,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       setHelpEatLoading(true);
                       try {
                         var isJC2 = activeTab === "jc";
-                        var personCtx = isJC2 ? "JC, male 49, 2000-2200 kcal/day target, 110-130g protein, under 20g sat fat, under 25g added sugar, 30-35g fibre. Thyroid issues (TSH 14.2), statin 20mg, HbA1c 43." : "Becks, female 48, 1700-1900 kcal/day target, 90-110g protein, under 20g sat fat (critical — LDL 7.2, Total Cholesterol 9.6, suspected FH), under 25g added sugar, 25-30g fibre. Perimenopausal, citalopram, atorvastatin.";
+                        var personCtx = isJC2 ? "JC, male 49, " + kcalTargetText(data && data[activeTab]) + ", 110-130g protein, under 20g sat fat, under 25g added sugar, 30-35g fibre. Thyroid issues (TSH 14.2), statin 20mg, HbA1c 43." : "Becks, female 48, " + kcalTargetText(data && data[activeTab]) + ", 90-110g protein, under 20g sat fat (critical — LDL 7.2, Total Cholesterol 9.6, suspected FH), under 25g added sugar, 25-30g fibre. Perimenopausal, citalopram, atorvastatin.";
                         var catLabel = helpEatCat;
                         var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: "This person needs help choosing a " + catLabel + " option. They are at or considering: " + helpEatText.trim() + ". Person profile: " + personCtx + " Research what food options this place/situation typically offers and recommend the BEST suitable " + catLabel + " option. Include portion advice if relevant (e.g. 'have half portion', 'skip the side'). Classify as 'packaged' if it is a pre-made supermarket product or 'ingredient' if it is home-made/cooked from scratch. If 'ingredient', list individual ingredients needed. Return ONLY JSON: {\"name\":\"recommended food/meal name\",\"kcal\":estimated_calories,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[\"item1\",\"item2\"] (empty array if packaged),\"recommendation\":\"2-3 sentences explaining why this is the best choice and any portion/modification advice\",\"alternatives\":\"1 sentence naming one alternative if available\"}" }] }) });
                         var result = await resp.json();
@@ -2350,7 +2354,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             </div>
 
             {/* v2.17.1: the day's calorie line (goal · food · activity · left) */}
-            {eatDay !== "week" && (function() { var dd = dateOf(weekStart, eatDay); return <CalorieCard testid="calorie-day" title={"Calories — " + eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} data={data} who={activeTab} saveData={saveData} date={dd} foodKcal={dayFoodKcal(weekChildren, dd)} />; })()}
+            {eatDay !== "week" && (function() { var dd = dateOf(weekStart, eatDay); return <PlanActual testid="day-plan-actual" title={eatDay.charAt(0).toUpperCase() + eatDay.slice(1) + " — Planned vs Actual"} data={data} who={activeTab} saveData={saveData} date={dd} doc={weekChildren} />; })()}
 
             {/* Day notes */}
 
