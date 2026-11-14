@@ -2524,3 +2524,32 @@ Sizes are % of a weekly allowance, including Architect checks.
   10. On /build/: Settings → Google Health → **Connect** → **Sync this week's calories** → tell the Coder what the status line says.
 - **JC to test (/build/):** My Body → calorie card shows "Calculated (not active)" with your numbers (estimate until Google works). Change the adjustment → saved. Admin: switch on for yourself → badge "Active"; switch off again.
 - **Resume point:** `build` @ 40b7a24 (v2.16.2), prod v2.15.1. Next: Step 4 (accounts/tiers/energy design + local functions, v2.16.3), applying the Architect's 22:40 hard rule and 22:46 platform note.
+
+### (Coder) 14 Nov 2026 — overnight Step 4: accounts, tiers, energy — design + local build (v2.16.3, NOT live)
+- **Design (main):** `docs/design/ACCOUNTS_TIERS_ENERGY.md` (individual accounts, `apps/{appId}/users/{uid}`, household with mutual consent, migration plan **not executed**, tiers, subscriptions, energy packs at 100% mark-up, server ledger) and **ADR 0011** (Companion platform, `appId`). The Architect's 22:40 hard rule (admin can't read health data) and the 22:46 platform note are applied.
+- **v2.16.3 (`build` fcf293e) — no change for users:**
+  - `functions/` (Cloud Functions, europe-west1, **emulator only, never deployed**): `aiProxy` (sign-in + tier + energy checks; adds the P7 rule; forces `claude-sonnet-4-6`; `AI_BACKEND=vertex` → Claude on Vertex AI EU, `direct` = today's API path as fallback, `mock` for the emulator; debits the actual cost and records counts), `setTier` + `adminAccounts` (admin only; account list has no health data), `createCheckout` + `stripeWebhook` (Stripe **test mode**, signature checked, idempotent credit: £5 pack → 250p of AI cost).
+  - `database.rules.next.json` (**not deployed**): own data only; household needs both consents (withdrawal stops it); balance/tier/ledger/usage server-only; admin reads the account list and Tracker, never `users/*`.
+  - Client: `src/lib/platform.js` flags `useAiProxy`, `useAccounts`, `showBuyEnergy`, **all off**. CSP allows the functions host.
+  - Tests: `functions/test` (9: rules ×5 on the emulator with real user tokens, ledger, aiProxy, admin, Stripe); `tests/v2163.spec.js` (3, incl. running the functions tests). Full suite **177 passed**, lint 0 errors.
+- **Decisions (Coder):**
+  - Handlers are plain functions with injected database/AI/Stripe (`functions/src/core.js`), so the same code runs in Cloud Functions and in the emulator tests. Rejected: testing only through the Functions emulator (slower, and it needs the Functions toolchain per run).
+  - The proxy is reached with the callable protocol over `fetch` (no extra Firebase SDK in the app).
+  - Energy is held as **pence of AI cost** (price list in `functions/src/config.js`, USD→GBP 0.79: check before go-live).
+- **Note for the Architect:** the database emulator treats any `Authorization: Bearer …` as the owner. Rules tests must pass user tokens as `?auth=` (done in `functions/test/helpers.mjs`).
+- **Questions for JC / the Architect (skipped):**
+  3. The Architect's **12 Nov tier draft** isn't in the repo; the design has a placeholder table (§6). Please add the draft or JC's final list.
+  4. Subscription prices and monthly energy per tier.
+- **Step 4 — JC setup before go-live (one action per step; nothing is live until all are done and JC approves):**
+  1. Create a **Stripe** account (stripe.com) and stay in **Test mode**.
+  2. Stripe → Developers → API keys → copy the **test secret key** (`sk_test_…`) into your password manager.
+  3. Firebase console → project life-care-app-64d04 → **Upgrade to Blaze** (pay as you go; needed for Cloud Functions). Set a **budget alert** (e.g. £10/month).
+  4. Google Cloud console → APIs & Services → Library → enable **Cloud Functions API**.
+  5. Same Library → enable **Cloud Build API**.
+  6. Same Library → enable **Vertex AI API**.
+  7. Vertex AI → Model Garden → **Claude Sonnet** → **Enable** (accept Anthropic's terms) and check it's offered in an **EU** region.
+  8. IAM → the functions' service account (`…-compute@developer.gserviceaccount.com`) → **Add role: Vertex AI User**.
+  9. Tell the Architect; the Architect sets the secrets `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (and `ANTHROPIC_API_KEY` only if the fallback is kept) and runs the first deploy with you. **The Coder never deploys.**
+  10. Stripe → Developers → Webhooks → **Add endpoint**: the `stripeWebhook` URL the deploy prints, event `checkout.session.completed` → copy its signing secret for step 9.
+  11. Before switching the app to the new accounts: a fresh **Download backup**, then the migration in the design doc §5 (separate approval).
+- **Resume point:** `build` @ fcf293e (v2.16.3), prod v2.15.1. Next: Step 5 (pilot readiness: consent + legal docs P8/P9, export/deletion/audit P2, retention P10, v2.16.4).

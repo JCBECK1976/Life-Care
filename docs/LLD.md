@@ -19,6 +19,7 @@ Version 1, 13 Nov 2026 (prod v2.15.1). Public document. It describes **how the c
   - `scripts/build-pages.sh` builds all three branches into one Pages artifact.
   - `scripts/check-pages.mjs` checks it: prod/beta never refer to the Build data copy; required files are present.
   - `.github/workflows/deploy.yml`: only main's run deploys.
+- **Server (local only, v2.16.3):** `functions/` (Cloud Functions, `europe-west1`, emulator-tested, **not deployed**): `aiProxy`, `setTier`, `adminAccounts`, `createCheckout`, `stripeWebhook`; handlers in `functions/src/core.js`, AI backends in `backends.js`; tests `npm --prefix functions test`. Next rules: `database.rules.next.json` (not deployed). Design: [design/ACCOUNTS_TIERS_ENERGY.md](design/ACCOUNTS_TIERS_ENERGY.md).
 - **Test data:** `scripts/make-fixture.mjs` makes synthetic data (the default emulator seed).
 
 ## 2. Modules
@@ -39,6 +40,7 @@ Version 1, 13 Nov 2026 (prod v2.15.1). Public document. It describes **how the c
 | `src/lib/bodyBalance.js`, `bodyPhotoCheck.js`, `measureReading.js` | Body balance prompt and parsing; body-photo recognition flags; measurement reading from a photo. |
 | `src/lib/calories.js` | R6/R5 (v2.16.2): lean mass from the last 3–4 weigh-ins (stone → kg), Katch-McArdle BMR, Sun–Sat week, activity credit and target (`calcTarget`), `kcalLimit` (used only when R6 is on), R5 history/suggestions (`recordAdj`, `r5PromptContext`, `applyAiAdj`, `decideSuggestion`). |
 | `src/lib/googleHealth.js` | R4 (v2.16.2): token on the device (localStorage `lc_gh_token_<person>`, never the database), `fetchWeekCalories` (daily total calories, honest errors), `mergeDaily` (12-month retention), `ghStatus`. The data type name `GH.totalCalories` is unverified until J10. |
+| `src/lib/platform.js` | v2.16.3 Step 4: client flags `useAiProxy`, `useAccounts`, `showBuyEnergy` (localStorage `lc_flags`, **all off by default**); `callFunction` / `viaProxy` (Cloud Functions callable protocol). With `useAiProxy` on, the `api.js` wrapper sends Messages requests to `aiProxy`. |
 | `src/lib/exercise.js` | Exercise types, per-set weights and reps, progression status; week helpers (`findWeekIdx`, `previousEntry`, `latestEntry`) used by the Log form and the overwrite check; Companion feedback per week (`attachCompanion`, `setCompanionDecision`). |
 | `src/lib/chat.js`, `aiContext.js` | Conversation ordering (latest exchange first); mood, profile and journal context for prompts. |
 | `src/lib/backup.js` | Parse a backup or console export; counts; restore targets. Writes nothing itself. |

@@ -14,5 +14,6 @@ One short file per significant decision: context, decision, alternatives rejecte
 | [0008](0008-automation-via-github-secrets.md) | Automation via GitHub Actions secrets | Accepted (live 13 Nov 2026) |
 | [0009](0009-google-sign-in-and-locked-database.md) | Google sign-in and database access locked to approved accounts | Accepted |
 | [0010](0010-companion-energy-from-ai-usage.md) | Companion Energy computed from recorded AI usage | Accepted |
+| [0011](0011-companion-platform.md) | Accounts, tiers, energy and AI proxy as a reusable Companion platform (`appId`) | Accepted (designed + built locally 14 Nov 2026; not live) |
 
 Candidates not yet written up: the Open pattern and button standard (v2.8.0 / v2.13.0).
