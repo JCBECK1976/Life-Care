@@ -2,6 +2,7 @@
 // Only changes: these imports replace CDN globals, and `export default`
 // replaces the ReactDOM render call (now in main.jsx).
 import React from "react";
+import { removeOldGoogleTokens } from "./lib/cleanup.js";
 import { GH, fetchWeekCalories, forgetToken, loadToken, mergeDaily, saveToken } from "./lib/googleHealth.js";
 import LoadingDots from "./components/LoadingDots.jsx";
 import firebase, { DATA_ROOT } from "./lib/firebase.js";
@@ -574,7 +575,7 @@ function Dashboard() {
     if (cmt) setCustomMeasTypes(JSON.parse(cmt));
     if (sfAll) { setSessionFeedback(JSON.parse(sfAll)); }
     if (ak) window._anthropicKey = ak;
-    void gt; if (stillSelected()) { var _ght = loadToken(activeTab); setGoogleToken(_ght ? _ght.token : null); setGoogleConnected(!!_ght); }
+    void gt; removeOldGoogleTokens(); /* v2.16.5: one-off cleanup */ if (stillSelected()) { var _ght = loadToken(activeTab); setGoogleToken(_ght ? _ght.token : null); setGoogleConnected(!!_ght); }
     if (qa) setQaHistory(JSON.parse(qa));
     if (hh) setHelpHistory(JSON.parse(hh));
     if (savedMood && stillSelected()) setUserMood(JSON.parse(savedMood));

@@ -12,7 +12,7 @@ const db = app.database();
 const A = "lifecare";
 let sent = [];
 const fakeClaude = async (body) => { sent.push(body); return { content: [{ type: "text", text: "hi" }], usage: { input_tokens: 1000, output_tokens: 200 } }; };
-const req = { feature: "ai", request: { max_tokens: 100, system: "You are the Companion.", messages: [{ role: "user", content: "hello" }] } };
+const req = { feature: "help", request: { max_tokens: 100, system: "You are the Companion.", messages: [{ role: "user", content: "hello" }] } };
 
 before(async () => { await db.ref().set({ platform: { admins: { "uid-admin": true } } }); });
 
@@ -30,7 +30,7 @@ test("ledger: credit and debit move the balance; a credit with the same key coun
 test("aiProxy: needs sign-in, an allowed tier and energy; adds the medication rule; debits the real cost; records usage", async () => {
   await assert.rejects(core.aiProxy({ uid: null, data: req }, { db, callClaude: fakeClaude }), { code: "unauthenticated" });
   await assert.rejects(core.aiProxy({ uid: "u2", data: req }, { db, callClaude: fakeClaude }), { code: "resource-exhausted" });
-  await assert.rejects(core.aiProxy({ uid: "u1", data: { ...req, feature: "photos" } }, { db, callClaude: fakeClaude }), { code: "permission-denied" }); // bronze
+  await assert.rejects(core.aiProxy({ uid: "u1", data: { ...req, feature: "snap" } }, { db, callClaude: fakeClaude }), { code: "permission-denied" }); // bronze has no Snap
   sent = [];
   const before = await core.balance(db, A, "u1");
   const r = await core.aiProxy({ uid: "u1", data: { ...req, request: { ...req.request, model: "something-else" } } }, { db, callClaude: fakeClaude, now: Date.UTC(2026, 10, 14) });
@@ -48,7 +48,8 @@ test("setTier / adminAccounts: admin only; the admin view has no health data", a
   await assert.rejects(core.setTier({ uid: "u1", data: { uid: "u1", tier: "gold" } }, { db }), { code: "permission-denied" });
   await core.setTier({ uid: "uid-admin", data: { uid: "u1", tier: "silver" } }, { db });
   assert.equal(await core.tierOf(db, A, "u1"), "silver");
-  assert.equal(await core.featureAllowed(db, A, "u1", "photos"), true);
+  assert.equal(await core.featureAllowed(db, A, "u1", "snap"), true);
+  assert.equal(await core.featureAllowed(db, A, "u1", "household"), false);
   await db.ref(`apps/${A}/users/u1/data`).set({ healthNotes: "private" });
   const list = await core.adminAccounts({ uid: "uid-admin", data: {} }, { db });
   assert.equal(list.u1.tier, "silver");
@@ -74,3 +75,12 @@ test("Stripe (test mode): a signed checkout.session.completed credits £2.50 of 
 });
 
 test.after(async () => { await app.delete(); });
+
+test("tier defaults (JC 14 Nov) and packs", async () => {
+  const { DEFAULT_TIERS, PACKS } = await import("../src/config.js");
+  assert.deepEqual([DEFAULT_TIERS.bronze.allowancePence, DEFAULT_TIERS.silver.allowancePence, DEFAULT_TIERS.gold.allowancePence], [20, 150, 250]);
+  assert.deepEqual([DEFAULT_TIERS.silver.pricePence, DEFAULT_TIERS.silver.yearlyPence, DEFAULT_TIERS.gold.pricePence, DEFAULT_TIERS.gold.yearlyPence], [599, 4900, 999, 7900]);
+  assert.equal(DEFAULT_TIERS.bronze.help && !DEFAULT_TIERS.bronze.aiFeedback, true);
+  assert.equal(DEFAULT_TIERS.gold.household && !DEFAULT_TIERS.silver.household, true);
+  for (const p of Object.values(PACKS)) assert.equal(p.creditPence * 2, p.pricePence);   // 100% mark-up
+});

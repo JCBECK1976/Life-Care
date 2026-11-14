@@ -15,11 +15,14 @@ export async function callFunction(name, data, idToken, fetchImpl) {
   return j.result;
 }
 
+/** App feature label (aiUsage.featureOf) → tier feature switch checked by the server. */
+export function proxyFeature(f) { var x = String(f || "").toLowerCase(); return x === "help" ? "help" : /photo|snap|food check/.test(x) ? "snap" : /meal/.test(x) ? "mealGenerator" : /balance/.test(x) ? "bodyBalance" : "aiFeedback"; }
+
 /** Turn a Messages API request body into a proxy call and give back a Response the existing code understands. */
 export async function viaProxy(body, feature, idToken, fetchImpl) {
   var req = JSON.parse(body);
   try {
-    var result = await callFunction("aiProxy", { appId: APP_ID, feature: feature === "photo" ? "photos" : "ai", request: { max_tokens: req.max_tokens, system: req.system, messages: req.messages } }, idToken, fetchImpl);
+    var result = await callFunction("aiProxy", { appId: APP_ID, feature: proxyFeature(feature), request: { max_tokens: req.max_tokens, system: req.system, messages: req.messages } }, idToken, fetchImpl);
     return new Response(JSON.stringify(result), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (e) {
     var msg = e.code === "RESOURCE_EXHAUSTED" ? "Your credit balance is too low (Companion Energy is empty)" : String(e.message || e);

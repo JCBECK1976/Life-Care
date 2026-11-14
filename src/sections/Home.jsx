@@ -266,7 +266,7 @@ export default function HomeSection({ ctx }) {
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 11 }}>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
                           <div style={{ color: "#94a3b8", fontSize: 9 }}>Calories</div>
-                          <div data-testid="target-calories" style={{ fontWeight: 700, color: "#0c4a6e" }}>{(function() { var cs = settingsOf(p); var ct = cs.r6Active ? calcTarget(p, new Date()) : null; /* R6: only when the admin switched it on */ return ct ? ct.target + " kcal (measured burn)" : ((p.targets && p.targets.calories) || (generatedTargets && generatedTargets.calories) || (p.generatedTargets && p.generatedTargets.calories) || "—"); })()}</div>
+                          <div data-testid="target-calories" style={{ fontWeight: 700, color: "#0c4a6e" }}>{(function() { var cs = settingsOf(p, activeTab); var ct = cs.r6Active ? calcTarget(p, new Date(), activeTab) : null; /* R6: only when the admin switched it on */ return ct ? ct.target + " kcal (measured burn)" : ((p.targets && p.targets.calories) || (generatedTargets && generatedTargets.calories) || (p.generatedTargets && p.generatedTargets.calories) || "—"); })()}</div>
                         </div>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
                           <div style={{ color: "#94a3b8", fontSize: 9 }}>Protein</div>

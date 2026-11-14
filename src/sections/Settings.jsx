@@ -57,7 +57,7 @@ export default function SettingsSection({ ctx }) {
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Data Admin</div>
 
           {/* v2.16.2 R4: Google Health (cloud API), rebuilt — token on this device only, honest status */}
-          {(function() { var gp = data && data[activeTab]; var st = ghStatus(activeTab, gp); var cs = settingsOf(gp); return (
+          {(function() { var gp = data && data[activeTab]; var st = ghStatus(activeTab, gp); var cs = settingsOf(gp, activeTab); return (
           <div data-testid="gh-card" style={{ background: "#fff", borderRadius: 12, border: "1px solid " + (googleConnected ? "#86efac" : "#e2e8f0"), padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📱 Google Health — calories burned</div>
             <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>

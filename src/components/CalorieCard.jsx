@@ -10,11 +10,13 @@ var btn = { padding: "6px 12px", borderRadius: 6, fontSize: 11, fontWeight: 600,
 export default function CalorieCard(props) {
   var data = props.data, who = props.who, p = data && data[who];
   var [editing, setEditing] = React.useState(false);
+  var [editDef, setEditDef] = React.useState(false);
+  var [defVal, setDefVal] = React.useState("");
   var [val, setVal] = React.useState("");
   var [msg, setMsg] = React.useState("");
   if (!p) return null;
-  var s = settingsOf(p);
-  var c = calcTarget(p, new Date());
+  var s = settingsOf(p, who);
+  var c = calcTarget(p, new Date(), who);
   var pending = pendingSuggestion(p);
   var save = async function(mutate, okMsg) {
     var nd = JSON.parse(JSON.stringify(data)); mutate(nd[who]); await props.saveData(nd);
@@ -37,6 +39,13 @@ export default function CalorieCard(props) {
         <input aria-label="Activity adjustment %" type="number" min="50" max="150" value={val} onChange={function(e) { setVal(e.target.value); }} style={{ width: 64, padding: 4, border: "1px solid #cbd5e1", borderRadius: 4 }} />%
         <button type="button" style={btn} onClick={async function() { var v = Math.round(parseFloat(val)); if (!(v >= 50 && v <= 150)) { setMsg("Choose 50–150%"); return; } setEditing(false); await save(function(pp) { recordAdj(pp, { kind: "manual", value: v }); }, "✓ Adjustment set to " + v + "%"); }}>Save</button>
         <button type="button" style={btn} onClick={function() { setEditing(false); }}>Cancel</button></span>)}
+    </div>
+    <div style={{ marginTop: 6, fontSize: 11, color: "#334155" }}>
+      <b>Deficit:</b> <span data-testid="deficit">{s.deficit} kcal/day</span>{" "}
+      {!editDef ? <button type="button" style={btn} onClick={function() { setDefVal(String(s.deficit)); setEditDef(true); }}>Change</button> : (<span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+        <input aria-label="Deficit kcal per day" type="number" min="0" max="1000" value={defVal} onChange={function(e) { setDefVal(e.target.value); }} style={{ width: 64, padding: 4, border: "1px solid #cbd5e1", borderRadius: 4 }} />
+        <button type="button" style={btn} onClick={async function() { var v = Math.round(parseFloat(defVal)); if (!(v >= 0 && v <= 1000)) { setMsg("Choose 0–1000 kcal"); return; } setEditDef(false); await save(function(pp) { if (!pp.calorieSettings) pp.calorieSettings = {}; pp.calorieSettings.deficit = v; }, "✓ Deficit set to " + v + " kcal/day"); }}>Save</button>
+        <button type="button" style={btn} onClick={function() { setEditDef(false); }}>Cancel</button></span>)}
     </div>
     {pending && (<div data-testid="adj-suggestion" style={{ marginTop: 8, padding: 8, borderRadius: 6, background: "#eff6ff", border: "1px solid #bfdbfe", fontSize: 11, color: "#1e293b" }}>
       <b>Companion suggests {pending.value}%</b>{pending.reason ? " — " + pending.reason : ""}

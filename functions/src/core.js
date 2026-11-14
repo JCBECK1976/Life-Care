@@ -42,8 +42,8 @@ export function withRule(system) {
 }
 export async function aiProxy({ uid, data }, { db, callClaude, now = Date.now() }) {
   need(uid, "unauthenticated", "Sign in first.");
-  const app = appOf(data); const feature = (data && data.feature) || "ai";
-  need(await featureAllowed(db, app, uid, feature === "ai" ? "ai" : feature) && await featureAllowed(db, app, uid, "ai"), "permission-denied", "Your plan doesn't include this feature.");
+  const app = appOf(data); const feature = (data && data.feature) || "aiFeedback";   // help | aiFeedback | snap | mealGenerator | bodyBalance | aiPlans
+  need(await featureAllowed(db, app, uid, feature), "permission-denied", "Your plan doesn't include this feature.");
   need(await balance(db, app, uid) > 0, "resource-exhausted", "Companion Energy is empty.");
   const req = (data && data.request) || {};
   need(Array.isArray(req.messages) && req.messages.length, "invalid-argument", "No messages.");

@@ -6,7 +6,10 @@ export const MODEL = "claude-sonnet-4-6";                 // the app's model; no
 export const PRICES = { inUsd: 3, outUsd: 15, cacheWriteUsd: 3.75, cacheReadUsd: 0.3 };
 export const USD_GBP = parseFloat(process.env.USD_GBP || "0.79");
 // Energy packs: 100% mark-up — the price is twice the AI cost credited. Stripe fees come out of the margin.
-export const PACKS = { pack5: { pricePence: 500, creditPence: 250, name: "Companion Energy — £5 pack" } };
+export const PACKS = {   // any tier
+  pack5: { pricePence: 500, creditPence: 250, name: "Companion Energy — £5 pack" },
+  pack10: { pricePence: 1000, creditPence: 500, name: "Companion Energy — £10 pack" },
+};
 export const AI_BACKEND = () => process.env.AI_BACKEND || "direct";   // "vertex" (EU) | "direct" (fallback) | "mock" (emulator)
 export const VERTEX = { region: process.env.VERTEX_REGION || "europe-west1", project: process.env.GCLOUD_PROJECT || process.env.VERTEX_PROJECT || "" };
 
@@ -28,8 +31,13 @@ export const P = {
   account: (app, uid) => `apps/${app}/admin/accounts/${uid}`,
   admin: (uid) => `platform/admins/${uid}`,
 };
+// v2.16.5 (JC, 14 Nov): defaults — admin can change them in apps/{appId}/config/tiers without a code change.
+// allowancePence = AI cost included per month. Prices in pence; yearly where offered.
 export const DEFAULT_TIERS = {
-  bronze: { ai: true, photos: false, mealPlans: false, healthSync: false, household: false },
-  silver: { ai: true, photos: true, mealPlans: true, healthSync: true, household: false },
-  gold: { ai: true, photos: true, mealPlans: true, healthSync: true, household: true },
+  bronze: { pricePence: 0, allowancePence: 20,
+    tracking: true, ratings: true, help: true, aiFeedback: false, snap: false, mealGenerator: false, bodyBalance: false, aiPlans: false, healthSync: false, household: false },
+  silver: { pricePence: 599, yearlyPence: 4900, allowancePence: 150,
+    tracking: true, ratings: true, help: true, aiFeedback: true, snap: true, mealGenerator: true, bodyBalance: false, aiPlans: false, healthSync: false, household: false },
+  gold: { pricePence: 999, yearlyPence: 7900, allowancePence: 250,
+    tracking: true, ratings: true, help: true, aiFeedback: true, snap: true, mealGenerator: true, bodyBalance: true, aiPlans: true, healthSync: true, household: true },
 };

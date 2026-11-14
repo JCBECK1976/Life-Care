@@ -5,7 +5,10 @@
 // Target = BMR + credit × adjustment − deficit. No Google data → BMR × 1.2, labelled as an estimate.
 // Nothing here changes what the app uses until the admin switches R6 on for that person (default OFF).
 
-export var DEFAULT_DEFICIT = 500;      // kcal/day — JC to confirm (HANDOVER question)
+export var DEFAULT_DEFICIT = 500;      // kcal/day, for anyone without a per-person default
+// v2.16.5 (JC, 14 Nov): per-person setting; defaults JC 500, Becks 400 kcal/day.
+export var DEFICIT_DEFAULTS = { jc: 500, becks: 400 };
+export function defaultDeficit(who) { return DEFICIT_DEFAULTS[who] != null ? DEFICIT_DEFAULTS[who] : DEFAULT_DEFICIT; }
 export var NO_DATA_FACTOR = 1.2;
 var STONE_KG = 6.35029;
 
@@ -37,9 +40,9 @@ export function weekDates(date) {
 }
 export function isoDay(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 
-export function settingsOf(p) {
+export function settingsOf(p, who) {
   var s = (p && p.calorieSettings) || {};
-  return { r6Active: !!s.r6Active, deficit: isFinite(parseFloat(s.deficit)) ? parseFloat(s.deficit) : DEFAULT_DEFICIT,
+  return { r6Active: !!s.r6Active, deficit: isFinite(parseFloat(s.deficit)) ? parseFloat(s.deficit) : defaultDeficit(who),
     adjPct: isFinite(parseFloat(s.adjPct)) ? parseFloat(s.adjPct) : 100, adjHistory: s.adjHistory || [] };
 }
 
@@ -48,10 +51,10 @@ export function settingsOf(p) {
  * googleDaily: { "YYYY-MM-DD": { kcal } } (daily TOTAL calories burned).
  * Returns { estimate, bmr, lean, days: [{date, burned, credit}], avgBurned, avgCredit, adjPct, deficit, target, label } or null.
  */
-export function calcTarget(p, date) {
+export function calcTarget(p, date, who) {
   var lean = leanMass(p && p.body);
   if (!lean) return null;
-  var s = settingsOf(p);
+  var s = settingsOf(p, who);
   var bmr = katchMcArdle(lean.leanKg);
   var gd = (p && p.googleDaily) || {};
   var days = weekDates(date).map(function(d) { var g = gd[d]; var burned = g && isFinite(parseFloat(g.kcal)) ? Math.round(parseFloat(g.kcal)) : null; return { date: d, burned: burned, credit: burned == null ? null : Math.max(0, burned - bmr) }; })
@@ -114,7 +117,7 @@ export function decideSuggestion(p, decision) {
 }
 
 /** The daily kcal limit the Eating section uses: the calculated target only when R6 is active for the person. */
-export function kcalLimit(p, fallback) {
-  var s = settingsOf(p); if (!s.r6Active) return fallback;
-  var c = calcTarget(p, new Date()); return c ? c.target : fallback;
+export function kcalLimit(p, fallback, who) {
+  var s = settingsOf(p, who); if (!s.r6Active) return fallback;
+  var c = calcTarget(p, new Date(), who); return c ? c.target : fallback;
 }
