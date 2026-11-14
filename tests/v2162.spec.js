@@ -130,6 +130,6 @@ test("UI R5: Body feedback's suggestion appears on Home; Decline is recorded and
   await expect(page.getByTestId("adj-suggestion")).toHaveCount(0);
   const h = (await readData()).jc.calorieSettings;
   expect(h.adjHistory[0]).toMatchObject({ kind: "suggestion", value: 85, decision: "declined" });
-  expect(page.getByTestId("adj-pct")).toHaveText("100%");
+  await expect(page.getByTestId("adj-pct")).toHaveText("100%");
   expect(errors).toEqual([]);
 });

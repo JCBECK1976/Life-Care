@@ -74,6 +74,30 @@ test("Stripe (test mode): a signed checkout.session.completed credits £2.50 of 
   await assert.rejects(core.createCheckout({ uid: null, data: { pack: "pack5" } }, { stripe: fake, baseUrl: "" }), { code: "unauthenticated" });
 });
 
+test("households: owner creates + invites; invitee joins with a matching email; owner removes; no data access granted", async () => {
+  const { hid } = await core.createHousehold({ uid: "o1", data: {} }, { db });
+  await assert.rejects(core.createHousehold({ uid: "o1", data: {} }, { db }), { code: "failed-precondition" });
+  await assert.rejects(core.inviteMember({ uid: "m1", data: { email: "m1@example.com" } }, { db }), { code: "permission-denied" });
+  const { code } = await core.inviteMember({ uid: "o1", data: { email: "M1@example.com" } }, { db, makeCode: () => "abc123" });
+  await assert.rejects(core.acceptInvite({ uid: "m1", email: "other@example.com", data: { hid, code } }, { db }), { code: "permission-denied" });
+  await core.acceptInvite({ uid: "m1", email: "m1@example.com", data: { hid, code } }, { db });
+  await assert.rejects(core.acceptInvite({ uid: "m2", email: "m1@example.com", data: { hid, code } }, { db }), { code: "not-found" });  // used once
+  const h = (await db.ref(`apps/${A}/households/${hid}`).once("value")).val();
+  assert.deepEqual(Object.keys(h.members).sort(), ["m1", "o1"]);
+  assert.equal(h.owner, "o1");
+  assert.equal(JSON.stringify(h).includes("data"), false);                    // membership only; data access is the rules + privacy
+  await assert.rejects(core.removeMember({ uid: "m1", data: { uid: "o1" } }, { db }), { code: "permission-denied" });
+  await assert.rejects(core.leaveHousehold({ uid: "o1", data: {} }, { db }), { code: "failed-precondition" });
+  await core.removeMember({ uid: "o1", data: { uid: "m1" } }, { db });
+  assert.equal((await db.ref(`apps/${A}/memberOf/m1`).once("value")).val(), null);
+  await core.leaveHousehold({ uid: "o1", data: {} }, { db });
+  assert.equal((await db.ref(`apps/${A}/households/${hid}`).once("value")).val(), null);
+  // expired invite
+  const h2 = (await core.createHousehold({ uid: "o2", data: {} }, { db })).hid;
+  const c2 = (await core.inviteMember({ uid: "o2", data: { email: "x@example.com" } }, { db, now: 0, makeCode: () => "old" })).code;
+  await assert.rejects(core.acceptInvite({ uid: "x", email: "x@example.com", data: { hid: h2, code: c2 } }, { db }), { code: "deadline-exceeded" });
+});
+
 test.after(async () => { await app.delete(); });
 
 test("tier defaults (JC 14 Nov) and packs", async () => {

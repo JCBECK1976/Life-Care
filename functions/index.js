@@ -16,10 +16,15 @@ const STRIPE_WHSEC = defineSecret("STRIPE_WEBHOOK_SECRET");
 const opts = { region: REGION };
 
 const wrap = (fn) => async (req) => {
-  try { return await fn({ uid: req.auth && req.auth.uid, data: req.data }); }
+  try { return await fn({ uid: req.auth && req.auth.uid, email: req.auth && req.auth.token && req.auth.token.email, data: req.data }); }
   catch (e) { if (e instanceof core.HttpsError) throw new FnError(e.code, e.message); throw new FnError("internal", "Something went wrong."); }
 };
 export const aiProxy = onCall({ ...opts, secrets: [ANTHROPIC_KEY] }, wrap((c) => core.aiProxy(c, { db: db(), callClaude: pickBackend({ anthropicKey: process.env.ANTHROPIC_API_KEY }) })));
+export const createHousehold = onCall(opts, wrap((c) => core.createHousehold(c, { db: db() })));
+export const inviteMember = onCall(opts, wrap((c) => core.inviteMember(c, { db: db() })));
+export const acceptInvite = onCall(opts, wrap((c) => core.acceptInvite(c, { db: db() })));
+export const removeMember = onCall(opts, wrap((c) => core.removeMember(c, { db: db() })));
+export const leaveHousehold = onCall(opts, wrap((c) => core.leaveHousehold(c, { db: db() })));
 export const setTier = onCall(opts, wrap((c) => core.setTier(c, { db: db() })));
 export const adminAccounts = onCall(opts, wrap((c) => core.adminAccounts(c, { db: db() })));
 export const createCheckout = onCall({ ...opts, secrets: [STRIPE_KEY] }, wrap((c) => core.createCheckout(c, { stripe: new Stripe(process.env.STRIPE_SECRET_KEY), baseUrl: process.env.APP_BASE_URL || "https://jcbeck1976.github.io/Life-Care/" })));

@@ -11,32 +11,74 @@
       ".write": "auth != null && auth.uid === '3iEIfsbZlaUMwUiGY6Lro4jAQef1'"
     },
     "platform": {
-      "admins": { "$uid": { ".read": "auth != null && auth.uid === $uid" } }
+      "admins": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid"
+        }
+      }
     },
     "apps": {
       "$app": {
         "users": {
           "$uid": {
-            ".read": "auth != null && (auth.uid === $uid || (root.child('apps').child($app).child('consents').child($uid).child(auth.uid).val() === true && root.child('apps').child($app).child('consents').child(auth.uid).child($uid).val() === true))",
-            ".write": "auth != null && (auth.uid === $uid || (root.child('apps').child($app).child('consents').child($uid).child(auth.uid).val() === true && root.child('apps').child($app).child('consents').child(auth.uid).child($uid).val() === true))"
-          }
-        },
-        "consents": {
-          "$uid": {
-            "$other": {
-              ".read": "auth != null && (auth.uid === $uid || auth.uid === $other)",
+            "profile": {
+              ".read": "auth != null && (auth.uid === $uid || (root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val()))",
+              ".write": "auth != null && auth.uid === $uid"
+            },
+            "privacy": {
+              ".read": "auth != null && (auth.uid === $uid || (root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val()))",
               ".write": "auth != null && auth.uid === $uid",
-              ".validate": "newData.isBoolean()"
+              "visible": {
+                ".validate": "newData.isBoolean()"
+              },
+              "logForMe": {
+                ".validate": "newData.isBoolean() && (newData.val() === false || newData.parent().child('visible').val() === true)"
+              },
+              "areas": {
+                "$a": {
+                  ".validate": "newData.isBoolean()"
+                }
+              }
+            },
+            "consent": {
+              ".read": "auth != null && auth.uid === $uid",
+              ".write": "auth != null && auth.uid === $uid"
+            },
+            "data": {
+              ".read": "auth != null && auth.uid === $uid",
+              ".write": "auth != null && auth.uid === $uid",
+              "$area": {
+                ".read": "auth != null && root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val() && root.child('apps').child($app).child('users').child($uid).child('privacy/visible').val() === true && (!root.child('apps').child($app).child('users').child($uid).child('privacy/areas').exists() || root.child('apps').child($app).child('users').child($uid).child('privacy/areas').child($area).val() === true)",
+                ".write": "auth != null && root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val() && root.child('apps').child($app).child('users').child($uid).child('privacy/visible').val() === true && root.child('apps').child($app).child('users').child($uid).child('privacy/logForMe').val() === true && (!root.child('apps').child($app).child('users').child($uid).child('privacy/areas').exists() || root.child('apps').child($app).child('users').child($uid).child('privacy/areas').child($area).val() === true)"
+              }
             }
           }
         },
         "households": {
-          "$hid": { ".read": "auth != null && data.child('members').child(auth.uid).val() === true" }
+          "$hid": {
+            ".read": "auth != null && data.child('members').child(auth.uid).val() === true"
+          }
         },
-        "entitlements": { "$uid": { ".read": "auth != null && auth.uid === $uid" } },
-        "energy": { "$uid": { ".read": "auth != null && auth.uid === $uid" } },
-        "ledger": { "$uid": { ".read": "auth != null && auth.uid === $uid" } },
-        "usage": { "$uid": { ".read": "auth != null && auth.uid === $uid" } },
+        "entitlements": {
+          "$uid": {
+            ".read": "auth != null && auth.uid === $uid"
+          }
+        },
+        "energy": {
+          "$uid": {
+            ".read": "auth != null && auth.uid === $uid"
+          }
+        },
+        "ledger": {
+          "$uid": {
+            ".read": "auth != null && auth.uid === $uid"
+          }
+        },
+        "usage": {
+          "$uid": {
+            ".read": "auth != null && auth.uid === $uid"
+          }
+        },
         "config": {
           ".read": "auth != null",
           ".write": "auth != null && root.child('platform').child('admins').child(auth.uid).val() === true"
@@ -48,6 +90,11 @@
           ".read": "auth != null && root.child('platform').child('admins').child(auth.uid).val() === true",
           "$id": {
             ".write": "auth != null && (root.child('platform').child('admins').child(auth.uid).val() === true || (!data.exists() && newData.child('uid').val() === auth.uid))"
+          }
+        },
+        "memberOf": {
+          "$uid": {
+            ".read": "auth != null && auth.uid === $uid"
           }
         }
       }

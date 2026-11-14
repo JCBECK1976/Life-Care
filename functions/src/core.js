@@ -95,3 +95,53 @@ export async function stripeWebhook(rawBody, signature, { stripe, secret, db, no
   const r = await credit(db, appOf({ appId: m.appId }), m.uid, pack.creditPence, "stripe:" + m.pack, "stripe_" + s.id.replace(/[^A-Za-z0-9_]/g, "_"), now);
   return { status: 200, body: r.duplicate ? "already credited" : "credited" };
 }
+
+/* ---------- households (ADR 0012): one owner; owner = administration only, NO data access ---------- */
+const H = (app, hid) => `apps/${app}/households/${hid}`;
+const M = (app, uid) => `apps/${app}/memberOf/${uid}`;
+async function memberOf(db, app, uid) { return (await db.ref(M(app, uid)).once("value")).val(); }
+async function household(db, app, hid) { return hid ? (await db.ref(H(app, hid)).once("value")).val() : null; }
+
+export async function createHousehold({ uid, data }, { db, now = Date.now() }) {
+  need(uid, "unauthenticated", "Sign in first.");
+  const app = appOf(data);
+  need(!(await memberOf(db, app, uid)), "failed-precondition", "You're already in a household.");
+  const hid = db.ref(`apps/${app}/households`).push().key;
+  await db.ref().update({ [H(app, hid)]: { owner: uid, created: now, members: { [uid]: true } }, [M(app, uid)]: hid });
+  return { hid };
+}
+export async function inviteMember({ uid, data }, { db, now = Date.now(), makeCode }) {
+  const app = appOf(data); const hid = await memberOf(db, app, uid); const h = await household(db, app, hid);
+  need(h && h.owner === uid, "permission-denied", "Only the household owner can invite.");
+  const email = String((data && data.email) || "").trim().toLowerCase();
+  need(/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email), "invalid-argument", "A valid email is needed.");
+  const code = (makeCode || (() => db.ref().push().key.replace(/[^A-Za-z0-9]/g, "")))();
+  await db.ref(H(app, hid) + "/invites/" + code).set({ email, created: now });
+  return { code };                      // the app turns this into an invite link
+}
+export async function acceptInvite({ uid, email, data }, { db, now = Date.now() }) {
+  need(uid, "unauthenticated", "Sign in first.");
+  const app = appOf(data); const code = String((data && data.code) || ""); const hid = String((data && data.hid) || "");
+  const h = await household(db, app, hid);
+  const inv = h && h.invites && h.invites[code];
+  need(inv, "not-found", "This invite isn't valid any more.");
+  need(inv.email === String(email || "").toLowerCase(), "permission-denied", "Sign in with the email the invite was sent to.");
+  need(!(await memberOf(db, app, uid)), "failed-precondition", "You're already in a household.");
+  need(now - (inv.created || 0) < 14 * 86400000, "deadline-exceeded", "This invite has expired.");
+  await db.ref().update({ [H(app, hid) + "/members/" + uid]: true, [H(app, hid) + "/invites/" + code]: null, [M(app, uid)]: hid });
+  return { hid };
+}
+export async function removeMember({ uid, data }, { db }) {
+  const app = appOf(data); const hid = await memberOf(db, app, uid); const h = await household(db, app, hid);
+  need(h && h.owner === uid, "permission-denied", "Only the household owner can remove members.");
+  const who = data && data.uid; need(who && who !== uid && h.members && h.members[who], "invalid-argument", "Not a member.");
+  await db.ref().update({ [H(app, hid) + "/members/" + who]: null, [M(app, who)]: null });
+  return { ok: true };
+}
+export async function leaveHousehold({ uid, data }, { db }) {
+  const app = appOf(data); const hid = await memberOf(db, app, uid); const h = await household(db, app, hid);
+  need(h, "failed-precondition", "Not in a household.");
+  need(h.owner !== uid || Object.keys(h.members || {}).length === 1, "failed-precondition", "Remove the other members first (or hand over ownership).");
+  await db.ref().update(h.owner === uid ? { [H(app, hid)]: null, [M(app, uid)]: null } : { [H(app, hid) + "/members/" + uid]: null, [M(app, uid)]: null });
+  return { ok: true };
+}

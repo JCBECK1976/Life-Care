@@ -29,3 +29,16 @@ export async function viaProxy(body, feature, idToken, fetchImpl) {
     return new Response(JSON.stringify({ type: "error", error: { type: "proxy_error", message: msg } }), { status: 200, headers: { "Content-Type": "application/json" } });
   }
 }
+
+/** v2.16.6 ADR 0012 (behind useAccounts): the person tabs after sign-in — own tab first, then household members.
+ *  A Hidden member's tab is greyed: "[Name] keeps this private", no data. */
+export function householdTabs(selfUid, members, profiles, privacy) {
+  var others = Object.keys(members || {}).filter(function(u) { return u !== selfUid; })
+    .sort(function(a, b) { return String(((profiles || {})[a] || {}).name || a).localeCompare(String(((profiles || {})[b] || {}).name || b)); });
+  return [selfUid].concat(others).map(function(u) {
+    var name = ((profiles || {})[u] || {}).name || "Member";
+    var pv = (privacy || {})[u] || {};
+    var hidden = u !== selfUid && pv.visible !== true;
+    return { uid: u, name: name, self: u === selfUid, hidden: hidden, canLog: !hidden && u !== selfUid && pv.logForMe === true, note: hidden ? name + " keeps this private" : "" };
+  });
+}
