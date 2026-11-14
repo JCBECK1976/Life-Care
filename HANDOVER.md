@@ -2613,3 +2613,20 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **Decision (Coder):** the export/delete work on today's shared paths (per person key); the per-uid version comes with the accounts migration (G12). Rejected: waiting for the migration (P2 is needed before pilot either way).
 - **JC to test (/build/):** Settings → Privacy & your data → **Download my data** → a JSON file for the selected person. (Pilot screens: only with the flag on; the Architect can try them by setting `lc_flags` = `{"pilotConsent":true}` in the browser.)
 - **Resume point:** `build` @ 24ac8f5 (v2.16.7). Next: Step F (accessibility P6 + axe checks, v2.17.0).
+
+### (Coder) 14 Nov 2026 — Step F: v2.17.0 on build (accessibility P6) and stop point
+- **v2.17.0 (`build` 9f3e614):**
+  - **Contrast:** text colours meet WCAG AA. Light greys → `#475569`; greens, reds, ambers, oranges and blues → darker shades; theme accents and default person colours darkened (buttons and tabs look slightly deeper); status pills; mood and energy text.
+  - **Dark backgrounds:** axe can't judge text on gradients, so a separate runtime probe checked text on dark backgrounds; the header keeps light text.
+  - **Ratings:** a symbol + word next to the colour (`RagCue`).
+  - **Labels:** icon-only buttons are labelled (Close chat, Close help, Close photo review …); the Supermarket select is labelled; PersonTabs have `aria-pressed`.
+  - **Focus and motion:** visible 3px focus outline (`:focus-visible`); reduced-motion support.
+  - **Tests:** `@axe-core/playwright` (dev only), `tests/v2170.spec.js` (9): **0 violations** on Home, My Exercise, My Eating, My Body, My Health, My Shop, Settings and an open Progress week. Old tests updated for the new labels and red value. Full suite **199 passed**, lint 0 errors, 360px screenshot checked.
+  - `APP_GUIDE.md` (on build) updated for v2.16.7 + v2.17.0. Accessibility statement (main) updated to draft 2.
+- **Still open in P6:** target sizes, chart text alternatives, focus order in overlays, status messages, small font sizes, a screen-reader audit.
+- **Decisions needed (JC / Architect):**
+  1. The darker theme colours change the look slightly (e.g. JC's blue is a deeper blue). OK, or should a lighter accent be kept for big buttons only (text would use the darker one)?
+  2. Pilot flags: who turns on `pilotConsent` (and later `useAccounts`/`useAiProxy`), and when? Today it's per device (`localStorage`). A server-side switch per account comes with the accounts work (G12).
+  3. Still open from earlier: Anthropic DPA confirmation (J7); J10 Google Cloud setup; Step 4 setup list (Stripe, Blaze, Vertex AI).
+- **JC to test (/build/, close and reopen the tab; footer v2.17.0-build):** colours look fine on each tab (both themes); a meal rating shows e.g. "✕ Red"; Tab key shows a blue outline; Settings → Privacy & your data → Download my data.
+- **Resume point:** `build` @ 9f3e614 (v2.17.0), prod v2.15.1. Steps A–F done. Next: Architect review of /build/ → build → beta PR **when asked**; then the P6 remainder, or the accounts migration (G12) once JC approves.
