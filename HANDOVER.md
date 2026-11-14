@@ -2599,3 +2599,17 @@ Sizes are % of a weekly allowance, including Architect checks.
   - **J17** spare work iPhone (IT policy, test data only).
   - **G11** Companion platform seams (appId), **G12** household & privacy model; P1 notes point to design §5. 132 items.
 - **Resume point:** `build` @ 29f7344 (v2.16.6). Next: Step E (P9 consent + P8 pilot legal docs behind a flag, P2 export/deletion/audit, P10 retention function; v2.16.7).
+
+### (Coder) 14 Nov 2026 — Step E: v2.16.7 on build (pilot readiness, behind a flag)
+- **v2.16.7 (`build` 24ac8f5):** everything pilot-only is behind the flag **`pilotConsent`** (localStorage `lc_flags`, **off**), so JC and Becks see no change except "Download my data".
+  - **P9:** first-use consent screen: AI, photos, Google Health (granular) + "I have read the Privacy Notice and agree to the Terms (Pilot version — 14 November 2026)". Stored as `consent:<person>` (version, date, choices). A new `LEGAL_VERSION` asks again. Enforced: AI requests, photo checks and Google connect are refused when switched off.
+  - **P8:** the pilot Privacy Notice + Terms are in the app (`public/legal/`, copied from `docs/legal` with the draft banner replaced by "Pilot version — 14 November 2026"), shown by the consent screen, Settings and the footer Privacy link (replacing the old Privacy Policy while the flag is on). Rendered as React elements, no HTML.
+  - **P2:** Settings → **Privacy & your data**: **Download my data (JSON)** (everyone); **Delete my data** (pilot; typed DELETE; erases the person's live records and keyed items, keeps the app's structure and the name; backups age out). **Audit trail** `audit/<id>` (consent, export, delete-data, restore, r6-switch; masked account; no content); admin "Show audit trail". A full restore now **keeps** the audit trail.
+  - **P10:** `functions/src/retention.js` + scheduled `retentionDaily` (emulator only): periods per the Privacy Notice §7.
+  - Tests: `tests/v2167.spec.js` (5), backup test updated (audit kept), functions 15. Full suite **190 passed**, lint 0 errors.
+- **Docs fix (Coder):** this session I had edited `APP_GUIDE.md` on **main**, but each environment's Help reads its own branch's copy (prod builds from main). So prod Help briefly described unreleased v2.16 features.
+  - **Fixed:** the updated guide is now on `build` (v2.16.7, including the v2.15.2 lines that only existed there), and main's copy is restored to its pre-session text (identical to the merge base, so the release merge is clean).
+  - From now on the guide is updated on `build` with each version.
+- **Decision (Coder):** the export/delete work on today's shared paths (per person key); the per-uid version comes with the accounts migration (G12). Rejected: waiting for the migration (P2 is needed before pilot either way).
+- **JC to test (/build/):** Settings → Privacy & your data → **Download my data** → a JSON file for the selected person. (Pilot screens: only with the flag on; the Architect can try them by setting `lc_flags` = `{"pilotConsent":true}` in the browser.)
+- **Resume point:** `build` @ 24ac8f5 (v2.16.7). Next: Step F (accessibility P6 + axe checks, v2.17.0).
