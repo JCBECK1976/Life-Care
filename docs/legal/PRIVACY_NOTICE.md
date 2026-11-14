@@ -2,7 +2,7 @@
 
 > **DRAFT — for legal review before any users other than JC and Becks.** Not yet in force for anyone else. Placeholders are in [square brackets].
 
-Last updated: 13 November 2026 (draft 1)
+Last updated: 14 November 2026 (draft 1, steps and calorie model added for v2.17.1)
 
 This notice explains what personal data Lifecare Companion collects, why, and what rights you have. It is written for the UK GDPR and the Data Protection Act 2018.
 
@@ -17,7 +17,10 @@ To contact us about your data, use the contact address shown in the app (Setting
   - exercise logs;
   - eating logs and food lists;
   - health notes, mood and journal entries;
-  - the results of photo checks (values and scores only, see section 5).
+  - the results of photo checks (values and scores only, see section 5);
+  - your notes on weigh-ins and measurements (My Notes).
+- **From Google Health or Apple Health, only if you connect it:** your **daily steps** and **daily total calories burned** (one figure per day each; no location, heart rate or other readings).
+- **Worked out by the app from your data:** your estimated **BMR** (calories your body uses at rest), calorie goal and activity credit. These are calculated when shown and not stored separately.
 - **AI usage counts:** how many AI requests were made and how many tokens they used, per day and feature. No content is kept in these counts.
 - **Feedback:** what you send with 💬 Send Feedback, and the app owner's notes on it in the Tracker. This includes your account in masked form, the app version and the text.
 
@@ -27,6 +30,7 @@ You can withdraw consent at any time (see section 8). Withdrawing does not affec
 
 ## 4. What we use it for
 - To show you your own records, trends and plans.
+- To work out your calorie goal and daily activity credit (from your body composition, steps, calories burned and logged exercise), and to compare your week with your plan.
 - To give you AI-generated feedback, answers and photo checks about your wellness, exercise and eating.
 - To keep the app working, fix problems and improve it, using your feedback and usage counts.
 
@@ -55,7 +59,8 @@ We do not sell your data, use it for advertising, or share it with anyone except
 | AI usage counts | **120 days**. |
 | Feedback and Tracker entries | **2 years**. |
 | Photos | **Not stored**: analysed and then discarded (section 5). |
-| Google Health daily totals (when available) | While you stay connected, then **12 months**. |
+| Google Health / Apple Health daily steps and calories burned (if connected) | While you stay connected, then **12 months**. |
+| Derived figures (BMR, calorie goal, activity credit) | Not stored: worked out each time from the data above. |
 | Encrypted backups | They age out: every backup is deleted within **12 months**. Deleted data disappears from backups as they age out. |
 
 ## 8. Your rights

@@ -58,7 +58,7 @@ One root per environment: `data` (prod and beta) or `data_build` (Build). Most v
 
 | Key | Shape (summary) |
 |---|---|
-| `dashboard:data` | `{ config: { week, session, trainingStart, lastUpdate }, <person>: { profile, exercises: { <day>: [ { name, current, reps, status, prog: [ { wk, w, r, sets: [ {w, r} ], companion?: { verdict, recommendation, at, decision?: accepted or rejected, decisionNote? }, fullRange, goodForm, note } ] } ] }, body: { weight: [ {wk, v, date?, source?} ], bodyFat, muscleMass, … }, measurements: { <part>: [ {wk, v, date?} ] }, healthLog, bloods, progressPhotos: [ … ], bodyPhotos: [ … ], activity: [ … ] } }` Since v2.16.2 each person may also have `calorieSettings: { r6Active, deficit, adjPct, adjHistory: [ { date, kind (manual or suggestion), value, reason?, decision?, decidedOn?, acknowledged? } ] }`, `googleDaily: { "YYYY-MM-DD": { kcal, at } }` (daily totals only, 12 months) and `googleSync: { at, days, error? }`. |
+| `dashboard:data` | `{ config: { week, session, trainingStart, lastUpdate }, <person>: { profile, exercises: { <day>: [ { name, current, reps, status, prog: [ { wk, w, r, sets: [ {w, r} ], companion?: { verdict, recommendation, at, decision?: accepted or rejected, decisionNote? }, fullRange, goodForm, note } ] } ] }, body: { weight: [ {wk, v, date?, source?} ], bodyFat, muscleMass, … }, measurements: { <part>: [ {wk, v, date?} ] }, healthLog, bloods, progressPhotos: [ … ], bodyPhotos: [ … ], activity: [ … ] } }` Since v2.16.2 each person may also have `calorieSettings: { deficitPct (v2.17.1), r6Active and deficit (ignored since v2.17.1), adjPct, adjHistory: [ { date, kind (manual or suggestion), value, reason?, decision?, decidedOn?, acknowledged? } ] }`, `googleDaily: { "YYYY-MM-DD": { kcal, at } }` (daily totals only, 12 months), `dailyActivity: { "YYYY-MM-DD": { steps, source, at } }` (v2.17.1, 12 months) and `googleSync: { at, days, error? }`. |
 | `custom_breakfasts`, `custom_lunches`, `custom_meals`, `custom_snacks`, `custom_desserts`, `custom_drinks` | Food lists (**parents**): `[ { id, name, kcal, protein, fat, satFat, addedSugar, carbs, fibre, salt, rating, ragFreq, band, itemType, ingredients, suitability } ]` |
 | `eat_children:<person>:<Sunday YYYY-MM-DD>` | `{ v, children: { "c_<date>_<slot>": { parentId, date, weekday, slot, snapshot, portion, variations, nutrition, rating, ragFreq, band, parentBand, tracked, source, notes } }, empty: [ "<weekday>:<slot>" ], notes }` |
 | `mealplan:…`, `meal_tracking:<person>`, `portion_overrides:<person>` | Older eating formats, converted to children once when a week is opened. |
@@ -84,6 +84,26 @@ One root per environment: `data` (prod and beta) or `data_build` (Build). Most v
 - `ai_usage` uses a transaction.
 - Tracker entries are written per entry.
 - Every change must stay readable by the released prod version ([ADR 0002](adr/0002-shared-database-backward-compatible-changes.md)).
+
+
+### 3a. Calorie model fields and flow (v2.17.1)
+Design: [design/CALORIES.md](design/CALORIES.md). All per person under `dashboard:data.<person>`; everything else is derived on the fly, never stored.
+
+| Field / input | Where it comes from | Used for |
+|---|---|---|
+| `body.weight[]` (stone), `body.bodyFat[]` (%) | Weigh-ins (📋 Record, 📷 Upload) | BMR inputs: lean mass from the average of the last 3–4 weigh-ins with body fat |
+| `profile` height, date of birth / age, sex | My Profile | Mifflin-St Jeor fallback; stride (height × 0.415) for the step allowance |
+| `body.<metric>[].note`, `measurements.<part>[].note` | My Notes on Record / Open → Edit | Body-record notes (`bodyNotesCtx`) in `getCrossSectionCtx` → every companion |
+| `calorieSettings.deficitPct` | Calorie card → Change deficit (0–40, default 20) | Goal = baseline × (1 − deficit %), floored at BMR |
+| `calorieSettings.adjPct`, `adjHistory[]` | Change adjustment (50–150, default 100) or an accepted R5 suggestion | Credit × adjustment % |
+| `dailyActivity[date] = { steps, source, at }` | Google Health sync (`mergeSteps`) | Steps above the step allowance; 👣 line in My Exercise |
+| `googleDaily[date] = { kcal, at }` | Google Health sync (`mergeDaily`) | Total-burned mode: credit = total − baseline |
+| exercise `type` → MET (`MET` in `calories.js`), session minutes or sets × 3 | My Exercise logs for that date's weekday and training week | Exercise credit = (MET − 1) × kg × hours |
+| Step allowance | Derived: steps equivalent of 0.15 × BMR − 10% of goal, clamped 2,000–3,500 | Shown as "Your first ~N steps are already in your goal" |
+
+Older `calorieSettings.r6Active` and `deficit` (kcal) are ignored since v2.17.1 but left in place (backward compatible).
+
+**Flow:** `planOf(p)` → `{ bmr, method, estimate, baseline, deficitPct, goalRaw, goal, floored, stepAllowance, adjPct … }`; `dayCredit(p, date, plan)` → `{ mode: total|parts, steps, exercise, credit }`; `dayBudget(p, date, foodKcal)` → goal, food, credit, left. **Displayed** by `CalorieCard` on Home (`WeekSoFar`, today) and on each My Eating day; `kcalLimit` gives My Eating's daily limit (goal + credit); `weekSoFar(p, doc, now)` drives the Plan vs Actual card.
 
 ## 4. AI call map
 - **Common settings:**

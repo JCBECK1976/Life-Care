@@ -25,6 +25,22 @@ Draft 1.1, 13 Nov 2026 (prod v2.15.1; Architect review applied). How changes are
 | Rules drift (planned) | Scheduled job, once SAD action A6 is built | The live database rules match the repository's rules file | Nightly |
 | Manual | JC on his phone (`/build/` when asked, `/beta/` always) | Real device, real data, real AI | Each release |
 
+## 2a. Regression sets
+**Calorie model (v2.17.1, `tests/v2171.spec.js`; design [design/CALORIES.md](design/CALORIES.md)).** Known inputs with fixed expected outputs; any change to `src/lib/calories.js` must keep these passing (or change them with a recorded decision):
+| Case | Input | Expected |
+|---|---|---|
+| BMR, baseline, goal | 91.9 kg, 25.5% body fat | BMR ≈ 1,849; baseline ≈ 2,126; goal at 20% ≈ 1,701 → limited to BMR 1,849; at 10% 1,913 |
+| Step allowance | JC test profile (178 cm, 91.9 kg) / Becks test profile (165 cm, 10.4 st, 30%) | 2,724 / 3,027 steps (clamp 2,000–3,500) |
+| Steps credit | 10,000 steps (JC profile) | +247 kcal |
+| Exercise credit | 30 min weights (MET 5.0) at 91.9 kg | +184 kcal |
+| Total-burned mode | 2,900 kcal burned (Health) | +774 kcal; steps and exercise not added on top |
+| Adjustment % | credit × adjustment % | applied after either mode |
+| Fallbacks | No body fat → Mifflin-St Jeor; no weight → age/sex average | labelled "estimate" |
+| Food per day | Week's eating record | skipped items not counted |
+| Week so far | Fixed clock (a Wednesday) | counts Sun–Tue only; today separate; future never counted |
+| My Notes | A weigh-in note | collected newest first; reaches the AI request context |
+| UI | My Eating day and Home | Goal · Food · Activity · Left, step note, "How this is calculated", deficit % change |
+
 ## 3. Test data
 - Seeded per test with **synthetic** data (`scripts/make-fixture.mjs`, two made-up people with the same data shapes; `npm run seed`); each test that changes data reseeds first. Seeding from the real backup is opt-in only (`SEED_REAL=1`), never by default (SAD-A9, v2.16.1).
 - Tests that need special shapes write them through the emulator's REST API (owner token), then reload.

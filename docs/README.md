@@ -11,7 +11,9 @@ Structure agreed 6 Nov 2026 23:10 (see HANDOVER). **Public** documents are here;
 | Plan (single source) | [plan.json](plan.json) | Every item with phase, status, priority, Token %; published as `/Life-Care/plan.json` and loaded into the admin Tracker (v2.15.0). Update it whenever an item starts or finishes |
 | Product backlog | [backlog/PRODUCT_BACKLOG.md](backlog/PRODUCT_BACKLOG.md) | Planned/approved record; new ideas go into the in-app Tracker |
 | Defects backlog | [backlog/DEFECTS.md](backlog/DEFECTS.md) | Planned/approved record; new reports go into the in-app Tracker |
-| Decision log (ADRs) | [adr/](adr/) | ADRs 0001–0010 (13 Nov); earlier detail in HANDOVER's Session Log |
+| Decision log (ADRs) | [adr/](adr/) | ADRs 0001–0013 (13–14 Nov); earlier detail in HANDOVER's Session Log |
+| Calorie model (design) | [design/CALORIES.md](design/CALORIES.md) | v2.17.1 (14 Nov): BMR, goal, activity credit, Plan vs Actual; known-input tests |
+| Accounts, tiers and energy (design) | [design/ACCOUNTS_TIERS_ENERGY.md](design/ACCOUNTS_TIERS_ENERGY.md) | Design + local build only (14 Nov); not live |
 | User guide | [`../APP_GUIDE.md`](../APP_GUIDE.md) | Read live by Help |
 | Privacy notice | [legal/PRIVACY_NOTICE.md](legal/PRIVACY_NOTICE.md) | **DRAFT** for legal review (13 Nov) |
 | Terms of use | [legal/TERMS_OF_USE.md](legal/TERMS_OF_USE.md) | **DRAFT** for legal review (13 Nov) |

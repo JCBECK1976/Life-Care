@@ -62,9 +62,19 @@ All AI calls use the Anthropic Messages API with `claude-sonnet-4-6`.
 | Food rating and recalculation | Item name/ingredients, portion, changes | Nutrition values | Ratings then come from rules in code. Recalculations are checked for plausibility. |
 | Photo checks (📷 Snap, Food Checker, Help Me Eat, measurement Snap, Body Type Photos, Body balance) | A photo, **shrunk before sending** (≤ 1568 px), optional description | Values, assessment or structured scores | **Images are analysed and then discarded: never stored**, not in the database, not in backups. Only the result is kept. A Re-check is an independent second look. |
 | Energy check | A minimal request, at most once a day | OK / error | Drives the Companion Energy status. |
-| *Planned:* Google Health calorie sync (plan R4, R6, R5) | Each person's own Google account: daily calories burned | A labelled activity credit and a calorie target from measured burn | Not built. The Google token is to be kept on the device, not in the database. |
+| Google Health sync (R4, v2.16.2; steps v2.17.1) | Each person's own Google account: daily total calories burned and daily steps | Stored per day; used for the activity credit (below) | Not an AI call. The Google token stays on the device, never in the database. |
+| Activity adjustment suggestion (R5) | Weight trend vs food eaten over a few weeks | A suggested activity adjustment % with a reason | The person accepts or declines; nothing changes on its own. |
 
 Every reply's token counts go to the **AI usage ledger**; Companion Energy is the ledger's spend since the admin last set the balance to 100%.
+
+## 6a. Calorie model, Plan vs Actual and body-record notes (v2.17.1)
+Full design: [design/CALORIES.md](design/CALORIES.md) · decision: [ADR 0013](adr/0013-calorie-model.md). Pure calculations in code (`src/lib/calories.js`), not AI.
+- **Goal:** BMR (Katch-McArdle from lean mass, averaged over the last 3–4 weigh-ins with body fat; Mifflin-St Jeor or an age/sex average as labelled estimates) × 1.15 = baseline; minus the person's deficit % (default 20%); never below BMR.
+- **Activity credit, net of resting burn:** Health total burned − baseline when available (nothing added on top); otherwise steps above a per-person step allowance + logged exercise ((MET − 1) × kg × hours). Then × the activity adjustment % (R5).
+- **Shown** on Home (today) and each day in My Eating: Goal · Food · Activity · Left, with "How this is calculated". My Eating's daily limit uses goal + credit.
+- **Home "Week so far: Plan vs Actual":** complete days only (Sunday → yesterday): eating vs goal + credit (±10% / ±20% bands), exercise sessions done vs planned, overall = the average. Today shown separately; future never counted.
+- **My Notes on body records:** a note on each weigh-in and measurement, sent as context to every Companion that sees body data.
+- Wellness guidance, not medical advice ([Intended use](legal/INTENDED_USE.md)).
 
 ## 7. Feedback, Defect & Feature tracker
 💬 Send Feedback saves an entry (time, version, environment, masked account, person, text; *Feedback / New*) and, only if the admin has set a feedback email address, opens the phone's email app pre-filled (the person presses Send there; v2.14.1/v2.14.3). The admin triages entries in Settings → 📝 Tracker (re-categorise, status, priority, note, ref) and can add Defects and Features directly. Admin features (Settings sections, Tracker, Data tools) are a convenience view for the app owner, not an access control. Approved items get IDs in [backlog/](backlog/), which is the planned record. The **plan** (`docs/plan.json`, every item with phase, status, priority and Token %) is published with each main deploy as `/Life-Care/plan.json`; opening the Tracker loads it and updates its items by id (the admin's notes are kept, feedback is untouched).

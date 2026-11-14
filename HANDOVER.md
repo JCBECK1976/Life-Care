@@ -2654,3 +2654,10 @@ Sizes are % of a weekly allowance, including Architect checks.
   4. Change deficit.
   5. My Body → 📋 Record with My Notes → Body Feedback mentions it.
 - **Resume point:** `build` @ 06dd82b (v2.17.1), prod v2.15.1. Next: **wait for JC's test**, then the build → beta PR when asked.
+
+### (Coder) 14 Nov 2026 — v2.17.1 docs follow-up: calorie model explained everywhere
+- **build `21ac1ac`** (no version change; ships with v2.17.1): APP_GUIDE "How your calorie goal works" + Help Q&A (goal, BMR and why it changes, step allowance, exercise MET, net vs watch + adjustment %, deficit %, "limited to your BMR", Plan vs Actual, My Notes), wellness/GP line, glossary terms; Settings → Documentation lists `docs/design/CALORIES.md`. Lint 0 errors; v2150/v2160/v2171 specs 23 passed.
+- **main:** HLD §6a (calorie model, Plan vs Actual, body-record notes) and AI-flow rows; LLD §3a (fields, flow, display); Privacy Notice (daily steps + calories burned if connected, derived BMR not stored; retention while connected + 12 months); TEST_STRATEGY §2a calorie regression set; README index (design docs, ADRs 0001–0013); CHANGELOG; plan F18 Done.
+- **JC to test:** Help → "How is my calorie goal worked out?" / "Why is my activity credit lower than my watch says?" on `/build/`.
+- **Open:** BMR floor vs 20% default (a/b/c, previous entry).
+- **Resume point:** `build` @ `21ac1ac` (v2.17.1), prod v2.15.1. Next: wait for JC's test, then the build → beta PR when asked.
