@@ -55,6 +55,7 @@ Draft 1.1, 13 Nov 2026 (prod v2.15.1; Architect review applied). How changes are
 | Week to date | Fixed Wednesday: Sun + Tue only (Mon unlogged, today and future excluded); Sunday morning → none |
 | One goal everywhere | Home Today goal = My Eating day goal; no deficit control; week view 7 rows + footnote |
 | Companions | Body feedback request contains the goal and timescale; no fixed 2000-2200 / 1700-1900 targets |
+| Recommended target (v2.18.1, `tests/v2181.spec.js`) | Body-fat method 85.6 (83.5–87.8), Becks-like 64.2, age 30 → 82.5; BMI fallback 74.3 estimate; floor at BMI 18.5; accept vs own (note, both stored, companion context); ≥ 2 kg move → suggestion; UI: no free entry first, BMI block |
 
 ## 3. Test data
 - Seeded per test with **synthetic** data (`scripts/make-fixture.mjs`, two made-up people with the same data shapes; `npm run seed`); each test that changes data reseeds first. Seeding from the real backup is opt-in only (`SEED_REAL=1`), never by default (SAD-A9, v2.16.1).

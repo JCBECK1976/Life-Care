@@ -2680,3 +2680,11 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **main:** CALORIES.md §7, ADR 0014, HLD §6a, LLD (goals.js, fields), Privacy Notice (goal, target weight, activity level, conditions), TEST_STRATEGY regression set, CHANGELOG, plan F20–F23. The private DPIA is the Architect's.
 - **JC to test (/build/, footer v2.18.0-build):** the goal setup appears for JC and Becks (try the slider: a short timescale goes red with Steady/Gentle buttons; a too-low target is blocked); Home → Today table (rows, Week to date pill, ▸ Show earlier days, footnote); My Eating day and Week show the same goal; Body feedback mentions your goal; Help → "How does the timescale slider work?".
 - **Resume point:** `build` @ `dde5c3e` (v2.18.0), prod v2.15.1. Next: wait for JC's test, then the build → beta PR when asked.
+
+### (Coder) 14 Nov 2026 — v2.18.1 on build: recommended target weight
+**Decision (JC, 14 Nov):** the target weight is recommended by the app, not typed first. Body-fat method (lean mass ÷ (1 − healthy body-fat %)), BMI fallback labelled estimate; Accept or Change (amber note, both stored, companion may refer to the recommendation); BMI 18.5 block and safety rails kept; material changes → suggestion.
+**Coder choices:** bands men 40+ 18–22%, men <40 15–19%, women 40+ 25–31%, women <40 22–28% (mid-point = target, ends = range); BMI fallback target = mid of 22–24.9; "material" = 2 kg; the update suggestion only when the person is following the recommendation (not for their own target).
+- **build `dc9926a`** (v2.18.1). Full suite 219 passed (6 skipped), lint 0 errors. Known inputs: 91.9 kg / 25.5% / 50 M → 85.6 kg (83.5–87.8).
+- **main:** CALORIES §7.2, ADR 0014, LLD, TEST_STRATEGY, CHANGELOG, plan F24.
+- **JC to test (/build/, footer v2.18.1-build):** My Profile → Change my goal: the recommendation and its reason; Change to your own number → amber note; Save; My Profile shows both; Help → "How is my target weight worked out?".
+- **Resume point:** `build` @ `dc9926a` (v2.18.1), prod v2.15.1. Next: wait for JC's test, then the build → beta PR when asked.
