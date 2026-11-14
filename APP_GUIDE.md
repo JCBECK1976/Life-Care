@@ -175,6 +175,8 @@ Tracks body composition, usually from a smart scale:
   - It says **Calculated (not active)** until the app owner switches it on for you; until then your usual targets are used. Once **Active**, My Eating uses it.
   - **Activity adjustment** (default 100%): how much of the activity credit counts. **Change** sets your own value. After 3–4 weeks the Companion's Body Feedback may **suggest** a new value with a reason; **Accept** or **Decline**. If you decline, it won't ask again for at least 4 weeks. If you change it yourself, the Companion mentions it once and gives its view.
 
+- **Shared from another app** ("What is this?"): choose **For** (the person, defaults to whoever is selected) before choosing what it is, so each person's weigh-in goes to their own record.
+
 ### My Body Measurements
 Tape measurements in cm (e.g. chest, waist, hips, arms, thighs).
 - For each measurement: **📋 Log** today's value (shows **Previous** for comparison) with an optional **Note**.
@@ -243,7 +245,7 @@ At the bottom of My Body. It's off until you tap **Turn on body balance checks**
 - **Why honesty matters:** the Companion bases its progression advice on what you log. Inflating reps leads to bad recommendations.
 
 ### Progress panel (👁 Progress)
-- One row per week: week, weight, reps and **Open**, with **Form** and **Range** chips underneath (✓ Good, … Working towards). **+ Add Week** adds a missed week; a chart appears once there are 2+ weeks. When the sets in a week used different weights, the row (and the card) shows the range, e.g. **56–63kg**, with a **Sets:** line underneath (63kg×10, 56kg×8, 63kg×8).
+- One row per week: week, weight, reps and **Open**. Form and Range are shown inside **Open**. **+ Add Week** adds a missed week; a chart appears once there are 2+ weeks. When the sets in a week used different weights, the row (and the card) shows the range, e.g. **56–63kg**, with a **Sets:** line underneath (63kg×10, 56kg×8, 63kg×8).
 - **Open week N** shows that week read-only: each set, **Range** and **Form** (as a chip: **Good** or **Working towards**), **My Notes**, and the **Companion Feedback** for that week (if any) with **your decision** (Accepted / Rejected and your note). **Edit** lets you change the week number, any set (**+ Add set**), Range, Form, My Notes and your decision on the feedback, then **Save**. **Remove** takes the week out (asks first).
 - Changing or removing an **older** week never changes the exercise card or its status badge. Only the latest week does: if you change or remove it, the card shows the new latest week and the status clears until your next session feedback.
 - **Strength vs Population** — an estimate of where your performance sits against people of your sex and age (untrained, and including trained). Estimated from cable machine performance, so treat it as a guide, not a test result.
