@@ -2688,3 +2688,11 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **main:** CALORIES §7.2, ADR 0014, LLD, TEST_STRATEGY, CHANGELOG, plan F24.
 - **JC to test (/build/, footer v2.18.1-build):** My Profile → Change my goal: the recommendation and its reason; Change to your own number → amber note; Save; My Profile shows both; Help → "How is my target weight worked out?".
 - **Resume point:** `build` @ `dc9926a` (v2.18.1), prod v2.15.1. Next: wait for JC's test, then the build → beta PR when asked.
+
+### (Coder) 14 Nov 2026 — v2.18.2 on build: food ratings (F23)
+**Decisions (JC, 14 Nov):** all v2.18.0 and v2.18.1 Coder choices accepted. F23: list items (parents) rate against the UK reference intake (2,000 kcal, sat fat 20 g, free sugars per D11 = 25 g), shared, no re-rating; selections (children) rate against that person's goal and personal limits; the existing "… today" note shows when they differ.
+**Coder choices:** personal limits = daily goal without exercise (typical body burn + aim, ≥ safe minimum); sat fat and sugars scaled from 20 g / 25 g by goal ÷ 2,000, never above the reference when a condition makes them a priority (cholesterol → sat fat; glucose → sugars); the reference until setup is complete; selections are re-rated live in the screens (stored ratings update when a selection changes); Snap previews use the person's limits; frequency warnings still count stored bands; plain note "RED today — for your goal".
+- **build `fe7df5e`** (v2.18.2). Full suite 222 passed (6 skipped), lint 0 errors. Four older tests updated for the new references (their old expectations came from the 1,800 kcal reference).
+- **main:** CALORIES §7.7, ADR 0014, LLD, TEST_STRATEGY, CHANGELOG, plan F23 Done.
+- **JC to test (/build/, footer v2.18.2-build):** a big meal on your day may show e.g. "RED today — for your goal" while the list item keeps its rating; Help → the rating system.
+- **Resume point:** `build` @ `fe7df5e` (v2.18.2), prod v2.15.1. Next: wait for JC's test, then the build → beta PR when asked.

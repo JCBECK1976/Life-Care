@@ -76,3 +76,9 @@ Every companion's context (`getCrossSectionCtx`) includes the goal, description,
 
 ### 7.6 Worked example (tested)
 91.9 kg, 25.5% fat, 178 cm, male 50, mostly sitting → BMR 1,849, body burn 2,126; recommended target 85.6 kg (range 83.5–87.8; at age 30: 82.5); without body fat 74.3 kg (69.7–78.9, estimate). Becks-like profile (165 cm, 10.4 st, 30%, 47) → 64.2 kg (61.6–67.0). Healthy body weight, 7 months to 82 kg → 0.33 kg/week, aim −359, goal 1,767 (green). 5 months → body burn − gap 1,624 < safe minimum 1,664 → red. 80 kg in 3 months → red; Steady 6 months, Gentle 9 months; applied aim capped at −532. Grow / Support (BMI 29) → −213. Build (25.5% fat) → recomposition (0). On my feet → body burn 2,404 on days without steps.
+
+### 7.7 Food ratings: list items vs selections (v2.18.2, F23, JC 14 Nov)
+- **List items (parents, shared):** rated against the **UK reference intake** — 2,000 kcal, sat fat 20 g, free (added) sugars 25 g (the D11 bands). The same for everyone; existing list ratings are not re-rated (only when an item is edited or the admin re-rates lists).
+- **Selections (children):** rated against **that person's goal and personal limits** (`personalLimits` in `goals.js`): kcal = the daily goal without exercise (typical body burn + aim, never below the safe minimum); sat fat 20 g × kcal/2,000 and sugars 25 g × kcal/2,000, never above 20 g / 25 g when a condition makes the nutrient a priority (cholesterol → sat fat, blood glucose → sugars). Until the goal setup is complete the reference is used. Ratings are applied when a selection is created or changed, and shown live (lists, totals, Snap previews).
+- When the two differ, the existing note shows: "RED today — for your goal" (or "— large portion" / "— with changes" when the portion changed).
+- Tested: `tests/v2182.spec.js` (760 kcal pasta: GREAT on the list, RED for a 1,767 kcal goal, unchanged for 2,126).

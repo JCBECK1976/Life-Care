@@ -55,6 +55,7 @@ Draft 1.1, 13 Nov 2026 (prod v2.15.1; Architect review applied). How changes are
 | Week to date | Fixed Wednesday: Sun + Tue only (Mon unlogged, today and future excluded); Sunday morning → none |
 | One goal everywhere | Home Today goal = My Eating day goal; no deficit control; week view 7 rows + footnote |
 | Companions | Body feedback request contains the goal and timescale; no fixed 2000-2200 / 1700-1900 targets |
+| Food ratings (v2.18.2, `tests/v2182.spec.js`) | Lists: reference 2,000 / 20 g / 25 g (850 kcal RED, 760 GREAT); personal limits 2,126 → 21.3 g / 26.6 g, 1,767 → 17.7 / 22.1, capped at 20 / 25 with cholesterol + prediabetes; a 760 kcal selection RED for 1,767 with "RED today — for your goal", none for 2,126 |
 | Recommended target (v2.18.1, `tests/v2181.spec.js`) | Body-fat method 85.6 (83.5–87.8), Becks-like 64.2, age 30 → 82.5; BMI fallback 74.3 estimate; floor at BMI 18.5; accept vs own (note, both stored, companion context); ≥ 2 kg move → suggestion; UI: no free entry first, BMI block |
 
 ## 3. Test data
