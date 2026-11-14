@@ -53,7 +53,8 @@ export const CSP_HOSTS = {
   script: ["https://accounts.google.com", "https://apis.google.com", "https://*.firebasedatabase.app"],
   connect: ["https://api.anthropic.com", "https://world.openfoodfacts.org", "https://health.googleapis.com", "https://www.googleapis.com", "https://oauth2.googleapis.com",
     "https://identitytoolkit.googleapis.com", "https://securetoken.googleapis.com", "https://*.firebasedatabase.app", "wss://*.firebasedatabase.app",
-    "https://raw.githubusercontent.com", "https://jcbeck1976.github.io", "https://accounts.google.com"],
+    "https://raw.githubusercontent.com", "https://jcbeck1976.github.io", "https://accounts.google.com",
+    "https://europe-west1-life-care-app-64d04.cloudfunctions.net"], // v2.16.3: server AI proxy (flag, off by default)
   img: ["data:", "blob:", "https://images.openfoodfacts.org", "https://static.openfoodfacts.org", "https://lh3.googleusercontent.com"],
   frame: ["https://accounts.google.com", "https://life-care-app-64d04.firebaseapp.com"],
   style: ["https://accounts.google.com"],

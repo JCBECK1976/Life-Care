@@ -1,5 +1,7 @@
 import { sGet, sSet } from "./storage.js";
 import { withMedicationRule } from "./safety.js";
+import { flag, viaProxy } from "./platform.js";
+import { auth } from "./firebase.js";
 import firebase, { DATA_ROOT } from "./firebase.js";
 import { PRICES, addToLedger, costOf, energyFromLedger, featureOf } from "./aiUsage.js";
 
@@ -51,7 +53,12 @@ window.fetch = function() {
     /* v2.15.2 P7: every Messages API request carries the medication safety rule (src/lib/safety.js) */
     var args = Array.prototype.slice.call(arguments);
     if (url.indexOf("/v1/messages") !== -1 && typeof opts.body === "string") args[1] = Object.assign({}, opts, { body: withMedicationRule(opts.body) });
-    return _origFetch.apply(this, args).then(function(resp) {
+    /* v2.16.3 Step 4: flag "useAiProxy" (default OFF) sends the request to the server proxy instead (EU, energy checked server-side) */
+    var _self = this;
+    var send = (flag("useAiProxy") && url.indexOf("/v1/messages") !== -1 && typeof opts.body === "string")
+      ? auth.currentUser.getIdToken().then(function(t) { return viaProxy(args[1].body, feature, t); })
+      : _origFetch.apply(_self, args);
+    return send.then(function(resp) {
       var cloned = resp.clone();
       cloned.json().then(function(data) {
         if (data && data.usage) {
