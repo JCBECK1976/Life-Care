@@ -59,7 +59,7 @@ export default function SharePicker(props) {
   return (<div role="dialog" aria-modal="true" aria-label="What is this?" data-testid="share-picker" style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
     <div style={{ background: "#fff", width: "100%", maxWidth: 480, borderRadius: "16px 16px 0 0", padding: 16, boxSizing: "border-box" }}>
       <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>What is this?</div>
-      <div style={{ fontSize: 11, color: "#64748b", marginBottom: 12 }}>{files.length === 1 ? "1 image" : files.length + " images"} shared with Lifecare Companion. It stays on this phone until you choose.</div>
+      <div style={{ fontSize: 11, color: "#475569", marginBottom: 12 }}>{files.length === 1 ? "1 image" : files.length + " images"} shared with Lifecare Companion. It stays on this phone until you choose.</div>
       {props.people && props.people.length > 1 && (<div style={{ marginBottom: 10 }}>
         <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 4 }}>For</div>
         <div style={{ display: "flex", background: props.accentMid || "#1e3a5f", borderRadius: 6, padding: 2 }}>
@@ -69,11 +69,11 @@ export default function SharePicker(props) {
             onSelect={function(k) { setWho(k); }} />
         </div>
       </div>)}
-      {KINDS.map(function(o) { return <button key={o.k} onClick={function() { choose(o.k); }} style={btn}>{o.label}<div style={{ fontSize: 10, fontWeight: 400, color: "#64748b" }}>{o.hint}</div></button>; })}
+      {KINDS.map(function(o) { return <button key={o.k} onClick={function() { choose(o.k); }} style={btn}>{o.label}<div style={{ fontSize: 10, fontWeight: 400, color: "#475569" }}>{o.hint}</div></button>; })}
       {msg && <div role="alert" style={{ fontSize: 11, color: "#991b1b", fontWeight: 600, margin: "4px 0 8px" }}>{msg}</div>}
       <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
         <button onClick={function() { setFiles(null); tidyUrl(); }} style={{ flex: 1, padding: 10, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>Later (keep it)</button>
-        <button onClick={async function() { await clearShared(); setFiles(null); tidyUrl(); }} style={{ flex: 1, padding: 10, background: "#fff", border: "1px solid #fecaca", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#dc2626", cursor: "pointer" }}>Discard</button>
+        <button onClick={async function() { await clearShared(); setFiles(null); tidyUrl(); }} style={{ flex: 1, padding: 10, background: "#fff", border: "1px solid #fecaca", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#b91c1c", cursor: "pointer" }}>Discard</button>
       </div>
     </div>
   </div>);

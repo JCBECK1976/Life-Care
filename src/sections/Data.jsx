@@ -120,7 +120,7 @@ export default function DataSection({ ctx }) {
   </div>
   <div data-testid="data-viewer" style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>Data viewer</div>
   {(() => {
-    if (!data) return (<div style={{fontSize:11,color:"#94a3b8"}}>No data loaded</div>);
+    if (!data) return (<div style={{fontSize:11,color:"#475569"}}>No data loaded</div>);
     var people = Object.keys(data).filter(function(k) { return data[k] && data[k].exercises; });
     return (<div>
       {people.map(function(person) {
@@ -138,11 +138,11 @@ export default function DataSection({ ctx }) {
                 return (<div key={i} style={{ padding: "6px 8px", marginBottom: 3, background: pc > 0 ? "#f0fdf4" : "#fef2f2", borderRadius: 6, border: "1px solid " + (pc > 0 ? "#86efac" : "#fecaca"), fontSize: 11 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", cursor: "pointer" }} onClick={function(){setDataExpandEx(dataExpandEx === person+"-"+day+"-"+i ? null : person+"-"+day+"-"+i);}}>
                     <span style={{ fontWeight: 600 }}>{ex.name}</span>
-                    <span style={{ color: pc > 0 ? "#16a34a" : "#dc2626", fontWeight: 600 }}>{pc} logs {dataExpandEx === person+"-"+day+"-"+i ? "\u25B2" : "\u25BC"}</span>
+                    <span style={{ color: pc > 0 ? "#15803d" : "#b91c1c", fontWeight: 600 }}>{pc} logs {dataExpandEx === person+"-"+day+"-"+i ? "\u25B2" : "\u25BC"}</span>
                   </div>
-                  <div style={{ color: "#64748b", fontSize: 10 }}>Current: {ex.current || "?"} / {ex.reps || "?"}</div>
+                  <div style={{ color: "#475569", fontSize: 10 }}>Current: {ex.current || "?"} / {ex.reps || "?"}</div>
                   {dataExpandEx === person+"-"+day+"-"+i && (<div style={{ marginTop: 6, borderTop: "1px solid #e2e8f0", paddingTop: 6 }}>
-                    <div style={{ display: "flex", gap: 4, marginBottom: 4, fontSize: 9, fontWeight: 700, color: "#64748b" }}>
+                    <div style={{ display: "flex", gap: 4, marginBottom: 4, fontSize: 9, fontWeight: 700, color: "#475569" }}>
                       <span style={{width:35}}>WEEK</span><span style={{flex:1}}>WEIGHT</span><span style={{flex:1}}>REPS</span><span style={{flex:2}}>NOTES</span>
                     </div>
                     {(ex.prog || []).map(function(p, pi) {
@@ -154,10 +154,10 @@ export default function DataSection({ ctx }) {
                         <span style={{width:35,fontWeight:600}}>{wk}</span>
                         <span style={{flex:1}}>{wt}</span>
                         <span style={{flex:1}}>{rp}</span>
-                        <span style={{flex:2,color:"#64748b"}}>{nt}</span>
+                        <span style={{flex:2,color:"#475569"}}>{nt}</span>
                       </div>);
                     })}
-                    {pc === 0 && <div style={{fontSize:10,color:"#94a3b8",fontStyle:"italic"}}>No logged weeks</div>}
+                    {pc === 0 && <div style={{fontSize:10,color:"#475569",fontStyle:"italic"}}>No logged weeks</div>}
                   </div>)}
                 </div>);
               })}

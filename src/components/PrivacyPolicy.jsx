@@ -16,9 +16,9 @@ export default function PrivacyPolicy({ ctx }) {
         <div style={{ background: "#fff", borderRadius: 16, maxWidth: 500, width: "100%", maxHeight: "85vh", overflow: "auto", padding: "24px 20px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a" }}>Privacy Policy</div>
-            <button onClick={function(){ setShowPrivacy(false); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, width: 32, height: 32, fontSize: 16, cursor: "pointer", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+            <button aria-label="Close privacy policy" onClick={function(){ setShowPrivacy(false); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, width: 32, height: 32, fontSize: 16, cursor: "pointer", color: "#475569", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
           </div>
-          <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 16 }}>Last updated: 28 October 2026</div>
+          <div style={{ fontSize: 10, color: "#475569", marginBottom: 16 }}>Last updated: 28 October 2026</div>
 
           <div style={{ fontSize: 12, color: "#334155", lineHeight: 1.7 }}>
             <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: "#0f172a" }}>1. Who We Are</div>

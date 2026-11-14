@@ -36,7 +36,7 @@ test("v2.15.2: every AI request from the app carries the medication rule (Chat a
   await page.locator("#qa-input-jc").fill("Should I stop my statins?");
   await page.locator("#qa-input-jc").locator("xpath=following-sibling::button").click();
   await expect(page.getByText(MOCK_TEXT).first()).toBeVisible();
-  await page.getByRole("button", { name: "✕" }).first().click();
+  await page.getByRole("button", { name: "Close chat" }).click();   // v2.17.0: the ✕ has a label
   await page.getByRole("button", { name: /Help/ }).first().click();
   const box = page.locator("textarea:visible, input[type=text]:visible").last();
   await box.fill("How do I add a meal?"); await box.press("Enter");

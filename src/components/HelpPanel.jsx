@@ -15,23 +15,23 @@ export default function HelpPanel({ ctx }) {
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, maxHeight: "75vh", background: "#fff", borderRadius: "16px 16px 0 0", boxShadow: "0 -4px 24px rgba(0,0,0,0.15)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <div style={{ padding: "14px 16px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Help — using the app</div>
-            <button onClick={() => setHelpOpen(false)} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
+            <button aria-label="Close help" onClick={() => setHelpOpen(false)} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
           </div>
           <div style={{ padding: "8px 16px 10px", overflowY: "auto", flex: 1 }}>
-            <div style={{ fontSize: 11, color: "#64748b", marginBottom: 10 }}>Ask anything about using Lifecare Companion™ — where things are, what they mean, how to do something, or why it works the way it does.</div>
+            <div style={{ fontSize: 11, color: "#475569", marginBottom: 10 }}>Ask anything about using Lifecare Companion™ — where things are, what they mean, how to do something, or why it works the way it does.</div>
             {helpHistory[activeTab] && helpHistory[activeTab].length > 0 && (<div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Conversation</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#475569", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Conversation</div>
               {(showHelpHistory ? helpHistory[activeTab] : helpHistory[activeTab].slice(-3)).slice().reverse().map(( /* v2.6.4 D8: latest exchange first */h, i) => (<div key={i}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", marginBottom: 6 }}>
                   <div style={{ maxWidth: "85%", padding: "8px 12px", borderRadius: "12px 12px 2px 12px", background: accentChatUser, border: "1px solid " + accentBorder, color: "#334155", fontSize: 12, lineHeight: 1.5 }}>{h.q}</div>
-                  <div style={{ fontSize: 9, color: "#94a3b8", marginTop: 2, paddingLeft: 4, paddingRight: 4 }}>You{h.when ? " · " + h.when : ""}</div>
+                  <div style={{ fontSize: 9, color: "#475569", marginTop: 2, paddingLeft: 4, paddingRight: 4 }}>You{h.when ? " · " + h.when : ""}</div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", marginBottom: 10 }}>
                   <div style={{ maxWidth: "85%", padding: "8px 12px", borderRadius: "12px 12px 12px 2px", background: "#334155", color: "#fff", fontSize: 12, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{h.a}</div>
-                  <div style={{ fontSize: 9, color: "#94a3b8", marginTop: 2, paddingLeft: 4, paddingRight: 4 }}>Companion</div>
+                  <div style={{ fontSize: 9, color: "#475569", marginTop: 2, paddingLeft: 4, paddingRight: 4 }}>Companion</div>
                 </div>
               </div>))}
-              {helpHistory[activeTab].length > 3 && <button onClick={() => setShowHelpHistory(!showHelpHistory)} style={{ fontSize: 11, color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: "0 0 8px" }}>{showHelpHistory ? "Hide" : "Show"} older messages ({helpHistory[activeTab].length - 3})</button>}
+              {helpHistory[activeTab].length > 3 && <button onClick={() => setShowHelpHistory(!showHelpHistory)} style={{ fontSize: 11, color: "#475569", background: "none", border: "none", cursor: "pointer", padding: "0 0 8px" }}>{showHelpHistory ? "Hide" : "Show"} older messages ({helpHistory[activeTab].length - 3})</button>}
             </div>)}
           </div>
           <div style={{ padding: "8px 16px 16px", borderTop: "1px solid #f1f5f9" }}>

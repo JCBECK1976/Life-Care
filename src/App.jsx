@@ -1640,12 +1640,12 @@ function Dashboard() {
         React.createElement("button", { onClick: function() { threadReply(fbObj, fbType, fbKey, updateFn, saveKey); }, disabled: isLoading, style: { padding: "8px 14px", background: isLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: isLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap", alignSelf: "flex-end", minWidth: 50 } }, isLoading ? React.createElement("span", null, React.createElement(LoadingDots)) : "Send"),
       threadErr[loadKey] && React.createElement("div", { role: "alert", "data-testid": "thread-error", style: { marginBottom: 8, padding: 8, borderRadius: 6, background: "#fee2e2", color: "#991b1b", fontSize: 11, fontWeight: 600 } }, threadErr[loadKey]),
       thread.length > 0 && React.createElement("div", { style: { marginBottom: 8 } },
-        React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#94a3b8", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" } }, "Conversation"),
+        React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#475569", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" } }, "Conversation"),
         latestFirst(thread).map(function(m, i) { /* v2.6.4 D8: latest exchange first, input above */
           var isUser = m.role === "user";
           return React.createElement("div", { key: i, style: { display: "flex", flexDirection: "column", alignItems: isUser ? "flex-end" : "flex-start", marginBottom: 6 } },
             React.createElement("div", { style: { maxWidth: "85%", padding: "8px 12px", borderRadius: isUser ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: isUser ? accentChatUser : "#334155", border: isUser ? "1px solid " + accentBorder : "none", color: isUser ? "#334155" : "#fff", fontSize: 12, lineHeight: 1.5 } }, m.text),
-            React.createElement("div", { style: { fontSize: 9, color: "#94a3b8", marginTop: 2, paddingLeft: 4, paddingRight: 4 } }, isUser ? "You" : "Companion", m.when ? " · " + m.when : "")
+            React.createElement("div", { style: { fontSize: 9, color: "#475569", marginTop: 2, paddingLeft: 4, paddingRight: 4 } }, isUser ? "You" : "Companion", m.when ? " · " + m.when : "")
           );
         })
       )
@@ -1768,7 +1768,7 @@ function Dashboard() {
   const p = isJC ? data.jc : data.becks;
   const personKeys = Object.keys(data).filter(k => k !== "config");
   const personIdx = personKeys.indexOf(activeTab);
-  const accentCols = ["#2563eb", "#7c3aed", "#059669", "#d97706", "#dc2626", "#0891b2", "#e11d48"];
+  const accentCols = ["#1d4ed8", "#6d28d9", "#047857", "#b45309", "#b91c1c", "#0e7490", "#be123c"] /* v2.17.0 P6: darker for text contrast */;
   const defaultAccent = accentCols[personIdx >= 0 ? personIdx % accentCols.length : 0];
   const defaultAccentLight = isJC ? "#dbeafe" : "#ede9fe";
   const userTheme = userColour && COLOUR_THEMES[userColour] ? COLOUR_THEMES[userColour] : null;
@@ -1811,20 +1811,20 @@ function Dashboard() {
               <img src={import.meta.env.BASE_URL + "brand/header-mark-288.png"} alt="Lifecare Companion logo" width="44" height="44" style={{ display: "block", width: 44, height: 44 }} />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#94a3b8", marginBottom: 4 }}>Lifecare Companion™</div>
+              <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#cbd5e1", marginBottom: 4 }}>Lifecare Companion™</div>
               <div data-testid="header-title" style={{ fontSize: 22, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{personName(data, activeTab)}</div>
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
           <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
-            <button onClick={() => setHelpOpen(true)} style={{ background: helpOpen ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "0 10px", height: 38, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#cbd5e1", fontSize: 13, fontWeight: 600, transition: "all 0.2s ease", marginTop: 2 }} title="Help using the app" aria-label="Help using the app">Help <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", border: "1.5px solid #94a3b8", fontSize: 11, fontWeight: 800, color: "#94a3b8" }}>?</span></button>
+            <button onClick={() => setHelpOpen(true)} style={{ background: helpOpen ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "0 10px", height: 38, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#cbd5e1", fontSize: 13, fontWeight: 600, transition: "all 0.2s ease", marginTop: 2 }} title="Help using the app" aria-label="Help using the app">Help <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", border: "1.5px solid #94a3b8", fontSize: 11, fontWeight: 800, color: "#cbd5e1" }}>?</span></button>
               <button onClick={() => { setSection("admin"); setShowOnboarding(false); setSetupTab("profile"); }} style={{ background: section === "admin" ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease", marginTop: 2 }} title="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
           </div>
           <EnvBadge />
           {debugMode && <span data-testid="debug-badge" title="Debug Mode is on (Settings → App & AI)" style={{ display: "inline-block", padding: "2px 8px", borderRadius: 6, background: "#dc2626", color: "#fff", fontSize: 10, fontWeight: 800, letterSpacing: "0.08em" }}>🔧 DEBUG ON</span>}
           </div>
         </div>
-        <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Week {calcWeek(data.config.trainingStart)} · Updated {data.config.lastUpdate}{saving ? " · Saving..." : ""}</div>
+        <div style={{ fontSize: 12, color: "#cbd5e1", marginTop: 2 }}>Week {calcWeek(data.config.trainingStart)} · Updated {data.config.lastUpdate}{saving ? " · Saving..." : ""}</div>
         <div style={{ display: "flex", gap: 4, marginTop: 14, background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 4, border: "1px solid rgba(255,255,255,0.08)" }}>
           <PersonTabs testId="person-tabs" people={peopleOf(data)} activeKey={activeTab}
             tabStyle={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }}
@@ -1842,11 +1842,11 @@ function Dashboard() {
         {showAddPerson && (<div style={{ marginTop: 10, display: "flex", gap: 6 }}>
           <input value={newPersonName} onChange={e => setNewPersonName(e.target.value)} placeholder="Name..." style={{ flex: 1, padding: "8px 10px", border: "1px solid #475569", borderRadius: 8, fontSize: 13, background: "#1e293b", color: "#fff" }} />
           <button onClick={async () => { if (!newPersonName.trim()) return; const key = newPersonName.trim().toLowerCase().replace(/[^a-z0-9]/g, "_"); const nd = JSON.parse(JSON.stringify(data)); nd[key] = { profile: { name: newPersonName.trim(), age: "", sex: "", height: "", bodyType: "", fibreType: "", idealWeight: "", notes: "" }, meds: [], medsHistory: [], body: { weight: [], bodyFat: [], muscleMass: [], muscleRate: [], skeletalMuscle: [], visceralFat: [], subcutFat: [], bmr: [], bodyWater: [], boneMass: [], bodyAge: [], bmi: [] }, measurements: { bicep: [], forearm: [], calf: [], quad: [], chest: [], waist: [], shoulders: [] }, bloods: [], exercises: { sunday: [], monday: [], friday: [] } }; await saveData(nd); setActiveTab(key); setSection("overview"); setShowAddPerson(false); setNewPersonName(""); setFormMsg("✓ " + newPersonName.trim() + " added"); setTimeout(() => setFormMsg(""), 3000); }} style={{ padding: "8px 14px", background: "#2563eb", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Add</button>
-          <button onClick={() => setShowAddPerson(false)} style={{ padding: "8px 10px", background: "transparent", color: "#64748b", border: "1px solid #475569", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+          <button onClick={() => setShowAddPerson(false)} style={{ padding: "8px 10px", background: "transparent", color: "#cbd5e1", border: "1px solid #475569", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>Cancel</button>
         </div>)}
       </div>
       <div style={{ display: "flex", gap: 0, padding: "0 4px", background: "#fff", borderBottom: "1px solid #e2e8f0", overflowX: "auto" }}>
-        {SECS.map(s => (<button key={s.id} onClick={() => { setSection(s.id); setShowOnboarding(false); setSetupTab("profile"); setFbExpanded(false); setEatFbExpanded(false); setHomeFbExpanded(false); setHealthFbExpanded(false); setLogEx(null); setSelectedEx(null); setBodyView("data"); setShowBodyForm(false); setBodyMetricOpen(null); setMeasMetricOpen(null); setMeasLogKey(null); setEditMeasKey(null); setAddMeasOpen(false); setWarmUpOpen(false); setCoolDownOpen(false); setShowRecentJournal(false); setShowFullJournal(false); setHealthView("general"); }} style={{ padding: "10px 8px", border: "none", borderBottom: section === s.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 11, fontWeight: section === s.id ? 700 : 500, color: section === s.id ? accent : "#64748b", cursor: "pointer", whiteSpace: "nowrap" }}>{s.l}</button>))}
+        {SECS.map(s => (<button key={s.id} onClick={() => { setSection(s.id); setShowOnboarding(false); setSetupTab("profile"); setFbExpanded(false); setEatFbExpanded(false); setHomeFbExpanded(false); setHealthFbExpanded(false); setLogEx(null); setSelectedEx(null); setBodyView("data"); setShowBodyForm(false); setBodyMetricOpen(null); setMeasMetricOpen(null); setMeasLogKey(null); setEditMeasKey(null); setAddMeasOpen(false); setWarmUpOpen(false); setCoolDownOpen(false); setShowRecentJournal(false); setShowFullJournal(false); setHealthView("general"); }} style={{ padding: "10px 8px", border: "none", borderBottom: section === s.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 11, fontWeight: section === s.id ? 700 : 500, color: section === s.id ? accent : "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>{s.l}</button>))}
       </div>
       {formMsg && <div style={{ margin: "8px 16px 0", padding: 10, borderRadius: 8, background: formMsg.startsWith("✓") ? "#e0f2fe" : "#fee2e2", color: formMsg.startsWith("✓") ? "#0c4a6e" : "#991b1b", fontSize: 12, fontWeight: 600 }}>{formMsg}</div>}
 
@@ -1885,18 +1885,18 @@ function Dashboard() {
 
       {/* Legal links row */}
       <div style={{ display: "flex", justifyContent: "center", gap: 16, padding: "6px 16px 2px" }}>
-        <button onClick={function(){ setShowPrivacy(true); }} style={{ background: "none", border: "none", fontSize: 9, color: "#94a3b8", cursor: "pointer", textDecoration: "underline", padding: 0 }}>Privacy Policy</button>
+        <button onClick={function(){ setShowPrivacy(true); }} style={{ background: "none", border: "none", fontSize: 9, color: "#475569", cursor: "pointer", textDecoration: "underline", padding: 0 }}>Privacy Policy</button>
       </div>
 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
-        <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
-        <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
+        <div style={{ fontSize: 10, color: "#475569" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
+        <div style={{ fontSize: 10, color: "#475569", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
 
       {/* Privacy Policy overlay */}
       {consentActive() ? (showPrivacy && <LegalViewer which="privacy" onClose={function() { setShowPrivacy(false); }} />) /* v2.16.7 P8: pilot Privacy Notice replaces the old policy */
         : <ErrorBoundary name="PrivacyPolicy"><PrivacyPolicy ctx={{ accent, setShowPrivacy, showPrivacy }} /></ErrorBoundary>}
       {data && consentRec !== undefined && needsConsent(consentRec) && <ConsentScreen person={activeTab} name={personName(data, activeTab)} current={consentRec} onDone={function(c) { window._lcConsent = c; setConsentRec(c); auditLog("consent", activeTab, "pilot legal docs + choices"); }} />}
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>{APP_VERSION}
+      <div style={{ textAlign: "center", fontSize: 9, color: "#475569", paddingBottom: 12 }}>{APP_VERSION}
       </div>
 
       {/* Floating Ask a Question button */}

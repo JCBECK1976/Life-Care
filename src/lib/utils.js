@@ -14,7 +14,7 @@ export function countStatus(ex) {
   return { movedUp: unique.filter(e => e.status === "moved up").length, ready: unique.filter(e => e.status === "ready to move").length, building: unique.filter(e => e.status === "building").length, consolidating: unique.filter(e => e.status === "consolidating").length, maintaining: unique.filter(e => e.status === "maintaining").length, reduce: unique.filter(e => e.status === "reduce").length, total: unique.length };
 }
 
-export const sColor = s => s === "moved up" ? "#16a34a" : s === "ready to move" ? "#2563eb" : s === "building" ? "#7c3aed" : s === "consolidating" ? "#be185d" : s === "maintaining" ? "#0891b2" : s === "reduce" ? "#dc2626" : "#64748b";
+export const sColor = s => s === "moved up" ? "#166534" : s === "ready to move" ? "#1d4ed8" : s === "building" ? "#6d28d9" : s === "consolidating" ? "#be185d" : s === "maintaining" ? "#0e7490" : s === "reduce" ? "#b91c1c" : "#475569";
 
 export const sBg = s => s === "moved up" ? "#e0f2fe" : s === "ready to move" ? "#dbeafe" : s === "building" ? "#ede9fe" : s === "consolidating" ? "#fce7f3" : s === "maintaining" ? "#cffafe" : s === "reduce" ? "#fee2e2" : "#f1f5f9";
 

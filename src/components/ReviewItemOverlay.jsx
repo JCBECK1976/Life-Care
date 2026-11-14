@@ -14,11 +14,11 @@ export default function ReviewItemOverlay({ ctx }) {
         <div style={{ background: "#f0fdf4", borderRadius: 12, padding: 14, border: "1px solid #86efac", maxWidth: 400, width: "100%", maxHeight: "80vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Review Item</div>
-            <button onClick={function() { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); }} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
+            <button aria-label="Close photo review" onClick={function() { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); }} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
           </div>
           {cameraPreview.noFood ? (<NoFoodPanel testid="review-no-food" desc={cameraPreview.desc} onRecheck={function(d) { if (window._lcRecheckAddPhoto) window._lcRecheckAddPhoto(d); }} onCancel={function() { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); }} />) : (<>
           <div style={{ marginBottom: 6 }}>
-            <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 2 }}>Name</div>
+            <div style={{ fontSize: 9, fontWeight: 600, color: "#475569", marginBottom: 2 }}>Name</div>
             <input id="review-item-name-overlay" defaultValue={cameraPreview.name} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, boxSizing: "border-box" }} />
           </div>
           <div style={{ display: "flex", gap: 8, marginBottom: 6, fontSize: 10, flexWrap: "wrap" }}>
@@ -28,36 +28,36 @@ export default function ReviewItemOverlay({ ctx }) {
             {cameraPreview.fibre > 0 && <span><b>{cameraPreview.fibre}g</b> fibre</span>}
           </div>
           <div style={{ display: "flex", gap: 4, marginBottom: 8, flexWrap: "wrap" }}>
-            <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, background: cameraPreview.rating === "RED" ? "#fef2f2" : cameraPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: cameraPreview.rating === "RED" ? "#dc2626" : cameraPreview.rating === "AMBER" ? "#d97706" : "#15803d", border: "1px solid " + (cameraPreview.rating === "RED" ? "#fecaca" : cameraPreview.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{cameraPreview.rating}</div>
+            <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, background: cameraPreview.rating === "RED" ? "#fef2f2" : cameraPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: cameraPreview.rating === "RED" ? "#b91c1c" : cameraPreview.rating === "AMBER" ? "#b45309" : "#15803d", border: "1px solid " + (cameraPreview.rating === "RED" ? "#fecaca" : cameraPreview.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{cameraPreview.rating}</div>
           </div>
           {cameraPreview.suitability && <div style={{ fontSize: 10, color: "#475569", fontStyle: "italic", lineHeight: 1.4, marginBottom: 8 }}>{cameraPreview.suitability}</div>}
           <div style={{ marginBottom: 8 }}>
-            <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Type</div>
+            <div style={{ fontSize: 9, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Type</div>
             <div style={{ display: "flex", gap: 4 }}>
-              <button onClick={function() { setCameraPreview(function(prev) { return Object.assign({}, prev, { itemType: "packaged" }); }); }} style={{ flex: 1, padding: "6px 8px", border: "1px solid " + (cameraPreview.itemType === "packaged" ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: cameraPreview.itemType === "packaged" ? "#eff6ff" : "#fff", color: cameraPreview.itemType === "packaged" ? "#1e3a5f" : "#94a3b8" }}>📦 Packaged</button>
-              <button onClick={function() { setCameraPreview(function(prev) { return Object.assign({}, prev, { itemType: "ingredient" }); }); }} style={{ flex: 1, padding: "6px 8px", border: "1px solid " + (cameraPreview.itemType === "ingredient" ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: cameraPreview.itemType === "ingredient" ? "#eff6ff" : "#fff", color: cameraPreview.itemType === "ingredient" ? "#1e3a5f" : "#94a3b8" }}>🍳 Ingredient Prepared</button>
+              <button onClick={function() { setCameraPreview(function(prev) { return Object.assign({}, prev, { itemType: "packaged" }); }); }} style={{ flex: 1, padding: "6px 8px", border: "1px solid " + (cameraPreview.itemType === "packaged" ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: cameraPreview.itemType === "packaged" ? "#eff6ff" : "#fff", color: cameraPreview.itemType === "packaged" ? "#1e3a5f" : "#475569" }}>📦 Packaged</button>
+              <button onClick={function() { setCameraPreview(function(prev) { return Object.assign({}, prev, { itemType: "ingredient" }); }); }} style={{ flex: 1, padding: "6px 8px", border: "1px solid " + (cameraPreview.itemType === "ingredient" ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: cameraPreview.itemType === "ingredient" ? "#eff6ff" : "#fff", color: cameraPreview.itemType === "ingredient" ? "#1e3a5f" : "#475569" }}>🍳 Ingredient Prepared</button>
             </div>
           </div>
           {cameraPreview.itemType === "ingredient" && (<div style={{ marginBottom: 8 }}>
-            <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>🧾 Ingredients <span style={{ fontWeight: 400 }}>(edit to match your recipe)</span></div>
+            <div style={{ fontSize: 9, fontWeight: 600, color: "#475569", marginBottom: 4 }}>🧾 Ingredients <span style={{ fontWeight: 400 }}>(edit to match your recipe)</span></div>
             <textarea id="review-item-ingredients-overlay" defaultValue={(cameraPreview.ingredients || []).join(", ")} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, minHeight: 50, resize: "vertical", boxSizing: "border-box", lineHeight: 1.4 }} placeholder="e.g. oats, milk, chia seeds, honey..." />
-            <div style={{ fontSize: 8, color: "#64748b", marginTop: 3, fontStyle: "italic" }}>Any changes to ingredients or portions will update nutritional values when confirmed</div>
+            <div style={{ fontSize: 8, color: "#475569", marginTop: 3, fontStyle: "italic" }}>Any changes to ingredients or portions will update nutritional values when confirmed</div>
           </div>)}
           <div style={{ marginBottom: 8 }}>
-            <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Add to categories</div>
+            <div style={{ fontSize: 9, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Add to categories</div>
             <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
               {["breakfast","lunch","dinner","snack","dessert","drink"].map(function(c) {
                 var sel = reviewCategories.indexOf(c) >= 0;
-                return (<button key={c} onClick={function() { setReviewCategories(function(prev) { return sel ? prev.filter(function(x){return x!==c;}) : prev.concat([c]); }); }} style={{ padding: "5px 10px", border: "1px solid " + (sel ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: sel ? "#eff6ff" : "#fff", color: sel ? "#1e3a5f" : "#94a3b8", textTransform: "capitalize" }}>{sel ? "✓ " : ""}{c}</button>);
+                return (<button key={c} onClick={function() { setReviewCategories(function(prev) { return sel ? prev.filter(function(x){return x!==c;}) : prev.concat([c]); }); }} style={{ padding: "5px 10px", border: "1px solid " + (sel ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: sel ? "#eff6ff" : "#fff", color: sel ? "#1e3a5f" : "#475569", textTransform: "capitalize" }}>{sel ? "✓ " : ""}{c}</button>);
               })}
             </div>
           </div>
           {reviewCategories.indexOf("dinner") >= 0 && (<div style={{ marginBottom: 8 }}>
-            <div style={{ fontSize: 9, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Is this a dinner side dish?</div>
+            <div style={{ fontSize: 9, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Is this a dinner side dish?</div>
             <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
               {[{k:"",label:"No — main dish"},{k:"potato",label:"🥔 Potato side"},{k:"veg",label:"🥦 Veg side"},{k:"salad",label:"🥗 Salad side"}].map(function(st) {
                 var sel = reviewSideType === st.k;
-                return (<button key={st.k} onClick={function() { setReviewSideType(st.k); }} style={{ padding: "5px 8px", border: "1px solid " + (sel ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: sel ? "#eff6ff" : "#fff", color: sel ? "#1e3a5f" : "#94a3b8" }}>{st.label}</button>);
+                return (<button key={st.k} onClick={function() { setReviewSideType(st.k); }} style={{ padding: "5px 8px", border: "1px solid " + (sel ? "#2563eb" : "#e2e8f0"), borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: sel ? "#eff6ff" : "#fff", color: sel ? "#1e3a5f" : "#475569" }}>{st.label}</button>);
               })}
             </div>
           </div>)}

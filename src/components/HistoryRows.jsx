@@ -29,7 +29,7 @@ export default function HistoryRows(props) {
       var e = r.e; var isOpen = open && open.i === r.i;
       return (<div key={r.i}>
         <div data-testid={pre + "-row"} style={{ display: "flex", gap: 6, alignItems: "center", padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
-          <span data-testid={pre + "-wk"} style={{ width: 40, color: "#64748b", fontWeight: 600 }}>{e.wk}</span>
+          <span data-testid={pre + "-wk"} style={{ width: 40, color: "#475569", fontWeight: 600 }}>{e.wk}</span>
           <span data-testid={pre + "-v"} style={{ flex: 1, minWidth: 0, fontWeight: 700, color: "#0f172a" }}>{fmt(e.v)}</span>
           <button aria-label={"Open week " + e.wk} onClick={function() { setOpen(isOpen ? null : { i: r.i, editing: false, msg: "", draft: { wk: String(e.wk), v: String(e.v), note: e.note || "" } }); }} style={btnOpen}>Open</button>
         </div>
@@ -43,7 +43,7 @@ export default function HistoryRows(props) {
             dangerKind="remove" onDanger={async function() { if (!confirm("Remove week " + e.wk + " from " + props.label + "?")) return; setOpen(null); await props.onRemove(r.i); }}>
             <Field label="Week" testid={pre + "-f-wk"}>{ed ? <input aria-label="Week" type="number" value={d.wk} onChange={function(ev) { setD({ wk: ev.target.value }); }} style={Object.assign({}, inputStyle, { width: 70 })} /> : e.wk}</Field>
             <Field label={"Value" + (unit ? " (" + unit + ")" : "")} testid={pre + "-f-v"}>{ed ? <input aria-label="Value" type="number" step="any" value={d.v} onChange={function(ev) { setD({ v: ev.target.value }); }} style={Object.assign({}, inputStyle, { width: 90 })} /> : fmt(e.v)}</Field>
-            <Field label="My Notes" testid={pre + "-f-note"}>{ed ? <textarea aria-label="My Notes" value={d.note} onChange={function(ev) { setD({ note: ev.target.value }); }} style={Object.assign({}, inputStyle, { minHeight: 40 })} /> : (e.note || <span style={{ color: "#94a3b8" }}>—</span>)}</Field>
+            <Field label="My Notes" testid={pre + "-f-note"}>{ed ? <textarea aria-label="My Notes" value={d.note} onChange={function(ev) { setD({ note: ev.target.value }); }} style={Object.assign({}, inputStyle, { minHeight: 40 })} /> : (e.note || <span style={{ color: "#475569" }}>—</span>)}</Field>
           </OpenForm>);
         })()}
       </div>);

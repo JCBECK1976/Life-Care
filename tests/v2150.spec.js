@@ -162,7 +162,7 @@ test("v2.15.0: Debug Mode turns on, shows a badge, logs a safe summary, stays on
   await page.locator("#qa-input-jc").fill("Is my blood pressure OK?");
   await page.locator("#qa-input-jc").locator("xpath=following-sibling::button").click();
   await expect(page.getByText(MOCK_TEXT).first()).toBeVisible();
-  await page.getByRole("button", { name: "✕" }).first().click();
+  await page.getByRole("button", { name: "Close chat" }).click();   // v2.17.0: the ✕ has a label
   await openSettings(page);
   const panel = page.getByTestId("debug-panel");
   await expect(panel).toContainText("Ask API"); await expect(panel).toContainText("HTTP: 200");

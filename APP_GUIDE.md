@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.16.7 · 14 November 2026
+> Last updated: v2.17.0 · 14 November 2026
 
 ---
 
@@ -32,7 +32,7 @@ It speaks to you directly ("you"), warmly and honestly, and adapts its tone to t
 
 The Companion never suggests starting, stopping or changing any medication or dose: if medication comes up, it suggests asking your GP or pharmacist.
 
-You can pinch to zoom anywhere in the app (since v2.15.2).
+You can pinch to zoom anywhere in the app (since v2.15.2). With a keyboard, the item you are on has a clear blue outline. Ratings are shown with a word and a symbol as well as a colour (✓ Great / ✓ Good / ! Amber / ✕ Red), and text colours meet the WCAG AA contrast level (since v2.17.0).
 
 ---
 
@@ -66,6 +66,7 @@ You can pinch to zoom anywhere in the app (since v2.15.2).
 - **Fingerprint sign-in:** turn on a **passkey** for the Google account once (on the phone: Google account → Security → Passkeys → Create a passkey). Google then asks for your fingerprint instead of the password.
 - If you see **"This Google account doesn't have access"**, you signed in with a different Google account: tap **Sign out** and choose the joint account.
 - **Settings → 🔐 Account** shows which account is signed in, with a **Sign out** button.
+- **Settings → 🔒 Privacy & your data:** **⬇ Download my data (JSON)** saves everything recorded for the selected person in one file (photos are never stored, so none are included). For the pilot, this card also shows the Privacy Notice and Terms (pilot version), your privacy choices (AI, photo checks, Google Health) and **Delete my data**; new pilot users are asked to accept these the first time they use the app.
 
 ### Installing the app on your phone
 You can install Lifecare Companion like a normal app, with its own icon on your home screen. It then opens full screen, without the browser bar.

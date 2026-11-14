@@ -18,7 +18,7 @@ export function FullChart({ series, height = 160, title, refLine }) {
   let allVals = [], allWks = [];
   series.forEach(s => s.data.forEach(d => { if (typeof d.v === "number") { allVals.push(d.v); allWks.push(d.wk); } }));
   if (refLine) allVals.push(refLine);
-  if (allVals.length === 0) return <div style={{ fontSize: 11, color: "#94a3b8", padding: 12 }}>No data yet</div>;
+  if (allVals.length === 0) return <div style={{ fontSize: 11, color: "#475569", padding: 12 }}>No data yet</div>;
   const mn = Math.min(...allVals), mx = Math.max(...allVals), sp = (mx - mn) * 0.15 || 1;
   const lo = mn - sp, hi = mx + sp, rng = hi - lo || 1;
   const wks = [...new Set(allWks)].sort((a, b) => a - b);
@@ -53,7 +53,7 @@ export function FullChart({ series, height = 160, title, refLine }) {
 // SUB-COMPONENTS
 // ═══════════════════════════════════════════════════
 export function BodyCard({ label, value, rating, trend, onEye, eyeOpen }) {
-  const rc = rating === "Excellent" || rating === "Acceptable" ? "#16a34a" : rating === "Standard" ? "#2563eb" : rating === "High" || rating === "Too High" ? "#dc2626" : rating === "Low" ? "#d97706" : "#64748b";
-  return (<div style={{ background: "#fff", borderRadius: 10, padding: "10px 12px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 3, position: "relative", height: "100%", boxSizing: "border-box" }}><div style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>{label}</div><div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", lineHeight: 1.1 }}>{value != null ? value : "—"}</div>{rating && <div style={{ fontSize: 10, fontWeight: 600, color: rc, textTransform: "uppercase" }}>{rating}</div>}{trend && <div style={{ fontSize: 10, color: String(trend).startsWith("-") ? "#16a34a" : String(trend).startsWith("+") ? "#dc2626" : "#64748b" }}>{trend}</div>}{onEye && <button onClick={onEye} style={Object.assign({}, eyeOpen ? btnFilledOn : btnProgress, { alignSelf: "flex-end", marginTop: "auto" })}   /* v2.13.4: pinned to the bottom of the card (cards in a row are equal height), so every Progress button lines up */ title={"View " + label + " detail"}>{eyeOpen ? "✕ Progress" : "👁 Progress"}</button>}</div>);
+  const rc = rating === "Excellent" || rating === "Acceptable" ? "#15803d" : rating === "Standard" ? "#2563eb" : rating === "High" || rating === "Too High" ? "#b91c1c" : rating === "Low" ? "#d97706" : "#64748b";
+  return (<div style={{ background: "#fff", borderRadius: 10, padding: "10px 12px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 3, position: "relative", height: "100%", boxSizing: "border-box" }}><div style={{ fontSize: 11, color: "#475569", fontWeight: 500 }}>{label}</div><div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", lineHeight: 1.1 }}>{value != null ? value : "—"}</div>{rating && <div style={{ fontSize: 10, fontWeight: 600, color: rc, textTransform: "uppercase" }}>{rating}</div>}{trend && <div style={{ fontSize: 10, color: String(trend).startsWith("-") ? "#15803d" : String(trend).startsWith("+") ? "#b91c1c" : "#475569" }}>{trend}</div>}{onEye && <button onClick={onEye} style={Object.assign({}, eyeOpen ? btnFilledOn : btnProgress, { alignSelf: "flex-end", marginTop: "auto" })}   /* v2.13.4: pinned to the bottom of the card (cards in a row are equal height), so every Progress button lines up */ title={"View " + label + " detail"}>{eyeOpen ? "✕ Progress" : "👁 Progress"}</button>}</div>);
 }
 

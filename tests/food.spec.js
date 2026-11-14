@@ -322,7 +322,7 @@ test("D14: no inline RAG note; the selected item's text is coloured by the CHILD
   await expect(page.getByText(/today —/)).toHaveCount(0);
   const sel = page.getByTestId("selected-item").filter({ hasText: "Test Oat Bar" }).first();
   await expect(sel).toHaveAttribute("data-rag", "RED");
-  await expect(sel).toHaveCSS("color", "rgb(220, 38, 38)");
+  await expect(sel).toHaveCSS("color", "rgb(185, 28, 28)");
   const row = sel.locator("xpath=ancestor::div[contains(@style,'display: flex')][1]");
   expect((await row.boundingBox()).height).toBeLessThan(50);                                        // one tidy row
   expect(errors).toEqual([]);
@@ -369,7 +369,7 @@ test("D16: on a phone the picker is a sheet sized to the visible viewport — re
   expect(input.y).toBeLessThan(60);                                                                 // search at the top
   expect(firstRow.y).toBeGreaterThan(input.y);
   expect(firstRow.y + firstRow.height).toBeLessThanOrEqual(420);                                   // results directly under it, above the keyboard
-  await page.getByRole("button", { name: "Close" }).click();
+  await page.getByRole("button", { name: "Close", exact: true }).click();
   await expect(sheet).toHaveCount(0);
   expect(errors).toEqual([]);
 });
