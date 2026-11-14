@@ -43,6 +43,19 @@ Draft 1.1, 13 Nov 2026 (prod v2.15.1; Architect review applied). How changes are
 | My Notes | A weigh-in note | collected newest first; reaches the AI request context |
 | UI | My Eating day and Home | Goal · Food · Activity · Left, step note, "How this is calculated", deficit % change |
 
+**Person goals (v2.18.0, `tests/v2180.spec.js`; design [design/CALORIES.md §7](design/CALORIES.md)).** Known inputs (91.9 kg, 25.5% fat, 178 cm, male 50) and a fixed clock:
+| Case | Expected |
+|---|---|
+| Each goal's approach | Healthy weight 7 months → 82 kg: aim −359, goal 1,767; Maintain 0; Build recomposition at 25.5% fat, surplus at 18%; Grow/Support −213 (BMI 29); Support needs a condition; nutrient priorities |
+| Activity level vs step data | On my feet 2,404 / Very active 2,681 without steps; 2,126 + step credit with steps |
+| Slider safety | 7 months green; amber band; 5 months red (below safe minimum); 80 kg in 3 months red with Steady 6 / Gentle 9; > 1%/week; aim capped at 25% |
+| BMI 18.5 block | 57 kg at 178 cm blocked, 58.6 allowed; UI shows the block |
+| Setup gate | No table until complete; "Later"; saving shows the table and stores goal + activity level |
+| Table rows | Planned eating from snapshots (skipped included), actual from stored nutrition; planned vs logged exercise; on-track green/red |
+| Week to date | Fixed Wednesday: Sun + Tue only (Mon unlogged, today and future excluded); Sunday morning → none |
+| One goal everywhere | Home Today goal = My Eating day goal; no deficit control; week view 7 rows + footnote |
+| Companions | Body feedback request contains the goal and timescale; no fixed 2000-2200 / 1700-1900 targets |
+
 ## 3. Test data
 - Seeded per test with **synthetic** data (`scripts/make-fixture.mjs`, two made-up people with the same data shapes; `npm run seed`); each test that changes data reseeds first. Seeding from the real backup is opt-in only (`SEED_REAL=1`), never by default (SAD-A9, v2.16.1).
 - Tests that need special shapes write them through the emulator's REST API (owner token), then reload.

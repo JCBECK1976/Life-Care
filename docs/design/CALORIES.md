@@ -1,4 +1,6 @@
-# Calorie model (v2.17.1, safe minimum and skipped days v2.17.2)
+# Calorie model (v2.17.1; safe minimum v2.17.2; person goals v2.18.0)
+
+> **Since v2.18.0** the aim comes from the person's goal (§7, [ADR 0014](../adr/0014-person-goals.md)); the deficit % (§2) is internal only and the v2.17 calorie line and Week so far card (§4) are replaced by the Planned | Actual table.
 
 Per person. Replaces the fixed kcal targets/deficits and the earlier R6 "BMR + (total − BMR)" idea. Decision: [ADR 0013](../adr/0013-calorie-model.md). Code: `src/lib/calories.js` (pure functions, tested in `tests/v2171.spec.js`).
 
@@ -32,3 +34,41 @@ Steps from Google/Apple Health are stored per day (`dailyActivity[date].steps`) 
 
 ## 6. Old settings (v2.17.2)
 The v2.16.x kcal `deficit` and the R6 admin switch `r6Active` are removed from each person's `calorieSettings` by a one-off, idempotent clean-up when the data loads (nothing else is touched).
+
+## 7. Person goals (v2.18.0, [ADR 0014](../adr/0014-person-goals.md))
+Code: `src/lib/goals.js` (pure, tested in `tests/v2180.spec.js`); UI `components/GoalSetup.jsx`, `PlanActual.jsx`, `TodayCard.jsx`.
+
+### 7.1 Goals
+| Goal (user-facing) | Description shown | Aim (daily) | Companion focus |
+|---|---|---|---|
+| Work towards a healthy body weight | Lose weight steadily and improve your body composition, at a pace that's healthy and sustainable. | − gap from the timescale (capped at 25% of body burn) | weight, body fat, measurements |
+| Maintain a healthy lifestyle | You're in a good place: keep your health, exercise and eating balanced. | 0 | consistency and balance |
+| Build fitness & strength | Grow muscle, strength and fitness, fuelled properly. | +7.5% of body burn; 0 if body fat is high (men ≥ 25%, women ≥ 32%) = recomposition | training progress, protein |
+| Grow to a healthy lifestyle | A combined approach: healthier eating, regular exercise and better body composition, together. | −10% if BMI ≥ 25 (or the timescale pace, capped at 10%), else 0 | all areas balanced |
+| Support my health | Shape your eating, exercise and body composition around your health conditions — always alongside your GP's advice. | −10% if BMI ≥ 25 (or the pace, capped at 10%), else 0; nutrient priorities from conditions (sat fat for cholesterol, sugars for glucose, salt for blood pressure …) | conditions; needs ≥ 1 condition in My Health |
+
+### 7.2 Timescale and safety
+- Slider 3–24 months (weight goals), optional target weight; suggested healthy range = BMI 18.5–24.9 for the height; without a target, the top of that range.
+- Pace = (current − target) / weeks; daily gap = pace × 7,700 / 7.
+- **Red:** > 1% body weight/week, gap > 25% of body burn, or body burn − gap below the safe minimum. **Amber:** > 0.75%/week or > 20%. Alternatives: **Steady** (0.5%/week) and **Gentle** (0.35%/week), in months.
+- Target weight below BMI 18.5 is blocked. Language is encouraging and non-shaming.
+
+### 7.3 Setup (mandatory)
+Goal (+ timescale), sex, age, height, current weight, typical activity level (**Mostly sitting 1.15 / On my feet a fair bit 1.3 / Very active 1.45**). Until complete: no calorie goal anywhere ("Finish your goal setup"). New people see it at onboarding; existing people once on their next visit ("Later" hides it until the next visit).
+
+### 7.4 Daily goal and the Planned | Actual table
+- **Body burn** = BMR × 1.15 on a day with step or device-total data, else BMR × the activity factor. Same in both columns.
+- **Aim** = the goal's daily kcal (from the typical burn, so the same every day). Same in both columns.
+- **Exercise:** Planned = net (MET − 1) × kg × hours of that weekday's planned exercises (sets × 3 min); Actual = logged exercise + steps above the allowance, or device total − body burn (nothing added on top); × activity adjustment %.
+- **Goal** = Body burn + Aim (floored at the safe minimum) + Exercise.
+- **Eating:** Planned = the day's children at their snapshot kcal (skipped included); Actual = stored nutrition (portion, Snap, variations; skipped excluded).
+- **On track** = Actual eating − Actual goal, ± kcal and %; green at/under, red over.
+- **Week to date** = Σ actual eating vs Σ actual goal over past days this week with something logged (never today or future).
+- Footnote: "Actual includes eating selections stored in the day which need to be kept up to date, plus any exercises logged when completed".
+- Shown on Home (Today, with Week to date and earlier days), each My Eating day, and the My Eating week view (one row per day).
+
+### 7.5 Companions
+Every companion's context (`getCrossSectionCtx`) includes the goal, description, focus, timescale, required pace, the day's goal and progress vs pace. Prompts that had fixed kcal targets use the goal. Goal-change suggestions (healthy range for 6+ weeks → Maintain; pace unrealistic or well behind after 4+ weeks → longer timescale) are shown on Today with Accept / Not now; the companion may mention them as suggestions only. The medication rule is unchanged.
+
+### 7.6 Worked example (tested)
+91.9 kg, 25.5% fat, 178 cm, male 50, mostly sitting → BMR 1,849, body burn 2,126. Healthy body weight, 7 months to 82 kg → 0.33 kg/week, aim −359, goal 1,767 (green). 5 months → body burn − gap 1,624 < safe minimum 1,664 → red. 80 kg in 3 months → red; Steady 6 months, Gentle 9 months; applied aim capped at −532. Grow / Support (BMI 29) → −213. Build (25.5% fat) → recomposition (0). On my feet → body burn 2,404 on days without steps.

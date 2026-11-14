@@ -1,0 +1,13 @@
+# ADR 0014 — Person goals drive one calorie goal everywhere
+
+- **Status:** Accepted (JC, 14 Nov 2026). Built in v2.18.0 (build). Amends [ADR 0013](0013-calorie-model.md): the deficit % is no longer a user setting; the aim comes from the person's goal.
+- **Context:** v2.17 used one deficit % for everyone and still had fixed per-person kcal targets in My Eating and in AI prompts (e.g. 2,000–2,200 / 1,700–1,900). People want different things (lose weight, maintain, build strength, manage a condition), and a target without a timescale can't say whether a pace is healthy.
+- **Decision:** per [design/CALORIES.md §7](../design/CALORIES.md):
+  - Every person chooses **one of five goals** (Work towards a healthy body weight · Maintain a healthy lifestyle · Build fitness & strength · Grow to a healthy lifestyle · Support my health), each with a plain description and a calorie approach.
+  - Weight goals have a **timescale (3–24 months)** and an optional target weight. Pace → daily gap at 7,700 kcal/kg. Safety: > 1% body weight/week, a gap > 25% of body burn, or below the safe minimum → red, with steadier alternatives; target weight never below BMI 18.5; the applied aim is capped at 25% (10% for Grow/Support).
+  - **Mandatory setup** (goal, sex, age, height, weight, typical activity level) before any calorie goal is calculated: onboarding for new people, a one-time prompt for existing ones.
+  - **Daily goal = Body burn + Aim + Exercise.** Body burn = BMR × 1.15 on days with step/device data (steps above the allowance count as exercise), else BMR × the activity level (1.15 / 1.3 / 1.45). Never below the safe minimum.
+  - **One goal everywhere:** Home, My Eating and every AI prompt use it; fixed targets removed. Home shows a **Planned | Actual** table (replacing the calorie line and the Week so far box), with Week to date and a footnote on keeping selections up to date.
+  - **Companions** get the goal, description, timescale, pace and progress vs pace, frame feedback by it, and may only **suggest** a goal change (the person accepts).
+- **Alternatives rejected:** keeping a user-facing deficit % (doesn't express intent or timescale); free-text goals only (can't drive calculations); a fixed activity multiplier for all days (double-counts on days with step data).
+- **Consequences:** `goal` and `profile.activityLevel` are new per-person fields; `healthConditions` (My Health) feeds "Support my health". The food rating rule's reference kcal (`src/lib/rag.js`) is unchanged pending a decision (ratings are shared between people).

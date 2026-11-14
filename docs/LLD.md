@@ -39,7 +39,8 @@ Version 1, 13 Nov 2026 (prod v2.15.1). Public document. It describes **how the c
 | `src/lib/nutrition.js`, `snap.js` | Nutrition recalculation and plausibility; photo portion checks and the "no food" rule. |
 | `src/lib/bodyBalance.js`, `bodyPhotoCheck.js`, `measureReading.js` | Body balance prompt and parsing; body-photo recognition flags; measurement reading from a photo. |
 | `src/lib/calories.js` | v2.17.1 calorie model ([design/CALORIES.md](design/CALORIES.md)): `bmrOf` (Katch-McArdle / Mifflin / average), `planOf` (baseline, goal, floor, step allowance), `dayCredit` (total-burned or steps + exercise MET), `dayBudget`, `dayFoodKcal` (from the week's children), `kcalLimit`; R5 helpers. Data: `calorieSettings: { deficitPct, adjPct, adjHistory }`, `dailyActivity[date] = { steps, source, at }`, `googleDaily`. |
-| `src/lib/weekSoFar.js`, `components/WeekSoFar.jsx`, `CalorieCard.jsx`, `src/lib/bodyNotes.js` | Home "Week so far" (complete days only), the calorie line (Home + My Eating day), body-record notes as one context line in `getCrossSectionCtx` (every companion). |
+| `src/lib/goals.js` (v2.18.0) | Person goals ([design/CALORIES.md §7](design/CALORIES.md)): `GOALS`, `ACTIVITY`, `setupMissing`/`setupComplete`, `aimOf` (aim per goal), `paceCheck` (safety, alternatives), `targetAllowed` (BMI 18.5), `dayTable` (Planned \| Actual), `weekToDate`, `progressOf`, `goalSuggestion`, `goalCtx` (every companion), `kcalTargetText`/`goalKcal` (prompts and My Eating colours). |
+| `components/GoalSetup.jsx`, `PlanActual.jsx` (`DayRows`, `WeekPlanActual`), `TodayCard.jsx`, `src/lib/bodyNotes.js`, `src/lib/cleanupCore.js` | Mandatory goal setup dialog (App, until complete; also from My Profile → Change my goal); the Planned \| Actual table (Home Today, My Eating day and week); body-record notes in `getCrossSectionCtx`; one-off clean-ups. `CalorieCard.jsx` and `weekSoFar.js` were removed in v2.18.0. |
 | `src/lib/googleHealth.js` | R4 (v2.16.2): token on the device (localStorage `lc_gh_token_<person>`, never the database), `fetchWeekCalories` (daily total calories, honest errors), `mergeDaily` (12-month retention), `ghStatus`. The data type name `GH.totalCalories` is unverified until J10. |
 | `src/lib/platform.js` | v2.16.3 Step 4: client flags `useAiProxy`, `useAccounts`, `showBuyEnergy` (localStorage `lc_flags`, **all off by default**); `callFunction` / `viaProxy` (Cloud Functions callable protocol). With `useAiProxy` on, the `api.js` wrapper sends Messages requests to `aiProxy`. |
 | `src/lib/consent.js`, `components/ConsentScreen.jsx`, `LegalViewer.jsx`, `MarkdownText.jsx` | v2.16.7 P9/P8: consent per person (`consent:<person>` = { version, accepted, at, ai, photos, health }), `LEGAL_VERSION`; legal docs served from `public/legal/*.md` (copied from `docs/legal`, labelled "Pilot version — date"), rendered as React elements (no HTML). Flag `pilotConsent` (off). |
@@ -86,7 +87,7 @@ One root per environment: `data` (prod and beta) or `data_build` (Build). Most v
 - Every change must stay readable by the released prod version ([ADR 0002](adr/0002-shared-database-backward-compatible-changes.md)).
 
 
-### 3a. Calorie model fields and flow (v2.17.1)
+### 3a. Calorie model fields and flow (v2.17.1; goals v2.18.0)
 Design: [design/CALORIES.md](design/CALORIES.md). All per person under `dashboard:data.<person>`; everything else is derived on the fly, never stored.
 
 | Field / input | Where it comes from | Used for |
@@ -103,7 +104,11 @@ Design: [design/CALORIES.md](design/CALORIES.md). All per person under `dashboar
 
 Older `calorieSettings.r6Active` and `deficit` (kcal) are removed once on load by `stripOldCalorieSettings` (`src/lib/cleanupCore.js`, v2.17.2; idempotent, nothing else touched). `weekSoFar` skips days with no food logged (`logged: false`, `notLogged` count).
 
-**Flow:** `planOf(p)` → `{ bmr, method, estimate, baseline, deficitPct, goalRaw, goal, minimum, floored, stepAllowance, adjPct … }`; `dayCredit(p, date, plan)` → `{ mode: total|parts, steps, exercise, credit }`; `dayBudget(p, date, foodKcal)` → goal, food, credit, left. **Displayed** by `CalorieCard` on Home (`WeekSoFar`, today) and on each My Eating day; `kcalLimit` gives My Eating's daily limit (goal + credit); `weekSoFar(p, doc, now)` drives the Plan vs Actual card.
+| `goal = { id, months?, targetKg?, setAt, startKg, dismissed? }` (v2.18.0) | Goal setup (Home → My Profile → Change my goal) | Aim, pace, progress vs pace, companions' context, suggestions |
+| `profile.activityLevel` (`sitting` \| `feet` \| `very`), `profile.weightKg` (only when there are no weigh-ins) | Goal setup | Body burn on days without step data (× 1.15 / 1.3 / 1.45); BMR fallback weight |
+| `healthConditions` (text) | My Health → My conditions, or the goal setup | Required for "Support my health"; nutrient priorities; every companion |
+
+**Flow (v2.18.0):** `dayTable(p, date, weekDoc)` → `{ ready, burn, aim, exercise: { planned, actual, mode }, goal: { planned, actual }, eating: { planned (snapshot kcal), actual (stored nutrition) }, onTrack, floored }`, built on `bmrOf`, `planOf(p, now, goalKcal)` (step allowance from the goal-based daily goal), `exerciseOn`, `stepsOn`. `deficitPct` is internal only (no user control). **Earlier flow (v2.17):** `planOf(p)` → `{ bmr, method, estimate, baseline, deficitPct, goalRaw, goal, minimum, floored, stepAllowance, adjPct … }`; `dayCredit(p, date, plan)` → `{ mode: total|parts, steps, exercise, credit }`; `dayBudget(p, date, foodKcal)` → goal, food, credit, left. **Displayed** by `CalorieCard` on Home (`WeekSoFar`, today) and on each My Eating day; `kcalLimit` gives My Eating's daily limit (goal + credit); `weekSoFar(p, doc, now)` drives the Plan vs Actual card.
 
 ## 4. AI call map
 - **Common settings:**
