@@ -2630,3 +2630,27 @@ Sizes are % of a weekly allowance, including Architect checks.
   3. Still open from earlier: Anthropic DPA confirmation (J7); J10 Google Cloud setup; Step 4 setup list (Stripe, Blaze, Vertex AI).
 - **JC to test (/build/, close and reopen the tab; footer v2.17.0-build):** colours look fine on each tab (both themes); a meal rating shows e.g. "✕ Red"; Tab key shows a blue outline; Settings → Privacy & your data → Download my data.
 - **Resume point:** `build` @ 9f3e614 (v2.17.0), prod v2.15.1. Steps A–F done. Next: Architect review of /build/ → build → beta PR **when asked**; then the P6 remainder, or the accounts migration (G12) once JC approves.
+
+### (Coder) 14 Nov 2026 — v2.17.1 on build: calorie model, My Notes on body records, Week so far
+- **v2.17.1 (`build` 06dd82b):**
+  1. **Calorie model** (JC, 14 Nov; [design/CALORIES.md](docs/design/CALORIES.md), **ADR 0013**). Replaces the fixed targets, the kcal deficits and the R6 admin switch; active for everyone.
+     - BMR: Katch-McArdle (last 3–4 weigh-ins with body fat); Mifflin-St Jeor / age-sex average fallbacks labelled "estimate".
+     - Baseline BMR × 1.15; goal = baseline × (1 − deficit %, default 20%), floored at BMR.
+     - Activity credit net of resting burn: Health total − baseline (nothing added on top), else steps above a per-person allowance + exercise (MET − 1) × kg × h; × the R5 %.
+     - Shown on **Home** (today) and **each My Eating day** with "How this is calculated"; My Eating's limits use goal + credit.
+     - Google sync also reads **steps per day** → `dailyActivity`, shown on that day in My Exercise.
+  2. **My Notes on weigh-ins:** a new field on the Weigh In form, saved with that week's values; measurements already had notes; Open cards show and edit them. `bodyNotesCtx()` in `getCrossSectionCtx` puts them in every companion that sees body data (Home check-in, Chat, eating, body, measurement, session, health).
+  3. **Home "Week so far: Plan vs Actual"** (between My Day and My Journal, today's calorie line above it): complete days only, eating ±10/20% RAG, sessions vs planned, overall average, per-day breakdown.
+  - **Tests:** `tests/v2171.spec.js` (9) with the known inputs. BMR 1,849, baseline 2,126, goal 1,701 at 20%, step allowance JC 2,724 / Becks 3,027, 10,000 steps +247, 30-min weights +184, total-burned mode with no double count, the floor, both fallbacks, the adjustment %, a fixed-clock Wednesday, and a weigh-in note reaching the AI request. The old R6/deficit tests were replaced. Full suite **204 passed**, lint 0 errors, 360px screenshots checked.
+- **⚠ Decision needed (JC): the BMR floor vs the 20% default.** With baseline = BMR × 1.15, any deficit above ≈ 13% falls below BMR, so the floor applies. Example: JC's test numbers give 1,701 at 20%, but the goal shows **1,849 "limited to your BMR"**. The safety rule was kept as written. Options:
+  - (a) floor at a share of BMR (e.g. 90% → 1,664, so 20% gives 1,701);
+  - (b) default deficit ≈ 10–13%;
+  - (c) keep as built (effective deficit ≈ 13%).
+- **Other notes:** the old `calorieSettings.deficit` (kcal) and `r6Active` are ignored (not deleted). The Google steps data type name is unverified until J10.
+- **JC to test (/build/, footer v2.17.1-build):**
+  1. Home: Today's calorie line, then "Week so far" (tap for days).
+  2. My Eating → a day: the same line with that day's food.
+  3. "How this is calculated" shows your BMR etc.
+  4. Change deficit.
+  5. My Body → 📋 Record with My Notes → Body Feedback mentions it.
+- **Resume point:** `build` @ 06dd82b (v2.17.1), prod v2.15.1. Next: **wait for JC's test**, then the build → beta PR when asked.

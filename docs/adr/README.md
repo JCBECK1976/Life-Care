@@ -16,5 +16,6 @@ One short file per significant decision: context, decision, alternatives rejecte
 | [0010](0010-companion-energy-from-ai-usage.md) | Companion Energy computed from recorded AI usage | Accepted |
 | [0011](0011-companion-platform.md) | Accounts, tiers, energy and AI proxy as a reusable Companion platform (`appId`) | Accepted (designed + built locally 14 Nov 2026; not live) |
 | [0012](0012-household-privacy-model.md) | Household & privacy: own logins, one owner with no data access, Hidden by default, log-for-me | Accepted (JC 14 Nov 2026; built locally, not live) |
+| [0013](0013-calorie-model.md) | Calorie model: BMR × 1.15 baseline, deficit %, BMR floor, net activity credit | Accepted (JC 14 Nov 2026; v2.17.1 build) |
 
 Candidates not yet written up: the Open pattern and button standard (v2.8.0 / v2.13.0).
