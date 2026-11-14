@@ -2578,3 +2578,24 @@ Sizes are % of a weekly allowance, including Architect checks.
 - Tests `tests/v2165.spec.js` (4) + functions tests (10). Full suite **184 passed**, lint 0 errors.
 - **JC to test (/build/):** My Body → calorie card shows Deficit 500 (Becks 400) → Change works.
 - **Resume point:** `build` @ c2a5622 (v2.16.5). Next: Step C (household & privacy model: design + ADR 0012, then platform build/rules/tests, v2.16.6).
+
+### (Coder) 14 Nov 2026 — Step C: v2.16.6 on build (household & privacy model, local only) + Step D (plan)
+- **Design (main):** `docs/design/ACCOUNTS_TIERS_ENERGY.md` §1–5a and §10 rewritten for JC's 14 Nov decision; new **ADR 0012**.
+  - Own login per person (Google, Apple, email link); the joint account is retired at migration.
+  - One household **owner** (invite by email link, remove, later billing) with **no data access**.
+  - Per-person **visibility, Hidden by default** (greyed tab "[Name] keeps this private"); separate **"Household members can log for me"** only when Visible.
+  - Data split **per area** so per-area sharing can come later.
+  - Health connections are per person. Own tab first.
+  - Step 8 sign-in folded in (§5): Google, Apple, email link, plus the "On a computer? Choose Try another way" hint. **JC must enable the Email link + Apple providers** before go-live.
+  - Migration for JC + Becks (§5a): Becks gets her own login, her data moves to her uid, both Visible + log-for-me. **Plan only.**
+- **v2.16.6 (`build` 29f7344), no change for users:** `database.rules.next.json` reworked (replaces the v2.16.3 pairwise consents, which nothing live used); household functions `createHousehold`, `inviteMember`, `acceptInvite` (code + matching sign-in email, single use, 14-day expiry), `removeMember`, `leaveHousehold`; client `householdTabs()` (behind `useAccounts`, off).
+- **Tests:**
+  - Functions: **14** (rules 8 cover hidden data unreadable by the owner and other members, visible readable, log-for-me only when both toggles allow, per-area, outsiders, membership server-only, admin never reads `users/*`; households 1; ledger/aiProxy/admin/Stripe/tiers 5).
+  - `tests/v2166.spec.js` (1). Fixed a missing `await` in a v2.16.2 test that made it flaky.
+  - Full suite 184 passed + the fixed test, lint 0 errors.
+- **Decision (Coder):** visibility lives in `users/{uid}/privacy`, readable by household members, so the app can grey a tab without reading data. Rejected: a server-computed "who can see me" list (two sources of truth).
+- **Step D (plan.json):**
+  - New phases **"Native polish (during pilot)"** N1–N10 (High N1–N6, Medium N7–N10; N2–N10 depend on N1, N1 on Step 5/6 + J15/J16) and **"Pilot features (40+/perimenopause)"** PF1 symptom tracking (4), PF2 HRT/medication logging, record only (2), PF3 GP appointment prep summary (3).
+  - **J17** spare work iPhone (IT policy, test data only).
+  - **G11** Companion platform seams (appId), **G12** household & privacy model; P1 notes point to design §5. 132 items.
+- **Resume point:** `build` @ 29f7344 (v2.16.6). Next: Step E (P9 consent + P8 pilot legal docs behind a flag, P2 export/deletion/audit, P10 retention function; v2.16.7).

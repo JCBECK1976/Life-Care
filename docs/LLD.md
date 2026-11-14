@@ -19,7 +19,7 @@ Version 1, 13 Nov 2026 (prod v2.15.1). Public document. It describes **how the c
   - `scripts/build-pages.sh` builds all three branches into one Pages artifact.
   - `scripts/check-pages.mjs` checks it: prod/beta never refer to the Build data copy; required files are present.
   - `.github/workflows/deploy.yml`: only main's run deploys.
-- **Server (local only, v2.16.3):** `functions/` (Cloud Functions, `europe-west1`, emulator-tested, **not deployed**): `aiProxy`, `setTier`, `adminAccounts`, `createCheckout`, `stripeWebhook`; handlers in `functions/src/core.js`, AI backends in `backends.js`; tests `npm --prefix functions test`. Next rules: `database.rules.next.json` (not deployed). Design: [design/ACCOUNTS_TIERS_ENERGY.md](design/ACCOUNTS_TIERS_ENERGY.md).
+- **Server (local only, v2.16.3):** `functions/` (Cloud Functions, `europe-west1`, emulator-tested, **not deployed**): `aiProxy`, `setTier`, `adminAccounts`, `createCheckout`, `stripeWebhook`, and household functions `createHousehold`, `inviteMember`, `acceptInvite`, `removeMember`, `leaveHousehold` (ADR 0012); handlers in `functions/src/core.js`, AI backends in `backends.js`; tests `npm --prefix functions test`. Next rules: `database.rules.next.json` (not deployed). Design: [design/ACCOUNTS_TIERS_ENERGY.md](design/ACCOUNTS_TIERS_ENERGY.md).
 - **Test data:** `scripts/make-fixture.mjs` makes synthetic data (the default emulator seed).
 
 ## 2. Modules
