@@ -1,6 +1,6 @@
 import { readImageForAI } from "../lib/image.js";
-import CalorieCard from "../components/CalorieCard.jsx";
-import { calcTarget, settingsOf } from "../lib/calories.js";
+import WeekSoFar from "../components/WeekSoFar.jsx";
+import { planOf } from "../lib/calories.js";
 import LoadingDots from "../components/LoadingDots.jsx";
 import PrivacyNote from "../components/PrivacyNote.jsx";
 import React from "react";
@@ -259,14 +259,13 @@ export default function HomeSection({ ctx }) {
                     <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{(p.profile && p.profile.name) || (onboardInputs && onboardInputs.name) || "Your"} Recommendations</div>
                     <div style={{ fontSize: 10, color: "#475569", marginBottom: 10 }}>Personalised daily targets and body composition goals based on your profile, health data, and lifestyle.</div>
 
-                    <CalorieCard data={data} who={activeTab} saveData={saveData} />
                     {/* Daily Nutrition Targets */}
                     <div style={{ background: "#f0fdf4", borderRadius: 10, padding: 12, border: "1px solid #bae6fd", marginBottom: 10 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: "#0c4a6e", marginBottom: 8 }}>Daily Nutrition</div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 11 }}>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
                           <div style={{ color: "#475569", fontSize: 9 }}>Calories</div>
-                          <div data-testid="target-calories" style={{ fontWeight: 700, color: "#0c4a6e" }}>{(function() { var cs = settingsOf(p, activeTab); var ct = cs.r6Active ? calcTarget(p, new Date(), activeTab) : null; /* R6: only when the admin switched it on */ return ct ? ct.target + " kcal (measured burn)" : ((p.targets && p.targets.calories) || (generatedTargets && generatedTargets.calories) || (p.generatedTargets && p.generatedTargets.calories) || "—"); })()}</div>
+                          <div data-testid="target-calories" style={{ fontWeight: 700, color: "#0c4a6e" }}>{planOf(p).goal + " kcal (goal)"}</div>
                         </div>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
                           <div style={{ color: "#475569", fontSize: 9 }}>Protein</div>
@@ -633,6 +632,9 @@ export default function HomeSection({ ctx }) {
               </div>)}
             </div>);
           })()}
+
+          {/* v2.17.1: today's calories + Week so far (Plan vs Actual) */}
+          <WeekSoFar data={data} who={activeTab} saveData={saveData} />
 
           {/* ── MY JOURNAL ── */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginBottom: 14, overflow: "hidden" }}>

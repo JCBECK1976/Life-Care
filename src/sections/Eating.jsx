@@ -1,6 +1,7 @@
 import { readImageForAI } from "../lib/image.js";
 import RagCue from "../components/RagCue.jsx";
-import { kcalLimit } from "../lib/calories.js";
+import { dayFoodKcal, kcalLimit } from "../lib/calories.js";
+import CalorieCard from "../components/CalorieCard.jsx";
 import LoadingDots from "../components/LoadingDots.jsx";
 import NoFoodPanel from "../components/NoFoodPanel.jsx";
 import { BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, POTATO_SIDES, SNACKS, VEG_SIDES } from "../constants/food.js";
@@ -17,7 +18,7 @@ import { parseRecalc, recalcPrompt, renameKcal, stripKcal as stripKcalName } fro
 import { applyDefaultsTo, generatorSummary, mergeGenerated, selectionName } from "../lib/meals.js";
 import { NO_FOOD_MSG, NO_FOOD_RULE, compareLine, gramsLine, noFood, requestBody } from "../lib/snap.js";
 import { PHASE_LABEL } from "../lib/eatPhase.js";
-import { foodKey, loadWeekDoc, makeChild, occurrences, ragNote, reconcile, saveWeekDoc, viewFromDoc } from "../lib/children.js";
+import { dateOf, foodKey, loadWeekDoc, makeChild, occurrences, ragNote, reconcile, saveWeekDoc, viewFromDoc } from "../lib/children.js";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -38,7 +39,7 @@ export default function EatingSection({ ctx }) {
     setHelpEatCat, setHelpEatLoading, setHelpEatResult, setHelpEatText, setManageListsOpen, setMealDefaults, setMealTracking, setMeals,
     setNewItemLoading, setNewItemName, setOffResults, setOffSearchTerm, setPortionLoading, setPortionOverrides, setPortionPlanned, setPortionResult,
     setPortionSlot, setQuickPrepMins, setRagRecalcMsg, setReviewCategories, setReviewSideType, setSaving, setWeekOff, updateEatDayFb,
-    updateEatWeekFb, weekLabel, weekOff, weekStart
+    updateEatWeekFb, weekLabel, weekOff, weekStart, saveData
   } = ctx;
   /* v2.6.2 D10/F7: Undo for a replaced item, and the optional photo description */
   const [portionUndo, setPortionUndo] = React.useState(null);
@@ -1032,7 +1033,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               var totalKcal2 = 0; var dayCount2 = 0;
               DAYS.forEach(function(d) { var dk = getDayKcal(d); if (dk > 0) { totalKcal2 += dk; dayCount2++; } });
               var avg2 = dayCount2 > 0 ? Math.round(totalKcal2 / dayCount2) : 0;
-              var limit2 = kcalLimit(data && data[activeTab], isJC ? 2200 : 1900, activeTab); // v2.16.2 R6 (only when active)
+              var limit2 = kcalLimit(data && data[activeTab], isJC ? 2200 : 1900, activeTab); // v2.17.1 goal + today's activity credit
               var color2 = avg2 === 0 ? "#94a3b8" : avg2 > limit2 ? "#dc2626" : "#16a34a";
               return avg2 > 0 ? (<span style={{ fontSize: 11, fontWeight: 600, color: color2 }}> — Avg {avg2} kcal/day</span>) : null;
             })()}</span><div style={{ display: "flex", gap: 4, flexShrink: 0 }}><button onClick={function(){ setCopyWeekOpen(!copyWeekOpen); setCopyWeekTargets({}); }} style={Object.assign({}, copyWeekOpen ? btnClose : btnAction)}>{copyWeekOpen ? "✕" : <span>📋 Copy Week</span>}</button><button onClick={function(){setEatWeekEyeOpen(!eatWeekEyeOpen);}} style={eatWeekEyeOpen ? btnFilledOn : btnProgress}>{eatWeekEyeOpen ? "✕ Progress" : "👁 Progress"}</button></div></div>
@@ -1091,7 +1092,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var kf = isJC ? "jcKcal" : "beckKcal";
                 var pf = isJC ? "jcProt" : "beckProt";
                 var ff = isJC ? "jcFat" : "beckFat";
-                var limKcal = kcalLimit(data && data[activeTab], isJC ? 2200 : 1900, activeTab); // v2.16.2 R6
+                var limKcal = kcalLimit(data && data[activeTab], isJC ? 2200 : 1900, activeTab); // v2.17.1
                 var limProt = isJC ? 130 : 110;
                 var limSfat = 20;
                 var limCarbs = isJC ? 300 : 260;
@@ -2347,6 +2348,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>
               </div>)}
             </div>
+
+            {/* v2.17.1: the day's calorie line (goal · food · activity · left) */}
+            {eatDay !== "week" && (function() { var dd = dateOf(weekStart, eatDay); return <CalorieCard testid="calorie-day" title={"Calories — " + eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} data={data} who={activeTab} saveData={saveData} date={dd} foodKcal={dayFoodKcal(weekChildren, dd)} />; })()}
 
             {/* Day notes */}
 

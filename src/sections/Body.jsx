@@ -1,5 +1,4 @@
 import { calcWeek } from "../lib/utils.js";
-import CalorieCard from "../components/CalorieCard.jsx";
 import { applyAiAdj, leanMass, r5PromptContext } from "../lib/calories.js";
 import LoadingDots from "../components/LoadingDots.jsx";
 import { btnAction, btnActionLg, btnClose, btnDelete, btnEdit, btnFilledOn, btnLog, btnP, btnProgress, btnS, inputStyle, labelStyle } from "../constants/styles.js";
@@ -52,6 +51,7 @@ export default function BodySection({ ctx }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {[["weight","Weight (stone)"],["bodyFat","Body Fat %"],["muscleMass","Muscle Mass"],["muscleRate","Muscle Rate %"],["skeletalMuscle","Skeletal Muscle %"],["visceralFat","Visceral Fat"],["subcutFat","Subcut Fat %"],["bmr","BMR (kcal)"],["bodyWater","Body Water %"],["boneMass","Bone Mass"],["bodyAge","Body Age"],["bmi","BMI"]].map(([k,l]) => (<div key={k}><label style={labelStyle}>{l}</label><input value={bodyInputs[k]} onChange={e => setBodyInputs(q => ({ ...q, [k]: e.target.value }))} style={inputStyle} /></div>))}
             </div>
+            <div style={{ marginTop: 10 }}><label style={labelStyle}>My Notes</label><input type="text" aria-label="My Notes" placeholder="e.g. birthday week, after a long flight" value={bodyInputs.note || ""} onChange={e => setBodyInputs(q => ({ ...q, note: e.target.value }))} style={inputStyle} /></div>
             <div style={{ display: "flex", gap: 8, marginTop: 12 }}><button onClick={saveBodyComp} style={{ ...btnP(!!bodyInputs.week), flex: 1 }}>Save</button><button onClick={() => setShowBodyForm(false)} style={btnS}>Cancel</button></div>
           </div>)}
           <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>My Body Stats</span><div style={{ display: "flex", gap: 4 }}><button onClick={() => { setShowBodyForm(true); setBodyInputs({ weight: "", bodyFat: "", muscleMass: "", muscleRate: "", skeletalMuscle: "", visceralFat: "", subcutFat: "", bmr: "", bodyWater: "", boneMass: "", bodyAge: "", bmi: "", week: String(calcWeek(data.config.trainingStart)) }); }} style={btnAction}>📋 Record</button><label style={{...btnAction, display: "inline-flex"}}>📷 Upload<input type="file" data-share="body" accept="image/*" onChange={async function(e) {
@@ -121,7 +121,6 @@ export default function BodySection({ ctx }) {
           </div>{/* end grey sub-container */}
 
           {/* v2.16.2 R6/R5: calorie target from measured burn (body composition is its source) */}
-          <div style={{ marginTop: 14 }}><CalorieCard data={data} who={activeTab} saveData={saveData} /></div>
           {/* Weigh-In Companion Feedback */}
           <div style={{ marginTop: 14 }}>
             <button onClick={async function() {

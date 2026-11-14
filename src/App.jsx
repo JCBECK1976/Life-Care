@@ -2,12 +2,13 @@
 // Only changes: these imports replace CDN globals, and `export default`
 // replaces the ReactDOM render call (now in main.jsx).
 import React from "react";
+import { bodyNotesCtx } from "./lib/bodyNotes.js";
 import { allowedBy, consentActive, loadConsent, needsConsent } from "./lib/consent.js";
 import ConsentScreen from "./components/ConsentScreen.jsx";
 import LegalViewer from "./components/LegalViewer.jsx";
 import { auditLog } from "./lib/audit.js";
 import { removeOldGoogleTokens } from "./lib/cleanup.js";
-import { GH, fetchWeekCalories, forgetToken, loadToken, mergeDaily, saveToken } from "./lib/googleHealth.js";
+import { GH, fetchWeekCalories, fetchWeekSteps, forgetToken, loadToken, mergeDaily, mergeSteps, saveToken } from "./lib/googleHealth.js";
 import LoadingDots from "./components/LoadingDots.jsx";
 import firebase, { DATA_ROOT } from "./lib/firebase.js";
 import { latestFirst } from "./lib/chat.js";
@@ -455,10 +456,11 @@ function Dashboard() {
     try {
       var totals = await fetchWeekCalories(t.token, new Date());
       mergeDaily(nd[who], totals);
-      var n = Object.keys(totals).length;
-      nd[who].googleSync = { at: at, days: n };
+      var steps = {}; try { steps = await fetchWeekSteps(t.token, new Date()); mergeSteps(nd[who], steps, "Google Health"); } catch (se) { if (se.expired) throw se; } /* v2.17.1 */
+      var n = Object.keys(totals).length, ns = Object.keys(steps).length;
+      nd[who].googleSync = { at: at, days: n, stepDays: ns };
       await saveData(nd);
-      setFormMsg(n ? "✓ Synced — " + n + " day(s) of calories burned this week" : "No calorie data from Google Health for this week yet");
+      setFormMsg(n || ns ? "✓ Synced — " + n + " day(s) of calories burned, " + ns + " day(s) of steps this week" : "No calorie or step data from Google Health for this week yet");
     } catch (err) {
       if (err.expired) { forgetToken(who); setGoogleConnected(false); setGoogleToken(null); }
       nd[who].googleSync = { at: at, days: 0, error: String(err.message || err).slice(0, 80) };
@@ -1016,7 +1018,7 @@ function Dashboard() {
         } else {
           wv = parseFloat(rawWt);
         }
-        if (!isNaN(wv)) { if (!p.body.weight) p.body.weight = []; const ei = p.body.weight.findIndex(e => e.wk === wk); if (ei >= 0) p.body.weight[ei].v = wv; else p.body.weight.push({ wk, v: wv }); p.body.weight.sort((a, b) => a.wk - b.wk); } } nd.config.week = calcWeek(nd.config.trainingStart); nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); await saveData(nd); setShowBodyForm(false); setFormMsg("✓ Body comp saved"); setTimeout(() => setFormMsg(""), 3000); };
+        if (!isNaN(wv)) { if (!p.body.weight) p.body.weight = []; const ei = p.body.weight.findIndex(e => e.wk === wk); if (ei >= 0) p.body.weight[ei].v = wv; else p.body.weight.push({ wk, v: wv }); p.body.weight.sort((a, b) => a.wk - b.wk); } } /* v2.17.1: the weigh-in's My Notes go on every value logged that week */ if (bodyInputs.note && bodyInputs.note.trim()) { Object.keys(p.body || {}).forEach(function(f) { (p.body[f] || []).forEach(function(e) { if (e && e.wk === wk) e.note = bodyInputs.note.trim(); }); }); } nd.config.week = calcWeek(nd.config.trainingStart); nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); await saveData(nd); setShowBodyForm(false); setFormMsg("✓ Body comp saved"); setTimeout(() => setFormMsg(""), 3000); };
 
   // ─── CUSTOM MEAL ───
   const saveCustomMeal = async () => { if (!customInputs.name.trim()) return; const id = "custom_" + Date.now(); const jf = parseFloat(customInputs.jcFat) || 0; const bf = parseFloat(customInputs.beckFat) || 0; const rating = (jf > 20 || bf > 20) ? "RED" : (jf > 14 || bf > 14) ? "AMBER" : "GREAT"; const meal = { id, name: customInputs.name.trim(), rating, jcKcal: parseInt(customInputs.jcKcal) || 0, beckKcal: parseInt(customInputs.beckKcal) || 0, jcProt: parseInt(customInputs.jcProt) || 0, beckProt: parseInt(customInputs.beckProt) || 0, jcFat: jf, beckFat: bf, freq: customInputs.freq, time: parseInt(customInputs.time) || 20, shop: [] }; const updated = [...customMeals, meal]; setCustomMeals(updated); await sSet("custom_meals", JSON.stringify(updated)); setShowCustomForm(false); setCustomInputs({ name: "", jcKcal: "", beckKcal: "", jcProt: "", beckProt: "", jcFat: "", beckFat: "", freq: "Weekly", time: "20" }); setFormMsg("✓ " + meal.name + " added"); setTimeout(() => setFormMsg(""), 3000); };
@@ -1463,6 +1465,8 @@ function Dashboard() {
   // ─── CROSS-SECTION THREAD CONTEXT ───
   const getCrossSectionCtx = function(tab, excludeSection) {
     var lines = [];
+    /* v2.17.1: the person's own notes on weigh-ins and measurements, for every companion that sees body data */
+    var _bn = bodyNotesCtx(data && data[tab]); if (_bn) lines.push(_bn);
     var addThreadSummary = function(label, fbObj) {
       if (!fbObj) return;
       if (fbObj._thread && fbObj._thread.length > 0) {
@@ -1864,7 +1868,7 @@ function Dashboard() {
         {/* MEDS */}
 
         {/* MEALS */}
-        {section === "meals" && <ErrorBoundary name="Eating"><EatingSection ctx={{ accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, addingCategory, addingNew, addingSlotDay, addingSlotKey, addingSource, baseStart, bulkReviewItems, calcRAG, cameraPreview, copyDayOpen, copyDayTargets, copyWeekOpen, copyWeekTargets, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, data, defScopes, eatDay, eatDayEyeOpen, eatFbExpanded, eatFbLoading, eatFbResults, eatWeekEyeOpen, editDraft, editingItem, formMsg, generateEatFeedback, generateWeekEatFeedback, generating, helpEatCat, helpEatLoading, helpEatResult, helpEatText, isJC, manageListsOpen, mealDefaults, mealTracking, meals, newItemLoading, newItemName, offLoading, offResults, openAddForm, p, pastWeeksMeals, portionLoading, portionOverrides, portionPlanned, portionResult, portionSlot, quickPrepMins, ragRecalcLoading, ragRecalcMsg, recalculateAllRag, renderThread, reviewCategories, reviewSideType, saveMeals, setChildAt, weekChildren, childItemsList, searchOFF, setAddingCategory, setAddingNew, setAddingSlotDay, setAddingSlotKey, setBulkReviewItems, setCameraPreview, setCopyDayOpen, setCopyDayTargets, setCopyWeekOpen, setCopyWeekTargets, setCustomBreakfasts, setCustomDesserts, setCustomDrinks, setCustomLunches, setCustomMeals, setCustomSnacks, setDefScopes, setEatDay, setEatDayChartOpen, setEatDayEyeOpen, setEatFbExpanded, setEatWeekEyeOpen, setEditDraft, setEditingItem, setFormMsg, setGenerating, setHelpEatCat, setHelpEatLoading, setHelpEatResult, setHelpEatText, setManageListsOpen, setMealDefaults, setMealTracking, setMeals, setNewItemLoading, setNewItemName, setOffResults, setOffSearchTerm, setPortionLoading, setPortionOverrides, setPortionPlanned, setPortionResult, setPortionSlot, setQuickPrepMins, setRagRecalcMsg, setReviewCategories, setReviewSideType, setSaving, setWeekOff, updateEatDayFb, updateEatWeekFb, weekLabel, weekOff, weekStart }} /></ErrorBoundary>}
+        {section === "meals" && <ErrorBoundary name="Eating"><EatingSection ctx={{ saveData, accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, addingCategory, addingNew, addingSlotDay, addingSlotKey, addingSource, baseStart, bulkReviewItems, calcRAG, cameraPreview, copyDayOpen, copyDayTargets, copyWeekOpen, copyWeekTargets, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, data, defScopes, eatDay, eatDayEyeOpen, eatFbExpanded, eatFbLoading, eatFbResults, eatWeekEyeOpen, editDraft, editingItem, formMsg, generateEatFeedback, generateWeekEatFeedback, generating, helpEatCat, helpEatLoading, helpEatResult, helpEatText, isJC, manageListsOpen, mealDefaults, mealTracking, meals, newItemLoading, newItemName, offLoading, offResults, openAddForm, p, pastWeeksMeals, portionLoading, portionOverrides, portionPlanned, portionResult, portionSlot, quickPrepMins, ragRecalcLoading, ragRecalcMsg, recalculateAllRag, renderThread, reviewCategories, reviewSideType, saveMeals, setChildAt, weekChildren, childItemsList, searchOFF, setAddingCategory, setAddingNew, setAddingSlotDay, setAddingSlotKey, setBulkReviewItems, setCameraPreview, setCopyDayOpen, setCopyDayTargets, setCopyWeekOpen, setCopyWeekTargets, setCustomBreakfasts, setCustomDesserts, setCustomDrinks, setCustomLunches, setCustomMeals, setCustomSnacks, setDefScopes, setEatDay, setEatDayChartOpen, setEatDayEyeOpen, setEatFbExpanded, setEatWeekEyeOpen, setEditDraft, setEditingItem, setFormMsg, setGenerating, setHelpEatCat, setHelpEatLoading, setHelpEatResult, setHelpEatText, setManageListsOpen, setMealDefaults, setMealTracking, setMeals, setNewItemLoading, setNewItemName, setOffResults, setOffSearchTerm, setPortionLoading, setPortionOverrides, setPortionPlanned, setPortionResult, setPortionSlot, setQuickPrepMins, setRagRecalcMsg, setReviewCategories, setReviewSideType, setSaving, setWeekOff, updateEatDayFb, updateEatWeekFb, weekLabel, weekOff, weekStart }} /></ErrorBoundary>}
 
         {section === "shop" && (<ErrorBoundary name="Shop"><ShopSection ctx={{ accentBorder, accentBtnBorder, accentBtnLight, accentLight, activeTab, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, data, editHealthText, editingHealthLog, foodCheckerCategory, foodCheckerLoading, foodCheckerPreview, foodCheckerText, generatedShop, planned, setCustomBreakfasts, setCustomLunches, setCustomMeals, setCustomSnacks, setEditHealthText, setEditingHealthLog, setFoodCheckerCategory, setFoodCheckerLoading, setFoodCheckerPreview, setFoodCheckerText, setFormMsg, setGeneratedShop, setShopDefaults, setShopLoading, setSupermarket, setWeekOff, shopDefaults, shopList, shopLoading, supermarket, weekLabel, weekStart }} /></ErrorBoundary>)}
 

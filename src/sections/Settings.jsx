@@ -1,6 +1,5 @@
 import { COLOUR_THEMES } from "../constants/themes.js";
 import { forgetToken, ghStatus } from "../lib/googleHealth.js";
-import { settingsOf } from "../lib/calories.js";
 import LoadingDots from "../components/LoadingDots.jsx";
 import { sSet } from "../lib/storage.js";
 import { btnAction, btnClear, btnOpen, btnP, btnStop, inputStyle, labelStyle } from "../constants/styles.js";
@@ -59,7 +58,7 @@ export default function SettingsSection({ ctx }) {
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Data Admin</div>
 
           {/* v2.16.2 R4: Google Health (cloud API), rebuilt — token on this device only, honest status */}
-          {(function() { var gp = data && data[activeTab]; var st = ghStatus(activeTab, gp); var cs = settingsOf(gp, activeTab); return (
+          {(function() { var gp = data && data[activeTab]; var st = ghStatus(activeTab, gp); return (
           <div data-testid="gh-card" style={{ background: "#fff", borderRadius: 12, border: "1px solid " + (googleConnected ? "#86efac" : "#e2e8f0"), padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📱 Google Health — calories burned</div>
             <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>
@@ -74,11 +73,6 @@ export default function SettingsSection({ ctx }) {
             ) : (
               <button onClick={connectGoogle} style={{ width: "100%", padding: 10, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>🔗 Connect Google Health</button>
             )}
-            {isAdmin && gp && (<div data-testid="r6-admin" style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid #e2e8f0", fontSize: 11, color: "#334155" }}>
-              <b>Admin:</b> use the calculated calorie target for {(gp.profile && gp.profile.name) || activeTab}?{" "}
-              <button aria-pressed={cs.r6Active} data-testid="r6-switch" onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].calorieSettings) nd[activeTab].calorieSettings = {}; nd[activeTab].calorieSettings.r6Active = !cs.r6Active; await saveData(nd); auditLog("r6-switch", activeTab, cs.r6Active ? "off" : "on"); setFormMsg(cs.r6Active ? "Calculated target switched off — fixed targets used" : "✓ Calculated target switched on"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ padding: "4px 10px", borderRadius: 12, border: "1px solid " + (cs.r6Active ? "#166534" : "#cbd5e1"), background: cs.r6Active ? "#166534" : "#fff", color: cs.r6Active ? "#fff" : "#334155", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>{cs.r6Active ? "On" : "Off"}</button>
-              <div style={{ fontSize: 10, color: "#475569", marginTop: 4 }}>Off (default): the calculated target is only shown, labelled "calculated (not active)". On: My Eating and Home use it, and activity calories are credited.</div>
-            </div>)}
           </div>); })()}
 
           {/* Apple Health Integration */}

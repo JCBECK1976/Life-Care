@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { openApp, tab } from "./helpers.js";
 import { mockReplyFor } from "./mock-ai.js";
-import { applyAiAdj, calcTarget, decideSuggestion, katchMcArdle, kcalLimit, leanMass, pendingSuggestion, r5PromptContext, recordAdj, toKg, weekDates } from "../src/lib/calories.js";
+import { applyAiAdj, decideSuggestion, pendingSuggestion, r5PromptContext, recordAdj } from "../src/lib/calories.js";  // v2.17.1: R6 maths moved to tests/v2171.spec.js
 import { dailyTotals, fetchWeekCalories, mergeDaily } from "../src/lib/googleHealth.js";
 
 // v2.16.2: R6 calorie target from measured burn, R4 Google Health rebuilt (fake Google service), R5 activity adjustment.
@@ -10,31 +10,6 @@ const H = { Authorization: "Bearer owner" };
 const readData = async () => JSON.parse(await (await fetch(DB, { headers: H })).json());
 const writeData = async (d) => fetch(DB, { method: "PUT", headers: H, body: JSON.stringify(JSON.stringify(d)) });
 const body = { weight: [{ wk: 1, v: 13 }, { wk: 2, v: 13.2 }, { wk: 3, v: 13.1 }, { wk: 4, v: 13.1 }], bodyFat: [{ wk: 2, v: 20 }, { wk: 3, v: 21 }, { wk: 4, v: 22 }] };
-
-test("R6 maths: stone → kg, rolling lean mass, Katch-McArdle, estimate without Google data", () => {
-  expect(toKg(13)).toBeCloseTo(82.55, 1); expect(toKg(82)).toBe(82); expect(toKg("")).toBe(null);
-  const lean = leanMass(body);
-  expect(lean.n).toBe(3); expect(lean.leanKg).toBeCloseTo(83.07 * 0.79, 0);
-  expect(katchMcArdle(65)).toBe(1774);
-  expect(leanMass({ weight: body.weight, bodyFat: body.bodyFat.slice(0, 2) })).toBe(null);   // needs 3 weigh-ins
-  const est = calcTarget({ body }, new Date(2026, 10, 14));
-  expect(est.estimate).toBe(true); expect(est.target).toBe(Math.round(est.bmr * 1.2) - 500);
-  expect(weekDates(new Date(2026, 10, 14))).toEqual(["2026-11-08", "2026-11-09", "2026-11-10", "2026-11-11", "2026-11-12", "2026-11-13", "2026-11-14"]);
-});
-
-test("R6/R5 maths: activity credit = total − BMR (not below 0), × adjustment, label; limit only when active", () => {
-  const p = { body, googleDaily: { "2026-11-09": { kcal: 2600 }, "2026-11-10": { kcal: 1500 }, "2026-11-01": { kcal: 9999 } } };
-  const c = calcTarget(p, new Date(2026, 10, 14));
-  const bmr = c.bmr;
-  expect(c.days).toHaveLength(2);
-  expect(c.avgCredit).toBe(Math.round((Math.max(0, 2600 - bmr) + 0) / 2));
-  expect(c.label).toBe(c.avgBurned + " kcal burned · " + bmr + " deducted for your BMR (from body composition) · +" + c.avgCredit + " kcal from activity");
-  p.calorieSettings = { adjPct: 50 };
-  expect(calcTarget(p, new Date(2026, 10, 14)).avgCredit).toBe(Math.round(Math.max(0, 2600 - bmr) / 2 * 0.5));
-  expect(kcalLimit(p, 2200)).toBe(2200);                      // R6 off → the fixed limit
-  p.calorieSettings.r6Active = true;
-  expect(kcalLimit(p, 2200)).not.toBe(2200);
-});
 
 test("R5: manual change acknowledged once; suggestion accept/decline; a decline is respected for 4 weeks", () => {
   const p = { body };
@@ -65,33 +40,24 @@ test("R4 client: daily totals by date; 401 → expired; other errors honest; mer
   expect(p.googleDaily).toEqual({ "2026-11-09": { kcal: 2500, at: expect.any(String) } });
 });
 
-test("UI: Home shows the calculated target 'not active'; Google sync with a fake Google service stores daily totals only; admin switch makes it active", async ({ page }) => {
+test("UI: Google sync with a fake Google service stores daily totals (calories + steps) only; the token never reaches the database", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("lc_gh_token_jc", JSON.stringify({ token: "fake-device-token", exp: Date.now() + 3600000 })));
   const { errors } = await openApp(page);
-  let ghCalls = 0;
-  await page.route("https://health.googleapis.com/**", (r) => { ghCalls++; const today = new Date(); today.setHours(9); return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ dataPoints: [{ startTime: today.toISOString(), value: { kcal: 2900 } }] }) }); });
-  await tab(page, "My Body");
-  const card = page.getByTestId("calorie-card");
-  await card.scrollIntoViewIfNeeded();
-  await expect(card.getByTestId("calorie-status")).toHaveText("Calculated (not active)");
-  await expect(card).toContainText("estimate");
-  // Settings → Google Health
+  await page.route("https://health.googleapis.com/**", (r) => { const today = new Date(); today.setHours(9); const steps = /\/steps\//.test(r.request().url()); return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ dataPoints: [{ startTime: today.toISOString(), value: steps ? { intValue: 8200 } : { kcal: 2900 } }] }) }); });
   await page.locator("button").nth(1).click();
   const gh = page.getByTestId("gh-card");
   await expect(gh.getByTestId("gh-status")).toContainText("Connected on this device");
   await gh.getByRole("button", { name: /Sync this week's calories/ }).click();
-  await expect(page.getByText(/Synced — 1 day\(s\) of calories burned this week/)).toBeVisible();
-  expect(ghCalls).toBe(1);
+  await expect(page.getByText(/Synced — 1 day\(s\) of calories burned, 1 day\(s\) of steps this week/)).toBeVisible();
   const d = await readData();
   expect(Object.values(d.jc.googleDaily)).toEqual([{ kcal: 2900, at: expect.any(String) }]);
+  expect(Object.values(d.jc.dailyActivity)[0]).toMatchObject({ steps: 8200, source: "Google Health" });
   const all = await (await fetch("http://127.0.0.1:9000/data.json?ns=life-care-app-64d04-default-rtdb", { headers: H })).text();
-  expect(all).not.toContain("fake-device-token");                     // token never in the database
-  await expect(gh.getByTestId("gh-status")).toContainText("1 day(s) read");
-  await gh.getByTestId("r6-switch").click();
-  await expect(gh.getByTestId("r6-switch")).toHaveText("On");
-  await tab(page, "My Body");
-  await expect(page.getByTestId("calorie-status")).toHaveText("Active");
-  await expect(page.getByTestId("calorie-label")).toContainText("2900 kcal burned");
+  expect(all).not.toContain("fake-device-token");
+  await tab(page, "My Exercise");
+  const wd = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][new Date().getDay()];
+  await page.getByRole("button", { name: wd, exact: true }).click();
+  await expect(page.getByTestId("day-steps")).toContainText("8,200 steps (Google Health)");
   expect(errors).toEqual([]);
 });
 
@@ -123,13 +89,14 @@ test("UI R5: Body feedback's suggestion appears on Home; Decline is recorded and
   await tab(page, "My Body");
   await page.getByRole("button", { name: "My Companion Body Feedback" }).click();
   await expect.poll(async () => { const d = await readData(); return d.jc.calorieSettings && d.jc.calorieSettings.adjHistory && d.jc.calorieSettings.adjHistory.length; }).toBe(1);
-  const sug = page.getByTestId("adj-suggestion");
+  await tab(page, "Home");
+  const sug = page.getByTestId("calorie-home").getByTestId("adj-suggestion");
   await sug.scrollIntoViewIfNeeded();
   await expect(sug).toContainText("Companion suggests 85% — Weight is falling slower than predicted.");
   await sug.getByRole("button", { name: "Decline" }).click();
-  await expect(page.getByTestId("adj-suggestion")).toHaveCount(0);
+  await expect(page.getByTestId("calorie-home").getByTestId("adj-suggestion")).toHaveCount(0);
   const h = (await readData()).jc.calorieSettings;
   expect(h.adjHistory[0]).toMatchObject({ kind: "suggestion", value: 85, decision: "declined" });
-  await expect(page.getByTestId("adj-pct")).toHaveText("100%");
+  await expect(page.getByTestId("calorie-home").getByTestId("adj-pct")).toHaveText("100%");
   expect(errors).toEqual([]);
 });

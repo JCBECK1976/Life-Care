@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.17.0 · 14 November 2026
+> Last updated: v2.17.1 · 14 November 2026
 
 ---
 
@@ -136,6 +136,13 @@ Five faces: 😔 Really struggling, 😕 Not great, 😐 OK, 🙂 Good, 😊 Gre
 ### My Day
 A summary of today: **My Eating** (today's planned breakfast, lunch, dinner, snacks and drinks, with an **Open** link to My Eating) and **My Exercises** (today's session, or "No exercises planned"). Buttons take you straight to today in My Eating or My Exercise.
 
+### Week so far: Plan vs Actual
+Between My Day and My Journal, with **Today** (your calorie line) above it.
+- Counts only **complete days**: Sunday up to yesterday. Today is shown separately as "in progress"; future days never count.
+- **Eating:** what you ate each day against that day's goal (including activity): ✓ within 10%, ! within 20%, ✕ beyond (a day with nothing logged counts as off track).
+- **Exercise:** sessions done against sessions planned on those days.
+- The overall % is the average of the two. Tap the card for the day-by-day breakdown.
+
 ### My Journal
 - **+ Add Journal Entry** — write how you're feeling or what's on your mind. Entries are dated.
 - **Recent Entries** and **Full History** — read past entries; **🗑 Del** removes one.
@@ -173,14 +180,10 @@ The overall **Companion Check-in** looks across everything (exercise, eating, bo
 Tracks body composition, usually from a smart scale:
 **Weight, Body Fat %, Muscle Mass, Muscle Rate %, Visceral Fat, Subcutaneous Fat %, Body Water %, Bone Mass, BMR (kcal), Body Age.** Each shows a status (e.g. Acceptable / Too High, Standard / High, Excellent) where relevant.
 
-- **📋 Record** — type in today's values.
+- **📋 Record** — type in today's values. **My Notes** (e.g. "birthday week", "after a long flight") is saved with that weigh-in; every Companion allows for it when reading your numbers. Measurements have My Notes too.
 - **📷 Upload** — upload a screenshot from your scales app; the Companion reads the values ("✓ Values extracted — review and save"). Check them, then save.
 - **👁 Progress** (under each stat) — the history, newest first, one row per week (week + value) with **Open**, and a chart once there are 2+ entries. **Open** shows the entry read-only (week, value, note); **Edit** to change it and **Save**, or **Remove** to take it out (asks first).
-- **🔥 Calorie target from measured burn** (under the stats): your daily calorie target worked out from your own body. Your **BMR** (the calories your body burns at rest) comes from your lean mass, averaged over your last 3–4 weigh-ins with body fat %. If Google Health is connected, your **daily total calories burned** this week (Sunday–Saturday) are added: what you burn above your BMR is your **activity credit**. The line reads, e.g., "2,600 kcal burned · 1,780 deducted for your BMR (from body composition) · +820 kcal from activity". Without Google data it shows an **estimate** (BMR × 1.2). The target takes off your **deficit**, set per person (JC 500, Becks 400 kcal/day to start; **Change** to set your own).
-  - It says **Calculated (not active)** until the app owner switches it on for you; until then your usual targets are used. Once **Active**, My Eating uses it.
-  - **Activity adjustment** (default 100%): how much of the activity credit counts. **Change** sets your own value. After 3–4 weeks the Companion's Body Feedback may **suggest** a new value with a reason; **Accept** or **Decline**. If you decline, it won't ask again for at least 4 weeks. If you change it yourself, the Companion mentions it once and gives its view.
-
-- **Shared from another app** ("What is this?"): choose **For** (the person, defaults to whoever is selected) before choosing what it is, so each person's weigh-in goes to their own record.
+- Your calorie goal is shown on **Home** and on each day in **My Eating** (see "Calories" under My Eating). Weigh-ins with body fat % make it more accurate.
 
 ### My Body Measurements
 Tape measurements in cm (e.g. chest, waist, hips, arms, thighs).
@@ -380,6 +383,18 @@ Tap **📋 Bulk** and paste a list (one per line or comma-separated).
 For prepared dinners, the ingredients become shopping list items. For packaged items, the product itself goes on the list.
 
 ---
+
+
+### Calories (Home and each day in My Eating)
+One line: **Goal · Food · Activity +N (steps: +a · exercise: +b) · Left**.
+- **Goal:** your BMR (the energy your body uses at rest, from your lean mass: weight and body fat % averaged over your last 3–4 weigh-ins) × 1.15 for everyday life = your **baseline**, minus your **deficit %** (20% to start; **Change deficit**). The goal never goes below your BMR: then it says "limited to your BMR".
+- If there aren't enough weigh-ins with body fat, the BMR is an **estimate** (from weight, height, age and sex, or an average for your age and sex) and says so.
+- **Activity** is added on top, counting only what you burn beyond everyday life:
+  - with **Google Health** total calories burned for the day: what you burned above your baseline (nothing else is added on top, so nothing counts twice);
+  - otherwise **steps** above your own allowance ("Your first ~N steps are already in your goal") plus **logged exercise** (worked out from the type of exercise and how long it took).
+  - **Activity adjustment** (100% to start) scales the credit; the Companion may suggest a change after a few weeks.
+- Steps from Google Health show on that day in My Exercise (👣).
+- **▼ How this is calculated** shows every number used.
 
 ## 7. My Shop
 

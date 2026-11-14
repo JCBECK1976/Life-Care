@@ -9,6 +9,7 @@ import { isoDay, weekDates } from "./calories.js";
 export var GH = {
   base: "https://health.googleapis.com/v4/users/me/dataTypes/",
   totalCalories: "total-calories",                       // TO VERIFY at J10
+  steps: "steps",                                        // TO VERIFY at J10
   scope: "https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly",
 };
 var KEY = function(person) { return "lc_gh_token_" + person; };
@@ -61,6 +62,26 @@ export async function fetchWeekCalories(token, date, fetchImpl) {
   var totals = dailyTotals(await resp.json());
   Object.keys(totals).forEach(function(d) { if (days.indexOf(d) < 0) delete totals[d]; });
   return totals;
+}
+
+/** v2.17.1: this week's daily steps (same shape as calories). */
+export async function fetchWeekSteps(token, date, fetchImpl) {
+  var days = weekDates(date);
+  var from = days[0] + "T00:00:00Z", to = days[6] + "T23:59:59Z";
+  var url = GH.base + GH.steps + "/dataPoints?pageSize=1000&filter=" + encodeURIComponent('interval.start_time >= "' + from + '" AND interval.start_time <= "' + to + '"');
+  var resp = await (fetchImpl || fetch)(url, { headers: { Authorization: "Bearer " + token } });
+  if (resp.status === 401 || resp.status === 403) { var e = new Error("Google session expired or not allowed — reconnect"); e.expired = true; throw e; }
+  if (!resp.ok) throw new Error("Google Health returned HTTP " + resp.status);
+  var totals = dailyTotals(await resp.json());
+  Object.keys(totals).forEach(function(d) { if (days.indexOf(d) < 0) delete totals[d]; });
+  return totals;
+}
+/** Steps per day go into the person's daily activity record (shown on that day in My Exercise). */
+export function mergeSteps(p, totals, source, now) {
+  if (!p.dailyActivity) p.dailyActivity = {};
+  var at = new Date(now || Date.now()).toISOString();
+  Object.keys(totals).forEach(function(d) { p.dailyActivity[d] = Object.assign({}, p.dailyActivity[d] || {}, { steps: Math.round(totals[d]), source: source || "Google Health", at: at }); });
+  return p.dailyActivity;
 }
 
 /** Merge daily totals into the person's record; drop days older than 12 months (retention). */
