@@ -2696,3 +2696,11 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **main:** CALORIES §7.7, ADR 0014, LLD, TEST_STRATEGY, CHANGELOG, plan F23 Done.
 - **JC to test (/build/, footer v2.18.2-build):** a big meal on your day may show e.g. "RED today — for your goal" while the list item keeps its rating; Help → the rating system.
 - **Resume point:** `build` @ `fe7df5e` (v2.18.2), prod v2.15.1. Next: wait for JC's test, then the build → beta PR when asked.
+
+### (Coder) 14 Nov 2026 — v2.18.3 on build: rating consistency
+**Decision (JC, 14 Nov):** frequency warnings and week counts use the same computed personal rating the screen shows; one-off, idempotent refresh of stored ratings for the current and future weeks only (past weeks keep their history).
+**Coder choices:** the refresh runs on load, once per person (flag `ratings_refresh_v2183` in the data root) and only after that person's goal setup is complete, so JC and Becks are refreshed on the first open after finishing setup; past weeks' counts (e.g. "within the past month") use their stored ratings. Also fixed a pre-existing race in `open.spec.js` (count-then-click could close the Progress panel; now retried with `toPass`, the assertion unchanged).
+- **build `a86833a`** (v2.18.3). Full suite 225 passed (6 skipped), lint 0 errors.
+- **main:** CALORIES §7.7, LLD, TEST_STRATEGY, CHANGELOG, plan F25.
+- **JC to test (/build/, footer v2.18.3-build):** a selection shown RED for your goal shows a matching ⚠️ warning when repeated this week.
+- **Resume point:** `build` @ `a86833a` (v2.18.3), prod v2.15.1. Next: wait for JC's test, then the build → beta PR when asked.
