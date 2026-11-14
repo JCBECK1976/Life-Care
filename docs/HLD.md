@@ -69,10 +69,10 @@ Every reply's token counts go to the **AI usage ledger**; Companion Energy is th
 
 ## 6a. Calorie model, Plan vs Actual and body-record notes (v2.17.1)
 Full design: [design/CALORIES.md](design/CALORIES.md) · decision: [ADR 0013](adr/0013-calorie-model.md). Pure calculations in code (`src/lib/calories.js`), not AI.
-- **Goal:** BMR (Katch-McArdle from lean mass, averaged over the last 3–4 weigh-ins with body fat; Mifflin-St Jeor or an age/sex average as labelled estimates) × 1.15 = baseline; minus the person's deficit % (default 20%); never below BMR.
+- **Goal:** BMR (Katch-McArdle from lean mass, averaged over the last 3–4 weigh-ins with body fat; Mifflin-St Jeor or an age/sex average as labelled estimates) × 1.15 = baseline; minus the person's deficit % (default 20%); never below a safe minimum of max(90% of BMR, 1,200 kcal women / 1,500 kcal men) (v2.17.2).
 - **Activity credit, net of resting burn:** Health total burned − baseline when available (nothing added on top); otherwise steps above a per-person step allowance + logged exercise ((MET − 1) × kg × hours). Then × the activity adjustment % (R5).
 - **Shown** on Home (today) and each day in My Eating: Goal · Food · Activity · Left, with "How this is calculated". My Eating's daily limit uses goal + credit.
-- **Home "Week so far: Plan vs Actual":** complete days only (Sunday → yesterday): eating vs goal + credit (±10% / ±20% bands), exercise sessions done vs planned, overall = the average. Today shown separately; future never counted.
+- **Home "Week so far: Plan vs Actual":** complete days only (Sunday → yesterday): eating vs goal + credit (±10% / ±20% bands; days with nothing logged skipped and counted as "not logged"), exercise sessions done vs planned, overall = the average. Today shown separately; future never counted.
 - **My Notes on body records:** a note on each weigh-in and measurement, sent as context to every Companion that sees body data.
 - Wellness guidance, not medical advice ([Intended use](legal/INTENDED_USE.md)).
 

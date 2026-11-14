@@ -2661,3 +2661,13 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **JC to test:** Help → "How is my calorie goal worked out?" / "Why is my activity credit lower than my watch says?" on `/build/`.
 - **Open:** BMR floor vs 20% default (a/b/c, previous entry).
 - **Resume point:** `build` @ `21ac1ac` (v2.17.1), prod v2.15.1. Next: wait for JC's test, then the build → beta PR when asked.
+
+### (Coder) 14 Nov 2026 — v2.17.2 on build: calorie decisions applied
+**Decisions (JC, 14 Nov):**
+- **Safe minimum** replaces "never below BMR": goal ≥ max(90% of BMR, 1,200 kcal women / 1,500 kcal men), labelled "limited to your safe minimum". Reason: the BMR floor capped every deficit above ≈ 13%. Rejected: default deficit 10–13%; keeping the BMR floor.
+- **Week so far:** days with nothing logged are skipped (not off track) and shown as "N days not logged".
+- **Old settings:** `calorieSettings.r6Active` and the kcal `deficit` removed by a one-off idempotent clean-up on load (`stripOldCalorieSettings`); nothing else touched.
+- **build `e3adc42`** (v2.17.2). 91.9 kg / 25.5% → BMR 1,849, safe minimum 1,664, goal at 20% = 1,701 (not floored). Side effect: the step allowance follows the goal (formula 0.15 × BMR − 10% of goal), so JC's test profile is 3,160 (was 2,724) and Becks's 3,500 (clamped, was 3,027); 10,000 steps → +232. Full suite 207 passed (6 skipped), lint 0 errors.
+- **main:** CALORIES.md, ADR 0013, HLD, LLD, TEST_STRATEGY, CHANGELOG, plan F19.
+- **JC to test (/build/, footer v2.17.2-build):** Home calorie line shows your goal at 20%; set the deficit to 30% → "limited to your safe minimum"; Week so far shows "N days not logged" for any empty day; Help → "What does 'limited to your safe minimum' mean?".
+- **Resume point:** `build` @ `e3adc42` (v2.17.2), prod v2.15.1. Next: wait for JC's test, then the build → beta PR when asked.

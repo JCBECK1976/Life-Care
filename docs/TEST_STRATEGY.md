@@ -29,15 +29,17 @@ Draft 1.1, 13 Nov 2026 (prod v2.15.1; Architect review applied). How changes are
 **Calorie model (v2.17.1, `tests/v2171.spec.js`; design [design/CALORIES.md](design/CALORIES.md)).** Known inputs with fixed expected outputs; any change to `src/lib/calories.js` must keep these passing (or change them with a recorded decision):
 | Case | Input | Expected |
 |---|---|---|
-| BMR, baseline, goal | 91.9 kg, 25.5% body fat | BMR ≈ 1,849; baseline ≈ 2,126; goal at 20% ≈ 1,701 → limited to BMR 1,849; at 10% 1,913 |
-| Step allowance | JC test profile (178 cm, 91.9 kg) / Becks test profile (165 cm, 10.4 st, 30%) | 2,724 / 3,027 steps (clamp 2,000–3,500) |
-| Steps credit | 10,000 steps (JC profile) | +247 kcal |
+| BMR, baseline, goal | 91.9 kg, 25.5% body fat | BMR ≈ 1,849; baseline ≈ 2,126; safe minimum 1,664; goal at 20% = 1,701 (not floored); 30% → 1,664 (limited); at 10% 1,913 |
+| Safe minimum | max(90% of BMR, 1,200 women / 1,500 men) | 1,849 m → 1,664; 1,600 m → 1,500; 1,200 f → 1,200; small woman at 30% → 1,200 |
+| Step allowance | JC test profile (178 cm, 91.9 kg) / Becks test profile (165 cm, 10.4 st, 30%) | 3,160 / 3,500 steps (clamp 2,000–3,500) |
+| Steps credit | 10,000 steps (JC profile) | +232 kcal |
 | Exercise credit | 30 min weights (MET 5.0) at 91.9 kg | +184 kcal |
 | Total-burned mode | 2,900 kcal burned (Health) | +774 kcal; steps and exercise not added on top |
 | Adjustment % | credit × adjustment % | applied after either mode |
 | Fallbacks | No body fat → Mifflin-St Jeor; no weight → age/sex average | labelled "estimate" |
 | Food per day | Week's eating record | skipped items not counted |
-| Week so far | Fixed clock (a Wednesday) | counts Sun–Tue only; today separate; future never counted |
+| Week so far | Fixed clock (a Wednesday) | counts Sun–Tue only; today separate; future never counted; a day with nothing logged is skipped and counted as not logged |
+| Old settings clean-up | `r6Active`, kcal `deficit` | removed once on load, everything else kept; second run changes nothing |
 | My Notes | A weigh-in note | collected newest first; reaches the AI request context |
 | UI | My Eating day and Home | Goal · Food · Activity · Left, step note, "How this is calculated", deficit % change |
 
