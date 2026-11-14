@@ -48,7 +48,7 @@ export default function PersonTabs({ people, activeKey, onSelect, tabStyle, acti
       {people.map((p) => {
         const active = p.key === activeKey;
         return (
-          <button key={p.key} data-active={active ? "true" : "false"} title={p.name} onClick={() => onSelect(p.key)}
+          <button key={p.key} data-active={active ? "true" : "false"} aria-pressed={active} title={p.name} onClick={() => onSelect(p.key)}
             style={{ ...tabStyle, ...(active ? activeStyle : inactiveStyle), flex: "1 0 0", minWidth: "max-content", whiteSpace: "nowrap" }}>
             {tabLabel(p.name)}
           </button>

@@ -1843,7 +1843,7 @@ function Dashboard() {
 
       <div style={{ padding: 16 }}>
         {/* HOME */}
-        <SharePicker go={function(kind) { if (kind === "body" || kind === "progress") setSection("body"); else if (kind === "food") setSection("shop"); }} />
+        <SharePicker people={data ? peopleOf(data) : []} activeKey={activeTab} accentMid={accentMid} setPerson={function(k) { setActiveTab(k); loadUserSettings(k); }} go={function(kind) { if (kind === "body" || kind === "progress") setSection("body"); else if (kind === "food") setSection("shop"); }} />
         {section === "overview" && (<ErrorBoundary name="Home"><HomeSection ctx={{ accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, assessment, assessmentExpanded, btnMT, calcAge, checkCompanionEnergy, companionEnergy, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, dailyMood, data, energyLoading, feedbackHistory, feedbackLoading, feedbackResults, genPlanLoading, generateFeedback, generatedTargets, getCrossSectionCtx, homeFbExpanded, isJC, journalEntries, journalText, meals, onboardInputs, p, profileInputs, renderThread, saveData, setAssessment, setAssessmentExpanded, setDailyMood, setEatDay, setExerciseDay, setFormMsg, setGenPlanLoading, setGeneratedTargets, setHomeFbExpanded, setJournalEntries, setJournalText, setOnboardInputs, setProfileInputs, setSection, setSetupDirty, setSetupTab, setShowFbHistory, setShowFullJournal, setShowMyDay, setShowOnboarding, setShowProfile, setShowRecentJournal, setUserMood, setupDirty, setupTab, showFbHistory, showFullJournal, showMyDay, showOnboarding, showProfile, showRecentJournal, updateHomeFb, userMood }} /></ErrorBoundary>)}
 
         {/* BODY */}

@@ -1,4 +1,5 @@
 import React from "react";
+import PersonTabs from "./PersonTabs.jsx";
 
 // v2.11.0 F8 "Share to Lifecare Companion" (Android). The service worker keeps images shared from another app in
 // Cache Storage ("lc-share"). This picker appears once the user is signed in (so nothing is lost while signing in),
@@ -42,10 +43,13 @@ var KINDS = [
 export default function SharePicker(props) {
   var _f = React.useState(null); var files = _f[0]; var setFiles = _f[1];
   var _m = React.useState(""); var msg = _m[0]; var setMsg = _m[1];
+  // v2.16.4: whose upload is it? Defaults to the current person (same toggle style as the Log form).
+  var _p = React.useState(null); var who = _p[0] || props.activeKey; var setWho = _p[1];
   React.useEffect(function() { readSharedFiles().then(function(f) { if (f.length) setFiles(f); }).catch(function() {}); }, [setFiles]);
   if (!files) return null;
   var tidyUrl = function() { if (/[?&]share=1/.test(window.location.search)) window.history.replaceState(null, "", window.location.pathname); };
   var choose = async function(kind) {
+    if (props.setPerson && who && who !== props.activeKey) props.setPerson(who);
     props.go(kind);
     var ok = await handTo(kind, files);
     if (ok) { await clearShared(); setFiles(null); tidyUrl(); }
@@ -56,6 +60,15 @@ export default function SharePicker(props) {
     <div style={{ background: "#fff", width: "100%", maxWidth: 480, borderRadius: "16px 16px 0 0", padding: 16, boxSizing: "border-box" }}>
       <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>What is this?</div>
       <div style={{ fontSize: 11, color: "#64748b", marginBottom: 12 }}>{files.length === 1 ? "1 image" : files.length + " images"} shared with Lifecare Companion. It stays on this phone until you choose.</div>
+      {props.people && props.people.length > 1 && (<div style={{ marginBottom: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 4 }}>For</div>
+        <div style={{ display: "flex", background: props.accentMid || "#1e3a5f", borderRadius: 6, padding: 2 }}>
+          <PersonTabs testId="share-person-tabs" people={props.people} activeKey={who} rowStyle={{ gap: 0 }}
+            tabStyle={{ padding: "5px 10px", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+            activeStyle={{ background: "#fff", color: "#0f172a" }} inactiveStyle={{ background: "transparent", color: "rgba(255,255,255,0.8)" }}
+            onSelect={function(k) { setWho(k); }} />
+        </div>
+      </div>)}
       {KINDS.map(function(o) { return <button key={o.k} onClick={function() { choose(o.k); }} style={btn}>{o.label}<div style={{ fontSize: 10, fontWeight: 400, color: "#64748b" }}>{o.hint}</div></button>; })}
       {msg && <div role="alert" style={{ fontSize: 11, color: "#991b1b", fontWeight: 600, margin: "4px 0 8px" }}>{msg}</div>}
       <div style={{ display: "flex", gap: 6, marginTop: 4 }}>

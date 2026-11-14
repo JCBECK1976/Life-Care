@@ -4,7 +4,7 @@ import { calcWeek, fbIcon, sBg, sColor, sLabel, setPlainNote } from "../lib/util
 import { buildExProfileInfo, getMoodContext } from "../lib/aiContext.js";
 import { sSet } from "../lib/storage.js";
 import { scrollOnMount } from "../lib/scrollIntoView.js";
-import { attachCompanion, setCompanionDecision, entrySets, findWeekIdx, previousEntry, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsDiffer, setsToSave, syncAfterProgChange, weightLabel } from "../lib/exercise.js";
+import { attachCompanion, companionFromSession, sameExercise, setCompanionDecision, entrySets, findWeekIdx, previousEntry, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsDiffer, setsToSave, syncAfterProgChange, weightLabel } from "../lib/exercise.js";
 import React from "react";
 import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
 import { btnAction, btnActionLg, btnDelete, btnEdit, btnFilledOn, btnLog, btnMuted, btnOpen, btnP, btnProgress, btnS, inputStyle, labelStyle } from "../constants/styles.js";
@@ -117,7 +117,7 @@ export default function ExerciseSection({ ctx }) {
           };
           const openEntry = (day, exIdx, progIdx) => {
             var e = data[activeTab].exercises[day][exIdx].prog[progIdx];
-            setOpenProg({ day: day, exIdx: exIdx, progIdx: progIdx, editing: false, msg: "", draft: { wk: String(e.wk), sets: logSetsFrom(e, Math.max(1, (e.sets || []).length || parseReps(e.r).length || 3)), fullRange: e.fullRange || "", goodForm: e.goodForm || "", note: e.note || "", companion: e.companion ? Object.assign({}, e.companion) : null } });
+            setOpenProg({ day: day, exIdx: exIdx, progIdx: progIdx, editing: false, msg: "", draft: { wk: String(e.wk), sets: logSetsFrom(e, Math.max(1, (e.sets || []).length || parseReps(e.r).length || 3)), fullRange: e.fullRange || "", goodForm: e.goodForm || "", note: e.note || "", companion: e.companion ? Object.assign({}, e.companion) : companionFromSession(sessionFeedback, activeTab, day, data[activeTab].exercises[day][exIdx].name, e.wk) /* F11b: older feedback */ } });
           };
           const setDraft = (patch) => setOpenProg(function(o) { return Object.assign({}, o, { draft: Object.assign({}, o.draft, patch), msg: "" }); });
           const saveEntry = async () => {
@@ -130,6 +130,7 @@ export default function ExerciseSection({ ctx }) {
             var before = ex2.prog.slice().sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); }).pop(); before = Object.assign({}, before);
             e.wk = parseInt(d.wk) || e.wk; e.sets = sets; e.w = String(sets[0].w).replace(/kg$/, "") + "kg"; e.r = fmtReps(sets.map(function(x) { return parseInt(x.r) || 0; }));
             e.fullRange = d.fullRange; e.goodForm = d.goodForm; e.note = d.note.trim();
+            if (d.companion && !e.companion) e.companion = { verdict: d.companion.verdict, recommendation: d.companion.recommendation, at: d.companion.at }; /* F11b: keep it once edited */
             if (d.companion && e.companion) { if (d.companion.decision) e.companion.decision = d.companion.decision; else delete e.companion.decision; e.companion.decisionNote = (d.companion.decisionNote || "").trim(); } // F11
             ex2.prog.sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
             syncAfterProgChange(ex2, before);   // D20
@@ -379,7 +380,7 @@ export default function ExerciseSection({ ctx }) {
                       <span style={{ width: 65, fontSize: 11 }}>{pr.r}</span>
                       <span style={{ flex: 1, minWidth: 0 }}></span>
                       <button aria-label={"Open week " + pr.wk} onClick={function() { openEntry(day, exIdx, realPi); }} style={Object.assign({}, btnOpen, { flexShrink: 0 })}>Open</button>
-                    </div>{setsDiffer(pr) && <div data-testid="prog-sets" style={{ fontSize: 10, color: "#64748b", padding: "0 0 4px 44px" }}>Sets: {fmtEntry(pr)}</div>}{(pr.goodForm || pr.fullRange) && <div data-testid="prog-chips" style={{ display: "flex", flexWrap: "wrap", gap: 4, padding: "0 0 4px 44px" }}>{[["Form", pr.goodForm], ["Range", pr.fullRange]].map(function(c) { var good = c[1] === "good"; var txt = c[0] + (good ? " ✓ Good" : c[1] ? " … Working towards" : " – not recorded"); return <span key={c[0]} style={{ fontSize: 10, fontWeight: 600, padding: "1px 7px", borderRadius: 10, whiteSpace: "nowrap", color: good ? "#166534" : c[1] ? "#92400e" : "#475569", background: good ? "#dcfce7" : c[1] ? "#fef3c7" : "#f1f5f9" }}>{txt}</span>; })}</div>}{openProg && openProg.day === day && openProg.exIdx === exIdx && openProg.progIdx === realPi && renderEntryForm(ex)}</div>); })}
+                    </div>{setsDiffer(pr) && <div data-testid="prog-sets" style={{ fontSize: 10, color: "#64748b", padding: "0 0 4px 44px" }}>Sets: {fmtEntry(pr)}</div>}{/* v2.16.4: Form/Range shown only inside the Open card (JC: pills under rows looked cluttered) */}{openProg && openProg.day === day && openProg.exIdx === exIdx && openProg.progIdx === realPi && renderEntryForm(ex)}</div>); })}
                     {(!ex.prog || ex.prog.length === 0) && <div style={{ fontSize: 10, color: "#94a3b8" }}>No progression data yet</div>}
                     {ex.prog && ex.prog.length > 4 && <button onClick={function(){setSelectedEx(Object.assign({},selectedEx,{showAll:!selectedEx.showAll}));}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:accent,cursor:"pointer",marginBottom:6}}>{selectedEx && selectedEx.showAll ? "▲ Show less" : "▼ View more (" + (ex.prog.length - 4) + " entries)"}</button>}
                     <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var wk = calcWeek(nd.config.trainingStart); var existWk = -1; for (var awi = 0; awi < nd[activeTab].exercises[day][exIdx].prog.length; awi++) { if (nd[activeTab].exercises[day][exIdx].prog[awi].wk === wk) { existWk = awi; break; } }
@@ -886,7 +887,7 @@ export default function ExerciseSection({ ctx }) {
                         fb._feedbackWeek = fbWeekNum;
                         fb._feedbackFor = activeTab;
                         if (fb.exercises) { fb.exercises.forEach(function(fbEx) { var srcEx = exList.find(function(e) { return e.name === fbEx.name; }); if (srcEx) { var srcLatest = srcEx.prog && srcEx.prog.length > 0 ? srcEx.prog[srcEx.prog.length - 1] : null; if (srcLatest) fbEx._prevData = srcLatest.w + " " + srcLatest.r; } }); }
-                        if (fb.exercises && fb.exercises.length) { var ndF = JSON.parse(JSON.stringify(data)); var nF = 0; fb.exercises.forEach(function(fbEx) { var tgt = (ndF[activeTab].exercises[day] || []).find(function(e) { return e.name === fbEx.name; }); if (attachCompanion(tgt, fbEx, fb._generatedAt)) nF++; }); if (nF) await saveData(ndF); } // F11: keep it with the logged week
+                        if (fb.exercises && fb.exercises.length) { var ndF = JSON.parse(JSON.stringify(data)); var nF = 0; fb.exercises.forEach(function(fbEx) { var tgt = (ndF[activeTab].exercises[day] || []).find(function(e) { return sameExercise(e.name, fbEx.name); }); if (attachCompanion(tgt, fbEx, fb._generatedAt)) nF++; }); if (nF) await saveData(ndF); } // F11: keep it with the logged week
                         setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb })); var sfUpdate = Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb }); await sSet("session_feedback_all", JSON.stringify(sfUpdate));
                         // Recommendations shown to user - they accept/decline individually
                         }
@@ -935,7 +936,7 @@ export default function ExerciseSection({ ctx }) {
                               break;
                             }
                           }
-                          (function() { var ne = document.getElementById("user-note-"+ei+"-"+day); setCompanionDecision(dayExs3.find(function(e) { return e.name === ex.name; }), "accepted", ne ? ne.value : ""); })(); // F11
+                          (function() { var ne = document.getElementById("user-note-"+ei+"-"+day); setCompanionDecision(dayExs3.find(function(e) { return sameExercise(e.name, ex.name); }), "accepted", ne ? ne.value : "", ex); })(); // F11
                           await saveData(nd3);
                           var el = document.getElementById("rec-" + ei + "-" + day);
                           var noteEl = document.getElementById("user-note-"+ei+"-"+day); var userNote = noteEl ? noteEl.value.trim() : ""; ex._decision = "accepted"; ex._userNote = userNote;  if (userNote) { var exRef = nd3[activeTab].exercises[day]; if (exRef && exRef[di3]) { exRef[di3].notes = (exRef[di3].notes ? exRef[di3].notes + "; " : "") + "Wk" + currentWeek + " accepted: " + userNote; } } var sfbKey = activeTab + "_" + day; var curFb = sessionFeedback[sfbKey]; if (curFb && curFb.exercises) { curFb.exercises[ei]._decision = "accepted"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#e0f2fe"; el.style.borderColor = "#86efac"; setPlainNote(el, "\u2705 Accepted — " + ex.name + " updated to " + ex.newStatus + ". Activity updated.", { fontSize: "11px", color: "#0c4a6e", fontWeight: "600", padding: "4px" }); }
@@ -973,7 +974,7 @@ export default function ExerciseSection({ ctx }) {
                               break;
                             }
                           }
-                          setCompanionDecision(dayExs4.find(function(e) { return e.name === ex.name; }), "rejected", userNote2); // F11
+                          setCompanionDecision(dayExs4.find(function(e) { return sameExercise(e.name, ex.name); }), "rejected", userNote2, ex); // F11
                           saveData(nd4);
                           var sfbKey2 = activeTab + "_" + day; var curFb2 = sessionFeedback[sfbKey2]; if (curFb2 && curFb2.exercises) { curFb2.exercises[ei]._decision = "declined"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#f1f5f9"; el.style.borderColor = "#e2e8f0"; setPlainNote(el, "\u21a9 Declined — no changes made to Activity.", { fontSize: "11px", color: "#64748b", padding: "4px" }); }
                         }} style={{ padding: "5px 14px", background: "#e2e8f0", color: "#475569", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Decline</button>

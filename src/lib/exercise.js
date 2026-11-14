@@ -155,8 +155,25 @@ export function attachCompanion(ex, fbEx, when) {
   e.companion = Object.assign({ verdict: String(fbEx.verdict || ""), recommendation: String(fbEx.recommendation || (fbEx.newStatus ? "Recommendation: " + fbEx.newStatus : "")), at: when || "" }, keep);
   return e;
 }
-export function setCompanionDecision(ex, decision, note) {
-  var e = ex && latestEntry(ex.prog); if (!e || !e.companion) return null;
+export function setCompanionDecision(ex, decision, note, fbEx) {
+  var e = ex && latestEntry(ex.prog); if (e && !e.companion && fbEx) attachCompanion(ex, fbEx, ""); // v2.16.4: feedback made before v2.16.0
+  if (!e || !e.companion) return null;
   e.companion.decision = decision; e.companion.decisionNote = (note || "").trim();
   return e;
+}
+
+/* v2.16.4 F11b fix: names from the AI can differ slightly (case, spacing, "(cable)") — match tolerantly. */
+export function sameExercise(a, b) {
+  var n = function(x) { return String(x || "").toLowerCase().replace(/\(.*?\)/g, "").replace(/[^a-z0-9]+/g, " ").trim(); };
+  var x = n(a), y = n(b); return !!x && !!y && (x === y || x.indexOf(y) === 0 || y.indexOf(x) === 0);
+}
+/** Feedback for an entry that has none of its own: the stored session feedback for that person/day, if it was for this week. */
+export function companionFromSession(sessionFeedback, person, day, exName, wk) {
+  var fb = sessionFeedback && sessionFeedback[person + "_" + day];
+  if (!fb || !fb.exercises || (parseInt(fb._feedbackWeek, 10) || 0) !== (parseInt(wk, 10) || -1)) return null;
+  var e = fb.exercises.find(function(x) { return sameExercise(x.name, exName); });
+  if (!e) return null;
+  var c = { verdict: String(e.verdict || ""), recommendation: String(e.recommendation || (e.newStatus ? "Recommendation: " + e.newStatus : "")), at: fb._generatedAt || "" };
+  if (e._decision) { c.decision = e._decision === "declined" ? "rejected" : e._decision; c.decisionNote = e._userNote || ""; }
+  return c;
 }

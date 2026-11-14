@@ -56,20 +56,15 @@ async function progWithCompanion(page) {
   await page.getByRole("button", { name: "👁 Progress" }).first().click();
 }
 
-test("D24: Form/Range chips sit under the row and never overlap Open at 360px", async ({ page }) => {
+test("D24 (v2.16.4): no Form/Range pills under Progress rows; Open fits at 360px; Form/Range shown in the Open card", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   const { errors } = await openApp(page);
   await progWithCompanion(page);
-  const chips = page.getByTestId("prog-chips");
-  await expect(chips).toHaveCount(2);
-  await expect(chips.nth(1)).toContainText("Form ✓ Good");
-  await expect(chips.nth(1)).toContainText("Range … Working towards");
-  for (let i = 0; i < 2; i++) {
-    const open = await page.getByRole("button", { name: /^Open week/ }).nth(i).boundingBox();
-    const chip = await chips.nth(i).boundingBox();
-    expect(chip.y).toBeGreaterThanOrEqual(open.y + open.height - 1); // below the Open button, not beside it
-    expect(open.x + open.width).toBeLessThanOrEqual(360);
-  }
+  await expect(page.getByTestId("prog-chips")).toHaveCount(0);
+  for (let i = 0; i < 2; i++) { const open = await page.getByRole("button", { name: /^Open week/ }).nth(i).boundingBox(); expect(open.x + open.width).toBeLessThanOrEqual(360); }
+  await page.getByRole("button", { name: "Open week 1" }).click();
+  await expect(page.getByTestId("entry-goodForm-chip")).toHaveText("Good");
+  await expect(page.getByTestId("entry-fullRange-chip")).toHaveText("Working towards");
   expect(errors).toEqual([]);
 });
 
