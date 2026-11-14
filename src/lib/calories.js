@@ -2,7 +2,8 @@
 //  BMR       Katch-McArdle 370 + 21.6 × lean kg (rolling last 3–4 weigh-ins with body fat).
 //            Fallbacks (labelled "estimate"): Mifflin-St Jeor from weight/height/age/sex; no weight → age/sex average.
 //  Baseline  sedentary maintenance = BMR × 1.15.
-//  Goal      baseline × (1 − deficit%), deficit% per person (default 20%). Safety floor: never below BMR.
+//  Goal      baseline × (1 − deficit%), deficit% per person (default 20%). Safe minimum (v2.17.2):
+//            max(90% of BMR, 1,200 kcal women / 1,500 kcal men).
 //  Activity  credit NET of resting burn, so BMR is never counted twice:
 //            a) total calories burned for the day (Google/Apple Health) → max(0, total − baseline); nothing added on top;
 //            b) otherwise steps above a per-person basal allowance + logged exercise (MET − 1) × kg × hours;
@@ -75,18 +76,22 @@ export function settingsOf(p) {
   return { deficitPct: isFinite(d) && d >= 0 && d <= 40 ? d : DEFAULT_DEFICIT_PCT, adjPct: isFinite(parseFloat(s.adjPct)) ? parseFloat(s.adjPct) : 100, adjHistory: s.adjHistory || [] };
 }
 
+export var FLOOR_BMR_PCT = 90, FLOOR_KCAL = { female: 1200, male: 1500 };
+/** The safe minimum goal: 90% of BMR, but never under 1,200 kcal (women) / 1,500 kcal (men). */
+export function safeMinimum(bmr, male) { return Math.max(Math.round(bmr * FLOOR_BMR_PCT / 100), male ? FLOOR_KCAL.male : FLOOR_KCAL.female); }
 /** The person's daily plan: BMR, baseline, goal (floored), basal step allowance. */
 export function planOf(p, now) {
   var b = bmrOf(p, now), s = settingsOf(p);
   var baseline = Math.round(b.bmr * BASELINE_FACTOR);
   var goalRaw = Math.round(baseline * (1 - s.deficitPct / 100));
-  var goal = Math.max(goalRaw, b.bmr);
+  var minimum = safeMinimum(b.bmr, isMale(p));
+  var goal = Math.max(goalRaw, minimum);
   var cm = heightCm(p) || AVG[isMale(p) ? "male" : "female"].cm;
   var stride = cm / 100 * STRIDE_FACTOR;                                      // metres per step
   var allowKcal = 0.15 * b.bmr - 0.10 * goal;                                  // the light movement already inside the baseline
   var perStep = stride / 1000 * KCAL_PER_KG_KM * b.weightKg;                   // kcal per step
   var allowance = Math.min(ALLOWANCE_MAX, Math.max(ALLOWANCE_MIN, Math.round(allowKcal / perStep)));
-  return { bmr: b.bmr, method: b.method, estimate: b.estimate, bmrInfo: b, baseline: baseline, deficitPct: s.deficitPct, goalRaw: goalRaw, goal: goal, floored: goal > goalRaw,
+  return { bmr: b.bmr, method: b.method, estimate: b.estimate, bmrInfo: b, baseline: baseline, deficitPct: s.deficitPct, goalRaw: goalRaw, goal: goal, minimum: minimum, floored: goal > goalRaw,
     weightKg: b.weightKg, strideM: stride, kcalPerStep: perStep, stepAllowance: allowance, adjPct: s.adjPct };
 }
 

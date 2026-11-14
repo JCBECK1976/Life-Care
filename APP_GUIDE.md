@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.17.1 · 14 November 2026
+> Last updated: v2.17.2 · 14 November 2026
 
 ---
 
@@ -140,7 +140,7 @@ A summary of today: **My Eating** (today's planned breakfast, lunch, dinner, sna
 Between My Day and My Journal, with **Today** (your calorie line) above it.
 - See also "What does the Week so far card show" under My Eating → Questions about calories.
 - Counts only **complete days**: Sunday up to yesterday. Today is shown separately as "in progress"; future days never count.
-- **Eating:** what you ate each day against that day's goal (including activity): ✓ within 10%, ! within 20%, ✕ beyond (a day with nothing logged counts as off track).
+- **Eating:** what you ate each day against that day's goal (including activity): ✓ within 10%, ! within 20%, ✕ beyond. A day with nothing logged is **skipped** (not counted either way) and shown as "N days not logged".
 - **Exercise:** sessions done against sessions planned on those days.
 - The overall % is the average of the two. Tap the card for the day-by-day breakdown.
 
@@ -388,7 +388,7 @@ For prepared dinners, the ingredients become shopping list items. For packaged i
 
 ### How your calorie goal works (Home and each day in My Eating)
 One line: **Goal · Food · Activity +N (steps: +a · exercise: +b) · Left**.
-- **Goal:** your BMR (the energy your body uses at rest, from your lean mass: weight and body fat % averaged over your last 3–4 weigh-ins) × 1.15 for everyday life = your **baseline**, minus your **deficit %** (20% to start; **Change deficit**). The goal never goes below your BMR: then it says "limited to your BMR".
+- **Goal:** your BMR (the energy your body uses at rest, from your lean mass: weight and body fat % averaged over your last 3–4 weigh-ins) × 1.15 for everyday life = your **baseline**, minus your **deficit %** (20% to start; **Change deficit**). The goal never goes below your **safe minimum** (90% of your BMR, and never under 1,200 kcal for women or 1,500 kcal for men): then it says "limited to your safe minimum".
 - If there aren't enough weigh-ins with body fat, the BMR is an **estimate** (from weight, height, age and sex, or an average for your age and sex) and says so.
 - **Activity** is added on top, counting only what you burn beyond everyday life:
   - with **Google Health** total calories burned for the day: what you burned above your baseline (nothing else is added on top, so nothing counts twice);
@@ -400,7 +400,7 @@ One line: **Goal · Food · Activity +N (steps: +a · exercise: +b) · Left**.
 
 #### Questions about calories
 **How is my calorie goal worked out?**
-Three steps. (1) Your **BMR** is worked out from your body composition (your lean mass). (2) It's multiplied by **1.15** for everyday living (moving about the house, work, chores): that's your **baseline**. (3) Your **deficit %** is taken off. The goal is never below your BMR. Example: BMR 1,849 → baseline 2,126 → at a 10% deficit, goal 1,913.
+Three steps. (1) Your **BMR** is worked out from your body composition (your lean mass). (2) It's multiplied by **1.15** for everyday living (moving about the house, work, chores): that's your **baseline**. (3) Your **deficit %** is taken off. The goal is never below your safe minimum (90% of BMR, at least 1,200 kcal for women / 1,500 kcal for men). Example: BMR 1,849 → baseline 2,126 → at a 20% deficit, goal 1,701 (safe minimum 1,664).
 
 **What is BMR and why does it change?**
 BMR (basal metabolic rate) is the calories your body burns at complete rest. The app uses the Katch-McArdle formula on your **lean mass** (weight minus fat), averaged over your **last 3–4 weigh-ins** that include body fat %. So it moves as your weight and body fat change; more muscle means a higher BMR. If body fat % is missing it's estimated from weight, height, age and sex; with no weight at all, from an average for your age and sex. Either way the card says **"BMR is an estimate"**: add a weigh-in with body fat % for a better figure.
@@ -417,11 +417,11 @@ Your watch shows **gross** calories: everything burned during the activity, incl
 **What is the deficit % and how do I change it?**
 The share taken off your baseline to lose weight gradually. It starts at **20%**. Tap **Change deficit** on the calorie card (Home or a day in My Eating), type a number from 0 to 40, and **Save**. 0% means maintaining your weight.
 
-**What does "limited to your BMR" mean?**
-Your deficit would have put the goal below your BMR (what your body needs at rest). The app never sets a goal that low, so the goal stays at your BMR, and the card shows what the deficit would have given. A smaller deficit removes the message.
+**What does "limited to your safe minimum" mean?**
+Your deficit would have put the goal below your **safe minimum**: 90% of your BMR (what your body uses at rest), and never under **1,200 kcal for women** or **1,500 kcal for men**. Eating less than that for long is not recommended, so the goal stays at the safe minimum, and the card shows what the deficit would have given. A smaller deficit removes the message. Example: BMR 1,849 → safe minimum 1,664; a 30% deficit (1,488) is limited to 1,664.
 
 **What does the Week so far: Plan vs Actual card show, and why doesn't it count today?**
-It shows how this week has gone so far against your plan: **eating** (what you ate each day against that day's goal plus activity; green within 10%, amber within 20%, red beyond) and **exercise** (sessions done against sessions planned). The overall % is the average of the two; tap the card for each day. It counts only **complete days** (Sunday up to yesterday), because today isn't finished: you may not have eaten dinner or trained yet. Today is shown separately as "in progress" and future days never count.
+It shows how this week has gone so far against your plan: **eating** (what you ate each day against that day's goal plus activity; green within 10%, amber within 20%, red beyond) and **exercise** (sessions done against sessions planned). The overall % is the average of the two; tap the card for each day. It counts only **complete days** (Sunday up to yesterday), because today isn't finished: you may not have eaten dinner or trained yet. Today is shown separately as "in progress" and future days never count. Days with **nothing logged** are skipped rather than counted as off track, and the card shows how many ("2 days not logged"), so a day you forgot to log doesn't drag your score down.
 
 **How do My Notes on weigh-ins help?**
 A note such as "birthday week", "after a long flight" or "time of month" is saved with that weigh-in (or measurement). Every Companion that reads your body data sees it, so it can explain a jump in weight instead of treating it as a trend, and its feedback takes it into account.
@@ -554,6 +554,7 @@ At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature
 - **BMR** — basal metabolic rate: calories your body uses at rest.
 - **Baseline** — BMR × 1.15: what you burn on an ordinary day without exercise.
 - **Deficit %** — the share taken off your baseline to make your calorie goal (20% to start).
+- **Safe minimum** — the lowest calorie goal the app sets: 90% of your BMR, at least 1,200 kcal (women) / 1,500 kcal (men).
 - **Step allowance** — the steps already included in your baseline; only steps beyond it add calories.
 - **MET** — how hard an exercise is compared with resting; used to count exercise calories.
 - **Activity adjustment %** — scales your activity credit (100% to start); the Companion may suggest a change.

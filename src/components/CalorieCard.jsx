@@ -1,5 +1,5 @@
 import React from "react";
-import { DEFAULT_DEFICIT_PCT, dayBudget, decideSuggestion, pendingSuggestion, recordAdj } from "../lib/calories.js";
+import { DEFAULT_DEFICIT_PCT, isMale, dayBudget, decideSuggestion, pendingSuggestion, recordAdj } from "../lib/calories.js";
 
 // v2.17.1 calorie line (docs/design/CALORIES.md): Goal · Food · Activity · Left for one date, with
 // "How this is calculated", the deficit % and the activity adjustment (R5). Shown on My Eating (day) and Home.
@@ -16,7 +16,7 @@ export default function CalorieCard(props) {
   var [msg, setMsg] = React.useState("");
   if (!p) return null;
   var b = dayBudget(p, props.date, props.foodKcal || 0); var pl = b.plan; var c = b.credit;
-  var pending = pendingSuggestion(p);
+  var pending = pendingSuggestion(p); var isMaleP = isMale(p);
   var save = async function(mutate, ok) { var nd = JSON.parse(JSON.stringify(data)); if (!nd[who].calorieSettings) nd[who].calorieSettings = {}; mutate(nd[who]); await props.saveData(nd); setMsg(ok); setTimeout(function() { setMsg(""); }, 3000); };
   var actText = c.mode === "total" ? "Activity +" + n(c.credit) + " (from " + n(c.totalBurned) + " kcal burned)" : "Activity +" + n(c.credit) + " (steps: +" + n(c.steps) + " · exercise: +" + n(c.exercise) + ")";
   return (<div data-testid={props.testid || "calorie-card"} style={box}>
@@ -25,13 +25,14 @@ export default function CalorieCard(props) {
       <b>Goal {n(pl.goal)}</b> · Food {n(b.food)} · {actText} · <b data-testid="calorie-left" style={{ color: b.left < 0 ? "#b91c1c" : "#15803d" }}>Left {n(b.left)}</b>
     </div>
     {c.mode !== "total" && <div data-testid="step-allowance" style={{ fontSize: 10, color: "#475569", marginTop: 2 }}>Your first ~{n(pl.stepAllowance)} steps are already in your goal.</div>}
-    {pl.floored && <div data-testid="calorie-floor" style={{ fontSize: 10, color: "#9a3412", marginTop: 2 }}>Goal limited to your BMR ({n(pl.bmr)} kcal) — a {pl.deficitPct}% deficit would be {n(pl.goalRaw)}.</div>}
+    {pl.floored && <div data-testid="calorie-floor" style={{ fontSize: 10, color: "#9a3412", marginTop: 2 }}>Goal limited to your safe minimum ({n(pl.minimum)} kcal) — a {pl.deficitPct}% deficit would be {n(pl.goalRaw)}.</div>}
     {pl.estimate && <div style={{ fontSize: 10, color: "#9a3412", marginTop: 2 }}>BMR is an estimate.</div>}
     <button type="button" aria-expanded={open} onClick={function() { setOpen(!open); }} style={Object.assign({}, btn, { marginTop: 6, border: "none", background: "none", padding: 0, color: "#1d4ed8" })}>{open ? "▲" : "▼"} How this is calculated</button>
     {open && (<div data-testid="calorie-how" style={{ fontSize: 10, color: "#334155", lineHeight: 1.6, marginTop: 4 }}>
       <div>BMR {n(pl.bmr)} kcal — {METHOD[pl.method]}{pl.method === "katch" ? " (" + Math.round(pl.bmrInfo.lean.leanKg) + " kg lean, last " + pl.bmrInfo.lean.n + " weigh-ins)" : ""}.</div>
       <div>× 1.15 for daily life = baseline {n(pl.baseline)} kcal.</div>
-      <div>− {pl.deficitPct}% deficit = goal {n(pl.goalRaw)}{pl.floored ? " → limited to your BMR, " + n(pl.goal) : ""} kcal.</div>
+      <div>− {pl.deficitPct}% deficit = goal {n(pl.goalRaw)}{pl.floored ? " → limited to your safe minimum, " + n(pl.goal) : ""} kcal.</div>
+      <div>Safe minimum {n(pl.minimum)} kcal (90% of BMR, at least {isMaleP ? "1,500" : "1,200"} kcal).</div>
       <div>Activity is added net of resting burn: {c.mode === "total" ? "total burned " + n(c.totalBurned) + " − baseline " + n(pl.baseline) : "steps above " + n(pl.stepAllowance) + " (stride " + pl.strideM.toFixed(2) + " m, 0.5 kcal per kg per km)" + (c.stepsCount != null ? " — " + n(c.stepsCount) + " steps today" : " — no steps recorded") + " + exercise (MET − 1) × " + Math.round(pl.weightKg) + " kg × hours"}{pl.adjPct !== 100 ? ", at " + pl.adjPct + "%" : ""}.</div>
     </div>)}
     <div style={{ marginTop: 6, paddingTop: 6, borderTop: "1px solid #fed7aa", fontSize: 11, color: "#334155", display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>

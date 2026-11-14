@@ -30,13 +30,14 @@ export default function WeekSoFar(props) {
           <span aria-hidden="true" style={{ fontSize: 10, color: "#475569" }}>{open ? "▲" : "▼"}</span>
         </div>
         <div data-testid="wsf-explain" style={{ fontSize: 11, color: "#334155", marginTop: 4 }}>{w.explain}</div>
+        {w.notLogged > 0 && <div data-testid="wsf-not-logged" style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{w.notLogged} {w.notLogged === 1 ? "day" : "days"} not logged (not counted)</div>}
       </button>
       <div data-testid="wsf-today" style={{ fontSize: 11, color: "#475569", marginTop: 4 }}>Today (in progress): {w.today.food} of {w.today.target} kcal{w.today.exPlanned ? " · exercise " + (w.today.exDone ? "logged" : "not logged yet") : ""}</div>
       {open && (<table data-testid="wsf-days" style={{ width: "100%", fontSize: 11, marginTop: 8, borderCollapse: "collapse" }}><tbody>
         {w.days.map(function(d) { var r = COL[d.eatRag]; return (<tr key={d.date} style={{ borderTop: "1px solid #f1f5f9" }}>
           <td style={{ padding: "3px 0", fontWeight: 600 }}>{SHORT[d.weekday]}</td>
           <td>{d.food ? d.food + " / " + d.target + " kcal" : "not logged"}</td>
-          <td><span style={{ padding: "0 6px", borderRadius: 8, background: r[0], color: r[1], fontWeight: 600 }}>{d.food ? r[2] : "—"}</span></td>
+          <td><span style={{ padding: "0 6px", borderRadius: 8, background: r[0], color: r[1], fontWeight: 600 }}>{d.food ? r[2] : "not counted"}</span></td>
           <td>{d.exPlanned ? (d.exDone ? "✓ trained" : "✕ missed") : "rest day"}</td>
         </tr>); })}
       </tbody></table>)}

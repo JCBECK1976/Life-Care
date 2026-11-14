@@ -7,7 +7,7 @@ import { allowedBy, consentActive, loadConsent, needsConsent } from "./lib/conse
 import ConsentScreen from "./components/ConsentScreen.jsx";
 import LegalViewer from "./components/LegalViewer.jsx";
 import { auditLog } from "./lib/audit.js";
-import { removeOldGoogleTokens } from "./lib/cleanup.js";
+import { removeOldGoogleTokens, stripOldCalorieSettings } from "./lib/cleanup.js";
 import { GH, fetchWeekCalories, fetchWeekSteps, forgetToken, loadToken, mergeDaily, mergeSteps, saveToken } from "./lib/googleHealth.js";
 import LoadingDots from "./components/LoadingDots.jsx";
 import firebase, { DATA_ROOT } from "./lib/firebase.js";
@@ -512,6 +512,7 @@ function Dashboard() {
         Object.keys(d).forEach(function(uk) { if (uk !== "config" && d[uk].measurements && !d[uk].measurements.fullBody) { d[uk].measurements = Object.assign({ fullBody: [] }, d[uk].measurements); migrated = true; } });
         if (stripPhotoFragments(d)) migrated = true;   // v2.12.1: remove old base64 fragments from Body Type Photos
         if (stripMeasurementPhotos(d)) migrated = true; // v2.13.1: remove old photos stored in measurement entries
+        if (stripOldCalorieSettings(d)) migrated = true; // v2.17.2: remove the old kcal deficit + R6 admin switch
         if (migrated) await sSet("dashboard:data", JSON.stringify(d));
         setData(d);
       } else {
