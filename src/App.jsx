@@ -13,6 +13,7 @@ import { removeOldGoogleTokens, stripOldCalorieSettings } from "./lib/cleanup.js
 import { refreshRatingsOnce } from "./lib/refreshRatings.js";
 import { offProduct, offToItem, portionLabel, migrateList } from "./lib/portion.js";
 import { searchOffRaw } from "./lib/off.js";
+import { apiTurns, historyBlock, qaToMessages, sharedContext } from "./lib/memory.js";
 import { GH, fetchWeekCalories, fetchWeekSteps, forgetToken, loadToken, mergeDaily, mergeSteps, saveToken } from "./lib/googleHealth.js";
 import LoadingDots from "./components/LoadingDots.jsx";
 import firebase, { DATA_ROOT } from "./lib/firebase.js";
@@ -1468,30 +1469,29 @@ function Dashboard() {
     var _bn = bodyNotesCtx(data && data[tab]); if (_bn) lines.push(_bn);
     /* v2.18.0: the person's goal, timescale, required pace and progress — every companion */
     try { lines.push(goalCtx(data && data[tab])); } catch (e) { /* goal context is optional */ }
-    var addThreadSummary = function(label, fbObj) {
-      if (!fbObj) return;
-      if (fbObj._thread && fbObj._thread.length > 0) {
-        var lastTwo = fbObj._thread.slice(-4);
-        lines.push(label + " conversation: " + lastTwo.map(function(m) { return (m.role === "user" ? "User" : "Companion") + ": " + m.text; }).join(" | "));
-      }
-    };
-    if (excludeSection !== "home") addThreadSummary("Home feedback", feedbackResults[tab]);
+    /* v2.20.0: one shared summary of THIS person's recent Companion conversations (14 days, small budget). Every source is
+       keyed by `tab`; state that only holds the active person (body/measurement feedback, journal) is used only when tab is active. */
+    var areas = [], th = function(fb) { return fb && fb._thread ? fb._thread : null; };
+    var mine = tab === activeTabRef.current;
+    if (excludeSection !== "home") areas.push({ label: "Home feedback", msgs: th(feedbackResults[tab]) });
     if (excludeSection !== "eating") {
       var eatTab = eatFbResults[tab];
       if (eatTab) {
-        if (eatTab.week) addThreadSummary("Weekly eating", eatTab.week);
+        if (eatTab.week) areas.push({ label: "Weekly eating", msgs: th(eatTab.week) });
         var eatDays = Object.keys(eatTab).filter(function(k) { return k !== "week"; });
-        if (eatDays.length > 0) { var lastEatDay = eatDays[eatDays.length - 1]; addThreadSummary("Eating (" + lastEatDay + ")", eatTab[lastEatDay]); }
+        if (eatDays.length > 0) { var lastEatDay = eatDays[eatDays.length - 1]; areas.push({ label: "Eating (" + lastEatDay + ")", msgs: th(eatTab[lastEatDay]) }); }
       }
     }
     if (excludeSection !== "session" && sessionFeedback) {
       var sfbKeys = Object.keys(sessionFeedback).filter(function(k) { return k.startsWith(tab + "_"); });
-      if (sfbKeys.length > 0) { addThreadSummary("Activities (" + sfbKeys[sfbKeys.length - 1].split("_")[1] + ")", sessionFeedback[sfbKeys[sfbKeys.length - 1]]); }
+      if (sfbKeys.length > 0) areas.push({ label: "Exercise (" + sfbKeys[sfbKeys.length - 1].split("_")[1] + ")", msgs: th(sessionFeedback[sfbKeys[sfbKeys.length - 1]]) });
     }
-    if (excludeSection !== "bodycomp") addThreadSummary("Body comp", bodyFeedback);
-    if (excludeSection !== "meas") addThreadSummary("Measurements", measFeedback);
+    if (excludeSection !== "bodycomp") areas.push({ label: "Body", msgs: th(mine ? bodyFeedback : bodyFbAll && bodyFbAll[tab]) });
+    if (excludeSection !== "meas") areas.push({ label: "Measurements", msgs: th(mine ? measFeedback : measFbAll && measFbAll[tab]) });
+    if (excludeSection !== "qa") areas.push({ label: "Chat", msgs: qaToMessages(qaHistory && qaHistory[tab]) });
+    var _shared = sharedContext(areas); if (_shared) lines.push(_shared);
     /* Journal summary for cross-section awareness */
-    if (journalEntries && journalEntries.length > 0) {
+    if (mine && journalEntries && journalEntries.length > 0) {
       var recentJ = journalEntries.slice(0, 5);
       var jSummary = recentJ.map(function(e) { return (e.date || "") + (e.mood !== null && e.mood !== undefined ? " [" + MOOD_LABELS[e.mood] + "]" : "") + ": " + (e.text || "").substring(0, 120); }).join(" | ");
       lines.push("Journal (recent): " + jSummary);
@@ -1570,9 +1570,10 @@ function Dashboard() {
     var loadKey = fbType + "-" + fbKey;
     setThreadLoading(function(prev) { return Object.assign({}, prev, { [loadKey]: true }); });
     try {
-      var thread = (fbObj._thread || []).concat([{ role: "user", text: txt, when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) }]);
+      var thread = (fbObj._thread || []).concat([{ role: "user", text: txt, ts: Date.now(), when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) }]);
       // Build conversation history for API
-      var convoHistory = thread.map(function(m) { return (m.role === "user" ? "User" : "Companion") + ": " + m.text; }).join("\n");
+      var convoHistory = historyBlock(thread);   /* v2.20.0: last 20 messages in full + a rolling summary of older ones */
+      var _sec = { home: "home", eatweek: "eating", eatday: "eating", session: "session", bodycomp: "bodycomp", meas: "meas" }[fbType] || fbType;
       // Build context about what feedback this is responding to
       var fbContext = "";
       if (fbObj.good) fbContext += "Good: " + (fbObj.good || []).join("; ") + ". ";
@@ -1584,14 +1585,14 @@ function Dashboard() {
       if (fbObj.summary) fbContext += "Summary: " + fbObj.summary + ". ";
       if (fbObj.exercises) fbContext += "Exercises: " + fbObj.exercises.map(function(ex) { return ex.name + " — " + ex.verdict + (ex._decision ? " (" + ex._decision + (ex._userNote ? ": " + ex._userNote : "") + ")" : ""); }).join("; ") + ". ";
       var wellbeingCtx = (fbType === "home" && journalEntries && journalEntries.length > 0) ? "\n\n" + WELLBEING_RULES + (wellbeingFlags && Object.keys(wellbeingFlags).length > 0 ? "\nActive wellbeing flags: " + JSON.stringify(wellbeingFlags) : "") + "\nRecent journal: " + journalEntries.slice(0, 5).map(function(e) { return e.date + ": " + (e.text || "").substring(0, 100); }).join(" | ") : "";
-      var prompt = "You are the user's Lifecare Companion continuing a conversation about feedback you gave. You are their trusted, knowledgeable friend — imagine you're still on the same video call about this topic. Mirror and match their energy, be warm, empathetic and honest. Keep responses conversational — 2-4 sentences max unless they ask for detail. "+TONE_RULES+getMoodContext(userMood)+wellbeingCtx+"\n\nOriginal feedback: " + fbContext + "\n\nConversation so far:\n" + convoHistory + "\n\nRespond naturally to their latest message. If they're pushing back, respect it — they know their situation better than you. If they're asking for detail, give it with specific numbers. If they're sharing context, acknowledge it and adjust your advice. If they share something concerning about their health or wellbeing, support them warmly and signpost appropriate help — never say it's outside your scope. Return ONLY your response text, no JSON, no formatting.";
+      var prompt = "You are the user's Lifecare Companion continuing a conversation about feedback you gave. You are their trusted, knowledgeable friend — imagine you're still on the same video call about this topic. Mirror and match their energy, be warm, empathetic and honest. Keep responses conversational — 2-4 sentences max unless they ask for detail. "+TONE_RULES+getMoodContext(userMood)+wellbeingCtx+"\n\nOriginal feedback: " + fbContext + getCrossSectionCtx(activeTab, _sec) + "\n\n" + convoHistory + "\n\nRespond naturally to their latest message. If they're pushing back, respect it — they know their situation better than you. If they're asking for detail, give it with specific numbers. If they're sharing context, acknowledge it and adjust your advice. If they share something concerning about their health or wellbeing, support them warmly and signpost appropriate help — never say it's outside your scope. Return ONLY your response text, no JSON, no formatting.";
       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: prompt }] }) });
       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
       var replyTxt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) replyTxt += result.content[ci].text; } }
       if (!replyTxt.trim()) throw new Error("No reply came back — please send it again");
       if (result.stop_reason === "max_tokens") replyTxt = replyTxt.trim() + " … (I ran out of room there — ask me to carry on.)";   // v2.9.0: cut-off detection
       if (replyTxt) {
-        thread.push({ role: "companion", text: replyTxt.trim(), when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) });
+        thread.push({ role: "companion", text: replyTxt.trim(), ts: Date.now(), when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) });
       }
       var updatedFb = Object.assign({}, fbObj, { _thread: thread });
       delete updatedFb._comment; delete updatedFb._commentWhen;
@@ -1676,10 +1677,7 @@ function Dashboard() {
       var system = [
         { type: "text", text: "You are the user's Lifecare Companion, helping them USE the Lifecare Companion app. Answer ONLY from the app guide below. Be warm, friendly and direct, and speak to them as \"you\". Use UK English.\n\nHOW TO ANSWER:\n- Say exactly where things are: tab → section → button, using the names as they appear in the app.\n- For how-to questions give short numbered steps.\n- Explain the why when it helps them use the app well.\n- Keep it short: usually under 120 words. Plain text only: no headings, no bold, no tables. Simple numbered or dash lists are fine.\n- If the guide doesn't cover it, say so honestly and suggest 💬 Send Feedback at the bottom of the app. Never invent buttons, screens or features.\n- For questions about their own health, food, training or results (rather than how the app works), point them to the 💬 Chat button, which uses their data.\n- Never give medical advice.\n\n=== APP GUIDE ===\n" + window._appGuide, cache_control: { type: "ephemeral" } }
       ];
-      var hist = (helpHistory[activeTab] || []).slice(-6);
-      var msgs = [];
-      hist.forEach(function(h) { msgs.push({ role: "user", content: h.q }); msgs.push({ role: "assistant", content: h.a }); });
-      msgs.push({ role: "user", content: "[I'm " + who + ", currently on the " + (secNames[section] || "Home") + " tab]\n" + question });
+      var msgs = apiTurns(qaToMessages(helpHistory[activeTab]), "[I'm " + who + ", currently on the " + (secNames[section] || "Home") + " tab]\n" + question);   /* v2.20.0: last 20 messages + summary */
       var resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
@@ -1690,7 +1688,7 @@ function Dashboard() {
       var answer = ""; if (result.content) { for (var hi = 0; hi < result.content.length; hi++) { if (result.content[hi].text) answer += result.content[hi].text; } }
       if (!answer) throw new Error("No answer came back — please try again");
       answer = answer.replace(/\*\*(.+?)\*\*/g, "$1").replace(/^#{1,6}\s+/gm, "").replace(/`([^`]+)`/g, "$1"); /* panel shows plain text */
-      var entry = { q: question, a: answer.trim(), when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) };
+      var entry = { q: question, a: answer.trim(), ts: Date.now(), when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) };
       var updated = Object.assign({}, helpHistory); updated[activeTab] = [].concat(updated[activeTab] || [], [entry]).slice(-30);
       setHelpHistory(updated);
       try { await sSet("help_history", JSON.stringify(updated)); } catch(se) {}
@@ -1727,7 +1725,7 @@ function Dashboard() {
       var response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] })
+        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: apiTurns(qaToMessages(qaHistory[activeTab]), prompt) })   /* v2.20.0: the conversation so far */
       });
       if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Ask API", status: response.status, statusText: response.statusText }].concat(prev).slice(0, 20); });
       var result = await response.json();
@@ -1742,10 +1740,10 @@ function Dashboard() {
       }
       if (!answer && result.error) answer = "API Error: " + (result.error.message || JSON.stringify(result.error));
       if (!answer) answer = "No answer received. Response: " + JSON.stringify(result).substring(0, 300);
-      var qaEntry = { q: question, a: answer, when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) };
+      var qaEntry = { q: question, a: answer, ts: Date.now(), when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) };
       var updated = Object.assign({}, qaHistory);
       if (!updated[activeTab]) updated[activeTab] = [];
-      updated[activeTab] = [].concat(updated[activeTab], [qaEntry]).slice(-20);
+      updated[activeTab] = [].concat(updated[activeTab], [qaEntry]).filter(function(e) { return e && (!e.ts || e.ts >= Date.now() - 365 * 864e5); }).slice(-500);   /* v2.20.0: kept 12 months (was the last 20) */
       setQaHistory(updated);
       try { await sSet("qa_history", JSON.stringify(updated)); } catch(se) {}
       if (el) el.value = "";
