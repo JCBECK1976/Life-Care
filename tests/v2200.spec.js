@@ -141,3 +141,34 @@ for (const where of ["Home", "My Exercise"]) {
     expect(errors).toEqual([]);
   });
 }
+
+/* ---------- 3. Chat order: newest message first ---------- */
+import { newestFirst } from "../src/lib/chat.js";
+test("3 newestFirst: strictly by time at message level; legacy messages keep their order", () => {
+  expect(newestFirst([{ text: "q1", ts: 1 }, { text: "a1", ts: 2 }, { text: "q2", ts: 3 }, { text: "a2", ts: 4 }]).map((m) => m.text)).toEqual(["a2", "q2", "a1", "q1"]);
+  expect(newestFirst([{ text: "late", ts: 9 }, { text: "early", ts: 1 }]).map((m) => m.text)).toEqual(["late", "early"]);
+  expect(newestFirst([{ text: "x" }, { text: "y" }]).map((m) => m.text)).toEqual(["y", "x"]);
+});
+
+for (const kind of ["Chat", "Help", "Home feedback"]) {
+  test(`3 ${kind}: the Companion's reply sits above the question; input above the newest message`, async ({ page }) => {
+    const { errors } = await openApp(page);
+    if (kind === "Home feedback") {
+      const fr = (await get("feedback_results")) || {}; fr.jc = { summary: "Good week", good: ["a"], opportunities: ["b"], focus: ["c"] }; await put("feedback_results", fr);
+      await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
+      await tab(page, "Home"); await page.getByRole("button", { name: "▼ Show Feedback" }).first().click();
+    } else if (kind === "Help") await page.getByRole("button", { name: /Help/ }).first().click();
+    else await openChat(page);
+    const box = page.locator(kind === "Help" ? "#help-input-jc" : kind === "Chat" ? "#qa-input-jc" : "#thread-input-home-jc");
+    const send = box.locator("xpath=following-sibling::button[1]");
+    for (const q of ["First question", "Second question"]) { await box.fill(q); await send.click(); await expect(page.getByText(q).first()).toBeVisible(); await expect(box).toBeEnabled(); }
+    const thread = page.getByTestId(kind === "Help" ? "help-thread" : kind === "Chat" ? "qa-thread" : "thread-home");
+    await expect(thread.getByTestId("chat-msg").nth(3)).toBeVisible();
+    const roles = await thread.getByTestId("chat-msg").evaluateAll((els) => els.slice(0, 4).map((e) => e.dataset.role + ":" + e.innerText.split("\n")[0]));
+    expect(roles[0]).toMatch(/^companion:/); expect(roles[1]).toBe("user:Second question");
+    expect(roles[2]).toMatch(/^companion:/); expect(roles[3]).toBe("user:First question");
+    const ib = await box.boundingBox(), tb = await thread.getByTestId("chat-msg").first().boundingBox();
+    expect(ib.y).toBeLessThan(tb.y);                                                                    // input above the newest message
+    expect(errors).toEqual([]);
+  });
+}

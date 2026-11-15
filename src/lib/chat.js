@@ -1,10 +1,12 @@
-// v2.6.4 D8: every companion chat shows the latest exchange first.
-// An exchange is a user message plus the companion replies after it; each exchange keeps its own order.
-export function latestFirst(thread) {
-  var groups = [];
-  (thread || []).forEach(function(m) {
-    if (!groups.length || (m && m.role === "user")) groups.push([]);
-    groups[groups.length - 1].push(m);
-  });
-  return groups.reverse().reduce(function(a, g) { return a.concat(g); }, []);
+// v2.20.0 (JC): every Companion thread shows the NEWEST MESSAGE FIRST, strictly by time at message level (the
+// Companion's reply sits above the question it answers). Threads are stored oldest first; messages with a timestamp
+// (ts) are ordered by it, older messages without one keep their stored order.
+export function newestFirst(thread) {
+  return (thread || []).map(function(m, i) { return { m: m, i: i }; }).sort(function(a, b) {
+    var ta = a.m && a.m.ts, tb = b.m && b.m.ts;
+    if (ta && tb && ta !== tb) return tb - ta;
+    return b.i - a.i;
+  }).map(function(x) { return x.m; });
 }
+/** Kept for older imports: now the same message-level order. */
+export var latestFirst = newestFirst;

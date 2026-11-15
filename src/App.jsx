@@ -17,7 +17,7 @@ import { apiTurns, historyBlock, qaToMessages, sharedContext } from "./lib/memor
 import { GH, fetchWeekCalories, fetchWeekSteps, forgetToken, loadToken, mergeDaily, mergeSteps, saveToken } from "./lib/googleHealth.js";
 import LoadingDots from "./components/LoadingDots.jsx";
 import firebase, { DATA_ROOT } from "./lib/firebase.js";
-import { latestFirst } from "./lib/chat.js";
+import ChatThread from "./components/ChatThread.jsx";
 import { TONE_RULES, WELLBEING_RULES } from "./constants/tone.js";
 import { MOOD_COLORS, MOOD_EMOJIS, MOOD_LABELS } from "./constants/mood.js";
 import { COLOUR_THEMES } from "./constants/themes.js";
@@ -1647,13 +1647,7 @@ function Dashboard() {
       threadErr[loadKey] && React.createElement("div", { role: "alert", "data-testid": "thread-error", style: { marginBottom: 8, padding: 8, borderRadius: 6, background: "#fee2e2", color: "#991b1b", fontSize: 11, fontWeight: 600 } }, threadErr[loadKey]),
       thread.length > 0 && React.createElement("div", { style: { marginBottom: 8 } },
         React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#475569", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" } }, "Conversation"),
-        latestFirst(thread).map(function(m, i) { /* v2.6.4 D8: latest exchange first, input above */
-          var isUser = m.role === "user";
-          return React.createElement("div", { key: i, style: { display: "flex", flexDirection: "column", alignItems: isUser ? "flex-end" : "flex-start", marginBottom: 6 } },
-            React.createElement("div", { style: { maxWidth: "85%", padding: "8px 12px", borderRadius: isUser ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: isUser ? accentChatUser : "#334155", border: isUser ? "1px solid " + accentBorder : "none", color: isUser ? "#334155" : "#fff", fontSize: 12, lineHeight: 1.5 } }, m.text),
-            React.createElement("div", { style: { fontSize: 9, color: "#475569", marginTop: 2, paddingLeft: 4, paddingRight: 4 } }, isUser ? "You" : "Companion", m.when ? " · " + m.when : "")
-          );
-        })
+        React.createElement(ChatThread, { messages: thread, userBg: accentChatUser, userBorder: accentBorder, testid: "thread-" + fbType })   /* v2.20.0: newest message first */
       )
       )
     );
