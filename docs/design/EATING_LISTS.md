@@ -42,8 +42,13 @@ All three end with **Save → per-portion rating (D11) → added to the chosen c
 - **Retries:** a malformed or implausible reply is retried up to **2 times** with the specific problem. If it still fails, the person sees a **friendly question** ("I couldn't quite work that out — could you tell me roughly how much of each ingredient you use, and how many portions it makes?"), never "could not be read".
 - Confirm → categories → Save. Created items can be used as components in Build a meal.
 
-### 3d. Kept as is
-- **📷 Photo and bulk paste** stay available under Update Lists (existing flows), with OFF/AI values now stored per portion.
+### 3d. Photo, bulk paste, typed text and Re-check (v2.19.1, F27)
+Same portion model, same schema, validation and retries (`askItem`, `askItemsBatch`, `recheckBatch` in `clarify.js`):
+- **📷 Photo:** asks for ONE portion (label per serving, or a sensible portion of what's shown) with a portion description; malformed/implausible replies retried; no food → the existing "No food found" message; can't tell the portion → **Create my own item** with its question.
+- **Typed description** in the old form → **Create my own item** (seeded). **Edited ingredients on Review Item** → **Create my own item** (seeded with the new ingredients).
+- **📋 Bulk paste:** each line returns a per-portion item (with `line`) or a question; invalid lines re-asked (≤ 2 rounds); unclear lines are listed as "needs a little more from you" with **Finish with my Companion** (the conversation, seeded with the question). Batches of 10, Retry and Cancel unchanged.
+- **🔎 Re-check nutrition:** per portion — the AI estimates one portion's kcal for the portion description and says whether the saved value looks like one portion, the **whole recipe** or **per 100 g**; those (or > 35% off) are marked **Check me — confirm portions** (`portionCheck`). Values are never changed.
+- The D7 whole-recipe prompt and parser (`recalcPrompt`, `parseRecalc`) were removed; no prompt asks for whole-recipe totals.
 
 ## 4. Editing
 - **Single items:** as now (name, ingredients, portion). If ingredients change, the per-portion values are recalculated through the **clarifying conversation** (3c), not the old whole-recipe D7 call.
