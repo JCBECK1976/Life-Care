@@ -2733,4 +2733,5 @@ Sizes are % of a weekly allowance, including Architect checks.
 ### (Coder) 15–16 Nov 2026 — v2.20.0 overnight batch (in progress, build only)
 **Decision (JC, 15 Nov):** nine items in priority order, one commit + push to build per item, a progress line here after each; finish = v2.20.0 on /build/ only. Real data: read-only fixes, no migrations.
 - 1/9 done — build `7db950a`: Home My Eating showed child ids ("C 2026-11-15 B") because Home's lookup lacked the week's children. New `src/lib/mealNames.js` (`mealName`, `namesLine`; unresolved → "Unnamed item", logged); Home and Shop use it. Other readers (AI context, Eating feedback, Copy Week, meal summary) already resolved via children. Suite 251 passed.
-- **Resume point:** next item 2 (Companion memory).
+next item 3 (chat order).
+- **Resume point:** 
