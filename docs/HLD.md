@@ -52,6 +52,8 @@ Each environment has one root (`data` or `data_build`). Values are mostly JSON s
 
 **Parent / child eating model (v2.6.5).** A food list item is the **parent**. Choosing it for a meal creates a **child** for that date and slot, with its own snapshot of the parent's nutrition, its own portion (factor, photo-checked values or AI-recalculated "changes"), its own nutrition and its own rating. Editing or deleting a parent never changes past meals; changing a meal never changes the parent. Week and frequency rules ("already 3 times this week") count children. Rating rules (D11) are code (`src/lib/rag.js`), not AI.
 
+**Eating lists per portion (v2.19.0, [design/EATING_LISTS.md](design/EATING_LISTS.md), [ADR 0015](adr/0015-eating-lists-per-portion.md)).** Every list item and meal stores nutrition **per portion** with a portion description ("1 portion = ¼ jar (88 g)"); packaged / Open Food Facts items keep per-100 g source data and an editable portion size, and per-portion values are derived in code. Meal drop-downs show only items already in that list; **"+ Not in my list?"** opens **Update Lists** (Add single item · Build a meal · Create my own item) and returns to the slot with the item selected. **Build a meal** = Σ components ÷ serves, in code. **Create my own item** is a clarifying AI conversation (JSON schema, retries, validation and a plausibility check; never a dead end). An idempotent migration adds portion descriptions and flags recipes without servings ("Check me — confirm portions").
+
 ## 6. AI flows
 All AI calls use the Anthropic Messages API with `claude-sonnet-4-6`.
 
@@ -60,6 +62,7 @@ All AI calls use the Anthropic Messages API with `claude-sonnet-4-6`.
 | Feedback (Home check-in, session, eating day/week, body, measurements, health) | The person's relevant data and recent conversation | Structured feedback (JSON) + a conversation thread | Eating feedback knows eaten vs planned. Replies that are cut off or unreadable are reported, never silently shown. |
 | Chat and Help | Question + context (Chat: the person's data; Help: the app guide) | Answer | Help's guide is sent as a **cached** system prompt. |
 | Food rating and recalculation | Item name/ingredients, portion, changes | Nutrition values | Ratings then come from rules in code. Recalculations are checked for plausibility. |
+| Create my own item / recalculate an edited item (v2.19.0) | The person's description and answers | A question, or one item's nutrition **per portion** (JSON) | Clarifying conversation (≤ 3 questions); malformed or implausible replies retried twice, then a friendly question. |
 | Photo checks (📷 Snap, Food Checker, Help Me Eat, measurement Snap, Body Type Photos, Body balance) | A photo, **shrunk before sending** (≤ 1568 px), optional description | Values, assessment or structured scores | **Images are analysed and then discarded: never stored**, not in the database, not in backups. Only the result is kept. A Re-check is an independent second look. |
 | Energy check | A minimal request, at most once a day | OK / error | Drives the Companion Energy status. |
 | Google Health sync (R4, v2.16.2; steps v2.17.1) | Each person's own Google account: daily total calories burned and daily steps | Stored per day; used for the activity credit (below) | Not an AI call. The Google token stays on the device, never in the database. |
