@@ -18,5 +18,6 @@ One short file per significant decision: context, decision, alternatives rejecte
 | [0012](0012-household-privacy-model.md) | Household & privacy: own logins, one owner with no data access, Hidden by default, log-for-me | Accepted (JC 14 Nov 2026; built locally, not live) |
 | [0013](0013-calorie-model.md) | Calorie model: BMR × 1.15 baseline, deficit %, BMR floor, net activity credit | Accepted (JC 14 Nov 2026; v2.17.1 build); aim amended by 0014 |
 | [0014](0014-person-goals.md) | Person goals drive one calorie goal everywhere (timescale, safety limits, mandatory setup, Planned vs Actual) | Accepted (JC 14 Nov 2026; v2.18.0 build) |
+| [0015](0015-eating-lists-per-portion.md) | Eating lists: per portion everywhere, Update Lists tabs (single item, build a meal, create my own), clarifying AI | Accepted (JC 15 Nov 2026; v2.19.0 build) |
 
 Candidates not yet written up: the Open pattern and button standard (v2.8.0 / v2.13.0).
