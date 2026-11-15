@@ -1640,16 +1640,16 @@ function Dashboard() {
     }
     var loadKey = fbType + "-" + fbKey;
     var isLoading = threadLoading[loadKey];
-    return React.createElement("div", { style: { marginTop: 10 } },
-      React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 8 } },
-        React.createElement("textarea", { id: "thread-input-" + fbType + "-" + fbKey, placeholder: thread.length > 0 ? "Continue the conversation..." : "Respond to this feedback...", disabled: isLoading, style: { flex: 1, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, resize: "vertical", minHeight: 40, boxSizing: "border-box", fontFamily: "inherit", opacity: isLoading ? 0.6 : 1 } }),
-        React.createElement("button", { onClick: function() { threadReply(fbObj, fbType, fbKey, updateFn, saveKey); }, disabled: isLoading, style: { padding: "8px 14px", background: isLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: isLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap", alignSelf: "flex-end", minWidth: 50 } }, isLoading ? React.createElement("span", null, React.createElement(LoadingDots)) : "Send"),
+    /* v2.20.0: the input row is closed before the error and the conversation (they used to sit inside the row, which
+       squashed the textarea into a narrow column once a thread existed). Full-width textarea; Send beside or below it. */
+    return React.createElement("div", { "data-testid": "thread-" + fbType + "-box", style: { marginTop: 10, width: "100%", minWidth: 0 } },
+      React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8, alignItems: "flex-end" } },
+        React.createElement("textarea", { id: "thread-input-" + fbType + "-" + fbKey, placeholder: thread.length > 0 ? "Continue the conversation..." : "Respond to this feedback...", disabled: isLoading, style: { flex: "1 1 220px", minWidth: 0, width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, resize: "vertical", minHeight: 40, boxSizing: "border-box", fontFamily: "inherit", opacity: isLoading ? 0.6 : 1 } }),
+        React.createElement("button", { onClick: function() { threadReply(fbObj, fbType, fbKey, updateFn, saveKey); }, disabled: isLoading, style: { flex: "0 0 auto", padding: "8px 14px", background: isLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: isLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap", alignSelf: "flex-end", minWidth: 50 } }, isLoading ? React.createElement("span", null, React.createElement(LoadingDots)) : "Send")),
       threadErr[loadKey] && React.createElement("div", { role: "alert", "data-testid": "thread-error", style: { marginBottom: 8, padding: 8, borderRadius: 6, background: "#fee2e2", color: "#991b1b", fontSize: 11, fontWeight: 600 } }, threadErr[loadKey]),
       thread.length > 0 && React.createElement("div", { style: { marginBottom: 8 } },
         React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#475569", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" } }, "Conversation"),
-        React.createElement(ChatThread, { messages: thread, userBg: accentChatUser, userBorder: accentBorder, testid: "thread-" + fbType })   /* v2.20.0: newest message first */
-      )
-      )
+        React.createElement(ChatThread, { messages: thread, userBg: accentChatUser, userBorder: accentBorder, testid: "thread-" + fbType }))
     );
   };
 

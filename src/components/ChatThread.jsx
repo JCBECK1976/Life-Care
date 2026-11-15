@@ -3,7 +3,7 @@ import { newestFirst } from "../lib/chat.js";
 
 // v2.20.0: one way to show a Companion conversation everywhere (Chat, Help, every feedback thread): newest message at
 // the top, at message level. messages = [{ role: "user" | "companion" | "assistant", text, when }] stored oldest first.
-export var COMPANION_LABEL = "Companion";
+export var COMPANION_LABEL = "Your Companion";   // v2.20.0 (JC)
 export default function ChatThread(props) {
   var msgs = newestFirst(props.messages || []);
   return (<div data-testid={props.testid || "chat-thread"} aria-live="polite">

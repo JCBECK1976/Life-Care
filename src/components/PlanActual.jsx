@@ -85,7 +85,7 @@ export default function PlanActual(props) {
         <button type="button" style={btn} onClick={function() { save(function(pp) { pp.goal = Object.assign({}, pp.goal); pp.goal.dismissed = Object.assign({}, pp.goal.dismissed); pp.goal.dismissed[sug.key] = isoDay(new Date()); }, "Kept your goal"); }}>Not now</button>
       </div></div>)}
     {pending && (<div data-testid="adj-suggestion" style={{ marginTop: 8, padding: 8, borderRadius: 6, background: "#eff6ff", border: "1px solid #bfdbfe", fontSize: 11, color: "#1e293b" }}>
-      <b>Companion suggests an activity adjustment of {pending.value}%</b>{pending.reason ? " — " + pending.reason : ""}
+      <b>Your Companion suggests an activity adjustment of {pending.value}%</b>{pending.reason ? " — " + pending.reason : ""}
       <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
         <button type="button" style={Object.assign({}, btn, { background: "#166534", color: "#fff", border: "none" })} onClick={function() { save(function(pp) { decideSuggestion(pp, "accepted"); }, "✓ Adjustment set to " + pending.value + "%"); }}>Accept</button>
         <button type="button" style={btn} onClick={function() { save(function(pp) { decideSuggestion(pp, "declined"); }, "Kept at " + t.adjPct + "%"); }}>Decline</button>

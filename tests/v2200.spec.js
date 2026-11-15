@@ -172,3 +172,26 @@ for (const kind of ["Chat", "Help", "Home feedback"]) {
     expect(errors).toEqual([]);
   });
 }
+
+/* ---------- 4. "Your Companion" label + the thread input layout ---------- */
+test("4 Exercise feedback thread at 360 px: full-width textarea (never a narrow column); replies labelled 'Your Companion'", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  const { errors } = await openApp(page);
+  const d = DAYS[new Date().getDay()];
+  await put("session_feedback_all", { ["jc_" + d]: { summary: "Solid session", exercises: [], nextSession: "", _thread: [{ role: "user", text: "What can replace squat rows?", ts: 1 }, { role: "companion", text: "Try a chest-supported row or a seal row.", ts: 2 }] } });
+  await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
+  await tab(page, "My Exercise");
+  await page.getByRole("button", { name: "▼ Show Feedback" }).first().click();
+  const box = page.getByTestId("thread-session-box");
+  const input = page.locator("#thread-input-session-jc-" + d);
+  await input.scrollIntoViewIfNeeded();
+  const ib = await input.boundingBox(), bb = await box.boundingBox();
+  expect(ib.width).toBeGreaterThan(bb.width * 0.7);
+  expect(ib.height).toBeLessThan(120);
+  const send = input.locator("xpath=following-sibling::button[1]"); const sb = await send.boundingBox();
+  expect(sb.x + sb.width).toBeLessThanOrEqual(bb.x + bb.width + 1);
+  const companion = page.getByTestId("thread-session").getByTestId("chat-msg").filter({ hasText: "seal row" });
+  await expect(companion).toContainText("Your Companion");
+  await expect(page.getByTestId("thread-session")).not.toContainText(/(^|[^r] )Companion ·/);
+  expect(errors).toEqual([]);
+});
