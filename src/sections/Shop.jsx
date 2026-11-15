@@ -6,6 +6,7 @@ import { sGet, sSet } from "../lib/storage.js";
 import { withRuleRating } from "../lib/rag.js";
 import { kcalTargetText } from "../lib/goals.js";
 import { loadWeekDoc, viewFromDoc } from "../lib/children.js";
+import { mealName } from "../lib/mealNames.js";
 import { handleApiError } from "../lib/api.js";
 import { btnActionLg, btnClear, btnDelete, btnEdit, btnMuted, btnP } from "../constants/styles.js";
 import { BREAKFASTS, DAY_MAP, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, MEAL_DAYS, POTATO_SIDES, SNACKS, VEG_SIDES } from "../constants/food.js";
@@ -166,7 +167,7 @@ export default function ShopSection({ ctx }) {
             setShopLoading(true);
             try {
               var allItems = [].concat(BREAKFASTS, DEFAULT_BREAKFASTS, customBreakfasts, LUNCHES, DEFAULT_LUNCHES, customLunches, DINNERS, DEFAULT_DINNERS_GB, customMeals, SNACKS, customSnacks, customDrinks, customDesserts, POTATO_SIDES, VEG_SIDES);
-              var lookupName = function(id) { if (String(id).indexOf("__adhoc__:") === 0) return id.slice(10); var found = allItems.find(function(x) { return x.id === id; }); return found ? found.name : id; };
+              var lookupName = function(id) { return mealName(id, { items: allItems }); };   /* v2.20.0: shared helper — never a raw key */
               var lookupShop = function(id) { var found = allItems.find(function(x) { return x.id === id; }); return found && found.shop ? found.shop : []; };
               var mealNames = "";
               var allPeople = Object.keys(data).filter(function(k) { return k !== "config"; });

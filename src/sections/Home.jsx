@@ -8,6 +8,7 @@ import React from "react";
 import { bodyTypeCheckRule, looseJson, photoIssues } from "../lib/bodyPhotoCheck.js";
 import { btnDelete, btnMuted, btnP, inputStyle, labelStyle } from "../constants/styles.js";
 import { latestFirst } from "../lib/chat.js";
+import { mealName, namesLine } from "../lib/mealNames.js";
 import { accentVariant } from "../lib/colour.js";
 import { TONE_RULES } from "../constants/tone.js";
 import { getMoodContext } from "../lib/aiContext.js";
@@ -27,7 +28,8 @@ export default function HomeSection({ ctx }) {
     setAssessmentExpanded, setDailyMood, setEatDay, setExerciseDay, setFormMsg, setGenPlanLoading, setGeneratedTargets, setHomeFbExpanded,
     setJournalEntries, setJournalText, setOnboardInputs, setProfileInputs, setSection, setSetupDirty, setSetupTab, setShowFbHistory,
     setShowFullJournal, setShowMyDay, setShowOnboarding, setShowProfile, setShowRecentJournal, setUserMood, setupDirty, setupTab,
-    showFbHistory, showFullJournal, showMyDay, showOnboarding, showProfile, showRecentJournal, updateHomeFb, userMood, openGoalSetup
+    showFbHistory, showFullJournal, showMyDay, showOnboarding, showProfile, showRecentJournal, updateHomeFb, userMood, openGoalSetup,
+    weekChildren,
   } = ctx;
 
   /* v2.14.2: Body Type Photos — every photo is checked first (a person, one of the requested poses). If any photo is not
@@ -567,7 +569,7 @@ export default function HomeSection({ ctx }) {
             var allDrHome = [].concat(customDrinks);
             var allDeHome = [].concat(customDesserts);
             var allFoodHome = [].concat(allBfHome, allLuHome, allDinHome, allSnHome, allDrHome, allDeHome);
-            var findFood = function(id) { if (!id || id === "__empty__") return null; var f = allFoodHome.find(function(x) { return x.id === id; }); if (f) return f.name; /* Format raw IDs: replace underscores, title case */ return id.replace(/_/g, " ").replace(/\b\w/g, function(c) { return c.toUpperCase(); }); };
+            var findFood = function(id) { return mealName(id, { children: weekChildren, items: allFoodHome }); };   /* v2.20.0: shared helper — never a raw key */
 
             var bfName = findFood(dayMealsObj.b);
             var luName = findFood(dayMealsObj.l);
@@ -583,8 +585,8 @@ export default function HomeSection({ ctx }) {
               { label: "Breakfast", value: bfName },
               { label: "Lunch", value: luName },
               { label: "Dinner", value: dinName },
-              { label: "Snacks", value: snackNames.length > 0 ? snackNames.join(", ") : null },
-              { label: "Drinks", value: drinkNames.length > 0 ? drinkNames.join(", ") : null }
+              { label: "Snacks", value: namesLine(snackNames) },
+              { label: "Drinks", value: namesLine(drinkNames) }
             ];
 
             /* ── Exercise data ── */
@@ -593,7 +595,7 @@ export default function HomeSection({ ctx }) {
 
             /* ── Render My Eating sub-panel ── */
             var renderEating = function() {
-              return (<div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+              return (<div data-testid="myday-eating" style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#334155", padding: "8px 10px", background: "transparent", borderBottom: "1px solid #cbd5e1", borderRadius: "8px 8px 0 0" }}>My Eating</div>
                 <div style={{ padding: "6px 10px", flex: 1, display: "flex", flexDirection: "column" }}>
                   <div style={{ flex: 1 }}>
