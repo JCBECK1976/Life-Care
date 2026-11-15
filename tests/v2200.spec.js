@@ -313,3 +313,53 @@ test("7 every input/select/textarea (and the meal picker) has the subtle 1px bor
   }
   expect(errors).toEqual([]);
 });
+
+/* ---------- 8. Accessibility (WCAG 2.2 AA) ---------- */
+import AxeBuilder from "@axe-core/playwright";
+const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+const axe = async (page) => (await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze()).violations.map((v) => v.id + " ×" + v.nodes.length + " " + v.nodes[0].html.slice(0, 100));
+test("8 axe at 360 px: Update Lists (search results, Build a meal, My own), the exercise log form, Chat and Help have no A/AA violations", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  const { errors } = await openApp(page);
+  await page.route(/openfoodfacts\.org/, (r) => r.fulfill({ status: 200, contentType: "application/json", body: '{"products":[]}' }));
+  await tab(page, "My Eating"); await page.getByRole("button", { name: "Update Eating Lists" }).click();
+  await page.getByLabel("Search your lists, common foods and UK products").fill("pasta"); await page.waitForTimeout(900);
+  expect(await axe(page)).toEqual([]);
+  await page.getByRole("tab", { name: "Build a meal" }).click(); expect(await axe(page)).toEqual([]);
+  await page.getByRole("tab", { name: "My own" }).click(); expect(await axe(page)).toEqual([]);
+  await tab(page, "My Exercise"); await page.getByRole("button", { name: "📋 Log", exact: true }).first().click(); expect(await axe(page)).toEqual([]);
+  await openChat(page); expect(await axe(page)).toEqual([]);
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: /Help/ }).first().click(); expect(await axe(page)).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test("8 Chat and Help are dialogs: focus moves into the box, Tab stays inside, Esc closes and gives focus back", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const opener = page.getByTitle("Chat with your Companion").or(page.getByRole("button", { name: "Chat with your Companion" })).first();
+  await opener.focus(); await opener.click();
+  const dlg = page.getByRole("dialog", { name: "Chat with your Companion" });
+  await expect(dlg).toBeVisible();
+  await expect(page.locator("#qa-input-jc")).toBeFocused();
+  for (let i = 0; i < 8; i++) { await page.keyboard.press("Tab"); expect(await dlg.evaluate((d) => d.contains(document.activeElement))).toBe(true); }
+  await page.keyboard.press("Escape");
+  await expect(dlg).toHaveCount(0);
+  await page.getByRole("button", { name: /Help/ }).first().click();
+  const h = page.getByRole("dialog", { name: "Help — using the app" });
+  await expect(page.locator("#help-input-jc")).toBeFocused();
+  await page.keyboard.press("Escape"); await expect(h).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test("8 touch screens: buttons and fields are at least 44 px tall; icon-only buttons 44 × 44", async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 800 }, hasTouch: true, isMobile: true });
+  const page = await ctx.newPage();
+  const { errors } = await openApp(page);
+  await tab(page, "My Exercise");
+  const small = await page.evaluate(() => [...document.querySelectorAll("button, select, input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=hidden])")]
+    .filter((e) => e.offsetParent !== null).map((e) => { const r = e.getBoundingClientRect(); return { t: (e.getAttribute("aria-label") || e.innerText || e.tagName).slice(0, 30), h: r.height, w: r.width, icon: e.hasAttribute("aria-label") && e.tagName === "BUTTON" }; })
+    .filter((x) => x.h < 43.5 || (x.icon && x.w < 43.5)));
+  expect(small).toEqual([]);
+  expect(errors).toEqual([]);
+  await ctx.close();
+});

@@ -1848,7 +1848,7 @@ function Dashboard() {
       <div style={{ display: "flex", gap: 0, padding: "0 4px", background: "#fff", borderBottom: "1px solid #e2e8f0", overflowX: "auto" }}>
         {SECS.map(s => (<button key={s.id} onClick={() => { setSection(s.id); setShowOnboarding(false); setSetupTab("profile"); setFbExpanded(false); setEatFbExpanded(false); setHomeFbExpanded(false); setHealthFbExpanded(false); setLogEx(null); setSelectedEx(null); setBodyView("data"); setShowBodyForm(false); setBodyMetricOpen(null); setMeasMetricOpen(null); setMeasLogKey(null); setEditMeasKey(null); setAddMeasOpen(false); setWarmUpOpen(false); setCoolDownOpen(false); setShowRecentJournal(false); setShowFullJournal(false); setHealthView("general"); }} style={{ padding: "10px 8px", border: "none", borderBottom: section === s.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 11, fontWeight: section === s.id ? 700 : 500, color: section === s.id ? accent : "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>{s.l}</button>))}
       </div>
-      {formMsg && <div style={{ margin: "8px 16px 0", padding: 10, borderRadius: 8, background: formMsg.startsWith("✓") ? "#e0f2fe" : "#fee2e2", color: formMsg.startsWith("✓") ? "#0c4a6e" : "#991b1b", fontSize: 12, fontWeight: 600 }}>{formMsg}</div>}
+      {formMsg && <div role="status" aria-live="polite" style={{ margin: "8px 16px 0", padding: 10, borderRadius: 8, background: formMsg.startsWith("✓") ? "#e0f2fe" : "#fee2e2", color: formMsg.startsWith("✓") ? "#0c4a6e" : "#991b1b", fontSize: 12, fontWeight: 600 }}>{formMsg}</div>}
 
       <div style={{ padding: 16 }}>
         {/* HOME */}

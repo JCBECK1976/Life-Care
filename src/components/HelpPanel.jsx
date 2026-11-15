@@ -1,3 +1,4 @@
+import { useDialog } from "../lib/a11y.js";
 import { btnClose } from "../constants/styles.js";
 import LoadingDots from "./LoadingDots.jsx";
 import ChatThread from "./ChatThread.jsx";
@@ -10,17 +11,18 @@ export default function HelpPanel({ ctx }) {
     accentBorder, accentChatUser, activeTab, askHelp, helpHistory, helpLoading, helpMsg, helpOpen,
     setHelpOpen, setShowHelpHistory, showHelpHistory
   } = ctx;
+  const dlgRef = useDialog(!!(helpOpen), () => setHelpOpen(false));   /* v2.20.0: Esc closes, focus kept inside */
 
   return (<>
 {helpOpen && <div style={{ position: "fixed", bottom: 0, right: 0, left: 0, top: 0, zIndex: 1001 }}>
         <div onClick={() => setHelpOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.3)" }} />
-        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, maxHeight: "75vh", background: "#fff", borderRadius: "16px 16px 0 0", boxShadow: "0 -4px 24px rgba(0,0,0,0.15)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div ref={dlgRef} role="dialog" aria-modal="true" aria-label="Help — using the app" style={{ position: "absolute", bottom: 0, left: 0, right: 0, maxHeight: "75vh", background: "#fff", borderRadius: "16px 16px 0 0", boxShadow: "0 -4px 24px rgba(0,0,0,0.15)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <div style={{ padding: "14px 16px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Help — using the app</div>
             <button aria-label="Close help" onClick={() => setHelpOpen(false)} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
           </div>
           <div style={{ padding: "8px 16px 8px", borderBottom: "1px solid #f1f5f9" }}>   {/* v2.20.0: input at the top, above the newest message */}
-            {helpMsg && <div style={{ marginBottom: 6, padding: 8, borderRadius: 6, background: "#fee2e2", color: "#991b1b", fontSize: 11, fontWeight: 600 }}>{helpMsg}</div>}
+            {helpMsg && <div role="status" aria-live="polite" style={{ marginBottom: 6, padding: 8, borderRadius: 6, background: "#fee2e2", color: "#991b1b", fontSize: 11, fontWeight: 600 }}>{helpMsg}</div>}
             <div style={{ display: "flex", gap: 6 }}>
               <textarea id={"help-input-" + activeTab} disabled={helpLoading} placeholder={helpHistory[activeTab] && helpHistory[activeTab].length > 0 ? "Ask another question..." : "e.g. How do I add a food to my lists? What does AMBER mean? Where do I log my session?"} style={{ flex: 1, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, resize: "vertical", minHeight: 40, boxSizing: "border-box", fontFamily: "inherit", opacity: helpLoading ? 0.6 : 1 }} />
               <button onClick={askHelp} disabled={helpLoading} style={{ padding: "8px 14px", background: helpLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: helpLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>{helpLoading ? <LoadingDots /> : "Send"}</button>

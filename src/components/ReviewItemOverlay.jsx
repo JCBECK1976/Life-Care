@@ -1,3 +1,4 @@
+import { useDialog } from "../lib/a11y.js";
 import { btnActionLg, btnClose } from "../constants/styles.js";
 import NoFoodPanel from "./NoFoodPanel.jsx";
 
@@ -8,10 +9,11 @@ export default function ReviewItemOverlay({ ctx }) {
     accentBtnBorder, accentBtnLight, cameraPreview, formMsg, manageListsOpen, reviewCategories, reviewSideType, section,
     setAddingSlotDay, setAddingSlotKey, setCameraPreview, setFormMsg, setReviewCategories, setReviewSideType
   } = ctx;
+  const dlgRef = useDialog(!!(cameraPreview && !manageListsOpen && section === "meals"), () => setCameraPreview(null));   /* v2.20.0: Esc closes, focus kept inside */
 
   return (<>
 {cameraPreview && !manageListsOpen && section === "meals" && (<div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-        <div style={{ background: "#f0fdf4", borderRadius: 12, padding: 14, border: "1px solid #86efac", maxWidth: 400, width: "100%", maxHeight: "80vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+        <div ref={dlgRef} role="dialog" aria-modal="true" aria-label="Review item" style={{ background: "#f0fdf4", borderRadius: 12, padding: 14, border: "1px solid #86efac", maxWidth: 400, width: "100%", maxHeight: "80vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Review Item</div>
             <button aria-label="Close photo review" onClick={function() { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); }} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
@@ -61,7 +63,7 @@ export default function ReviewItemOverlay({ ctx }) {
               })}
             </div>
           </div>)}
-          {formMsg && <div style={{ padding: 8, borderRadius: 6, marginBottom: 8, fontSize: 11, fontWeight: 600, lineHeight: 1.4, background: formMsg.indexOf("✅") === 0 ? "#dcfce7" : formMsg.indexOf("🔄") === 0 ? "#e0f2fe" : "#fee2e2", color: formMsg.indexOf("✅") === 0 ? "#166534" : formMsg.indexOf("🔄") === 0 ? "#0c4a6e" : "#991b1b" }}>{formMsg}</div>}
+          {formMsg && <div role="status" aria-live="polite" style={{ padding: 8, borderRadius: 6, marginBottom: 8, fontSize: 11, fontWeight: 600, lineHeight: 1.4, background: formMsg.indexOf("✅") === 0 ? "#dcfce7" : formMsg.indexOf("🔄") === 0 ? "#e0f2fe" : "#fee2e2", color: formMsg.indexOf("✅") === 0 ? "#166534" : formMsg.indexOf("🔄") === 0 ? "#0c4a6e" : "#991b1b" }}>{formMsg}</div>}
           <div style={{ display: "flex", gap: 6 }}>
             <button disabled={reviewCategories.length === 0 || formMsg.indexOf("🔄") === 0} onClick={function() { window._confirmReviewItem(true); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: (reviewCategories.length === 0 || formMsg.indexOf("🔄") === 0) ? 0.5 : 1}}>{formMsg.indexOf("🔄") === 0 ? "Recalculating…" : cameraPreview.recalculated ? "✓ Continue — Add" : "✓ Confirm" + (reviewCategories.length > 1 ? " (" + reviewCategories.length + " lists)" : "")}</button>
             <button onClick={function() { if (cameraPreview.recalculated) { setCameraPreview(function(prev) { return Object.assign({}, prev, { recalculated: false }); }); setFormMsg(""); } else { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); setAddingSlotKey(null); setAddingSlotDay(null); setFormMsg(""); } }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>{cameraPreview.recalculated ? "Edit Again" : "Cancel"}</button>

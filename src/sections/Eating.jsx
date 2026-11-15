@@ -784,7 +784,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               </div>);
             }
             var rowsEl = (<>
-                {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var isAdded = item._isCustom !== false; var color = isAdded ? (item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#15803d") : "#94a3b8"; var hasRagChange = item._ragChanged && !item._ragChangedSeen; return (<div key={item.id} onMouseDown={function(e){e.preventDefault();onChange({target:{value:item.id}});setOpen(false);setSearch("");}} style={{padding:"6px 10px",fontSize:11,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f8fafc",color:color}}>
+                {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var isAdded = item._isCustom !== false; var color = isAdded ? (item.rating === "RED" ? "#b91c1c" : item.rating === "AMBER" ? "#b45309" : "#15803d") : "#94a3b8"; var hasRagChange = item._ragChanged && !item._ragChangedSeen; return (<div key={item.id} onMouseDown={function(e){e.preventDefault();onChange({target:{value:item.id}});setOpen(false);setSearch("");}} style={{padding:"6px 10px",fontSize:11,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f8fafc",color:color}}>
                   <span>{hasRagChange ? "🔄 " : ""}{item.name} ({kcal} kcal){!isAdded ? " — not added" : ""}{item.checkMe && <span data-testid="check-me" title={item.checkReason || "Added by bulk upload: open and save it once you have checked it"} style={{ marginLeft: 4, fontSize: 9, fontWeight: 600, color: "#475569", border: "1px solid #cbd5e1", borderRadius: 4, padding: "0 4px", whiteSpace: "nowrap" }}>Check me</span>}{hasRagChange ? " (was " + item.prevRating + ")" : ""}</span>
 
                 </div>); })}
@@ -826,7 +826,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           </div>
 
           {/* RAG recalculation notification banner */}
-          {ragRecalcMsg && (<div style={{ background: ragRecalcMsg.startsWith("✅") ? "#f0fdf4" : ragRecalcMsg.startsWith("Error") ? "#fef2f2" : "#eff6ff", border: "1px solid " + (ragRecalcMsg.startsWith("✅") ? "#86efac" : ragRecalcMsg.startsWith("Error") ? "#fecaca" : "#93c5fd"), borderRadius: 8, padding: "8px 12px", marginTop: 8, fontSize: 11, color: ragRecalcMsg.startsWith("✅") ? "#166534" : ragRecalcMsg.startsWith("Error") ? "#b91c1c" : "#1e40af", display: "flex", alignItems: "center", gap: 8 }}>
+          {ragRecalcMsg && (<div role="status" aria-live="polite" style={{ background: ragRecalcMsg.startsWith("✅") ? "#f0fdf4" : ragRecalcMsg.startsWith("Error") ? "#fef2f2" : "#eff6ff", border: "1px solid " + (ragRecalcMsg.startsWith("✅") ? "#86efac" : ragRecalcMsg.startsWith("Error") ? "#fecaca" : "#93c5fd"), borderRadius: 8, padding: "8px 12px", marginTop: 8, fontSize: 11, color: ragRecalcMsg.startsWith("✅") ? "#166534" : ragRecalcMsg.startsWith("Error") ? "#b91c1c" : "#1e40af", display: "flex", alignItems: "center", gap: 8 }}>
             {ragRecalcLoading && <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid #93c5fd", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />}
             <span>{ragRecalcMsg}</span>
             {!ragRecalcLoading && <button aria-label="Dismiss" onClick={function(){ setRagRecalcMsg(""); }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "#475569", marginLeft: "auto", padding: 0 }}>✕</button>}
@@ -852,7 +852,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4 }}>{cat.label} ({cat.customs.length} item{cat.customs.length !== 1 ? "s" : ""})</div>
                   {cat.customs.slice().sort(function(a,b) { return a.name.localeCompare(b.name); }).map(function(item) {
                     var kcal = isJC ? item.jcKcal : item.beckKcal;
-                    var color = item.rating === "RED" ? "#dc2626" : item.rating === "AMBER" ? "#d97706" : "#15803d";
+                    var color = item.rating === "RED" ? "#b91c1c" : item.rating === "AMBER" ? "#b45309" : "#15803d";
                     var hasRagChange = item._ragChanged && !item._ragChangedSeen;
                     return (<div key={item.id}><div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
                       <span style={{ flex: 1, color: color }}>{hasRagChange && <span onClick={function(){alert("Rating changed from " + (item.prevRating || "?") + " to " + item.rating + (item.ragReason ? ".\n\nReason: " + item.ragReason : "") + "\n\nBased on your current health profile and dietary guidelines.");var u=cat.customs.map(function(x){return x.id===item.id?Object.assign({},x,{_ragChangedSeen:true}):x;});cat.setCustoms(u);sSet(cat.storageKey,JSON.stringify(u));}} style={{cursor:"pointer"}} title={"Changed from " + (item.prevRating || "?")}>🔄 </span>}{item.name} ({kcal} kcal){item.checkMe && <span data-testid="check-me" title={item.checkReason || "Added by bulk upload: open and save it once you have checked it"} style={{ marginLeft: 4, fontSize: 9, fontWeight: 600, color: "#475569", border: "1px solid #cbd5e1", borderRadius: 4, padding: "0 4px", whiteSpace: "nowrap" }}>Check me</span>}</span>
@@ -890,7 +890,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       </div>)}
                       {editClarify && (<div data-testid="edit-clarify"><div style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>Your ingredients changed — your Companion will work out the values per portion. Check the text, then Send.</div>
                         <ClarifyChat seed={editClarify} onResult={function(it) { var cur = editDraft; var ing = (cur.ingredients || []).join(", "); var upd = withRuleRating(withPortionValues(Object.assign({}, cur, { servings: it.servings, portion: it.portion, originalIngredients: ing, recalculated: true, portionCheck: false }), itemNutrition(it))); setEditDraft(upd); setEditClarify(null); setFormMsg("✅ Nutritional values updated per portion: " + upd.kcal + " kcal (" + portionLabel(upd) + "). Press Save to keep them."); }} /></div>)}
-                      {formMsg && <div style={{ padding: 8, borderRadius: 6, marginBottom: 8, fontSize: 11, fontWeight: 600, lineHeight: 1.4, background: formMsg.indexOf("✅") === 0 ? "#dcfce7" : formMsg.indexOf("🔄") === 0 ? "#e0f2fe" : "#fee2e2", color: formMsg.indexOf("✅") === 0 ? "#166534" : formMsg.indexOf("🔄") === 0 ? "#0c4a6e" : "#991b1b" }}>{formMsg}</div>}
+                      {formMsg && <div role="status" aria-live="polite" style={{ padding: 8, borderRadius: 6, marginBottom: 8, fontSize: 11, fontWeight: 600, lineHeight: 1.4, background: formMsg.indexOf("✅") === 0 ? "#dcfce7" : formMsg.indexOf("🔄") === 0 ? "#e0f2fe" : "#fee2e2", color: formMsg.indexOf("✅") === 0 ? "#166534" : formMsg.indexOf("🔄") === 0 ? "#0c4a6e" : "#991b1b" }}>{formMsg}</div>}
                       <div style={{ display: "flex", gap: 6 }}>
                         <button disabled={formMsg.indexOf("🔄") === 0} onClick={function() { saveEditItem(cat); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: formMsg.indexOf("🔄") === 0 ? 0.5 : 1}}>{formMsg.indexOf("🔄") === 0 ? "Recalculating…" : editDraft.recalculated ? "✓ Continue — Save" : "✓ Confirm"}</button>
                         <button onClick={function() { if (editDraft.recalculated) { setEditDraft(function(prev) { return Object.assign({}, prev, { recalculated: false }); }); } else { setEditingItem(null); setEditDraft(null); setItemOpen(editDraft.id); } setFormMsg(""); }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>{editDraft.recalculated ? "Edit Again" : "Cancel"}</button>
@@ -922,7 +922,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 {(offResults.length > 0 || offLoading) && newItemName.length >= 2 && !cameraPreview && (<div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, maxHeight: 180, overflowY: "auto", marginTop: 6, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
                   {offLoading && <div style={{ padding: "8px 10px", fontSize: 10, color: "#475569" }}>🔍 Searching Open Food Facts...</div>}
                   {offResults.map(function(prod, pi) {
-                    var ragColor = calcRAG(prod) === "RED" ? "#dc2626" : calcRAG(prod) === "AMBER" ? "#d97706" : "#16a34a";
+                    var ragColor = calcRAG(prod) === "RED" ? "#b91c1c" : calcRAG(prod) === "AMBER" ? "#b45309" : "#15803d";
                     return (<div key={pi} onClick={function() {
                       var rating = calcRAG(prod);
                       var ingArr = prod.ingredients ? prod.ingredients.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length>0;}) : [];
@@ -996,7 +996,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     })}
                   </div>
                 </div>)}
-                {formMsg && <div style={{ padding: 8, borderRadius: 6, marginBottom: 8, fontSize: 11, fontWeight: 600, lineHeight: 1.4, background: formMsg.indexOf("✅") === 0 ? "#dcfce7" : formMsg.indexOf("🔄") === 0 ? "#e0f2fe" : "#fee2e2", color: formMsg.indexOf("✅") === 0 ? "#166534" : formMsg.indexOf("🔄") === 0 ? "#0c4a6e" : "#991b1b" }}>{formMsg}</div>}
+                {formMsg && <div role="status" aria-live="polite" style={{ padding: 8, borderRadius: 6, marginBottom: 8, fontSize: 11, fontWeight: 600, lineHeight: 1.4, background: formMsg.indexOf("✅") === 0 ? "#dcfce7" : formMsg.indexOf("🔄") === 0 ? "#e0f2fe" : "#fee2e2", color: formMsg.indexOf("✅") === 0 ? "#166534" : formMsg.indexOf("🔄") === 0 ? "#0c4a6e" : "#991b1b" }}>{formMsg}</div>}
                 <div style={{ display: "flex", gap: 6 }}>
                   <button disabled={reviewCategories.length === 0 || formMsg.indexOf("🔄") === 0} onClick={function() { window._confirmReviewItem(false); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: (reviewCategories.length === 0 || formMsg.indexOf("🔄") === 0) ? 0.5 : 1}}>{formMsg.indexOf("🔄") === 0 ? "Recalculating…" : cameraPreview.recalculated ? "✓ Continue — Add" : "✓ Confirm" + (reviewCategories.length > 1 ? " (" + reviewCategories.length + " lists)" : "")}</button>
                   <button onClick={function() { if (cameraPreview.recalculated) { setCameraPreview(function(prev) { return Object.assign({}, prev, { recalculated: false }); }); setFormMsg(""); } else { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); setAddingSlotKey(null); setAddingSlotDay(null); setFormMsg(""); } }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, cursor: "pointer" }}>{cameraPreview.recalculated ? "Edit Again" : "Cancel"}</button>
@@ -1053,7 +1053,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               DAYS.forEach(function(d) { var dk = getDayKcal(d); if (dk > 0) { totalKcal2 += dk; dayCount2++; } });
               var avg2 = dayCount2 > 0 ? Math.round(totalKcal2 / dayCount2) : 0;
               var _wg = DAYS.map(function(d) { return goalKcal(data && data[activeTab], dateOf(weekStart, d), weekChildren); }).filter(function(x) { return x != null; }); var limit2 = _wg.length ? _wg.reduce(function(a, b) { return a + b; }, 0) / _wg.length : Infinity; // v2.18.0: the person's goal
-              var color2 = avg2 === 0 ? "#94a3b8" : avg2 > limit2 ? "#dc2626" : "#16a34a";
+              var color2 = avg2 === 0 ? "#94a3b8" : avg2 > limit2 ? "#b91c1c" : "#15803d";
               return avg2 > 0 ? (<span style={{ fontSize: 11, fontWeight: 600, color: color2 }}> — Avg {avg2} kcal/day</span>) : null;
             })()}</span><div style={{ display: "flex", gap: 4, flexShrink: 0 }}><button onClick={function(){ setCopyWeekOpen(!copyWeekOpen); setCopyWeekTargets({}); }} style={Object.assign({}, copyWeekOpen ? btnClose : btnAction)}>{copyWeekOpen ? "✕" : <span>📋 Copy Week</span>}</button><button onClick={function(){setEatWeekEyeOpen(!eatWeekEyeOpen);}} style={eatWeekEyeOpen ? btnFilledOn : btnProgress}>{eatWeekEyeOpen ? "✕ Progress" : "👁 Progress"}</button></div></div>
 
@@ -1172,7 +1172,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   if (tCarbs <= limCarbs) inRange++;
                   if (tFib >= (isJC ? 30 : 25)) inRange++;
                   if (tSalt <= 6) inRange++;
-                  var ragColor = inRange >= 5 ? "#16a34a" : inRange >= 3 ? "#f59e0b" : "#dc2626";
+                  var ragColor = inRange >= 5 ? "#15803d" : inRange >= 3 ? "#b45309" : "#b91c1c";
                   return { day: day, kcal: tKcal, prot: tProt, sfat: tSfat, carbs: tCarbs, fib: tFib, salt: tSalt, conKcal: tKcal, conProt: tProt, conSfat: tSfat, conCarbs: tCarbs, conFib: tFib, conSalt: tSalt, ragColor: ragColor, inRange: inRange };
                 });
                 return (<div>

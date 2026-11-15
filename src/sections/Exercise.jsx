@@ -271,7 +271,7 @@ export default function ExerciseSection({ ctx }) {
                 <div style={{ fontSize: 11, color: "#92400e", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{prevComment}</div>
               </div>)}
               {prev && <button onClick={() => { setEditPrev(!editPrev); if (!editPrev) { window._lcEditWk = prev.wk; setLogSets(logSetsFrom(prev, 3)); setLogWeek(String(prev.wk)); setLogFullRange(prev.fullRange || ""); setLogGoodForm(prev.goodForm || ""); setLogComment(prev.note || ""); } else { setLogSets(logSetsFrom(prev, 3).map(function(x) { return { w: x.w, r: "" }; })); window._lcEditWk = null; setLogWeek(String(currentWeek)); setLogFullRange(""); setLogGoodForm(""); setLogComment(""); } }} style={{ ...btnST, marginBottom: 8, fontSize: 11, background: editPrev ? "#fef3c7" : "#f1f5f9" }}>{editPrev ? "Cancel Edit — Log New Instead" : "Edit Previous Entry"}</button>}
-              <div style={{ marginBottom: 8 }}><label style={labelStyle}>Week</label><input type="number" value={logWeek} onChange={e => setLogWeek(e.target.value)} style={{ ...inputStyle, width: 80 }} /></div>
+              <div style={{ marginBottom: 8 }}><label htmlFor="log-week" style={labelStyle}>Week</label><input id="log-week" type="number" inputMode="numeric" value={logWeek} onChange={e => setLogWeek(e.target.value)} style={{ ...inputStyle, width: 80 }} /></div>
               {(() => { var exTypeName = ex.exType || getExerciseType(ex.name); var etc = getExerciseTypeConfig(exTypeName); var numSets = ex.sets || 3; var showM1 = etc.metric1 !== "none"; var m1ph = etc.metric1Label ? etc.metric1Label.replace(/\s*\(.*\)/,"") : "value"; var m2ph = etc.metric2Label ? etc.metric2Label.replace(/\s*\(.*\)/,"") : "value"; var showM2 = etc.metric2 !== "none"; var setsLabel = etc.hasSets ? "Sets" : "Log"; return (<div><div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>{etc.hasSets ? setsLabel + " (" + (showM1 ? m1ph : "") + (showM1 && showM2 ? " × " : "") + (showM2 ? m2ph : "") + ")" : "Log (" + (showM1 ? m1ph : "") + (showM1 && showM2 ? " / " : "") + (showM2 ? m2ph : "") + ")"}</div>
               {logSets.slice(0, etc.hasSets ? numSets : 1).map((s, i) => (<div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}>{etc.hasSets && <span style={{ fontSize: 12, fontWeight: 600, color: "#475569", width: 20 }}>S{i + 1}</span>}{showM1 && <input type="number" placeholder={m1ph} value={s.w} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], w: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} />}{showM1 && showM2 && <span style={{ color: "#475569" }}>×</span>}{showM2 && <input type="number" placeholder={m2ph} value={s.r} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], r: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} />}</div>))}</div>); })()}
 
@@ -296,15 +296,15 @@ export default function ExerciseSection({ ctx }) {
               </>); })()}
 
               <div style={{ marginTop: 8 }}>
-                <label style={labelStyle}>Progression</label>
-                <select value={logOverride} onChange={function(e) { setLogOverride(e.target.value); }} style={{ width: "100%", padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12, marginBottom: 8, background: logOverride === "move_up" ? "#e0f2fe" : logOverride === "hold" ? "#fef3c7" : logOverride === "reduce" ? "#fee2e2" : "#fff" }}>
+                <label htmlFor="log-progression-select" style={labelStyle}>Progression</label>
+                <select id="log-progression-select" value={logOverride} onChange={function(e) { setLogOverride(e.target.value); }} style={{ width: "100%", padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12, marginBottom: 8, background: logOverride === "move_up" ? "#e0f2fe" : logOverride === "hold" ? "#fef3c7" : logOverride === "reduce" ? "#fee2e2" : "#fff" }}>
                   <option value="standard">Standard (follow progression rules)</option>
                   <option value="move_up">Move Up (override — ready to increase weight)</option>
                   <option value="hold">Hold (override — maintain current weight)</option>
                   <option value="reduce">Reduce (override — drop weight)</option>
                 </select>
               </div>
-              <div style={{ marginTop: 4 }}><label style={labelStyle}>My Notes (carried to next session)</label><textarea value={logComment} onChange={e => setLogComment(e.target.value)} placeholder="Notes for next session..." style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
+              <div style={{ marginTop: 4 }}><label htmlFor="log-notes" style={labelStyle}>My Notes (carried to next session)</label><textarea id="log-notes" value={logComment} onChange={e => setLogComment(e.target.value)} placeholder="Notes for next session..." style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
               <div style={{ marginTop: 8, marginBottom: 4 }}>
                 <div style={{ display: "flex", background: accentMid, borderRadius: 6, padding: 2, marginBottom: 6 }}>
                   <PersonTabs testId="log-person-tabs" people={peopleOf(data)} activeKey={activeTab} rowStyle={{ gap: 0 }}
@@ -956,7 +956,7 @@ export default function ExerciseSection({ ctx }) {
                           await saveData(nd3);
                           var el = document.getElementById("rec-" + ei + "-" + day);
                           var noteEl = document.getElementById("user-note-"+ei+"-"+day); var userNote = noteEl ? noteEl.value.trim() : ""; ex._decision = "accepted"; ex._userNote = userNote;  if (userNote) { var exRef = nd3[activeTab].exercises[day]; if (exRef && exRef[di3]) { exRef[di3].notes = (exRef[di3].notes ? exRef[di3].notes + "; " : "") + "Wk" + currentWeek + " accepted: " + userNote; } } var sfbKey = activeTab + "_" + day; var curFb = sessionFeedback[sfbKey]; if (curFb && curFb.exercises) { curFb.exercises[ei]._decision = "accepted"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#e0f2fe"; el.style.borderColor = "#86efac"; setPlainNote(el, "\u2705 Accepted — " + ex.name + " updated to " + ex.newStatus + ". Activity updated.", { fontSize: "11px", color: "#0c4a6e", fontWeight: "600", padding: "4px" }); }
-                        }} style={{ padding: "5px 14px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Accept</button>
+                        }} style={{ padding: "5px 14px", background: "#15803d", color: "#fff", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Accept</button>
                         <button onClick={function() {
                           var el = document.getElementById("rec-" + ei + "-" + day);
                           var noteEl2 = document.getElementById("user-note-"+ei+"-"+day); var userNote2 = noteEl2 ? noteEl2.value.trim() : ""; ex._decision = "declined"; ex._userNote = userNote2;
