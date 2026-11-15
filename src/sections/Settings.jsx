@@ -92,7 +92,7 @@ export default function SettingsSection({ ctx }) {
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🔑 API Keys</div>
             <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>Required for AI features. Get your Claude key from <strong>console.anthropic.com</strong> → API Keys.</div>
             <label style={labelStyle}>Claude API Key</label>
-            <input type="password" id="api-key-input" defaultValue="" placeholder="sk-ant-api03-..." style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, fontFamily: "monospace", boxSizing: "border-box", marginBottom: 6 }} />
+            <input type="password" id="api-key-input" defaultValue="" placeholder="sk-ant-api03-..." style={{ width: "100%", padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11, fontFamily: "monospace", boxSizing: "border-box", marginBottom: 6 }} />
             <button onClick={async function() { var key = document.getElementById("api-key-input").value.trim(); if (!key) return; await sSet("anthropic_api_key", key); window._anthropicKey = key; setFormMsg("✓ Claude API key saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(), width: "100%", marginBottom: 10 }}>Save Claude Key</button>
           </div>)}
           {isAdmin && (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
@@ -166,7 +166,7 @@ export default function SettingsSection({ ctx }) {
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🔗 Google</div>
             <label style={labelStyle}>Google OAuth Client ID (for Health Connect)</label>
             <div style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>From Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client ID</div>
-            <input type="text" id="google-client-id-input" defaultValue="" placeholder="xxxx.apps.googleusercontent.com" style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, fontFamily: "monospace", boxSizing: "border-box", marginBottom: 6 }} />
+            <input type="text" id="google-client-id-input" defaultValue="" placeholder="xxxx.apps.googleusercontent.com" style={{ width: "100%", padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11, fontFamily: "monospace", boxSizing: "border-box", marginBottom: 6 }} />
             <button onClick={async function() { var gid = document.getElementById("google-client-id-input").value.trim(); if (!gid) return; await sSet("google_client_id", gid); setFormMsg("✓ Google Client ID saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(), width: "100%" }}>Save Google Client ID</button>
           </div>)}
 

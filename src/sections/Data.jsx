@@ -271,7 +271,7 @@ export default function DataSection({ ctx }) {
       <div data-testid="restore-export" style={{ marginTop: 10, padding: 10, background: "#ecfdf5", borderRadius: 8, border: "1px solid #86efac" }}>
         <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6, color: "#0c4a6e" }}>Restore from Firebase Export</div>
         <div style={{ fontSize: 10, color: "#475569", marginBottom: 6 }}>Paste a Download-backup file or a Firebase JSON export and press Preview. Merge adds missing exercise weeks only; Full restore replaces everything in data (on Build: the build copy) and asks you to type RESTORE first.</div>
-        <textarea id="restore-json" placeholder="Paste the full JSON here..." style={{ width: "100%", padding: 8, border: "1px solid #86efac", borderRadius: 6, fontSize: 10, minHeight: 80, resize: "vertical", boxSizing: "border-box", marginBottom: 6, fontFamily: "monospace" }}></textarea>
+        <textarea id="restore-json" placeholder="Paste the full JSON here..." style={{ width: "100%", padding: 8, border: "1px solid #86efac", borderRadius: 8, fontSize: 10, minHeight: 80, resize: "vertical", boxSizing: "border-box", marginBottom: 6, fontFamily: "monospace" }}></textarea>
         {/* v2.7.0: preview first (counts only), then Merge (safe) or Full restore (double confirm) */}
         <button onClick={function() {
           var raw = document.getElementById("restore-json").value.trim();

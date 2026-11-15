@@ -1,4 +1,7 @@
-export const inputStyle = { width: "100%", padding: "10px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, boxSizing: "border-box", background: "#fff" };
+// v2.20.0: the one field border/radius (also --field-border in index.html)
+export const FIELD_BORDER = "1px solid #cbd5e1";
+export const FIELD_RADIUS = 8;
+export const inputStyle = { width: "100%", padding: "10px 12px", border: FIELD_BORDER, borderRadius: FIELD_RADIUS, fontSize: 13, boxSizing: "border-box", background: "#fff" };
 
 export const labelStyle = { fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 4, display: "block" };
 

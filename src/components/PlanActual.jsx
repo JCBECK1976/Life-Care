@@ -78,7 +78,7 @@ export default function PlanActual(props) {
       <div>Safe minimum {n(t.minimum)} kcal (90% of BMR, at least 1,200 women / 1,500 men).</div>
       <div style={{ marginTop: 4 }}>Activity adjustment: <b data-testid="adj-pct">{t.adjPct}%</b>{" "}
         {!edit ? <button type="button" style={btn} onClick={function() { setEdit(true); setVal(String(t.adjPct)); }}>Change adjustment</button>
-          : <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}><input aria-label="Activity adjustment %" type="number" value={val} onChange={function(e) { setVal(e.target.value); }} style={{ width: 60, padding: 4, border: "1px solid #cbd5e1", borderRadius: 4 }} />%
+          : <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}><input aria-label="Activity adjustment %" type="number" value={val} onChange={function(e) { setVal(e.target.value); }} style={{ width: 60, padding: 4, border: "1px solid #cbd5e1", borderRadius: 8 }} />%
             <button type="button" style={btn} onClick={async function() { var v = Math.round(parseFloat(val)); if (!(v >= 50 && v <= 150)) { setMsg("Choose 50–150%"); return; } setEdit(false); await save(function(pp) { recordAdj(pp, { kind: "manual", value: v }); }, "✓ Adjustment set to " + v + "%"); }}>Save</button>
             <button type="button" style={btn} onClick={function() { setEdit(false); }}>Cancel</button></span>}
       </div>

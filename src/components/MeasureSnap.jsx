@@ -35,7 +35,7 @@ export default function MeasureSnap(props) {
   if (!st) return (<button type="button" data-testid="meas-snap" aria-label="Snap a photo of the measurement" onClick={function() { setSt({ stage: "pre", desc: "" }); }} style={Object.assign({}, btnSnap, { alignSelf: "flex-end" })}>📷 Snap</button>);
 
   var setDesc = function(v) { setSt(Object.assign({}, st, { desc: v })); };
-  var descInput = <input aria-label="Measurement photo description" value={st.desc || ""} onChange={function(e) { setDesc(e.target.value); }} placeholder="Optional, e.g. 'tape at nipple level', 'reading in inches'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 6, fontSize: 11, marginBottom: 6 }} />;
+  var descInput = <input aria-label="Measurement photo description" value={st.desc || ""} onChange={function(e) { setDesc(e.target.value); }} placeholder="Optional, e.g. 'tape at nipple level', 'reading in inches'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11, marginBottom: 6 }} />;
   return (<div data-testid="meas-snap-panel" style={{ flexBasis: "100%", marginTop: 8, padding: 10, background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: 8 }}>
     {st.stage === "busy" && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Reading your photo…</div>}
     {st.stage === "pre" && (<div data-testid="meas-snap-pre">

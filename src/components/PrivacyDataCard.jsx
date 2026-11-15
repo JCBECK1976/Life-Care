@@ -33,7 +33,7 @@ export default function PrivacyDataCard(props) {
       <div style={{ fontSize: 11, fontWeight: 700, color: "#991b1b", margin: "12px 0 2px" }}>Delete my data</div>
       <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5 }}>Erases {props.name}'s records from the live app now. Backups are deleted as they age out, within 12 months. This can't be undone; download your data first if you want a copy. Type DELETE to confirm.</div>
       <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-        <input aria-label="Type DELETE to confirm" value={confirmDel} onChange={function(e) { setConfirmDel(e.target.value); }} style={{ flex: 1, padding: 6, border: "1px solid #fecaca", borderRadius: 6 }} />
+        <input aria-label="Type DELETE to confirm" value={confirmDel} onChange={function(e) { setConfirmDel(e.target.value); }} style={{ flex: 1, padding: 6, border: "1px solid #fecaca", borderRadius: 8 }} />
         <button disabled={confirmDel !== "DELETE"} data-testid="delete-my-data" style={Object.assign({}, btn, { color: "#fff", background: confirmDel === "DELETE" ? "#dc2626" : "#fca5a5", border: "none" })} onClick={async function() { var n = await deleteMyData(who); auditLog("delete-data", who, n + " keys"); setConfirmDel(""); say("✓ " + props.name + "'s data was deleted from the live app"); }}>Delete</button>
       </div>
     </div>)}

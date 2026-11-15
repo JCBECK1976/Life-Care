@@ -289,3 +289,27 @@ test("6 Today table at 360 px: 'Your goal deficit' on one line; Body burn bold; 
   await card.screenshot({ path: "test-results/v2200-shots/360-today.png" });
   expect(errors).toEqual([]);
 });
+
+/* ---------- 7. Subtle border on every data box ---------- */
+test("7 every input/select/textarea (and the meal picker) has the subtle 1px border and radius on every main screen", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const sweep = async () => page.evaluate(() => [...document.querySelectorAll("input, select, textarea")].filter((e) => {
+    if (/^(checkbox|radio|range|file|color|hidden)$/.test(e.type) || e.offsetParent === null) return false;
+    const cs = getComputedStyle(e); return cs.borderTopStyle === "none" || parseFloat(cs.borderTopWidth) === 0 || parseFloat(cs.borderTopLeftRadius) < 4;
+  }).map((e) => (e.id || e.name || e.placeholder || e.getAttribute("aria-label") || e.outerHTML.slice(0, 80))));
+  const bad = [];
+  for (const t of ["Home", "My Eating", "My Exercise", "My Body", "My Health", "My Shop"]) {
+    await tab(page, t); await page.waitForTimeout(300);
+    if (t === "My Eating") { await page.getByRole("button", { name: "Update Eating Lists" }).click(); await page.waitForTimeout(200); }
+    if (t === "My Exercise") { const lb = page.getByRole("button", { name: "📋 Log", exact: true }); if (await lb.count()) { await lb.first().click(); await page.waitForTimeout(200); } }
+    bad.push(...(await sweep()).map((x) => t + ": " + x));
+  }
+  expect(bad).toEqual([]);
+  await tab(page, "My Eating");
+  const picker = page.getByTestId("selected-item").first().locator("xpath=ancestor::div[1]");
+  if (await page.getByTestId("selected-item").count()) {
+    await expect(picker).toHaveCSS("border-top-color", "rgb(203, 213, 225)");
+    await expect(picker).toHaveCSS("border-top-left-radius", "8px");
+  }
+  expect(errors).toEqual([]);
+});

@@ -659,7 +659,7 @@ export default function HomeSection({ ctx }) {
             </div>
             <div style={{ margin: "0 12px 12px", background: accentLight, borderRadius: 8, border: "1px solid " + accentBorder, padding: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>Journal Entry</div>
-              <textarea value={journalText} onChange={function(e) { setJournalText(e.target.value); }} placeholder="How are you feeling? What's on your mind today..." style={{ width: "100%", minHeight: 60, padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, lineHeight: 1.5, color: "#334155", resize: "vertical", fontFamily: "inherit", boxSizing: "border-box", background: "#fff" }} />
+              <textarea value={journalText} onChange={function(e) { setJournalText(e.target.value); }} placeholder="How are you feeling? What's on your mind today..." style={{ width: "100%", minHeight: 60, padding: "10px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12, lineHeight: 1.5, color: "#334155", resize: "vertical", fontFamily: "inherit", boxSizing: "border-box", background: "#fff" }} />
               <button onClick={async function() {
                 if (!journalText.trim()) return;
                 var todayStr = new Date().toISOString().split("T")[0];

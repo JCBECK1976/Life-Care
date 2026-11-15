@@ -19,7 +19,7 @@ export default function ReviewItemOverlay({ ctx }) {
           {cameraPreview.noFood ? (<NoFoodPanel testid="review-no-food" desc={cameraPreview.desc} onRecheck={function(d) { if (window._lcRecheckAddPhoto) window._lcRecheckAddPhoto(d); }} onCancel={function() { setCameraPreview(null); setReviewCategories([]); setReviewSideType(""); }} />) : (<>
           <div style={{ marginBottom: 6 }}>
             <div style={{ fontSize: 9, fontWeight: 600, color: "#475569", marginBottom: 2 }}>Name</div>
-            <input id="review-item-name-overlay" defaultValue={cameraPreview.name} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, boxSizing: "border-box" }} />
+            <input id="review-item-name-overlay" defaultValue={cameraPreview.name} style={{ width: "100%", padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11, boxSizing: "border-box" }} />
           </div>
           <div style={{ display: "flex", gap: 8, marginBottom: 6, fontSize: 10, flexWrap: "wrap" }}>
             <span><b>{cameraPreview.kcal}</b> kcal</span><span><b>{cameraPreview.protein}g</b> prot</span><span><b>{cameraPreview.fat}g</b> fat</span>
@@ -40,7 +40,7 @@ export default function ReviewItemOverlay({ ctx }) {
           </div>
           {cameraPreview.itemType === "ingredient" && (<div style={{ marginBottom: 8 }}>
             <div style={{ fontSize: 9, fontWeight: 600, color: "#475569", marginBottom: 4 }}>🧾 Ingredients <span style={{ fontWeight: 400 }}>(edit to match your recipe)</span></div>
-            <textarea id="review-item-ingredients-overlay" defaultValue={(cameraPreview.ingredients || []).join(", ")} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 10, minHeight: 50, resize: "vertical", boxSizing: "border-box", lineHeight: 1.4 }} placeholder="e.g. oats, milk, chia seeds, honey..." />
+            <textarea id="review-item-ingredients-overlay" defaultValue={(cameraPreview.ingredients || []).join(", ")} style={{ width: "100%", padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 10, minHeight: 50, resize: "vertical", boxSizing: "border-box", lineHeight: 1.4 }} placeholder="e.g. oats, milk, chia seeds, honey..." />
             <div style={{ fontSize: 8, color: "#475569", marginTop: 3, fontStyle: "italic" }}>Any changes to ingredients or portions will update nutritional values when confirmed</div>
           </div>)}
           <div style={{ marginBottom: 8 }}>
