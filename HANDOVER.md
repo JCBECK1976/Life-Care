@@ -2729,3 +2729,8 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **main:** EATING_LISTS §3e, LLD, TEST_STRATEGY, CHANGELOG, plan F28 Done.
 - **JC to test (/build/, footer v2.19.2-build):** Update Eating Lists → Single item: type "fruselli", "pasta spirals", "penny" (fusilli/penne appear as you type); "Aldi pasta bake" (UK products appear; the sauce shows "sauce / jar", pack size, and asks to confirm the portion); type nonsense → "Describe it instead"; Build a meal on the phone (cards, gaps); tabs on one line.
 - **Resume point:** `build` @ `bca949f` (v2.19.2), prod v2.15.1. Next: wait for JC's test, then the build → beta PR when asked.
+
+### (Coder) 15–16 Nov 2026 — v2.20.0 overnight batch (in progress, build only)
+**Decision (JC, 15 Nov):** nine items in priority order, one commit + push to build per item, a progress line here after each; finish = v2.20.0 on /build/ only. Real data: read-only fixes, no migrations.
+- 1/9 done — build `7db950a`: Home My Eating showed child ids ("C 2026-11-15 B") because Home's lookup lacked the week's children. New `src/lib/mealNames.js` (`mealName`, `namesLine`; unresolved → "Unnamed item", logged); Home and Shop use it. Other readers (AI context, Eating feedback, Copy Week, meal summary) already resolved via children. Suite 251 passed.
+- **Resume point:** next item 2 (Companion memory).
