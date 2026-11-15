@@ -13,6 +13,10 @@ var COL = { green: "#15803d", red: "#b91c1c", none: "#475569" };
 var DAYNAME = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export function OnTrack(props) { var o = props.t.onTrack; return <b data-testid="pa-ontrack-value" style={{ color: COL[o.colour] }}>{signed(o.kcal)} kcal ({signed(o.pct)}%)</b>; }
+/** v2.20.0: one On track cell (Planned or Actual): the kcal difference, RAG-coloured, with the % underneath. */
+function OnTrackCell(props) { var o = props.o; return (<span data-testid={props.testid} style={{ display: "inline-block", textAlign: "right", color: COL[o.colour], fontWeight: 700 }}>{signed(o.kcal)}<span style={{ display: "block", fontSize: 10, fontWeight: 600 }}>{signed(o.pct)}%</span></span>); }
+/** v2.20.0 (JC): the aim row is labelled "Your goal deficit" (or "surplus" when the goal adds calories); the goal name and timescale go in the footnote. */
+export function aimLabel(a) { return a && a.kcal > 0 ? "Your goal surplus" : "Your goal deficit"; }
 
 /** The table body for one day (also used for each earlier day). */
 export function DayRows(props) {
@@ -20,12 +24,12 @@ export function DayRows(props) {
   return (<table data-testid={props.testid || "pa-table"} style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", color: "#0f172a" }}>
     <thead><tr><td style={Object.assign({}, th, { borderTop: "none" })}></td><th style={Object.assign({}, td, { borderTop: "none", color: "#475569", fontSize: 11 })}>Planned</th><th style={Object.assign({}, td, { borderTop: "none", color: "#475569", fontSize: 11 })}>Actual</th></tr></thead>
     <tbody>
-      <tr data-testid="pa-burn"><th scope="row" style={th}>Body burn <span style={{ color: "#475569", fontSize: 10 }}>(BMR + daily living)</span></th><td style={td}>{n(t.burn)}</td><td style={td}>{n(t.burn)}</td></tr>
-      <tr data-testid="pa-aim"><th scope="row" style={th}>Aim: {aimText(a)}</th><td style={td}>{signed(a.kcal)}</td><td style={td}>{signed(a.kcal)}</td></tr>
+      <tr data-testid="pa-burn"><th scope="row" style={Object.assign({}, th, { fontWeight: 800 })}>Body burn <span style={{ color: "#475569", fontSize: 10, fontWeight: 400 }}>(BMR + daily living)</span></th><td style={Object.assign({}, td, { fontWeight: 800 })}>{n(t.burn)}</td><td style={Object.assign({}, td, { fontWeight: 800 })}>{n(t.burn)}</td></tr>
+      <tr data-testid="pa-aim"><th scope="row" style={Object.assign({}, th, { whiteSpace: "nowrap" })}>{aimLabel(a)}</th><td style={td}>{signed(a.kcal)}</td><td style={td}>{signed(a.kcal)}</td></tr>
       <tr data-testid="pa-exercise"><th scope="row" style={th}>Exercise</th><td style={td}>+{n(t.exercise.planned)}</td><td style={td}>+{n(t.exercise.actual)}</td></tr>
       <tr data-testid="pa-goal" style={{ background: "#f8fafc" }}><th scope="row" style={Object.assign({}, th, { fontWeight: 800 })}>Goal</th><td style={Object.assign({}, td, { fontWeight: 800 })}>{n(t.goal.planned)}</td><td style={Object.assign({}, td, { fontWeight: 800 })}>{n(t.goal.actual)}</td></tr>
       <tr data-testid="pa-eating"><th scope="row" style={th}>Eating</th><td style={td}>{n(t.eating.planned)}</td><td style={td}>{n(t.eating.actual)}</td></tr>
-      <tr data-testid="pa-ontrack"><th scope="row" style={th}>On track</th><td style={td} colSpan={2}><OnTrack t={t} /></td></tr>
+      <tr data-testid="pa-ontrack"><th scope="row" style={th}>On track</th><td style={td}><OnTrackCell o={t.onTrackPlanned} testid="pa-ontrack-planned" /></td><td style={td}><OnTrackCell o={t.onTrack} testid="pa-ontrack-actual" /></td></tr>
     </tbody>
   </table>);
 }
@@ -64,7 +68,8 @@ export default function PlanActual(props) {
     {early && <div data-testid="pa-earlier">{earlier.map(function(d) { var dt = dayTable(p, d, props.doc); return (<div key={d} style={{ marginTop: 8 }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: "#334155" }}>{DAYNAME[new Date(d + "T12:00:00").getDay()]}{dt.hasActual ? "" : " — not logged"}</div>
       <DayRows t={dt} testid="pa-table-earlier" /></div>); })}</div>}
-    <div data-testid="pa-footnote" style={{ fontSize: 10, color: "#475569", marginTop: 6, fontStyle: "italic" }}>{FOOTNOTE}</div>
+    <div data-testid="pa-goalname" style={{ fontSize: 10, color: "#475569", marginTop: 6 }}>Goal: {aimText(t.aim)} ({signed(t.aim.kcal)} kcal a day). On track = eating − goal; green at or under, red over.</div>
+    <div data-testid="pa-footnote" style={{ fontSize: 10, color: "#475569", marginTop: 4, fontStyle: "italic" }}>{FOOTNOTE}</div>
     <button type="button" aria-expanded={how} onClick={function() { setHow(!how); }} style={Object.assign({}, btn, { marginTop: 4, border: "none", background: "none", padding: 0, color: "#1d4ed8" })}>{how ? "▾" : "▸"} How this is calculated</button>
     {how && (<div data-testid="calorie-how" style={{ fontSize: 10, color: "#334155", lineHeight: 1.6, marginTop: 4 }}>
       <div>BMR {n(t.bmr)} kcal ({t.method === "katch" ? "from your lean mass" : "estimate"}). Body burn = BMR × {t.measured ? "1.15 (step data today)" : (ACTIVITY[t.activity].factor + " (" + ACTIVITY[t.activity].label.toLowerCase() + ")")} = {n(t.burn)}.</div>

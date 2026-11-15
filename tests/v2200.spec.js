@@ -263,3 +263,29 @@ test("5 chain (UI): accepting 'Next increment up from 42kg' stores 49kg (a numbe
   await expect(page.getByTestId("log-previous")).toContainText("42kg");
   expect(errors).toEqual([]);
 });
+
+/* ---------- 6. Home "Today" table ---------- */
+test("6 Today table at 360 px: 'Your goal deficit' on one line; Body burn bold; On track in BOTH columns = eating − goal, coloured, with %", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  const { errors } = await openApp(page);
+  await tab(page, "Home");
+  const card = page.getByTestId("today-card");
+  const aim = card.getByTestId("pa-aim").locator("th");
+  await expect(aim).toHaveText(/^Your goal (deficit|surplus)$/);
+  const lh = await aim.evaluate((e) => { const cs = getComputedStyle(e); return { h: e.getBoundingClientRect().height, lh: parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.3 }; });
+  expect(lh.h).toBeLessThan(lh.lh * 1.8 + 8);                                                             // one line
+  await expect(card.getByTestId("pa-goalname")).toContainText("Goal: ");
+  await expect(card.getByTestId("pa-burn").locator("th")).toHaveCSS("font-weight", "800");
+  const num = (s) => { const m = /([+−-]?)\s*([\d,]+)/.exec(s.replace("±", "")); return m ? (m[1] === "−" || m[1] === "-" ? -1 : 1) * parseInt(m[2].replace(/,/g, ""), 10) : NaN; };
+  const cells = async (id) => (await card.getByTestId(id).locator("td").allInnerTexts()).map(num);
+  const [gP, gA] = await cells("pa-goal"), [eP, eA] = await cells("pa-eating");
+  const p = await card.getByTestId("pa-ontrack-planned").innerText(), a = await card.getByTestId("pa-ontrack-actual").innerText();
+  expect(num(p)).toBe(eP - gP); expect(num(a)).toBe(eA - gA);
+  expect(p).toMatch(/%/); expect(a).toMatch(/%/);
+  const color = async (id) => card.getByTestId(id).evaluate((e) => getComputedStyle(e).color);
+  expect(await color("pa-ontrack-planned")).toBe(eP - gP <= 0 ? "rgb(21, 128, 61)" : "rgb(185, 28, 28)");
+  const xs = async (id) => (await card.getByTestId(id).locator("td").evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().right))));
+  expect(await xs("pa-ontrack")).toEqual(await xs("pa-goal"));                                             // aligned with the rows above
+  await card.screenshot({ path: "test-results/v2200-shots/360-today.png" });
+  expect(errors).toEqual([]);
+});

@@ -242,10 +242,11 @@ export function dayTable(p, date, doc) {
   var plannedEat = dayPlannedKcal(doc, date), actualEat = dayFoodKcal(doc, date);
   var goalP = base + exPlanned, goalA = base + exActual;
   var diff = actualEat - goalA;
+  var diffP = plannedEat - goalP;   /* v2.20.0: On track for the Planned column too */
   return { ready: true, date: date, bmr: b, method: pl.method, estimate: pl.estimate, burn: burn, measured: measured, activity: activityOf(p), aim: aim, minimum: minimum, floored: floored,
     exercise: { planned: exPlanned, actual: exActual, mode: mode, steps: round(stepsK * adj), logged: round(loggedK * adj), stepsCount: steps, totalBurned: total },
     goal: { planned: goalP, actual: goalA }, eating: { planned: plannedEat, actual: actualEat },
-    onTrack: { kcal: diff, pct: goalA ? Math.round(diff / goalA * 100) : 0, colour: diff <= 0 ? "green" : "red" }, hasActual: actualEat > 0, stepAllowance: pl.stepAllowance, adjPct: settingsOf(p).adjPct };
+    onTrack: { kcal: diff, pct: goalA ? Math.round(diff / goalA * 100) : 0, colour: diff <= 0 ? "green" : "red" }, onTrackPlanned: { kcal: diffP, pct: goalP ? Math.round(diffP / goalP * 100) : 0, colour: diffP <= 0 ? "green" : "red" }, hasActual: actualEat > 0, stepAllowance: pl.stepAllowance, adjPct: settingsOf(p).adjPct };
 }
 
 /** Week to date: Σ actual eating vs Σ actual goal over PAST days this week that have actual data (never today or the future). */

@@ -153,7 +153,8 @@ test("UI: one goal everywhere — Home Today and My Eating show the same goal; t
   await tab(page, "Home");
   const card = page.getByTestId("today-card");
   for (const r of ["pa-burn", "pa-aim", "pa-exercise", "pa-goal", "pa-eating", "pa-ontrack"]) await expect(card.getByTestId(r)).toBeVisible();
-  await expect(card.getByTestId("pa-aim")).toContainText("Aim: Work towards a healthy body weight · 7 months");
+  await expect(card.getByTestId("pa-aim")).toContainText("Your goal deficit");                                   // v2.20.0 label
+  await expect(card.getByTestId("pa-goalname")).toContainText("Goal: Work towards a healthy body weight · 7 months");
   await expect(card.getByTestId("pa-footnote")).toHaveText("Actual includes eating selections stored in the day which need to be kept up to date, plus any exercises logged when completed");
   const homeGoal = (await card.getByTestId("pa-goal").locator("td").nth(1).innerText()).trim();
   if (new Date().getDay() > 0) await expect(card.getByRole("button", { name: "▸ Show earlier days this week" })).toBeVisible();
