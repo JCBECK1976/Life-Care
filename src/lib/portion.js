@@ -57,7 +57,9 @@ export function offProduct(p) {
     sugar: num(nm.sugars_100g), fibre: num(nm.fiber_100g), salt: num(nm.salt_100g) };
   var sq = num(p && p.serving_quantity);
   return { name: (p.product_name || "") + (p.brands ? " (" + String(p.brands).split(",")[0].trim() + ")" : ""), barcode: p.code || "", per100: per100,
-    servingG: sq > 0 ? sq : null, servingText: p.serving_size || "", ingredients: p.ingredients_text || "" };
+    servingG: sq > 0 ? sq : null, servingText: p.serving_size || "", ingredients: p.ingredients_text || "",
+    packG: num(p.product_quantity) > 0 ? num(p.product_quantity) : null, packText: p.quantity || "",   // v2.19.2: pack size and categories for the wrong-match guard
+    categories: (p.categories_tags || p.categories_tags_en || []).slice(0, 12) };
 }
 /** An OFF result as a list item: default portion = its serving size, else 100 g (editable). */
 export function offToItem(o) {

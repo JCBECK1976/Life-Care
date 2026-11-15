@@ -120,3 +120,25 @@ export async function recheckBatch(items, opts) {
   return { byId: {}, unchecked: items.map(function(x) { return x.id; }) };
 }
 export { recheckFlag } from "./portion.js";
+
+/* ---------- v2.19.2: "Describe it instead" — identify a food from a plain description and offer 1–3 choices ---------- */
+export var IDENTIFY_HEAD = "CLARIFY_ITEM IDENTIFY. The person couldn't find this food by searching and described it as:\n";
+/** Returns { type: "choices", choices: [reply…] (1–3 validated per-portion items) } or { type: "question", question, friendly? }. API errors throw. */
+export async function identifyFood(text, opts) {
+  var call = (opts && opts.call) || callAI;
+  var msgs = [{ role: "user", content: IDENTIFY_HEAD + "\"" + String(text || "").trim() + "\"\n\nWork out what it most likely is and reply with ONLY a JSON object: " +
+    "{\"choices\":[<1 to 3 likely matches, each the item object described in the instructions, per ONE typical UK portion, most likely first>]} " +
+    "— or the question object if you genuinely can't tell what it is." }];
+  for (var attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    var t = await call(msgs);
+    var o = parseJsonReply(t), problem = "no choices";
+    if (o && o.type === "question") { var vq = validateItemReply(o); if (vq.ok) return { type: "question", question: o.question.trim() }; problem = vq.problem; }
+    else if (o && Array.isArray(o.choices)) {
+      var good = []; o.choices.slice(0, 3).forEach(function(c) { if (c && typeof c === "object") { if (!c.type) c.type = "item"; var v = validateItemReply(c); if (v.ok && c.type === "item") good.push(c); else problem = v.problem; } });
+      if (good.length) return { type: "choices", choices: good };
+    }
+    msgs = msgs.concat([{ role: "assistant", content: String(t || "").slice(0, 2000) || "(empty)" },
+      { role: "user", content: "That reply can't be used: " + problem + ". Reply again with ONLY the JSON object {\"choices\":[…]}." }]);
+  }
+  return { type: "question", question: FRIENDLY, friendly: true };
+}

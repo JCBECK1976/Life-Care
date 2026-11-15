@@ -12,6 +12,7 @@ import { auditLog } from "./lib/audit.js";
 import { removeOldGoogleTokens, stripOldCalorieSettings } from "./lib/cleanup.js";
 import { refreshRatingsOnce } from "./lib/refreshRatings.js";
 import { offProduct, offToItem, portionLabel, migrateList } from "./lib/portion.js";
+import { searchOffRaw } from "./lib/off.js";
 import { GH, fetchWeekCalories, fetchWeekSteps, forgetToken, loadToken, mergeDaily, mergeSteps, saveToken } from "./lib/googleHealth.js";
 import LoadingDots from "./components/LoadingDots.jsx";
 import firebase, { DATA_ROOT } from "./lib/firebase.js";
@@ -259,13 +260,11 @@ function Dashboard() {
     offSearchTimeout.current = setTimeout(async function() {
       setOffLoading(true);
       try {
-        var url = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + encodeURIComponent(term) + "&search_simple=1&action=process&json=1&page_size=8&fields=product_name,brands,code,nutriments,serving_size,serving_quantity,ingredients_text,serving_size,categories_tags_en,image_front_small_url,brands&countries_tags_en=united-kingdom";
-        var resp = await fetch(url);
-        var data = await resp.json();
+        var data = { products: await searchOffRaw(term) };   /* v2.19.2: shared OFF search — retries, timeout, cache */
         /* v2.19.0: OFF values are per 100 g — kept as per100; the item's values are PER PORTION (serving size, else 100 g, editable) */
         var products = (data.products || []).filter(function(p) { return p.product_name && p.nutriments && p.nutriments["energy-kcal_100g"] != null; }).map(function(p) {
           var it = offToItem(offProduct(p));
-          return Object.assign({}, it, { servingSize: portionLabel(it), categories: (p.categories_tags_en || []).slice(0, 5), image: p.image_front_small_url || "" });
+          return Object.assign({}, it, { servingSize: portionLabel(it), categories: (p.categories_tags_en || p.categories_tags || []).slice(0, 5), image: p.image_front_small_url || "" });
         });
         setOffResults(products);
       } catch(e) { setOffResults([]); }

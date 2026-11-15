@@ -835,7 +835,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           {/* My Eating Lists — collapsible */}
           {manageListsOpen && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 14, marginTop: 8, marginBottom: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>🍽️ My Eating Lists</div>
-            <UpdateLists key={ownSeed ? ownSeed.k : 0} seed={ownSeed ? ownSeed.text : ""} initialTurns={ownSeed ? ownSeed.turns : null} tab={ulTab} setTab={setUlTab} cats={CATS} catalogue={CATALOGUE} available={CATALOGUE} ownItems={OWN_ITEMS} lookup={_listLookup} isJC={isJC} returnTo={returnTo} onAddNow={addNowToSlot} onBackToSlot={backToSlot} />
+            <UpdateLists key={ownSeed ? ownSeed.k : 0} seed={ownSeed ? ownSeed.text : ""} initialTurns={ownSeed ? ownSeed.turns : null} tab={ulTab} setTab={setUlTab} cats={CATS} catalogue={CATALOGUE} available={CATALOGUE} ownItems={OWN_ITEMS} lookup={_listLookup} isJC={isJC} returnTo={returnTo} onAddNow={addNowToSlot} onBackToSlot={backToSlot} accentLight={accentLight} accentBorder={accentBorder} />
             {bulkHelp.length > 0 && (<div data-testid="bulk-help" style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: 8, marginBottom: 8, fontSize: 12, color: "#0f172a" }}>
               <b>{bulkHelp.length} {bulkHelp.length === 1 ? "line needs" : "lines need"} a little more from you</b> — your Companion couldn't tell what or how much:
               {bulkHelp.map(function(h, i) { return (<div key={i} style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}><span style={{ flex: 1 }}>“{h.line}”</span>

@@ -86,7 +86,7 @@ test("photo the Companion can't size: it asks you in the conversation instead of
   await openOldForm(page);
   await page.locator('#add-item-form-manage input[type="file"]').setInputFiles({ name: "tub.png", mimeType: "image/png", buffer: PNG });
   const ul = page.getByTestId("update-lists");
-  await expect(ul.getByRole("tab", { name: "Create my own item" })).toHaveAttribute("aria-selected", "true");
+  await expect(ul.getByRole("tab", { name: "My own" })).toHaveAttribute("aria-selected", "true");
   await expect(ul.getByTestId("clarify-question")).toContainText("single-serve pot or a large tub");
   await expect(page.getByText(/could not be read|No JSON found/)).toHaveCount(0);
   expect(errors).toEqual([]);

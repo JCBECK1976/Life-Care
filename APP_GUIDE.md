@@ -367,17 +367,21 @@ Plenty of fibre (5 g+) or protein (20 g+) lifts an item one band (never above AM
 - Then go to **My Shop** for your shopping list.
 
 ### Update Eating Lists (your food lists)
-Tap **Update Eating Lists** to open **🍽️ My Eating Lists**. At the top are three tabs for adding food; below are your lists (Breakfasts, Lunches, Dinners, Snacks, Desserts, Drinks), colour coded with kcal.
+Tap **Update Eating Lists** to open **🍽️ My Eating Lists**. At the top are three tabs for adding food (**Single item**, **Build a meal**, **My own**); below are your lists (Breakfasts, Lunches, Dinners, Snacks, Desserts, Drinks), colour coded with kcal.
 
 **Everything is per portion.** Every item and meal shows its values **per portion**, with what a portion is, e.g. *"1 portion = ¼ jar (88 g)"* or *"1 portion = 1 of 4 servings"*. Packaged foods keep the label's per-100 g values behind the scenes, and the app works out your portion from them.
 
-#### Add single item
-Search **the app's foods** (ones not in your lists yet) or tap **Search UK products** (Open Food Facts). Pick one, check the name and **My portion size (g)** (the values follow as you type), **Confirm**, choose the lists to add it to, and **Save**.
+#### Single item
+Start typing: after 2 letters results appear as you type, in this order: **In your lists**, **Common foods** (the app's foods and a built-in list of everyday UK foods marked **Typical values**, e.g. dried pasta shapes at 75 g dried per portion, rice, potatoes, bread, eggs, meat, fish, fruit and veg, milk, cheese, oats) and **UK products** (Open Food Facts). Pick one, check the name and **My portion size (g)** (the values follow as you type), **Confirm**, choose the lists to add it to, and **Save**.
+- **Spelling doesn't matter.** Typos, missing or swapped letters and sound-alikes still find it ("fruselli" finds fusilli, "penny" finds penne, "spagetti", "brocoli"). Plain words work too: "pasta spirals", "pasta shells", "bag of dried pasta" or just "pasta" list the pasta shapes (spirals = fusilli, shells = conchiglie, tubes = penne, bows = farfalle, ribbons = tagliatelle).
+- **Can't see it? Describe it instead.** Type it in your own words (e.g. "bag of dried pasta spirals"); your Companion works out what it is and offers 1–3 choices to tap. If it isn't sure, it asks you.
+- **Check the portion.** A UK product that only has per-100 g values, or is a sauce, jar, condiment or spread, shows its type (e.g. **sauce / jar**), its pack size and "1 portion = … g". You confirm the portion (**Yes, 1 portion = …**) before you can add it. This stops a jar of pasta bake *sauce* at 107 kcal per 100 g being added as a portion of pasta bake.
+- If UK product search isn't responding, your lists and common foods still show; tap **Try again**.
 
 #### Build a meal
-For meals made of several things, e.g. a pasta bake: tap items on the left (your lists, the app's foods or UK products) to move them to the right, set an **amount** for each (**portions**, or **grams** for items whose weight is known), name the meal and set **Serves** (how many portions it makes). The values per portion are **Σ ingredients ÷ serves**, worked out by the app itself, no AI. Example: a jar of pasta bake sauce (500 g) + penne (250 g) + mozzarella (125 g) + chicken (300 g), serves 4 → about **445 kcal per portion**. **Next** → choose lists → **Save**.
+For meals made of several things, e.g. a pasta bake: search on the left (the same forgiving search: your lists, common foods, UK products) and tap items to move them to the right, set an **amount** for each (**portions**, or **grams** for items whose weight is known), name the meal and set **Serves** (how many portions it makes). Each ingredient is a small card: its name, then amount, unit and kcal, with **✕** to remove it. UK products with only per-100 g values come in **in grams** (the pack size) so you can check the amount. The values per portion are **Σ ingredients ÷ serves**, worked out by the app itself, no AI. Example: a jar of pasta bake sauce (500 g) + penne (250 g) + mozzarella (125 g) + chicken (300 g), serves 4 → about **445 kcal per portion**. **Next** → choose lists → **Save**.
 
-#### Create my own item
+#### My own (create my own item)
 Describe it (ingredients, amounts, brand) and tap **Send**. Your Companion asks about anything it needs, one question at a time: raw or cooked weights, amounts, the brand, or **how many portions it makes**. Answer and **Send** again. When it has enough it shows the values **per portion** (and any assumptions); **Confirm** → choose lists → **Save**. Items you create can be used in **Build a meal**.
 
 #### Adding from a meal slot
@@ -385,7 +389,7 @@ Each meal drop-down shows **only the items already in that list**. If what you w
 
 #### Your lists
 - **Check me** badge: items added by bulk upload, flagged by Re-rate or Re-check nutrition, or **older recipes that need their portions confirmed** ("Check me — confirm portions"), show **Check me** next to the name. Tap or hover for the reason. It clears once you open the item and save it.
-- Each row has **Open**: portion, calories and nutrition per portion, rating (and why), type, ingredients. **Edit** opens the item: name, type and ingredients. If you change the ingredients, your Companion works out the new values **per portion** with you (the same conversation as Create my own item), then press **Save**.
+- Each row has **Open**: portion, calories and nutrition per portion, rating (and why), type, ingredients. **Edit** opens the item: name, type and ingredients. If you change the ingredients, your Companion works out the new values **per portion** with you (the same conversation as **My own**), then press **Save**.
 - **Meals** you built show their ingredients and **Edit meal**: add or remove ingredients and change amounts and **Serves**. To change an ingredient's own nutrition, edit that item in your list.
 - **Delete** (red, inside the Open form) deletes an item from your list (asks first). Past days keep their own copy, so nothing you logged changes.
 - **📷 Photo or bulk paste** adds an item from a photo, or many at once (**📋 Bulk**).
@@ -393,9 +397,9 @@ Each meal drop-down shows **only the items already in that list**. If what you w
 
 ### Adding food by photo
 Under **Update Eating Lists → 📷 Photo or bulk paste**, tap **📷** to photograph a food or label. Your Companion gives the values for **one portion** ("1 portion = 1 bar (60 g) · values per portion": the label's per-serving values, or a sensible portion of what's shown). **Review Item** shows them with the rating and how it suits you; choose the lists and confirm. Duplicates are detected.
-- If it can't tell the portion (e.g. a pot or a big tub?), it **asks you** in **Create my own item** instead of guessing.
-- If you change the ingredients on **Review Item**, **✓ Confirm** opens **Create my own item** with them, so the values are worked out per portion with you.
-- Typing a description in this form (and **Add**) also opens **Create my own item**.
+- If it can't tell the portion (e.g. a pot or a big tub?), it **asks you** in **My own** instead of guessing.
+- If you change the ingredients on **Review Item**, **✓ Confirm** opens **My own** with them, so the values are worked out per portion with you.
+- Typing a description in this form (and **Add**) also opens **My own**.
 
 ### Adding food — bulk
 Under **📷 Photo or bulk paste**, tap **📋 Bulk** and paste a list (one per line or comma-separated).
@@ -578,6 +582,8 @@ At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature
 | "Rate limit reached" / "API busy" | Wait a moment and try again. |
 | Feedback was "cut off" | Press the feedback button again. |
 | A food I want isn't in the meal drop-down | Choose **+ Not in my list?** at the bottom: add it (single item, build a meal or create your own) with **Add to … now** ticked and you're taken back with it selected. |
+| I can't find a food because I don't know how to spell it | Type it however you think it's spelt, or in plain words ("pasta spirals"). If nothing matches, tap **Describe it instead**. |
+| "UK product search isn't responding right now" | Open Food Facts is busy. Your lists and common foods still work; tap **Try again** in a moment. |
 | A food's calories look far too high | Values are **per portion**: open the item and check **"1 portion = …"**. For packaged foods set **My portion size (g)**; for a recipe, check how many portions it makes (**Serves**), or use **Build a meal**. Items marked **Check me — confirm portions** need this. |
 | The Companion asks me questions when I create an item | That's on purpose: it asks about anything unclear (raw or cooked, amounts, brand, how many portions) instead of guessing. Answer and tap **Send**. |
 | Recalculation failed when adding food | Press Confirm to retry, or Cancel. The item isn't added with wrong values. |

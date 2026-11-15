@@ -10,7 +10,7 @@ test("My Eating: typed item → the clarifying conversation → per portion → 
   await page.getByPlaceholder("e.g. Costa Rocky Road, Protein shake...").fill("Test Stew with beef and veg");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   const ul = page.getByTestId("update-lists");
-  await expect(ul.getByRole("tab", { name: "Create my own item" })).toHaveAttribute("aria-selected", "true");
+  await expect(ul.getByRole("tab", { name: "My own" })).toHaveAttribute("aria-selected", "true");
   await expect(ul.getByLabel("Describe your item")).toHaveValue("Test Stew with beef and veg");
   await ul.getByRole("button", { name: "Send" }).click();
   await expect(ul.getByTestId("own-confirm").getByTestId("portion-label")).toContainText("1 portion = 1 of 4 servings");

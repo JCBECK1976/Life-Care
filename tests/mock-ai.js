@@ -13,6 +13,11 @@ export function mockReplyFor(body) {
     const lines = (prompt.split("Items to look up:\\n")[1] || "").split("\\n\\nReturn")[0].split("\\n").filter(Boolean);
     text = JSON.stringify(lines.map((l) => ({ line: l, type: "item", name: l, portionDesc: "1 portion", portionGrams: null, servings: 1, ingredients: [],
       perPortion: { kcal: 150, protein: 5, fat: 5, satFat: 1, carbs: 20, sugar: 3, addedSugar: 0, fibre: 2, salt: 0.2 } })));
+  } else if (/CLARIFY_ITEM IDENTIFY/.test(prompt)) {   // v2.19.2 "Describe it instead": 1–3 per-portion choices
+    const pp = (kcal) => ({ kcal, protein: 12, fat: 2, satFat: 0.4, carbs: Math.round((kcal - 66) / 4), sugar: 2, addedSugar: 0, fibre: 3, salt: 0 });
+    text = JSON.stringify({ choices: [
+      { type: "item", name: "Fusilli pasta (dried)", portionDesc: "75 g dried", portionGrams: 75, servings: 1, ingredients: [], perPortion: pp(266) },
+      { type: "item", name: "Wholewheat fusilli (dried)", portionDesc: "75 g dried", portionGrams: 75, servings: 1, ingredients: [], perPortion: pp(255) } ] });
   } else if (/CLARIFY_ITEM RECHECK/.test(prompt)) {
     const ids = [...prompt.matchAll(/\\n([^:\\]+?): /g)].map((m) => m[1]);
     text = JSON.stringify(ids.map((id) => ({ id, perPortionKcal: 300, looksLike: "portion", servingsGuess: null })));

@@ -124,8 +124,7 @@ test("UI: '+ Not in my list?' → Add single item (UK product, per portion) → 
   await page.getByText("+ Not in my list?").first().click();
   const ul = page.getByTestId("update-lists");
   await expect(ul.getByTestId("return-to")).toContainText(/Adding for \w+day breakfast/);
-  await ul.getByLabel(/Search the app's foods or UK products/).fill("Test Granola");
-  await ul.getByRole("button", { name: "Search UK products" }).click();
+  await ul.getByLabel("Search your lists, common foods and UK products").fill("Test Granola");   // v2.19.2: results as you type
   await ul.getByTestId("off-option").first().click();
   await expect(ul.getByTestId("single-confirm").getByTestId("portion-label")).toHaveText("1 portion = 45 g");
   await expect(ul.getByTestId("single-confirm").getByTestId("per-portion")).toContainText("Per portion: 203 kcal");   // 450 per 100 g × 45 g
@@ -151,7 +150,6 @@ test("UI: Build a meal — the Aldi pasta bake, serves 4, computed in code and l
   const mb = ul.getByTestId("meal-builder");
   for (const [term, g] of [["pasta bake sauce", 500], ["penne", 250], ["mozzarella", 125], ["chicken breast", 300]]) {
     await mb.getByLabel("Search available items").fill(term);
-    await mb.getByRole("button", { name: "UK products" }).click();
     await mb.getByTestId("avail-off").first().click();
     const row = mb.getByTestId("meal-comp").last();
     await row.getByLabel(/^Unit for/).selectOption("g");
@@ -189,7 +187,7 @@ test("UI: Create my own item — the Companion asks a question, then returns val
   await tab(page, "My Eating");
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
   const ul = page.getByTestId("update-lists");
-  await ul.getByRole("tab", { name: "Create my own item" }).click();
+  await ul.getByRole("tab", { name: "My own" }).click();
   await ul.getByLabel("Describe your item").fill("Chicken curry: 500g chicken, a jar of curry sauce, 300g rice");
   await ul.getByRole("button", { name: "Send" }).click();
   await expect(ul.getByTestId("clarify-question")).toContainText("raw or cooked");
