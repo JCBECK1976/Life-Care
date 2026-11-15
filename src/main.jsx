@@ -1,9 +1,11 @@
+import { installFieldHelpers } from "./lib/a11y.js";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import Dashboard from "./App.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import AuthGate from "./components/AuthGate.jsx";
 
+installFieldHelpers();   // v2.20.0: numeric keypad, select-all on focus, haptic tap
 ReactDOM.createRoot(document.getElementById("root")).render(<ErrorBoundary name="App"><AuthGate><Dashboard /></AuthGate></ErrorBoundary>);
 
 // Installable app: register the network-only service worker (builds only, never the dev server).

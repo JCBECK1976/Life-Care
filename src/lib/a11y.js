@@ -31,3 +31,25 @@ export function useDialog(open, onClose) {
   }, [open]);
   return ref;
 }
+
+/** v2.20.0 polish, installed once (main.jsx):
+ *  - number fields open the numeric keypad (inputmode="decimal" unless set) and select their value on focus, so typing
+ *    replaces it (weights, reps, amounts);
+ *  - a light haptic tap on Save / Confirm / Send / Add buttons where the phone supports it. */
+export function installFieldHelpers(doc) {
+  doc = doc || document;
+  var mark = function(root) { (root.querySelectorAll ? root.querySelectorAll('input[type="number"]:not([inputmode])') : []).forEach(function(el) { el.setAttribute("inputmode", "decimal"); }); };
+  mark(doc);
+  try { new MutationObserver(function(muts) { muts.forEach(function(m) { m.addedNodes.forEach(function(n) { if (n.nodeType === 1) { if (n.matches && n.matches('input[type="number"]:not([inputmode])')) n.setAttribute("inputmode", "decimal"); mark(n); } }); }); }).observe(doc.body || doc, { childList: true, subtree: true }); } catch (e) { /* old browser */ }
+  doc.addEventListener("focusin", function(e) {
+    var el = e.target; if (!el || el.tagName !== "INPUT" || el.type !== "number") return;
+    var sel = function() { try { if (document.activeElement === el) el.select(); } catch (x) { /* not selectable */ } };
+    setTimeout(sel, 0);
+    var up = function(ev) { ev.preventDefault(); sel(); el.removeEventListener("mouseup", up); };   // keep the selection after a click
+    el.addEventListener("mouseup", up); setTimeout(function() { el.removeEventListener("mouseup", up); }, 600);
+  });
+  doc.addEventListener("click", function(e) {
+    var b = e.target && e.target.closest && e.target.closest("button"); if (!b || b.disabled) return;
+    if (/^\s*(✓\s*)?(Save|Confirm|Send|Add|Set|Yes)\b/i.test(b.textContent || "")) { try { if (navigator.vibrate) navigator.vibrate(10); } catch (x) { /* no haptics */ } }
+  }, true);
+}

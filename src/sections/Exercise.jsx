@@ -1,3 +1,4 @@
+import FloatingSave from "../components/FloatingSave.jsx";
 import { DEFAULT_EXERCISES, EXERCISE_DATABASE, EXERCISE_TYPES } from "../constants/exercise.js";
 import LoadingDots from "../components/LoadingDots.jsx";
 import { calcWeek, fbIcon, sBg, sColor, sLabel, setPlainNote } from "../lib/utils.js";
@@ -371,7 +372,8 @@ export default function ExerciseSection({ ctx }) {
                     }} />
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 10 }}><button onClick={saveLog} disabled={!logSets[0].r} style={{ ...btnP(!!logSets[0].r), flex: 1 }}>{editPrev ? "Update" : "Save"}</button><button onClick={() => setLogEx(null)} style={btnS}>Cancel</button></div>
+              <FloatingSave targetId="log-actions" onClick={saveLog} disabled={!logSets[0].r} label={editPrev ? "Update" : "Save"} />{/* v2.20.0: Save stays reachable on the long log form */}
+              <div id="log-actions" data-testid="log-actions" style={{ display: "flex", gap: 8, marginTop: 10 }}><button onClick={saveLog} disabled={!logSets[0].r} style={{ ...btnP(!!logSets[0].r), flex: 1 }}>{editPrev ? "Update" : "Save"}</button><button onClick={() => setLogEx(null)} style={btnS}>Cancel</button></div>
               <p style={{ fontSize: 9, color: "#475569", textAlign: "center", margin: "8px 0 0", fontStyle: "italic", lineHeight: 1.3 }}>It's important to track accurate and honest information for your companion to give you the most appropriate feedback</p>
             </div>);
           })()}

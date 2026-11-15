@@ -394,7 +394,7 @@ test("D16: on a phone the picker is a sheet sized to the visible viewport — re
   expect(input.y).toBeLessThan(60);                                                                 // search at the top
   expect(firstRow.y).toBeGreaterThan(input.y);
   expect(firstRow.y + firstRow.height).toBeLessThanOrEqual(420);                                   // results directly under it, above the keyboard
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await page.getByRole("button", { name: "Close the list" }).click();
   await expect(sheet).toHaveCount(0);
   expect(errors).toEqual([]);
 });

@@ -20,6 +20,7 @@ import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm
 import { stripKcal as stripKcalName } from "../lib/nutrition.js";
 import { askItem, askItemsBatch, recheckBatch, recheckFlag, CLARIFY_SYSTEM } from "../lib/clarify.js";
 import { applyDefaultsTo, generatorSummary, mergeGenerated, selectionName } from "../lib/meals.js";
+import { fuzzyFind } from "../lib/foodSearch.js";
 import { NO_FOOD_MSG, NO_FOOD_RULE, compareLine, gramsLine, noFood, requestBody } from "../lib/snap.js";
 import { PHASE_LABEL } from "../lib/eatPhase.js";
 import { dateOf, foodKey, loadWeekDoc, makeChild, occurrences, ragNote, reconcile, saveWeekDoc, viewFromDoc } from "../lib/children.js";
@@ -47,6 +48,10 @@ export default function EatingSection({ ctx }) {
   } = ctx;
   /* v2.6.2 D10/F7: Undo for a replaced item, and the optional photo description */
   const [portionUndo, setPortionUndo] = React.useState(null);
+  const [pickToast, setPickToast] = React.useState(null);   // v2.20.0: { name, undo } — "Added: …" with Undo for ~5 s
+  const [pickFlash, setPickFlash] = React.useState(null);   // the picked item's id, highlighted briefly
+  React.useEffect(function() { if (!pickToast) return; var t = setTimeout(function() { setPickToast(null); }, 5000); return function() { clearTimeout(t); }; }, [pickToast]);
+  React.useEffect(function() { if (!pickFlash) return; var t = setTimeout(function() { setPickFlash(null); }, 1500); return function() { clearTimeout(t); }; }, [pickFlash]);
   const [portionDesc, setPortionDesc] = React.useState("");
   /* v2.6.3 bulk upload: own category (D4), batch progress/retry (D3), real cancel (D5), OK message (F4) */
   const [bulkCat, setBulkCat] = React.useState("");
@@ -762,7 +767,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             var _s = React.useState(""); var search = _s[0]; var setSearch = _s[1];
             var _o = React.useState(false); var open = _o[0]; var setOpen = _o[1];
             var sorted = items.slice().sort(function(a,b) { return a.name.localeCompare(b.name); });
-            var filtered = search ? sorted.filter(function(it) { return it.name.toLowerCase().indexOf(search.toLowerCase()) >= 0; }) : sorted;
+            var filtered = search ? fuzzyFind(search, sorted, function(it) { return it.name || ""; }, 200) : sorted;   /* v2.20.0: forgiving search, as in Update Lists */
+            var flash = !!value && pickFlash === value;
+            var choose = function(item) { var prev = value; onChange({ target: { value: item.id } }); setOpen(false); setSearch(""); setPickFlash(item.id); setPickToast({ name: item.name, undo: function() { onChange({ target: { value: prev || "" } }); } }); try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) { /* no haptics */ } };   /* v2.20.0: confirmation + Undo (state kept in the section: this picker is re-created on each render) */
             var selected = value ? items.find(function(it) { return it.id === value; }) : null;
             var displayName = value && value !== "__empty__" ? selectionName(value, props.snap, selected || allItemsLookup[value] || allItemsLookup["gb_" + value]) : null; // D6: never the raw id
             var inputRef = React.useRef(null);
@@ -777,14 +784,14 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             }, [open, pickerPhone, setVV]);
             if (!open) {
               return (<div style={{position:"relative"}}>
-                <div onClick={function(){setOpen(true);setSearch("");setTimeout(function(){if(inputRef.current)inputRef.current.focus();},50);}} style={{width:"100%",padding:"8px 10px",border:"1px solid #cbd5e1",borderRadius:8,fontSize:11,background:"#fff",cursor:"pointer",boxSizing:"border-box",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div data-testid="picker-trigger" data-flash={flash ? "true" : "false"} onClick={function(){setOpen(true);setSearch("");setTimeout(function(){if(inputRef.current)inputRef.current.focus();},50);}} style={{width:"100%",padding:"8px 10px",border:"1px solid #cbd5e1",borderRadius:8,fontSize:11,background:flash ? "#dcfce7" : "#fff",transition:"background 0.3s",cursor:"pointer",boxSizing:"border-box",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   {(function() { var it = value && value !== "__empty__" ? (selected || allItemsLookup[value]) : null; var rc = !displayName ? "#475569" : !it || !it.rating ? "#0f172a" : it.rating === "RED" ? "#b91c1c" : it.rating === "AMBER" ? "#b45309" : "#15803d"; /* D14: the selection's own (child) RAG colour, as in the lists; P6: darker text colours */ return <span><span data-testid="selected-item" data-rag={it && it.rating ? it.rating : ""} title={it && it.ragReason ? it.ragReason : ""} style={{ color: rc, fontWeight: it && it._child ? 600 : 400 }}>{displayName || placeholder}</span>{it && it.rating && displayName ? <RagCue rating={it.rating} reason={it.ragReason} /> : null}</span>; })()}
                   <span style={{fontSize:8,color:"#475569"}}>▼</span>
                 </div>
               </div>);
             }
             var rowsEl = (<>
-                {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var isAdded = item._isCustom !== false; var color = isAdded ? (item.rating === "RED" ? "#b91c1c" : item.rating === "AMBER" ? "#b45309" : "#15803d") : "#94a3b8"; var hasRagChange = item._ragChanged && !item._ragChangedSeen; return (<div key={item.id} onMouseDown={function(e){e.preventDefault();onChange({target:{value:item.id}});setOpen(false);setSearch("");}} style={{padding:"6px 10px",fontSize:11,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f8fafc",color:color}}>
+                {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var isAdded = item._isCustom !== false; var color = isAdded ? (item.rating === "RED" ? "#b91c1c" : item.rating === "AMBER" ? "#b45309" : "#15803d") : "#94a3b8"; var hasRagChange = item._ragChanged && !item._ragChangedSeen; var _cur = value && allItemsLookup[value]; var isCur = item.id === value || !!(_cur && _cur.parentId && _cur.parentId === item.id); return (<div key={item.id} data-testid="picker-row" aria-selected={isCur} role="option" onMouseDown={function(e){e.preventDefault();choose(item);}} style={{minHeight:pickerPhone ? 56 : undefined,boxSizing:"border-box",display:pickerPhone ? "flex" : undefined,alignItems:"center",fontSize:pickerPhone ? 14 : undefined,background:isCur ? "#eff6ff" : undefined,borderLeft:isCur ? "4px solid #2563eb" : undefined,borderBottom:pickerPhone ? "1px solid #f1f5f9" : undefined,padding:"6px 10px",fontSize:11,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f8fafc",color:color}}>
                   <span>{hasRagChange ? "🔄 " : ""}{item.name} ({kcal} kcal){!isAdded ? " — not added" : ""}{item.checkMe && <span data-testid="check-me" title={item.checkReason || "Added by bulk upload: open and save it once you have checked it"} style={{ marginLeft: 4, fontSize: 9, fontWeight: 600, color: "#475569", border: "1px solid #cbd5e1", borderRadius: 4, padding: "0 4px", whiteSpace: "nowrap" }}>Check me</span>}{hasRagChange ? " (was " + item.prevRating + ")" : ""}</span>
 
                 </div>); })}
@@ -796,9 +803,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               return (<div role="dialog" aria-label="Choose an item" data-testid="picker-sheet" style={{position:"fixed",left:0,right:0,top:vv.top,height:vv.height,zIndex:95,background:"#fff",display:"flex",flexDirection:"column",boxShadow:"0 -4px 24px rgba(0,0,0,0.2)"}}>
                 <div style={{display:"flex",gap:6,padding:"10px 12px",borderBottom:"1px solid #e2e8f0",alignItems:"center"}}>
                   <input ref={inputRef} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Type to search..." aria-label="Search items" style={{flex:1,minWidth:0,padding:"10px 12px",border:"1px solid "+accent,borderRadius:8,fontSize:16,background:"#fff",boxSizing:"border-box"}} />
-                  <button onClick={function(){setOpen(false);setSearch("");}} style={{padding:"10px 12px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:8,fontSize:12,fontWeight:600,color:"#475569",cursor:"pointer"}}>Close</button>
+                  <button aria-label="Close the list" onClick={function(){setOpen(false);setSearch("");}} style={{minWidth:44,minHeight:44,padding:"10px 12px",background:"#fff",border:"1px solid #2563eb",borderRadius:8,fontSize:13,fontWeight:700,color:"#1e3a8a",cursor:"pointer"}}>✕ Close</button>
                 </div>
-                <div data-testid="picker-results" style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>{rowsEl}</div>
+                <div data-testid="picker-results" role="listbox" aria-label="Items" style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>{rowsEl}</div>
               </div>);
             }
             return (<div style={{position:"relative"}}>
@@ -2420,6 +2427,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               <button onClick={function(){ setBulkDone(null); }} style={{ ...btnActionLg, width: "100%", borderRadius: 8 }}>OK</button>
             </div>
           </div>)}
+          {pickToast && <div role="status" aria-live="polite" data-testid="pick-toast" style={{position:"fixed",left:12,right:12,bottom:"calc(84px + env(safe-area-inset-bottom))",zIndex:1200,maxWidth:456,margin:"0 auto",display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:10,background:"#1e3a5f",color:"#fff",fontSize:13,boxShadow:"0 6px 20px rgba(0,0,0,0.25)"}}>
+            <span style={{flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>Added: {pickToast.name}</span>
+            <button type="button" onClick={function(){ var u = pickToast.undo; setPickToast(null); setPickFlash(null); if (u) u(); }} style={{padding:"6px 12px",borderRadius:8,border:"1px solid #fff",background:"transparent",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>Undo</button>
+          </div>}
           {bulkUndo && (<div role="status" data-testid="bulk-cancelled" style={{ position: "fixed", left: 12, right: 12, bottom: 76, zIndex: 60, background: "#0f172a", color: "#fff", borderRadius: 8, padding: "10px 12px", fontSize: 12, display: "flex", gap: 8, alignItems: "center" }}>
             <span style={{ flex: 1 }}>Cancelled — {bulkUndo.ids.length} item{bulkUndo.ids.length === 1 ? "" : "s"} from earlier batches were kept in {catLabel(bulkUndo.cat)}.</span>
             <button onClick={undoBulk} style={{ background: "#fff", color: "#0f172a", border: "none", borderRadius: 6, padding: "4px 10px", fontWeight: 700, cursor: "pointer" }}>Undo</button>

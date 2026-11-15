@@ -363,3 +363,54 @@ test("8 touch screens: buttons and fields are at least 44 px tall; icon-only but
   expect(errors).toEqual([]);
   await ctx.close();
 });
+
+/* ---------- 9. Polish ---------- */
+test("9a/b phone picker: forgiving search, 56 px rows, current item highlighted, ✕ Close; picking shows 'Added: …' with Undo", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  const { errors } = await openApp(page);
+  const list = (await get("custom_breakfasts")) || [];
+  await put("custom_breakfasts", [{ id: "t_porr", name: "Test Porridge Oats", jcKcal: 300, beckKcal: 280, rating: "GOOD" }].concat(list));
+  await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
+  await tab(page, "My Eating");
+  const trig = page.getByTestId("picker-trigger").first();
+  const before = await trig.innerText();
+  await trig.click();
+  const sheet = page.getByTestId("picker-sheet");
+  await expect(sheet).toBeVisible();
+  await expect(page.getByRole("button", { name: "Close the list" })).toBeVisible();
+  await page.getByLabel("Search items").fill("porrige");                                             // misspelt
+  const row = sheet.getByTestId("picker-row").filter({ hasText: "Test Porridge Oats" });
+  await expect(row).toBeVisible();
+  expect((await row.boundingBox()).height).toBeGreaterThanOrEqual(56);
+  await row.dispatchEvent("mousedown");
+  await expect(sheet).toHaveCount(0);
+  const toast = page.getByTestId("pick-toast");
+  await expect(toast).toContainText("Added: Test Porridge Oats");
+  await expect(trig).toContainText("Test Porridge Oats");
+  await trig.click();
+  await expect(page.getByTestId("picker-sheet").locator('[data-testid="picker-row"][aria-selected="true"]')).toContainText("Test Porridge Oats");   // current highlighted
+  await page.getByRole("button", { name: "Close the list" }).click();
+  await toast.getByRole("button", { name: "Undo" }).click();
+  await expect(trig).toContainText(before.split("\n")[0]); await expect(trig).not.toContainText("Test Porridge Oats");
+  expect(errors).toEqual([]);
+});
+
+test("9c/d number fields: numeric keypad, typing replaces the value; the log's Save stays visible; room under the chat button", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  const { errors } = await openApp(page);
+  await tab(page, "My Exercise");
+  await page.getByRole("button", { name: "📋 Log", exact: true }).first().click();
+  const w = page.locator('input[placeholder="Weight"]').first();
+  await expect(w).toHaveAttribute("inputmode", "decimal");
+  await w.click(); await page.keyboard.type("7");
+  await expect(w).toHaveValue("7");                                                                    // replaced, not appended
+  await page.locator("#log-week").scrollIntoViewIfNeeded();
+  const act = page.getByTestId("floating-save"); await expect(act).toBeVisible();
+  await expect(act.getByRole("button")).toHaveText(/^(Save|Update)$/); await expect(act.getByRole("button", { name: /^(Save|Update) this log$/ })).toBeVisible();
+  const vb = await act.boundingBox();
+  expect(vb.y + vb.height).toBeLessThanOrEqual(640);                                                    // Save visible while the top of the form is shown
+  const chat = await page.getByTitle("Chat with your Companion").or(page.getByRole("button", { name: "Chat with your Companion" })).first().boundingBox();
+  expect(vb.x + vb.width).toBeLessThanOrEqual(chat.x);                                                  // never under the chat button
+  expect(await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById("root")).paddingBottom))).toBeGreaterThanOrEqual(80);
+  expect(errors).toEqual([]);
+});
