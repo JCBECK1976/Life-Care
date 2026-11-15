@@ -49,3 +49,74 @@ export async function clarifyTurn(turns, opts) {
   }
   return { type: "question", question: FRIENDLY, friendly: true };
 }
+
+/* ---------- v2.19.1 (F27): the other add paths use the same per-portion schema, validation and retries ---------- */
+function msgText(content) { return typeof content === "string" ? content : content; }
+
+/**
+ * One item from a photo (or any single request): content = the user content (text or [image, text]).
+ * Returns { type: "item", reply } | { type: "noFood", reply } | { type: "question", question, friendly? }. API errors throw.
+ */
+export async function askItem(content, opts) {
+  var call = (opts && opts.call) || callAI;
+  var msgs = [{ role: "user", content: msgText(content) }];
+  for (var attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    var text = await call(msgs);
+    var o = parseJsonReply(text);
+    if (o && (o.isFood === false || o.isFood === "false" || o.type === "noFood")) return { type: "noFood", reply: o };
+    var v = validateItemReply(o);
+    if (v.ok) return o.type === "question" ? { type: "question", question: o.question.trim() } : { type: "item", reply: o };
+    msgs = msgs.concat([{ role: "assistant", content: String(text || "").slice(0, 2000) || "(empty)" },
+      { role: "user", content: "That reply can't be used: " + v.problem + ". Reply again with ONLY the JSON object described in the instructions." }]);
+  }
+  return { type: "question", question: FRIENDLY, friendly: true };
+}
+
+/** Bulk paste: one request per batch; each line becomes a validated per-portion item or a question for the person.
+ *  Lines whose element is malformed or implausible are re-asked (up to MAX_RETRIES rounds). Returns { items: [{ line, reply }], help: [{ line, question }] }. */
+export var BULK_PROMPT_HEAD = "CLARIFY_ITEM BULK. For EACH line below, give ONE portion of that food, PER PORTION (never per 100 g, never a whole recipe). " +
+  "Return a JSON array with one object per line, in order: either the item object described in the instructions plus \"line\" (the line exactly as given), " +
+  "or {\"line\":\"…\",\"type\":\"question\",\"question\":\"…\"} if you genuinely can't tell what or how much it is.\n\nItems to look up:\n";
+export async function askItemsBatch(lines, opts) {
+  var call = (opts && opts.call) || callAI;
+  var todo = lines.slice(), items = [], help = [], last = {};
+  for (var round = 0; round <= MAX_RETRIES && todo.length; round++) {
+    var text = await call([{ role: "user", content: BULK_PROMPT_HEAD + todo.join("\n") + "\n\nReturn ONLY the JSON array." + (round ? " (Previous answers for these lines were invalid: " + todo.map(function(l) { return l + " — " + (last[l] || "missing"); }).join("; ") + ".)" : "") }]);
+    var arr = null; var t = String(text || "").replace(/```json|```/g, ""); var a = t.indexOf("["), b = t.lastIndexOf("]");
+    if (a >= 0 && b > a) { try { arr = JSON.parse(t.slice(a, b + 1)); } catch (e) { arr = null; } }
+    var byLine = {}; (Array.isArray(arr) ? arr : []).forEach(function(o, i) { if (o && typeof o === "object") byLine[o.line != null ? String(o.line) : todo[i]] = o; });
+    var next = [];
+    todo.forEach(function(l) {
+      var o = byLine[l]; if (o && !o.type) o.type = "item";
+      var v = validateItemReply(o);
+      if (v.ok && o.type === "item") items.push({ line: l, reply: o });
+      else if (v.ok && o.type === "question") help.push({ line: l, question: o.question });
+      else { last[l] = v.problem; next.push(l); }
+    });
+    todo = next;
+  }
+  todo.forEach(function(l) { help.push({ line: l, question: FRIENDLY }); });
+  return { items: items, help: help };
+}
+
+/** Re-check nutrition: per portion. For each item the AI estimates ONE portion's kcal for its portion description and says
+ *  whether the stored value looks like one portion, the whole recipe, or per 100 g. Returns { byId, unchecked: [ids] }. */
+export async function recheckBatch(items, opts) {
+  var call = (opts && opts.call) || callAI;
+  var prompt = "CLARIFY_ITEM RECHECK. For each food item below, estimate the kcal of ONE PORTION as described, and say whether the SAVED kcal looks like one portion (\"portion\"), the WHOLE recipe / several portions (\"wholeRecipe\") or a per-100 g value (\"per100g\"). " +
+    "Return ONLY a JSON array: [{\"id\":\"…\",\"perPortionKcal\":<number>,\"looksLike\":\"portion|wholeRecipe|per100g\",\"servingsGuess\":<number or null>}].\nItems:\n" +
+    items.map(function(x) { return x.id + ": " + x.name + " — " + x.portion + " — saved " + x.kcal + " kcal — " + (x.ingredients || "no ingredients listed"); }).join("\n");
+  for (var attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    var text = await call([{ role: "user", content: prompt }]);
+    var t = String(text || "").replace(/```json|```/g, ""); var a = t.indexOf("["), b = t.lastIndexOf("]"), arr = null;
+    if (a >= 0 && b > a) { try { arr = JSON.parse(t.slice(a, b + 1)); } catch (e) { arr = null; } }
+    if (Array.isArray(arr)) {
+      var byId = {};
+      arr.forEach(function(r) { var k = parseFloat(r && r.perPortionKcal); if (r && r.id != null && isFinite(k) && k > 0 && ["portion", "wholeRecipe", "per100g"].indexOf(r.looksLike) >= 0) byId[r.id] = { perPortionKcal: k, looksLike: r.looksLike, servingsGuess: parseFloat(r.servingsGuess) || null }; });
+      if (Object.keys(byId).length) return { byId: byId, unchecked: items.filter(function(x) { return !byId[x.id]; }).map(function(x) { return x.id; }) };
+    }
+    prompt += "\n\n(Your previous reply wasn't a usable JSON array — reply with ONLY the array.)";
+  }
+  return { byId: {}, unchecked: items.map(function(x) { return x.id; }) };
+}
+export { recheckFlag } from "./portion.js";

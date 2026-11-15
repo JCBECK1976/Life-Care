@@ -154,3 +154,12 @@ export function migrateList(list) {
   var changed = 0; var out = (list || []).map(function(it) { var r = migrateItem(it); if (r.changed) changed++; return r.item; });
   return { list: out, changed: changed };
 }
+
+/** Flag rule for Re-check: the saved value looks like a whole recipe / per 100 g, or is > 35% away from one portion. */
+export function recheckFlag(saved, v) {
+  if (!v) return null;
+  if (v.looksLike === "wholeRecipe") return "Check me — confirm portions: the saved " + Math.round(saved) + " kcal looks like the whole recipe" + (v.servingsGuess ? " (about " + v.servingsGuess + " portions)" : "") + "; one portion is about " + Math.round(v.perPortionKcal) + " kcal.";
+  if (v.looksLike === "per100g") return "Check me — confirm portions: the saved " + Math.round(saved) + " kcal looks like a per-100 g value; one portion is about " + Math.round(v.perPortionKcal) + " kcal.";
+  if (saved > 0 && (saved > v.perPortionKcal * 1.35 || saved < v.perPortionKcal / 1.35)) return "Check me — confirm portions: saved " + Math.round(saved) + " kcal per portion, about " + Math.round(v.perPortionKcal) + " kcal expected.";
+  return null;
+}

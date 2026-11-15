@@ -171,7 +171,7 @@ export function MealBuilder(props) {
 
 /* ---------- c) Create my own item: the clarifying conversation ---------- */
 export function ClarifyChat(props) {
-  var [turns, setTurns] = React.useState([]);
+  var [turns, setTurns] = React.useState(props.initialTurns || []);
   var [text, setText] = React.useState(props.seed || "");
   var [busy, setBusy] = React.useState(false);
   var [err, setErr] = React.useState("");
@@ -202,7 +202,7 @@ function OwnItem(props) {
   var [ready, setReady] = React.useState(false);
   if (ready && item) return <SaveStep {...props} item={item} onBack={function() { setReady(false); }} onSaved={props.onSaved} />;
   return (<div>
-    {!item && <ClarifyChat seed={props.seed} onResult={setItem} />}
+    {!item && <ClarifyChat seed={props.seed} initialTurns={props.initialTurns} onResult={setItem} />}
     {item && (<div data-testid="own-confirm" style={box}>
       <label style={small} htmlFor="own-name">Name</label>
       <input id="own-name" style={inp} value={item.name} onChange={function(e) { setItem(Object.assign({}, item, { name: e.target.value })); }} />

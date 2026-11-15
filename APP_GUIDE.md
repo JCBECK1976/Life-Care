@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.19.0 · 15 November 2026
+> Last updated: v2.19.1 · 15 November 2026
 
 ---
 
@@ -301,7 +301,7 @@ Generate after logging a session. It includes:
 ### Layout
 - **Update Eating Lists** manages your food lists (see below).
 - **🔄 Re-rate all lists** re-rates every list item using the portion bands below. Items whose rating changes get a 🔄 and a **Check me** badge.
-- **🔎 Re-check nutrition** looks for recipe items whose saved calories don't add up from their ingredients and marks them **Check me** ("Nutrition looks off: saved 387 kcal, ingredients add up to about 610"). It changes nothing itself: open the item and press **✓ Confirm** to recalculate.
+- **🔎 Re-check nutrition** checks every list item **per portion**. Anything whose saved calories look like a **whole recipe**, a **per-100 g** value, or far from one portion is marked **Check me — confirm portions** (e.g. "the saved 2,400 kcal looks like the whole recipe (about 4 portions); one portion is about 600 kcal"). It changes nothing itself: open the item, **Edit**, and press **✓ Confirm**; your Companion works out the values per portion with you.
 - **Clear Week** removes all meal selections for the week (asks first).
 - **Day tabs:** **Week** (whole-week view) and **Sun–Sat**. The week runs Sunday to Saturday, the same as exercise. Each tab shows that day's calories.
 
@@ -392,13 +392,18 @@ Each meal drop-down shows **only the items already in that list**. If what you w
 - **✕ Close** closes the lists.
 
 ### Adding food by photo
-Under **Update Eating Lists → 📷 Photo or bulk paste**, tap **📷** to photograph a food or label. **Review Item** shows the values per portion, the rating and how it suits you; choose the lists and confirm. Duplicates are detected.
+Under **Update Eating Lists → 📷 Photo or bulk paste**, tap **📷** to photograph a food or label. Your Companion gives the values for **one portion** ("1 portion = 1 bar (60 g) · values per portion": the label's per-serving values, or a sensible portion of what's shown). **Review Item** shows them with the rating and how it suits you; choose the lists and confirm. Duplicates are detected.
+- If it can't tell the portion (e.g. a pot or a big tub?), it **asks you** in **Create my own item** instead of guessing.
+- If you change the ingredients on **Review Item**, **✓ Confirm** opens **Create my own item** with them, so the values are worked out per portion with you.
+- Typing a description in this form (and **Add**) also opens **Create my own item**.
 
 ### Adding food — bulk
 Under **📷 Photo or bulk paste**, tap **📋 Bulk** and paste a list (one per line or comma-separated).
 - **Choose a category**: none is pre-selected, and the button says "Choose a category first" until you do. You're asked to confirm, e.g. "Add 14 items to Drinks?".
 - Long lists are rated **10 at a time** with a progress bar, and each batch is saved as soon as it's done. If a batch fails, **Retry** re-sends just that batch.
 - **Cancel** really stops: anything still on its way is ignored. If earlier batches were already saved, you're told how many, with **Undo**.
+- Every line gets values for **one portion** with what a portion is ("1 portion = 1 bag (25 g)"); answers that don't make sense are re-asked automatically.
+- Lines your Companion can't work out aren't dropped: they're listed as **"needs a little more from you"**, each with **Finish with my Companion**, which opens the conversation with its question.
 - When it finishes, a message (tap **OK**) reminds you that ratings are AI estimates. New items show **Check me** until you've opened and saved them.
 
 ### Ingredients and the shopping list

@@ -9,7 +9,14 @@ export const MOCK_TEXT = "Mocked companion reply.";
 export function mockReplyFor(body) {
   const prompt = JSON.stringify(body || {});
   let text;
-  if (/CLARIFY_ITEM/.test(prompt)) {   // v2.19.0 "Create my own item": a valid per-portion item by default
+  if (/CLARIFY_ITEM BULK/.test(prompt)) {   // v2.19.1: one per-portion item per line
+    const lines = (prompt.split("Items to look up:\\n")[1] || "").split("\\n\\nReturn")[0].split("\\n").filter(Boolean);
+    text = JSON.stringify(lines.map((l) => ({ line: l, type: "item", name: l, portionDesc: "1 portion", portionGrams: null, servings: 1, ingredients: [],
+      perPortion: { kcal: 150, protein: 5, fat: 5, satFat: 1, carbs: 20, sugar: 3, addedSugar: 0, fibre: 2, salt: 0.2 } })));
+  } else if (/CLARIFY_ITEM RECHECK/.test(prompt)) {
+    const ids = [...prompt.matchAll(/\\n([^:\\]+?): /g)].map((m) => m[1]);
+    text = JSON.stringify(ids.map((id) => ({ id, perPortionKcal: 300, looksLike: "portion", servingsGuess: null })));
+  } else if (/CLARIFY_ITEM/.test(prompt)) {   // v2.19.0 "Create my own item": a valid per-portion item by default
     text = JSON.stringify({ type: "item", name: "Test Stew", portionDesc: "1 of 4 servings (about 350 g)", portionGrams: 350, servings: 4, ingredients: ["beef 500g", "veg 400g"], assumptions: "",
       perPortion: { kcal: 320, protein: 28, fat: 12, satFat: 4, carbs: 24, sugar: 6, addedSugar: 0, fibre: 5, salt: 1.1 } });
   } else if (/JSON array/.test(prompt)) {

@@ -4,7 +4,7 @@ import RagCue from "../components/RagCue.jsx";
 import PlanActual, { WeekPlanActual } from "../components/PlanActual.jsx";
 import { goalKcal, kcalTargetText, personalLimits } from "../lib/goals.js";
 import UpdateLists, { MealBuilder, ClarifyChat } from "../components/UpdateLists.jsx";
-import { portionLabel, itemNutrition, withPortionValues } from "../lib/portion.js";
+import { portionLabel, itemNutrition, withPortionValues, itemFromReply, parseJsonReply } from "../lib/portion.js";
 import LoadingDots from "../components/LoadingDots.jsx";
 import NoFoodPanel from "../components/NoFoodPanel.jsx";
 import { BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, POTATO_SIDES, SNACKS, VEG_SIDES } from "../constants/food.js";
@@ -17,7 +17,8 @@ import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnFill
 import { accentVariant } from "../lib/colour.js";
 import { personName } from "../components/PersonTabs.jsx";
 import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
-import { parseRecalc, recalcPrompt, renameKcal, stripKcal as stripKcalName } from "../lib/nutrition.js";
+import { stripKcal as stripKcalName } from "../lib/nutrition.js";
+import { askItem, askItemsBatch, recheckBatch, recheckFlag, CLARIFY_SYSTEM } from "../lib/clarify.js";
 import { applyDefaultsTo, generatorSummary, mergeGenerated, selectionName } from "../lib/meals.js";
 import { NO_FOOD_MSG, NO_FOOD_RULE, compareLine, gramsLine, noFood, requestBody } from "../lib/snap.js";
 import { PHASE_LABEL } from "../lib/eatPhase.js";
@@ -60,6 +61,9 @@ export default function EatingSection({ ctx }) {
   const [returnTo, setReturnTo] = React.useState(null);
   const [mealEdit, setMealEdit] = React.useState(null);   // id of a meal item being edited
   const [editClarify, setEditClarify] = React.useState(null);   // seed text for recalculating an edited item
+  /* v2.19.1 F27: hand-offs to "Create my own item" (typed text, edited Review ingredients, unclear photos, bulk lines) */
+  const [ownSeed, setOwnSeed] = React.useState(null);   // { text, turns }
+  const [bulkHelp, setBulkHelp] = React.useState([]);   // [{ line, question }] bulk lines that need the person
   const [slotOpen, setSlotOpen] = React.useState(null);  // v2.8.0 F5: meal selection open { day, slot, editing, draft, msg }
   const [snapPre, setSnapPre] = React.useState("");
   const [portionFirst, setPortionFirst] = React.useState(null); // D15: the first check, for the deep-dive comparison     // v2.6.5 Snap: slot whose description bar is open (before the photo)     // v2.6.5: "rerate" | "recheck" while running
@@ -116,6 +120,11 @@ export default function EatingSection({ ctx }) {
             var rt = returnTo; setReturnTo(null); setManageListsOpen(false);
             if (rt && rt.day) setEatDay(rt.day);
           };
+          var toOwnItem = function(text, turns) {
+            setOwnSeed({ text: text || "", turns: turns || [], k: Date.now() }); setUlTab("own"); setManageListsOpen(true);
+            setAddingNew(false); setCameraPreview(null);
+            setTimeout(function() { var el = document.getElementById("update-lists"); if (el && el.scrollIntoView) el.scrollIntoView({ block: "start" }); }, 80);
+          };
           var addNowToSlot = async function(added, rt) {
             if (rt.kind === "day") {
               var n = JSON.parse(JSON.stringify(meals || {})); if (!n[rt.day]) n[rt.day] = {}; n[rt.day][rt.slot] = added.id;
@@ -142,12 +151,15 @@ export default function EatingSection({ ctx }) {
           var recalcWithVariations = async function(c, factor, text) {
             var base = c.snapshot || {};
             var prompt = "A meal item is \"" + base.name + "\". One standard portion has: " + (base.kcal || 0) + " kcal, " + (base.protein || 0) + "g protein, " + (base.fat || 0) + "g fat, " + (base.satFat || 0) + "g saturated fat, " + (base.addedSugar || 0) + "g added sugar, " + (base.carbs || 0) + "g carbs, " + (base.fibre || 0) + "g fibre, " + (base.salt || 0) + "g salt. The person ate " + factor + " × that portion, with these changes: \"" + text + "\". Work out the nutrition of what they actually ate. Return ONLY JSON: {\"kcal\":number,\"protein\":g,\"fat\":g,\"satFat\":g,\"addedSugar\":added_sugar_g,\"carbs\":g,\"fibre\":g,\"salt\":g,\"change\":\"one short sentence on what changed\"}";
-            var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 400, temperature: 0, messages: [{ role: "user", content: prompt }] }) });
-            var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-            var txt = ""; (result.content || []).forEach(function(x) { if (x.text) txt += x.text; });
-            var m = txt.replace(/```json|```/g, "").trim().match(/\{[\s\S]*\}/); if (!m) throw new Error("the AI did not return nutrition values");
-            var r = JSON.parse(m[0]); if (!(parseFloat(r.kcal) > 0)) throw new Error("no calorie value came back");
-            return r;
+            /* v2.19.1: strict parse + one retry; never "did not return" — a friendly message instead */
+            for (var _try = 0; _try < 2; _try++) {
+              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 400, temperature: 0, messages: [{ role: "user", content: prompt }] }) });
+              var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+              var txt = ""; (result.content || []).forEach(function(x) { if (x.text) txt += x.text; });
+              var r = parseJsonReply(txt);
+              if (r && parseFloat(r.kcal) > 0) return r;
+            }
+            throw new Error("your Companion couldn't work out those changes — try describing them a little differently");
           };
           var renderSlotForm = function() {
             var o = slotOpen; var c = childAt(o.day, o.slot); if (!c) return null;
@@ -362,13 +374,14 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               var base64 = _img.data; var mediaType = _img.mediaType;
               var descText = (descArg != null ? String(descArg) : newItemName).trim();
               var descHint = descText ? " The user describes this as: " + descText + "." : "";
-              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: "Identify this food or product." + descHint + NO_FOOD_RULE + " Read any nutrition label if visible. Classify as 'packaged' if it is a pre-made supermarket product (e.g. Aldi chicken sizzler, protein bar, ready meal) or 'ingredient' if it is a home-made recipe or meal cooked from scratch (e.g. spag bol, curry, stir fry). If 'ingredient', also list the individual ingredients needed to make it. Return ONLY JSON: {\"isFood\":true/false,\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"rating\":\"GREAT or AMBER or RED based on healthiness\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[\"ingredient1\",\"ingredient2\"] (empty array if packaged)}" }] }] }) });
-              var result = await resp.json();
-              var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-              var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
-              var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
-              if (noFood(info)) { setCameraPreview({ noFood: true, name: info.name || "", desc: descText }); setFormMsg(""); setNewItemLoading(false); return; }   // v2.14.1: no food → no values, no rating, Confirm disabled
-              setCameraPreview(withRuleRating({ name: info.name || newItemName.trim() || "Unknown item", kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, addedSugar: info.addedSugar || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0, rating: info.rating || "AMBER", itemType: info.itemType || "packaged", ingredients: info.ingredients || [], originalIngredients: (info.ingredients || []).join(", "), category: addingCategory }));
+              /* v2.19.1 F27: the photo asks for ONE PORTION with the shared schema, strict validation and retries; unclear → the conversation */
+              var photoText = "CLARIFY_ITEM PHOTO. Identify the food or product in this photo and give its nutrition for ONE PORTION (a label's per-serving values, or a sensible portion of what is shown; never per 100 g, never a whole pack or recipe)." + descHint + NO_FOOD_RULE + " Reply with ONLY the item JSON from the instructions (add \"isFood\": true), or {\"isFood\": false, \"name\": \"…\"} if there is no food, or a question JSON if you can't tell the portion.";
+              var pr = await askItem([{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: photoText }]);
+              if (pr.type === "noFood") { setCameraPreview({ noFood: true, name: pr.reply.name || "", desc: descText }); setFormMsg(""); setNewItemLoading(false); return; }   // v2.14.1: no food → no values, no rating, Confirm disabled
+              if (pr.type === "question") { setNewItemLoading(false); setFormMsg(""); toOwnItem("", [{ role: "user", text: "A photo of a food" + (descText ? ": " + descText : "") + "." }, { role: "assistant", text: pr.question }]); return; }
+              var pit = itemFromReply(pr.reply);
+              var info = pit;   /* for the suitability line below (per portion) */
+              setCameraPreview(withRuleRating(Object.assign({}, pit, { kcal: pit.kcal, itemType: pit.servings > 1 ? "ingredient" : (pr.reply.itemType === "ingredient" ? "ingredient" : "packaged"), originalIngredients: (pit.ingredients || []).join(", "), source: "photo", category: addingCategory })));
               setReviewCategories([addingCategory]);
               setReviewSideType("");
               setFormMsg("");
@@ -411,24 +424,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             setHelpEatLoading(false);
           };
           window._lcRecheckAddPhoto = function(desc) { if (window._lcAddPhoto) { setCameraPreview(null); addFromCamera(window._lcAddPhoto, desc); } };
-          var addNewItem = async function() {
+          var addNewItem = async function() {   /* v2.19.1 F27: a typed description goes to the clarifying conversation (per portion; asks, doesn't fail) */
             if (!newItemName.trim()) return;
-            setNewItemLoading(true);
-            try {
-              var isJC2 = activeTab === "jc";
-              // Use Claude for nutritional lookup with full detail
-              var prompt = "Find nutritional info for: " + newItemName + ". Classify as 'packaged' if it is a pre-made supermarket product (e.g. Aldi chicken sizzler, protein bar, ready meal) or 'ingredient' if it is a home-made recipe cooked from scratch (e.g. spag bol, curry, stir fry). If 'ingredient', list the individual ingredients needed. Return ONLY JSON: {\"name\":\"product or food name\",\"kcal\":calories_per_serving,\"protein\":grams,\"fat\":total_fat_grams,\"satFat\":saturated_fat_grams,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"carbs\":carbs_grams,\"fibre\":fibre_grams,\"salt\":salt_grams,\"rating\":\"GREAT or AMBER or RED based on healthiness\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[\"item1\",\"item2\"] (empty array if packaged),\"suitability\":\"ONE sentence suitability for " + (isJC2 ? "JC, male 49, " + kcalTargetText(data && data[activeTab]) + ", <20g sat fat, thyroid issues" : "Becks, female 48, " + kcalTargetText(data && data[activeTab]) + ", <20g sat fat, LDL 7.2") + "\"}";
-              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: prompt }] }) });
-              var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-              var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
-              if (txt) {
-                var jsonStr = txt.replace(/```json|```/g, "").trim(); var jsonMatch = jsonStr.match(/\{[\s\S]*\}/); if (!jsonMatch) throw new Error("No JSON found"); var info = JSON.parse(jsonMatch[0]);
-                setCameraPreview(withRuleRating({ name: info.name || newItemName, kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, addedSugar: info.addedSugar || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0, rating: info.rating || "AMBER", itemType: info.itemType || "packaged", ingredients: info.ingredients || [], originalIngredients: (info.ingredients || []).join(", "), suitability: info.suitability || "", category: addingCategory }));
-                setReviewCategories(addingCategory ? [addingCategory] : []);
-                setReviewSideType("");
-              }
-            } catch(e) { setFormMsg(window.aiErrorMsg(e)); setTimeout(function() { setFormMsg(""); }, 5000); }
-            setNewItemName(""); setNewItemLoading(false);
+            var t = newItemName.trim(); setNewItemName(""); toOwnItem(t);
           };
 
           /* ═══ Shared confirm handler for Review Item (inline + overlay) ═══ */
@@ -478,31 +476,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             var cats = reviewCategories;
             if (cats.length === 0) return;
 
-            /* Step 1: If ingredients changed, recalculate and show updated values */
+            /* Step 1 (v2.19.1 F27): changed ingredients are worked out PER PORTION in the clarifying conversation */
             if (cp.itemType === "ingredient" && cp.originalIngredients !== undefined && editedIngredients.join(", ") !== cp.originalIngredients) {
-              setFormMsg("🔄 Recalculating nutritional values...");
-              try {
-                /* v2.6.5 D7 on the Review path: same whole-recipe prompt, plausibility retry, apply only real values */
-                var askRec = async function(note) {
-                  var recResp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 600, messages: [{ role: "user", content: recalcPrompt(cp.name, editedIngredients, note) }] }) });
-                  var recResult = await recResp.json();
-                  var recErr = handleApiError(recResult); if (recErr) throw new Error(recErr);
-                  var recTxt = ""; if (recResult.content) { for (var ri3=0; ri3<recResult.content.length; ri3++) { if(recResult.content[ri3].text) recTxt += recResult.content[ri3].text; } }
-                  return parseRecalc(recTxt);
-                };
-                var prr = await askRec("");
-                if (prr.implausible) prr = await askRec("A previous answer was implausible: " + prr.problem + ". Recheck every ingredient amount.");
-                if (!prr.values) throw new Error(prr.problem + " — nothing was changed");
-                var rv = prr.values;
-                setCameraPreview(withRuleRating(Object.assign({}, cp, { kcal: rv.kcal, jcKcal: rv.kcal, beckKcal: rv.kcal, protein: rv.protein, fat: rv.fat, satFat: rv.satFat, addedSugar: rv.addedSugar, carbs: rv.carbs, fibre: rv.fibre, salt: rv.salt, name: renameKcal(cp.name, rv.kcal), assumed: prr.assumed, originalIngredients: editedIngredients.join(", "), recalculated: true })));
-                if (nameEl) nameEl.value = renameKcal(cp.name, rv.kcal);
-                setFormMsg("✅ Nutritional values updated: " + (cp.kcal || 0) + " → " + rv.kcal + " kcal, protein " + (cp.protein || 0) + " → " + rv.protein + "g, sat fat " + (cp.satFat || 0) + " → " + rv.satFat + "g" + (prr.assumed.length ? ". Assumed: " + prr.assumed.join(", ") : "") + ". Press Continue to add, or Edit Again to change the ingredients.");
-                return;
-              } catch(re) {
-                if (window.isEnergyEmpty(re)) { setFormMsg(window.energyEmptyMsg); }
-                else { setFormMsg("⚠️ Recalculation failed: " + String(re.message || re).substring(0, 80) + ". Press Confirm to retry or Cancel."); }
-                return;
-              }
+              toOwnItem(editedName + ". Ingredients: " + editedIngredients.join(", ") + "." + (cp.servings ? " It makes " + cp.servings + " portions." : ""));
+              return;
             }
 
             /* Step 2: Add item to selected categories (shared step) */
@@ -526,7 +503,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             var editedName = (nameEl && nameEl.value.trim()) || d.name;
             var editedIng = ingEl ? ingEl.value.split(",").map(function(x){return x.trim();}).filter(function(x){return x.length > 0;}) : (d.ingredients || []);
             var dd = Object.assign({}, d, { name: editedName, ingredients: editedIng });
-            if (dd.itemType === "ingredient" && editedIng.length > 0 && (editedIng.join(", ") !== dd.originalIngredients || (/^Nutrition looks off/.test(dd.checkReason || "") && !dd.recalculated))) { /* D7: a doubtful item recalculates on Confirm */
+            if (dd.itemType === "ingredient" && editedIng.length > 0 && (editedIng.join(", ") !== dd.originalIngredients || ((/^Nutrition looks off|^Check me — confirm portions/.test(dd.checkReason || "") || dd.portionCheck) && !dd.recalculated))) { /* D7: a doubtful item recalculates on Confirm */
               /* v2.19.0: recalculated PER PORTION through the clarifying conversation (replaces the whole-recipe D7 call) */
               setEditDraft(dd);
               setEditClarify("Recalculate per portion — " + editedName.replace(/\s*\(\d+\s*kcal\)\s*$/i, "") + ". Ingredients: " + editedIng.join(", ") + "." + (dd.servings ? " It makes " + dd.servings + " portions." : ""));
@@ -561,28 +538,32 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             var isJC2 = activeTab === "jc";
             var targetsStr = isJC2 ? "Daily targets: " + kcalTargetText(data && data[activeTab]) + ", 110-130g protein, <20g sat fat, <25g added sugar, 30-35g fibre, <6g salt" : "Daily targets: " + kcalTargetText(data && data[activeTab]) + ", 90-110g protein, <20g sat fat (critical - LDL 7.2 high cholesterol/suspected FH), <25g added sugar, 25-30g fibre, <6g salt";
             var listItems = bulkListFor(bulkCatArg); var setList = bulkSetterFor(bulkCatArg); var storageKey2 = bulkKeyFor(bulkCatArg);
-            var addedCount = 0; var skippedCount = 0; var failed = []; var lastErr = "";
+            var addedCount = 0; var skippedCount = 0; var failed = []; var lastErr = ""; var helpLines = [];   /* v2.19.1: lines that need the person */
+            setBulkHelp([]);
             for (var bn = 0; bn < batches.length; bn++) {
               var batch = batches[bn];
               setBulkRun({ done: bn * BULK_BATCH, total: lines.length, failed: failed, cat: bulkCatArg });
               setFormMsg("🔍 Rating " + (bn * BULK_BATCH + 1) + "–" + (bn * BULK_BATCH + batch.length) + " of " + lines.length + "…");
               try {
-                var prompt = "I have a list of food items to add to a meal planning app. For each item, find the closest nutritional match and assign a RAG colour rating.\n\nRating rules:\n- GREAT (green): Fits well within daily targets, healthy choice\n- AMBER: Acceptable but has some nutritional concerns\n- RED: Should be limited — high in sat fat, sugar, or calories\n\nClassification: 'packaged' if pre-made supermarket product, 'ingredient' if home-made recipe. If 'ingredient', list individual ingredients needed.\n\nPerson's profile: " + targetsStr + "\n\nItems to look up:\n" + batch.join("\n") + "\n\nReturn ONLY a JSON array. For each item: {\"name\":\"item name (corrected spelling)\",\"kcal\":number,\"protein\":number,\"fat\":number,\"satFat\":number,\"addedSugar\":added_sugar_grams_only_not_natural_sugars,\"carbs\":number,\"fibre\":number,\"salt\":number,\"rating\":\"GREAT or AMBER or RED\",\"itemType\":\"packaged or ingredient\",\"ingredients\":[],\"suitability\":\"ONE sentence\",\"matched\":true}. If cannot identify: {\"name\":\"original name\",\"matched\":false}. Per typical serving. ONLY JSON array.";
-                var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", signal: token.ctrl ? token.ctrl.signal : undefined, headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4000, messages: [{ role: "user", content: prompt }] }) });
-                var result = await resp.json();
-                if (token.cancelled) break;                                     /* D5: late results are discarded */
-                var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-                var txt = ""; if (result.content) { for (var ri = 0; ri < result.content.length; ri++) { if (result.content[ri].text) txt += result.content[ri].text; } }
-                var arrMatch = txt.replace(/```json|```/g, "").trim().match(/\[[\s\S]*\]/); if (!arrMatch) throw new Error("No JSON array found");
-                var items = JSON.parse(arrMatch[0]);
+                /* v2.19.1 F27: per-portion items with the shared schema; each line validated (retried), unclear lines → the person */
+                var callBulk = async function(msgs) {
+                  var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", signal: token.ctrl ? token.ctrl.signal : undefined, headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4000, temperature: 0, system: CLARIFY_SYSTEM, messages: msgs }) });
+                  var result = await resp.json();
+                  if (token.cancelled) throw new Error("cancelled");
+                  var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
+                  var txt = ""; (result.content || []).forEach(function(c0) { if (c0.text) txt += c0.text; }); return txt;
+                };
+                void targetsStr; void isJC2;
+                var got = await askItemsBatch(batch, { call: callBulk });
+                if (token.cancelled) break;
+                got.help.forEach(function(h) { helpLines.push(h); });
                 var batchNew = [];
-                for (var bi = 0; bi < items.length; bi++) {
-                  var it = items[bi];
-                  if (!it.matched && it.matched !== undefined) { skippedCount++; continue; }
+                for (var bi = 0; bi < got.items.length; bi++) {
+                  var it = itemFromReply(got.items[bi].reply);
                   var dupeName2 = (it.name || "").toLowerCase().trim();
                   if (listItems.concat(batchNew).some(function(x) { return x.name.toLowerCase().trim() === dupeName2; })) { skippedCount++; continue; }
-                  var newItem = withRuleRating({ id: "custom_" + Date.now() + "_" + bn + "_" + bi, name: it.name || "Unknown", jcKcal: it.kcal || 0, beckKcal: it.kcal || 0, protein: it.protein || 0, fat: it.fat || 0, satFat: it.satFat || 0, addedSugar: it.addedSugar || 0, carbs: it.carbs || 0, fibre: it.fibre || 0, salt: it.salt || 0, rating: it.rating || "AMBER", itemType: it.itemType || "packaged", ingredients: it.ingredients || [], freq: "Daily", isCustom: true, suitability: it.suitability || "", checkMe: true }); /* D11: rule rating */
-                  if (bulkCatArg === "dinner") { newItem.jcProt = it.protein; newItem.beckProt = it.protein; newItem.jcFat = it.fat; newItem.beckFat = it.fat; newItem.time = 30; newItem.shop = it.itemType === "ingredient" ? (it.ingredients || []) : [it.name]; }
+                  var newItem = withRuleRating(Object.assign({}, it, { id: "custom_" + Date.now() + "_" + bn + "_" + bi, source: "bulk", checkMe: true, checkReason: "Added by bulk upload: check the portion (" + portionLabel(it) + "), weight and ingredients match what you have, then save." }));
+                  if (bulkCatArg === "dinner") { newItem.time = 30; newItem.shop = (it.ingredients || []).length ? it.ingredients : [it.name]; }
                   batchNew.push(newItem);
                 }
                 if (token.cancelled) break;
@@ -601,6 +582,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             }
             setNewItemLoading(false);
             if (token.cancelled) return;                                           /* cancelBulk has already reported */
+            setBulkHelp(helpLines);
             bulkToken.current = null;
             setBulkRun(failed.length ? { done: lines.length - failed.length, total: lines.length, failed: failed, cat: bulkCatArg } : null);
             if (failed.length) {
@@ -662,32 +644,32 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             } catch(e) { setRagRecalcMsg("Error: " + (window.isEnergyEmpty(e) ? window.energyEmptyMsg : String(e.message || e).substring(0, 100)) + " — lists already finished were saved."); }
             setListJob("");
           };
-          var recheckNutrition = async function() {
+          var recheckNutrition = async function() {   /* v2.19.1 F27: per portion — flags whole-recipe / per-100 g values; never changes them */
             if (listJob) return;
-            if (!confirm("Re-check nutrition for recipe items? Values are NOT changed; doubtful items are marked \"Check me\" for you to open and review.")) return;
+            if (!confirm("Re-check nutrition per portion? Values are NOT changed; anything that looks like a whole recipe or a per-100 g value is marked \"Check me — confirm portions\" for you to open and review.")) return;
             setListJob("recheck"); setRagRecalcMsg("Re-checking nutrition…");
             try {
-              var checked = 0, flagged = 0;
+              var checked = 0, flagged = 0, unchecked = 0;
               for (var ci = 0; ci < LIST_CATS.length; ci++) {
                 var c = LIST_CATS[ci]; var list = bulkListFor(c).slice();
-                var recipes = list.filter(function(x) { return (x.ingredients || []).length > 0; }); if (!recipes.length) continue;
+                var cands = list.filter(function(x) { return (parseFloat(x.jcKcal || x.kcal) || 0) > 0 && !x.meal; }); if (!cands.length) continue;
                 var verdict = {};
-                await inBatches(recipes, 10, async function(batch, off) {
-                  setRagRecalcMsg("Re-checking " + catLabel(c) + " (" + (off + 1) + "–" + (off + batch.length) + " of " + recipes.length + ")…");
-                  var arr = await askJsonArray("For each recipe below, add up the calories of the WHOLE recipe exactly as listed (do not divide into servings; assume typical amounts where none are given). Recipes: " + batch.map(function(x) { return x.id + ": " + stripKcalName(x.name) + " = " + x.ingredients.join(", "); }).join(" | ") + ". Return ONLY a JSON array: [{\"id\":\"item_id\",\"kcal\":total,\"breakdownSum\":sum_of_ingredient_kcal}]");
-                  arr.forEach(function(r) { if (r && r.id != null) verdict[r.id] = r; });
+                await inBatches(cands, 10, async function(batch, off) {
+                  setRagRecalcMsg("Re-checking " + catLabel(c) + " (" + (off + 1) + "–" + (off + batch.length) + " of " + cands.length + ")…");
+                  var res = await recheckBatch(batch.map(function(x) { return { id: x.id, name: stripKcalName(x.name), portion: portionLabel(x), kcal: x.jcKcal || x.kcal || 0, ingredients: (x.ingredients || []).join(", ") }; }));
+                  Object.keys(res.byId).forEach(function(k) { verdict[k] = res.byId[k]; }); unchecked += res.unchecked.length;
                 });
                 var touched = false;
                 var out = list.map(function(x) {
                   var v = verdict[x.id]; if (!v) return x; checked++;
-                  var stored = x.jcKcal || x.kcal || 0; var ref = Math.max(parseFloat(v.kcal) || 0, parseFloat(v.breakdownSum) || 0);
-                  if (ref > 0 && (stored < ref * 0.8 || stored > ref * 1.25)) { flagged++; touched = true; return Object.assign({}, x, { checkMe: true, checkReason: "Nutrition looks off: saved " + stored + " kcal, ingredients add up to about " + Math.round(ref) + " kcal. Open it and Confirm to recalculate." }); }
+                  var why = recheckFlag(parseFloat(x.jcKcal || x.kcal) || 0, v);
+                  if (why) { flagged++; touched = true; return Object.assign({}, x, { checkMe: true, portionCheck: true, checkReason: why }); }
                   return x;
                 });
                 if (touched) { bulkSetterFor(c)(out); await sSet(bulkKeyFor(c), JSON.stringify(out)); }
               }
-              setRagRecalcMsg("✅ Re-checked " + checked + " recipe items: " + flagged + " look doubtful (marked Check me). Nothing else was changed.");
-            } catch(e) { setRagRecalcMsg("Error: " + (window.isEnergyEmpty(e) ? window.energyEmptyMsg : String(e.message || e).substring(0, 100))); }
+              setRagRecalcMsg("✅ Re-checked " + checked + " items per portion: " + flagged + " marked \"Check me — confirm portions\". Nothing else was changed." + (unchecked ? " " + unchecked + " couldn't be checked this time — run it again later." : ""));
+            } catch(e) { setRagRecalcMsg(window.isEnergyEmpty(e) ? window.energyEmptyMsg : "The Companion isn't reachable right now — nothing was changed. Try again later."); }
             setListJob("");
           };
 
@@ -853,7 +835,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           {/* My Eating Lists — collapsible */}
           {manageListsOpen && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 14, marginTop: 8, marginBottom: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>🍽️ My Eating Lists</div>
-            <UpdateLists tab={ulTab} setTab={setUlTab} cats={CATS} catalogue={CATALOGUE} available={CATALOGUE} ownItems={OWN_ITEMS} lookup={_listLookup} isJC={isJC} returnTo={returnTo} onAddNow={addNowToSlot} onBackToSlot={backToSlot} />
+            <UpdateLists key={ownSeed ? ownSeed.k : 0} seed={ownSeed ? ownSeed.text : ""} initialTurns={ownSeed ? ownSeed.turns : null} tab={ulTab} setTab={setUlTab} cats={CATS} catalogue={CATALOGUE} available={CATALOGUE} ownItems={OWN_ITEMS} lookup={_listLookup} isJC={isJC} returnTo={returnTo} onAddNow={addNowToSlot} onBackToSlot={backToSlot} />
+            {bulkHelp.length > 0 && (<div data-testid="bulk-help" style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: 8, marginBottom: 8, fontSize: 12, color: "#0f172a" }}>
+              <b>{bulkHelp.length} {bulkHelp.length === 1 ? "line needs" : "lines need"} a little more from you</b> — your Companion couldn't tell what or how much:
+              {bulkHelp.map(function(h, i) { return (<div key={i} style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}><span style={{ flex: 1 }}>“{h.line}”</span>
+                <button type="button" style={btnOpen} onClick={function() { setBulkHelp(bulkHelp.filter(function(x, j) { return j !== i; })); toOwnItem("", [{ role: "user", text: h.line }, { role: "assistant", text: h.question }]); }}>Finish with my Companion</button></div>); })}
+            </div>)}
               {[{k:"breakfast",label:"Breakfasts",items:allBfast,customs:customBreakfasts,setCustoms:setCustomBreakfasts,storageKey:"custom_breakfasts"},
                 {k:"lunch",label:"Lunches",items:allLunch,customs:customLunches,setCustoms:setCustomLunches,storageKey:"custom_lunches"},
                 {k:"dinner",label:"Dinners",items:allDinners,customs:customMeals,setCustoms:setCustomMeals,storageKey:"custom_meals"},
@@ -967,6 +954,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <input id="review-item-name" defaultValue={cameraPreview.name} style={{ width: "100%", padding: "6px 8px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, boxSizing: "border-box" }} />
                 </div>
                 <div style={{ display: "flex", gap: 8, marginBottom: 6, fontSize: 10, flexWrap: "wrap" }}>
+                  <span data-testid="review-portion" style={{ flexBasis: "100%", color: "#475569" }}>{portionLabel(cameraPreview)} · values per portion</span>
                   <span><b>{cameraPreview.kcal}</b> kcal</span>
                   <span><b>{cameraPreview.protein}g</b> prot</span>
                   <span><b>{cameraPreview.fat}g</b> fat</span>

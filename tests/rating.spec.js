@@ -62,16 +62,16 @@ test("D7: Re-check nutrition flags doubtful recipe items (values unchanged); Con
   const seen = [];
   await page.route("https://api.anthropic.com/**", (r) => {
     const t = JSON.stringify(r.request().postDataJSON());
-    if (/add up the calories of the WHOLE recipe/.test(t)) { seen.push("recheck"); return r.fulfill(aiText([{ id: "t_oats", kcal: 612, breakdownSum: 600 }, { id: "t_fine", kcal: 210, breakdownSum: 205 }])); }
+    if (/CLARIFY_ITEM RECHECK/.test(t)) { seen.push("recheck"); return r.fulfill(aiText([{ id: "t_oats", perPortionKcal: 612, looksLike: "portion" }, { id: "t_fine", perPortionKcal: 210, looksLike: "portion" }])); }
     if (/CLARIFY_ITEM/.test(t)) { seen.push("recalc"); return r.fulfill(aiText({ type: "item", name: "Test Oats", portionDesc: "1 bowl", servings: 1, ingredients: ["95g rolled oats", "150g berries"], perPortion: { kcal: 470, protein: 15, fat: 8, satFat: 1.5, carbs: 82, sugar: 20, addedSugar: 0, fibre: 12, salt: 0.1 } })); }
     return r.fallback();
   });
   await page.reload();
   await tab(page, "My Eating");
   await page.getByRole("button", { name: "🔎 Re-check nutrition" }).click();
-  await expect(page.getByText(/✅ Re-checked \d+ recipe items: 1 look doubtful/)).toBeVisible({ timeout: 20000 });
+  await expect(page.getByText(/✅ Re-checked \d+ items per portion: 1 marked "Check me — confirm portions"/)).toBeVisible({ timeout: 20000 });
   const bf = await getKey("custom_breakfasts");
-  expect(bf.find((x) => x.id === "t_oats")).toMatchObject({ jcKcal: 387, checkMe: true, checkReason: expect.stringMatching(/^Nutrition looks off: saved 387 kcal/) });
+  expect(bf.find((x) => x.id === "t_oats")).toMatchObject({ jcKcal: 387, checkMe: true, checkReason: expect.stringMatching(/^Check me — confirm portions: saved 387 kcal per portion, about 612 kcal expected/) });
   expect(bf.find((x) => x.id === "t_fine").checkMe).toBeUndefined();
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
   const row = page.locator("div", { hasText: /^Test Oats 95g/ }).filter({ has: page.getByRole("button", { name: /^Open / }) }).last();
@@ -86,24 +86,22 @@ test("D7: Re-check nutrition flags doubtful recipe items (values unchanged); Con
   expect(errors).toEqual([]);
 });
 
-test("D7 on the add-item Review path: implausible totals are refused; good values show before → after", async ({ page }) => {
+// v2.19.1 (F27): edited ingredients on the Review path go to the clarifying conversation (no whole-recipe recalculation)
+test("Review path: edited ingredients hand over to the clarifying conversation, per portion", async ({ page }) => {
   const { errors } = await openApp(page);
-  let reply = { kcal: 200, protein: 8, satFat: 2, breakdown: [{ ingredient: "oats 80g", kcal: 300 }, { ingredient: "milk 250ml", kcal: 120 }] };
-  let calls = 0;
-  await page.route("https://api.anthropic.com/**", (r) => /homemade dish/.test(r.request().postData() || "") ? (calls++, r.fulfill(aiText(reply))) : r.fallback());
   await tab(page, "My Eating");
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
   await page.getByRole("button", { name: "📷 Photo or bulk paste" }).click();
-  await page.getByPlaceholder("e.g. Costa Rocky Road, Protein shake...").fill("Test Porridge");
-  await page.getByRole("button", { name: "Add", exact: true }).click();
+  const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  await page.route("https://api.anthropic.com/**", (r) => /CLARIFY_ITEM PHOTO/.test(r.request().postData() || "") ? r.fulfill(aiText({ isFood: true, type: "item", name: "Test Porridge", portionDesc: "1 bowl", servings: 1, itemType: "ingredient", ingredients: ["oats 40g", "milk 200ml"], perPortion: { kcal: 250, protein: 10, fat: 8, satFat: 3, carbs: 33, sugar: 10, addedSugar: 0, fibre: 4, salt: 0.2 } })) : r.fallback());
+  await page.locator('#add-item-form-manage input[type="file"]').setInputFiles({ name: "p.png", mimeType: "image/png", buffer: PNG });
+  await expect(page.getByTestId("review-portion")).toHaveText("1 portion = 1 bowl · values per portion");
   await page.locator("#review-item-ingredients").fill("oats 80g, milk 250ml");
   const panel = page.locator("div", { has: page.locator("#review-item-ingredients") }).filter({ has: page.getByRole("button", { name: "✓ Confirm" }) }).last();
   await panel.getByRole("button", { name: /^breakfast$/i }).click();
   await panel.getByRole("button", { name: "✓ Confirm" }).click();
-  await expect(page.getByText(/Recalculation failed: the total \(200 kcal\) is less than its ingredients add up to \(420 kcal\)/).first()).toBeVisible();
-  expect(calls).toBe(2);
-  reply = { kcal: 430, protein: 18, satFat: 3, addedSugar: 0, breakdown: [{ ingredient: "oats 80g", kcal: 300 }, { ingredient: "milk 250ml", kcal: 120 }], assumed: [] };
-  await panel.getByRole("button", { name: "✓ Confirm" }).click();
-  await expect(page.getByText(/250 → 430 kcal, protein 10 → 18g/).first()).toBeVisible();
+  const ul = page.getByTestId("update-lists");
+  await expect(ul.getByLabel("Describe your item")).toHaveValue(/oats 80g, milk 250ml/);
+  await expect(page.getByText(/Recalculation failed|could not be read/)).toHaveCount(0);
   expect(errors).toEqual([]);
 });
