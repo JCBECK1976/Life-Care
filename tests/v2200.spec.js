@@ -195,3 +195,71 @@ test("4 Exercise feedback thread at 360 px: full-width textarea (never a narrow 
   await expect(page.getByTestId("thread-session")).not.toContainText(/(^|[^r] )Companion ·/);
   expect(errors).toEqual([]);
 });
+
+/* ---------- 5. Exercise progression chain ---------- */
+import { nextLogPrefill, progressionRange, resolveTargetWeight, displayCurrent, parseProgressionValue } from "../src/lib/exercise.js";
+const ROW = { name: "Seated Cable Row", exType: "weights", status: "ready to move", current: "Next increment up from 42kg", reps: "12x3", target: "Next increment up from 42kg x 12x3", sets: 3,
+  prog: [{ wk: 1, w: "42kg", r: "15x3" }, { wk: 2, w: "42kg", r: "15x3" }] };
+test("5 progression helpers: Ready to Move pre-fills the NEXT weight (never the previous), a concrete range, the person's own value", () => {
+  const last = ROW.prog[1];
+  expect(resolveTargetWeight("Next increment up from 42kg", 42, ROW)).toBe(49);          // pin stack 42 → 49
+  expect(resolveTargetWeight("45–47kg", 42, ROW)).toBe(45);
+  expect(resolveTargetWeight("49kg", 42, ROW)).toBe(49);
+  expect(nextLogPrefill(ROW, last)).toMatchObject({ w: "49", r: "12" });
+  expect(nextLogPrefill({ ...ROW, target: "", progressionNotes: "increments: 45, 47, 49" }, last)).toMatchObject({ w: "45", r: "12", source: "next step up" });
+  expect(progressionRange({ ...ROW, progressionNotes: "increments: 45, 47, 49" }, last).text).toBe("Next: try 45–47 kg (the next 1–2 steps on your stack)");
+  expect(nextLogPrefill({ ...ROW, progressionValue: 47 }, last)).toMatchObject({ w: "47", source: "your next weight" });
+  expect(nextLogPrefill({ ...ROW, progressionValue: 40, status: "building", target: "" }, last)).toBe(null);           // stale value ignored
+  expect(nextLogPrefill({ name: "Single-leg Calf Raise", exType: "weights", status: "moved up", progressionValue: 8 }, { w: "5kg", r: "15x3" })).toMatchObject({ w: "8" });   // Becks 5 → 8 kg
+  expect(nextLogPrefill({ ...ROW, status: "building", target: "" }, last)).toBe(null);                                // not ready: previous stays
+  expect(displayCurrent(ROW)).toBe("42kg");
+  expect(parseProgressionValue("I'll use 47kg")).toBe(47); expect(parseProgressionValue("plate 8")).toBe(8);
+});
+
+async function seedExercises(page, list) {
+  const dash = await get("dashboard:data"); const d = DAYS[new Date().getDay()];
+  dash.jc.exercises[d] = list; await put("dashboard:data", dash);
+  await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
+  await tab(page, "My Exercise");
+}
+test("5 chain (UI): card shows the real weight + a concrete next range; the log pre-fills 49 kg × 12, Previous stays 42 kg; a user-set weight wins", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const CALF = { name: "Single-leg Calf Raise", exType: "weights", status: "ready to move", current: "5kg", reps: "15x3", sets: 3, prog: [{ wk: 1, w: "5kg", r: "15x3" }, { wk: 2, w: "5kg", r: "15x3" }] };
+  await seedExercises(page, [ROW, CALF]);
+  await expect(page.getByText("Seated Cable Row").first()).toBeVisible();
+  await expect(page.locator("body")).not.toContainText("Next increment up from");
+  await expect(page.getByText(/^42kg · 12x3/).first()).toBeVisible();
+  await expect(page.getByTestId("ex-next").nth(0)).toContainText("Next: try 49–55 kg (the next 1–2 steps on your stack)");
+  await page.getByRole("button", { name: "📋 Log", exact: true }).nth(0).click();
+  await expect(page.getByTestId("log-previous")).toContainText("Previous: 42kg");
+  await expect(page.getByTestId("log-progression")).toHaveText("Progression: 49 kg × 12 (accepted progression) — pre-filled below");
+  const w1 = page.locator('input[placeholder="Weight"]').first();
+  await expect(w1).toHaveValue("49");
+  // Becks-style: the person sets their own next weight (5 → 8 kg) and it is recorded and pre-filled
+  const calfNext = page.getByTestId("ex-next").nth(1);
+  await calfNext.getByTestId("next-value-input").fill("8");
+  await calfNext.getByTestId("next-value-save").click();
+  await expect(calfNext).toContainText("Next: 8 kg (your choice)");
+  await expect(page.getByText(/Progression: 8 kg \(set by you/).first()).toBeVisible();
+  await page.getByRole("button", { name: "📋 Log", exact: true }).nth(1).click();
+  await expect(page.getByTestId("log-progression")).toContainText("Progression: 8 kg × 12 (your next weight)");
+  await expect(page.locator('input[placeholder="Weight"]').first()).toHaveValue("8");
+  const saved = (await get("dashboard:data")).jc.exercises[DAYS[new Date().getDay()]].find((e) => e.name === "Single-leg Calf Raise");
+  expect(saved.progressionValue).toBe(8);
+  expect(errors).toEqual([]);
+});
+
+test("5 chain (UI): accepting 'Next increment up from 42kg' stores 49kg (a number, not the sentence) and the next log pre-fills it", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const d = DAYS[new Date().getDay()];
+  await put("session_feedback_all", { ["jc_" + d]: { summary: "Good", nextSession: "", exercises: [{ name: "Seated Cable Row", verdict: "Two clean 15×3s.", icon: "star", newStatus: "ready to move", recommendation: "Move up — tell me the exact weight you'll use.", targetWeight: "Next increment up from 42kg", targetReps: "12x3" }] } });
+  await seedExercises(page, [{ ...ROW, status: "consolidating", current: "42kg", target: "" }]);
+  await page.getByRole("button", { name: "▼ Show Feedback" }).first().click();
+  await page.getByRole("button", { name: /Exercise Feedback & Recommendations/ }).click();
+  await page.getByRole("button", { name: "Accept", exact: true }).click();
+  await expect.poll(async () => (await get("dashboard:data")).jc.exercises[d][0].current).toBe("49kg");
+  await page.getByRole("button", { name: "📋 Log", exact: true }).first().click();
+  await expect(page.locator('input[placeholder="Weight"]').first()).toHaveValue("49");
+  await expect(page.getByTestId("log-previous")).toContainText("42kg");
+  expect(errors).toEqual([]);
+});

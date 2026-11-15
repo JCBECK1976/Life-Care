@@ -4,6 +4,7 @@ import { calcWeek, fbIcon, sBg, sColor, sLabel, setPlainNote } from "../lib/util
 import { buildExProfileInfo, getMoodContext } from "../lib/aiContext.js";
 import { sSet } from "../lib/storage.js";
 import { scrollOnMount } from "../lib/scrollIntoView.js";
+import { displayCurrent, latestEntry, measureOf, nextLogPrefill, parseProgressionValue, progressionRange, resolveTargetWeight } from "../lib/exercise.js";
 import { attachCompanion, companionFromSession, sameExercise, setCompanionDecision, entrySets, findWeekIdx, previousEntry, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsDiffer, setsToSave, syncAfterProgChange, weightLabel } from "../lib/exercise.js";
 import React from "react";
 import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
@@ -235,8 +236,17 @@ export default function ExerciseSection({ ctx }) {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }} onClick={function() { var curType=ex.exType||getExerciseType(ex.name);var tc=getExerciseTypeConfig(curType);var curM2=(ex.reps||tc.defaultM2).replace(/x\d+$/,"");setSelectedEx({day:day,idx:i});setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:ex.current||tc.defaultM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",exerciseGuide:ex.exerciseGuide||"",prePostGuide:ex.prePostGuide||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});setAddExOpen(false); }}>{ex.name} <span style={{ fontSize: 9, color: "#475569" }}>✎</span></div>
-                          <div style={{ color: "#475569", fontSize: 11, fontWeight: 500 }}>{(ex.prog && ex.prog.length && setsDiffer(ex.prog[ex.prog.length - 1])) ? weightLabel(ex.prog[ex.prog.length - 1]) : ex.current} · {ex.reps}{ex.exType && ex.exType !== "weights" && <span style={{fontSize:9,color:"#475569",marginLeft:6}}>{EXERCISE_TYPES[ex.exType] ? EXERCISE_TYPES[ex.exType].label : ""}</span>}</div>
+                          <div style={{ color: "#475569", fontSize: 11, fontWeight: 500 }}>{(ex.prog && ex.prog.length && setsDiffer(ex.prog[ex.prog.length - 1])) ? weightLabel(ex.prog[ex.prog.length - 1]) : displayCurrent(ex)} · {ex.reps}{ex.exType && ex.exType !== "weights" && <span style={{fontSize:9,color:"#475569",marginLeft:6}}>{EXERCISE_TYPES[ex.exType] ? EXERCISE_TYPES[ex.exType].label : ""}</span>}</div>
                           {ex.status && <div style={{ marginTop: 3 }}><span style={{ fontSize: 9, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap", border: "1px solid " + sColor(ex.status) + "40" }}>{sLabel(ex.status)}</span></div>}
+                          {ex.status === "ready to move" && !ex.stopped && (function() { var _m = measureOf(ex), _l = latestEntry(ex.prog), _pr = progressionRange(ex, _l), _nx = nextLogPrefill(ex, _l); var _id = "next-val-" + day + "-" + i; /* v2.20.0: a concrete next step, and the person's exact value */
+                            return (<div data-testid="ex-next" style={{ marginTop: 4, fontSize: 11, color: "#1e3a5f" }}>
+                              <div>{ex.progressionValue && _nx && _nx.source === "your next " + (_m.unit === "kg" ? "weight" : _m.label) ? "Next: " + ex.progressionValue + " " + _m.unit + " (your choice)" : _pr ? _pr.text : "Next: move up a step"}</div>
+                              <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
+                                <label htmlFor={_id} style={{ fontSize: 10, color: "#475569" }}>My next {_m.label} ({_m.unit})</label>
+                                <input id={_id} data-testid="next-value-input" type="number" inputMode="decimal" defaultValue={ex.progressionValue || ""} style={{ width: 70, padding: "4px 6px", border: "1px solid #cbd5e1", borderRadius: 6, fontSize: 12 }} />
+                                <button type="button" data-testid="next-value-save" aria-label={"Set my next " + _m.label + " for " + ex.name} onClick={function() { var el = document.getElementById(_id); var v = parseProgressionValue(el ? el.value : ""); if (!v) return; var nd = JSON.parse(JSON.stringify(data)); var t = nd[activeTab].exercises[day][i]; t.progressionValue = v; t.progressionSetWk = currentWeek; t.notes = (t.notes ? t.notes + "; " : "") + "Progression: " + v + " " + _m.unit + " (set by you, Wk" + currentWeek + ")"; saveData(nd); }} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #2563eb", background: "#fff", color: "#1e3a8a", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Set</button>
+                              </div>
+                            </div>); })()}
                         </div>
                         <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0,alignItems:"flex-end"}}>
                         <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} style={selectedEx&&selectedEx.day===day&&selectedEx.idx===i?btnFilledOn:btnProgress}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕ Progress":"👁 Progress"}</button>
@@ -246,6 +256,7 @@ export default function ExerciseSection({ ctx }) {
                       {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 6 }}>📋 {ex.notes}</div>}
                     
                     {selectedEx&&selectedEx.day===day&&selectedEx.idx===i&&(<div ref={scrollOnMount} data-testid="ex-progress-panel" style={{marginTop:10,padding:12,background:accentLight,borderRadius:8,border:"1px solid "+accentBorder,width:"100%"}}>
+                      {(function() { var _nx = nextLogPrefill(ex, latestEntry(ex.prog)); var _mu = measureOf(ex).unit; return _nx ? <div data-testid="progress-next" style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 8 }}>Next session: {_mu === "kg" ? _nx.w + " kg × " + _nx.r : _nx.r + " " + _mu} ({_nx.source})</div> : null; })()}
                       {ex.stopped ? <div style={{fontSize:11,color:"#475569",background:"#f1f5f9",padding:"8px 10px",borderRadius:6,textAlign:"center"}}>⏸ Stopped — view only. Restart in Exercise Settings to log again.</div> : <button onClick={function() { openLogForm(day, i); }} style={btnActionLg}>📋 Log {ex.name}</button>}
                       {logEx && logEx.day === day && logEx.idx === i && (() => {
             const ex = p.exercises[logEx.day] && p.exercises[logEx.day][logEx.idx]; if (!ex) return null;
@@ -254,6 +265,7 @@ export default function ExerciseSection({ ctx }) {
               <div data-testid="log-for" style={{ fontSize: 11, fontWeight: 700, color: accent, marginBottom: 2 }}>Logging for {personName(data, activeTab)}</div>
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Log: {ex.name}</div>
               <div style={{ fontSize: 11, color: "#475569", marginBottom: 6 }}><span data-testid="log-previous">Previous: {prev ? fmtEntry(prev) + " (Wk " + prev.wk + ")" : "No data"}</span></div>
+              {(function() { var _nx = nextLogPrefill(ex, prev); var _mu = measureOf(ex).unit; return _nx ? <div data-testid="log-progression" style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>Progression: {_mu === "kg" ? _nx.w + " kg × " + _nx.r : _nx.r + " " + _mu} ({_nx.source}) — pre-filled below</div> : null; })()}
               {prevComment && (<div style={{ padding: 8, background: "#fef3c7", borderRadius: 8, marginBottom: 8, border: "1px solid #fcd34d" }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>📋 NOTES FROM LAST SESSION</div>
                 <div style={{ fontSize: 11, color: "#92400e", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{prevComment}</div>
@@ -805,7 +817,7 @@ export default function ExerciseSection({ ctx }) {
                         otherDays.forEach(function(cd) { var cdExList = p.exercises[cd] || []; for (var cdi = 0; cdi < cdExList.length; cdi++) { if (cdExList[cdi].name === ex.name && cdExList[cdi].prog && cdExList[cdi].prog.length > 0) { crossDayLines.push(cd + ": " + cdExList[cdi].prog.slice(-3).map(function(cp) { return "Wk" + cp.wk + ": " + cp.w + " " + cp.r + (cp.note ? " (" + cp.note + ")" : ""); }).join(", ")); } } });
                         if (crossDayLines.length > 0) { crossDayCtx = " [OTHER SESSIONS: " + crossDayLines.join("; ") + "]"; }
                         var qualityCtx = ""; if (latest) { var frLabel = (function(){ var et = ex.exType || "weights"; return ["weights","bodyweight","timed_hold","stretching"].indexOf(et) >= 0 ? "Full Range" : "Completed in One"; })(); qualityCtx = " [QUALITY: " + frLabel + "=" + (latest.fullRange === "good" ? "Good" : "Working Towards") + ", Good Form=" + (latest.goodForm === "good" ? "Good" : "Working Towards") + "]"; } var guideCtx = ex.exerciseGuide ? " [EXERCISE GUIDE: " + ex.exerciseGuide.substring(0, 200) + "]" : ""; return ex.name + ": LATEST LOGGED=" + (latest ? latest.w + " " + latest.r : "none") + " (" + ex.status + ")" + qualityCtx + " HISTORY=[" + histLines + "]" + (ex.target ? " TARGET: " + ex.target : "") + (allNotes ? " [NOTES: " + allNotes + "]" : "") + " [PROGRESSION RULES: " + progRules + "]" + eqInfo + guideCtx + crossDayCtx; }).join("; ");
-                      var jsonFormat = '{"exercises":[{"name":"...","verdict":"max 25 words honest assessment","icon":"check|triangle|arrow|warning|circle|star","newStatus":"building|moved up|consolidating|ready to move|maintaining|reduce","recommendation":"optional progression suggestion","targetWeight":"recommended weight for next session e.g. 49kg or BW","targetReps":"recommended reps for next session e.g. 12x3 or 15x3"}],"summary":"2-3 sentences honest overall assessment — speak like a mate who trains with them","nextSession":"one sentence — specific focus for next session, warm and direct"}';
+                      var jsonFormat = '{"exercises":[{"name":"...","verdict":"max 25 words honest assessment","icon":"check|triangle|arrow|warning|circle|star","newStatus":"building|moved up|consolidating|ready to move|maintaining|reduce","recommendation":"optional progression suggestion","targetWeight":"next session weight as a NUMBER or concrete range, e.g. 49kg or 45–47kg (the next 1–2 steps) or BW — never \"up from X\"","targetReps":"recommended reps for next session e.g. 12x3 or 15x3"}],"summary":"2-3 sentences honest overall assessment — speak like a mate who trains with them","nextSession":"one sentence — specific focus for next session, warm and direct"}';
                       // Build previous session feedback context including accept/decline decisions
                       var prevSfbKey = activeTab + "_" + day;
                       var prevSfb = sessionFeedback ? sessionFeedback[prevSfbKey] : null;
@@ -876,6 +888,7 @@ export default function ExerciseSection({ ctx }) {
                         "5) STATUS RULES: Default target is 15x3 unless rules state otherwise. Two consecutive sessions hitting target = ready to move (star). First time hitting target = consolidating (arrow). Below target = building (arrow). Weight increase = moved up (triangle). Holding deliberately = maintaining (circle). Dropped = reduce (warning).\n" +
                         "6) Max 25 words per verdict. Be specific not generic.\n" +
                         "7) QUALITY TRACKING: Each exercise has [QUALITY] data — Full Range (or Completed in One for cardio) and Good Form toggles. 'Working Towards' means they are still developing that aspect. CRITICAL: If Full Range is 'Working Towards', do NOT recommend increasing weight — prioritise full range of motion with controlled 3-second eccentric tempo first. If Good Form is 'Working Towards', acknowledge their honesty and encourage form focus. Only recommend weight increases when BOTH quality indicators are 'Good' AND rep targets are met. Praise honesty when someone marks Working Towards — it shows self-awareness.\n\n" +
+                        "6) PROGRESSION (v2.20.0): when an exercise is ready to move, give targetWeight as a concrete range for the next 1–2 steps (e.g. 45–47kg), reps at the bottom of the range (e.g. 12x3), and in recommendation ASK them to note the exact weight they will use (or the right measure for that exercise: plate number, band, reps or seconds) in the note box so it is recorded. Never suggest the previous weight as the progression.\n" +
                         "Return ONLY valid JSON: " + jsonFormat;
                       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2500, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
@@ -917,7 +930,8 @@ export default function ExerciseSection({ ctx }) {
                               var origR = latestProg3 ? latestProg3.r : (dayExs3[di3].reps || "");
                               dayExs3[di3]._from = origW + " " + origR;
                               dayExs3[di3].status = ex.newStatus;
-                              var newW = ex.targetWeight || origW;
+                              var _rw = measureOf(dayExs3[di3]).unit === "kg" ? resolveTargetWeight(ex.targetWeight, origW, dayExs3[di3]) : null;   /* v2.20.0: a number, never prose / the previous weight */
+                              var newW = _rw ? _rw + "kg" : (measureOf(dayExs3[di3]).unit === "kg" ? origW : (ex.targetWeight || origW));
                               var newR = ex.targetReps || origR;
                               var isUserOverride = false;
                               if (userNote) {
@@ -929,6 +943,7 @@ export default function ExerciseSection({ ctx }) {
                                   isUserOverride = true;
                                 }
                                 dayExs3[di3].notes = (dayExs3[di3].notes ? dayExs3[di3].notes + "; " : "") + "Wk" + currentWeek + " accepted: " + userNote;
+                                var _pv = parseProgressionValue(userNote); if (_pv) { dayExs3[di3].progressionValue = _pv; dayExs3[di3].progressionSetWk = currentWeek; }   /* v2.20.0: the person's exact next value */
                               }
                               dayExs3[di3].target = newW + " x " + newR;
                               dayExs3[di3].current = newW;

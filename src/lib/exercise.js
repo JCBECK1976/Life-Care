@@ -177,3 +177,84 @@ export function companionFromSession(sessionFeedback, person, day, exName, wk) {
   if (e._decision) { c.decision = e._decision === "declined" ? "rejected" : e._decision; c.decisionNote = e._userNote || ""; }
   return c;
 }
+
+/* ---------- v2.20.0 progression chain (JC, Becks' Seated Cable Row): log → status → accept → next pre-fill ---------- */
+// The measure that progresses for each exercise type.
+export function measureOf(ex) {
+  var t = (ex && ex.exType) || getExerciseType(ex && ex.name);
+  if (t === "weights") return { key: "w", unit: "kg", label: "weight" };
+  if (t === "bodyweight") return { key: "r", unit: "reps", label: "reps" };
+  if (t === "timed_hold" || t === "stretching") return { key: "r", unit: "seconds", label: "hold time" };
+  if (t === "cardio" || t === "walking" || t === "sports") return { key: "w", unit: "minutes", label: "duration" };
+  return { key: "w", unit: "kg", label: "weight" };
+}
+var num = function(v) { var n = parseFloat(String(v == null ? "" : v).replace(",", ".")); return isFinite(n) ? n : 0; };
+/** Custom increments from the exercise's progression notes ("increments: 2.5, 5" / "steps 45,47,49"), or null (pin stack). */
+export function incrementsOf(ex) {
+  var m = /(?:increments?|steps?|plates?|stack)\s*[:=]?\s*([\d.,\s]+)(?:kg)?/i.exec((ex && ex.progressionNotes) || "");
+  return m && /\d/.test(m[1]) ? m[1] : null;
+}
+/** The next one and two steps up from a weight (custom increments, else the pin stack). */
+export function nextSteps(w, ex) {
+  var inc = incrementsOf(ex), a = nextPin(w, inc), b = nextPin(a, inc);
+  return [a, b];
+}
+/** A concrete range for the progression message, by measure. */
+export function progressionRange(ex, last) {
+  var m = measureOf(ex);
+  if (m.unit === "kg") {
+    var w = num(last && last.w); if (!w) return null;
+    var s = nextSteps(w, ex);
+    return { unit: "kg", from: s[0], to: s[1], text: "Next: try " + s[0] + "–" + s[1] + " kg (the next 1–2 steps on your stack)" };
+  }
+  var reps = parseReps(last && last.r); var top = reps.length ? Math.max.apply(null, reps) : 0;
+  if (!top) return null;
+  var add = m.unit === "seconds" ? [5, 10] : m.unit === "minutes" ? [2, 5] : [2, 3];
+  return { unit: m.unit, from: top + add[0], to: top + add[1], text: "Next: try " + (top + add[0]) + "–" + (top + add[1]) + " " + m.unit };
+}
+/** A concrete next weight from the Companion's targetWeight text, or null. "up from 42kg"/"next increment" → the next step
+ *  above prevW (never the previous weight); "45–47kg" → 45 (bottom of the range); "49kg" → 49. */
+export function resolveTargetWeight(text, prevW, ex) {
+  var t = String(text || ""), p = num(prevW);
+  var range = /(\d+(?:\.\d+)?)\s*(?:–|-|to)\s*(\d+(?:\.\d+)?)\s*kg/i.exec(t);
+  if (range) return num(range[1]);
+  var cleaned = t.replace(/(?:up\s+)?from\s+\d+(?:\.\d+)?\s*kg/ig, "");
+  var m = /(\d+(?:\.\d+)?)\s*kg/i.exec(cleaned);
+  if (m) return num(m[1]);
+  if (/increment|step|move up|go up|heavier|next/i.test(t) && p) return nextSteps(p, ex)[0];
+  return null;
+}
+/** The value a person chose for their next progression ("47kg", "47 kg", "plate 8", "8"), or null. */
+export function parseProgressionValue(note) {
+  var m = /(\d+(?:\.\d+)?)\s*(kg|reps?|s|sec|seconds|mins?|minutes)?\b/i.exec(String(note || ""));
+  return m ? num(m[1]) : null;
+}
+/** The bottom of the rep range for the next weight (the double-progression rules build 12 → 15). */
+export function bottomReps(ex) {
+  var m = /(\d+)\s*(?:–|-|to)\s*(\d+)\s*reps?/i.exec((ex && ex.progressionNotes) || "");
+  return m ? parseInt(m[1], 10) : 12;
+}
+/** What the next log should pre-fill. Returns null when nothing has moved on (then the previous entry is used). Never the
+ *  previous weight when the exercise is Ready to Move or a progression was accepted / set by the person. */
+export function nextLogPrefill(ex, last) {
+  if (!ex || !last) return null;
+  var m = measureOf(ex); if (m.unit !== "kg") {
+    var _top = Math.max.apply(null, parseReps(last.r).concat([0]));
+    if (ex.progressionValue != null && num(ex.progressionValue) > _top) return { w: last.w ? String(last.w).replace("kg", "") : "", r: String(ex.progressionValue), source: "your next " + m.label };
+    return null;
+  }
+  var prevW = num(last.w), bottom = bottomReps(ex);
+  if (ex.progressionValue != null && num(ex.progressionValue) > prevW) return { w: String(num(ex.progressionValue)), r: String(bottom), source: "your next weight" };   // a stale value (≤ last) is ignored
+  var tw = ex.target ? resolveTargetWeight(ex.target, prevW, ex) : null;
+  if (tw && tw > prevW) { var tr = /(\d+)\s*[x×]\s*\d+/.exec(ex.target.replace(/\d+(?:\.\d+)?\s*kg/ig, "")); return { w: String(tw), r: tr ? tr[1] : String(bottom), source: "accepted progression" }; }
+  if (ex.status === "ready to move" && prevW) return { w: String(nextSteps(prevW, ex)[0]), r: String(bottom), source: "next step up" };
+  return null;
+}
+
+/** The weight shown on the exercise card: the stored current weight if it is a weight, else the latest logged one (older
+ *  data stored the Companion's sentence, e.g. "Next increment up from 42kg", as the weight). */
+export function displayCurrent(ex) {
+  var c = String((ex && ex.current) || "").trim();
+  if (/^(\d+(\.\d+)?\s*(kg)?|BW)$/i.test(c) || !c) return c;
+  var l = latestEntry(ex.prog); return l ? weightLabel(l) : c;
+}
