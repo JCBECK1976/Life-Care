@@ -62,27 +62,52 @@ async function openOatsUpdate(page, replies) {
   return prompts;
 }
 
-test("D7: changing an ingredient recalculates; before → after, assumed amounts, and the name's kcal update", async ({ page }) => {
+// v2.19.0: an edited ingredient list is recalculated PER PORTION through the clarifying conversation (replaces the D7 whole-recipe call)
+async function openOatsClarify(page, replies) {
+  const cb = await getKey("custom_breakfasts");
+  await setKey("custom_breakfasts", [{ id: "t_oats", name: "Test Oats 95g (387 kcal)", itemType: "ingredient", ingredients: ["95g rolled oats", "80g berries", "tsp honey"], jcKcal: 387, beckKcal: 387, protein: 18.2, fat: 9, satFat: 2, carbs: 60, fibre: 9, salt: 0.1, rating: "GOOD", portion: { desc: "1 bowl" } }, ...(cb || [])]);
+  const prompts = [];
+  await page.route("https://api.anthropic.com/**", (r) => {
+    const b = JSON.stringify(r.request().postDataJSON());
+    if (!/CLARIFY_ITEM/.test(b)) return r.fallback();
+    prompts.push(b);
+    return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(aiText(replies[Math.min(prompts.length - 1, replies.length - 1)])) });
+  });
+  await page.reload();
+  await tab(page, "My Eating");
+  await page.getByRole("button", { name: "Update Eating Lists" }).click();
+  const row = page.locator("div", { hasText: /^Test Oats 95g/ }).filter({ has: page.getByRole("button", { name: /^Open / }) }).last();
+  await row.getByRole("button", { name: /^Open / }).click(); await page.getByTestId("item-view").getByRole("button", { name: "Edit", exact: true }).click();
+  await page.locator("#edit-item-ingredients-t_oats").fill("95g rolled oats, 150g berries, tsp honey");
+  await page.getByRole("button", { name: "✓ Confirm" }).click();
+  const chat = page.getByTestId("edit-clarify");
+  await expect(chat.getByLabel("Describe your item")).toHaveValue(/150g berries/);
+  await chat.getByRole("button", { name: "Send" }).click();
+  return prompts;
+}
+const OATS_ITEM = { type: "item", name: "Test Oats", portionDesc: "1 bowl", portionGrams: null, servings: 1, ingredients: ["95g rolled oats", "150g berries", "7g honey"], assumptions: "1 tsp honey = 7 g",
+  perPortion: { kcal: 470, protein: 15, fat: 8, satFat: 1.5, carbs: 82, sugar: 20, addedSugar: 6, fibre: 12, salt: 0.1 } };
+
+test("edit: changing an ingredient recalculates PER PORTION through the clarifying conversation; Save keeps it", async ({ page }) => {
   const { errors } = await openApp(page);
-  const prompts = await openOatsUpdate(page, [{ kcal: 612, protein: 27, fat: 12, satFat: 3, carbs: 90, fibre: 12, salt: 0.2, rating: "GOOD", breakdown: [{ ingredient: "95g rolled oats", kcal: 355 }, { ingredient: "150g berries", kcal: 75 }], assumed: ["7g honey (1 tsp)"] }]);
-  await expect(page.getByText(/387 → 612 kcal, protein 18.2 → 27g/).first()).toBeVisible();
-  await expect(page.getByText(/Assumed: 7g honey \(1 tsp\)/).first()).toBeVisible();
+  const prompts = await openOatsClarify(page, [OATS_ITEM]);
+  await expect(page.getByText(/Nutritional values updated per portion: 470 kcal \(1 portion = 1 bowl\)/).first()).toBeVisible();
   expect(prompts[0]).toContain("150g berries");
   expect(prompts[0]).not.toContain("387");                                  // no anchoring on the old value
-  await expect(page.locator("#edit-item-name-t_oats")).toHaveValue("Test Oats 95g (612 kcal)");
   await page.getByRole("button", { name: "✓ Continue — Save" }).click();
-  await expect.poll(async () => (await getKey("custom_breakfasts")).find((x) => x.id === "t_oats").jcKcal).toBe(612);
-  expect((await getKey("custom_breakfasts")).find((x) => x.id === "t_oats").name).toBe("Test Oats 95g (612 kcal)");
+  await expect.poll(async () => (await getKey("custom_breakfasts")).find((x) => x.id === "t_oats").jcKcal).toBe(470);
+  expect((await getKey("custom_breakfasts")).find((x) => x.id === "t_oats")).toMatchObject({ kcal: 470, protein: 15, portion: { desc: "1 bowl" } });
   expect(errors).toEqual([]);
 });
 
-test("D7: an implausible total is retried, then refused — no success message, nothing changed", async ({ page }) => {
+test("edit: implausible replies are retried, then a friendly question — nothing changed, never 'could not be read'", async ({ page }) => {
   const { errors } = await openApp(page);
-  const bad = { kcal: 350, protein: 18, rating: "GOOD", breakdown: [{ ingredient: "95g rolled oats", kcal: 355 }, { ingredient: "150g berries", kcal: 75 }] };
-  const prompts = await openOatsUpdate(page, [bad, bad]);
-  await expect(page.getByText(/Recalculation failed: the total \(350 kcal\) is less than its ingredients add up to \(430 kcal\)/).first()).toBeVisible();
-  expect(prompts.length).toBe(2);
+  const bad = { ...OATS_ITEM, perPortion: { ...OATS_ITEM.perPortion, kcal: 1247 } };   // doesn't match its macros
+  const prompts = await openOatsClarify(page, [bad, bad, bad]);
+  await expect(page.getByTestId("edit-clarify").getByTestId("clarify-question")).toContainText("could you tell me roughly how much of each ingredient");
+  expect(prompts.length).toBe(3);
   await expect(page.getByText(/Nutritional values updated/)).toHaveCount(0);
+  await expect(page.getByText(/could not be read|did not return values/)).toHaveCount(0);
   expect((await getKey("custom_breakfasts")).find((x) => x.id === "t_oats").jcKcal).toBe(387);
   expect(errors).toEqual([]);
 });
@@ -265,7 +290,7 @@ test("Snap, filled slot, different food NOT in the list — Yes: saved to the li
   expect(dialogs).toEqual(["Save \u201cPeanut Brunch Bar\u201d to your Breakfast list for future selection?"]);
   const list = await getKey("custom_breakfasts");
   const added = list.find((x) => x.name === "Peanut Brunch Bar");
-  expect(list.find((x) => x.id === a.id)).toEqual(a);                                         // parent untouched
+  expect(list.find((x) => x.id === a.id)).toMatchObject(a);                                         // parent untouched
   expect(await childOf(today, "b")).toMatchObject({ parentId: added.id, source: "snap", nutrition: { kcal: 125 }, portion: { assumed: "28g bar" } });
   await page.getByRole("button", { name: "Undo" }).click();
   await expect.poll(async () => (await childOf(today, "b"))?.parentId).toBe(a.id);
@@ -298,7 +323,7 @@ test("Snap, empty slot, food IN the list — linked to the parent with no questi
   await expect.poll(async () => (await childOf(today, "b"))?.parentId).toBe(a.id);
   expect(dialogs).toEqual([]);
   expect(await childOf(today, "b")).toMatchObject({ source: "snap", nutrition: { kcal: 190 }, notes: "45g bar" });
-  expect((await getKey("custom_breakfasts")).find((x) => x.id === a.id)).toEqual(a);
+  expect((await getKey("custom_breakfasts")).find((x) => x.id === a.id)).toMatchObject(a);
   expect(errors).toEqual([]);
 });
 

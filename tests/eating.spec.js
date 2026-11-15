@@ -5,7 +5,7 @@ test("My Eating: add item → Review Item → edit ingredients → Confirm → v
   const { errors } = await openApp(page);
   await tab(page, "My Eating");
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
-  await page.getByRole("button", { name: "+ Add New Item to Lists" }).click();
+  await page.getByRole("button", { name: "📷 Photo or bulk paste" }).click();
   await page.getByPlaceholder("e.g. Costa Rocky Road, Protein shake...").fill("Test Porridge");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await expect(page.getByText("Review Item").first()).toBeVisible();
@@ -25,7 +25,7 @@ test("My Eating: bulk paste adds items", async ({ page }) => {
   page.on("dialog", (d) => d.accept());                     // v2.6.3: "Add 2 items to Breakfast?"
   await tab(page, "My Eating");
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
-  await page.getByRole("button", { name: "+ Add New Item to Lists" }).click();
+  await page.getByRole("button", { name: "📷 Photo or bulk paste" }).click();
   await page.getByRole("button", { name: "📋 Bulk" }).click();
   await page.locator("#bulk-paste-textarea").fill("Test Apple\nTest Pear");
   const bulk = page.locator("div", { has: page.locator("#bulk-paste-textarea") })

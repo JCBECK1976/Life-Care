@@ -56,14 +56,14 @@ test("D11: Re-rate all lists estimates missing added sugar, applies the bands, a
 test("D7: Re-check nutrition flags doubtful recipe items (values unchanged); Confirm on a flagged item recalculates", async ({ page }) => {
   const { errors } = await openApp(page);
   page.on("dialog", (d) => d.accept());
-  const oats = { id: "t_oats", name: "Test Oats 95g (387 kcal)", itemType: "ingredient", ingredients: ["95g rolled oats", "150g berries"], jcKcal: 387, beckKcal: 387, protein: 18, satFat: 2, rating: "GOOD" };
-  const fine = { id: "t_fine", name: "Test Toast", itemType: "ingredient", ingredients: ["2 slices toast"], jcKcal: 200, beckKcal: 200, satFat: 1, rating: "GOOD" };
+  const oats = { id: "t_oats", name: "Test Oats 95g (387 kcal)", itemType: "ingredient", ingredients: ["95g rolled oats", "150g berries"], jcKcal: 387, beckKcal: 387, protein: 18, satFat: 2, rating: "GOOD", portion: { desc: "1 bowl" } };
+  const fine = { id: "t_fine", name: "Test Toast", itemType: "ingredient", ingredients: ["2 slices toast"], jcKcal: 200, beckKcal: 200, satFat: 1, rating: "GOOD", portion: { desc: "2 slices" } };
   await setKey("custom_breakfasts", [oats, fine]);
   const seen = [];
   await page.route("https://api.anthropic.com/**", (r) => {
     const t = JSON.stringify(r.request().postDataJSON());
     if (/add up the calories of the WHOLE recipe/.test(t)) { seen.push("recheck"); return r.fulfill(aiText([{ id: "t_oats", kcal: 612, breakdownSum: 600 }, { id: "t_fine", kcal: 210, breakdownSum: 205 }])); }
-    if (/homemade dish/.test(t)) { seen.push("recalc"); return r.fulfill(aiText({ kcal: 612, protein: 27, satFat: 3, addedSugar: 0, breakdown: [{ ingredient: "oats", kcal: 355 }, { ingredient: "berries", kcal: 75 }] })); }
+    if (/CLARIFY_ITEM/.test(t)) { seen.push("recalc"); return r.fulfill(aiText({ type: "item", name: "Test Oats", portionDesc: "1 bowl", servings: 1, ingredients: ["95g rolled oats", "150g berries"], perPortion: { kcal: 470, protein: 15, fat: 8, satFat: 1.5, carbs: 82, sugar: 20, addedSugar: 0, fibre: 12, salt: 0.1 } })); }
     return r.fallback();
   });
   await page.reload();
@@ -76,13 +76,13 @@ test("D7: Re-check nutrition flags doubtful recipe items (values unchanged); Con
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
   const row = page.locator("div", { hasText: /^Test Oats 95g/ }).filter({ has: page.getByRole("button", { name: /^Open / }) }).last();
   await row.getByRole("button", { name: /^Open / }).click(); await page.getByTestId("item-view").getByRole("button", { name: "Edit", exact: true }).click();
-  await page.getByRole("button", { name: "✓ Confirm" }).click();                       // no ingredient change
-  await expect(page.getByText(/387 → 612 kcal/).first()).toBeVisible();
+  await page.getByRole("button", { name: "✓ Confirm" }).click();                       // no ingredient change: flagged → recalculated (v2.19.0: per portion, clarifying flow)
+  await page.getByTestId("edit-clarify").getByRole("button", { name: "Send" }).click();
+  await expect(page.getByText(/Nutritional values updated per portion: 470 kcal/).first()).toBeVisible();
   await page.getByRole("button", { name: "✓ Continue — Save" }).click();
-  await expect.poll(async () => (await getKey("custom_breakfasts")).find((x) => x.id === "t_oats").jcKcal).toBe(612);
+  await expect.poll(async () => (await getKey("custom_breakfasts")).find((x) => x.id === "t_oats").jcKcal).toBe(470);
   const saved = (await getKey("custom_breakfasts")).find((x) => x.id === "t_oats");
   expect(saved.checkMe).toBeUndefined();
-  expect(saved.name).toBe("Test Oats 95g (612 kcal)");
   expect(errors).toEqual([]);
 });
 
@@ -93,7 +93,7 @@ test("D7 on the add-item Review path: implausible totals are refused; good value
   await page.route("https://api.anthropic.com/**", (r) => /homemade dish/.test(r.request().postData() || "") ? (calls++, r.fulfill(aiText(reply))) : r.fallback());
   await tab(page, "My Eating");
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
-  await page.getByRole("button", { name: "+ Add New Item to Lists" }).click();
+  await page.getByRole("button", { name: "📷 Photo or bulk paste" }).click();
   await page.getByPlaceholder("e.g. Costa Rocky Road, Protein shake...").fill("Test Porridge");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.locator("#review-item-ingredients").fill("oats 80g, milk 250ml");

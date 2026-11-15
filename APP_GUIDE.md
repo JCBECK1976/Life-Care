@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.18.3 · 14 November 2026
+> Last updated: v2.19.0 · 15 November 2026
 
 ---
 
@@ -367,26 +367,35 @@ Plenty of fibre (5 g+) or protein (20 g+) lifts an item one band (never above AM
 - Then go to **My Shop** for your shopping list.
 
 ### Update Eating Lists (your food lists)
-Tap **Update Eating Lists** to open **🍽️ My Eating Lists** (Breakfasts, Lunches, Dinners, Snacks, Desserts, Drinks), colour coded with kcal.
-- **Check me** badge: items added by bulk upload, or flagged by Re-rate or Re-check nutrition, show **Check me** next to the name (keeping their rating colour), here and in the meal pickers. Tap or hover for the reason. It clears once you open the item and save it.
-- Each row has **Open**, which shows the item read-only: calories, nutrition, rating (and why), type, ingredients. **Edit** opens the **Update Item** panel: name, nutrition, rating, type (📦 Packaged / 🍳 Ingredient Prepared) and ingredients.
-  - If you change an ingredient, **✓ Confirm** recalculates the **whole recipe** and shows **before → after** (e.g. "387 → 612 kcal, protein 18.2 → 27g"), plus any amounts it had to assume ("Assumed: 7g honey (1 tsp)"). The "(N kcal)" in the name updates too.
-  - Totals that don't add up are re-checked once and then refused ("nothing was changed").
-  - Press **✓ Continue — Save** to save or **Edit Again**.
-- **Delete** (red, inside the Open form) deletes an item from your list (asks first). This is the only place a list item can be deleted. Past days keep their own copy, so nothing you logged changes.
-- **+ Add New Item to Lists** adds one item; **📋 Bulk** adds many.
+Tap **Update Eating Lists** to open **🍽️ My Eating Lists**. At the top are three tabs for adding food; below are your lists (Breakfasts, Lunches, Dinners, Snacks, Desserts, Drinks), colour coded with kcal.
+
+**Everything is per portion.** Every item and meal shows its values **per portion**, with what a portion is, e.g. *"1 portion = ¼ jar (88 g)"* or *"1 portion = 1 of 4 servings"*. Packaged foods keep the label's per-100 g values behind the scenes, and the app works out your portion from them.
+
+#### Add single item
+Search **the app's foods** (ones not in your lists yet) or tap **Search UK products** (Open Food Facts). Pick one, check the name and **My portion size (g)** (the values follow as you type), **Confirm**, choose the lists to add it to, and **Save**.
+
+#### Build a meal
+For meals made of several things, e.g. a pasta bake: tap items on the left (your lists, the app's foods or UK products) to move them to the right, set an **amount** for each (**portions**, or **grams** for items whose weight is known), name the meal and set **Serves** (how many portions it makes). The values per portion are **Σ ingredients ÷ serves**, worked out by the app itself, no AI. Example: a jar of pasta bake sauce (500 g) + penne (250 g) + mozzarella (125 g) + chicken (300 g), serves 4 → about **445 kcal per portion**. **Next** → choose lists → **Save**.
+
+#### Create my own item
+Describe it (ingredients, amounts, brand) and tap **Send**. Your Companion asks about anything it needs, one question at a time: raw or cooked weights, amounts, the brand, or **how many portions it makes**. Answer and **Send** again. When it has enough it shows the values **per portion** (and any assumptions); **Confirm** → choose lists → **Save**. Items you create can be used in **Build a meal**.
+
+#### Adding from a meal slot
+Each meal drop-down shows **only the items already in that list**. If what you want isn't there, choose **+ Not in my list?** at the bottom. Update Lists opens, saying *"Adding for Monday lunch"*. Add the item any of the three ways and leave **Add to Monday lunch now** ticked; when you **Save**, you're taken back with it selected. **Back to Monday lunch** returns without adding.
+
+#### Your lists
+- **Check me** badge: items added by bulk upload, flagged by Re-rate or Re-check nutrition, or **older recipes that need their portions confirmed** ("Check me — confirm portions"), show **Check me** next to the name. Tap or hover for the reason. It clears once you open the item and save it.
+- Each row has **Open**: portion, calories and nutrition per portion, rating (and why), type, ingredients. **Edit** opens the item: name, type and ingredients. If you change the ingredients, your Companion works out the new values **per portion** with you (the same conversation as Create my own item), then press **Save**.
+- **Meals** you built show their ingredients and **Edit meal**: add or remove ingredients and change amounts and **Serves**. To change an ingredient's own nutrition, edit that item in your list.
+- **Delete** (red, inside the Open form) deletes an item from your list (asks first). Past days keep their own copy, so nothing you logged changes.
+- **📷 Photo or bulk paste** adds an item from a photo, or many at once (**📋 Bulk**).
 - **✕ Close** closes the lists.
 
-### Adding food — one item
-1. Type a name (UK products from **Open Food Facts** appear as you type), or tap **Add** for an AI lookup, or **📷** to photograph it.
-2. **Review Item** shows the values, the rating and how it suits you.
-3. Choose **📦 Packaged** or **🍳 Ingredient Prepared**. For prepared items, edit the **🧾 Ingredients** with your real amounts.
-4. Choose the lists to add it to (for dinner: main or side).
-5. **✓ Confirm.** Changed ingredients are recalculated the same careful way as Update Item (whole recipe, before → after, sanity check), then **✓ Continue — Add**.
-6. Duplicates are detected.
+### Adding food by photo
+Under **Update Eating Lists → 📷 Photo or bulk paste**, tap **📷** to photograph a food or label. **Review Item** shows the values per portion, the rating and how it suits you; choose the lists and confirm. Duplicates are detected.
 
 ### Adding food — bulk
-Tap **📋 Bulk** and paste a list (one per line or comma-separated).
+Under **📷 Photo or bulk paste**, tap **📋 Bulk** and paste a list (one per line or comma-separated).
 - **Choose a category**: none is pre-selected, and the button says "Choose a category first" until you do. You're asked to confirm, e.g. "Add 14 items to Drinks?".
 - Long lists are rated **10 at a time** with a progress bar, and each batch is saved as soon as it's done. If a batch fails, **Retry** re-sends just that batch.
 - **Cancel** really stops: anything still on its way is ignored. If earlier batches were already saved, you're told how many, with **Undo**.
@@ -563,6 +572,9 @@ At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature
 | "Invalid API key" / "No API key" | The app owner needs to check the Claude key in Settings → API Keys. |
 | "Rate limit reached" / "API busy" | Wait a moment and try again. |
 | Feedback was "cut off" | Press the feedback button again. |
+| A food I want isn't in the meal drop-down | Choose **+ Not in my list?** at the bottom: add it (single item, build a meal or create your own) with **Add to … now** ticked and you're taken back with it selected. |
+| A food's calories look far too high | Values are **per portion**: open the item and check **"1 portion = …"**. For packaged foods set **My portion size (g)**; for a recipe, check how many portions it makes (**Serves**), or use **Build a meal**. Items marked **Check me — confirm portions** need this. |
+| The Companion asks me questions when I create an item | That's on purpose: it asks about anything unclear (raw or cooked, amounts, brand, how many portions) instead of guessing. Answer and tap **Send**. |
 | Recalculation failed when adding food | Press Confirm to retry, or Cancel. The item isn't added with wrong values. |
 | An exercise has disappeared | It may be stopped. Open **▼ Stopped Exercises** below the last exercise and use **▶ Restart Exercise** in its settings. |
 | Can't log an exercise | Stopped exercises are view-only. Restart it first. |

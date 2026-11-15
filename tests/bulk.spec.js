@@ -13,7 +13,7 @@ const itemsFor = (lines) => JSON.stringify(lines.map((n) => ({ name: n, kcal: 10
 async function openBulk(page) {
   await tab(page, "My Eating");
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
-  await page.getByRole("button", { name: "+ Add New Item to Lists" }).click();
+  await page.getByRole("button", { name: "📷 Photo or bulk paste" }).click();
   await page.getByRole("button", { name: "📋 Bulk" }).click();
   return page.locator("div", { has: page.locator("#bulk-paste-textarea") }).filter({ has: page.getByRole("button", { name: "Cancel" }) }).last();
 }

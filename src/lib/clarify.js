@@ -1,0 +1,51 @@
+// v2.19.0 "Create my own item" — a CLARIFYING conversation with the Companion instead of a one-shot estimate that can fail.
+// One AI call per turn. The reply must be JSON: a question, or a per-portion item. Malformed or implausible replies are
+// retried (up to 2 times) with the specific problem; if they still fail the person gets a friendly question, never
+// "could not be read". docs/design/EATING_LISTS.md §3c.
+import { handleApiError } from "./api.js";
+import { parseJsonReply, validateItemReply } from "./portion.js";
+
+export var MAX_RETRIES = 2;
+export var MAX_QUESTIONS = 3;
+export var FRIENDLY = "I couldn't quite work that out yet — could you tell me roughly how much of each ingredient you use (weights, or jars/packs with sizes), and how many portions it makes?";
+
+export var CLARIFY_SYSTEM = "CLARIFY_ITEM. You help a UK user add ONE food item to their eating list, with nutrition PER PORTION.\n" +
+  "Reply with ONLY a JSON object, no other text. Either:\n" +
+  '{"type":"question","question":"<one short, friendly question>"}\n' +
+  "when something needed is missing or ambiguous: raw vs cooked weights, amounts of each ingredient, the brand/product, or HOW MANY PORTIONS the recipe makes. Ask one thing at a time; at most " + MAX_QUESTIONS + " questions in total. Or:\n" +
+  '{"type":"item","name":"<short name>","portionDesc":"<what one portion is, e.g. \\"1 of 4 servings (about 350 g)\\">","portionGrams":<number or null>,"servings":<portions the recipe makes, 1 for a single item>,"ingredients":["<ingredient with amount>"],"assumptions":"<any assumptions, one sentence>","perPortion":{"kcal":0,"protein":0,"fat":0,"satFat":0,"carbs":0,"sugar":0,"addedSugar":0,"fibre":0,"salt":0}}\n' +
+  "Rules: perPortion is for ONE portion (the whole recipe divided by servings), never per 100 g and never the whole recipe. Use UK supermarket values. Grams for macros, salt in g. " +
+  "After " + MAX_QUESTIONS + " questions, give the item with reasonable stated assumptions.";
+
+function textOf(result) { var t = ""; (result.content || []).forEach(function(c) { if (c.text) t += c.text; }); return t; }
+
+async function callAI(messages) {
+  var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 900, temperature: 0, system: CLARIFY_SYSTEM, messages: messages }) });
+  var result = await resp.json();
+  var err = handleApiError(result); if (err) throw new Error(err);
+  return textOf(result);
+}
+
+/**
+ * One turn. turns = [{ role: "user" | "assistant", text }] (the person's description and answers, the Companion's questions).
+ * Returns { type: "question", question, friendly? } or { type: "item", reply } (reply = the validated JSON). API errors throw.
+ */
+export async function clarifyTurn(turns, opts) {
+  var call = (opts && opts.call) || callAI;
+  var asked = turns.filter(function(t) { return t.role === "assistant"; }).length;
+  var msgs = turns.map(function(t) { return { role: t.role, content: t.role === "assistant" ? JSON.stringify({ type: "question", question: t.text }) : t.text }; });
+  if (asked >= MAX_QUESTIONS) msgs[msgs.length - 1] = { role: "user", content: msgs[msgs.length - 1].content + "\n\n(You have asked enough questions: reply with the item now, stating assumptions.)" };
+  for (var attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    var text = await call(msgs);
+    var o = parseJsonReply(text), v = validateItemReply(o);
+    if (v.ok) {
+      if (o.type === "question" && asked >= MAX_QUESTIONS) v = { ok: false, problem: "no more questions — reply with the item" };
+      else return o.type === "question" ? { type: "question", question: o.question.trim() } : { type: "item", reply: o };
+    }
+    msgs = msgs.concat([{ role: "assistant", content: String(text || "").slice(0, 2000) || "(empty)" },
+      { role: "user", content: "That reply can't be used: " + v.problem + ". Reply again with ONLY the JSON object described in the instructions." }]);
+  }
+  return { type: "question", question: FRIENDLY, friendly: true };
+}

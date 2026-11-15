@@ -11,6 +11,7 @@ import LegalViewer from "./components/LegalViewer.jsx";
 import { auditLog } from "./lib/audit.js";
 import { removeOldGoogleTokens, stripOldCalorieSettings } from "./lib/cleanup.js";
 import { refreshRatingsOnce } from "./lib/refreshRatings.js";
+import { offProduct, offToItem, portionLabel, migrateList } from "./lib/portion.js";
 import { GH, fetchWeekCalories, fetchWeekSteps, forgetToken, loadToken, mergeDaily, mergeSteps, saveToken } from "./lib/googleHealth.js";
 import LoadingDots from "./components/LoadingDots.jsx";
 import firebase, { DATA_ROOT } from "./lib/firebase.js";
@@ -258,27 +259,13 @@ function Dashboard() {
     offSearchTimeout.current = setTimeout(async function() {
       setOffLoading(true);
       try {
-        var url = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + encodeURIComponent(term) + "&search_simple=1&action=process&json=1&page_size=8&fields=product_name,code,nutriments,ingredients_text,serving_size,categories_tags_en,image_front_small_url,brands&countries_tags_en=united-kingdom";
+        var url = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + encodeURIComponent(term) + "&search_simple=1&action=process&json=1&page_size=8&fields=product_name,brands,code,nutriments,serving_size,serving_quantity,ingredients_text,serving_size,categories_tags_en,image_front_small_url,brands&countries_tags_en=united-kingdom";
         var resp = await fetch(url);
         var data = await resp.json();
-        var products = (data.products || []).filter(function(p) { return p.product_name && p.nutriments; }).map(function(p) {
-          var nm = p.nutriments || {};
-          return {
-            name: p.product_name + (p.brands ? " (" + p.brands.split(",")[0].trim() + ")" : ""),
-            barcode: p.code || "",
-            kcal: Math.round(nm["energy-kcal_100g"] || nm["energy-kcal_serving"] || 0),
-            protein: Math.round((nm.proteins_100g || nm.proteins_serving || 0) * 10) / 10,
-            fat: Math.round((nm.fat_100g || nm.fat_serving || 0) * 10) / 10,
-            satFat: Math.round((nm["saturated-fat_100g"] || nm["saturated-fat_serving"] || 0) * 10) / 10,
-            carbs: Math.round((nm.carbohydrates_100g || nm.carbohydrates_serving || 0) * 10) / 10,
-            sugar: Math.round((nm.sugars_100g || nm.sugars_serving || 0) * 10) / 10,
-            fibre: Math.round((nm.fiber_100g || nm.fiber_serving || 0) * 10) / 10,
-            salt: Math.round((nm.salt_100g || nm.salt_serving || 0) * 10) / 10,
-            ingredients: p.ingredients_text || "",
-            servingSize: p.serving_size || "per 100g",
-            categories: (p.categories_tags_en || []).slice(0, 5),
-            image: p.image_front_small_url || ""
-          };
+        /* v2.19.0: OFF values are per 100 g — kept as per100; the item's values are PER PORTION (serving size, else 100 g, editable) */
+        var products = (data.products || []).filter(function(p) { return p.product_name && p.nutriments && p.nutriments["energy-kcal_100g"] != null; }).map(function(p) {
+          var it = offToItem(offProduct(p));
+          return Object.assign({}, it, { servingSize: portionLabel(it), categories: (p.categories_tags_en || []).slice(0, 5), image: p.image_front_small_url || "" });
         });
         setOffResults(products);
       } catch(e) { setOffResults([]); }
@@ -532,7 +519,7 @@ function Dashboard() {
   }, []);
 
   // Load custom meals
-  useEffect(() => { (async () => { const r = await sGet("custom_meals"); if (r) setCustomMeals(JSON.parse(r)); })(); }, []);
+  useEffect(() => { (async () => { const r = await sGet("custom_meals"); if (r) { var m = migrateList(JSON.parse(r)); if (m.changed) await sSet("custom_meals", JSON.stringify(m.list)); setCustomMeals(m.list); } })(); }, []);   /* v2.19.0: per-portion migration */
 
   // Load saved feedback + history
   useEffect(() => { (async () => {
@@ -579,13 +566,15 @@ function Dashboard() {
     if (h) setFeedbackHistory(JSON.parse(h));
     if (efb) setEatFbResults(JSON.parse(efb));
     if (ce) setCustomExercises(JSON.parse(ce));
-    if (cs) setCustomSnacks(JSON.parse(cs));
-    if (cdr) setCustomDrinks(JSON.parse(cdr));
-    if (cde) setCustomDesserts(JSON.parse(cde));
+    /* v2.19.0: one-off, idempotent per-portion migration of the lists (nothing deleted) */
+    var _mig = function(key, raw) { if (!raw) return null; var l = JSON.parse(raw); var m = migrateList(l); if (m.changed) sSet(key, JSON.stringify(m.list)); return m.list; };
+    if (cs) setCustomSnacks(_mig("custom_snacks", cs));
+    if (cdr) setCustomDrinks(_mig("custom_drinks", cdr));
+    if (cde) setCustomDesserts(_mig("custom_desserts", cde));
     if (mt && stillSelected()) setMealTracking(JSON.parse(mt));
     if (po && stillSelected()) setPortionOverrides(JSON.parse(po));
-    if (cb) setCustomBreakfasts(JSON.parse(cb));
-    if (cl) setCustomLunches(JSON.parse(cl));
+    if (cb) setCustomBreakfasts(_mig("custom_breakfasts", cb));
+    if (cl) setCustomLunches(_mig("custom_lunches", cl));
     if (md) setMealDefaults(JSON.parse(md));
     if (cmn) setCustomMedNames(JSON.parse(cmn));
     if (cbt) setCustomBloodTests(JSON.parse(cbt));
