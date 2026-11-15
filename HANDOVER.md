@@ -2733,5 +2733,5 @@ Sizes are % of a weekly allowance, including Architect checks.
 ### (Coder) 15–16 Nov 2026 — v2.20.0 overnight batch (in progress, build only)
 **Decision (JC, 15 Nov):** nine items in priority order, one commit + push to build per item, a progress line here after each; finish = v2.20.0 on /build/ only. Real data: read-only fixes, no migrations.
 - 1/9 done — build `7db950a`: Home My Eating showed child ids ("C 2026-11-15 B") because Home's lookup lacked the week's children. New `src/lib/mealNames.js` (`mealName`, `namesLine`; unresolved → "Unnamed item", logged); Home and Shop use it. Other readers (AI context, Eating feedback, Copy Week, meal summary) already resolved via children. Suite 251 passed.
-next item 3 (chat order).
-- **Resume point:** 
+- 2/9 done — build `8340f71`: cause of the lost thread: Home chat (askQuestion) sent no history at all; Help sent 6. New `src/lib/memory.js` (`historyBlock`, `apiTurns`, `rollingSummary` — extractive, no AI call; `sharedContext` 14 days, ≤ 1,500 chars). Chat and Help are now multi-turn; feedback threads send the last 20 + summary and the shared context; messages get `ts`; chat history kept 12 months (was last 20). Privacy: sources keyed by person; body/meas/journal only for the active person; a test checks Becks' text never reaches JC's requests. Suite 257 passed.
+- **Resume point:** next item 3 (chat order).
