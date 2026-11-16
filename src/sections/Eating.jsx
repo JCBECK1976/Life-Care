@@ -51,7 +51,7 @@ export default function EatingSection({ ctx }) {
   const [pickToast, setPickToast] = React.useState(null);   // v2.20.0: { name, undo } — "Added: …" with Undo for ~5 s
   const [pickFlash, setPickFlash] = React.useState(null);   // the picked item's id, highlighted briefly
   React.useEffect(function() { if (!pickToast) return; var t = setTimeout(function() { setPickToast(null); }, 5000); return function() { clearTimeout(t); }; }, [pickToast]);
-  React.useEffect(function() { if (!pickFlash) return; var t = setTimeout(function() { setPickFlash(null); }, 1500); return function() { clearTimeout(t); }; }, [pickFlash]);
+  React.useEffect(function() { if (!pickFlash) return; var s1 = setTimeout(function() { var el = document.querySelector('[data-testid="picker-trigger"][data-flash="true"]'); if (el && el.scrollIntoView) el.scrollIntoView({ block: "center" }); }, 250); var t = setTimeout(function() { setPickFlash(null); }, 4000); return function() { clearTimeout(s1); clearTimeout(t); }; }, [pickFlash]);
   const [portionDesc, setPortionDesc] = React.useState("");
   /* v2.6.3 bulk upload: own category (D4), batch progress/retry (D3), real cancel (D5), OK message (F4) */
   const [bulkCat, setBulkCat] = React.useState("");
@@ -130,13 +130,23 @@ export default function EatingSection({ ctx }) {
             setAddingNew(false); setCameraPreview(null);
             setTimeout(function() { var el = document.getElementById("update-lists"); if (el && el.scrollIntoView) el.scrollIntoView({ block: "start" }); }, 80);
           };
+          /* v2.20.1: the slot a new item goes into on a day (first empty one of that meal) */
+          var SLOT_KEYS = { breakfast: ["b", "b2", "b3"], lunch: ["l", "l2", "l3"], dinner: ["d", "d2", "d3"], snack: ["o1","o2","o3","o4","o5","o6","o7","o8","o9","o10"], dessert: ["ds1","ds2","ds3","ds4","ds5"], drink: ["dr","dr2","dr3","dr4","dr5"] };
+          var slotFor = function(cat, day) {
+            var keys = SLOT_KEYS[cat] || ["d"]; var free = keys.find(function(k) { var v = getMeal(day, k); return !v || v === "__empty__"; });
+            return { cat: cat, day: day, slot: free || keys[0], kind: "day", text: "", label: DAY_NAME[day] + " " + CAT_NAME[cat] };
+          };
           var addNowToSlot = async function(added, rt) {
+            var before = JSON.parse(JSON.stringify(meals || {}));   /* v2.20.1: for Undo */
             if (rt.kind === "day") {
               var n = JSON.parse(JSON.stringify(meals || {})); if (!n[rt.day]) n[rt.day] = {}; n[rt.day][rt.slot] = added.id;
               var extra = Object.assign({}, _listLookup); extra[added.id] = added.item;
               setMeals(n); await saveMealsCtx(n, "manual", extra);
             } else { await saveDef(rt.slot, added.id, "individual"); }
             backToSlot();
+            /* v2.20.1 (JC): back on that day, scrolled to the meal, the item highlighted, "Added to Sunday dinner" + Undo */
+            setPickFlash(added.id);
+            setPickToast({ text: "Added to " + rt.label, undo: rt.kind === "day" ? async function() { setMeals(before); await saveMealsCtx(before, "manual", _listLookup); } : null });
           };
           var getSnap = function() { return null; };
           /* ═══ v2.8.0 F5: a meal selection (the CHILD) opens in the shared form: portion + variations → the AI
@@ -768,8 +778,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             var _o = React.useState(false); var open = _o[0]; var setOpen = _o[1];
             var sorted = items.slice().sort(function(a,b) { return a.name.localeCompare(b.name); });
             var filtered = search ? fuzzyFind(search, sorted, function(it) { return it.name || ""; }, 200) : sorted;   /* v2.20.0: forgiving search, as in Update Lists */
-            var flash = !!value && pickFlash === value;
-            var choose = function(item) { var prev = value; onChange({ target: { value: item.id } }); setOpen(false); setSearch(""); setPickFlash(item.id); setPickToast({ name: item.name, undo: function() { onChange({ target: { value: prev || "" } }); } }); try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) { /* no haptics */ } };   /* v2.20.0: confirmation + Undo (state kept in the section: this picker is re-created on each render) */
+            var flash = !!value && !!pickFlash && (pickFlash === value || !!(allItemsLookup[value] && allItemsLookup[value].parentId === pickFlash));
+            var choose = function(item) { var prev = value; onChange({ target: { value: item.id } }); setOpen(false); setSearch(""); setPickFlash(item.id); setPickToast({ text: "Added: " + item.name, undo: function() { onChange({ target: { value: prev || "" } }); } }); try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) { /* no haptics */ } };   /* v2.20.0: confirmation + Undo (state kept in the section: this picker is re-created on each render) */
             var selected = value ? items.find(function(it) { return it.id === value; }) : null;
             var displayName = value && value !== "__empty__" ? selectionName(value, props.snap, selected || allItemsLookup[value] || allItemsLookup["gb_" + value]) : null; // D6: never the raw id
             var inputRef = React.useRef(null);
@@ -842,7 +852,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           {/* My Eating Lists — collapsible */}
           {manageListsOpen && (<div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 14, marginTop: 8, marginBottom: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>🍽️ My Eating Lists</div>
-            <UpdateLists key={ownSeed ? ownSeed.k : 0} seed={ownSeed ? ownSeed.text : ""} initialTurns={ownSeed ? ownSeed.turns : null} tab={ulTab} setTab={setUlTab} cats={CATS} catalogue={CATALOGUE} available={CATALOGUE} ownItems={OWN_ITEMS} lookup={_listLookup} isJC={isJC} returnTo={returnTo} onAddNow={addNowToSlot} onBackToSlot={backToSlot} accentLight={accentLight} accentBorder={accentBorder} />
+            <UpdateLists key={ownSeed ? ownSeed.k : 0} seed={ownSeed ? ownSeed.text : ""} initialTurns={ownSeed ? ownSeed.turns : null} tab={ulTab} setTab={setUlTab} cats={CATS} catalogue={CATALOGUE} available={CATALOGUE} ownItems={OWN_ITEMS} lookup={_listLookup} isJC={isJC} returnTo={returnTo} onAddNow={addNowToSlot} onBackToSlot={backToSlot} slotFor={slotFor} accentLight={accentLight} accentBorder={accentBorder} />
             {bulkHelp.length > 0 && (<div data-testid="bulk-help" style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: 8, marginBottom: 8, fontSize: 12, color: "#0f172a" }}>
               <b>{bulkHelp.length} {bulkHelp.length === 1 ? "line needs" : "lines need"} a little more from you</b> — your Companion couldn't tell what or how much:
               {bulkHelp.map(function(h, i) { return (<div key={i} style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}><span style={{ flex: 1 }}>“{h.line}”</span>
@@ -2428,8 +2438,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             </div>
           </div>)}
           {pickToast && <div role="status" aria-live="polite" data-testid="pick-toast" style={{position:"fixed",left:12,right:12,bottom:"calc(84px + env(safe-area-inset-bottom))",zIndex:1200,maxWidth:456,margin:"0 auto",display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:10,background:"#1e3a5f",color:"#fff",fontSize:13,boxShadow:"0 6px 20px rgba(0,0,0,0.25)"}}>
-            <span style={{flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>Added: {pickToast.name}</span>
-            <button type="button" onClick={function(){ var u = pickToast.undo; setPickToast(null); setPickFlash(null); if (u) u(); }} style={{padding:"6px 12px",borderRadius:8,border:"1px solid #fff",background:"transparent",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>Undo</button>
+            <span style={{flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pickToast.text}</span>
+            {pickToast.undo && <button type="button" onClick={function(){ var u = pickToast.undo; setPickToast(null); setPickFlash(null); if (u) u(); }} style={{padding:"6px 12px",borderRadius:8,border:"1px solid #fff",background:"transparent",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>Undo</button>}
           </div>}
           {bulkUndo && (<div role="status" data-testid="bulk-cancelled" style={{ position: "fixed", left: 12, right: 12, bottom: 76, zIndex: 60, background: "#0f172a", color: "#fff", borderRadius: 8, padding: "10px 12px", fontSize: 12, display: "flex", gap: 8, alignItems: "center" }}>
             <span style={{ flex: 1 }}>Cancelled — {bulkUndo.ids.length} item{bulkUndo.ids.length === 1 ? "" : "s"} from earlier batches were kept in {catLabel(bulkUndo.cat)}.</span>

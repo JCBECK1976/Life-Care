@@ -124,7 +124,8 @@ function SaveStep(props) {
   var [cats, setCats] = React.useState(function() { var o = {}; o[(rt && rt.cat) || props.defaultCat || props.cats[0].k] = true; return o; });
   var [addNow, setAddNow] = React.useState(!!rt);
   var [msg, setMsg] = React.useState("");
-  var [clash, setClash] = React.useState(null);   // v2.20.1: [{ label, kcal }] — a different item with the same name is already there
+  var [clash, setClash] = React.useState(null);
+  var [saved, setSaved] = React.useState(null);   // v2.20.1: { name, lists, kcal, ids: { catKey: id }, item } → the confirmation card   // v2.20.1: [{ label, kcal }] — a different item with the same name is already there
   var item = withRuleRating(props.item);   // D11 per portion, against the UK reference (list item)
   var b = bandOf(item) || "";
   var key = function(x) { return String((x && x.name) || "").trim().toLowerCase(); };
@@ -137,7 +138,7 @@ function SaveStep(props) {
     var clashes = chosen.map(function(c) { var same = c.customs.find(function(x) { return x && key(x) === key(item); }); return same && differs(same) ? { label: c.label, kcal: n0(itemNutrition(same).kcal) } : null; }).filter(Boolean);
     if (clashes.length && !mode) { setClash(clashes); return; }
     setClash(null);
-    var ts = Date.now(), firstId = null, forSlot = null, name = item.name;
+    var ts = Date.now(), firstId = null, forSlot = null, name = item.name, ids = {}, savedItem = null;
     if (mode === "both") { var all = [].concat.apply([], chosen.map(function(c) { return c.customs; })); var k2 = 2; while (all.some(function(x) { return key(x) === (item.name + " (" + k2 + ")").toLowerCase(); })) k2++; name = item.name + " (" + k2 + ")"; }
     for (var i = 0; i < chosen.length; i++) {
       var c = chosen[i]; var id = "custom_" + ts + "_" + i;
@@ -148,11 +149,13 @@ function SaveStep(props) {
       else { it = Object.assign({}, item, { id: id, name: name }); delete it._isCustom; u = c.customs.concat([it]); }
       if (u) { c.setCustoms(u); await sSet(c.storageKey, JSON.stringify(u)); }
       if (!firstId) firstId = id; if (rt && c.k === rt.cat) forSlot = { id: id, item: it };
+      ids[c.k] = id; if (!savedItem) savedItem = it;
     }
-    if (addNow && rt && props.onAddNow) await props.onAddNow(forSlot || { id: firstId, item: Object.assign({}, item, { id: firstId }) }, rt);
-    setMsg("✅ Added " + item.name + " to " + chosen.map(function(c) { return c.label; }).join(", ") + (addNow && rt ? " and to " + rt.label : ""));
+    if (addNow && rt && props.onAddNow) { await props.onAddNow(forSlot || { id: firstId, item: Object.assign({}, item, { id: firstId }) }, rt); if (props.onSaved) props.onSaved(); return; }   // back to the day
+    setSaved({ name: name, lists: chosen.map(function(c) { return c.label; }), firstCat: chosen[0].k, kcal: n0(itemNutrition(item).kcal), ids: ids, firstId: firstId, item: savedItem });
     if (props.onSaved) props.onSaved();
   };
+  if (saved) return <SavedCard saved={saved} slotFor={props.slotFor} onAddNow={props.onAddNow} onDone={props.onDone} />;
   return (<div data-testid="save-step" style={box}>
     <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{item.name}</div>
     <div data-testid="portion-label" style={small}>{portionLabel(item)}</div>
@@ -170,6 +173,42 @@ function SaveStep(props) {
     <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
       <button type="button" style={btnP} onClick={function() { save(); }}>Save</button>
       {props.onBack && <button type="button" style={btn} onClick={props.onBack}>Back</button>}
+    </div>
+  </div>);
+}
+
+/** v2.20.1 (JC): after Save the person stays here — a confirmation in place of the form, with the next actions:
+ *  "Add to a day" (day = today, meal = the list ticked) and "Done". Never scrolls away to the lists. */
+var DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+var DAYLABEL = { sunday: "Sunday", monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday", thursday: "Thursday", friday: "Friday", saturday: "Saturday" };
+var MEALS = [["breakfast", "Breakfast"], ["lunch", "Lunch"], ["dinner", "Dinner"], ["snack", "Snack"], ["dessert", "Dessert"], ["drink", "Drink"]];
+function SavedCard(props) {
+  var sv = props.saved;
+  var ref = React.useRef(null);
+  var [day, setDay] = React.useState(DAYS[new Date().getDay()]);
+  var [meal, setMeal] = React.useState(sv.firstCat || "dinner");
+  var [busy, setBusy] = React.useState(false);
+  React.useEffect(function() { if (ref.current && ref.current.scrollIntoView) ref.current.scrollIntoView({ block: "nearest" }); }, []);
+  var add = async function() {
+    if (!props.slotFor || !props.onAddNow || busy) return; setBusy(true);
+    var id = sv.ids[meal] || sv.firstId;
+    await props.onAddNow({ id: id, item: Object.assign({}, sv.item, { id: id }) }, props.slotFor(meal, day));
+    setBusy(false);
+  };
+  return (<div ref={ref} data-testid="saved-card" style={Object.assign({}, box, { border: "2px solid #16a34a", background: "#f0fdf4" })}>
+    <div role="status" aria-live="polite" style={{ fontSize: 14, fontWeight: 700, color: "#166534" }}>✓ Saved {sv.name} to {sv.lists.join(", ")} ({sv.kcal} kcal per portion)</div>
+    {props.slotFor && props.onAddNow && (<div style={{ marginTop: 10 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>Add to a day</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div><label style={Object.assign({}, small, { display: "block", marginBottom: 2 })} htmlFor="saved-day">Day</label>
+          <select id="saved-day" value={day} onChange={function(e) { setDay(e.target.value); }} style={inp}>{DAYS.map(function(d) { return <option key={d} value={d}>{d === DAYS[new Date().getDay()] ? "Today" : DAYLABEL[d]}</option>; })}</select></div>
+        <div><label style={Object.assign({}, small, { display: "block", marginBottom: 2 })} htmlFor="saved-meal">Meal</label>
+          <select id="saved-meal" value={meal} onChange={function(e) { setMeal(e.target.value); }} style={inp}>{MEALS.map(function(m) { return <option key={m[0]} value={m[0]}>{m[1]}</option>; })}</select></div>
+      </div>
+    </div>)}
+    <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
+      {props.slotFor && props.onAddNow && <button type="button" style={btnP} onClick={add} disabled={busy}>Add to {DAYLABEL[day]} {meal}</button>}
+      <button type="button" style={btn} onClick={props.onDone}>Done</button>
     </div>
   </div>);
 }
@@ -357,7 +396,7 @@ export default function UpdateLists(props) {
   var tab = props.tab || "single";
   var [k, setK] = React.useState(0);   // remount after a save
   var tabs = [["single", "Single item"], ["meal", "Build a meal"], ["own", "My own"]];
-  var common = Object.assign({}, props, { onSaved: function() { if (props.onSaved) props.onSaved(); } });
+  var common = Object.assign({}, props, { onSaved: function() { if (props.onSaved) props.onSaved(); }, onDone: function() { setK(k + 1); } });
   return (<div id="update-lists" data-testid="update-lists" style={{ marginBottom: 10, background: props.accentLight || "#dbeafe", border: "1px solid " + (props.accentBorder || "#93c5fd"), borderRadius: 8, padding: 10 }}>
     {props.returnTo && <div data-testid="return-to" style={{ fontSize: 12, color: "#1e3a8a", background: "#fff", border: "1px solid #bfdbfe", borderRadius: 8, padding: 8, marginBottom: 8 }}>
       Adding for <b>{props.returnTo.label}</b>. <button type="button" style={Object.assign({}, btn, { padding: "2px 8px", fontSize: 11 })} onClick={props.onBackToSlot}>Back to {props.returnTo.label}</button></div>}

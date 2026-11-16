@@ -163,7 +163,7 @@ test("UI: Build a meal — the Aldi pasta bake, serves 4, computed in code and l
   await expect(ul.getByTestId("portion-label")).toHaveText("1 portion = 1 of 4 servings");
   await ul.getByLabel("Breakfasts").uncheck(); await ul.getByLabel("Dinners").check();
   await ul.getByRole("button", { name: "Save" }).click();
-  await expect(ul.getByRole("status")).toContainText("Added Aldi chicken pasta bake to Dinners");
+  await expect(ul.getByTestId("saved-card")).toContainText("✓ Saved Aldi chicken pasta bake to Dinners");
   const it = (await get("custom_meals")).find((x) => x.name === "Aldi chicken pasta bake");
   expect(it).toMatchObject({ kcal: 445, jcKcal: 445, beckKcal: 445, source: "meal", meal: { serves: 4 } });
   expect(it.meal.components).toHaveLength(4);
@@ -198,7 +198,7 @@ test("UI: Create my own item — the Companion asks a question, then returns val
   await ul.getByRole("button", { name: "Confirm" }).click();
   await ul.getByLabel("Breakfasts").uncheck(); await ul.getByLabel("Dinners").check();
   await ul.getByRole("button", { name: "Save" }).click();
-  await expect(ul.getByRole("status")).toContainText("Added Chicken curry to Dinners");
+  await expect(ul.getByTestId("saved-card")).toContainText("✓ Saved Chicken curry to Dinners");
   expect((await get("custom_meals")).find((x) => x.name === "Chicken curry")).toMatchObject({ kcal: 520, servings: 4, source: "own" });
   expect(n).toBe(2);
   await expect(page.getByText(/could not be read|did not return values/)).toHaveCount(0);

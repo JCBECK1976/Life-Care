@@ -16,7 +16,7 @@ test("My Eating: typed item → the clarifying conversation → per portion → 
   await expect(ul.getByTestId("own-confirm").getByTestId("portion-label")).toContainText("1 portion = 1 of 4 servings");
   await ul.getByRole("button", { name: "Confirm" }).click();
   await ul.getByRole("button", { name: "Save" }).click();
-  await expect(ul.getByRole("status")).toContainText("Added Test Stew");
+  await expect(ul.getByTestId("saved-card")).toContainText("✓ Saved Test Stew");
   await expect(page.getByText(/could not be read|did not return/)).toHaveCount(0);
   expect(errors).toEqual([]);
 });

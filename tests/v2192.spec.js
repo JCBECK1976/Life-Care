@@ -121,7 +121,7 @@ test("offline: own-list and generic results appear as you type when UK product s
   await c.getByRole("button", { name: "Confirm" }).click();
   await ul.getByLabel("Breakfasts").uncheck(); await ul.getByLabel("Dinners").check();
   await ul.getByRole("button", { name: "Save" }).click();
-  await expect(ul.getByRole("status")).toContainText("Added Fusilli pasta (dried) to Dinners");
+  await expect(ul.getByTestId("saved-card")).toContainText("✓ Saved Fusilli pasta (dried) to Dinners");
   expect((await get("custom_meals")).find((x) => x.name === "Fusilli pasta (dried)")).toMatchObject({ kcal: 266, source: "generic", portion: { grams: 75 } });
   expect(errors).toEqual([]);
 });
