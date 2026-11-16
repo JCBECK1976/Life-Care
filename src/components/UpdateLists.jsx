@@ -22,6 +22,7 @@ var small = { fontSize: 11, color: "#475569" };
 var head = { fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginTop: 8 };
 var tag = { display: "inline-block", fontSize: 10, fontWeight: 700, color: "#92400e", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 10, padding: "0 6px", marginRight: 4 };
 var RAGC = { RED: "#b91c1c", AMBER: "#b45309", GOOD: "#15803d", GREAT: "#15803d" };
+var num = function(v) { var x = parseFloat(v); return isFinite(x) ? x : 0; };
 var n0 = function(x) { return Math.round(x || 0); };
 var n1 = function(x) { return Math.round((x || 0) * 10) / 10; };
 
@@ -211,7 +212,24 @@ export function MealBuilder(props) {
   var [serves, setServes] = React.useState(init && init.meal ? String(init.meal.serves) : "1");
   var [ready, setReady] = React.useState(false);
   var [msg, setMsg] = React.useState("");
-  var addComp = function(it, ref, patch) { setComps(comps.concat([Object.assign(componentFrom(it, props.isJC, ref), patch || {})])); };
+  /* v2.20.1 (JC): adding must be obvious and never duplicate a row — clear the search, "Added: …" (live), highlight and
+     scroll to the new card; the same item again asks "Add another portion?" (Yes = more on the existing row). */
+  var [added, setAdded] = React.useState(null);     // { i, text } — the card just added / topped up
+  var [dup, setDup] = React.useState(null);         // { i, name } — waiting for Yes / No
+  React.useEffect(function() { if (!added) return; var el = document.querySelector('[data-testid="meal-comp"][data-idx="' + added.i + '"]'); if (el && el.scrollIntoView) el.scrollIntoView({ block: "nearest" }); var t = setTimeout(function() { setAdded(null); }, 3000); return function() { clearTimeout(t); }; }, [added]);
+  var sameAs = function(c, it, ref) { return (ref && c.ref === ref) || (!c.ref && !ref && String(c.name).trim().toLowerCase() === String(it.name).trim().toLowerCase()); };
+  var addComp = function(it, ref, patch) {
+    s.setQ("");                                    // clear the search (closes the results list)
+    var at = comps.findIndex(function(c) { return sameAs(c, it, ref); });
+    if (at >= 0) { setDup({ i: at, name: it.name }); return; }
+    setComps(comps.concat([Object.assign(componentFrom(it, props.isJC, ref), patch || {})]));
+    setAdded({ i: comps.length, text: "Added: " + it.name });
+  };
+  var morePortion = function() {
+    var c = comps[dup.i], step = c.unit === "g" ? (num(c.portionGrams) || (c.per100 ? 100 : 0) || 100) : 1;
+    upd(dup.i, { amount: String(Math.round((num(c.amount) + step) * 100) / 100) });
+    setAdded({ i: dup.i, text: "Added another portion: " + c.name }); setDup(null);
+  };
   var pickComp = function(kind, it, o) {
     if (kind === "own") return addComp(it, it.id);
     if (kind === "off" && needsPortionCheck(o)) return addComp(it, null, { unit: "g", amount: o.packG ? Math.round(o.packG) : 100, check: productType(o) || "per 100 g" });   // v2.19.2: amount in grams, to check
@@ -238,7 +256,12 @@ export function MealBuilder(props) {
       <label style={small} htmlFor="meal-name">Meal name</label>
       <input id="meal-name" style={inp} value={name} onChange={function(e) { setName(e.target.value); }} placeholder="e.g. Chicken pasta bake" />
       {comps.length === 0 && <div style={Object.assign({}, small, { marginTop: 6 })}>Tap items on the left to add them.</div>}
-      {comps.map(function(c, i) { var n = componentNutrition(c); return (<div key={i} data-testid="meal-comp" style={{ border: "1px solid #bfdbfe", borderRadius: 8, padding: 8, marginTop: 8, background: "#f8fafc" }}>
+      {added && <div role="status" aria-live="polite" data-testid="meal-added" style={{ position: "fixed", left: 12, right: 12, bottom: "calc(84px + env(safe-area-inset-bottom))", zIndex: 1200, maxWidth: 456, margin: "0 auto", padding: "10px 14px", borderRadius: 10, background: "#166534", color: "#fff", fontSize: 13, fontWeight: 700, boxShadow: "0 6px 20px rgba(0,0,0,0.25)" }}>✓ {added.text}</div>}
+      {dup && (<div role="alertdialog" aria-label="Already in this meal" data-testid="dup-prompt" style={{ marginTop: 8, padding: 10, borderRadius: 8, background: "#fffbeb", border: "1px solid #fcd34d", fontSize: 12, color: "#0f172a" }}>
+        <div><b>{dup.name}</b> is already in this meal. Add another portion?</div>
+        <div style={{ display: "flex", gap: 12, marginTop: 8 }}><button type="button" style={btnP} onClick={morePortion}>Yes</button><button type="button" style={btn} onClick={function() { setDup(null); }}>No</button></div>
+      </div>)}
+      {comps.map(function(c, i) { var n = componentNutrition(c); var hi = added && added.i === i; return (<div key={i} data-testid="meal-comp" data-idx={i} data-new={hi ? "true" : "false"} style={{ border: hi ? "2px solid #16a34a" : "1px solid #bfdbfe", borderRadius: 8, padding: hi ? 7 : 8, marginTop: 8, background: hi ? "#f0fdf4" : "#f8fafc", transition: "background 0.3s" }}>
         <div data-testid="meal-comp-name" style={{ fontSize: 12, fontWeight: 600, color: "#0f172a", overflowWrap: "anywhere" }}>{c.name}</div>
         {c.check && <div style={Object.assign({}, small, { marginTop: 2 })}><span style={tag}>{c.check}</span>check the amount — values are per 100 g</div>}
         <div style={{ display: "grid", gridTemplateColumns: "minmax(40px, 52px) minmax(80px, 110px) auto minmax(30px, 1fr)", alignItems: "center", columnGap: 12, marginTop: 6 }}>
