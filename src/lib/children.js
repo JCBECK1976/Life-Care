@@ -29,9 +29,14 @@ export function childNutrition(c) {
 }
 
 // Recalculate a child's nutrition and its OWN RAG (D11 bands on the adjusted nutrition). Call on any change.
-export function recalcChild(c) {
+// v2.18.2: limits = that person's goal and personal limits (goals.js personalLimits); none → the UK reference.
+export function rateChild(c, limits) {
+  var n = c.nutrition || childNutrition(c);
+  return rateByPortion({ jcKcal: n.kcal, beckKcal: n.kcal, satFat: n.satFat, addedSugar: n.addedSugar, fibre: n.fibre, protein: n.protein }, limits || null);
+}
+export function recalcChild(c, limits) {
   var n = childNutrition(c);
-  var r = rateByPortion({ jcKcal: n.kcal, beckKcal: n.kcal, satFat: n.satFat, addedSugar: n.addedSugar, fibre: n.fibre, protein: n.protein });
+  var r = rateByPortion({ jcKcal: n.kcal, beckKcal: n.kcal, satFat: n.satFat, addedSugar: n.addedSugar, fibre: n.fibre, protein: n.protein }, limits || null);
   return Object.assign({}, c, { nutrition: n, rating: r.rating, ragFreq: r.ragFreq, ragReason: r.reason, band: r.band });
 }
 
@@ -46,7 +51,7 @@ export function makeChild(item, o) {
     snapshot: snapshotOf(item || { name: "Food" }, o.isJC), portion: o.portion || { factor: 1 }, variations: o.variations || { text: "", subs: [] },
     tracked: o.tracked || "", source: o.source || "manual", notes: o.notes || "" };
   if (item && item.id && o.parentId !== null) c.parentBand = bandOf(item) || "";
-  return recalcChild(c);
+  return recalcChild(c, o.limits || (o.limitsFor && o.limitsFor(o.date)));
 }
 
 export function viewFromDoc(doc, opts) {
@@ -76,10 +81,10 @@ export function reconcile(doc, view, lookup, o) {
       if (pool[val]) {
         var c = pool[val];
         if (val === id) out.children[id] = c;
-        else if (c.parentId && lookup[c.parentId]) out.children[id] = makeChild(lookup[c.parentId], { date: date, weekday: weekday, slot: slot, source: o.source || "copy", isJC: o.isJC });
-        else out.children[id] = recalcChild(Object.assign({}, c, { id: id, date: date, weekday: weekday, slot: slot, portion: { factor: 1 }, tracked: "", source: o.source || "copy" }));  // a copy starts fresh: no portion or tick carried over
+        else if (c.parentId && lookup[c.parentId]) out.children[id] = makeChild(lookup[c.parentId], { date: date, weekday: weekday, slot: slot, source: o.source || "copy", isJC: o.isJC, limitsFor: o.limitsFor });
+        else out.children[id] = recalcChild(Object.assign({}, c, { id: id, date: date, weekday: weekday, slot: slot, portion: { factor: 1 }, tracked: "", source: o.source || "copy" }), o.limitsFor && o.limitsFor(date));  // a copy starts fresh: no portion or tick carried over
       } else if (lookup[val]) {
-        out.children[id] = existing && existing.parentId === val ? existing : makeChild(lookup[val], { date: date, weekday: weekday, slot: slot, source: o.source, isJC: o.isJC });
+        out.children[id] = existing && existing.parentId === val ? existing : makeChild(lookup[val], { date: date, weekday: weekday, slot: slot, source: o.source, isJC: o.isJC, limitsFor: o.limitsFor });
       } else if (existing) { out.children[id] = existing; }
     });
   });
@@ -87,9 +92,11 @@ export function reconcile(doc, view, lookup, o) {
 }
 
 // List-item-shaped stand-ins for children, so every existing lookup (totals, warnings, feedback) reads the CHILD.
-export function childItems(doc, lookup) {
+// v2.18.2: with limitsFor (date → that person's limits) each child is rated live against the person's goal.
+export function childItems(doc, lookup, limitsFor) {
   return Object.keys((doc && doc.children) || {}).map(function(id) {
     var c = doc.children[id]; var p = c.parentId && lookup ? lookup[c.parentId] : null; var n = c.nutrition || childNutrition(c);
+    if (limitsFor) { var rr = rateChild(c, limitsFor(c.date)); c = Object.assign({}, c, { rating: rr.rating, ragFreq: rr.ragFreq, ragReason: rr.reason, band: rr.band }); }
     var it = Object.assign({}, p || {}, { id: id, name: c.snapshot.name, kcal: n.kcal, jcKcal: n.kcal, beckKcal: n.kcal, jcProt: n.protein, beckProt: n.protein, jcFat: n.fat, beckFat: n.fat,
       rating: c.rating, ragFreq: c.ragFreq, ragReason: c.ragReason, parentId: c.parentId, parentBand: c.parentBand || "", _child: c, _status: c.tracked || "", _isCustom: true });
     NUTRIENTS.forEach(function(k) { it[k] = n[k]; });
@@ -100,13 +107,25 @@ export function childItems(doc, lookup) {
 
 // The food a child is (for frequency rules): its parent, or its name when ad hoc.
 export function foodKey(c) { return c.parentId || "adhoc:" + (c.snapshot && c.snapshot.name || "").toLowerCase(); }
-export function occurrences(doc) { return Object.keys((doc && doc.children) || {}).map(function(id) { var c = doc.children[id]; return { food: foodKey(c), band: c.band || bandOf(c), weekday: c.weekday, slot: c.slot }; }); }
+// v2.18.3: with limits, each child's band is the SAME live personal rating the screen shows (not the stored one).
+export function occurrences(doc, limits) { return Object.keys((doc && doc.children) || {}).map(function(id) { var c = doc.children[id]; return { food: foodKey(c), band: limits ? rateChild(c, limits).band : (c.band || bandOf(c)), weekday: c.weekday, slot: c.slot }; }); }
+/** v2.18.3: re-rate a week's stored children against the person's limits (nutrition untouched). Returns the number changed. Idempotent. */
+export function refreshDocRatings(doc, limits) {
+  var n = 0;
+  Object.keys((doc && doc.children) || {}).forEach(function(id) {
+    var c = doc.children[id], r = rateChild(c, limits);
+    if (c.band !== r.band || c.rating !== r.rating || (c.ragFreq || "") !== (r.ragFreq || "")) { doc.children[id] = Object.assign({}, c, { rating: r.rating, ragFreq: r.ragFreq, ragReason: r.reason, band: r.band }); n++; }
+  });
+  return n;
+}
 
 // "RED today — large portion" when the child's RAG differs from its parent's.
-export function ragNote(c, parent) {
+export function ragNote(c, parent, limits) {
   if (!c || !c.parentId || !parent) return "";
-  var cb = c.band || bandOf(c); var pb = bandOf(parent); if (!cb || !pb || cb === pb) return "";
+  var cb = limits ? rateChild(c, limits).band : (c.band || bandOf(c)); /* v2.18.2: the child against that person's limits */ var pb = bandOf(parent); if (!cb || !pb || cb === pb) return "";
   var pk = parseFloat(parent.jcKcal || parent.kcal) || 0; var ck = (c.nutrition && c.nutrition.kcal) || 0;
+  var plain = !(c.portion && (c.portion.values || (c.portion.factor && c.portion.factor !== 1))) && !(c.variations && c.variations.text);
+  if (limits && plain) return (cb.indexOf("RED") === 0 ? "RED" : cb) + " today — for your goal";
   var why = c.portion && c.portion.source === "variations" ? "with changes" : c.portion && c.portion.values ? (ck > pk ? "large portion" : ck < pk ? "small portion" : "this portion") : (c.variations && c.variations.text ? "with changes" : "this portion");
   return (cb.indexOf("RED") === 0 ? "RED" : cb) + " today — " + why;
 }

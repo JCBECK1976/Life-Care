@@ -52,7 +52,9 @@ test("D2: different weights per set are saved and shown per set; Edit Previous E
   await page.getByRole("button", { name: "👁 Progress" }).first().click();
   await expect(page.getByTestId("prog-sets").first()).toHaveText("Sets: 16kg×10, 22kg×8, 22kg×8");
   await page.getByRole("button", { name: "📋 Log", exact: true }).first().click();
-  await expect(page.getByText(/Previous: 16kg×10, 22kg×8, 22kg×8/)).toBeVisible();
+  // v2.16.0 D23: this week is already logged, so the form opens it for editing ("Update"); Previous = the week before
+  await expect(page.getByRole("button", { name: "Update", exact: true })).toBeVisible();
+  await expect(page.getByTestId("log-previous")).not.toContainText("16kg×10, 22kg×8, 22kg×8");
   expect(await w.evaluateAll((els) => els.slice(0, 3).map((e) => e.value))).toEqual(["16", "22", "22"]);
   expect(errors).toEqual([]);
 });

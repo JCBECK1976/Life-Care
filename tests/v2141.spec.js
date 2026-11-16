@@ -106,7 +106,7 @@ test("v2.14.1: no food in Food Checker, add-food photo and Help Me Eat — messa
   // add food by photo (Update Eating Lists → + Add New Item to Lists → 📷)
   await tab(page, "My Eating");
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
-  await page.getByRole("button", { name: "+ Add New Item to Lists" }).click();
+  await page.getByRole("button", { name: "📷 Photo or bulk paste" }).click();
   await page.locator('#add-item-form-manage input[type="file"]').setInputFiles(PNG);
   box = page.getByTestId("review-no-food");
   await expect(box.getByRole("alert")).toHaveText(NO_FOOD);

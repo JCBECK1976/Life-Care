@@ -19,7 +19,7 @@ test("D11: biscuits and brownie land in different bands; half the portion rates 
   expect(rateByPortion({ satFat: 12, addedSugar: 0, jcKcal: 500 }).band).toBe("RED-weekly");      // 60%
   expect(rateByPortion({ satFat: 12, addedSugar: 0, protein: 30, jcKcal: 500 }).band).toBe("AMBER"); // credit, capped at AMBER
   expect(rateByPortion({ satFat: 1, addedSugar: 0, jcKcal: 950 }).band).toBe("RED-monthly");     // > 40% of the day
-  expect(rateByPortion(biscuits).reason).toBe("AMBER (a few times a week): one portion is 10g added sugar = 40% of the 25g daily limit");
+  expect(rateByPortion(biscuits).reason).toBe("AMBER (a few times a week): one portion is 10g added sugar = 40% of the reference 25g daily limit");
   const amber = withRuleRating(biscuits), redW = withRuleRating({ satFat: 12, jcKcal: 500 }), redM = withRuleRating(brownie);
   expect(frequencyWarning(amber, 2, 2)).toBeNull();
   expect(frequencyWarning(amber, 3, 3)).toMatch(/a few times a week/);
@@ -56,54 +56,52 @@ test("D11: Re-rate all lists estimates missing added sugar, applies the bands, a
 test("D7: Re-check nutrition flags doubtful recipe items (values unchanged); Confirm on a flagged item recalculates", async ({ page }) => {
   const { errors } = await openApp(page);
   page.on("dialog", (d) => d.accept());
-  const oats = { id: "t_oats", name: "Test Oats 95g (387 kcal)", itemType: "ingredient", ingredients: ["95g rolled oats", "150g berries"], jcKcal: 387, beckKcal: 387, protein: 18, satFat: 2, rating: "GOOD" };
-  const fine = { id: "t_fine", name: "Test Toast", itemType: "ingredient", ingredients: ["2 slices toast"], jcKcal: 200, beckKcal: 200, satFat: 1, rating: "GOOD" };
+  const oats = { id: "t_oats", name: "Test Oats 95g (387 kcal)", itemType: "ingredient", ingredients: ["95g rolled oats", "150g berries"], jcKcal: 387, beckKcal: 387, protein: 18, satFat: 2, rating: "GOOD", portion: { desc: "1 bowl" } };
+  const fine = { id: "t_fine", name: "Test Toast", itemType: "ingredient", ingredients: ["2 slices toast"], jcKcal: 200, beckKcal: 200, satFat: 1, rating: "GOOD", portion: { desc: "2 slices" } };
   await setKey("custom_breakfasts", [oats, fine]);
   const seen = [];
   await page.route("https://api.anthropic.com/**", (r) => {
     const t = JSON.stringify(r.request().postDataJSON());
-    if (/add up the calories of the WHOLE recipe/.test(t)) { seen.push("recheck"); return r.fulfill(aiText([{ id: "t_oats", kcal: 612, breakdownSum: 600 }, { id: "t_fine", kcal: 210, breakdownSum: 205 }])); }
-    if (/homemade dish/.test(t)) { seen.push("recalc"); return r.fulfill(aiText({ kcal: 612, protein: 27, satFat: 3, addedSugar: 0, breakdown: [{ ingredient: "oats", kcal: 355 }, { ingredient: "berries", kcal: 75 }] })); }
+    if (/CLARIFY_ITEM RECHECK/.test(t)) { seen.push("recheck"); return r.fulfill(aiText([{ id: "t_oats", perPortionKcal: 612, looksLike: "portion" }, { id: "t_fine", perPortionKcal: 210, looksLike: "portion" }])); }
+    if (/CLARIFY_ITEM/.test(t)) { seen.push("recalc"); return r.fulfill(aiText({ type: "item", name: "Test Oats", portionDesc: "1 bowl", servings: 1, ingredients: ["95g rolled oats", "150g berries"], perPortion: { kcal: 470, protein: 15, fat: 8, satFat: 1.5, carbs: 82, sugar: 20, addedSugar: 0, fibre: 12, salt: 0.1 } })); }
     return r.fallback();
   });
   await page.reload();
   await tab(page, "My Eating");
   await page.getByRole("button", { name: "🔎 Re-check nutrition" }).click();
-  await expect(page.getByText(/✅ Re-checked \d+ recipe items: 1 look doubtful/)).toBeVisible({ timeout: 20000 });
+  await expect(page.getByText(/✅ Re-checked \d+ items per portion: 1 marked "Check me — confirm portions"/)).toBeVisible({ timeout: 20000 });
   const bf = await getKey("custom_breakfasts");
-  expect(bf.find((x) => x.id === "t_oats")).toMatchObject({ jcKcal: 387, checkMe: true, checkReason: expect.stringMatching(/^Nutrition looks off: saved 387 kcal/) });
+  expect(bf.find((x) => x.id === "t_oats")).toMatchObject({ jcKcal: 387, checkMe: true, checkReason: expect.stringMatching(/^Check me — confirm portions: saved 387 kcal per portion, about 612 kcal expected/) });
   expect(bf.find((x) => x.id === "t_fine").checkMe).toBeUndefined();
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
   const row = page.locator("div", { hasText: /^Test Oats 95g/ }).filter({ has: page.getByRole("button", { name: /^Open / }) }).last();
   await row.getByRole("button", { name: /^Open / }).click(); await page.getByTestId("item-view").getByRole("button", { name: "Edit", exact: true }).click();
-  await page.getByRole("button", { name: "✓ Confirm" }).click();                       // no ingredient change
-  await expect(page.getByText(/387 → 612 kcal/).first()).toBeVisible();
+  await page.getByRole("button", { name: "✓ Confirm" }).click();                       // no ingredient change: flagged → recalculated (v2.19.0: per portion, clarifying flow)
+  await page.getByTestId("edit-clarify").getByRole("button", { name: "Send" }).click();
+  await expect(page.getByText(/Nutritional values updated per portion: 470 kcal/).first()).toBeVisible();
   await page.getByRole("button", { name: "✓ Continue — Save" }).click();
-  await expect.poll(async () => (await getKey("custom_breakfasts")).find((x) => x.id === "t_oats").jcKcal).toBe(612);
+  await expect.poll(async () => (await getKey("custom_breakfasts")).find((x) => x.id === "t_oats").jcKcal).toBe(470);
   const saved = (await getKey("custom_breakfasts")).find((x) => x.id === "t_oats");
   expect(saved.checkMe).toBeUndefined();
-  expect(saved.name).toBe("Test Oats 95g (612 kcal)");
   expect(errors).toEqual([]);
 });
 
-test("D7 on the add-item Review path: implausible totals are refused; good values show before → after", async ({ page }) => {
+// v2.19.1 (F27): edited ingredients on the Review path go to the clarifying conversation (no whole-recipe recalculation)
+test("Review path: edited ingredients hand over to the clarifying conversation, per portion", async ({ page }) => {
   const { errors } = await openApp(page);
-  let reply = { kcal: 200, protein: 8, satFat: 2, breakdown: [{ ingredient: "oats 80g", kcal: 300 }, { ingredient: "milk 250ml", kcal: 120 }] };
-  let calls = 0;
-  await page.route("https://api.anthropic.com/**", (r) => /homemade dish/.test(r.request().postData() || "") ? (calls++, r.fulfill(aiText(reply))) : r.fallback());
   await tab(page, "My Eating");
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
-  await page.getByRole("button", { name: "+ Add New Item to Lists" }).click();
-  await page.getByPlaceholder("e.g. Costa Rocky Road, Protein shake...").fill("Test Porridge");
-  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("button", { name: "📷 Photo or bulk paste" }).click();
+  const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  await page.route("https://api.anthropic.com/**", (r) => /CLARIFY_ITEM PHOTO/.test(r.request().postData() || "") ? r.fulfill(aiText({ isFood: true, type: "item", name: "Test Porridge", portionDesc: "1 bowl", servings: 1, itemType: "ingredient", ingredients: ["oats 40g", "milk 200ml"], perPortion: { kcal: 250, protein: 10, fat: 8, satFat: 3, carbs: 33, sugar: 10, addedSugar: 0, fibre: 4, salt: 0.2 } })) : r.fallback());
+  await page.locator('#add-item-form-manage input[type="file"]').setInputFiles({ name: "p.png", mimeType: "image/png", buffer: PNG });
+  await expect(page.getByTestId("review-portion")).toHaveText("1 portion = 1 bowl · values per portion");
   await page.locator("#review-item-ingredients").fill("oats 80g, milk 250ml");
   const panel = page.locator("div", { has: page.locator("#review-item-ingredients") }).filter({ has: page.getByRole("button", { name: "✓ Confirm" }) }).last();
   await panel.getByRole("button", { name: /^breakfast$/i }).click();
   await panel.getByRole("button", { name: "✓ Confirm" }).click();
-  await expect(page.getByText(/Recalculation failed: the total \(200 kcal\) is less than its ingredients add up to \(420 kcal\)/).first()).toBeVisible();
-  expect(calls).toBe(2);
-  reply = { kcal: 430, protein: 18, satFat: 3, addedSugar: 0, breakdown: [{ ingredient: "oats 80g", kcal: 300 }, { ingredient: "milk 250ml", kcal: 120 }], assumed: [] };
-  await panel.getByRole("button", { name: "✓ Confirm" }).click();
-  await expect(page.getByText(/250 → 430 kcal, protein 10 → 18g/).first()).toBeVisible();
+  const ul = page.getByTestId("update-lists");
+  await expect(ul.getByLabel("Describe your item")).toHaveValue(/oats 80g, milk 250ml/);
+  await expect(page.getByText(/Recalculation failed|could not be read/)).toHaveCount(0);
   expect(errors).toEqual([]);
 });

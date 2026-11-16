@@ -2,8 +2,22 @@
 // Only changes: these imports replace CDN globals, and `export default`
 // replaces the ReactDOM render call (now in main.jsx).
 import React from "react";
+import { bodyNotesCtx } from "./lib/bodyNotes.js";
+import { allowedBy, consentActive, loadConsent, needsConsent } from "./lib/consent.js";
+import ConsentScreen from "./components/ConsentScreen.jsx";
+import GoalSetup from "./components/GoalSetup.jsx";
+import { setupComplete, goalCtx, kcalTargetText, dayTable, aimText, personalLimits } from "./lib/goals.js";
+import LegalViewer from "./components/LegalViewer.jsx";
+import { auditLog } from "./lib/audit.js";
+import { removeOldGoogleTokens, stripOldCalorieSettings } from "./lib/cleanup.js";
+import { refreshRatingsOnce } from "./lib/refreshRatings.js";
+import { offProduct, offToItem, portionLabel, migrateList } from "./lib/portion.js";
+import { searchOffRaw } from "./lib/off.js";
+import { apiTurns, historyBlock, qaToMessages, sharedContext } from "./lib/memory.js";
+import { GH, fetchWeekCalories, fetchWeekSteps, forgetToken, loadToken, mergeDaily, mergeSteps, saveToken } from "./lib/googleHealth.js";
+import LoadingDots from "./components/LoadingDots.jsx";
 import firebase, { DATA_ROOT } from "./lib/firebase.js";
-import { latestFirst } from "./lib/chat.js";
+import ChatThread from "./components/ChatThread.jsx";
 import { TONE_RULES, WELLBEING_RULES } from "./constants/tone.js";
 import { MOOD_COLORS, MOOD_EMOJIS, MOOD_LABELS } from "./constants/mood.js";
 import { COLOUR_THEMES } from "./constants/themes.js";
@@ -14,7 +28,8 @@ import { BLOOD_TESTS, DEFAULT_MEDS, DEFAULT_SUPPS, IDEALS } from "./constants/he
 import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnMuted, btnP, btnPortion, btnS, btnStop, inputStyle, labelStyle } from "./constants/styles.js";
 import { accentVariant, hexToHsl, hslToHex } from "./lib/colour.js";
 import { buildExProfileInfo, getJournalWellbeingCtx, getMoodContext } from "./lib/aiContext.js";
-import { autoStatus, entrySets, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsToSave } from "./lib/exercise.js";
+import { autoStatus, entrySets, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, findWeekIdx, logSetsFrom, parseReps, previousEntry, setsToSave } from "./lib/exercise.js";
+import { nextLogPrefill } from "./lib/exercise.js";
 import { calcWeek, countStatus, fbIcon, fmtDate, getWeekDates, mealKey, sBg, sColor, sLabel } from "./lib/utils.js";
 import { sGet, sSet } from "./lib/storage.js";
 import { handleApiError } from "./lib/api.js";
@@ -102,6 +117,13 @@ function Dashboard() {
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  /* v2.18.0: mandatory goal setup — shown until complete ("Later" hides it until the next visit); also opened from My Profile */
+  const [goalSetupOpen, setGoalSetupOpen] = useState(false);
+  const [goalLater, setGoalLater] = useState({});
+  const openGoalSetup = function() { setGoalSetupOpen(true); };
+  /* v2.16.7 P9: consent for the person being used (only acts while the pilotConsent flag is on) */
+  const [consentRec, setConsentRec] = useState(undefined);
+  useEffect(function() { var live = true; setConsentRec(undefined); loadConsent(activeTab).then(function(c) { if (!live) return; window._lcConsent = c; setConsentRec(c); }); return function() { live = false; }; }, [activeTab]);
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [userColour, setUserColour] = useState(null); // per-user colour key, null = default
   const [showBloodForm, setShowBloodForm] = useState(false);
@@ -240,27 +262,11 @@ function Dashboard() {
     offSearchTimeout.current = setTimeout(async function() {
       setOffLoading(true);
       try {
-        var url = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + encodeURIComponent(term) + "&search_simple=1&action=process&json=1&page_size=8&fields=product_name,code,nutriments,ingredients_text,serving_size,categories_tags_en,image_front_small_url,brands&countries_tags_en=united-kingdom";
-        var resp = await fetch(url);
-        var data = await resp.json();
-        var products = (data.products || []).filter(function(p) { return p.product_name && p.nutriments; }).map(function(p) {
-          var nm = p.nutriments || {};
-          return {
-            name: p.product_name + (p.brands ? " (" + p.brands.split(",")[0].trim() + ")" : ""),
-            barcode: p.code || "",
-            kcal: Math.round(nm["energy-kcal_100g"] || nm["energy-kcal_serving"] || 0),
-            protein: Math.round((nm.proteins_100g || nm.proteins_serving || 0) * 10) / 10,
-            fat: Math.round((nm.fat_100g || nm.fat_serving || 0) * 10) / 10,
-            satFat: Math.round((nm["saturated-fat_100g"] || nm["saturated-fat_serving"] || 0) * 10) / 10,
-            carbs: Math.round((nm.carbohydrates_100g || nm.carbohydrates_serving || 0) * 10) / 10,
-            sugar: Math.round((nm.sugars_100g || nm.sugars_serving || 0) * 10) / 10,
-            fibre: Math.round((nm.fiber_100g || nm.fiber_serving || 0) * 10) / 10,
-            salt: Math.round((nm.salt_100g || nm.salt_serving || 0) * 10) / 10,
-            ingredients: p.ingredients_text || "",
-            servingSize: p.serving_size || "per 100g",
-            categories: (p.categories_tags_en || []).slice(0, 5),
-            image: p.image_front_small_url || ""
-          };
+        var data = { products: await searchOffRaw(term) };   /* v2.19.2: shared OFF search — retries, timeout, cache */
+        /* v2.19.0: OFF values are per 100 g — kept as per100; the item's values are PER PORTION (serving size, else 100 g, editable) */
+        var products = (data.products || []).filter(function(p) { return p.product_name && p.nutriments && p.nutriments["energy-kcal_100g"] != null; }).map(function(p) {
+          var it = offToItem(offProduct(p));
+          return Object.assign({}, it, { servingSize: portionLabel(it), categories: (p.categories_tags_en || p.categories_tags || []).slice(0, 5), image: p.image_front_small_url || "" });
         });
         setOffResults(products);
       } catch(e) { setOffResults([]); }
@@ -416,125 +422,45 @@ function Dashboard() {
 
   // Google Health Connect - OAuth + Fitness API
   const GOOGLE_CLIENT_ID = "464885753789-a8flgh64f1u9qeocktt6uljvjvsd0sf2.apps.googleusercontent.com";
-  const GOOGLE_SCOPES = "https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly";
 
+  // v2.16.2 R4: rebuilt. The token stays on this device (googleHealth.js), never in the database.
   const connectGoogle = function() {
-    var clientId = "";
+    if (!allowedBy(window._lcConsent, "health")) { setFormMsg("Google Health is off in your privacy choices (Settings → Privacy & consent)"); setTimeout(function() { setFormMsg(""); }, 4000); return; }
     sGet("google_client_id").then(function(id) {
-      clientId = id || GOOGLE_CLIENT_ID;
-      if (!clientId) { setFormMsg("Set Google Client ID in Admin first"); setTimeout(function() { setFormMsg(""); }, 3000); return; }
+      var clientId = id || GOOGLE_CLIENT_ID;
+      if (typeof google === "undefined" || !google.accounts) { setFormMsg("✗ Google sign-in didn't load — check the connection and try again"); setTimeout(function() { setFormMsg(""); }, 4000); return; }
+      var who = activeTab;
       var client = google.accounts.oauth2.initTokenClient({
-        client_id: clientId,
-        scope: GOOGLE_SCOPES,
+        client_id: clientId, scope: GH.scope,
         callback: function(response) {
-          if (response.access_token) {
-            setGoogleToken(response.access_token);
-            setGoogleConnected(true);
-            sSet("google_token_" + activeTab, response.access_token);
-            setFormMsg("✓ Google Health connected"); setTimeout(function() { setFormMsg(""); }, 3000);
-          }
+          if (response && response.access_token) {
+            saveToken(who, response.access_token, response.expires_in);
+            setGoogleToken(response.access_token); setGoogleConnected(true);
+            setFormMsg("✓ Google Health connected on this device"); setTimeout(function() { setFormMsg(""); }, 3000);
+          } else { setFormMsg("✗ Google Health not connected" + (response && response.error ? " (" + response.error + ")" : "")); setTimeout(function() { setFormMsg(""); }, 4000); }
         }
       });
       client.requestAccessToken();
     });
   };
-
   const syncGoogleHealth = async function() {
-    var token = googleToken;
-    if (!token) { try { token = await sGet("google_token_" + activeTab); } catch(e) {} }
-    if (!token) { setFormMsg("Connect Google Health first"); setTimeout(function() { setFormMsg(""); }, 3000); return; }
-    setSyncLoading(true); setFormMsg("Syncing health data...");
-    var nd = JSON.parse(JSON.stringify(data));
-    var now = Date.now();
-    var thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
-    var headers = { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
-
+    var who = activeTab; var t = loadToken(who);
+    if (!t) { setGoogleConnected(false); setFormMsg("Connect Google Health on this device first"); setTimeout(function() { setFormMsg(""); }, 3000); return; }
+    setSyncLoading(true); setFormMsg("⏳ Reading this week's calories from Google Health…");
+    var nd = JSON.parse(JSON.stringify(data)); var at = new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
     try {
-      // Fetch body weight
-      var weightResp = await fetch("https://health.googleapis.com/v4/users/me/dataTypes/weight/dataPoints?pageSize=30&filter=weight.update_time.physical_time%20%3E%3D%20%222026-07-01T00:00:00Z%22", {
-        method: "GET", headers: headers
-      });
-      var weightData = await weightResp.json();
-      if (weightData.dataPoint) {
-        for (var bi = 0; bi < weightData.dataPoint.length; bi++) {
-          var pt = weightData.dataPoint[bi];
-          var kg = pt.value && pt.value.floatValue ? pt.value.floatValue : (pt.value && pt.value.intValue ? pt.value.intValue : 0);
-          if (!kg && pt.value) { for (var vk in pt.value) { if (typeof pt.value[vk] === "number" && pt.value[vk] > 20) { kg = pt.value[vk]; break; } } }
-          if (kg > 0) {
-            var stone = (kg * 0.157473).toFixed(2);
-            var dt = pt.startTime ? new Date(pt.startTime) : new Date();
-            var existing = (nd[activeTab].body.weight || []).find(function(w) { return w.v === parseFloat(stone); });
-            if (!existing) { nd[activeTab].body.weight.push({ wk: nd.config.week || 8, v: parseFloat(stone), date: dt.toLocaleDateString("en-GB"), source: "Google" }); }
-          }
-        }
-      }
-
-      // Fetch body fat
-      var fatResp = await fetch("https://health.googleapis.com/v4/users/me/dataTypes/body-fat/dataPoints?pageSize=30", {
-        method: "GET", headers: headers
-      });
-      var fatData = await fatResp.json();
-      if (fatData.dataPoint) {
-        for (var fi = 0; fi < fatData.dataPoint.length; fi++) {
-          var fp = fatData.dataPoint[fi];
-          var fatPct = fp.value && fp.value.floatValue ? fp.value.floatValue : 0;
-          if (!fatPct && fp.value) { for (var fk in fp.value) { if (typeof fp.value[fk] === "number" && fp.value[fk] > 0 && fp.value[fk] < 100) { fatPct = fp.value[fk]; break; } } }
-          if (fatPct > 0) {
-            var existing2 = (nd[activeTab].body.bodyFat || []).find(function(f) { return f.v === parseFloat(fatPct.toFixed(1)); });
-            if (!existing2) { nd[activeTab].body.bodyFat.push({ wk: nd.config.week || 8, v: parseFloat(fatPct.toFixed(1)), source: "Google" }); }
-          }
-        }
-      }
-
-      // Fetch steps (last 7 days)
-      var sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
-      var stepsResp = await fetch("https://health.googleapis.com/v4/users/me/dataTypes/steps/dataPoints?pageSize=7", {
-        method: "GET", headers: headers
-      });
-      var stepsData = await stepsResp.json();
-      if (!nd[activeTab].activity) nd[activeTab].activity = [];
-      if (stepsData.dataPoint) {
-        for (var si = 0; si < stepsData.dataPoint.length; si++) {
-          var sp = stepsData.dataPoint[si];
-          var steps = sp.value && sp.value.intValue ? sp.value.intValue : 0;
-          if (!steps && sp.value) { for (var sk in sp.value) { if (typeof sp.value[sk] === "number") { steps = sp.value[sk]; break; } } }
-          var dayDate = sp.startTime ? new Date(sp.startTime).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB");
-          if (steps > 0) {
-            var existingAct = nd[activeTab].activity.find(function(a) { return a.date === dayDate; });
-            if (existingAct) { existingAct.steps = steps; existingAct.source = "Google"; }
-            else { nd[activeTab].activity.push({ date: dayDate, steps: steps, type: "daily", source: "Google" }); }
-          }
-        }
-      }
-
-      // Fetch exercise sessions
-      var sessResp = await fetch("https://health.googleapis.com/v4/users/me/dataTypes/exercise/dataPoints?pageSize=10", {
-        method: "GET", headers: headers
-      });
-      var sessData = await sessResp.json();
-      if (sessData.dataPoint) {
-        for (var sei = 0; sei < sessData.dataPoint.length; sei++) {
-          var sess = sessData.dataPoint[sei];
-          var sessDate = sess.startTime ? new Date(sess.startTime).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB");
-          var durMin = (sess.startTime && sess.endTime) ? Math.round((new Date(sess.endTime) - new Date(sess.startTime)) / 60000) : 0;
-          var actName = (sess.value && sess.value.stringValue) || "Exercise";
-          var existingSess = nd[activeTab].activity.find(function(a) { return a.date === sessDate && a.activity === actName; });
-          if (!existingSess) {
-            nd[activeTab].activity.push({ date: sessDate, activity: actName, duration: durMin, type: "session", source: "Google" });
-          }
-        }
-      }
-
-      if (nd[activeTab].activity.length > 90) nd[activeTab].activity = nd[activeTab].activity.slice(-90);
+      var totals = await fetchWeekCalories(t.token, new Date());
+      mergeDaily(nd[who], totals);
+      var steps = {}; try { steps = await fetchWeekSteps(t.token, new Date()); mergeSteps(nd[who], steps, "Google Health"); } catch (se) { if (se.expired) throw se; } /* v2.17.1 */
+      var n = Object.keys(totals).length, ns = Object.keys(steps).length;
+      nd[who].googleSync = { at: at, days: n, stepDays: ns };
       await saveData(nd);
-      setFormMsg("✓ Synced — weight, body fat, steps, and activities updated");
-    } catch(err) {
-      if (String(err).indexOf("401") >= 0 || String(err).indexOf("403") >= 0) {
-        setGoogleConnected(false); setGoogleToken(null);
-        setFormMsg("Google session expired — reconnect in profile");
-      } else {
-        setFormMsg("Sync error: " + String(err).substring(0, 100));
-      }
+      setFormMsg(n || ns ? "✓ Synced — " + n + " day(s) of calories burned, " + ns + " day(s) of steps this week" : "No calorie or step data from Google Health for this week yet");
+    } catch (err) {
+      if (err.expired) { forgetToken(who); setGoogleConnected(false); setGoogleToken(null); }
+      nd[who].googleSync = { at: at, days: 0, error: String(err.message || err).slice(0, 80) };
+      try { await saveData(nd); } catch (e2) { /* status only */ }
+      setFormMsg("✗ " + String(err.message || err).slice(0, 100));
     }
     setTimeout(function() { setFormMsg(""); }, 5000);
     setSyncLoading(false);
@@ -581,7 +507,9 @@ function Dashboard() {
         Object.keys(d).forEach(function(uk) { if (uk !== "config" && d[uk].measurements && !d[uk].measurements.fullBody) { d[uk].measurements = Object.assign({ fullBody: [] }, d[uk].measurements); migrated = true; } });
         if (stripPhotoFragments(d)) migrated = true;   // v2.12.1: remove old base64 fragments from Body Type Photos
         if (stripMeasurementPhotos(d)) migrated = true; // v2.13.1: remove old photos stored in measurement entries
+        if (stripOldCalorieSettings(d)) migrated = true; // v2.17.2: remove the old kcal deficit + R6 admin switch
         if (migrated) await sSet("dashboard:data", JSON.stringify(d));
+        try { await refreshRatingsOnce(d); } catch (e) { /* v2.18.3: one-off refresh of current/future weeks' stored ratings */ }
         setData(d);
       } else {
         setData(DEFAULT_DATA);
@@ -592,7 +520,7 @@ function Dashboard() {
   }, []);
 
   // Load custom meals
-  useEffect(() => { (async () => { const r = await sGet("custom_meals"); if (r) setCustomMeals(JSON.parse(r)); })(); }, []);
+  useEffect(() => { (async () => { const r = await sGet("custom_meals"); if (r) { var m = migrateList(JSON.parse(r)); if (m.changed) await sSet("custom_meals", JSON.stringify(m.list)); setCustomMeals(m.list); } })(); }, []);   /* v2.19.0: per-portion migration */
 
   // Load saved feedback + history
   useEffect(() => { (async () => {
@@ -622,7 +550,7 @@ function Dashboard() {
       sGet("custom_meas_types"),
       sGet("session_feedback_all"),
       sGet("anthropic_api_key"),
-      sGet("google_token_" + activeTab),
+      Promise.resolve(null), /* v2.16.2: Google token no longer read from the database (device only) */
       sGet("qa_history"),
       sGet("help_history"),
       sGet("user_mood_" + activeTab),
@@ -639,13 +567,15 @@ function Dashboard() {
     if (h) setFeedbackHistory(JSON.parse(h));
     if (efb) setEatFbResults(JSON.parse(efb));
     if (ce) setCustomExercises(JSON.parse(ce));
-    if (cs) setCustomSnacks(JSON.parse(cs));
-    if (cdr) setCustomDrinks(JSON.parse(cdr));
-    if (cde) setCustomDesserts(JSON.parse(cde));
+    /* v2.19.0: one-off, idempotent per-portion migration of the lists (nothing deleted) */
+    var _mig = function(key, raw) { if (!raw) return null; var l = JSON.parse(raw); var m = migrateList(l); if (m.changed) sSet(key, JSON.stringify(m.list)); return m.list; };
+    if (cs) setCustomSnacks(_mig("custom_snacks", cs));
+    if (cdr) setCustomDrinks(_mig("custom_drinks", cdr));
+    if (cde) setCustomDesserts(_mig("custom_desserts", cde));
     if (mt && stillSelected()) setMealTracking(JSON.parse(mt));
     if (po && stillSelected()) setPortionOverrides(JSON.parse(po));
-    if (cb) setCustomBreakfasts(JSON.parse(cb));
-    if (cl) setCustomLunches(JSON.parse(cl));
+    if (cb) setCustomBreakfasts(_mig("custom_breakfasts", cb));
+    if (cl) setCustomLunches(_mig("custom_lunches", cl));
     if (md) setMealDefaults(JSON.parse(md));
     if (cmn) setCustomMedNames(JSON.parse(cmn));
     if (cbt) setCustomBloodTests(JSON.parse(cbt));
@@ -654,7 +584,7 @@ function Dashboard() {
     if (cmt) setCustomMeasTypes(JSON.parse(cmt));
     if (sfAll) { setSessionFeedback(JSON.parse(sfAll)); }
     if (ak) window._anthropicKey = ak;
-    if (gt && stillSelected()) { setGoogleToken(gt); setGoogleConnected(true); }
+    void gt; removeOldGoogleTokens(); /* v2.16.5: one-off cleanup */ if (stillSelected()) { var _ght = loadToken(activeTab); setGoogleToken(_ght ? _ght.token : null); setGoogleConnected(!!_ght); }
     if (qa) setQaHistory(JSON.parse(qa));
     if (hh) setHelpHistory(JSON.parse(hh));
     if (savedMood && stillSelected()) setUserMood(JSON.parse(savedMood));
@@ -689,8 +619,8 @@ function Dashboard() {
       var personCtx = buildPersonHealthCtx(personData);
       var isJC = activeTab === "jc";
       // Add known targets from project context
-      if (isJC) { personCtx += " Targets: 2000-2200 kcal/day, 110-130g protein, under 20g sat fat, under 25g added sugar, 30-35g fibre. TSH 14.2 (poorly controlled), LDL 3.4, HbA1c 43 (prediabetic range), Cholesterol Ratio 6.3. Levothyroxine 200mcg, Statin 20mg."; }
-      else { personCtx += " Targets: 1700-1900 kcal/day, 90-110g protein, under 20g sat fat (critical), under 25g added sugar, 25-30g fibre. Suspected FH. Total Cholesterol 9.6, LDL 7.2, Triglycerides 2.62, HDL 1.2, Ratio 8.0, Non-HDL 8.4. HbA1c 40, eGFR 67. Perimenopausal. Citalopram. Atorvastatin. Portfolio Diet framework."; }
+      if (isJC) { personCtx += " Targets: " + kcalTargetText(personData) + ", 110-130g protein, under 20g sat fat, under 25g added sugar, 30-35g fibre. TSH 14.2 (poorly controlled), LDL 3.4, HbA1c 43 (prediabetic range), Cholesterol Ratio 6.3. Levothyroxine 200mcg, Statin 20mg."; }
+      else { personCtx += " Targets: " + kcalTargetText(personData) + ", 90-110g protein, under 20g sat fat (critical), under 25g added sugar, 25-30g fibre. Suspected FH. Total Cholesterol 9.6, LDL 7.2, Triglycerides 2.62, HDL 1.2, Ratio 8.0, Non-HDL 8.4. HbA1c 40, eGFR 67. Perimenopausal. Citalopram. Atorvastatin. Portfolio Diet framework."; }
       var totalChanges = 0;
       // Recalculate each category
       if (customBreakfasts.length > 0) {
@@ -788,10 +718,12 @@ function Dashboard() {
     [].concat(BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, POTATO_SIDES, SNACKS, VEG_SIDES, customBreakfasts, customLunches, customMeals, customSnacks, customDrinks, customDesserts).forEach(function(it) { if (it && it.id) l[it.id] = it; });
     return Object.assign(l, extra || {});
   };
+  /* v2.18.2 (F23): selections are rated against the person's goal and personal limits (null → UK reference) */
+  const limitsForActive = function() { return personalLimits(data && data[activeTab]); };
   /* Screens edit the weekday view; saving turns it into children (parent picks become new children). */
   const saveMeals = async (d, source, extraLookup) => {
     setSaving(true);
-    const doc = reconcile(weekChildrenRef.current, d, parentLookupNow(extraLookup), { weekStart: weekStart, isJC: activeTab === "jc", source: source || "manual" });
+    const doc = reconcile(weekChildrenRef.current, d, parentLookupNow(extraLookup), { weekStart: weekStart, isJC: activeTab === "jc", source: source || "manual", limitsFor: limitsForActive });
     setWeekChildren(doc); setMeals(viewFromDoc(doc));
     await saveWeekDoc(activeTab, weekStart, doc);
     setSaving(false);
@@ -800,13 +732,13 @@ function Dashboard() {
   const setChildAt = async (weekday, slot, child) => {
     const doc = JSON.parse(JSON.stringify(weekChildrenRef.current)); const id = "c_" + dateOf(weekStart, weekday) + "_" + slot;
     const prev = doc.children[id] || null;
-    if (child) { doc.children[id] = recalcChild(Object.assign({}, child, { id: id, date: dateOf(weekStart, weekday), weekday: weekday, slot: slot })); doc.empty = (doc.empty || []).filter(function(k) { return k !== weekday + ":" + slot; }); }
+    if (child) { doc.children[id] = recalcChild(Object.assign({}, child, { id: id, date: dateOf(weekStart, weekday), weekday: weekday, slot: slot }), limitsForActive()); doc.empty = (doc.empty || []).filter(function(k) { return k !== weekday + ":" + slot; }); }
     else delete doc.children[id];
     setWeekChildren(doc); setMeals(viewFromDoc(doc));
     await saveWeekDoc(activeTab, weekStart, doc);
     return prev;
   };
-  const childItemsList = childItems(weekChildren, parentLookupNow());
+  const childItemsList = childItems(weekChildren, parentLookupNow(), limitsForActive);
   const pickMeal = (dk, id) => { const n = { ...meals, [dk]: id }; setMeals(n); saveMeals(n); setEditDay(null); };
   const clearMeal = dk => { const n = { ...meals }; delete n[dk]; setMeals(n); saveMeals(n); };
   const saveData = async (nd) => { setData(nd); await sSet("dashboard:data", JSON.stringify(nd)); };
@@ -896,7 +828,7 @@ function Dashboard() {
     window._dualLogState = null;
 
     const ex = data[activeTab].exercises[day][idx];
-    const last = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
+    const last = previousEntry(ex.prog, calcWeek(data.config.trainingStart)); // D23: latest week BEFORE the current one
     setLogEx({ day, idx, who: activeTab }); setLogNeedChoice(""); // D1: the form belongs to this person
     var targetW = "";
     var targetR = "";
@@ -915,15 +847,15 @@ function Dashboard() {
     var wFor = function(i) { return targetW || (lastSets[i] ? lastSets[i].w : useW); }; // D2: last session's per-set weights
     if (last && Array.isArray(last.sets) && last.sets.length) setLogSets(logSetsFrom(last, 3)); // each set from the previous entry
     else setLogSets([{ w: wFor(0), r: r1 }, { w: wFor(1), r: r2 }, { w: wFor(2), r: r3 }]);
-    (function() {
-      var maxWk = 0;
-      if (ex.prog) { for (var mwi = 0; mwi < ex.prog.length; mwi++) { if (ex.prog[mwi].wk > maxWk) maxWk = ex.prog[mwi].wk; } }
-      setLogWeek(String(maxWk > 0 ? maxWk + 1 : calcWeek(data.config.trainingStart)));
-    })();
-    // Check if current week already has saved data — if so, pre-fill from it
+    var _pf = nextLogPrefill(ex, last);   /* v2.20.0: Ready to Move / accepted / set by the person → the NEXT weight, reps at the bottom of the range */
+    if (_pf) setLogSets([0, 1, 2].map(function() { return { w: _pf.w, r: _pf.r }; }));
+    // D23: the Week always defaults to the CURRENT training week (the header week)
     var currentCalcWk2 = calcWeek(data.config.trainingStart);
-    var currentWkEntry = null;
-    if (ex.prog) { for (var cwi = 0; cwi < ex.prog.length; cwi++) { if (ex.prog[cwi].wk === currentCalcWk2) { currentWkEntry = ex.prog[cwi]; break; } } }
+    setLogWeek(String(currentCalcWk2));
+    // If the current week is already logged, the form opens that entry for editing (never a new log over it)
+    var _cwi = findWeekIdx(ex.prog, currentCalcWk2);
+    var currentWkEntry = _cwi >= 0 ? ex.prog[_cwi] : null;
+    window._lcEditWk = currentWkEntry ? currentCalcWk2 : null;
     if (currentWkEntry) {
       setLogSets(logSetsFrom(currentWkEntry, 3)); // D2: per-set
       setLogWeek(String(currentCalcWk2));
@@ -957,9 +889,11 @@ function Dashboard() {
     if (!logGoodForm || !logFullRange) { setLogNeedChoice("Choose Form and Range to save"); return; }
     setLogNeedChoice("");
     var _sets = setsToSave(logSets); // D2: weight and reps per set
-    if (editPrev && ex.prog.length > 0) {
+    var _editIdx = editPrev ? findWeekIdx(ex.prog, window._lcEditWk) : -1; // D23: edit the entry that was opened, not the last array item
+    if (editPrev && _editIdx < 0 && ex.prog.length > 0) _editIdx = ex.prog.length - 1;
+    if (editPrev && _editIdx >= 0) {
       // Edit previous entry
-      const prev = ex.prog[ex.prog.length - 1];
+      const prev = ex.prog[_editIdx];
       prev.w = (logSets[0].w || prev.w.replace("kg", "")) + "kg";
       prev.r = fmtReps(logSets.map(s => parseInt(s.r) || 0));
       prev.wk = parseInt(logWeek) || prev.wk;
@@ -972,10 +906,7 @@ function Dashboard() {
     } else {
       // New entry - check for duplicates
       var logWk = parseInt(logWeek) || calcWeek(data.config.trainingStart);
-      var existingIdx = -1;
-      for (var di = 0; di < ex.prog.length; di++) {
-        if (ex.prog[di].wk === logWk) { existingIdx = di; break; }
-      }
+      var existingIdx = findWeekIdx(ex.prog, logWk); // D23: same week source as the Log form
       if (existingIdx >= 0) {
         var action = confirm("Week " + logWk + " already has an entry for " + ex.name + " (" + ex.prog[existingIdx].w + " " + ex.prog[existingIdx].r + ").\n\nOK = Update existing entry\nCancel = Go back");
         if (!action) return;
@@ -1037,8 +968,7 @@ function Dashboard() {
             var otW = otState.sets[0].w + "kg";
             var otReps = fmtReps(otState.sets.map(function(s) { return parseInt(s.r) || 0; }));
             var otWk = parseInt(otState.week || logWeek) || calcWeek(data.config.trainingStart);
-            var otExistIdx = -1;
-            for (var oti2 = 0; oti2 < otEx.prog.length; oti2++) { if (otEx.prog[oti2].wk === otWk) { otExistIdx = oti2; break; } }
+            var otExistIdx = findWeekIdx(otEx.prog, otWk); // D23
             if (otExistIdx >= 0) {
               otEx.prog[otExistIdx].w = otW;
               otEx.prog[otExistIdx].r = otReps;
@@ -1091,7 +1021,7 @@ function Dashboard() {
         } else {
           wv = parseFloat(rawWt);
         }
-        if (!isNaN(wv)) { if (!p.body.weight) p.body.weight = []; const ei = p.body.weight.findIndex(e => e.wk === wk); if (ei >= 0) p.body.weight[ei].v = wv; else p.body.weight.push({ wk, v: wv }); p.body.weight.sort((a, b) => a.wk - b.wk); } } nd.config.week = calcWeek(nd.config.trainingStart); nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); await saveData(nd); setShowBodyForm(false); setFormMsg("✓ Body comp saved"); setTimeout(() => setFormMsg(""), 3000); };
+        if (!isNaN(wv)) { if (!p.body.weight) p.body.weight = []; const ei = p.body.weight.findIndex(e => e.wk === wk); if (ei >= 0) p.body.weight[ei].v = wv; else p.body.weight.push({ wk, v: wv }); p.body.weight.sort((a, b) => a.wk - b.wk); } } /* v2.17.1: the weigh-in's My Notes go on every value logged that week */ if (bodyInputs.note && bodyInputs.note.trim()) { Object.keys(p.body || {}).forEach(function(f) { (p.body[f] || []).forEach(function(e) { if (e && e.wk === wk) e.note = bodyInputs.note.trim(); }); }); } nd.config.week = calcWeek(nd.config.trainingStart); nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); await saveData(nd); setShowBodyForm(false); setFormMsg("✓ Body comp saved"); setTimeout(() => setFormMsg(""), 3000); };
 
   // ─── CUSTOM MEAL ───
   const saveCustomMeal = async () => { if (!customInputs.name.trim()) return; const id = "custom_" + Date.now(); const jf = parseFloat(customInputs.jcFat) || 0; const bf = parseFloat(customInputs.beckFat) || 0; const rating = (jf > 20 || bf > 20) ? "RED" : (jf > 14 || bf > 14) ? "AMBER" : "GREAT"; const meal = { id, name: customInputs.name.trim(), rating, jcKcal: parseInt(customInputs.jcKcal) || 0, beckKcal: parseInt(customInputs.beckKcal) || 0, jcProt: parseInt(customInputs.jcProt) || 0, beckProt: parseInt(customInputs.beckProt) || 0, jcFat: jf, beckFat: bf, freq: customInputs.freq, time: parseInt(customInputs.time) || 20, shop: [] }; const updated = [...customMeals, meal]; setCustomMeals(updated); await sSet("custom_meals", JSON.stringify(updated)); setShowCustomForm(false); setCustomInputs({ name: "", jcKcal: "", beckKcal: "", jcProt: "", beckProt: "", jcFat: "", beckFat: "", freq: "Weekly", time: "20" }); setFormMsg("✓ " + meal.name + " added"); setTimeout(() => setFormMsg(""), 3000); };
@@ -1201,7 +1131,7 @@ function Dashboard() {
           var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
           var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null;
           var qualInfo = ""; if (latest) { var et = ex.exType || "weights"; var frLbl = ["weights","bodyweight","timed_hold","stretching"].indexOf(et) >= 0 ? "FullRange" : "CompletedInOne"; qualInfo = frLbl + "=" + (latest.fullRange === "good" ? "Good" : "Working") + ",GoodForm=" + (latest.goodForm === "good" ? "Good" : "Working"); }
-          return { name: ex.name, current: ex.current, reps: ex.reps, status: ex.status, target: ex.target || "", notes: ex.notes || "", prev: prev ? fmtEntry(prev) + " Wk" + prev.wk : "", weeksTracked: ex.prog ? ex.prog.length : 0, quality: qualInfo };
+          return { name: ex.name, current: ex.current, reps: ex.reps, status: ex.status, target: ex.target || "", progressionValue: ex.progressionValue || "", notes: ex.notes || "", prev: prev ? fmtEntry(prev) + " Wk" + prev.wk : "", weeksTracked: ex.prog ? ex.prog.length : 0, quality: qualInfo };
         });
       }
       const prompt = "You are " + (prof.name || "the user") + "'s Lifecare Companion — a trusted, knowledgeable friend checking in on their progress in Week " + data.config.week + ". You know " + (prof.name || "them") + " well: " + who + ".\n\nSCENE: You're giving your honest take on how things are going across their exercise, eating, body, health, medications, and life in general. You have access to ALL their data and you weave it together naturally like a friend who's been following their journey.\n\nCOMMUNICATION STYLE: Start with 'Hi " + (prof.name || "") + ",' then get straight into your observations. Speak directly using 'you' and 'your' — NEVER third person. Do NOT ask them questions about themselves (unless you genuinely need a specific piece of information to make a recommendation). Do NOT suggest doing things together — you're an AI companion, not a real person. Do NOT use fake-casual openers like 'grab a coffee' or 'good to see you'. Write as flowing, natural paragraphs. No bullet points, no headers, no structured sections.\n\n" + TONE_RULES + getMoodContext(userMood) + getJournalWellbeingCtx(journalEntries, wellbeingFlags) + "\n\nDATA TO WEAVE INTO YOUR CHAT:\nExercises: " + JSON.stringify(exSummary) + "\nBody: " + JSON.stringify(p.body) + "\nMeasurements: " + JSON.stringify(p.measurements) + mealSummary + exComments + healthContext + bloodContext + medsContext + medsHistCtx + measCommCtx + qaCtx + attachCtx + photoCtx + activityCtx + getOnboardingCtx(tab) + prevContext + getCrossSectionCtx(tab, "home") + (function() { if (!journalEntries || journalEntries.length === 0) return ""; var todayStr = new Date().toISOString().split("T")[0]; var todayEntries = journalEntries.filter(function(e) { return e.date === todayStr; }); var recentEntries = journalEntries.slice(0, 10); var moodCounts = {}; recentEntries.forEach(function(e) { if (e.mood !== null && e.mood !== undefined) { var label = MOOD_LABELS[e.mood]; moodCounts[label] = (moodCounts[label] || 0) + 1; } }); return "\n\nJOURNAL ENTRIES (read these carefully — the user is sharing what's on their mind):\nToday's entries: " + (todayEntries.length > 0 ? todayEntries.map(function(e) { return (e.mood !== null && e.mood !== undefined ? "[" + MOOD_LABELS[e.mood] + "] " : "") + e.text; }).join(" | ") : "None yet") + "\nRecent entries (last 10): " + JSON.stringify(recentEntries.map(function(e) { return { date: e.date, mood: e.mood !== null && e.mood !== undefined ? MOOD_LABELS[e.mood] : null, text: e.text }; })) + "\nMood distribution (recent): " + JSON.stringify(moodCounts) + "\nTotal journal entries: " + journalEntries.length; })() + "\n\nRULES:\n- Write 3-4 short paragraphs of natural conversation — like actual speech, not a report.\n- Reference SPECIFIC numbers from the data (weights, reps, calories, blood results, measurements).\n- Cover the full picture: what's going well, what could be better, and one thing to focus on — but woven together naturally, not in labelled sections.\n- MEDICATION: Note interactions between active meds AND with diet/exercise. Label [OFFICIAL] vs [ANECDOTAL]. Never recommend stopping medication.\n- Keep total length under 200 words. Quality over quantity.\n- Return ONLY a JSON object: {\"chat\":\"your conversational paragraphs here\", \"wellbeingFlags\":{}} where wellbeingFlags is OPTIONAL — only include it if you are flagging a wellbeing concern at Tier 2+. Format: {\"concern_key\":{\"tier\":2,\"concern\":\"recurring headaches\",\"signposted\":\"GP\",\"date\":\"" + new Date().toISOString().split("T")[0] + "\"}}. Use snake_case keys like 'headaches', 'low_mood', 'work_stress'. Omit wellbeingFlags entirely if no concerns at Tier 2+.\n- Use \\n\\n between paragraphs in the chat value.";
@@ -1288,7 +1218,7 @@ function Dashboard() {
         });
       });
       // Calorie & macro targets
-      var limKcal = isJ ? 2200 : 1900; var limProt = isJ ? 130 : 110; var limSfat = 20;
+      var _gt = dayTable(p, dateOf(weekStart, dayKey), null); var limKcal = _gt.ready ? _gt.goal.actual + " (their goal: " + aimText(_gt.aim) + ")" : "not set (goal setup incomplete)"; /* v2.18.0: one goal everywhere */ var limProt = isJ ? 130 : 110; var limSfat = 20;
       var limCarbs = isJ ? 300 : 260; var limFib = isJ ? 35 : 30; var limSalt = 6;
       var totPlanned = planned.reduce(function(s,x){return s+x.kcal;},0);
       var totConsumed = consumed.reduce(function(s,x){return s+x.kcal;},0);
@@ -1458,7 +1388,7 @@ function Dashboard() {
           weekSummary.push(dk.slice(0,3) + " " + dateOf(weekStart, dk) + (dayPhase(dateOf(weekStart, dk), ymd(new Date())) === "eaten" ? " (EATEN)" : " (PLAN)") + ": " + dKcal + "kcal, " + dProt + "g prot. Items: " + dayConsumed.map(function(x){return x.name+"("+x.kcal+"kcal,"+x.rating+")";}).join(", ") + (daySkipped.length > 0 ? ". Skipped: " + daySkipped.map(function(x){return x.name;}).join(", ") : ""));
         }
       });
-      var limKcal = isJ ? 2200 : 1900; var limProt = isJ ? 130 : 110; var limSfat = 20;
+      var _gw = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].map(function(dk) { return dayTable(p, dateOf(weekStart, dk), null); }).filter(function(t) { return t.ready; }); var limKcal = _gw.length ? Math.round(_gw.reduce(function(s2, t) { return s2 + t.goal.actual; }, 0) / _gw.length) + " (their goal: " + aimText(_gw[0].aim) + ")" : "not set (goal setup incomplete)"; /* v2.18.0 */ var limProt = isJ ? 130 : 110; var limSfat = 20;
       var avgKcal = daysPlanned > 0 ? Math.round(weekTotKcal / daysPlanned) : 0;
       var avgProt = daysPlanned > 0 ? Math.round(weekTotProt / daysPlanned) : 0;
       var ragSummary = "";
@@ -1538,30 +1468,33 @@ function Dashboard() {
   // ─── CROSS-SECTION THREAD CONTEXT ───
   const getCrossSectionCtx = function(tab, excludeSection) {
     var lines = [];
-    var addThreadSummary = function(label, fbObj) {
-      if (!fbObj) return;
-      if (fbObj._thread && fbObj._thread.length > 0) {
-        var lastTwo = fbObj._thread.slice(-4);
-        lines.push(label + " conversation: " + lastTwo.map(function(m) { return (m.role === "user" ? "User" : "Companion") + ": " + m.text; }).join(" | "));
-      }
-    };
-    if (excludeSection !== "home") addThreadSummary("Home feedback", feedbackResults[tab]);
+    /* v2.17.1: the person's own notes on weigh-ins and measurements, for every companion that sees body data */
+    var _bn = bodyNotesCtx(data && data[tab]); if (_bn) lines.push(_bn);
+    /* v2.18.0: the person's goal, timescale, required pace and progress — every companion */
+    try { lines.push(goalCtx(data && data[tab])); } catch (e) { /* goal context is optional */ }
+    /* v2.20.0: one shared summary of THIS person's recent Companion conversations (14 days, small budget). Every source is
+       keyed by `tab`; state that only holds the active person (body/measurement feedback, journal) is used only when tab is active. */
+    var areas = [], th = function(fb) { return fb && fb._thread ? fb._thread : null; };
+    var mine = tab === activeTabRef.current;
+    if (excludeSection !== "home") areas.push({ label: "Home feedback", msgs: th(feedbackResults[tab]) });
     if (excludeSection !== "eating") {
       var eatTab = eatFbResults[tab];
       if (eatTab) {
-        if (eatTab.week) addThreadSummary("Weekly eating", eatTab.week);
+        if (eatTab.week) areas.push({ label: "Weekly eating", msgs: th(eatTab.week) });
         var eatDays = Object.keys(eatTab).filter(function(k) { return k !== "week"; });
-        if (eatDays.length > 0) { var lastEatDay = eatDays[eatDays.length - 1]; addThreadSummary("Eating (" + lastEatDay + ")", eatTab[lastEatDay]); }
+        if (eatDays.length > 0) { var lastEatDay = eatDays[eatDays.length - 1]; areas.push({ label: "Eating (" + lastEatDay + ")", msgs: th(eatTab[lastEatDay]) }); }
       }
     }
     if (excludeSection !== "session" && sessionFeedback) {
       var sfbKeys = Object.keys(sessionFeedback).filter(function(k) { return k.startsWith(tab + "_"); });
-      if (sfbKeys.length > 0) { addThreadSummary("Activities (" + sfbKeys[sfbKeys.length - 1].split("_")[1] + ")", sessionFeedback[sfbKeys[sfbKeys.length - 1]]); }
+      if (sfbKeys.length > 0) areas.push({ label: "Exercise (" + sfbKeys[sfbKeys.length - 1].split("_")[1] + ")", msgs: th(sessionFeedback[sfbKeys[sfbKeys.length - 1]]) });
     }
-    if (excludeSection !== "bodycomp") addThreadSummary("Body comp", bodyFeedback);
-    if (excludeSection !== "meas") addThreadSummary("Measurements", measFeedback);
+    if (excludeSection !== "bodycomp") areas.push({ label: "Body", msgs: th(mine ? bodyFeedback : bodyFbAll && bodyFbAll[tab]) });
+    if (excludeSection !== "meas") areas.push({ label: "Measurements", msgs: th(mine ? measFeedback : measFbAll && measFbAll[tab]) });
+    if (excludeSection !== "qa") areas.push({ label: "Chat", msgs: qaToMessages(qaHistory && qaHistory[tab]) });
+    var _shared = sharedContext(areas); if (_shared) lines.push(_shared);
     /* Journal summary for cross-section awareness */
-    if (journalEntries && journalEntries.length > 0) {
+    if (mine && journalEntries && journalEntries.length > 0) {
       var recentJ = journalEntries.slice(0, 5);
       var jSummary = recentJ.map(function(e) { return (e.date || "") + (e.mood !== null && e.mood !== undefined ? " [" + MOOD_LABELS[e.mood] + "]" : "") + ": " + (e.text || "").substring(0, 120); }).join(" | ");
       lines.push("Journal (recent): " + jSummary);
@@ -1640,9 +1573,10 @@ function Dashboard() {
     var loadKey = fbType + "-" + fbKey;
     setThreadLoading(function(prev) { return Object.assign({}, prev, { [loadKey]: true }); });
     try {
-      var thread = (fbObj._thread || []).concat([{ role: "user", text: txt, when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) }]);
+      var thread = (fbObj._thread || []).concat([{ role: "user", text: txt, ts: Date.now(), when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) }]);
       // Build conversation history for API
-      var convoHistory = thread.map(function(m) { return (m.role === "user" ? "User" : "Companion") + ": " + m.text; }).join("\n");
+      var convoHistory = historyBlock(thread);   /* v2.20.0: last 20 messages in full + a rolling summary of older ones */
+      var _sec = { home: "home", eatweek: "eating", eatday: "eating", session: "session", bodycomp: "bodycomp", meas: "meas" }[fbType] || fbType;
       // Build context about what feedback this is responding to
       var fbContext = "";
       if (fbObj.good) fbContext += "Good: " + (fbObj.good || []).join("; ") + ". ";
@@ -1654,14 +1588,14 @@ function Dashboard() {
       if (fbObj.summary) fbContext += "Summary: " + fbObj.summary + ". ";
       if (fbObj.exercises) fbContext += "Exercises: " + fbObj.exercises.map(function(ex) { return ex.name + " — " + ex.verdict + (ex._decision ? " (" + ex._decision + (ex._userNote ? ": " + ex._userNote : "") + ")" : ""); }).join("; ") + ". ";
       var wellbeingCtx = (fbType === "home" && journalEntries && journalEntries.length > 0) ? "\n\n" + WELLBEING_RULES + (wellbeingFlags && Object.keys(wellbeingFlags).length > 0 ? "\nActive wellbeing flags: " + JSON.stringify(wellbeingFlags) : "") + "\nRecent journal: " + journalEntries.slice(0, 5).map(function(e) { return e.date + ": " + (e.text || "").substring(0, 100); }).join(" | ") : "";
-      var prompt = "You are the user's Lifecare Companion continuing a conversation about feedback you gave. You are their trusted, knowledgeable friend — imagine you're still on the same video call about this topic. Mirror and match their energy, be warm, empathetic and honest. Keep responses conversational — 2-4 sentences max unless they ask for detail. "+TONE_RULES+getMoodContext(userMood)+wellbeingCtx+"\n\nOriginal feedback: " + fbContext + "\n\nConversation so far:\n" + convoHistory + "\n\nRespond naturally to their latest message. If they're pushing back, respect it — they know their situation better than you. If they're asking for detail, give it with specific numbers. If they're sharing context, acknowledge it and adjust your advice. If they share something concerning about their health or wellbeing, support them warmly and signpost appropriate help — never say it's outside your scope. Return ONLY your response text, no JSON, no formatting.";
+      var prompt = "You are the user's Lifecare Companion continuing a conversation about feedback you gave. You are their trusted, knowledgeable friend — imagine you're still on the same video call about this topic. Mirror and match their energy, be warm, empathetic and honest. Keep responses conversational — 2-4 sentences max unless they ask for detail. "+TONE_RULES+getMoodContext(userMood)+wellbeingCtx+"\n\nOriginal feedback: " + fbContext + getCrossSectionCtx(activeTab, _sec) + "\n\n" + convoHistory + "\n\nRespond naturally to their latest message. If they're pushing back, respect it — they know their situation better than you. If they're asking for detail, give it with specific numbers. If they're sharing context, acknowledge it and adjust your advice. If they share something concerning about their health or wellbeing, support them warmly and signpost appropriate help — never say it's outside your scope. Return ONLY your response text, no JSON, no formatting.";
       var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, messages: [{ role: "user", content: prompt }] }) });
       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
       var replyTxt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) replyTxt += result.content[ci].text; } }
       if (!replyTxt.trim()) throw new Error("No reply came back — please send it again");
       if (result.stop_reason === "max_tokens") replyTxt = replyTxt.trim() + " … (I ran out of room there — ask me to carry on.)";   // v2.9.0: cut-off detection
       if (replyTxt) {
-        thread.push({ role: "companion", text: replyTxt.trim(), when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) });
+        thread.push({ role: "companion", text: replyTxt.trim(), ts: Date.now(), when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) });
       }
       var updatedFb = Object.assign({}, fbObj, { _thread: thread });
       delete updatedFb._comment; delete updatedFb._commentWhen;
@@ -1709,22 +1643,16 @@ function Dashboard() {
     }
     var loadKey = fbType + "-" + fbKey;
     var isLoading = threadLoading[loadKey];
-    return React.createElement("div", { style: { marginTop: 10 } },
-      React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 8 } },
-        React.createElement("textarea", { id: "thread-input-" + fbType + "-" + fbKey, placeholder: thread.length > 0 ? "Continue the conversation..." : "Respond to this feedback...", disabled: isLoading, style: { flex: 1, padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, resize: "vertical", minHeight: 40, boxSizing: "border-box", fontFamily: "inherit", opacity: isLoading ? 0.6 : 1 } }),
-        React.createElement("button", { onClick: function() { threadReply(fbObj, fbType, fbKey, updateFn, saveKey); }, disabled: isLoading, style: { padding: "8px 14px", background: isLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: isLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap", alignSelf: "flex-end", minWidth: 50 } }, isLoading ? React.createElement("span", null, React.createElement("span", { className: "loading-dots", dangerouslySetInnerHTML: { __html: "<span>.</span><span>.</span><span>.</span>" } })) : "Send"),
+    /* v2.20.0: the input row is closed before the error and the conversation (they used to sit inside the row, which
+       squashed the textarea into a narrow column once a thread existed). Full-width textarea; Send beside or below it. */
+    return React.createElement("div", { "data-testid": "thread-" + fbType + "-box", style: { marginTop: 10, width: "100%", minWidth: 0 } },
+      React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8, alignItems: "flex-end" } },
+        React.createElement("textarea", { id: "thread-input-" + fbType + "-" + fbKey, placeholder: thread.length > 0 ? "Continue the conversation..." : "Respond to this feedback...", disabled: isLoading, style: { flex: "1 1 220px", minWidth: 0, width: "100%", padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12, resize: "vertical", minHeight: 40, boxSizing: "border-box", fontFamily: "inherit", opacity: isLoading ? 0.6 : 1 } }),
+        React.createElement("button", { onClick: function() { threadReply(fbObj, fbType, fbKey, updateFn, saveKey); }, disabled: isLoading, style: { flex: "0 0 auto", padding: "8px 14px", background: isLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: isLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap", alignSelf: "flex-end", minWidth: 50 } }, isLoading ? React.createElement("span", null, React.createElement(LoadingDots)) : "Send")),
       threadErr[loadKey] && React.createElement("div", { role: "alert", "data-testid": "thread-error", style: { marginBottom: 8, padding: 8, borderRadius: 6, background: "#fee2e2", color: "#991b1b", fontSize: 11, fontWeight: 600 } }, threadErr[loadKey]),
       thread.length > 0 && React.createElement("div", { style: { marginBottom: 8 } },
-        React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#94a3b8", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" } }, "Conversation"),
-        latestFirst(thread).map(function(m, i) { /* v2.6.4 D8: latest exchange first, input above */
-          var isUser = m.role === "user";
-          return React.createElement("div", { key: i, style: { display: "flex", flexDirection: "column", alignItems: isUser ? "flex-end" : "flex-start", marginBottom: 6 } },
-            React.createElement("div", { style: { maxWidth: "85%", padding: "8px 12px", borderRadius: isUser ? "12px 12px 2px 12px" : "12px 12px 12px 2px", background: isUser ? accentChatUser : "#334155", border: isUser ? "1px solid " + accentBorder : "none", color: isUser ? "#334155" : "#fff", fontSize: 12, lineHeight: 1.5 } }, m.text),
-            React.createElement("div", { style: { fontSize: 9, color: "#94a3b8", marginTop: 2, paddingLeft: 4, paddingRight: 4 } }, isUser ? "You" : "Companion", m.when ? " · " + m.when : "")
-          );
-        })
-      )
-      )
+        React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#475569", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" } }, "Conversation"),
+        React.createElement(ChatThread, { messages: thread, userBg: accentChatUser, userBorder: accentBorder, testid: "thread-" + fbType }))
     );
   };
 
@@ -1746,10 +1674,7 @@ function Dashboard() {
       var system = [
         { type: "text", text: "You are the user's Lifecare Companion, helping them USE the Lifecare Companion app. Answer ONLY from the app guide below. Be warm, friendly and direct, and speak to them as \"you\". Use UK English.\n\nHOW TO ANSWER:\n- Say exactly where things are: tab → section → button, using the names as they appear in the app.\n- For how-to questions give short numbered steps.\n- Explain the why when it helps them use the app well.\n- Keep it short: usually under 120 words. Plain text only: no headings, no bold, no tables. Simple numbered or dash lists are fine.\n- If the guide doesn't cover it, say so honestly and suggest 💬 Send Feedback at the bottom of the app. Never invent buttons, screens or features.\n- For questions about their own health, food, training or results (rather than how the app works), point them to the 💬 Chat button, which uses their data.\n- Never give medical advice.\n\n=== APP GUIDE ===\n" + window._appGuide, cache_control: { type: "ephemeral" } }
       ];
-      var hist = (helpHistory[activeTab] || []).slice(-6);
-      var msgs = [];
-      hist.forEach(function(h) { msgs.push({ role: "user", content: h.q }); msgs.push({ role: "assistant", content: h.a }); });
-      msgs.push({ role: "user", content: "[I'm " + who + ", currently on the " + (secNames[section] || "Home") + " tab]\n" + question });
+      var msgs = apiTurns(qaToMessages(helpHistory[activeTab]), "[I'm " + who + ", currently on the " + (secNames[section] || "Home") + " tab]\n" + question);   /* v2.20.0: last 20 messages + summary */
       var resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
@@ -1760,7 +1685,7 @@ function Dashboard() {
       var answer = ""; if (result.content) { for (var hi = 0; hi < result.content.length; hi++) { if (result.content[hi].text) answer += result.content[hi].text; } }
       if (!answer) throw new Error("No answer came back — please try again");
       answer = answer.replace(/\*\*(.+?)\*\*/g, "$1").replace(/^#{1,6}\s+/gm, "").replace(/`([^`]+)`/g, "$1"); /* panel shows plain text */
-      var entry = { q: question, a: answer.trim(), when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) };
+      var entry = { q: question, a: answer.trim(), ts: Date.now(), when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) };
       var updated = Object.assign({}, helpHistory); updated[activeTab] = [].concat(updated[activeTab] || [], [entry]).slice(-30);
       setHelpHistory(updated);
       try { await sSet("help_history", JSON.stringify(updated)); } catch(se) {}
@@ -1797,7 +1722,7 @@ function Dashboard() {
       var response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] })
+        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: apiTurns(qaToMessages(qaHistory[activeTab]), prompt) })   /* v2.20.0: the conversation so far */
       });
       if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Ask API", status: response.status, statusText: response.statusText }].concat(prev).slice(0, 20); });
       var result = await response.json();
@@ -1812,10 +1737,10 @@ function Dashboard() {
       }
       if (!answer && result.error) answer = "API Error: " + (result.error.message || JSON.stringify(result.error));
       if (!answer) answer = "No answer received. Response: " + JSON.stringify(result).substring(0, 300);
-      var qaEntry = { q: question, a: answer, when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) };
+      var qaEntry = { q: question, a: answer, ts: Date.now(), when: new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) };
       var updated = Object.assign({}, qaHistory);
       if (!updated[activeTab]) updated[activeTab] = [];
-      updated[activeTab] = [].concat(updated[activeTab], [qaEntry]).slice(-20);
+      updated[activeTab] = [].concat(updated[activeTab], [qaEntry]).filter(function(e) { return e && (!e.ts || e.ts >= Date.now() - 365 * 864e5); }).slice(-500);   /* v2.20.0: kept 12 months (was the last 20) */
       setQaHistory(updated);
       try { await sSet("qa_history", JSON.stringify(updated)); } catch(se) {}
       if (el) el.value = "";
@@ -1843,7 +1768,7 @@ function Dashboard() {
   const p = isJC ? data.jc : data.becks;
   const personKeys = Object.keys(data).filter(k => k !== "config");
   const personIdx = personKeys.indexOf(activeTab);
-  const accentCols = ["#2563eb", "#7c3aed", "#059669", "#d97706", "#dc2626", "#0891b2", "#e11d48"];
+  const accentCols = ["#1d4ed8", "#6d28d9", "#047857", "#b45309", "#b91c1c", "#0e7490", "#be123c"] /* v2.17.0 P6: darker for text contrast */;
   const defaultAccent = accentCols[personIdx >= 0 ? personIdx % accentCols.length : 0];
   const defaultAccentLight = isJC ? "#dbeafe" : "#ede9fe";
   const userTheme = userColour && COLOUR_THEMES[userColour] ? COLOUR_THEMES[userColour] : null;
@@ -1855,7 +1780,7 @@ function Dashboard() {
   const accentBtnBorder = accentVariant(accent, 80);
   const accentChatUser = accentVariant(accent, 88);
   /* Per-person settings — shared by the top name tabs and the switch inside the exercise log */
-  const loadUserSettings = function(k) { activeTabRef.current = k; var stale = function() { return activeTabRef.current !== k; }; /* v2.5.1 */ if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); sGet("meal_tracking:" + k).then(function(mt) { if (stale()) return; if (mt) setMealTracking(JSON.parse(mt)); else setMealTracking({}); }); sGet("user_mood_" + k).then(function(m) { if (stale()) return; if (m) setUserMood(JSON.parse(m)); else setUserMood(null); }); sGet("journal_" + k).then(function(j) { if (stale()) return; if (j) setJournalEntries(JSON.parse(j)); else setJournalEntries([]); }); sGet("daily_mood_" + k).then(function(dm) { if (stale()) return; if (dm) { var parsed = JSON.parse(dm); var todayStr = new Date().toISOString().split("T")[0]; if (parsed && parsed.date === todayStr) setDailyMood(parsed); else setDailyMood(null); } else setDailyMood(null); }); sGet("wellbeing_flags_" + k).then(function(wf) { if (stale()) return; if (wf) setWellbeingFlags(JSON.parse(wf)); else setWellbeingFlags({}); }); sGet("user_colour_" + k).then(function(uc) { if (stale()) return; if (uc) setUserColour(uc); else setUserColour(null); }); sGet("portion_overrides:" + k).then(function(po) { if (stale()) return; setPortionOverrides(po ? JSON.parse(po) : {}); }); sGet("google_token_" + k).then(function(gt) { if (stale()) return; if (gt) { setGoogleToken(gt); setGoogleConnected(true); } else { setGoogleToken(null); setGoogleConnected(false); } }); };
+  const loadUserSettings = function(k) { activeTabRef.current = k; var stale = function() { return activeTabRef.current !== k; }; /* v2.5.1 */ if (bodyFbAll[k]) setBodyFeedback(bodyFbAll[k]); else setBodyFeedback(null); if (healthFbAll[k]) setHealthFb(healthFbAll[k]); else setHealthFb(null); if (measFbAll[k]) setMeasFeedback(measFbAll[k]); else setMeasFeedback(null); sGet("meal_tracking:" + k).then(function(mt) { if (stale()) return; if (mt) setMealTracking(JSON.parse(mt)); else setMealTracking({}); }); sGet("user_mood_" + k).then(function(m) { if (stale()) return; if (m) setUserMood(JSON.parse(m)); else setUserMood(null); }); sGet("journal_" + k).then(function(j) { if (stale()) return; if (j) setJournalEntries(JSON.parse(j)); else setJournalEntries([]); }); sGet("daily_mood_" + k).then(function(dm) { if (stale()) return; if (dm) { var parsed = JSON.parse(dm); var todayStr = new Date().toISOString().split("T")[0]; if (parsed && parsed.date === todayStr) setDailyMood(parsed); else setDailyMood(null); } else setDailyMood(null); }); sGet("wellbeing_flags_" + k).then(function(wf) { if (stale()) return; if (wf) setWellbeingFlags(JSON.parse(wf)); else setWellbeingFlags({}); }); sGet("user_colour_" + k).then(function(uc) { if (stale()) return; if (uc) setUserColour(uc); else setUserColour(null); }); sGet("portion_overrides:" + k).then(function(po) { if (stale()) return; setPortionOverrides(po ? JSON.parse(po) : {}); }); (function() { var _t = loadToken(k); setGoogleToken(_t ? _t.token : null); setGoogleConnected(!!_t); })(); /* v2.16.2: device only */ };
   const accentBorder = accentVariant(accent, 78);
   const btnST = Object.assign({}, btnS, { background: accentBtnLight, border: "1px solid " + accentBtnBorder });
   const btnMT = Object.assign({}, btnMuted, { background: accentBtnLight, border: "1px solid " + accentBtnBorder });
@@ -1886,20 +1811,20 @@ function Dashboard() {
               <img src={import.meta.env.BASE_URL + "brand/header-mark-288.png"} alt="Lifecare Companion logo" width="44" height="44" style={{ display: "block", width: 44, height: 44 }} />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#94a3b8", marginBottom: 4 }}>Lifecare Companion™</div>
+              <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#cbd5e1", marginBottom: 4 }}>Lifecare Companion™</div>
               <div data-testid="header-title" style={{ fontSize: 22, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{personName(data, activeTab)}</div>
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
           <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
-            <button onClick={() => setHelpOpen(true)} style={{ background: helpOpen ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "0 10px", height: 38, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#cbd5e1", fontSize: 13, fontWeight: 600, transition: "all 0.2s ease", marginTop: 2 }} title="Help using the app" aria-label="Help using the app">Help <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", border: "1.5px solid #94a3b8", fontSize: 11, fontWeight: 800, color: "#94a3b8" }}>?</span></button>
+            <button onClick={() => setHelpOpen(true)} style={{ background: helpOpen ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "0 10px", height: 38, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#cbd5e1", fontSize: 13, fontWeight: 600, transition: "all 0.2s ease", marginTop: 2 }} title="Help using the app" aria-label="Help using the app">Help <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", border: "1.5px solid #94a3b8", fontSize: 11, fontWeight: 800, color: "#cbd5e1" }}>?</span></button>
               <button onClick={() => { setSection("admin"); setShowOnboarding(false); setSetupTab("profile"); }} style={{ background: section === "admin" ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease", marginTop: 2 }} title="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
           </div>
           <EnvBadge />
           {debugMode && <span data-testid="debug-badge" title="Debug Mode is on (Settings → App & AI)" style={{ display: "inline-block", padding: "2px 8px", borderRadius: 6, background: "#dc2626", color: "#fff", fontSize: 10, fontWeight: 800, letterSpacing: "0.08em" }}>🔧 DEBUG ON</span>}
           </div>
         </div>
-        <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Week {calcWeek(data.config.trainingStart)} · Updated {data.config.lastUpdate}{saving ? " · Saving..." : ""}</div>
+        <div style={{ fontSize: 12, color: "#cbd5e1", marginTop: 2 }}>Week {calcWeek(data.config.trainingStart)} · Updated {data.config.lastUpdate}{saving ? " · Saving..." : ""}</div>
         <div style={{ display: "flex", gap: 4, marginTop: 14, background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 4, border: "1px solid rgba(255,255,255,0.08)" }}>
           <PersonTabs testId="person-tabs" people={peopleOf(data)} activeKey={activeTab}
             tabStyle={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }}
@@ -1917,18 +1842,18 @@ function Dashboard() {
         {showAddPerson && (<div style={{ marginTop: 10, display: "flex", gap: 6 }}>
           <input value={newPersonName} onChange={e => setNewPersonName(e.target.value)} placeholder="Name..." style={{ flex: 1, padding: "8px 10px", border: "1px solid #475569", borderRadius: 8, fontSize: 13, background: "#1e293b", color: "#fff" }} />
           <button onClick={async () => { if (!newPersonName.trim()) return; const key = newPersonName.trim().toLowerCase().replace(/[^a-z0-9]/g, "_"); const nd = JSON.parse(JSON.stringify(data)); nd[key] = { profile: { name: newPersonName.trim(), age: "", sex: "", height: "", bodyType: "", fibreType: "", idealWeight: "", notes: "" }, meds: [], medsHistory: [], body: { weight: [], bodyFat: [], muscleMass: [], muscleRate: [], skeletalMuscle: [], visceralFat: [], subcutFat: [], bmr: [], bodyWater: [], boneMass: [], bodyAge: [], bmi: [] }, measurements: { bicep: [], forearm: [], calf: [], quad: [], chest: [], waist: [], shoulders: [] }, bloods: [], exercises: { sunday: [], monday: [], friday: [] } }; await saveData(nd); setActiveTab(key); setSection("overview"); setShowAddPerson(false); setNewPersonName(""); setFormMsg("✓ " + newPersonName.trim() + " added"); setTimeout(() => setFormMsg(""), 3000); }} style={{ padding: "8px 14px", background: "#2563eb", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Add</button>
-          <button onClick={() => setShowAddPerson(false)} style={{ padding: "8px 10px", background: "transparent", color: "#64748b", border: "1px solid #475569", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+          <button onClick={() => setShowAddPerson(false)} style={{ padding: "8px 10px", background: "transparent", color: "#cbd5e1", border: "1px solid #475569", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>Cancel</button>
         </div>)}
       </div>
       <div style={{ display: "flex", gap: 0, padding: "0 4px", background: "#fff", borderBottom: "1px solid #e2e8f0", overflowX: "auto" }}>
-        {SECS.map(s => (<button key={s.id} onClick={() => { setSection(s.id); setShowOnboarding(false); setSetupTab("profile"); setFbExpanded(false); setEatFbExpanded(false); setHomeFbExpanded(false); setHealthFbExpanded(false); setLogEx(null); setSelectedEx(null); setBodyView("data"); setShowBodyForm(false); setBodyMetricOpen(null); setMeasMetricOpen(null); setMeasLogKey(null); setEditMeasKey(null); setAddMeasOpen(false); setWarmUpOpen(false); setCoolDownOpen(false); setShowRecentJournal(false); setShowFullJournal(false); setHealthView("general"); }} style={{ padding: "10px 8px", border: "none", borderBottom: section === s.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 11, fontWeight: section === s.id ? 700 : 500, color: section === s.id ? accent : "#64748b", cursor: "pointer", whiteSpace: "nowrap" }}>{s.l}</button>))}
+        {SECS.map(s => (<button key={s.id} onClick={() => { setSection(s.id); setShowOnboarding(false); setSetupTab("profile"); setFbExpanded(false); setEatFbExpanded(false); setHomeFbExpanded(false); setHealthFbExpanded(false); setLogEx(null); setSelectedEx(null); setBodyView("data"); setShowBodyForm(false); setBodyMetricOpen(null); setMeasMetricOpen(null); setMeasLogKey(null); setEditMeasKey(null); setAddMeasOpen(false); setWarmUpOpen(false); setCoolDownOpen(false); setShowRecentJournal(false); setShowFullJournal(false); setHealthView("general"); }} style={{ padding: "10px 8px", border: "none", borderBottom: section === s.id ? "2.5px solid " + accent : "2.5px solid transparent", background: "none", fontSize: 11, fontWeight: section === s.id ? 700 : 500, color: section === s.id ? accent : "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>{s.l}</button>))}
       </div>
-      {formMsg && <div style={{ margin: "8px 16px 0", padding: 10, borderRadius: 8, background: formMsg.startsWith("✓") ? "#e0f2fe" : "#fee2e2", color: formMsg.startsWith("✓") ? "#0c4a6e" : "#991b1b", fontSize: 12, fontWeight: 600 }}>{formMsg}</div>}
+      {formMsg && <div role="status" aria-live="polite" style={{ margin: "8px 16px 0", padding: 10, borderRadius: 8, background: formMsg.startsWith("✓") ? "#e0f2fe" : "#fee2e2", color: formMsg.startsWith("✓") ? "#0c4a6e" : "#991b1b", fontSize: 12, fontWeight: 600 }}>{formMsg}</div>}
 
       <div style={{ padding: 16 }}>
         {/* HOME */}
-        <SharePicker go={function(kind) { if (kind === "body" || kind === "progress") setSection("body"); else if (kind === "food") setSection("shop"); }} />
-        {section === "overview" && (<ErrorBoundary name="Home"><HomeSection ctx={{ accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, assessment, assessmentExpanded, btnMT, calcAge, checkCompanionEnergy, companionEnergy, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, dailyMood, data, energyLoading, feedbackHistory, feedbackLoading, feedbackResults, genPlanLoading, generateFeedback, generatedTargets, getCrossSectionCtx, homeFbExpanded, isJC, journalEntries, journalText, meals, onboardInputs, p, profileInputs, renderThread, saveData, setAssessment, setAssessmentExpanded, setDailyMood, setEatDay, setExerciseDay, setFormMsg, setGenPlanLoading, setGeneratedTargets, setHomeFbExpanded, setJournalEntries, setJournalText, setOnboardInputs, setProfileInputs, setSection, setSetupDirty, setSetupTab, setShowFbHistory, setShowFullJournal, setShowMyDay, setShowOnboarding, setShowProfile, setShowRecentJournal, setUserMood, setupDirty, setupTab, showFbHistory, showFullJournal, showMyDay, showOnboarding, showProfile, showRecentJournal, updateHomeFb, userMood }} /></ErrorBoundary>)}
+        <SharePicker people={data ? peopleOf(data) : []} activeKey={activeTab} accentMid={accentMid} setPerson={function(k) { setActiveTab(k); loadUserSettings(k); }} go={function(kind) { if (kind === "body" || kind === "progress") setSection("body"); else if (kind === "food") setSection("shop"); }} />
+        {section === "overview" && (<ErrorBoundary name="Home"><HomeSection ctx={{ weekChildren, openGoalSetup, accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, assessment, assessmentExpanded, btnMT, calcAge, checkCompanionEnergy, companionEnergy, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, dailyMood, data, energyLoading, feedbackHistory, feedbackLoading, feedbackResults, genPlanLoading, generateFeedback, generatedTargets, getCrossSectionCtx, homeFbExpanded, isJC, journalEntries, journalText, meals, onboardInputs, p, profileInputs, renderThread, saveData, setAssessment, setAssessmentExpanded, setDailyMood, setEatDay, setExerciseDay, setFormMsg, setGenPlanLoading, setGeneratedTargets, setHomeFbExpanded, setJournalEntries, setJournalText, setOnboardInputs, setProfileInputs, setSection, setSetupDirty, setSetupTab, setShowFbHistory, setShowFullJournal, setShowMyDay, setShowOnboarding, setShowProfile, setShowRecentJournal, setUserMood, setupDirty, setupTab, showFbHistory, showFullJournal, showMyDay, showOnboarding, showProfile, showRecentJournal, updateHomeFb, userMood }} /></ErrorBoundary>)}
 
         {/* BODY */}
         {section === "body" && (<ErrorBoundary name="Body"><BodySection ctx={{ accent, accentBorder, accentLight, accentMid, activeTab, addMeasName, addMeasOpen, bodyFbAll, bodyFbExpanded, bodyFbLoading, bodyFeedback, bodyInputs, bodyMetricOpen, bodyMetricShowAll, bodyView, btnST, data, editMeasKey, editMeasName, getCrossSectionCtx, getOnboardingCtx, idealSt, isJC, measFbAll, measFbExpanded2, measFbLoading, measFeedback, measLogInputs, measLogKey, measMetricOpen, measMetricShowAll, p, renderThread, saveBodyComp, saveData, setAddMeasName, setAddMeasOpen, setBodyFbExpanded, setBodyFbLoading, setBodyFeedback, setBodyInputs, setBodyMetricOpen, setBodyMetricShowAll, setBodyView, setEditMeasKey, setEditMeasName, setFormMsg, setMeasFbExpanded2, setMeasFbLoading, setMeasFeedback, setMeasLogInputs, setMeasLogKey, setMeasMetricOpen, setMeasMetricShowAll, setShowBodyForm, showBodyForm, updateBodyFb, updateMeasFb, userMood, weekLabel, wt, wtDelta, wtSign, wtStr }} /></ErrorBoundary>)}
@@ -1939,7 +1864,7 @@ function Dashboard() {
         {/* MEDS */}
 
         {/* MEALS */}
-        {section === "meals" && <ErrorBoundary name="Eating"><EatingSection ctx={{ accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, addingCategory, addingNew, addingSlotDay, addingSlotKey, addingSource, baseStart, bulkReviewItems, calcRAG, cameraPreview, copyDayOpen, copyDayTargets, copyWeekOpen, copyWeekTargets, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, data, defScopes, eatDay, eatDayEyeOpen, eatFbExpanded, eatFbLoading, eatFbResults, eatWeekEyeOpen, editDraft, editingItem, formMsg, generateEatFeedback, generateWeekEatFeedback, generating, helpEatCat, helpEatLoading, helpEatResult, helpEatText, isJC, manageListsOpen, mealDefaults, mealTracking, meals, newItemLoading, newItemName, offLoading, offResults, openAddForm, p, pastWeeksMeals, portionLoading, portionOverrides, portionPlanned, portionResult, portionSlot, quickPrepMins, ragRecalcLoading, ragRecalcMsg, recalculateAllRag, renderThread, reviewCategories, reviewSideType, saveMeals, setChildAt, weekChildren, childItemsList, searchOFF, setAddingCategory, setAddingNew, setAddingSlotDay, setAddingSlotKey, setBulkReviewItems, setCameraPreview, setCopyDayOpen, setCopyDayTargets, setCopyWeekOpen, setCopyWeekTargets, setCustomBreakfasts, setCustomDesserts, setCustomDrinks, setCustomLunches, setCustomMeals, setCustomSnacks, setDefScopes, setEatDay, setEatDayChartOpen, setEatDayEyeOpen, setEatFbExpanded, setEatWeekEyeOpen, setEditDraft, setEditingItem, setFormMsg, setGenerating, setHelpEatCat, setHelpEatLoading, setHelpEatResult, setHelpEatText, setManageListsOpen, setMealDefaults, setMealTracking, setMeals, setNewItemLoading, setNewItemName, setOffResults, setOffSearchTerm, setPortionLoading, setPortionOverrides, setPortionPlanned, setPortionResult, setPortionSlot, setQuickPrepMins, setRagRecalcMsg, setReviewCategories, setReviewSideType, setSaving, setWeekOff, updateEatDayFb, updateEatWeekFb, weekLabel, weekOff, weekStart }} /></ErrorBoundary>}
+        {section === "meals" && <ErrorBoundary name="Eating"><EatingSection ctx={{ saveData, accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, addingCategory, addingNew, addingSlotDay, addingSlotKey, addingSource, baseStart, bulkReviewItems, calcRAG, cameraPreview, copyDayOpen, copyDayTargets, copyWeekOpen, copyWeekTargets, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, data, defScopes, eatDay, eatDayEyeOpen, eatFbExpanded, eatFbLoading, eatFbResults, eatWeekEyeOpen, editDraft, editingItem, formMsg, generateEatFeedback, generateWeekEatFeedback, generating, helpEatCat, helpEatLoading, helpEatResult, helpEatText, isJC, manageListsOpen, mealDefaults, mealTracking, meals, newItemLoading, newItemName, offLoading, offResults, openAddForm, p, pastWeeksMeals, portionLoading, portionOverrides, portionPlanned, portionResult, portionSlot, quickPrepMins, ragRecalcLoading, ragRecalcMsg, recalculateAllRag, renderThread, reviewCategories, reviewSideType, saveMeals, setChildAt, weekChildren, childItemsList, searchOFF, setAddingCategory, setAddingNew, setAddingSlotDay, setAddingSlotKey, setBulkReviewItems, setCameraPreview, setCopyDayOpen, setCopyDayTargets, setCopyWeekOpen, setCopyWeekTargets, setCustomBreakfasts, setCustomDesserts, setCustomDrinks, setCustomLunches, setCustomMeals, setCustomSnacks, setDefScopes, setEatDay, setEatDayChartOpen, setEatDayEyeOpen, setEatFbExpanded, setEatWeekEyeOpen, setEditDraft, setEditingItem, setFormMsg, setGenerating, setHelpEatCat, setHelpEatLoading, setHelpEatResult, setHelpEatText, setManageListsOpen, setMealDefaults, setMealTracking, setMeals, setNewItemLoading, setNewItemName, setOffResults, setOffSearchTerm, setPortionLoading, setPortionOverrides, setPortionPlanned, setPortionResult, setPortionSlot, setQuickPrepMins, setRagRecalcMsg, setReviewCategories, setReviewSideType, setSaving, setWeekOff, updateEatDayFb, updateEatWeekFb, weekLabel, weekOff, weekStart }} /></ErrorBoundary>}
 
         {section === "shop" && (<ErrorBoundary name="Shop"><ShopSection ctx={{ accentBorder, accentBtnBorder, accentBtnLight, accentLight, activeTab, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, data, editHealthText, editingHealthLog, foodCheckerCategory, foodCheckerLoading, foodCheckerPreview, foodCheckerText, generatedShop, planned, setCustomBreakfasts, setCustomLunches, setCustomMeals, setCustomSnacks, setEditHealthText, setEditingHealthLog, setFoodCheckerCategory, setFoodCheckerLoading, setFoodCheckerPreview, setFoodCheckerText, setFormMsg, setGeneratedShop, setShopDefaults, setShopLoading, setSupermarket, setWeekOff, shopDefaults, shopList, shopLoading, supermarket, weekLabel, weekStart }} /></ErrorBoundary>)}
 
@@ -1949,7 +1874,7 @@ function Dashboard() {
         {/* HEALTH */}
         {section === "bloods" && <ErrorBoundary name="Health"><HealthSection ctx={{ accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, bloodInputs, customBloodTests, customMedNames, data, editHealthText, editMedIdx, editingHealthLog, getCrossSectionCtx, getOnboardingCtx, healthComment, healthFb, healthFbAll, healthFbExpanded, healthFbLoading, healthView, isJC, medInputs, p, saveData, setBloodInputs, setCustomMedNames, setEditHealthText, setEditMedIdx, setEditingHealthLog, setFormMsg, setHealthComment, setHealthFb, setHealthFbExpanded, setHealthFbLoading, setHealthView, setMedInputs, setShowBloodForm, setShowBloodResults, setShowMedForm, setVitalsInput, setWeekOff, showBloodForm, showBloodResults, showMedForm, userMood, vitalsInput, weekLabel }} /></ErrorBoundary>}
 
-{section === "admin" && (<ErrorBoundary name="Settings"><SettingsSection ctx={{ accentBtnLight, activeTab, companionEnergy, connectGoogle, customMeasTypes, debugLog, debugMode, googleConnected, isAdmin, isJC, measInputs, setCustomMeasTypes, setDebugLog, setDebugMode, setFormMsg, setGoogleConnected, setGoogleToken, setMeasInputs, setUserColour, syncGoogleHealth, syncLoading, userColour , setSection}} /></ErrorBoundary>)}
+{section === "admin" && (<ErrorBoundary name="Settings"><SettingsSection ctx={{ data, saveData, accentBtnLight, activeTab, companionEnergy, connectGoogle, customMeasTypes, debugLog, debugMode, googleConnected, isAdmin, isJC, measInputs, setCustomMeasTypes, setDebugLog, setDebugMode, setFormMsg, setGoogleConnected, setGoogleToken, setMeasInputs, setUserColour, syncGoogleHealth, syncLoading, userColour , setSection}} /></ErrorBoundary>)}
 
 {section === "data" && isAdmin && (<ErrorBoundary name="Data"><DataSection ctx={{ accent, accentBorder, accentLight, data, dataExpandEx, saveData, setDataExpandEx, setFormMsg, setSection }} /></ErrorBoundary>)}
 
@@ -1960,21 +1885,24 @@ function Dashboard() {
 
       {/* Legal links row */}
       <div style={{ display: "flex", justifyContent: "center", gap: 16, padding: "6px 16px 2px" }}>
-        <button onClick={function(){ setShowPrivacy(true); }} style={{ background: "none", border: "none", fontSize: 9, color: "#94a3b8", cursor: "pointer", textDecoration: "underline", padding: 0 }}>Privacy Policy</button>
+        <button onClick={function(){ setShowPrivacy(true); }} style={{ background: "none", border: "none", fontSize: 9, color: "#475569", cursor: "pointer", textDecoration: "underline", padding: 0 }}>Privacy Policy</button>
       </div>
 
       <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, padding: "12px 16px 4px", textAlign: "center" }}>
-        <div style={{ fontSize: 10, color: "#94a3b8" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
-        <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
+        <div style={{ fontSize: 10, color: "#475569" }}>Lifecare Companion™ · Created by Companion Apps Studio™</div>
+        <div style={{ fontSize: 10, color: "#475569", marginTop: 2 }}>© Jan-Christian Zaluski 2026</div></div>
 
       {/* Privacy Policy overlay */}
-      <ErrorBoundary name="PrivacyPolicy"><PrivacyPolicy ctx={{ accent, setShowPrivacy, showPrivacy }} /></ErrorBoundary>
-      <div style={{ textAlign: "center", fontSize: 9, color: "#cbd5e1", paddingBottom: 12 }}>{APP_VERSION}
+      {consentActive() ? (showPrivacy && <LegalViewer which="privacy" onClose={function() { setShowPrivacy(false); }} />) /* v2.16.7 P8: pilot Privacy Notice replaces the old policy */
+        : <ErrorBoundary name="PrivacyPolicy"><PrivacyPolicy ctx={{ accent, setShowPrivacy, showPrivacy }} /></ErrorBoundary>}
+      {data && consentRec !== undefined && needsConsent(consentRec) && <ConsentScreen person={activeTab} name={personName(data, activeTab)} current={consentRec} onDone={function(c) { window._lcConsent = c; setConsentRec(c); auditLog("consent", activeTab, "pilot legal docs + choices"); }} />}
+      {data && data[activeTab] && !(consentRec !== undefined && needsConsent(consentRec)) && (goalSetupOpen || (!setupComplete(data[activeTab]) && !goalLater[activeTab])) && <GoalSetup key={activeTab} data={data} who={activeTab} name={personName(data, activeTab)} saveData={saveData} editing={goalSetupOpen && setupComplete(data[activeTab])} onDone={function() { setGoalSetupOpen(false); setFormMsg("✓ Goal saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} onLater={function() { setGoalSetupOpen(false); setGoalLater(function(q) { var o = Object.assign({}, q); o[activeTab] = true; return o; }); }} laterLabel={goalSetupOpen && setupComplete(data[activeTab]) ? "Cancel" : "Later"} />}
+      <div style={{ textAlign: "center", fontSize: 9, color: "#475569", paddingBottom: 12 }}>{APP_VERSION}
       </div>
 
       {/* Floating Ask a Question button */}
       
-      {!qaOpen && !helpOpen && <button onClick={() => setQaOpen(true)} style={{ position: "fixed", bottom: 24, right: 20, width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", boxShadow: "0 4px 14px rgba(30,58,95,0.4)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }} title="Chat with your Companion" aria-label="Chat with your Companion"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.7-.8L3 21l1.9-5.1A8.3 8.3 0 0 1 3.5 11.5 8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/><circle cx="8.5" cy="11.5" r="0.6" fill="#fff"/><circle cx="12" cy="11.5" r="0.6" fill="#fff"/><circle cx="15.5" cy="11.5" r="0.6" fill="#fff"/></svg></button>}
+      {!qaOpen && !helpOpen && <button onClick={() => setQaOpen(true)} style={{ position: "fixed", bottom: "calc(12px + env(safe-area-inset-bottom))", right: "calc(12px + env(safe-area-inset-right))", width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", boxShadow: "0 4px 14px rgba(30,58,95,0.4)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }} title="Chat with your Companion" aria-label="Chat with your Companion"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.7-.8L3 21l1.9-5.1A8.3 8.3 0 0 1 3.5 11.5 8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/><circle cx="8.5" cy="11.5" r="0.6" fill="#fff"/><circle cx="12" cy="11.5" r="0.6" fill="#fff"/><circle cx="15.5" cy="11.5" r="0.6" fill="#fff"/></svg></button>}
 
       {/* Ask a Question overlay panel */}
       <ErrorBoundary name="HelpPanel"><HelpPanel ctx={{ accentBorder, accentChatUser, activeTab, askHelp, helpHistory, helpLoading, helpMsg, helpOpen, setHelpOpen, setShowHelpHistory, showHelpHistory }} /></ErrorBoundary>

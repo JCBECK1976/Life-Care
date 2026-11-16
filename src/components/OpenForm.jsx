@@ -20,9 +20,9 @@ export default function OpenForm(props) {
   return (<div ref={scrollOnMount} data-testid={props.testid || "open-form"} role="group" aria-label={props.title} style={{ background: "#fff", border: "1px solid #cbd5e1", borderRadius: 10, padding: 12, margin: "6px 0 10px", boxShadow: "0 2px 8px rgba(15,23,42,0.06)" }}>
     <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", flex: 1, minWidth: 0 }}>{props.title}</div>
-      <span data-testid="open-form-mode" style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase", color: editing ? "#1d4ed8" : "#64748b", background: editing ? "#dbeafe" : "#f1f5f9", borderRadius: 4, padding: "2px 6px" }}>{editing ? "Editing" : "Viewing"}</span>
+      <span data-testid="open-form-mode" style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase", color: editing ? "#1d4ed8" : "#475569", background: editing ? "#dbeafe" : "#f1f5f9", borderRadius: 4, padding: "2px 6px" }}>{editing ? "Editing" : "Viewing"}</span>
     </div>
-    {props.subtitle && <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8 }}>{props.subtitle}</div>}
+    {props.subtitle && <div style={{ fontSize: 10, color: "#475569", marginBottom: 8 }}>{props.subtitle}</div>}
     {props.children}
     {props.message && <div data-testid="open-form-msg" role="status" style={{ marginTop: 8, padding: 8, borderRadius: 6, fontSize: 11, fontWeight: 600, background: props.message.charAt(0) === "✓" ? "#dcfce7" : props.message.charAt(0) === "⏳" ? "#e0f2fe" : "#fee2e2", color: props.message.charAt(0) === "✓" ? "#166534" : props.message.charAt(0) === "⏳" ? "#0c4a6e" : "#991b1b" }}>{props.message}</div>}
     {!props.hideActions && <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
@@ -38,7 +38,7 @@ export default function OpenForm(props) {
 // Read-only / editable field row used inside OpenForm
 export function Field(props) {
   return (<div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, fontSize: 11 }}>
-    <div style={{ width: 92, flexShrink: 0, fontSize: 10, fontWeight: 600, color: "#64748b" }}>{props.label}</div>
+    <div style={{ width: 92, flexShrink: 0, fontSize: 10, fontWeight: 600, color: "#475569" }}>{props.label}</div>
     <div data-testid={props.testid} style={{ flex: 1, minWidth: 0, color: "#0f172a" }}>{props.children}</div>
   </div>);
 }

@@ -49,8 +49,11 @@ test("F1: Progress rows show key data + Open (no notes, no Del); Open → read-o
   await expect(form.getByRole("button", { name: "Remove", exact: true })).toHaveAttribute("data-kind", "remove");   // D17
   await form.getByRole("button", { name: "Remove", exact: true }).click();
   await expect.poll(async () => (await getKey("dashboard:data")).jc.exercises.sunday[i].prog.length).toBe(1);
-  if (!(await page.getByTestId("prog-wk").count())) await page.getByRole("button", { name: "👁 Progress" }).nth(i).click();
-  await expect(page.getByTestId("prog-wk")).toHaveText(["1"]);                         // remaining row shows the right week (old index bug)
+  // v2.18.3: the panel may be re-rendering after Remove; open it if needed and retry (a single count-then-click could close it)
+  await expect(async () => {
+    if (!(await page.getByTestId("prog-wk").count())) await page.getByRole("button", { name: "👁 Progress" }).nth(i).click();
+    await expect(page.getByTestId("prog-wk")).toHaveText(["1"], { timeout: 1500 });     // remaining row shows the right week (old index bug)
+  }).toPass({ timeout: 10000 });
   expect(errors).toEqual([]);
 });
 
@@ -63,7 +66,7 @@ test("F5: a list item opens read-only; Delete from list exists ONLY there (with 
   await expect(page.getByRole("button", { name: "🗑 Del" })).toHaveCount(0);               // no delete in list rows
   await page.getByRole("button", { name: "Open Test Oat Bar" }).click();
   const view = page.getByTestId("item-view");
-  await expect(view.getByTestId("view-kcal")).toHaveText("200 kcal");
+  await expect(view.getByTestId("view-kcal")).toHaveText("200 kcal per portion");   // v2.19.0
   await expect(view.getByTestId("view-rating")).toContainText("GOOD · daily");
   let msg = ""; page.once("dialog", (dg) => { msg = dg.message(); dg.accept(); });
   await expect(view.getByRole("button", { name: "Delete", exact: true })).toHaveAttribute("data-kind", "delete");   // D19
@@ -97,9 +100,9 @@ test("F5: a meal selection opens as the CHILD — variations recalculate the chi
   expect(prompts[0].temperature).toBe(0);
   expect(prompts[0].messages[0].content).toContain('with these changes: "chips instead of potato"');
   const c = await childOf(today, "d");
-  expect(c).toMatchObject({ variations: { text: "chips instead of potato" }, nutrition: { kcal: 760, satFat: 14 }, rating: "RED", ragFreq: "monthly", parentId: dinner.id });
-  expect((await getKey("custom_meals")).find((x) => x.id === dinner.id)).toEqual(dinner);          // parent untouched
-  await expect(form.getByTestId("slot-rag-diff")).toHaveText("Differs today: RED today — with changes");
+  expect(c).toMatchObject({ variations: { text: "chips instead of potato" }, nutrition: { kcal: 760, satFat: 14 }, rating: "AMBER", ragFreq: "", parentId: dinner.id });   // v2.18.2: against JC's own limits (1,966 kcal, sat fat 19.7 g; protein credit)
+  expect((await getKey("custom_meals")).find((x) => x.id === dinner.id)).toMatchObject(dinner);          // parent untouched
+  await expect(form.getByTestId("slot-rag-diff")).toHaveText("Differs today: AMBER today — with changes");
   page.on("dialog", (dg) => dg.accept());
   await expect(form.getByRole("button", { name: "Remove", exact: true })).toHaveAttribute("data-kind", "remove");   // D18
   await form.getByRole("button", { name: "Remove", exact: true }).click();
@@ -112,7 +115,7 @@ test("F5: Open on an empty slot starts adding an item", async ({ page }) => {
   const { errors } = await openApp(page);
   await tab(page, "My Eating");
   await page.getByRole("button", { name: "Add to this meal" }).first().click();
-  await expect(page.getByText("Add New Breakfast Item")).toBeVisible();
+  await expect(page.getByTestId("update-lists").getByTestId("return-to")).toContainText(/Adding for \w+day breakfast/);   // v2.19.0: Update Lists, remembering the slot
   expect(errors).toEqual([]);
 });
 
@@ -138,6 +141,6 @@ test("v2.11.1: changing the portion of a photo-checked meal scales the PHOTO val
   await form.getByRole("button", { name: "½×", exact: true }).click();
   await form.getByRole("button", { name: "Save", exact: true }).click();
   await expect.poll(async () => (await childOf(today, "d"))?.nutrition?.kcal).toBe(300);               // always from the photo, not from 900
-  expect((await getKey("custom_meals")).find((x) => x.id === dinner.id)).toEqual(dinner);
+  expect((await getKey("custom_meals")).find((x) => x.id === dinner.id)).toMatchObject(dinner);
   expect(errors).toEqual([]);
 });

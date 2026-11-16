@@ -1,4 +1,5 @@
 import firebase, { DATA_ROOT } from "../lib/firebase.js";
+import { auditLog } from "../lib/audit.js";
 import { btnMuted } from "../constants/styles.js";
 import { personName } from "../components/PersonTabs.jsx";
 import { useEffect, useState } from "react";
@@ -119,7 +120,7 @@ export default function DataSection({ ctx }) {
   </div>
   <div data-testid="data-viewer" style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>Data viewer</div>
   {(() => {
-    if (!data) return (<div style={{fontSize:11,color:"#94a3b8"}}>No data loaded</div>);
+    if (!data) return (<div style={{fontSize:11,color:"#475569"}}>No data loaded</div>);
     var people = Object.keys(data).filter(function(k) { return data[k] && data[k].exercises; });
     return (<div>
       {people.map(function(person) {
@@ -137,11 +138,11 @@ export default function DataSection({ ctx }) {
                 return (<div key={i} style={{ padding: "6px 8px", marginBottom: 3, background: pc > 0 ? "#f0fdf4" : "#fef2f2", borderRadius: 6, border: "1px solid " + (pc > 0 ? "#86efac" : "#fecaca"), fontSize: 11 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", cursor: "pointer" }} onClick={function(){setDataExpandEx(dataExpandEx === person+"-"+day+"-"+i ? null : person+"-"+day+"-"+i);}}>
                     <span style={{ fontWeight: 600 }}>{ex.name}</span>
-                    <span style={{ color: pc > 0 ? "#16a34a" : "#dc2626", fontWeight: 600 }}>{pc} logs {dataExpandEx === person+"-"+day+"-"+i ? "\u25B2" : "\u25BC"}</span>
+                    <span style={{ color: pc > 0 ? "#15803d" : "#b91c1c", fontWeight: 600 }}>{pc} logs {dataExpandEx === person+"-"+day+"-"+i ? "\u25B2" : "\u25BC"}</span>
                   </div>
-                  <div style={{ color: "#64748b", fontSize: 10 }}>Current: {ex.current || "?"} / {ex.reps || "?"}</div>
+                  <div style={{ color: "#475569", fontSize: 10 }}>Current: {ex.current || "?"} / {ex.reps || "?"}</div>
                   {dataExpandEx === person+"-"+day+"-"+i && (<div style={{ marginTop: 6, borderTop: "1px solid #e2e8f0", paddingTop: 6 }}>
-                    <div style={{ display: "flex", gap: 4, marginBottom: 4, fontSize: 9, fontWeight: 700, color: "#64748b" }}>
+                    <div style={{ display: "flex", gap: 4, marginBottom: 4, fontSize: 9, fontWeight: 700, color: "#475569" }}>
                       <span style={{width:35}}>WEEK</span><span style={{flex:1}}>WEIGHT</span><span style={{flex:1}}>REPS</span><span style={{flex:2}}>NOTES</span>
                     </div>
                     {(ex.prog || []).map(function(p, pi) {
@@ -153,10 +154,10 @@ export default function DataSection({ ctx }) {
                         <span style={{width:35,fontWeight:600}}>{wk}</span>
                         <span style={{flex:1}}>{wt}</span>
                         <span style={{flex:1}}>{rp}</span>
-                        <span style={{flex:2,color:"#64748b"}}>{nt}</span>
+                        <span style={{flex:2,color:"#475569"}}>{nt}</span>
                       </div>);
                     })}
-                    {pc === 0 && <div style={{fontSize:10,color:"#94a3b8",fontStyle:"italic"}}>No logged weeks</div>}
+                    {pc === 0 && <div style={{fontSize:10,color:"#475569",fontStyle:"italic"}}>No logged weeks</div>}
                   </div>)}
                 </div>);
               })}
@@ -270,7 +271,7 @@ export default function DataSection({ ctx }) {
       <div data-testid="restore-export" style={{ marginTop: 10, padding: 10, background: "#ecfdf5", borderRadius: 8, border: "1px solid #86efac" }}>
         <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6, color: "#0c4a6e" }}>Restore from Firebase Export</div>
         <div style={{ fontSize: 10, color: "#475569", marginBottom: 6 }}>Paste a Download-backup file or a Firebase JSON export and press Preview. Merge adds missing exercise weeks only; Full restore replaces everything in data (on Build: the build copy) and asks you to type RESTORE first.</div>
-        <textarea id="restore-json" placeholder="Paste the full JSON here..." style={{ width: "100%", padding: 8, border: "1px solid #86efac", borderRadius: 6, fontSize: 10, minHeight: 80, resize: "vertical", boxSizing: "border-box", marginBottom: 6, fontFamily: "monospace" }}></textarea>
+        <textarea id="restore-json" placeholder="Paste the full JSON here..." style={{ width: "100%", padding: 8, border: "1px solid #86efac", borderRadius: 8, fontSize: 10, minHeight: 80, resize: "vertical", boxSizing: "border-box", marginBottom: 6, fontFamily: "monospace" }}></textarea>
         {/* v2.7.0: preview first (counts only), then Merge (safe) or Full restore (double confirm) */}
         <button onClick={function() {
           var raw = document.getElementById("restore-json").value.trim();
@@ -287,6 +288,7 @@ export default function DataSection({ ctx }) {
             try {
               var r = mergeExerciseWeeks(backup);
               await saveData(r.nd);
+              auditLog("restore", "", "merge " + r.restored + " weeks");
               setRestoreMsg("✓ Merged: " + r.restored + " missing exercise weeks added. Nothing else was changed. Reload the app to see all data.");
               setRestoreParsed(null);
             } catch(e) { setRestoreMsg(window.aiErrorMsg(e)); }
@@ -300,7 +302,9 @@ export default function DataSection({ ctx }) {
             if (typed !== "RESTORE") { setRestoreMsg("Full restore cancelled — nothing was changed."); return; }
             setRestoreBusy(true);
             try {
-              await firebase.database().ref(target).set(src);
+              var keepAudit = (await firebase.database().ref(target + "/audit").once("value")).val(); /* v2.16.7: the audit trail survives a restore */
+              await firebase.database().ref(target).set(keepAudit ? Object.assign({}, src, { audit: Object.assign({}, src.audit || {}, keepAudit) }) : src);
+              await auditLog("restore", "", "full " + n + " items");
               setRestoreMsg("✓ Full restore done: " + n + " items written to " + target + ". Close and reopen the app.");
               setRestoreParsed(null);
             } catch(e) { setRestoreMsg("Full restore failed: " + String(e.message || e).substring(0, 120) + ". Nothing was changed."); }

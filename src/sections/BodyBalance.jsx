@@ -53,7 +53,7 @@ export default function BodyBalance(props) {
 
   return (<div data-testid="body-balance" style={card}>
     <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>📸 Body balance check</div>
-    <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.5, marginBottom: 8 }}>Front, side and back photos, about every 4 weeks. The Companion scores the same checklist each time and compares it with your last check and your tape measurements. <b>Photos are analysed and never stored</b> — only the scores and notes are kept. Suggestions only: nothing in your plan changes unless you choose.</div>
+    <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>Front, side and back photos, about every 4 weeks. The Companion scores the same checklist each time and compares it with your last check and your tape measurements. <b>Photos are analysed and never stored</b> — only the scores and notes are kept. Suggestions only: nothing in your plan changes unless you choose.</div>
     {!optIn ? (<button onClick={function() { setOptIn(true); }} style={{ width: "100%", padding: 10, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Turn on body balance checks for {name}</button>) : (<div>
       <div data-testid="bb-status" style={{ fontSize: 11, color: "#0f172a", marginBottom: 8 }}>{last ? "Last check " + last.date + " (" + last.pose.replace(/\+/g, ", ") + ")" + (due ? " · next suggested " + due.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "") : "No progress photos yet. Take front, side and back photos (same light, same distance, relaxed) to start."}</div>
       <label style={{ display: "block", padding: 10, background: "#f8fafc", border: "2px dashed #93c5fd", borderRadius: 8, textAlign: "center", cursor: busy ? "wait" : "pointer", fontSize: 12, fontWeight: 600, color: "#1e3a5f" }}>
@@ -62,7 +62,7 @@ export default function BodyBalance(props) {
       </label>
       {issues && (<div data-testid="bb-issues" style={{ marginTop: 8, padding: 8, borderRadius: 8, background: "#fffbeb", border: "1px solid #fde68a" }}>
         {issues.map(function(x) { return <div key={x.photo} role="alert" data-testid="bb-issue" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", marginBottom: 4 }}>Photo {x.photo}: {x.msg}</div>; })}
-        <div style={{ fontSize: 10, color: "#64748b", marginBottom: 6 }}>No scores were worked out and nothing was saved.</div>
+        <div style={{ fontSize: 10, color: "#475569", marginBottom: 6 }}>No scores were worked out and nothing was saved.</div>
         <div style={{ display: "flex", gap: 6 }}>
           <button disabled style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, opacity: 0.45, cursor: "not-allowed" }}>Save</button>
           <button onClick={function() { var el = document.getElementById("bb-photos"); if (el) el.click(); }} style={{ flex: 1, padding: 8, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>Retake</button>
@@ -74,9 +74,9 @@ export default function BodyBalance(props) {
         <table data-testid="bb-scores" style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}><tbody>
           {REGIONS.map(function(r) { var s = last.scores[r.k]; var ps = prev && prev.scores ? prev.scores[r.k] : null; var ch = ps == null ? "" : s > ps ? "▲" : s < ps ? "▼" : "="; return (<tr key={r.k} data-testid={"bb-" + r.k} style={{ borderBottom: "1px solid #f1f5f9" }}>
             <td style={{ padding: "4px 2px", color: "#334155" }}>{r.l}</td>
-            <td style={{ padding: "4px 2px", whiteSpace: "nowrap", fontWeight: 700, color: s <= 2 ? "#d97706" : "#15803d" }}>{"●".repeat(s)}<span style={{ color: "#e2e8f0" }}>{"●".repeat(5 - s)}</span> {s}/5</td>
-            <td data-testid={"bb-change-" + r.k} style={{ padding: "4px 2px", color: ch === "▲" ? "#15803d" : ch === "▼" ? "#dc2626" : "#94a3b8", fontWeight: 700 }}>{ch}{ps != null && ch !== "=" ? " " + ps + "→" + s : ""}</td>
-            <td style={{ padding: "4px 2px", fontSize: 10, color: "#64748b" }}>{last.notes[r.k]}</td>
+            <td style={{ padding: "4px 2px", whiteSpace: "nowrap", fontWeight: 700, color: s <= 2 ? "#b45309" : "#15803d" }}>{"●".repeat(s)}<span style={{ color: "#e2e8f0" }}>{"●".repeat(5 - s)}</span> {s}/5</td>
+            <td data-testid={"bb-change-" + r.k} style={{ padding: "4px 2px", color: ch === "▲" ? "#15803d" : ch === "▼" ? "#b91c1c" : "#475569", fontWeight: 700 }}>{ch}{ps != null && ch !== "=" ? " " + ps + "→" + s : ""}</td>
+            <td style={{ padding: "4px 2px", fontSize: 10, color: "#475569" }}>{last.notes[r.k]}</td>
           </tr>); })}
         </tbody></table>
         {last.summary && <div style={{ fontSize: 11, color: "#334155", marginTop: 8 }}>{last.summary}</div>}
@@ -87,7 +87,7 @@ export default function BodyBalance(props) {
         </div>); })}
       </div>)}
       <PrivacyNote />
-      <button onClick={function() { setOptIn(false); }} style={{ marginTop: 10, background: "none", border: "none", color: "#94a3b8", fontSize: 10, cursor: "pointer", textDecoration: "underline" }}>Turn off body balance checks</button>
+      <button onClick={function() { setOptIn(false); }} style={{ marginTop: 10, background: "none", border: "none", color: "#475569", fontSize: 10, cursor: "pointer", textDecoration: "underline" }}>Turn off body balance checks</button>
     </div>)}
   </div>);
 }
