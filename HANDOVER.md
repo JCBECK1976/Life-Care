@@ -2754,3 +2754,7 @@ Sizes are % of a weekly allowance, including Architect checks.
 **Left / not done:** other long selections (exercise choice, person, units) as bottom sheets; Undo after deletes/removals (all confirm); loading skeletons; a generic double-tap guard; 200% text-only resize; 8 px spacing audit; chart text alternatives.
 - **JC to test (/build/, footer v2.20.0-build; close the tab and reopen):** Home My Day shows meal names; ask Chat something, then a follow-up like "those two…" (it remembers); newest message on top and labelled "Your Companion"; reply to Exercise feedback (full-width box); an exercise at Ready to Move shows "Next: try X–Y kg" and its Log pre-fills the next weight; set "My next weight"; Today table (Your goal deficit, bold Body burn, On track in both columns); pick a meal on the phone (big rows, Added/Undo); weight boxes open the number pad.
 - **Resume point:** `build` @ `2f66d61` (v2.20.0), prod v2.15.1. Next: wait for JC's test; then the build → beta PR when asked. Do NOT merge to beta or main.
+
+### (Coder) 16 Nov 2026 — v2.20.1 on build (in progress): JC's phone test of Build a meal
+**Decision (JC, 16 Nov):** five fixes (obvious adding / no duplicate rows; saved = preview; stay on the form after Save; back to the day being planned; Serves required, type labels, typical sauce portion). Build only, commit per item.
+- **Resume point:** next item 1.
