@@ -42,3 +42,46 @@ test("1 adding is obvious: search cleared, 'Added: …' announced, the new card 
   await expect(page.getByTestId("meal-added")).toContainText("Added another portion: Fusilli pasta (dried)");
   expect(errors).toEqual([]);
 });
+
+async function buildBake(mb) {
+  const search = mb.getByLabel("Search available items");
+  await search.fill("fusilli"); await mb.getByTestId("avail-generic").first().click();
+  await search.fill("aldi pasta bake"); await mb.getByTestId("avail-off").first().click();
+  await mb.getByLabel("Meal name").fill("Tomato Pasta Bake");
+  await mb.getByLabel(/How many portions|Serves/).fill("1");
+}
+const kcalOf = (t) => parseInt(/(\d[\d,]*)\s*kcal/.exec(t)[1].replace(/,/g, ""), 10);
+
+test("2 saved = preview: the preview total = the review card = the saved item = the value in the list", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const { ul, mb } = await openMeal(page);
+  await buildBake(mb);
+  const preview = kcalOf(await mb.getByTestId("meal-per-portion").innerText());
+  await mb.getByRole("button", { name: "Next" }).click();
+  const card = kcalOf(await ul.getByTestId("save-step").getByTestId("per-portion").innerText());
+  await ul.getByLabel("Breakfasts").uncheck(); await ul.getByLabel("Dinners").check();
+  await ul.getByRole("button", { name: "Save", exact: true }).click();
+  await expect.poll(async () => ((await get("custom_meals")) || []).find((x) => x.name === "Tomato Pasta Bake")?.jcKcal).toBe(preview);
+  const saved = (await get("custom_meals")).find((x) => x.name === "Tomato Pasta Bake");
+  const row = page.getByTestId("list-row").filter({ hasText: "Tomato Pasta Bake" });
+  await expect(row).toHaveCount(1);
+  expect([preview, card, saved.kcal, saved.jcKcal, kcalOf(await row.innerText())]).toEqual([373, 373, 373, 373, 373]);
+  expect(errors).toEqual([]);
+});
+
+test("2 an older item with the same name is never kept silently: Replace it, or Keep both", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const dinners = (await get("custom_meals")) || [];
+  await put("custom_meals", dinners.concat([{ id: "t_old_bake", name: "Tomato Pasta Bake", kcal: 628, jcKcal: 628, beckKcal: 628, satFat: 11.4, rating: "RED", portion: { desc: "1 portion (as entered)" } }]));
+  await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
+  const { ul, mb } = await openMeal(page);
+  await buildBake(mb);
+  await mb.getByRole("button", { name: "Next" }).click();
+  await ul.getByLabel("Breakfasts").uncheck(); await ul.getByLabel("Dinners").check();
+  await ul.getByRole("button", { name: "Save", exact: true }).click();
+  const clash = ul.getByTestId("name-clash");
+  await expect(clash).toContainText("You already have Tomato Pasta Bake in Dinners (628 kcal per portion). This one is 373 kcal per portion.");
+  await clash.getByRole("button", { name: "Replace it with this one" }).click();
+  await expect.poll(async () => (await get("custom_meals")).filter((x) => x.name === "Tomato Pasta Bake").map((x) => [x.id, x.jcKcal])).toEqual([["t_old_bake", 373]]);
+  expect(errors).toEqual([]);
+});

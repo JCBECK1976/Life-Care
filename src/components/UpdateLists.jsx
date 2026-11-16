@@ -23,6 +23,7 @@ var head = { fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginTop: 8 };
 var tag = { display: "inline-block", fontSize: 10, fontWeight: 700, color: "#92400e", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 10, padding: "0 6px", marginRight: 4 };
 var RAGC = { RED: "#b91c1c", AMBER: "#b45309", GOOD: "#15803d", GREAT: "#15803d" };
 var num = function(v) { var x = parseFloat(v); return isFinite(x) ? x : 0; };
+var NUTR_KEYS = ["kcal", "protein", "fat", "satFat", "carbs", "sugar", "fibre", "salt"];
 var n0 = function(x) { return Math.round(x || 0); };
 var n1 = function(x) { return Math.round((x || 0) * 10) / 10; };
 
@@ -123,17 +124,29 @@ function SaveStep(props) {
   var [cats, setCats] = React.useState(function() { var o = {}; o[(rt && rt.cat) || props.defaultCat || props.cats[0].k] = true; return o; });
   var [addNow, setAddNow] = React.useState(!!rt);
   var [msg, setMsg] = React.useState("");
+  var [clash, setClash] = React.useState(null);   // v2.20.1: [{ label, kcal }] — a different item with the same name is already there
   var item = withRuleRating(props.item);   // D11 per portion, against the UK reference (list item)
   var b = bandOf(item) || "";
-  var save = async function() {
+  var key = function(x) { return String((x && x.name) || "").trim().toLowerCase(); };
+  /* v2.20.1 (JC: the preview said 373 kcal, the saved card 628): an older list item with the same name was silently kept.
+     Now an identical one is reused (no duplicate); a different one is never kept silently — Replace it, or Keep both. */
+  var differs = function(a) { var na = itemNutrition(a), nb = itemNutrition(item); return NUTR_KEYS.some(function(k) { return Math.abs(num(na[k]) - num(nb[k])) > (k === "kcal" ? 0.5 : 0.05); }); };
+  var save = async function(mode) {
     var chosen = props.cats.filter(function(c) { return cats[c.k]; });
     if (!chosen.length) { setMsg("Choose at least one list."); return; }
-    var ts = Date.now(), firstId = null, forSlot = null;
+    var clashes = chosen.map(function(c) { var same = c.customs.find(function(x) { return x && key(x) === key(item); }); return same && differs(same) ? { label: c.label, kcal: n0(itemNutrition(same).kcal) } : null; }).filter(Boolean);
+    if (clashes.length && !mode) { setClash(clashes); return; }
+    setClash(null);
+    var ts = Date.now(), firstId = null, forSlot = null, name = item.name;
+    if (mode === "both") { var all = [].concat.apply([], chosen.map(function(c) { return c.customs; })); var k2 = 2; while (all.some(function(x) { return key(x) === (item.name + " (" + k2 + ")").toLowerCase(); })) k2++; name = item.name + " (" + k2 + ")"; }
     for (var i = 0; i < chosen.length; i++) {
       var c = chosen[i]; var id = "custom_" + ts + "_" + i;
-      var same = c.customs.find(function(x) { return x && String(x.name || "").trim().toLowerCase() === String(item.name || "").trim().toLowerCase(); });
-      var it = same || Object.assign({}, item, { id: id }); delete it._isCustom;
-      if (same) id = same.id; else { var u = c.customs.concat([it]); c.setCustoms(u); await sSet(c.storageKey, JSON.stringify(u)); }   // v2.19.2: already in that list → no duplicate
+      var same = mode === "both" ? null : c.customs.find(function(x) { return x && key(x) === key(item); });
+      var it, u;
+      if (same && !differs(same)) { it = same; id = same.id; }                                              // identical: no duplicate
+      else if (same) { it = Object.assign({}, item, { id: same.id }); delete it._isCustom; id = same.id; u = c.customs.map(function(x) { return x.id === same.id ? it : x; }); }   // Replace
+      else { it = Object.assign({}, item, { id: id, name: name }); delete it._isCustom; u = c.customs.concat([it]); }
+      if (u) { c.setCustoms(u); await sSet(c.storageKey, JSON.stringify(u)); }
       if (!firstId) firstId = id; if (rt && c.k === rt.cat) forSlot = { id: id, item: it };
     }
     if (addNow && rt && props.onAddNow) await props.onAddNow(forSlot || { id: firstId, item: Object.assign({}, item, { id: firstId }) }, rt);
@@ -150,8 +163,12 @@ function SaveStep(props) {
     </fieldset>
     {rt && <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, marginTop: 6 }}><input type="checkbox" checked={addNow} onChange={function(e) { setAddNow(e.target.checked); }} />Add to {rt.label} now</label>}
     {msg && <div role="status" style={{ fontSize: 12, fontWeight: 600, marginTop: 6, color: msg.charAt(0) === "✅" ? "#166534" : "#991b1b" }}>{msg}</div>}
+    {clash && (<div role="alertdialog" aria-label="Same name already in your list" data-testid="name-clash" style={{ marginTop: 8, padding: 10, borderRadius: 8, background: "#fffbeb", border: "1px solid #fcd34d", fontSize: 12, color: "#0f172a" }}>
+      You already have <b>{item.name}</b> in {clash.map(function(x) { return x.label + " (" + x.kcal + " kcal per portion)"; }).join(", ")}. This one is <b>{n0(itemNutrition(item).kcal)} kcal</b> per portion.
+      <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}><button type="button" style={btnP} onClick={function() { save("replace"); }}>Replace it with this one</button><button type="button" style={btn} onClick={function() { save("both"); }}>Keep both</button></div>
+    </div>)}
     <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
-      <button type="button" style={btnP} onClick={save}>Save</button>
+      <button type="button" style={btnP} onClick={function() { save(); }}>Save</button>
       {props.onBack && <button type="button" style={btn} onClick={props.onBack}>Back</button>}
     </div>
   </div>);
