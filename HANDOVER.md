@@ -2758,4 +2758,5 @@ Sizes are % of a weekly allowance, including Architect checks.
 ### (Coder) 16 Nov 2026 — v2.20.1 on build (in progress): JC's phone test of Build a meal
 **Decision (JC, 16 Nov):** five fixes (obvious adding / no duplicate rows; saved = preview; stay on the form after Save; back to the day being planned; Serves required, type labels, typical sauce portion). Build only, commit per item.
 - 1/5 done — build `9dc3c54`: MealBuilder `addComp` clears the search, `meal-added` toast (aria-live), `data-new` card highlight + scrollIntoView; duplicates (same list ref, or same name for catalogue/generic/UK items) → `dup-prompt` (Yes = +1 portion, or + the portion's grams when in grams). Suite 274 passed.
-- **Resume point:** next item 2 (saved = preview).
+- 2/5 done — build `f947917`: cause: v2.19.2's same-name reuse in SaveStep kept an older 'Tomato Pasta Bake' (628 kcal) in Dinners; a clean run saves exactly the preview (373). Now: identical → reuse; different → `name-clash` (Replace keeps the id with the new values / Keep both saves '… (2)'). Lists rows have `data-testid=list-row`. Suite 275 passed; share.spec 1 flaky failure, passed on rerun (unrelated).
+- **Resume point:** next item 3+4 (stay on the form; back to the day).
