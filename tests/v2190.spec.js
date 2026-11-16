@@ -156,7 +156,7 @@ test("UI: Build a meal — the Aldi pasta bake, serves 4, computed in code and l
     await row.getByLabel(/^Amount of/).fill(String(g));
   }
   await mb.getByLabel("Meal name").fill("Aldi chicken pasta bake");
-  await mb.getByLabel("Serves").fill("4");
+  await mb.getByLabel(/How many portions does this make/).fill("4");
   await expect(mb.getByTestId("meal-per-portion")).toContainText("Per portion: 445 kcal");
   const n0 = aiCalls.length;
   await mb.getByRole("button", { name: "Next" }).click();

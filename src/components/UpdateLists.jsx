@@ -227,6 +227,7 @@ function SingleItem(props) {
     if (kind === "off" && needsPortionCheck(o)) {
       var type = productType(o);
       if (type === "sauce / jar" && o.packG && !o.servingG) p = setPortionGrams(it, Math.round(o.packG / 4), "¼ of the pack (" + Math.round(o.packG / 4) + " g)");
+      else if (type === "sauce / jar" && !o.servingG) p = setPortionGrams(it, 125, "¼ of a typical 500 g jar (125 g): adjust");   // v2.20.1
       g = { type: type, pack: packSize(o), ok: false };
     }
     setPick(p); setGuard(g); setGrams(p.per100 && p.portion ? String(p.portion.grams) : "");
@@ -265,7 +266,7 @@ export function MealBuilder(props) {
   var init = props.initial;
   var [comps, setComps] = React.useState(function() { return init && init.meal ? relinkComponents(init.meal.components, props.lookup, props.isJC) : []; });
   var [name, setName] = React.useState(init ? init.name : "");
-  var [serves, setServes] = React.useState(init && init.meal ? String(init.meal.serves) : "1");
+  var [serves, setServes] = React.useState(init && init.meal ? String(init.meal.serves) : "");   // v2.20.1: required, no silent default
   var [ready, setReady] = React.useState(false);
   var [msg, setMsg] = React.useState("");
   /* v2.20.1 (JC): adding must be obvious and never duplicate a row — clear the search, "Added: …" (live), highlight and
@@ -288,16 +289,20 @@ export function MealBuilder(props) {
   };
   var pickComp = function(kind, it, o) {
     if (kind === "own") return addComp(it, it.id);
-    if (kind === "off" && needsPortionCheck(o)) return addComp(it, null, { unit: "g", amount: o.packG ? Math.round(o.packG) : 100, check: productType(o) || "per 100 g" });   // v2.19.2: amount in grams, to check
+    if (kind === "off" && needsPortionCheck(o)) { var ty = productType(o), jar = ty === "sauce / jar" && !o.packG;   // v2.20.1: a sauce without a pack size starts at ¼ of a typical 500 g jar
+      return addComp(it, null, { unit: "g", amount: o.packG ? Math.round(o.packG) : jar ? 125 : 100, check: ty || "per 100 g", hint: jar ? "¼ of a typical 500 g jar: adjust" : "" }); }
     addComp(it, null);
   };
   var upd = function(i, patch) { setComps(comps.map(function(c, j) { return j === i ? Object.assign({}, c, patch) : c; })); };
   var per = mealNutrition(comps, serves);
-  var build = function() { return mealItem(Object.assign({}, init || {}, { name: name.trim() }), comps.map(function(c) { var x = Object.assign({}, c); delete x.check; return x; }), serves, props.isJC); };
+  var whole = mealNutrition(comps, 1);
+  var wholeHint = comps.length > 0 && (!serves || parseInt(serves, 10) === 1) && (/\b(bake|casserole|curry|stew|lasagne|lasagna|pie|chilli|chili)\b/i.test(name) || whole.kcal > 900);   // v2.20.1
+  var build = function() { return mealItem(Object.assign({}, init || {}, { name: name.trim() }), comps.map(function(c) { var x = Object.assign({}, c); delete x.check; delete x.hint; return x; }), serves, props.isJC); };
   if (ready) return <SaveStep {...props} item={build()} onBack={function() { setReady(false); }} onSaved={props.onSaved} />;
   var next = async function() {
     if (!name.trim()) { setMsg("Give the meal a name."); return; }
     if (!comps.length) { setMsg("Add at least one item."); return; }
+    if (!(parseInt(serves, 10) >= 1)) { setMsg("How many portions does this make?"); var se = document.getElementById("meal-serves"); if (se) se.focus(); return; }
     if (comps.some(function(c) { return !componentNutrition(c); })) { setMsg("An item in grams has no gram size — use portions for it."); return; }
     if (init && props.onSaveEdit) { await props.onSaveEdit(build()); return; }
     setReady(true);
@@ -319,7 +324,7 @@ export function MealBuilder(props) {
       </div>)}
       {comps.map(function(c, i) { var n = componentNutrition(c); var hi = added && added.i === i; return (<div key={i} data-testid="meal-comp" data-idx={i} data-new={hi ? "true" : "false"} style={{ border: hi ? "2px solid #16a34a" : "1px solid #bfdbfe", borderRadius: 8, padding: hi ? 7 : 8, marginTop: 8, background: hi ? "#f0fdf4" : "#f8fafc", transition: "background 0.3s" }}>
         <div data-testid="meal-comp-name" style={{ fontSize: 12, fontWeight: 600, color: "#0f172a", overflowWrap: "anywhere" }}>{c.name}</div>
-        {c.check && <div style={Object.assign({}, small, { marginTop: 2 })}><span style={tag}>{c.check}</span>check the amount — values are per 100 g</div>}
+        {c.check && <div style={Object.assign({}, small, { marginTop: 2 })}><span style={tag}>{c.check}</span>{c.hint || "check the amount — values are per 100 g"}</div>}
         <div style={{ display: "grid", gridTemplateColumns: "minmax(40px, 52px) minmax(80px, 110px) auto minmax(30px, 1fr)", alignItems: "center", columnGap: 12, marginTop: 6 }}>
           <input aria-label={"Amount of " + c.name} type="number" inputMode="decimal" value={c.amount} onChange={function(e) { upd(i, { amount: e.target.value }); }} style={Object.assign({}, inp, { width: "100%", minWidth: 0, padding: "6px 6px", fontSize: 12 })} />
           <select aria-label={"Unit for " + c.name} value={c.unit} onChange={function(e) { upd(i, { unit: e.target.value }); }} style={Object.assign({}, inp, { width: "100%", minWidth: 0, padding: "6px 2px", fontSize: 12 })}>
@@ -329,9 +334,12 @@ export function MealBuilder(props) {
           <button type="button" aria-label={"Remove " + c.name} style={Object.assign({}, btn, { padding: "4px 8px", justifySelf: "end" })} onClick={function() { setComps(comps.filter(function(x, j) { return j !== i; })); }}>✕</button>
         </div>
       </div>); })}
-      <label style={Object.assign({}, small, { display: "block", marginTop: 10 })} htmlFor="meal-serves">Serves</label>
-      <input id="meal-serves" type="number" inputMode="numeric" min="1" style={Object.assign({}, inp, { width: 80 })} value={serves} onChange={function(e) { setServes(e.target.value); }} />
-      <div data-testid="meal-summary" style={{ marginTop: 10, marginBottom: 12, padding: 8, borderRadius: 8, background: "#eff6ff", border: "1px solid #bfdbfe" }}><PortionValues n={per} testid="meal-per-portion" /></div>
+      <label style={Object.assign({}, small, { display: "block", marginTop: 10, fontWeight: 700, color: "#0f172a" })} htmlFor="meal-serves">How many portions does this make? <span aria-hidden="true" style={{ color: "#b91c1c" }}>*</span></label>
+      <input id="meal-serves" type="number" inputMode="numeric" min="1" required aria-required="true" placeholder="e.g. 4" style={Object.assign({}, inp, { width: 100 })} value={serves} onChange={function(e) { setServes(e.target.value); }} />
+      {wholeHint && <div data-testid="serves-hint" style={{ marginTop: 6, fontSize: 11, color: "#92400e", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "4px 8px" }}>Is this the whole dish? Most bakes serve 3–4.</div>}
+      <div data-testid="meal-summary" style={{ marginTop: 10, marginBottom: 12, padding: 8, borderRadius: 8, background: "#eff6ff", border: "1px solid #bfdbfe" }}>
+        {parseInt(serves, 10) >= 1 ? <PortionValues n={per} testid="meal-per-portion" /> : <div data-testid="meal-whole" style={{ fontSize: 11, color: "#0f172a" }}><b>Whole dish:</b> {n0(whole.kcal)} kcal — enter how many portions it makes to see the values per portion.</div>}
+      </div>
       {init && <div style={Object.assign({}, small, { marginBottom: 8, fontStyle: "italic" })}>To change an ingredient's own nutrition, edit that item in your list.</div>}
       {msg && <div role="alert" style={{ fontSize: 12, color: "#991b1b", marginBottom: 8 }}>{msg}</div>}
       <div style={{ display: "flex", gap: 12 }}>

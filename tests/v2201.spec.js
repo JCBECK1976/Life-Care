@@ -65,7 +65,7 @@ test("2 saved = preview: the preview total = the review card = the saved item = 
   const saved = (await get("custom_meals")).find((x) => x.name === "Tomato Pasta Bake");
   const row = page.getByTestId("list-row").filter({ hasText: "Tomato Pasta Bake" });
   await expect(row).toHaveCount(1);
-  expect([preview, card, saved.kcal, saved.jcKcal, kcalOf(await row.innerText())]).toEqual([373, 373, 373, 373, 373]);
+  expect([preview, card, saved.kcal, saved.jcKcal, kcalOf(await row.innerText())]).toEqual([400, 400, 400, 400, 400]);   // fusilli 266 + sauce 125 g (134)
   expect(errors).toEqual([]);
 });
 
@@ -80,9 +80,9 @@ test("2 an older item with the same name is never kept silently: Replace it, or 
   await ul.getByLabel("Breakfasts").uncheck(); await ul.getByLabel("Dinners").check();
   await ul.getByRole("button", { name: "Save", exact: true }).click();
   const clash = ul.getByTestId("name-clash");
-  await expect(clash).toContainText("You already have Tomato Pasta Bake in Dinners (628 kcal per portion). This one is 373 kcal per portion.");
+  await expect(clash).toContainText("You already have Tomato Pasta Bake in Dinners (628 kcal per portion). This one is 400 kcal per portion.");
   await clash.getByRole("button", { name: "Replace it with this one" }).click();
-  await expect.poll(async () => (await get("custom_meals")).filter((x) => x.name === "Tomato Pasta Bake").map((x) => [x.id, x.jcKcal])).toEqual([["t_old_bake", 373]]);
+  await expect.poll(async () => (await get("custom_meals")).filter((x) => x.name === "Tomato Pasta Bake").map((x) => [x.id, x.jcKcal])).toEqual([["t_old_bake", 400]]);
   expect(errors).toEqual([]);
 });
 
@@ -163,5 +163,45 @@ test("4c the same saved card after My own (Done goes back to a fresh form)", asy
   await ul.getByRole("button", { name: "Done" }).click();
   await expect(ul.getByTestId("saved-card")).toHaveCount(0);
   await expect(ul.getByLabel("Describe your item")).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+/* ---------- 5. Serves required, product types, a typical sauce portion ---------- */
+import { productType } from "../src/lib/off.js";
+import { offProduct } from "../src/lib/portion.js";
+test("5b product type labels: ready meals are 'ready meal'; 'dried pasta' only for plain dried pasta; bake sauces are sauces", () => {
+  const t = (p) => productType(offProduct(p));
+  expect(t({ product_name: "TOMATO & MOZZARELLA PASTA BAKE", brands: "Tesco", product_quantity: 400, categories_tags: ["en:pastas", "en:dried-pastas"], nutriments: { "energy-kcal_100g": 125, proteins_100g: 5.2 } })).toBe("ready meal");
+  expect(t({ product_name: "Beef Lasagne", nutriments: { "energy-kcal_100g": 140, proteins_100g: 7 } })).toBe("ready meal");
+  expect(t({ product_name: "Chicken Tikka Masala & Rice", categories_tags: ["en:meals"], nutriments: { "energy-kcal_100g": 130, proteins_100g: 7 } })).toBe("ready meal");
+  expect(t({ product_name: "Fusilli", nutriments: { "energy-kcal_100g": 355, proteins_100g: 12 } })).toBe("dried pasta");
+  expect(t({ product_name: "Penne", categories_tags: ["en:dried-pastas"], nutriments: { "energy-kcal_100g": 355 } })).toBe("dried pasta");
+  expect(t({ product_name: "Tuna pasta salad", nutriments: { "energy-kcal_100g": 160, proteins_100g: 8 } })).toBe("");
+  expect(t({ product_name: "Pasta Bake, Tomato & Herb", brands: "Aldi", nutriments: { "energy-kcal_100g": 107, proteins_100g: 1.1 } })).toBe("sauce / jar");
+  expect(t(SAUCE)).toBe("sauce / jar");
+});
+
+test("5a Serves is required with no default; bakes / big totals get the 'whole dish?' hint. 5c a sauce without a pack size starts at 125 g", async ({ page }) => {
+  const { errors } = await openApp(page);
+  const { mb } = await openMeal(page);
+  const search = mb.getByLabel("Search available items");
+  await search.fill("fusilli"); await mb.getByTestId("avail-generic").first().click();
+  await search.fill("aldi pasta bake"); await mb.getByTestId("avail-off").first().click();
+  await expect(mb.getByLabel("Amount of Pasta Bake, Tomato & Herb (Aldi)")).toHaveValue("125");
+  await expect(mb.getByTestId("meal-comp").last()).toContainText("¼ of a typical 500 g jar: adjust");
+  const serves = mb.getByLabel(/How many portions does this make/);
+  await expect(serves).toHaveValue("");
+  await expect(mb.getByTestId("meal-whole")).toContainText("Whole dish: 400 kcal");
+  await mb.getByLabel("Meal name").fill("Tomato Pasta Bake");
+  await expect(mb.getByTestId("serves-hint")).toHaveText("Is this the whole dish? Most bakes serve 3–4.");
+  await mb.getByRole("button", { name: "Next" }).click();
+  await expect(mb.getByRole("alert")).toHaveText("How many portions does this make?");
+  await expect(serves).toBeFocused();
+  await serves.fill("4");
+  await expect(mb.getByTestId("serves-hint")).toHaveCount(0);
+  await expect(mb.getByTestId("meal-per-portion")).toContainText("Per portion: 100 kcal");
+  await serves.fill("1");                                                                                  // 1 is allowed if typed
+  await mb.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByTestId("save-step")).toBeVisible();
   expect(errors).toEqual([]);
 });

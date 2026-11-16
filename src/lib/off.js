@@ -39,13 +39,19 @@ export async function searchOff(term, opts) { return (await searchOffRaw(term, o
 
 /** A short product-type hint from the name and OFF categories ("sauce / jar", "condiment", …), or "". */
 export function productType(o) {
-  var t = (String(o.name || "") + " " + (o.categories || []).join(" ")).toLowerCase();
-  if (/sauce|pesto|passata|ragu|bolognese|carbonara|curry-paste|cooking|en:pasta-sauces/.test(t) || /\bjar\b/.test(String(o.packText || "").toLowerCase())) return "sauce / jar";
+  var name = String(o.name || "").toLowerCase(), cats = (o.categories || []).join(" ").toLowerCase(), t = name + " " + cats;
+  var kcal = o.per100 ? o.per100.kcal : 0;
+  /* v2.20.1 (JC: a Tesco pasta bake ready meal was labelled "dried pasta"): sauces first (by category or by name), then
+     ready meals, and "dried pasta" only for plain dried pasta (dried-pasta category, or a pasta name at ~300+ kcal/100 g
+     with no meal / sauce / cheese words). */
+  if (/sauces?\b|pasta-sauces|cooking-sauces|pesto|passata|curry-paste|\bjar\b/.test(cats) || /\bsauce\b|\bpesto\b|passata|\bragu\b|dolmio|cooking paste|\bjar\b/.test(name) || /\bjar\b/.test(String(o.packText || "").toLowerCase())) return "sauce / jar";
   if (/ketchup|mayonnaise|mustard|dressing|condiment|vinegar|relish|chutney|gravy/.test(t)) return "condiment";
   if (/spread|\bjam\b|marmalade|honey|peanut-butter|chocolate-spread/.test(t)) return "spread";
+  var prot = o.per100 ? o.per100.protein : null;
+  if (/\bbake\b/.test(name) && !/meals|ready-meal|prepared/.test(cats) && prot != null && prot < 2.5 && kcal < 130) return "sauce / jar";   // a "pasta bake" mix/sauce: almost no protein
+  if (/meals|ready-meal|prepared|microwave|frozen-dishes/.test(cats) || /\b(pasta bake|lasagne|lasagna|macaroni cheese|mac (and|&) cheese|risotto|cottage pie|shepherd'?s pie|fish pie|curry|chilli con carne|ready meal|meal for one|moussaka|cannelloni|stroganoff)\b/.test(name)) return "ready meal";
   if (/beverage|drinks|juice|soda|cola|squash/.test(t)) return "drink";
-  if (/ready-meal|meals|microwave-meal/.test(t)) return "ready meal";
-  if (/dried-pasta|pastas\b|en:pasta\b/.test(t)) return "dried pasta";
+  if (/dried-pastas?\b|dry-pasta/.test(cats) || (/\b(pasta|fusilli|penne|spaghetti|farfalle|conchiglie|macaroni|rigatoni|tagliatelle|linguine|orzo|noodles)\b/.test(name) && kcal >= 300 && !/bake|meal|sauce|cheese|salad|pot|ready|cooked|fresh/.test(name))) return "dried pasta";
   return "";
 }
 /** The wrong-match guard: true when the values are only per 100 g (no serving size) or the product is a sauce, condiment or spread. */
