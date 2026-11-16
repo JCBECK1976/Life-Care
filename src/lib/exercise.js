@@ -182,13 +182,14 @@ export function companionFromSession(sessionFeedback, person, day, exName, wk) {
 // The measure that progresses for each exercise type.
 export function measureOf(ex) {
   var t = (ex && ex.exType) || getExerciseType(ex && ex.name);
+  if (/plate|\bpin\b/i.test(String((ex && ex.current) || ""))) return { key: "w", unit: "plate", label: "plate number" };   // v2.20.2: a stack counted by plate
   if (t === "weights") return { key: "w", unit: "kg", label: "weight" };
   if (t === "bodyweight") return { key: "r", unit: "reps", label: "reps" };
   if (t === "timed_hold" || t === "stretching") return { key: "r", unit: "seconds", label: "hold time" };
   if (t === "cardio" || t === "walking" || t === "sports") return { key: "w", unit: "minutes", label: "duration" };
   return { key: "w", unit: "kg", label: "weight" };
 }
-var num = function(v) { var n = parseFloat(String(v == null ? "" : v).replace(",", ".")); return isFinite(n) ? n : 0; };
+var num = function(v) { var m = /-?\d+(?:[.,]\d+)?/.exec(String(v == null ? "" : v)); var n = m ? parseFloat(m[0].replace(",", ".")) : NaN; return isFinite(n) ? n : 0; };   // the first number ("42kg", "Plate 7")
 /** Custom increments from the exercise's progression notes ("increments: 2.5, 5" / "steps 45,47,49"), or null (pin stack). */
 export function incrementsOf(ex) {
   var m = /(?:increments?|steps?|plates?|stack)\s*[:=]?\s*([\d.,\s]+)(?:kg)?/i.exec((ex && ex.progressionNotes) || "");
@@ -238,13 +239,13 @@ export function bottomReps(ex) {
  *  previous weight when the exercise is Ready to Move or a progression was accepted / set by the person. */
 export function nextLogPrefill(ex, last) {
   if (!ex || !last) return null;
-  var m = measureOf(ex); if (m.unit !== "kg") {
+  var m = measureOf(ex); if (m.unit !== "kg" && m.unit !== "plate") {
     var _top = Math.max.apply(null, parseReps(last.r).concat([0]));
     if (ex.progressionValue != null && num(ex.progressionValue) > _top) return { w: last.w ? String(last.w).replace("kg", "") : "", r: String(ex.progressionValue), source: "your next " + m.label };
     return null;
   }
   var prevW = num(last.w), bottom = bottomReps(ex);
-  if (ex.progressionValue != null && num(ex.progressionValue) > prevW) return { w: String(num(ex.progressionValue)), r: String(bottom), source: "your next weight" };   // a stale value (≤ last) is ignored
+  if (ex.progressionValue != null && num(ex.progressionValue) > prevW) return { w: String(num(ex.progressionValue)), r: String(bottom), source: "your next " + (m.unit === "plate" ? "plate" : "weight") };   // a stale value (≤ last) is ignored
   var tw = ex.target ? resolveTargetWeight(ex.target, prevW, ex) : null;
   if (tw && tw > prevW) { var tr = /(\d+)\s*[x×]\s*\d+/.exec(ex.target.replace(/\d+(?:\.\d+)?\s*kg/ig, "")); return { w: String(tw), r: tr ? tr[1] : String(bottom), source: "accepted progression" }; }
   if (ex.status === "ready to move" && prevW) return { w: String(nextSteps(prevW, ex)[0]), r: String(bottom), source: "next step up" };
@@ -257,4 +258,39 @@ export function displayCurrent(ex) {
   var c = String((ex && ex.current) || "").trim();
   if (/^(\d+(\.\d+)?\s*(kg)?|BW)$/i.test(c) || !c) return c;
   var l = latestEntry(ex.prog); return l ? weightLabel(l) : c;
+}
+
+/* ---------- v2.20.2 (JC, beta): "My next weight" → Set applies it; one progression note per exercise per week ---------- */
+var segs = function(notes) { return String(notes || "").split(/\s*;\s*/).map(function(x) { return x.trim(); }).filter(Boolean); };
+/** Notes for display (and whenever the exercise is saved): repeated identical segments shown once, in order. */
+export function tidyNotes(notes) {
+  var seen = {}, out = [];
+  segs(notes).forEach(function(x) { var k = x.toLowerCase(); if (!seen[k]) { seen[k] = 1; out.push(x); } });
+  return out.join("; ");
+}
+/** The week's progression note, replaced (never appended): drops that week's "WkN accepted: …", "Progression: … (set by
+ *  you, WkN)" and "WkN: next …" segments, then adds `line`. Other notes are kept (tidied). */
+export function setWeekNote(notes, wk, line) {
+  var w = String(wk);
+  var keep = segs(tidyNotes(notes)).filter(function(x) {
+    return !(new RegExp("^Wk" + w + "\\s+accepted:", "i").test(x) || new RegExp("^Progression:.*\\(set by you, Wk" + w + "\\)$", "i").test(x) || new RegExp("^Wk" + w + ":\\s*next\\b", "i").test(x));
+  });
+  keep.push(line);
+  return keep.join("; ");
+}
+export function progressionNote(ex, wk, v, how) {
+  var m = measureOf(ex), what = m.unit === "kg" ? "weight" : m.unit === "plate" ? "plate" : m.label;
+  return "Wk" + wk + ": next " + what + " " + (m.unit === "plate" ? v : v + " " + m.unit) + " (" + (how || "set by you") + ")";
+}
+/** The exercise after the person sets their next value: the new target on the headline (reps at the bottom of the range),
+ *  status Moved Up, the value recorded for the next log, one note line for the week. Returns a new object. */
+export function applyNextValue(ex, v, wk) {
+  var m = measureOf(ex), t = JSON.parse(JSON.stringify(ex)), sets = parseInt(ex.sets, 10) || 3, bottom = bottomReps(ex);
+  if (m.unit === "kg") { t.current = v + "kg"; t.reps = bottom + "x" + sets; t.target = v + "kg x " + bottom + "x" + sets; }
+  else if (m.unit === "plate") { t.current = "Plate " + v; t.reps = bottom + "x" + sets; t.target = "Plate " + v + " x " + bottom + "x" + sets; }
+  else if (m.unit === "minutes") { t.current = String(v); t.target = String(v); }
+  else { t.reps = v + "x" + sets; t.target = v + "x" + sets; }
+  t.status = "moved up"; t.progressionValue = v; t.progressionSetWk = wk;
+  t.notes = setWeekNote(ex.notes, wk, progressionNote(ex, wk, v, "set by you"));
+  return t;
 }
