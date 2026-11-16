@@ -28,7 +28,7 @@ The version table (changelog) is in **[docs/CHANGELOG.md](docs/CHANGELOG.md)** (
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = v2.15.1-beta.0 until the next promotion. Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
+- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.20.1** (PR #26, merged 16 Nov 2026, `ea1b6e4`) — awaiting JC's beta test. Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -2765,3 +2765,9 @@ Sizes are % of a weekly allowance, including Architect checks.
 **Decisions (Coder):** a same-name item with identical values is reused silently, a different one always asks (Replace keeps its id with the new values; Keep both adds "… (2)"); "Add to a day" uses the first empty slot of that meal (b/l/d…, o1…, ds1…, dr…); Undo restores the week view as it was before the add; the duplicate check matches the same list item, or the same name for common foods / UK products; Yes adds 1 portion (or the item's portion grams when the row is in grams); the "whole dish?" hint shows only while portions is empty or 1; a Build a meal sauce with a known pack size still starts at the whole pack (a jar usually goes in whole).
 - **JC to test (/build/, footer v2.20.1-build; close and reopen):** from Sunday dinner → + Not in my list? → Build a meal (fusilli + Aldi sauce): tap fusilli twice (one row, the prompt), portions required, Save → back on Sunday with it selected and "Added to Sunday dinner"; Update Eating Lists → Single item → Save → the ✓ Saved card → Add to a day.
 - **Resume point:** `build` @ `6dcf7ec` (v2.20.1), prod v2.15.1. Next: wait for JC's test; then the build → beta PR when asked. Do NOT merge to beta or main.
+
+### (Coder) 16 Nov 2026 — v2.20.1 promoted build → beta
+**Decision (JC, 16 Nov):** tested v2.20.1 on /build/; promote to beta (APP_GUIDE from build); not to main.
+- PR #26 `build → beta` (v2.16 – v2.20.1, 35 commits, merged cleanly) merged with a merge commit as `ea1b6e4`. Beta deploy started (run 425 → main's dispatch).
+- **JC to test (/beta/, real data; close the tab and reopen, footer v2.20.1-beta.N):** the v2.20.0 and v2.20.1 lists (Home names, Companion memory and order, exercise progression, Today table, picker, Build a meal → back to the day). First load also runs the one-off migrations on real data: eating items get per-portion descriptions (v2.19.0, idempotent, nothing deleted) and the ratings refresh for current/future weeks (v2.18.3).
+- **Resume point:** `beta` @ `ea1b6e4` (v2.20.1), `build` @ `6dcf7ec`, prod v2.15.1. Next: wait for JC's beta test; the release PR beta → main only when JC approves (the Architect tags it).
