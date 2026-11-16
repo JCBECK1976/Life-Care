@@ -31,7 +31,8 @@ test("1 adding is obvious: search cleared, 'Added: …' announced, the new card 
   await search.fill("fusilli"); await mb.getByTestId("avail-generic").first().click();
   const dup = mb.getByTestId("dup-prompt");
   await expect(dup).toContainText("Fusilli pasta (dried) is already in this meal. Add another portion?");
-  await dup.screenshot({ path: SHOTS + "/360-duplicate-prompt.png" });
+  await expect(page.getByTestId("meal-added")).toHaveCount(0);
+  await dup.scrollIntoViewIfNeeded(); await page.screenshot({ path: SHOTS + "/360-duplicate-prompt.png" });
   await dup.getByRole("button", { name: "No" }).click();
   await expect(mb.getByTestId("meal-comp")).toHaveCount(1);
   await expect(mb.getByLabel("Amount of Fusilli pasta (dried)")).toHaveValue("1");

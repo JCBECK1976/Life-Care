@@ -278,7 +278,7 @@ export function MealBuilder(props) {
   var addComp = function(it, ref, patch) {
     s.setQ("");                                    // clear the search (closes the results list)
     var at = comps.findIndex(function(c) { return sameAs(c, it, ref); });
-    if (at >= 0) { setDup({ i: at, name: it.name }); return; }
+    if (at >= 0) { setAdded(null); setDup({ i: at, name: it.name }); return; }
     setComps(comps.concat([Object.assign(componentFrom(it, props.isJC, ref), patch || {})]));
     setAdded({ i: comps.length, text: "Added: " + it.name });
   };
