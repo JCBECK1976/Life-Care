@@ -30,6 +30,8 @@ The Companion is the AI built into the app (it uses Anthropic's Claude). It:
 
 It speaks to you directly ("you"), warmly and honestly, and adapts its tone to the mood you set on the Home page.
 
+**One Companion that remembers.** Every conversation (Chat, Help, and the replies under each feedback) sends the conversation so far with your new message, so you can say "those two alternatives…" and it knows what you mean: the last 20 messages in full and a short summary of anything older (conversations are kept for 12 months). It also knows a short summary of your own recent conversations from the other areas (the last 14 days: eating, exercise, body, progress and chat), so its answers agree with each other. It never sees the other person's data or conversations. Its replies are labelled **Your Companion**.
+
 The Companion never suggests starting, stopping or changing any medication or dose: if medication comes up, it suggests asking your GP or pharmacist.
 
 You can pinch to zoom anywhere in the app (since v2.15.2). With a keyboard, the item you are on has a clear blue outline. Ratings are shown with a word and a symbol as well as a colour (✓ Great / ✓ Good / ! Amber / ✕ Red), and text colours meet the WCAG AA contrast level (since v2.17.0).
@@ -90,7 +92,7 @@ Every photo you give the app (📷 Snap, 📷 Upload, Body Type Photos, measurem
 
 ### Common patterns used everywhere
 - **My Companion … Feedback** buttons (deep blue) — generate AI feedback for that area. After it is generated, **▼ Show Feedback / ▲ Hide Feedback** opens or closes it.
-- **Conversation threads** — under most feedback you can type a reply ("Respond to this feedback…") and the Companion answers. Your messages appear on the right in your colour; the Companion's replies appear on the left in dark grey. Earlier conversation is remembered next time feedback is generated, so it respects what you pushed back on.
+- **Conversation threads** — under most feedback you can type a reply ("Respond to this feedback…") and the Companion answers. Your messages appear on the right in your colour; Your Companion's replies appear on the left in dark grey, labelled **Your Companion**. The **newest message is at the top**, with the reply box above it, and the box is always full width. Earlier conversation is remembered next time feedback is generated, so it respects what you pushed back on.
 - **Feedback History** — older feedback is kept and can be shown with Show/Hide.
 - **Open** — anything you've saved (a Progress week, a food list item, a meal you've chosen, a weigh-in or measurement entry) is shown as a short row with an **Open** button. Open shows it **read-only** first ("Viewing"). From there:
   - **Edit** makes it editable ("Editing"), then **Save** or **Cancel**;
@@ -107,6 +109,9 @@ Every photo you give the app (📷 Snap, 📷 Upload, Body Type Photos, measurem
 - **Outlined buttons** open things inside a card, each in its own colour: **Open** and **📷 Snap** (blue), **👁 Progress** (violet), **📋 Log** (green). While a panel is open its button turns solid dark blue (e.g. **✕ Progress**); tap it again to close.
 - **Deep blue buttons** are main actions (e.g. the **My Companion … Feedback** buttons).
 - Messages (green ✓ for success, red for problems) appear near the top of the page or inside the panel you're using.
+- **Number boxes** (weights, reps, amounts) open the number keypad, and tapping one selects what's there, so typing replaces it.
+- **Long forms** (e.g. the exercise log) keep **Save** at the bottom of the screen while you scroll. The 💬 chat button sits in the corner and leaves room under the last buttons.
+- **Keyboard and screen readers:** Chat, Help and other pop-ups keep focus inside and close with **Esc**; on a phone every button is at least 44 px tall.
 
 ---
 
@@ -134,18 +139,18 @@ Companion Energy shows how much AI energy is left for Companion features, as a p
 Five faces: 😔 Really struggling, 😕 Not great, 😐 OK, 🙂 Good, 😊 Great. Tap one to set today's mood (tap again to clear). **Why it matters:** the Companion adjusts its tone to your mood. On a hard day it is gentler and more supportive; on a good day it can push you more. Mood resets each day.
 
 ### My Day
-A summary of today: **My Eating** (today's planned breakfast, lunch, dinner, snacks and drinks, with an **Open** link to My Eating) and **My Exercises** (today's session, or "No exercises planned"). Buttons take you straight to today in My Eating or My Exercise.
+A summary of today: **My Eating** (today's planned breakfast, lunch, dinner, snacks and drinks by name, one line each; more than one snack or drink shows as e.g. "Apple +2 more"; with an **Open** link to My Eating) and **My Exercises** (today's session, or "No exercises planned"). Buttons take you straight to today in My Eating or My Exercise.
 
 ### Today: Planned vs Actual
 Between My Day and My Journal. One table with two columns, **Planned** and **Actual**:
 | Row | What it means |
 |---|---|
-| **Body burn** (BMR + daily living) | What your body uses on an ordinary day. Same in both columns. |
-| **Aim** | Your goal and timescale, e.g. "Work towards a healthy body weight · 7 months (−359)". A minus is a gentle deficit, a plus a small surplus. Same in both columns. |
+| **Body burn** (bold; BMR + daily living) | What your body uses on an ordinary day. Same in both columns. |
+| **Your goal deficit** | Your goal's daily adjustment, e.g. −359 (shown as **Your goal surplus** when your goal adds calories, e.g. Build fitness). The goal name and timescale are in the note under the table. Same in both columns. |
 | **Exercise** | Planned: what that day's planned exercises would add. Actual: what your logged exercises and steps (above your allowance) add. |
-| **Goal** (bold) | Body burn + Aim + Exercise. |
+| **Goal** (bold) | Body burn + your goal deficit + Exercise. |
 | **Eating** | Planned: the day's selections at their original planned values. Actual: what's stored now, after portion changes, 📷 Snap checks and variations. |
-| **On track** | Actual eating against the actual goal, e.g. "−120 kcal (−6%)": green at or under, red over. |
+| **On track** | In **both** columns: Planned = planned eating − planned goal, Actual = actual eating − actual goal, e.g. "−120" with "−6%" underneath: green at or under, red over. |
 - **Week to date ±N%** (top right): everything you ate on the past days of this week that have something logged, against those days' goals. Today and future days never count, and nor do days with nothing logged.
 - **▸ Show earlier days this week** shows the same table for each earlier day.
 - The note under the table: *"Actual includes eating selections stored in the day which need to be kept up to date, plus any exercises logged when completed"*. In other words, keep your eating selections up to date and log exercises when you finish them, and the Actual column stays right.
@@ -241,7 +246,7 @@ At the bottom of My Body. It's off until you tap **Turn on body balance checks**
   |---|---|
   | **Building** | Below your rep target; keep building reps at this weight. |
   | **Consolidating** | Hit your target once; repeat it to confirm. |
-  | **Ready to Move** | Hit your target two sessions in a row; ready to increase weight. |
+  | **Ready to Move** | Hit your target two sessions in a row; ready to increase weight. The card shows a concrete next step, e.g. **"Next: try 49–55 kg (the next 1–2 steps on your stack)"**, and a **My next weight** box (or reps / seconds for that exercise): type the exact value you'll use and tap **Set**. It's saved in the exercise's notes and used for your next log. (Your stack steps come from "increments: 45, 47, 49" in the exercise's progression notes, if you add them; otherwise the usual pin stack.) |
   | **Moved Up** | Weight has been increased. |
   | **Maintaining** | Deliberately holding at this weight. |
   | **Reduce** | Weight has been dropped (e.g. form or recovery). |
@@ -251,7 +256,7 @@ At the bottom of My Body. It's off until you tap **Turn on body balance checks**
 
 ### Logging a session (📋 Log)
 - The form says who it is for (**Logging for JC**). It belongs to that person: if you switch person in the header while it is open, the app asks first ("Discard JC's unsaved log entries and switch to Becks?"), so you never log one person's sets against another.
-- Enter each **set** separately: weight and reps per set (e.g. 63 kg × 10, 56 kg × 8, 63 kg × 8), or the right measure for the exercise type. A new log is pre-filled with each set from your last session.
+- Enter each **set** separately: weight and reps per set (e.g. 63 kg × 10, 56 kg × 8, 63 kg × 8), or the right measure for the exercise type. A new log is pre-filled with each set from your last session — **except** when the exercise is Ready to Move, a progression was accepted, or you set your next weight: then it pre-fills the **next** weight with reps at the bottom of the range (e.g. 49 kg × 12), shown as **"Progression: 49 kg × 12 (…) — pre-filled below"** under **Previous** (Previous always shows last week, never the progression).
 - **Session Quality:** for **Range** (Full Range of Motion, or Completed in One for cardio-type exercises) and **Form**, tap **Working towards** or **Good**. **Neither is chosen for you**, and you can't save until both are chosen. If you try, the missing one is outlined in red with "Choose Form and Range to save". If Range is "Working towards", the Companion won't recommend increasing weight; it will tell you to master the full controlled range first, using a 3-second lowering phase.
 - **Progression** choice: *Standard (follow progression rules)*, *Move Up* (override: ready to increase), *Hold* (keep current weight) or *Reduce* (drop weight).
 - **Week** starts at the **current training week** (the week in the header). If you've already logged this week, the form opens that entry so you **Update** it instead of logging over it. **Previous** shows your latest logged week before this one.
@@ -327,7 +332,7 @@ Plenty of fibre (5 g+) or protein (20 g+) lifts an item one band (never above AM
 
 ### A day tab
 **Daily Eating Tracker** with **Breakfast, Lunch, Dinner, Desserts, Snacks, Drinks**:
-- Each slot is a searchable picker of your list items, colour coded by rating. On a phone the picker opens as a full-screen sheet with the search box at the top, so the keyboard never hides the results.
+- Each slot is a searchable picker of your list items, colour coded by rating, with kcal. The search forgives spelling ("porrige" finds porridge). On a phone the rows are large, your current choice is highlighted, and **✕ Close** closes it. After you pick, the row flashes and **"Added: …"** appears at the bottom with **Undo** for about 5 seconds. On a phone the picker opens as a full-screen sheet with the search box at the top, so the keyboard never hides the results.
 - **+ Add New** adds another row for that meal; an empty extra row has a **✕** to remove it.
 - **Open** (next to 📷 Snap) on a filled slot opens **that meal's own copy** of the food, read-only: portion, changes, nutrition, its rating today and your list item's rating (with why they differ, if they do).
   - **Edit** → set the **Portion** (½×, 1×, 1½×, 2× or type a number) and any **Changes** ("chips instead of potato", "no sauce"). With changes, the Companion recalculates the nutrition of what you actually ate and the rating is worked out again. A portion change on a photo-checked meal scales the photo's values.
@@ -517,7 +522,7 @@ A note such as "birthday week" or "after a long flight" is saved with that weigh
 ## 9. Chat and Help
 
 ### 💬 Chat with your Companion
-Ask anything about your health, training, nutrition or progress, e.g. "Why did my bicep curl reps drop?", "Am I eating enough protein?", "What should I focus on next?". The Companion answers using your full data. The **latest exchange is at the top**, so you see it straight away. **Show older messages** (at the end) reveals earlier ones. All Companion conversations, including Help and the feedback replies, work the same way, with the reply box above the conversation.
+Ask anything about your health, training, nutrition or progress, e.g. "Why did my bicep curl reps drop?", "Am I eating enough protein?", "What should I focus on next?". The Companion answers using your full data. The **newest message is at the top** (the Companion's reply sits above the question it answers), so you see it straight away. **Show older messages** (at the end) reveals earlier ones. All Companion conversations, including Help and the feedback replies, work the same way, with the reply box above the conversation.
 
 ### Help ?
 Tap **Help ?** at the top right of the screen, next to the Settings gear. Ask how to use the app: where something is, what something means, how to do something, why it works the way it does. The Help companion answers from this guide, in the same conversation style. It helps with the **app**; for questions about your own health data, use 💬 Chat.

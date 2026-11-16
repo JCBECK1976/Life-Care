@@ -152,7 +152,7 @@ test("item 10: Send Feedback also saves a Feedback/New tracker entry (masked acc
   await expect.poll(async () => Object.keys(await trackerAll()).length).toBe(1);
   const e = Object.values(await trackerAll())[0];
   expect(e).toMatchObject({ category: "Feedback", status: "New", kind: "feature", person: "jc", text: "Please add a water tracker", env: "prod", source: "feedback" });
-  expect(e.version).toMatch(/^v2\.1[4-9]\./); expect(e.created).toMatch(/^\d{4}-\d\d-\d\dT/);
+  expect(e.version).toMatch(/^v2\.(1[4-9]|[2-9]\d)\./); expect(e.created).toMatch(/^\d{4}-\d\d-\d\dT/);
   expect(e.account).toMatch(/^.\*\*\*@.\*\*\*\..+$/);                                    // masked, never the address
   await expect.poll(() => page.evaluate(() => window._mailto.length)).toBe(1);           // existing email behaviour kept (to the admin setting)
   expect(errors).toEqual([]);

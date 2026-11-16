@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import fs from "node:fs";
 import { openApp, tab } from "./helpers.js";
 import { mealName, namesLine, UNNAMED } from "../src/lib/mealNames.js";
 
@@ -412,5 +413,38 @@ test("9c/d number fields: numeric keypad, typing replaces the value; the log's S
   const chat = await page.getByTitle("Chat with your Companion").or(page.getByRole("button", { name: "Chat with your Companion" })).first().boundingBox();
   expect(vb.x + vb.width).toBeLessThanOrEqual(chat.x);                                                  // never under the chat button
   expect(await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById("root")).paddingBottom))).toBeGreaterThanOrEqual(80);
+  expect(errors).toEqual([]);
+});
+
+/* ---------- Report screenshots (360 px) ---------- */
+test("shots: Home (My Day + Today), an Exercise feedback thread, the picker sheet and Update Lists at 360 px", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 780 });
+  const { errors } = await openApp(page);
+  const td = new Date(), tds = ymd(td), wd = DAYS[td.getDay()];
+  const ch = (slot, name) => ({ id: "c_" + tds + "_" + slot, parentId: null, date: tds, weekday: wd, slot, snapshot: { name, kcal: 350 }, portion: { factor: 1 }, variations: { text: "", subs: [] }, nutrition: { kcal: 350 }, rating: "GOOD", band: "GOOD", tracked: "", source: "manual" });
+  const kids = {}; [ch("b", "Porridge with berries"), ch("l", "Chicken salad wrap"), ch("d", "Salmon, rice and greens"), ch("o1", "Apple"), ch("o2", "Greek yoghurt"), ch("dr", "Tea")].forEach((c) => { kids[c.id] = c; });
+  await put("eat_children:jc:" + thisSunday(), { v: 1, empty: [], notes: {}, children: kids });
+  const t = Date.now();
+  await put("session_feedback_all", { ["jc_" + wd]: { summary: "Solid session — your rows are moving well.", exercises: [], nextSession: "", _thread: [{ role: "user", text: "What can replace squat rows?", ts: t - 9e4 }, { role: "companion", text: "Try a chest-supported row or a seal row — both keep your lower back out of it.", ts: t - 8e4 }, { role: "user", text: "Those 2 alternatives need further clarification", ts: t - 7e4 }, { role: "companion", text: "Chest-supported row: lie face down on an incline bench and row the dumbbells up. Seal row: lie flat on a high bench and pull the bar to the bench.", ts: t - 6e4 }] } });
+  await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
+  const dir = "test-results/v2200-shots"; fs.mkdirSync(dir, { recursive: true });
+  await tab(page, "Home");
+  await page.getByTestId("myday-eating").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: dir + "/360-home-myday.png" });
+  await page.getByTestId("today-card").screenshot({ path: dir + "/360-home-today.png" });
+  await tab(page, "My Exercise");
+  await page.getByRole("button", { name: "▼ Show Feedback" }).first().click();
+  await page.getByTestId("thread-session-box").scrollIntoViewIfNeeded();
+  await page.getByTestId("thread-session-box").screenshot({ path: dir + "/360-exercise-thread.png" });
+  await tab(page, "My Eating");
+  await page.getByTestId("picker-trigger").first().click();
+  await page.getByLabel("Search items").fill("porrige");
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: dir + "/360-picker-sheet.png" });
+  await page.getByRole("button", { name: "Close the list" }).click();
+  await page.route(/openfoodfacts\.org/, (r) => r.fulfill({ status: 200, contentType: "application/json", body: '{"products":[]}' }));
+  await page.getByRole("button", { name: "Update Eating Lists" }).click();
+  await page.getByLabel("Search your lists, common foods and UK products").fill("fusilli"); await page.waitForTimeout(900);
+  await page.getByTestId("update-lists").screenshot({ path: dir + "/360-update-lists.png" });
   expect(errors).toEqual([]);
 });
