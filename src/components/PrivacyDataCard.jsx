@@ -1,7 +1,7 @@
 import React from "react";
 import LegalViewer from "./LegalViewer.jsx";
 import { CHOICES, LEGAL_LABEL, consentActive, loadConsent, saveConsent } from "../lib/consent.js";
-import { deleteMyData, exportMyData } from "../lib/myData.js";
+import { deleteMyAccount, deleteMyData, exportMyData } from "../lib/myData.js";
 import { auditLog, loadAudit } from "../lib/audit.js";
 
 // v2.16.7 P2 / P8 / P9: Settings → Privacy & your data. Download my data is always available.
@@ -14,6 +14,8 @@ export default function PrivacyDataCard(props) {
   var [view, setView] = React.useState(null);
   var [c, setC] = React.useState(null);
   var [confirmDel, setConfirmDel] = React.useState("");
+  var [confirmAcc, setConfirmAcc] = React.useState("");
+  var [busy, setBusy] = React.useState(false);
   var [audit, setAudit] = React.useState(null);
   React.useEffect(function() { if (pilot) loadConsent(who).then(setC); }, [who, pilot]);
   var say = function(t) { setMsg(t); setTimeout(function() { setMsg(""); }, 4000); };
@@ -37,6 +39,16 @@ export default function PrivacyDataCard(props) {
         <button disabled={confirmDel !== "DELETE"} data-testid="delete-my-data" style={Object.assign({}, btn, { color: "#fff", background: confirmDel === "DELETE" ? "#dc2626" : "#fca5a5", border: "none" })} onClick={async function() { var n = await deleteMyData(who); auditLog("delete-data", who, n + " keys"); setConfirmDel(""); say("✓ " + props.name + "'s data was deleted from the live app"); }}>Delete</button>
       </div>
     </div>)}
+    {/* v2.21.0: Delete my account — always available (Google Play requirement); the web page delete-account.html explains it too */}
+    <div data-testid="delete-account" style={{ marginTop: 14, paddingTop: 10, borderTop: "1px solid #fee2e2" }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "#991b1b", marginBottom: 2 }}>Delete my account</div>
+      <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5 }}>Erases {props.name}'s records from Lifecare Companion now, removes this Google sign-in from the app and signs you out. Your Google account itself isn't affected. Backups are deleted as they age out, within 12 months. This can't be undone: download your data first if you want a copy. Type DELETE to confirm.</div>
+      <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+        <input aria-label="Type DELETE to delete the account" value={confirmAcc} onChange={function(e) { setConfirmAcc(e.target.value); }} style={{ flex: 1, padding: 6, border: "1px solid #fecaca", borderRadius: 8 }} />
+        <button disabled={confirmAcc !== "DELETE" || busy} data-testid="delete-my-account" style={Object.assign({}, btn, { color: "#fff", background: confirmAcc === "DELETE" ? "#b91c1c" : "#fca5a5", border: "none" })}
+          onClick={async function() { if (!window.confirm("Delete " + props.name + "'s account and all their records now? This can't be undone.")) return; setBusy(true); try { await deleteMyAccount(who); } catch (e) { setBusy(false); say("✗ Couldn't delete the account: " + String((e && e.message) || e).slice(0, 120)); } }}>{busy ? "Deleting…" : "Delete my account"}</button>
+      </div>
+    </div>
     {props.isAdmin && (<div style={{ marginTop: 12 }}>
       <button style={btn} onClick={async function() { setAudit(await loadAudit(20)); }}>Show audit trail (admin)</button>
       {audit && <ul data-testid="audit-list" style={{ fontSize: 10, color: "#334155", paddingLeft: 16, margin: "6px 0 0" }}>{audit.length ? audit.map(function(a, i) { return <li key={i}>{a.at.slice(0, 16).replace("T", " ")} · {a.action} · {a.person} · {a.target} · {a.account}</li>; }) : <li>No entries yet.</li>}</ul>}

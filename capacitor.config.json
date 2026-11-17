@@ -1,0 +1,7 @@
+{
+  "appId": "com.companionappsstudio.lifecare",
+  "appName": "Lifecare Companion",
+  "webDir": "dist-native",
+  "server": { "androidScheme": "https" },
+  "android": { "allowMixedContent": false, "captureInput": true, "webContentsDebuggingEnabled": false }
+}

@@ -26,3 +26,12 @@ playwright-report/
 test-results/
 dist-pages/
 emulator.rules.json
+# v2.21.0 native Android: the bundled web copy is rebuilt every time; signing keys and Play credentials never belong in the repo
+dist-native/
+*.jks
+*.keystore
+*.p12
+keystore.properties
+key.properties
+play-service-account*.json
+google-services.json

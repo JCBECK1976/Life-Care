@@ -44,6 +44,8 @@ if (exists("index.html")) {
   /noindex/.test(html) ? prodProblems.push("prod has noindex") : ok("prod is indexable");
   if (/\/src\/main\.jsx/.test(html)) prodProblems.push("prod index.html is unbuilt source");
   if (/data_build/.test(jsOf("."))) prodProblems.push("prod bundle refers to data_build");
+  // v2.21.0: the Google Play listing links to these two pages; they must never disappear from prod
+  for (const f of ["privacy-policy.html", "delete-account.html"]) exists(f) ? ok("prod " + f + " (Play listing)") : prodProblems.push("prod " + f + " missing (Google Play listing needs it)");
 }
 prodProblems.push(...checkPwa("prod", ".", "/Life-Care/"));
 if (prodProblems.length) {

@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import crypto from "node:crypto";
+import path from "node:path";
 
 // APP_GUIDE.md lives once, at the repo root (docs are edited on main).
 // This plugin serves it in dev and emits it next to index.html in builds,
@@ -184,10 +185,24 @@ function pwa(appEnv) {
   };
 }
 
+// v2.21.0: the public privacy policy page (Google Play listing) built from public/legal/privacy-notice.md, and terms.
+function legalPages() {
+  return {
+    name: "legal-pages",
+    async generateBundle() {
+      const { mdPage } = await import("./scripts/md-page.mjs");
+      for (const [md, file, title] of [["privacy-notice.md", "privacy-policy.html", "Lifecare Companion — Privacy Notice"], ["terms-of-use.md", "terms-of-use.html", "Lifecare Companion — Terms of Use"]]) {
+        const src = fs.readFileSync(path.join(process.cwd(), "public", "legal", md), "utf8");
+        this.emitFile({ type: "asset", fileName: file, source: mdPage(src, title) });
+      }
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => ({
   // "next" mode = preview build served from /Life-Care/next/ ; otherwise production /Life-Care/
   base: mode === "next" ? "/Life-Care/next/" : "/Life-Care/",
-  plugins: [react(), appGuide(), planJson(), envHtml(loadEnv(mode, process.cwd(), "VITE_").VITE_APP_ENV), pwa(loadEnv(mode, process.cwd(), "VITE_").VITE_APP_ENV), csp()],
+  plugins: [react(), appGuide(), planJson(), envHtml(loadEnv(mode, process.cwd(), "VITE_").VITE_APP_ENV), pwa(loadEnv(mode, process.cwd(), "VITE_").VITE_APP_ENV), csp(), legalPages()],
   build: { outDir: "dist", emptyOutDir: true, chunkSizeWarningLimit: 3000 },
   server: { host: "127.0.0.1", port: 5173, strictPort: true },
 }));

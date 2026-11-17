@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import firebase, { auth, DATA_ROOT } from "../lib/firebase.js";
 import LoadingScreen from "./LoadingScreen.jsx";
+import { isNative, nativeGoogleSignIn, nativeSignOut } from "../lib/native.js";
 
 // v2.6.0: nothing reads or writes the database until a Google account is signed in and has access.
 const btn = { marginTop: 16, padding: "12px 20px", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer", background: "#1e3a5f", color: "#fff" };
 const isDenied = (e) => /permission[_ ]denied/i.test(String((e && (e.code || e.message)) || e));
 
-export function signOut() { return auth.signOut(); }
+export function signOut() { nativeSignOut(); return auth.signOut(); }
 
 export default function AuthGate({ children }) {
   const [s, setS] = useState({ phase: "checking" }); // checking | signedOut | ok | denied | error
@@ -31,6 +32,7 @@ export default function AuthGate({ children }) {
     const provider = new firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
     try {
+      if (isNative()) { await nativeGoogleSignIn(firebase, auth); return; }   // v2.21.0: Android app — native Google account picker
       await auth.signInWithPopup(provider);
     } catch (e) {
       if (["auth/popup-blocked", "auth/operation-not-supported-in-this-environment", "auth/web-storage-unsupported"].includes(e.code)) {

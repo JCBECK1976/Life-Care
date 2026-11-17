@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Lifecare Companion</string>
+    <string name="title_activity_main">Lifecare Companion</string>
+    <string name="package_name">com.companionappsstudio.lifecare</string>
+    <string name="custom_url_scheme">com.companionappsstudio.lifecare</string>
+</resources>

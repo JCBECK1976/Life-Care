@@ -69,7 +69,7 @@ You have the right to:
 - **complain to the Information Commissioner's Office (ICO)**: ico.org.uk, 0303 123 1113.
 
 To use these rights, contact us (section 1). We will reply within one month.
-[In-app deletion and export are planned before other users join.]
+You can do two of these yourself in the app: **Download my data** and **Delete my account** (Settings ⚙ → Privacy & your data). How to delete your account, including without the app: https://jcbeck1976.github.io/Life-Care/delete-account.html
 
 ## 9. Security
 Access to your data requires signing in with an approved Google account. Data is transferred over encrypted connections, and backups are encrypted. Only the app owner can administer the service. No system is perfectly secure: we review our safeguards regularly, and will tell you and the ICO about a serious breach as the law requires.

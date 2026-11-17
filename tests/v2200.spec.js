@@ -328,7 +328,7 @@ test("8 axe at 360 px: Update Lists (search results, Build a meal, My own), the 
   expect(await axe(page)).toEqual([]);
   await page.getByRole("tab", { name: "Build a meal" }).click(); expect(await axe(page)).toEqual([]);
   await page.getByRole("tab", { name: "My own" }).click(); expect(await axe(page)).toEqual([]);
-  await tab(page, "My Exercise"); await page.getByRole("button", { name: "📋 Log", exact: true }).first().click(); expect(await axe(page)).toEqual([]);
+  await tab(page, "My Exercise"); await page.getByRole("button", { name: "Sun", exact: true }).click(); await page.getByRole("button", { name: "📋 Log", exact: true }).first().click(); expect(await axe(page)).toEqual([]);
   await openChat(page); expect(await axe(page)).toEqual([]);
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: /Help/ }).first().click(); expect(await axe(page)).toEqual([]);
@@ -400,6 +400,7 @@ test("9c/d number fields: numeric keypad, typing replaces the value; the log's S
   await page.setViewportSize({ width: 360, height: 640 });
   const { errors } = await openApp(page);
   await tab(page, "My Exercise");
+  await page.getByRole("button", { name: "Sun", exact: true }).click();                               // a day the test data has exercises on
   await page.getByRole("button", { name: "📋 Log", exact: true }).first().click();
   const w = page.locator('input[placeholder="Weight"]').first();
   await expect(w).toHaveAttribute("inputmode", "decimal");
