@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.19.1 · 15 November 2026
+> Last updated: v2.22.0 · 17 November 2026
 
 ---
 
@@ -528,7 +528,7 @@ A note such as "birthday week" or "after a long flight" is saved with that weigh
 Ask anything about your health, training, nutrition or progress, e.g. "Why did my bicep curl reps drop?", "Am I eating enough protein?", "What should I focus on next?". The Companion answers using your full data. The **newest message is at the top** (the Companion's reply sits above the question it answers), so you see it straight away. **Show older messages** (at the end) reveals earlier ones. All Companion conversations, including Help and the feedback replies, work the same way, with the reply box above the conversation.
 
 ### Help ?
-Tap **Help ?** at the top right of the screen, next to the Settings gear. Ask how to use the app: where something is, what something means, how to do something, why it works the way it does. The Help companion answers from this guide, in the same conversation style. It helps with the **app**; for questions about your own health data, use 💬 Chat.
+Tap **Help ?** at the top right of the screen, next to the Settings gear. On **Bronze**, Help is a **searchable guide** (type a few words, open a result) with no AI; asking the Companion is part of Silver. Ask how to use the app: where something is, what something means, how to do something, why it works the way it does. The Help companion answers from this guide, in the same conversation style. It helps with the **app**; for questions about your own health data, use 💬 Chat.
 
 ---
 
@@ -536,6 +536,7 @@ Tap **Help ?** at the top right of the screen, next to the Settings gear. Ask ho
 
 Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
 - **🎨 My Colour Theme** — Blue, Purple, Green, Teal, Rose, Amber, Indigo or Slate. Changes your highlighted tabs, info boxes and accents. Each person has their own colour.
+- **💳 My Plan** (being tested on Build) — under the colour theme. Tap it to open: see below.
 - **📱 Google Health — calories burned** — connects your own Google account so the app can read your **daily total calories burned** for this week (Sunday–Saturday). Only the daily totals are saved; the Google sign-in stays on this device (connect again on each device, and after about an hour). The status line says exactly what happened: connected or not, when it last synced and how many days were read, or why it failed (e.g. "expired — reconnect"). **🔄 Sync this week's calories** reads them; **⏹ Disconnect on this device** forgets the sign-in. For the app owner: a switch per person to use the calculated calorie target (off by default). Being set up: needs the Google Cloud steps first (plan J10).
 - **🍎 Apple Health** (iOS) — coming soon.
 - **Admin-only settings** (for the app owner) are grouped in sections, each with a short explanation:
@@ -554,6 +555,20 @@ Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
   - **📊 AI usage** (admin only): how many AI calls were made and how many tokens they used, per day and per feature (Help, Chat, My Eating, photo checks…), with the estimated cost. Only counts are kept, never what anyone typed or photographed. **⚡ Companion Energy** is worked out from these counts: what has been spent since the last **Set as 100%**.
   - **📝 Tracker** (admin only): everything sent with **💬 Send Feedback** appears here as **Feedback**, status **New** (a red badge shows how many are new). It also shows **the plan**: each time you open the Tracker it loads the plan (plan.json) and adds or updates its items (defects, features and tasks, by phase). Filters: Category (Feedback / Defect / Feature / Task), Phase, Status and Priority. Status starts on **Outstanding** (everything not Done or Won't do); choose **Completed** or **All** to see finished items. A box above the list totals the **Token %** of open plan items per phase (the estimated share of a weekly allowance). **Open** shows an item read-only. For feedback and items you added, **Edit** lets you re-categorise it, set the status, a priority, an admin note and a link/ref, then **Save**; **Remove** takes it out (asks first). Plan items say **Managed by plan**: only their admin note can be edited here, and your note is kept when the plan changes. **+ Add** adds a Defect, Feature or Task. Text only: no screenshots or images are stored.
   - **📧 Feedback email** (admin only): shows the address 💬 Send Feedback emails go to (also the contact in the Privacy Policy). Press **Edit**, change it, then **Save**: the form closes and shows **✓ Saved**. Leave it empty for no email: feedback is still saved to the 📝 Tracker.
+
+### 💳 My Plan — Bronze, Silver, Gold, Platinum Family (being tested on Build)
+Every plan includes the three pillars: **Health, Eating and Exercise**.
+- **Bronze (free):** manual tracking with progress and charts, the built-in food and exercise lists, UK products, your own lists, Build a meal (totals from stored values), mood and journal, a manual shopping list, and a **searchable Help guide**. No AI, and nutrition values can't be edited.
+- **Silver (£5.99 a month or £49 a year):** everything in Bronze, plus the Companion: feedback everywhere, chat, food ratings, Snap, My own item, body balance, steps and health sync, Ask the Companion in Help, and auto-generated info. Includes £1.50 of Companion Energy each month.
+- **Gold (£9.99 a month or £79 a year):** everything in Silver, plus planning: generate meals, generate a shopping list, AI training plans with warm-up and cool-down. Includes £2.50 of Energy each month.
+- **Platinum Family (£15.99 a month or £159 a year):** Gold for up to **5 people** (you plus 4 invited), with **one shared family Energy pool** of £7.50 a month. Household sharing (seeing each other's data, "log for me") is Platinum only.
+
+**My Plan** (Settings, under the colour theme; closed until you tap it) shows: your plan, when it renews, and your Companion Energy % (not on Bronze) · the four plans side by side, with a **Monthly / Yearly** switch · **Upgrade**, **Change plan** and **Manage or cancel** (Google Play's subscription page) · **⚡ Top up Companion Energy: £5** (Silver and up; on Platinum it goes into the family pool) · on Platinum, the owner's **👪 My family**: members, invite by email, remove, and the family pool %.
+- Plans and top-ups are bought in the **Android app through Google Play**; the web app doesn't sell anything. Google confirms each purchase to our server before anything changes.
+- If something isn't in your plan, you'll see e.g. "**Snap is part of Silver.**" with **See plans**. On a family plan, members see "Ask [owner] about your family plan" instead.
+- **Moving to a smaller plan or cancelling never deletes anything.** All your records stay and stay visible; only new Companion features stop.
+- If you're a member of someone's Platinum Family plan, Settings shows only your colour theme and "You're on [owner]'s Platinum Family plan".
+- **JC and Becks's shared account** has every feature on (Platinum) until each of you has your own login. On Build, My Plan can **preview** the app as another plan, to see what each plan looks like (nothing is bought or stored).
 
 ### Send Feedback, Privacy Policy
 At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature and describe it; it is always saved to the app owner's Tracker. If the owner has set a feedback email address, your phone's email app then opens with the message filled in: **press Send there** to email it too, because the app can't send email itself) and **Privacy Policy**. The version number (e.g. v2.1.0) is shown at the very bottom. Test versions of the app show a coloured **BUILD** or **BETA** badge under the Help and Settings buttons at the top (and in the browser tab name), and their version ends in -build… or -beta…; the normal app has no badge.

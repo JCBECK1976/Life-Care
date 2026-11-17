@@ -29,7 +29,7 @@ export default function MyPlanCard(props) {
   var plan = usePlan();
   var T = plan.tiers;
   var [open, setOpen] = useState(false);
-  var [yearly, setYearly] = useState(false);
+  var [yearly, setYearly] = useState(plan.basePlan === "yearly");   // start on the period the person pays
   var [pick, setPick] = useState(null);
   var [msg, setMsg] = useState("");
   var [busy, setBusy] = useState(false);
@@ -129,7 +129,7 @@ export default function MyPlanCard(props) {
               </li>; })}
               {((plan.family && plan.family.invites) || []).map(function(i) { return <li key={i.code} style={{ fontSize: 12, color: "#475569", padding: "4px 0" }}>Invited: {i.email}</li>; })}
             </ul>
-            <label htmlFor="family-invite" style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>Invite by email (up to {(T.platinum.maxMembers || 5) - 1} people)</label>
+            <label htmlFor="family-invite" style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>Invite by email ({Math.max(0, (T.platinum.maxMembers || 5) - ((plan.family && plan.family.members.length) || 1) - ((plan.family && plan.family.invites.length) || 0))} places left)</label>
             <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
               <input id="family-invite" type="email" value={email} onChange={function(e) { setEmail(e.target.value); }} placeholder="name@example.com" style={{ flex: 1, minWidth: 0, padding: "8px 10px", fontSize: 14, borderRadius: 8, border: "1px solid #cbd5e1" }} />
               <button type="button" data-testid="family-invite-btn" disabled={busy || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)} style={btnP} onClick={function() { var e = email; setEmail(""); run(async function() {
