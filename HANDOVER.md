@@ -28,7 +28,7 @@ The version table (changelog) is in **[docs/CHANGELOG.md](docs/CHANGELOG.md)** (
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.20.1** (PR #26, merged 16 Nov 2026, `ea1b6e4`) — awaiting JC's beta test. Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
+- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.20.2** (PR #27, merged 17 Nov 2026, `bcac68e`) — awaiting JC's beta test. Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -2778,3 +2778,9 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **build `acc4ef0`** (v2.20.2). Suite 285 passed (6 skipped), lint 0 errors. Tests `tests/v2202.spec.js` (both people, all measure types, Set ×3, Undo, legacy note) + the v2.20.0 chain test updated.
 - **JC to test (/build/, footer v2.20.2-build):** an exercise at Ready to Move → My next weight → Set: the row goes, headline shows the new weight, Moved Up, toast with Undo; Log pre-fills it.
 - **Resume point:** `build` @ `acc4ef0` (v2.20.2), `beta` @ `ea1b6e4` (v2.20.1), prod v2.15.1. Next: wait for JC's test; then build → beta when asked. Do NOT merge to beta or main.
+
+### (Coder) 17 Nov 2026 — v2.20.2 promoted build → beta
+**Decision (JC, 17 Nov):** tested v2.20.2 on /build/; promote to beta (APP_GUIDE from build); not to main.
+- PR #27 `build → beta` (1 commit, merged cleanly) merged with a merge commit as `bcac68e`.
+- **JC to test (/beta/, real data; close and reopen, footer v2.20.2-beta.N):** an exercise at Ready to Move → My next weight → Set; existing duplicated notes show once (stored note rewritten only when that exercise is next saved).
+- **Resume point:** `beta` @ `bcac68e` (v2.20.2), `build` @ `acc4ef0`, prod v2.15.1. Next: wait for JC's beta test; the release PR beta → main only when JC approves (the Architect tags it).
