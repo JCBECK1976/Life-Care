@@ -5,9 +5,11 @@ import ReactDOM from "react-dom/client";
 import Dashboard from "./App.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import AuthGate from "./components/AuthGate.jsx";
+import { startPlan } from "./lib/myPlan.js";
 
 installFieldHelpers();   // v2.20.0: numeric keypad, select-all on focus, haptic tap
 installNativeBackButton();   // v2.21.0: Android Back closes dialogs
+startPlan();   // v2.22.0: the signed-in person's plan (flag useTiers; all on when off)
 ReactDOM.createRoot(document.getElementById("root")).render(<ErrorBoundary name="App"><AuthGate><Dashboard /></AuthGate></ErrorBoundary>);
 
 // Installable app: register the network-only service worker (builds only, never the dev server).

@@ -1,6 +1,6 @@
 // v2.16.3 Step 4: client feature flags for the Companion platform (ADR 0011). ALL OFF by default:
 // with every flag off the app behaves exactly as before. Per device (localStorage "lc_flags"); nothing is live yet.
-export var FLAGS = ["useAiProxy", "useAccounts", "showBuyEnergy"];
+export var FLAGS = ["useAiProxy", "useAccounts", "showBuyEnergy", "useTiers"];   /* v2.22.0 useTiers: on for /build/ regardless (myPlan.js) */
 export function flag(name) {
   try { var f = JSON.parse(localStorage.getItem("lc_flags") || "{}"); return f[name] === true; } catch (e) { return false; }
 }
@@ -16,7 +16,8 @@ export async function callFunction(name, data, idToken, fetchImpl) {
 }
 
 /** App feature label (aiUsage.featureOf) → tier feature switch checked by the server. */
-export function proxyFeature(f) { var x = String(f || "").toLowerCase(); return x === "help" ? "help" : /photo|snap|food check/.test(x) ? "snap" : /meal/.test(x) ? "mealGenerator" : /balance/.test(x) ? "bodyBalance" : "aiFeedback"; }
+export function proxyFeature(f) { if (/^[a-z][A-Za-z]+$/.test(String(f || "")) && f !== "help") return f;   /* v2.22.0: already a plan feature (x-lc-feature) */
+  var x = String(f || "").toLowerCase(); return x === "help" ? "help" : /photo|snap|food check/.test(x) ? "snap" : /meal/.test(x) ? "mealGenerator" : /balance/.test(x) ? "bodyBalance" : "aiFeedback"; }
 
 /** Turn a Messages API request body into a proxy call and give back a Response the existing code understands. */
 export async function viaProxy(body, feature, idToken, fetchImpl) {

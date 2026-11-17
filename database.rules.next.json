@@ -61,7 +61,7 @@
         },
         "entitlements": {
           "$uid": {
-            ".read": "auth != null && auth.uid === $uid"
+            ".read": "auth != null && (auth.uid === $uid || (root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val()))"
           }
         },
         "energy": {
@@ -99,6 +99,19 @@
         },
         "audit": {
           ".read": "auth != null && root.child('platform').child('admins').child(auth.uid).val() === true"
+        },
+        "familyEnergy": {
+          "$owner": {
+            ".read": "auth != null && (auth.uid === $owner || (root.child('apps/' + $app + '/memberOf/' + auth.uid).exists() && root.child('apps/' + $app + '/households/' + root.child('apps/' + $app + '/memberOf/' + auth.uid).val() + '/owner').val() === $owner))"
+          }
+        },
+        "familyLedger": {
+          "$owner": {
+            ".read": "auth != null && auth.uid === $owner"
+          }
+        },
+        "purchases": {
+          ".read": false
         }
       }
     }

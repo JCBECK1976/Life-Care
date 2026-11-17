@@ -2,6 +2,8 @@
 // Never `firebase deploy` from a Coder session.
 import { onCall, onRequest, HttpsError as FnError } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onMessagePublished } from "firebase-functions/v2/pubsub";
+import { playApi, playVerify as playVerifyCore, playNotify as playNotifyCore } from "./src/play.js";
 import { retention } from "./src/retention.js";
 import { defineSecret } from "firebase-functions/params";
 import admin from "firebase-admin";
@@ -30,11 +32,22 @@ export const acceptInvite = onCall(opts, wrap((c) => core.acceptInvite(c, { db: 
 export const removeMember = onCall(opts, wrap((c) => core.removeMember(c, { db: db() })));
 export const leaveHousehold = onCall(opts, wrap((c) => core.leaveHousehold(c, { db: db() })));
 export const setTier = onCall(opts, wrap((c) => core.setTier(c, { db: db() })));
+export const adminTopUp = onCall(opts, wrap((c) => core.adminTopUp(c, { db: db() })));   // admin: free Energy for testing
 export const adminAccounts = onCall(opts, wrap((c) => core.adminAccounts(c, { db: db() })));
 export const createCheckout = onCall({ ...opts, secrets: [STRIPE_KEY] }, wrap((c) => core.createCheckout(c, { stripe: new Stripe(process.env.STRIPE_SECRET_KEY), baseUrl: process.env.APP_BASE_URL || "https://jcbeck1976.github.io/Life-Care/" })));
 export const stripeWebhook = onRequest({ ...opts, secrets: [STRIPE_KEY, STRIPE_WHSEC] }, async (req, res) => {
   const r = await core.stripeWebhook(req.rawBody, req.headers["stripe-signature"], { stripe: new Stripe(process.env.STRIPE_SECRET_KEY), secret: process.env.STRIPE_WEBHOOK_SECRET, db: db() });
   res.status(r.status).send(r.body);
+});
+
+// v2.22.0 PAY1: Google Play Billing, verified on the server (Play Developer API with the default service account, which
+// JC links in Play Console → API access, J22). The app sends only the purchase token.
+const play = playApi();
+export const playVerify = onCall(opts, wrap((c) => playVerifyCore(c, { db: db(), play })));
+// Real-time developer notifications: Play → Pub/Sub topic "play-rtdn" (J22) → renewals, cancellations, expiry.
+export const playNotify = onMessagePublished({ ...opts, topic: "play-rtdn" }, async (ev) => {
+  const r = await playNotifyCore(ev.data.message, { db: db(), play });
+  console.log("playNotify: " + r);   // outcome only, no tokens
 });
 
 // v2.16.7 P10: daily retention clean-up (Europe/London 03:10). Emulator-tested only; never deployed by the Coder.

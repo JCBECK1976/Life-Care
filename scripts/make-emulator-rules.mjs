@@ -5,6 +5,10 @@
 // the live rules are not changed.
 // Writes emulator.rules.json (generated, not committed).
 import fs from "node:fs";
-const rules = fs.readFileSync("database.rules.json", "utf8").replace(/auth\.uid === '[^']*'/g, "(auth.uid === 'test-uid-jc' || auth.uid === 'test-uid-member')");
-fs.writeFileSync("emulator.rules.json", rules);
+const rules = JSON.parse(fs.readFileSync("database.rules.json", "utf8").replace(/auth\.uid === '[^']*'/g, "(auth.uid === 'test-uid-jc' || auth.uid === 'test-uid-member')"));
+// v2.22.0: the platform paths (apps/*, platform/*) come from database.rules.next.json — the rules that ship WITH the
+// server functions — so the app's plan reading (entitlements, family, energy) is tested against them. Emulator only.
+const next = JSON.parse(fs.readFileSync("database.rules.next.json", "utf8")).rules;
+rules.rules.apps = next.apps; rules.rules.platform = next.platform;
+fs.writeFileSync("emulator.rules.json", JSON.stringify(rules, null, 2));
 console.log("emulator.rules.json written (allowed UIDs: test-uid-jc, test-uid-member)");

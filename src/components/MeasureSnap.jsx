@@ -22,7 +22,7 @@ export default function MeasureSnap(props) {
     setSt({ stage: "busy", desc: desc, first: deep && st ? st.result : null });
     try {
       var _img = await readImageForAI(file); var b64 = _img.data;   /* v2.14.0: shrunk before sending */
-      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-lc-feature": "snap", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
         body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 300, temperature: 0, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: _img.mediaType, data: b64 } }, { type: "text", text: readingPrompt({ label: props.label, unit: unit, desc: desc, previous: props.previous, deep: deep }) }] }] }) });
       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
       var txt = ""; (result.content || []).forEach(function(c) { if (c.text) txt += c.text; });

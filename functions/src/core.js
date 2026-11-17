@@ -1,5 +1,5 @@
 // Platform handlers as plain functions (deps injected), so they run in Cloud Functions and in emulator tests alike.
-import { DEFAULT_APP, DEFAULT_TIERS, LOCKED_UIDS, MEDICATION_RULE, MODEL, P, PACKS, costPence } from "./config.js";
+import { DEFAULT_APP, DEFAULT_TIERS, LOCKED_UIDS, MEDICATION_RULE, MODEL, P, PACKS, STRIPE_WEB_ENABLED, TIER_ORDER, costPence } from "./config.js";
 
 export class HttpsError extends Error { constructor(code, message) { super(message); this.code = code; } }
 const need = (cond, code, msg) => { if (!cond) throw new HttpsError(code, msg); };
@@ -24,32 +24,51 @@ export async function deleteAccount({ uid, data }, { db, deleteUser, now = Date.
   return { ok: true };
 }
 
-export async function tierOf(db, app, uid) {
-  const e = (await db.ref(P.ent(app, uid)).once("value")).val();
-  return (e && e.tier) || "bronze";
+/* ---------- plans (v2.22.0, ADR 0017) ----------
+   A person's plan: their own entitlement, or — if they're in a household whose owner is on Platinum — Platinum as a
+   family member. Platinum uses ONE shared Energy pool (keyed by the owner); everyone else has their own balance.
+   An entitlement with an expiry in the past counts as Bronze. Data is never touched by a plan change. */
+export async function tiersConfig(db, app) { return (await db.ref(P.tiers(app)).once("value")).val() || DEFAULT_TIERS; }
+const live = (e, now) => e && e.tier && (!e.expires || e.expires > now);
+export async function planOf(db, app, uid, now = Date.now()) {
+  const own = (await db.ref(P.ent(app, uid)).once("value")).val();
+  const hid = (await db.ref(`apps/${app}/memberOf/${uid}`).once("value")).val();
+  const h = hid ? (await db.ref(`apps/${app}/households/${hid}`).once("value")).val() : null;
+  if (h && h.owner && h.owner !== uid) {
+    const oe = (await db.ref(P.ent(app, h.owner)).once("value")).val();
+    if (live(oe, now) && oe.tier === "platinum") return { tier: "platinum", role: "member", owner: h.owner, wallet: wallet(app, "pool", h.owner) };
+  }
+  const tier = live(own, now) ? own.tier : "bronze";
+  if (tier === "platinum") return { tier, role: "owner", owner: uid, wallet: wallet(app, "pool", uid) };
+  return { tier, role: "solo", owner: uid, wallet: wallet(app, "own", uid) };
 }
+export async function tierOf(db, app, uid) { return (await planOf(db, app, uid)).tier; }
 export async function featureAllowed(db, app, uid, feature) {
-  const tiers = (await db.ref(P.tiers(app)).once("value")).val() || DEFAULT_TIERS;
-  const t = tiers[await tierOf(db, app, uid)] || {};
+  const t = (await tiersConfig(db, app))[await tierOf(db, app, uid)] || {};
   return t[feature] === true;
 }
 
 /* ---------- energy ledger (server only; pence of AI cost; no content) ---------- */
-export async function balance(db, app, uid) { return ((await db.ref(P.energy(app, uid)).once("value")).val() || {}).balancePence || 0; }
-async function move(db, app, uid, delta, kind, ref, key, now) {
-  const entryRef = key ? db.ref(P.ledger(app, uid) + "/" + key) : db.ref(P.ledger(app, uid)).push();
-  if (key && (await entryRef.once("value")).exists()) return { duplicate: true, balancePence: await balance(db, app, uid) };
-  const r = await db.ref(P.energy(app, uid)).transaction((cur) => {
+function wallet(app, kind, who) { return kind === "pool" ? { energy: P.pool(app, who), ledger: P.poolLedger(app, who), account: null } : { energy: P.energy(app, who), ledger: P.ledger(app, who), account: P.account(app, who) }; }
+export async function walletBalance(db, w) { return ((await db.ref(w.energy).once("value")).val() || {}).balancePence || 0; }
+export async function balance(db, app, uid) { return walletBalance(db, wallet(app, "own", uid)); }
+export async function move(db, w, delta, kind, ref, key, now) {
+  const entryRef = key ? db.ref(w.ledger + "/" + key) : db.ref(w.ledger).push();
+  if (key && (await entryRef.once("value")).exists()) return { duplicate: true, balancePence: await walletBalance(db, w) };
+  const r = await db.ref(w.energy).transaction((cur) => {
     const c = cur || { balancePence: 0 };
-    return { balancePence: Math.round(((c.balancePence || 0) + delta) * 10000) / 10000, updated: now };
+    // never below zero: the pool / balance is capped by what was credited (the last call may cost a little more)
+    return { balancePence: Math.max(0, Math.round(((c.balancePence || 0) + delta) * 10000) / 10000), updated: now };
   });
   await entryRef.set({ at: now, kind, pence: Math.abs(delta), ref: String(ref || "").slice(0, 80) });
   const bal = r.snapshot.val().balancePence;
-  await db.ref(P.account(app, uid)).update({ balancePence: bal, updated: now });
+  if (w.account) await db.ref(w.account).update({ balancePence: bal, updated: now });
   return { duplicate: false, balancePence: bal };
 }
-export const credit = (db, app, uid, pence, ref, key, now = Date.now()) => move(db, app, uid, +pence, "credit", ref, key, now);
-export const debit = (db, app, uid, pence, ref, now = Date.now()) => move(db, app, uid, -pence, "debit", ref, null, now);
+export const credit = (db, app, uid, pence, ref, key, now = Date.now()) => move(db, wallet(app, "own", uid), +pence, "credit", ref, key, now);
+export const debit = (db, app, uid, pence, ref, now = Date.now()) => move(db, wallet(app, "own", uid), -pence, "debit", ref, null, now);
+/** Credit the wallet the person's plan uses (Platinum: the family pool). */
+export async function creditPlan(db, app, uid, pence, ref, key, now = Date.now()) { return move(db, (await planOf(db, app, uid, now)).wallet, +pence, "credit", ref, key, now); }
 
 /* ---------- aiProxy ---------- */
 export function withRule(system) {
@@ -58,15 +77,17 @@ export function withRule(system) {
 }
 export async function aiProxy({ uid, data }, { db, callClaude, now = Date.now() }) {
   need(uid, "unauthenticated", "Sign in first.");
-  const app = appOf(data); const feature = (data && data.feature) || "aiFeedback";   // help | aiFeedback | snap | mealGenerator | bodyBalance | aiPlans
-  need(await featureAllowed(db, app, uid, feature), "permission-denied", "Your plan doesn't include this feature.");
-  need(await balance(db, app, uid) > 0, "resource-exhausted", "Companion Energy is empty.");
+  const app = appOf(data); const feature = (data && data.feature) || "aiFeedback";   // a switch from tiers.js FEATURES
+  const plan = await planOf(db, app, uid, now);
+  const tiers = await tiersConfig(db, app);
+  need((tiers[plan.tier] || {})[feature] === true, "permission-denied", "Your plan doesn't include this feature.");
+  need(await walletBalance(db, plan.wallet) > 0, "resource-exhausted", "Companion Energy is empty.");
   const req = (data && data.request) || {};
   need(Array.isArray(req.messages) && req.messages.length, "invalid-argument", "No messages.");
   const body = { model: MODEL, max_tokens: Math.min(parseInt(req.max_tokens) || 1000, 4000), messages: req.messages, system: withRule(req.system) };
   const result = await callClaude(body);
   const cost = costPence(result && result.usage);
-  await debit(db, app, uid, cost, "ai:" + feature, now);
+  await move(db, plan.wallet, -cost, "debit", "ai:" + feature, null, now);
   await db.ref(P.usage(app, uid, day(now))).transaction((u) => {
     const x = u || { n: 0, in: 0, out: 0, costPence: 0 }; const us = result.usage || {};
     return { n: x.n + 1, in: x.in + (us.input_tokens || 0), out: x.out + (us.output_tokens || 0), costPence: Math.round((x.costPence + cost) * 10000) / 10000 };
@@ -78,10 +99,17 @@ export async function aiProxy({ uid, data }, { db, callClaude, now = Date.now() 
 export async function setTier({ uid, data }, { db, now = Date.now() }) {
   need(await isAdmin(db, uid), "permission-denied", "Admins only.");
   const app = appOf(data); const tier = data && data.tier;
-  need(["bronze", "silver", "gold"].includes(tier) && data.uid, "invalid-argument", "tier and uid needed.");
+  need(TIER_ORDER.includes(tier) && data.uid, "invalid-argument", "tier and uid needed.");
+  // admin grant (pilot testers, JC and Becks): no payment, no expiry, never billed, never changed by store notifications
   await db.ref(P.ent(app, data.uid)).set({ tier, since: now, source: "admin" });
   await db.ref(P.account(app, data.uid)).update({ tier, updated: now });
   return { ok: true };
+}
+/** Admin only: free Energy for testing, into the person's plan wallet (Platinum: the family pool). */
+export async function adminTopUp({ uid, data }, { db, now = Date.now() }) {
+  need(await isAdmin(db, uid), "permission-denied", "Admins only.");
+  const pence = Number(data && data.pence); need(data && data.uid && pence > 0 && pence <= 5000, "invalid-argument", "uid and pence (1–5000) needed.");
+  return creditPlan(db, appOf(data), data.uid, pence, "admin-top-up", null, now);
 }
 export async function adminAccounts({ uid, data }, { db }) {
   need(await isAdmin(db, uid), "permission-denied", "Admins only.");
@@ -90,8 +118,11 @@ export async function adminAccounts({ uid, data }, { db }) {
 }
 
 /* ---------- payments (Stripe, test mode) ---------- */
-export async function createCheckout({ uid, data }, { stripe, baseUrl }) {
+export async function createCheckout({ uid, data }, { stripe, baseUrl, webEnabled = STRIPE_WEB_ENABLED() }) {
   need(uid, "unauthenticated", "Sign in first.");
+  // v2.22.0 PAY1: Stripe is never used in the native apps (Google Play Billing there) and is off for the web unless enabled
+  need(!(data && data.native), "failed-precondition", "In the app, plans and top-ups are bought through Google Play.");
+  need(webEnabled, "failed-precondition", "Buying on the web isn't available.");
   const pack = PACKS[data && data.pack]; need(pack, "invalid-argument", "Unknown pack.");
   const app = appOf(data);
   const s = await stripe.checkout.sessions.create({
@@ -121,6 +152,7 @@ async function household(db, app, hid) { return hid ? (await db.ref(H(app, hid))
 export async function createHousehold({ uid, data }, { db, now = Date.now() }) {
   need(uid, "unauthenticated", "Sign in first.");
   const app = appOf(data);
+  need((await planOf(db, app, uid, now)).tier === "platinum", "permission-denied", "Household sharing is part of Platinum Family.");
   need(!(await memberOf(db, app, uid)), "failed-precondition", "You're already in a household.");
   const hid = db.ref(`apps/${app}/households`).push().key;
   await db.ref().update({ [H(app, hid)]: { owner: uid, created: now, members: { [uid]: true } }, [M(app, uid)]: hid });
@@ -131,6 +163,8 @@ export async function inviteMember({ uid, data }, { db, now = Date.now(), makeCo
   need(h && h.owner === uid, "permission-denied", "Only the household owner can invite.");
   const email = String((data && data.email) || "").trim().toLowerCase();
   need(/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email), "invalid-argument", "A valid email is needed.");
+  const max = ((await tiersConfig(db, app)).platinum || {}).maxMembers || 5;      // owner + 4
+  need(Object.keys(h.members || {}).length + Object.keys(h.invites || {}).length < max, "resource-exhausted", "A family plan has room for " + max + " people.");
   const code = (makeCode || (() => db.ref().push().key.replace(/[^A-Za-z0-9]/g, "")))();
   await db.ref(H(app, hid) + "/invites/" + code).set({ email, created: now });
   return { code };                      // the app turns this into an invite link
@@ -144,6 +178,7 @@ export async function acceptInvite({ uid, email, data }, { db, now = Date.now() 
   need(inv.email === String(email || "").toLowerCase(), "permission-denied", "Sign in with the email the invite was sent to.");
   need(!(await memberOf(db, app, uid)), "failed-precondition", "You're already in a household.");
   need(now - (inv.created || 0) < 14 * 86400000, "deadline-exceeded", "This invite has expired.");
+  need(Object.keys(h.members || {}).length < (((await tiersConfig(db, app)).platinum || {}).maxMembers || 5), "resource-exhausted", "This family plan is full.");
   await db.ref().update({ [H(app, hid) + "/members/" + uid]: true, [H(app, hid) + "/invites/" + code]: null, [M(app, uid)]: hid });
   return { hid };
 }

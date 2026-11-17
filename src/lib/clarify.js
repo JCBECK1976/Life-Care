@@ -21,7 +21,7 @@ function textOf(result) { var t = ""; (result.content || []).forEach(function(c)
 
 async function callAI(messages) {
   var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+    headers: { "x-lc-feature": "myOwnItem", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
     body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 900, temperature: 0, system: CLARIFY_SYSTEM, messages: messages }) });
   var result = await resp.json();
   var err = handleApiError(result); if (err) throw new Error(err);
