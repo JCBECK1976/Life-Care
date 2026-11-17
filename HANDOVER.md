@@ -2815,3 +2815,8 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **JC to test (/build/, close and reopen, footer v2.22.1-build):** Settings → My Plan → preview **Bronze** → My Eating: foods in plain text, no colours or rating words, "🔒 Ratings: Silver" on the My Eating Lists header (tap → My Plan). Preview **Silver**: the ratings are back as before.
 - **Resume point:** `build` @ `e3ac88d` (v2.22.1), `beta` @ `bcac68e` (v2.20.2), prod v2.15.1. Next: JC tests v2.22.0/v2.22.1 on /build/; J22; functions deploy and the §5b step only with JC's go-ahead. Do NOT merge to beta or main.
 
+### (Coder) 17–18 Nov 2026 — OVERNIGHT BATCH "FINISH BUILD" (Parts 0–6), build only — in progress
+**Instruction (JC, 17 Nov):** after this batch the only remaining work is JC's console setup (J steps), document approval and flipping switches. Everything new behind flags OFF on beta/prod; commit + push after each part with a progress note; full suite before each push; no data migrations or deploys of functions/rules (prepare only).
+**Part 0 decision (Coder):** the v2.22.2/v2.22.3 items weren't written down anywhere, so they were read from their labels: preview trap = previewing "Platinum member" hid My Plan and with it the preview box; See plans = left Chat/Help open over Settings; Snap gate = the camera/file picker opened before the prompt; info-style prompts = the 🔒 modal looked like an error; Energy display = Bronze showed an Energy bar, other plans the developer-key level. Shipped together as v2.22.3 (they touched the same files).
+- **Resume point:** next item: Part 0 commit, then Part 1.
+
