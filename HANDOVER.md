@@ -2802,3 +2802,7 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **main:** `docs/store/PLAY_LISTING.md` (listing, Health Connect declaration text, Data safety answers, app access, content answers), `docs/store/PLAY_SETUP_J_STEPS.md` (J18–J21, 39 steps), ADR 0016, plan (N1 In progress, G10, J18–J21, PAY1), CHANGELOG, LLD §2a, TEST_STRATEGY.
 - **JC to test (/build/, footer v2.21.0-build):** Settings → Privacy & your data → **Delete my account** is there (don't press it on real data); the web app otherwise unchanged; the field borders / 44 px targets now really present. The Android app itself is tested from Play after J18–J21 (needs v2.21.0 on main for the workflow).
 - **Resume point:** `build` @ `32c7ce2` (v2.21.0), `beta` @ `bcac68e` (v2.20.2, without the index.html styles), prod v2.15.1. Next: wait for JC's test; promote build → beta when asked; JC's J18–J21 after v2.21.0 reaches main; iOS (TestFlight) and PAY1 later.
+
+### (Coder) 17 Nov 2026 — combined instructions: Part A v2.21.1 (safety), then Part B v2.22.0 (tiers) — in progress, build only
+**Decision (JC, 17 Nov 2026):** "Delete my account" must NOT be available to the joint/admin account — its UID is the one the DB rules are locked to, so deleting it locks JC and Becks out of all data. Enforce in the deletion code and server too, not only the UI; two-step confirm + recent sign-in (5 min) + "Download my data first" for everyone else.
+- **Resume point:** next Part A.
