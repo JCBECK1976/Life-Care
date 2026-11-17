@@ -5,7 +5,7 @@ import { calcWeek, fbIcon, sBg, sColor, sLabel, setPlainNote } from "../lib/util
 import { buildExProfileInfo, getMoodContext } from "../lib/aiContext.js";
 import { sSet } from "../lib/storage.js";
 import { scrollOnMount } from "../lib/scrollIntoView.js";
-import { displayCurrent, latestEntry, measureOf, nextLogPrefill, parseProgressionValue, progressionRange, resolveTargetWeight } from "../lib/exercise.js";
+import { applyNextValue, displayCurrent, latestEntry, measureOf, nextLogPrefill, parseProgressionValue, progressionNote, progressionRange, resolveTargetWeight, setWeekNote, tidyNotes } from "../lib/exercise.js";
 import { attachCompanion, companionFromSession, sameExercise, setCompanionDecision, entrySets, findWeekIdx, previousEntry, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsDiffer, setsToSave, syncAfterProgChange, weightLabel } from "../lib/exercise.js";
 import React from "react";
 import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
@@ -31,6 +31,8 @@ export default function ExerciseSection({ ctx }) {
     setShowNewSection, setStoppedExOpen, setWarmUpOpen, stoppedExOpen, updateSessionFb, userMood, warmUpOpen, weekLabel
   } = ctx;
   /* v2.8.0 F1: a Progress week opens in the shared "Open" form (read-only → Edit → Save, or Delete inside the form) */
+  const [exToast, setExToast] = React.useState(null);   // v2.20.2: { text, undo } — "✓ Next weight set: 70 kg" with Undo for ~5 s
+  React.useEffect(function() { if (!exToast) return; var t = setTimeout(function() { setExToast(null); }, 5000); return function() { clearTimeout(t); }; }, [exToast]);
   const [openProg, setOpenProg] = React.useState(null); // { day, exIdx, progIdx, editing, draft, msg }
 
           const allExNames = [...DEFAULT_EXERCISES, ...customExercises].sort();
@@ -193,6 +195,10 @@ export default function ExerciseSection({ ctx }) {
           {/* Week header — centred like Eating */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
             <div style={{ width: 36 }}></div>
+            {exToast && <div role="status" aria-live="polite" data-testid="ex-toast" style={{ position: "fixed", left: 12, right: 12, bottom: "calc(84px + env(safe-area-inset-bottom))", zIndex: 1200, maxWidth: 456, margin: "0 auto", display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 10, background: "#166534", color: "#fff", fontSize: 13, fontWeight: 700, boxShadow: "0 6px 20px rgba(0,0,0,0.25)" }}>
+              <span style={{ flex: 1, minWidth: 0 }}>{exToast.text}</span>
+              {exToast.undo && <button type="button" onClick={function() { var u = exToast.undo; setExToast(null); if (u) u(); }} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid #fff", background: "transparent", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Undo</button>}
+            </div>}
             <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800 }}>Week {currentWeek}</div><div style={{ fontSize: 10, color: "#475569" }}>{weekLabel}</div></div>
             <div style={{ width: 36 }}></div>
           </div>
@@ -237,7 +243,7 @@ export default function ExerciseSection({ ctx }) {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }} onClick={function() { var curType=ex.exType||getExerciseType(ex.name);var tc=getExerciseTypeConfig(curType);var curM2=(ex.reps||tc.defaultM2).replace(/x\d+$/,"");setSelectedEx({day:day,idx:i});setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:ex.current||tc.defaultM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",exerciseGuide:ex.exerciseGuide||"",prePostGuide:ex.prePostGuide||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});setAddExOpen(false); }}>{ex.name} <span style={{ fontSize: 9, color: "#475569" }}>✎</span></div>
-                          <div style={{ color: "#475569", fontSize: 11, fontWeight: 500 }}>{(ex.prog && ex.prog.length && setsDiffer(ex.prog[ex.prog.length - 1])) ? weightLabel(ex.prog[ex.prog.length - 1]) : displayCurrent(ex)} · {ex.reps}{ex.exType && ex.exType !== "weights" && <span style={{fontSize:9,color:"#475569",marginLeft:6}}>{EXERCISE_TYPES[ex.exType] ? EXERCISE_TYPES[ex.exType].label : ""}</span>}</div>
+                          <div style={{ color: "#475569", fontSize: 11, fontWeight: 500 }}><span data-testid="ex-headline">{(ex.prog && ex.prog.length && setsDiffer(ex.prog[ex.prog.length - 1]) && !(ex.progressionValue && ex.progressionSetWk)) ? weightLabel(ex.prog[ex.prog.length - 1]) : displayCurrent(ex)} · {ex.reps}</span>{ex.exType && ex.exType !== "weights" && <span style={{fontSize:9,color:"#475569",marginLeft:6}}>{EXERCISE_TYPES[ex.exType] ? EXERCISE_TYPES[ex.exType].label : ""}</span>}</div>
                           {ex.status && <div style={{ marginTop: 3 }}><span style={{ fontSize: 9, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap", border: "1px solid " + sColor(ex.status) + "40" }}>{sLabel(ex.status)}</span></div>}
                           {ex.status === "ready to move" && !ex.stopped && (function() { var _m = measureOf(ex), _l = latestEntry(ex.prog), _pr = progressionRange(ex, _l), _nx = nextLogPrefill(ex, _l); var _id = "next-val-" + day + "-" + i; /* v2.20.0: a concrete next step, and the person's exact value */
                             return (<div data-testid="ex-next" style={{ marginTop: 4, fontSize: 11, color: "#1e3a5f" }}>
@@ -245,7 +251,10 @@ export default function ExerciseSection({ ctx }) {
                               <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
                                 <label htmlFor={_id} style={{ fontSize: 10, color: "#475569" }}>My next {_m.label} ({_m.unit})</label>
                                 <input id={_id} data-testid="next-value-input" type="number" inputMode="decimal" defaultValue={ex.progressionValue || ""} style={{ width: 70, padding: "4px 6px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12 }} />
-                                <button type="button" data-testid="next-value-save" aria-label={"Set my next " + _m.label + " for " + ex.name} onClick={function() { var el = document.getElementById(_id); var v = parseProgressionValue(el ? el.value : ""); if (!v) return; var nd = JSON.parse(JSON.stringify(data)); var t = nd[activeTab].exercises[day][i]; t.progressionValue = v; t.progressionSetWk = currentWeek; t.notes = (t.notes ? t.notes + "; " : "") + "Progression: " + v + " " + _m.unit + " (set by you, Wk" + currentWeek + ")"; saveData(nd); }} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #2563eb", background: "#fff", color: "#1e3a8a", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Set</button>
+                                <button type="button" data-testid="next-value-save" aria-label={"Set my next " + _m.label + " for " + ex.name} onClick={async function() { var el = document.getElementById(_id); var v = parseProgressionValue(el ? el.value : ""); if (!v) return; /* v2.20.2: apply it — new target, Moved Up, one note line; the Set row closes */
+                                  var who = activeTab, nd = JSON.parse(JSON.stringify(data)), list = nd[who].exercises[day], before = JSON.parse(JSON.stringify(list[i]));
+                                  list[i] = applyNextValue(list[i], v, currentWeek); await saveData(nd);
+                                  setExToast({ text: "✓ Next " + (_m.unit === "kg" ? "weight" : _m.label) + " set: " + (_m.unit === "plate" ? "plate " + v : v + " " + _m.unit), undo: async function() { var nd2 = JSON.parse(JSON.stringify(data)); var l2 = nd2[who].exercises[day]; var k = l2.findIndex(function(e) { return e.name === before.name; }); if (k >= 0) { l2[k] = before; await saveData(nd2); } } }); }} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #2563eb", background: "#fff", color: "#1e3a8a", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Set</button>
                               </div>
                             </div>); })()}
                         </div>
@@ -254,7 +263,7 @@ export default function ExerciseSection({ ctx }) {
                         {!ex.stopped && <button onClick={function(){setSelectedEx({day:day,idx:i});openLogForm(day,i);}} style={btnLog}>📋 Log</button>}
                         </div>
                       </div>
-                      {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 6 }}>📋 {ex.notes}</div>}
+                      {ex.notes && <div data-testid="ex-notes" style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 6 }}>📋 {tidyNotes(ex.notes)}</div>}
                     
                     {selectedEx&&selectedEx.day===day&&selectedEx.idx===i&&(<div ref={scrollOnMount} data-testid="ex-progress-panel" style={{marginTop:10,padding:12,background:accentLight,borderRadius:8,border:"1px solid "+accentBorder,width:"100%"}}>
                       {(function() { var _nx = nextLogPrefill(ex, latestEntry(ex.prog)); var _mu = measureOf(ex).unit; return _nx ? <div data-testid="progress-next" style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 8 }}>Next session: {_mu === "kg" ? _nx.w + " kg × " + _nx.r : _nx.r + " " + _mu} ({_nx.source})</div> : null; })()}
@@ -385,7 +394,7 @@ export default function ExerciseSection({ ctx }) {
                       <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{ex.name}</div>
                       {ex.status && <span style={{ fontSize: 10, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 8px", borderRadius: 20, border: "1px solid " + sColor(ex.status) + "40" }}>{sLabel(ex.status)}</span>}
                     </div>
-                    {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "4px 8px", borderRadius: 4, marginBottom: 6 }}>{ex.notes}</div>}
+                    {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "4px 8px", borderRadius: 4, marginBottom: 6 }}>{tidyNotes(ex.notes)}</div>}
                     {(() => { var _etc = getExerciseTypeConfig(ex.exType || getExerciseType(ex.name)); var _h1 = _etc.metric1 !== "none" ? _etc.metric1Label.replace(/\s*\(.*\)/,"").toUpperCase() : ""; var _h2 = _etc.metric2 !== "none" ? _etc.metric2Label.replace(/\s*\(.*\)/,"").toUpperCase() : ""; return (<div style={{ display: "flex", gap: 6, padding: "3px 0", marginBottom: 2, fontSize: 9, color: "#475569", fontWeight: 600 }}>
                       <span style={{ width: 40 }}>WEEK</span>{_h1 && <span style={{ width: 55 }}>{_h1}</span>}{_h2 && <span style={{ width: 65 }}>{_h2}</span>}<span style={{ flex: 1 }}></span>
                     </div>); })()}
@@ -561,7 +570,7 @@ export default function ExerciseSection({ ctx }) {
                           var repsStr = c.sets > 1 ? c.m2 + "x" + c.sets : c.m2;
                           var editDay = c._editDay; var editIdx = c._editIdx;
                           var existingEx = nd[activeTab].exercises[editDay][editIdx];
-                          existingEx.name = c.name; existingEx.exType = c.type; existingEx.current = m1Val; existingEx.reps = repsStr; existingEx.progressionNotes = c.progression; existingEx.notes = c.notes || ""; existingEx.sets = c.sets; if (c.exerciseGuide) existingEx.exerciseGuide = c.exerciseGuide; if (c.prePostGuide) existingEx.prePostGuide = c.prePostGuide;
+                          existingEx.name = c.name; existingEx.exType = c.type; existingEx.current = m1Val; existingEx.reps = repsStr; existingEx.progressionNotes = c.progression; existingEx.notes = tidyNotes(c.notes || ""); (function() { var _lw = latestEntry(existingEx.prog), _cv = parseProgressionValue(m1Val); delete existingEx.target; if (_cv && _lw && _cv > (parseProgressionValue(_lw.w) || 0)) existingEx.progressionValue = _cv; else delete existingEx.progressionValue; })();   /* v2.20.2: ✎ changes the target weight */ existingEx.sets = c.sets; if (c.exerciseGuide) existingEx.exerciseGuide = c.exerciseGuide; if (c.prePostGuide) existingEx.prePostGuide = c.prePostGuide;
                           await saveData(nd);
                           setFormMsg("✓ " + c.name + " updated"); setTimeout(function(){setFormMsg("");},3000);
                           setAddExConfirm(null); setAddExOpen(false); setAddExSearch("");
@@ -683,7 +692,7 @@ export default function ExerciseSection({ ctx }) {
                             // Edit existing exercise — preserve prog data
                             var editDay = c._editDay; var editIdx = c._editIdx;
                             var existingEx = nd[activeTab].exercises[editDay][editIdx];
-                            existingEx.name = c.name; existingEx.exType = c.type; existingEx.current = m1Val; existingEx.reps = repsStr; existingEx.progressionNotes = c.progression; existingEx.notes = c.notes || ""; existingEx.sets = c.sets; if (c.exerciseGuide) existingEx.exerciseGuide = c.exerciseGuide; if (c.prePostGuide) existingEx.prePostGuide = c.prePostGuide;
+                            existingEx.name = c.name; existingEx.exType = c.type; existingEx.current = m1Val; existingEx.reps = repsStr; existingEx.progressionNotes = c.progression; existingEx.notes = tidyNotes(c.notes || ""); (function() { var _lw = latestEntry(existingEx.prog), _cv = parseProgressionValue(m1Val); delete existingEx.target; if (_cv && _lw && _cv > (parseProgressionValue(_lw.w) || 0)) existingEx.progressionValue = _cv; else delete existingEx.progressionValue; })();   /* v2.20.2: ✎ changes the target weight */ existingEx.sets = c.sets; if (c.exerciseGuide) existingEx.exerciseGuide = c.exerciseGuide; if (c.prePostGuide) existingEx.prePostGuide = c.prePostGuide;
                             await saveData(nd);
                             setFormMsg("✓ " + c.name + " updated"); setTimeout(function(){setFormMsg("");},3000);
                           } else {
@@ -944,8 +953,8 @@ export default function ExerciseSection({ ctx }) {
                                   newR = rM ? rM[1] + "x3" : newR;
                                   isUserOverride = true;
                                 }
-                                dayExs3[di3].notes = (dayExs3[di3].notes ? dayExs3[di3].notes + "; " : "") + "Wk" + currentWeek + " accepted: " + userNote;
                                 var _pv = parseProgressionValue(userNote); if (_pv) { dayExs3[di3].progressionValue = _pv; dayExs3[di3].progressionSetWk = currentWeek; }   /* v2.20.0: the person's exact next value */
+                                dayExs3[di3].notes = setWeekNote(dayExs3[di3].notes, currentWeek, _pv ? progressionNote(dayExs3[di3], currentWeek, _pv, "set by you") : "Wk" + currentWeek + " accepted: " + userNote);   /* v2.20.2: one line per week, replaced */
                               }
                               dayExs3[di3].target = newW + " x " + newR;
                               dayExs3[di3].current = newW;
@@ -957,7 +966,7 @@ export default function ExerciseSection({ ctx }) {
                           (function() { var ne = document.getElementById("user-note-"+ei+"-"+day); setCompanionDecision(dayExs3.find(function(e) { return sameExercise(e.name, ex.name); }), "accepted", ne ? ne.value : "", ex); })(); // F11
                           await saveData(nd3);
                           var el = document.getElementById("rec-" + ei + "-" + day);
-                          var noteEl = document.getElementById("user-note-"+ei+"-"+day); var userNote = noteEl ? noteEl.value.trim() : ""; ex._decision = "accepted"; ex._userNote = userNote;  if (userNote) { var exRef = nd3[activeTab].exercises[day]; if (exRef && exRef[di3]) { exRef[di3].notes = (exRef[di3].notes ? exRef[di3].notes + "; " : "") + "Wk" + currentWeek + " accepted: " + userNote; } } var sfbKey = activeTab + "_" + day; var curFb = sessionFeedback[sfbKey]; if (curFb && curFb.exercises) { curFb.exercises[ei]._decision = "accepted"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#e0f2fe"; el.style.borderColor = "#86efac"; setPlainNote(el, "\u2705 Accepted — " + ex.name + " updated to " + ex.newStatus + ". Activity updated.", { fontSize: "11px", color: "#0c4a6e", fontWeight: "600", padding: "4px" }); }
+                          var noteEl = document.getElementById("user-note-"+ei+"-"+day); var userNote = noteEl ? noteEl.value.trim() : ""; ex._decision = "accepted"; ex._userNote = userNote;  /* v2.20.2: the note is written once above (this used to append it a second time) */ var sfbKey = activeTab + "_" + day; var curFb = sessionFeedback[sfbKey]; if (curFb && curFb.exercises) { curFb.exercises[ei]._decision = "accepted"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#e0f2fe"; el.style.borderColor = "#86efac"; setPlainNote(el, "\u2705 Accepted — " + ex.name + " updated to " + ex.newStatus + ". Activity updated.", { fontSize: "11px", color: "#0c4a6e", fontWeight: "600", padding: "4px" }); }
                         }} style={{ padding: "5px 14px", background: "#15803d", color: "#fff", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Accept</button>
                         <button onClick={function() {
                           var el = document.getElementById("rec-" + ei + "-" + day);
@@ -982,7 +991,7 @@ export default function ExerciseSection({ ctx }) {
                                   dayExs4[di4].reps = nR2;
                                   isUserOverride4 = true;
                                 }
-                                dayExs4[di4].notes = (dayExs4[di4].notes ? dayExs4[di4].notes + "; " : "") + "Wk" + currentWeek + " declined: " + userNote2;
+                                dayExs4[di4].notes = setWeekNote(dayExs4[di4].notes, currentWeek, "Wk" + currentWeek + " declined: " + userNote2);
                               } else {
                                 dayExs4[di4].current = origW4;
                                 dayExs4[di4].reps = origR4;

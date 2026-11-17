@@ -240,8 +240,8 @@ test("5 chain (UI): card shows the real weight + a concrete next range; the log 
   const calfNext = page.getByTestId("ex-next").nth(1);
   await calfNext.getByTestId("next-value-input").fill("8");
   await calfNext.getByTestId("next-value-save").click();
-  await expect(calfNext).toContainText("Next: 8 kg (your choice)");
-  await expect(page.getByText(/Progression: 8 kg \(set by you/).first()).toBeVisible();
+  await expect(page.getByTestId("ex-next")).toHaveCount(1);                                             // v2.20.2: Set applies it and the row closes
+  await expect(page.getByText(/next weight 8 kg \(set by you\)/).first()).toBeVisible();
   await page.getByRole("button", { name: "📋 Log", exact: true }).nth(1).click();
   await expect(page.getByTestId("log-progression")).toContainText("Progression: 8 kg × 12 (your next weight)");
   await expect(page.locator('input[placeholder="Weight"]').first()).toHaveValue("8");
