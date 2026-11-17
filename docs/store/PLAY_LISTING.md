@@ -25,16 +25,18 @@ Lifecare Companion brings your eating, exercise, body measurements and wellbeing
 - Chat with your Companion: it remembers the conversation and only ever uses your own data.
 Your data is yours: download it at any time, or delete your account from Settings. Lifecare Companion is a wellness app and does not replace medical advice.
 
-## 2. Health Connect permissions declaration
-**v2.21.0 requests no Health Connect permissions**, so no declaration is needed for internal testing. Steps (and calories) come today from the cloud Google Health API on the web, per person ([ADR 0012](../adr/0012-household-privacy-model.md)). When N6 adds Health Connect to the Android app, declare only these, with this text:
+## 2. Health Connect permissions declaration (FINAL — v2.23.0, N6)
+From **v2.23.0** the Android app reads steps from Health Connect (Settings → **Connect my steps**). It requests **exactly two** permissions; every other permission the health library declares is removed from the app's manifest (a test keeps it that way). Nothing is ever written to Health Connect.
 
 | Permission | Used? | Justification (paste into the declaration form) |
 |---|---|---|
-| `android.permission.health.READ_STEPS` | Yes (N6) | Lifecare Companion reads your **daily step total** to work out how many calories your activity added to your daily calorie goal. We store one total per day, never individual readings or locations. |
-| `android.permission.health.READ_ACTIVE_CALORIES_BURNED` | Only if N6 uses it | Lifecare Companion reads your **daily total of active calories burned**, when your watch or phone records it, so your calorie goal reflects the exercise you actually did. One total per day only. |
-| Any write permission | No | — |
+| `android.permission.health.READ_STEPS` | **Yes** | Lifecare Companion reads your **daily step total** for today and the last 7 days, when you open the app, to work out how much your activity adds to your daily calorie goal. We keep one total per day, never individual readings, times or locations. You can disconnect, and delete the stored totals, at any time in Settings. |
+| `android.permission.health.READ_ACTIVE_CALORIES_BURNED` | **Yes, only if you turn it on** (separate switch, off by default) | Lifecare Companion reads your **daily total of active calories burned**, when your watch or phone records it, so your calorie goal reflects the exercise you actually did. One total per day only; off unless you choose it. |
+| Any write permission | **No** | — |
 
-Declaration steps (Play Console → App content → Health apps → Health Connect): 1) choose "Yes, my app accesses Health Connect"; 2) tick only the permissions above; 3) paste the matching justification for each; 4) link the privacy policy URL; 5) upload a short screen recording of the in-app flow showing where the daily total is used (Home → Today → Exercise row).
+**Rationale screen:** tapping "Privacy policy" in the Health Connect permission screen (and Android 14's "permission usage" view) opens https://jcbeck1976.github.io/Life-Care/privacy-policy.html.
+
+**Declaration steps** (Play Console → App content → **Health apps**): 1) "Yes, my app accesses Health Connect"; 2) tick only **Steps** and **Active calories burned** (read); 3) paste the matching justification above for each; 4) privacy policy URL as above; 5) the core-functionality answer: "Fitness: calorie goal that follows the user's daily activity"; 6) upload a short screen recording: Settings → Connect my steps → the Health Connect permission screen → Home → Today, where the Exercise row and "How this is calculated" show the steps from Health Connect.
 
 ## 3. Data safety form (matches the DPIA and Privacy Notice: daily totals only, no ads, no sale, encrypted in transit, deletion available)
 **Overview:** Does your app collect or share any of the required user data types? **Yes.** Is all collected data encrypted in transit? **Yes.** Do you provide a way for users to request that their data be deleted? **Yes** (in-app: Settings → Privacy & your data → Delete my account; web: the deletion URL above).
