@@ -28,7 +28,7 @@ The version table (changelog) is in **[docs/CHANGELOG.md](docs/CHANGELOG.md)** (
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.20.2** (PR #27, merged 17 Nov 2026, `bcac68e`) — awaiting JC's beta test. Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
+- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.20.2** (PR #27, merged 17 Nov 2026, `bcac68e`) — awaiting JC's beta test; build = **v2.22.0** (plans behind `useTiers`, on for /build/ only). Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -2815,4 +2815,16 @@ Sizes are % of a weekly allowance, including Architect checks.
 - B1 done — build `2a2e8ae`: shared `tiers.js` (app + functions, identical), 39 AI calls tagged `x-lc-feature` and gated in the fetch interceptor (no call made; prompt event), `src/lib/myPlan.js`, server planOf/family pool/Platinum-only households/adminTopUp/Stripe off/`functions/src/play.js` (playVerify, playNotify). Functions 24/24.
 - B2 done — build `0d0b28c`: `MyPlanCard.jsx`, `PlanGate.jsx` (inline + app-wide prompt, only right after a tap), `HelpFaq.jsx` + `lib/faq.js`, `lib/billing.js`; tests `v2220.spec.js` 12/12; full suite 303 passed (6 skipped) after updating the v2.16.3 proxy assertion (feature now `aiHelp`).
 - **v2.22.0 done — build `2b14eff`.** Suite 303 passed (6 skipped), functions 24/24, lint 0 errors. Android debug APK built with the billing plugin (BILLING permission merged).
-- **Resume point:** next item: v2.22.0 finish (CHANGELOG, plan, TECHNICAL_REFERENCE, deploy check, report).
+**Decisions (Coder, 17 Nov — Part B):**
+- Gating is central: each of the 39 AI calls carries `x-lc-feature`; the interceptor stops gated ones (no call), the server checks the same name. Rejected: rewiring every button (39 sites, easy to miss one).
+- Classification: guides / exercise defaults / health document reading / aisle sorting / meal variations = **auto-generated info (Silver)**; warm-up/cool-down = **AI training plans (Gold)**; shopping-list generation = Gold.
+- The gating prompt only appears right after a tap; background AI work on a plan without it is stopped silently.
+- **Open for the Architect:** Bronze "no RAG ratings" — new ratings are gated (AI), but stored/rule-based colour bands stay visible (JC: downgrade keeps data visible). Hiding them everywhere touches ~18 places in My Eating; say if wanted.
+- Family pool keyed by the owner's uid (`familyEnergy/{owner}`), not the household id; a removed member falls back to their own plan.
+- On the joint account the plan isn't read from the server (the live rules don't allow `apps/…`): it is Platinum, and on /build/ My Plan can **preview** any plan (display only).
+- Purchases tie to the person with an obfuscated account tag (hash of the uid); the server refuses a token used by another account. Admin grants (`source: "admin"`) are never changed by store notifications.
+- Not done here (needs approval): deploying the functions, the §5b migration + Platinum grant, invite acceptance UI (comes with `useAccounts`).
+- **JC to test (/build/, close the tab and reopen, footer v2.22.0-build):** Settings → **💳 My Plan** (tap to open): "Shared account… all features on". Use the **preview** box to see Bronze (try Chat, Help, a Companion feedback button, My Eating → Update Eating Lists → My own), Silver, Gold, Platinum owner/member. Choose "This account" to go back. Nothing is bought or stored.
+- **J steps:** J22 (steps 40–58) in `docs/store/PLAY_SETUP_J_STEPS.md` — products, licence testers, server access, RTDN topic.
+- **Resume point:** `build` @ `2b14eff` (v2.22.0), `beta` @ `bcac68e` (v2.20.2), prod v2.15.1. Next: JC tests v2.22.0 on /build/; Architect answers the RAG question; J22; functions deploy and the §5b step only with JC's go-ahead. Do NOT merge to beta or main.
+

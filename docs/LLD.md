@@ -63,6 +63,14 @@ Version 1, 13 Nov 2026 (prod v2.15.1). Public document. It describes **how the c
 - Public pages: `public/delete-account.html`; `privacy-policy.html` / `terms-of-use.html` generated from `public/legal/*.md` by `scripts/md-page.mjs` (Vite plugin `legalPages`); `check-pages.mjs` requires both Play pages in prod.
 - CI: `.github/workflows/android-internal.yml` (manual) → `scripts/play-upload.mjs` (Play Developer API v3; edit → bundle upload → track → commit; refuses production).
 
+### 2b. Plans and gating (v2.22.0, ADR 0017; flag `useTiers`, on for /build/)
+- `src/constants/tiers.js` = `functions/src/tiers.js` (identical; a test checks): `DEFAULT_TIERS` (feature switches, prices, allowances, `maxMembers`, `sharedPool`), `FEATURES`, `tierAllows`, `minTierFor`, `gateMessage`, `TOP_UP`, `STORE_PRODUCTS`.
+- Every `api.anthropic.com/v1/messages` call sends header `x-lc-feature: <feature>`; `lib/api.js` reads and strips it, and if `planAllows(feature)` is false returns `{type:"error", error:{type:"plan"}}` without sending, and fires `lc-plan-gate` (shown only within 4 s of a tap). With `useAiProxy` the feature goes to `aiProxy` as-is.
+- `src/lib/myPlan.js`: `loadPlan` (joint/admin account → Platinum all on, build-only preview in `lc_plan_preview`; else `apps/lifecare/entitlements/{uid}`, Platinum via `memberOf` → household owner, energy from `energy/{uid}` or `familyEnergy/{owner}`), `planAllows` (false until loaded), `usePlan`, `showGate`, `openPlans` (`lc-open-plans` → Settings → My Plan).
+- UI: `components/MyPlanCard.jsx`, `PlanGate.jsx` (`GatePrompt`, `PlanGateHost` in main.jsx), `HelpFaq.jsx` + `lib/faq.js` (Bronze Help); gates in ChatPanel, HelpPanel, UpdateLists (My own), Eating edit form (ingredients read-only).
+- Billing: `lib/billing.js` (`@capgo/native-purchases` 8.9.6; `buyPlan`, `buyTopUp`, `accountTag` = sha256("lifecare:"+uid)[:64], `manageUrl`) → `playVerify`. Server: `functions/src/play.js` (`playVerify`, `playNotify` RTDN on topic `play-rtdn`, `playApi` with the default service account); `core.js` `planOf`, wallets (own / family pool, never below zero), `creditPlan`, `adminTopUp`, Platinum-only households (owner + 4); Stripe `createCheckout` off unless `STRIPE_WEB_ENABLED`, never native.
+- Emulator rules: live rules + `apps`/`platform` from `database.rules.next.json` (`familyEnergy` readable by family members; `entitlements` readable within the household).
+
 ## 3. Data (Realtime Database)
 One root per environment: `data` (prod and beta) or `data_build` (Build). Most values are **JSON strings under flat keys**, so a save rewrites that whole key. Keys are sanitised (`. # $ / [ ]` → `_`).
 
