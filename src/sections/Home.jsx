@@ -15,6 +15,7 @@ import { getMoodContext } from "../lib/aiContext.js";
 import { MOOD_COLORS, MOOD_EMOJIS, MOOD_LABELS, MOOD_TEXT } from "../constants/mood.js";
 import { sSet } from "../lib/storage.js";
 import { BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, SNACKS } from "../constants/food.js";
+import { tiersOn, usePlan } from "../lib/myPlan.js";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -31,6 +32,7 @@ export default function HomeSection({ ctx }) {
     showFbHistory, showFullJournal, showMyDay, showOnboarding, showProfile, showRecentJournal, updateHomeFb, userMood, openGoalSetup,
     weekChildren,
   } = ctx;
+  const plan = usePlan();   /* v2.22.3: the Energy bar follows the plan */
 
   /* v2.14.2: Body Type Photos — every photo is checked first (a person, one of the requested poses). If any photo is not
      recognised: a message per photo, no analysis, Save disabled (Retake / Cancel only) and NOTHING is saved. */
@@ -65,9 +67,15 @@ export default function HomeSection({ ctx }) {
           {/* ── COMPANION ENERGY ── */}
           {(() => {
             var rawPct = companionEnergy ? companionEnergy.pct : 0;
-            var pct = rawPct <= 0 ? 0 : rawPct;
             var hasEnergy = companionEnergy !== null;
             var keyStatus = companionEnergy ? companionEnergy.keyStatus : null;
+            /* v2.22.3: with plans on, Energy is the PLAN's (own balance or the family pool); Bronze has none, so no bar.
+               The shared account (not previewing) keeps the developer-key level as before. */
+            if (tiersOn() && plan.loaded && !(plan.joint && !plan.preview)) {
+              if (plan.tier === "bronze") return null;
+              rawPct = plan.energyPct != null ? plan.energyPct : (plan.preview ? 100 : 0); hasEnergy = true; keyStatus = "active";
+            }
+            var pct = rawPct <= 0 ? 0 : rawPct;
             var segCount = 20;
             var filledSegs = hasEnergy ? Math.round(pct / 5) : 0;
             var emptySegs = segCount - filledSegs;

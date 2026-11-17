@@ -90,4 +90,12 @@ export function usePlan() {
 /** Keeps the plan in step with the signed-in person. Called once from main.jsx / App. */
 export function startPlan() {
   auth.onAuthStateChanged(function() { loadPlan(); });
+  /* v2.22.2 Snap gate: on a plan without photo checks, tapping a photo button shows the prompt BEFORE the camera or file
+     picker opens (no photo taken for nothing). A label tap reaches its <input type=file> as a click, so this catches both. */
+  document.addEventListener("click", function(e) {
+    var t = e.target;
+    if (!t || t.tagName !== "INPUT" || t.type !== "file" || !/image/.test(t.accept || "")) return;
+    var f = /pdf/.test(t.accept) ? "autoInfo" : "snap";
+    if (!planAllows(f)) { e.preventDefault(); e.stopPropagation(); lastTap = Date.now(); showGate(f); }
+  }, true);
 }

@@ -71,7 +71,7 @@ function Dashboard() {
   activeTabRef.current = activeTab;
   const [section, setSection] = useState("overview"); // always starts on Home
   /* v2.22.0: "See plans" (a gating prompt) opens Settings → My Plan */
-  useEffect(function() { var on = function() { if (!document.querySelector("[data-testid=my-plan]")) window._lcOpenMyPlan = true; setSection("admin"); }; window.addEventListener("lc-open-plans", on); return function() { window.removeEventListener("lc-open-plans", on); }; }, []);
+  useEffect(function() { var on = function() { if (!document.querySelector("[data-testid=my-plan]")) window._lcOpenMyPlan = true; setQaOpen(false); setHelpOpen(false); setSection("admin"); };   /* v2.22.2: close Chat / Help so My Plan is visible */ window.addEventListener("lc-open-plans", on); return function() { window.removeEventListener("lc-open-plans", on); }; }, []);
   useEffect(() => { window._lcSection = section; }, [section]);   // v2.14.0 item 9: AI usage per feature
   const [weekOff, setWeekOff] = useState(function() { var diff = Math.floor((new Date() - new Date(2026, 6, 19)) / (7*24*60*60*1000)); return diff; });
   const [meals, setMeals] = useState({});
