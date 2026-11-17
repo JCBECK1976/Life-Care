@@ -2813,4 +2813,5 @@ Sizes are % of a weekly allowance, including Architect checks.
 - Rejected: Stripe in native; client-side crediting; deleting data on downgrade; per-member pools.
 - Docs: `docs/design/ACCOUNTS_TIERS_ENERGY.md` §6–7 rewritten (+ §1, §8, §9), ADR 0017.
 - B1 done — build `2a2e8ae`: shared `tiers.js` (app + functions, identical), 39 AI calls tagged `x-lc-feature` and gated in the fetch interceptor (no call made; prompt event), `src/lib/myPlan.js`, server planOf/family pool/Platinum-only households/adminTopUp/Stripe off/`functions/src/play.js` (playVerify, playNotify). Functions 24/24.
-- **Resume point:** next item: B2 Settings → My Plan + gating UI.
+- B2 done — build `0d0b28c`: `MyPlanCard.jsx`, `PlanGate.jsx` (inline + app-wide prompt, only right after a tap), `HelpFaq.jsx` + `lib/faq.js`, `lib/billing.js`; tests `v2220.spec.js` 12/12; full suite 303 passed (6 skipped) after updating the v2.16.3 proxy assertion (feature now `aiHelp`).
+- **Resume point:** next item: B3 J22 Play Console steps + migration/Platinum plan; then finish v2.22.0.
