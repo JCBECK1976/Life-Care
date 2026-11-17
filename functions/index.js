@@ -23,6 +23,8 @@ const wrap = (fn) => async (req) => {
 };
 export const aiProxy = onCall({ ...opts, secrets: [ANTHROPIC_KEY] }, wrap((c) => core.aiProxy(c, { db: db(), callClaude: pickBackend({ anthropicKey: process.env.ANTHROPIC_API_KEY }) })));
 export const createHousehold = onCall(opts, wrap((c) => core.createHousehold(c, { db: db() })));
+// v2.21.1: account deletion — refuses the rules-locked UID and platform admins before changing anything
+export const deleteAccount = onCall(opts, wrap((c) => core.deleteAccount(c, { db: db(), deleteUser: (uid) => admin.auth().deleteUser(uid) })));
 export const inviteMember = onCall(opts, wrap((c) => core.inviteMember(c, { db: db() })));
 export const acceptInvite = onCall(opts, wrap((c) => core.acceptInvite(c, { db: db() })));
 export const removeMember = onCall(opts, wrap((c) => core.removeMember(c, { db: db() })));

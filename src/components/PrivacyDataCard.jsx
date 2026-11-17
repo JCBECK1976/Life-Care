@@ -3,6 +3,8 @@ import LegalViewer from "./LegalViewer.jsx";
 import { CHOICES, LEGAL_LABEL, consentActive, loadConsent, saveConsent } from "../lib/consent.js";
 import { deleteMyAccount, deleteMyData, exportMyData } from "../lib/myData.js";
 import { auditLog, loadAudit } from "../lib/audit.js";
+import { auth } from "../lib/firebase.js";
+import { isProtectedAccount, PROTECTED_MSG } from "../lib/accountGuard.js";
 
 // v2.16.7 P2 / P8 / P9: Settings → Privacy & your data. Download my data is always available.
 // The pilot items (legal docs, consent choices, delete my data) appear only while the pilotConsent flag is on.
@@ -17,7 +19,9 @@ export default function PrivacyDataCard(props) {
   var [confirmAcc, setConfirmAcc] = React.useState("");
   var [busy, setBusy] = React.useState(false);
   var [audit, setAudit] = React.useState(null);
+  var [locked, setLocked] = React.useState(true);   // v2.21.1: protected until checked (the admin account never sees Delete)
   React.useEffect(function() { if (pilot) loadConsent(who).then(setC); }, [who, pilot]);
+  React.useEffect(function() { var live = true; var u = auth.currentUser; isProtectedAccount(u && u.uid).then(function(p) { if (live) setLocked(p); }); return function() { live = false; }; }, []);
   var say = function(t) { setMsg(t); setTimeout(function() { setMsg(""); }, 4000); };
   return (<div data-testid="privacy-data-card" style={card}>
     <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🔒 Privacy & your data — {props.name}</div>
@@ -42,12 +46,14 @@ export default function PrivacyDataCard(props) {
     {/* v2.21.0: Delete my account — always available (Google Play requirement); the web page delete-account.html explains it too */}
     <div data-testid="delete-account" style={{ marginTop: 14, paddingTop: 10, borderTop: "1px solid #fee2e2" }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: "#991b1b", marginBottom: 2 }}>Delete my account</div>
-      <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5 }}>Erases {props.name}'s records from Lifecare Companion now, removes this Google sign-in from the app and signs you out. Your Google account itself isn't affected. Backups are deleted as they age out, within 12 months. This can't be undone: download your data first if you want a copy. Type DELETE to confirm.</div>
-      <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+      {locked ? <div data-testid="delete-account-locked" style={{ fontSize: 11, color: "#334155", lineHeight: 1.5 }}>{PROTECTED_MSG}</div> : (<>
+      <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5 }}>Erases {props.name}'s records from Lifecare Companion now, removes this Google sign-in from the app and signs you out. Your Google account itself isn't affected. Backups are deleted as they age out, within 12 months. This can't be undone. If you last signed in more than 5 minutes ago, Google asks you to confirm it's you first. Type DELETE to confirm.</div>
+      <button style={Object.assign({}, btn, { marginTop: 6 })} data-testid="delete-download-first" onClick={async function() { try { await exportMyData(who); auditLog("export", who, "JSON download before deletion"); say("✓ Your data was downloaded as a JSON file"); } catch (e) { say("✗ Couldn't export: " + String(e.message || e).slice(0, 60)); } }}>⬇ Download my data first</button>
+      <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
         <input aria-label="Type DELETE to delete the account" value={confirmAcc} onChange={function(e) { setConfirmAcc(e.target.value); }} style={{ flex: 1, padding: 6, border: "1px solid #fecaca", borderRadius: 8 }} />
         <button disabled={confirmAcc !== "DELETE" || busy} data-testid="delete-my-account" style={Object.assign({}, btn, { color: "#fff", background: confirmAcc === "DELETE" ? "#b91c1c" : "#fca5a5", border: "none" })}
           onClick={async function() { if (!window.confirm("Delete " + props.name + "'s account and all their records now? This can't be undone.")) return; setBusy(true); try { await deleteMyAccount(who); } catch (e) { setBusy(false); say("✗ Couldn't delete the account: " + String((e && e.message) || e).slice(0, 120)); } }}>{busy ? "Deleting…" : "Delete my account"}</button>
-      </div>
+      </div></>)}
     </div>
     {props.isAdmin && (<div style={{ marginTop: 12 }}>
       <button style={btn} onClick={async function() { setAudit(await loadAudit(20)); }}>Show audit trail (admin)</button>

@@ -12,24 +12,59 @@ const KEY = (k) => "http://127.0.0.1:9000/data/" + encodeURIComponent(k) + ".jso
 const H = { Authorization: "Bearer owner" };
 const get = async (k) => { const v = await (await fetch(KEY(k), { headers: H })).json(); return v == null ? null : JSON.parse(v); };
 
-test("Delete my account: always offered (no pilot flag), erases the person's records, deletes the sign-in and signs out", async ({ page }) => {
-  const { errors } = await openApp(page);
-  page.on("dialog", (d) => d.accept());
-  await page.getByRole("button", { name: /Settings/ }).first().click().catch(async () => { await page.locator("button").nth(1).click(); });
+/* v2.21.1 SAFETY: the joint/admin account (the UID the rules are locked to) can never be deleted from the app. */
+const openSettings = async (page) => { await page.getByRole("button", { name: /Settings/ }).first().click().catch(async () => { await page.locator("button").nth(1).click(); }); };
+// Does this test account still exist in the Auth emulator? (a deleted account can't sign in: EMAIL_NOT_FOUND)
+const canSignIn = async (email) => { const r = await fetch("http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=fake", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password: "test-password", returnSecureToken: true }) }); return r.ok; };
+
+test("admin account: Delete my account is not offered ('contact the developer'), and the deletion code refuses it too", async ({ page }) => {
+  const { errors } = await openApp(page);                                                  // test-uid-jc = the emulator rules' locked UID
+  await openSettings(page);
   const box = page.getByTestId("delete-account");
-  await expect(box).toBeVisible();
+  await expect(box.getByTestId("delete-account-locked")).toHaveText("This account can't be deleted here: contact the developer.");
+  await expect(box.getByTestId("delete-my-account")).toHaveCount(0);
+  // the code path itself (not only the UI) refuses, before anything is erased
+  const r = await page.evaluate(async () => { const m = await import("/Life-Care/src/lib/myData.js"); try { await m.deleteMyAccount("jc"); return "deleted"; } catch (e) { return e.message; } });
+  expect(r).toBe("This account can't be deleted here: contact the developer.");
+  const dash = await get("dashboard:data");
+  expect((dash.jc.body && dash.jc.body.weight || []).length).toBeGreaterThan(0);           // nothing erased
+  expect(await canSignIn("jc-test@example.com")).toBe(true);                               // the sign-in still exists
+  await expect(page.getByTestId("sign-in")).toHaveCount(0);                                 // still signed in
+  expect(errors).toEqual([]);
+});
+
+test("a normal account: Download my data first is offered; after typing DELETE (+ confirm) its records and sign-in are deleted", async ({ page }) => {
+  const { errors } = await openApp(page, "member");
+  page.on("dialog", (d) => d.accept());
+  await openSettings(page);
+  const box = page.getByTestId("delete-account");
+  await expect(box.getByTestId("delete-download-first")).toBeVisible();
   const del = box.getByTestId("delete-my-account");
+  await expect(del).toBeDisabled();
+  await box.getByLabel("Type DELETE to delete the account").fill("DELET");
   await expect(del).toBeDisabled();
   await box.getByLabel("Type DELETE to delete the account").fill("DELETE");
   await del.click();
-  await expect(page.getByTestId("sign-in")).toBeVisible({ timeout: 15000 });               // signed out, sign-in deleted
+  await expect(page.getByTestId("sign-in")).toBeVisible({ timeout: 15000 });               // signed out
   const dash = await get("dashboard:data");
   expect(dash.jc.profile.name).toBeTruthy();                                              // the name kept, the records emptied
   expect((dash.jc.body && dash.jc.body.weight) || []).toEqual([]);
   expect(JSON.stringify(dash.becks.profile || {})).not.toBe("{}");                         // the other person untouched
-  const users = await (await fetch("http://127.0.0.1:9099/emulator/v1/projects/life-care-app-64d04/accounts", { headers: { Authorization: "Bearer owner" } }).catch(() => null))?.json?.().catch(() => null);
-  if (users && users.userInfo) expect(users.userInfo.map((u) => u.localId)).not.toContain("test-uid-jc");
+  expect(await canSignIn("member-test@example.com")).toBe(false);                          // the sign-in was deleted
   expect(errors.filter((e) => !/permission|PERMISSION_DENIED/i.test(e))).toEqual([]);
+});
+
+test("guard: the locked UID matches the live rules file; a sign-in older than 5 minutes must be confirmed first", async ({ page }) => {
+  const rules = fs.readFileSync("database.rules.json", "utf8");
+  const locked = /auth\.uid === '([^']+)'/.exec(rules)[1];
+  const guard = fs.readFileSync("src/lib/accountGuard.js", "utf8");
+  expect(guard).toContain('"' + locked + '"');
+  expect(fs.readFileSync("functions/src/config.js", "utf8")).toContain('"' + locked + '"');
+  const { errors } = await openApp(page);
+  const r = await page.evaluate(async () => { const g = await import("/Life-Care/src/lib/accountGuard.js"); const now = Date.parse("2026-11-17T12:00:00Z");
+    return [g.needsRecentSignIn("Tue, 17 Nov 2026 11:57:00 GMT", now), g.needsRecentSignIn("Tue, 17 Nov 2026 11:54:00 GMT", now), g.needsRecentSignIn("", now), await g.isProtectedAccount(""), await g.isProtectedAccount("3iEIfsbZlaUMwUiGY6Lro4jAQef1"), await g.isProtectedAccount("test-uid-member")]; });
+  expect(r).toEqual([false, true, true, true, true, false]);
+  expect(errors).toEqual([]);
 });
 
 test("public pages: delete-account.html (in-app steps + a way to ask without the app) and the privacy policy page", async () => {

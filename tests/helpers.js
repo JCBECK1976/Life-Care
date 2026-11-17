@@ -16,6 +16,8 @@ const AUTH = "http://127.0.0.1:9099";
 export const USERS = {
   jc: { uid: "test-uid-jc", email: "jc-test@example.com", password: "test-password" },
   other: { uid: "test-uid-other", email: "other-test@example.com", password: "test-password" },
+  // v2.21.1: an ordinary (non-admin) account the emulator rules allow — used to test Delete my account
+  member: { uid: "test-uid-member", email: "member-test@example.com", password: "test-password" },
 };
 export async function ensureUser(who) {
   const u = USERS[who];
@@ -42,13 +44,13 @@ export async function gotoSignedIn(page, who = "jc") {
   await page.evaluate(([e, pw]) => window.__lcTestSignIn(e, pw), [u.email, u.password]);
 }
 
-export async function openApp(page) {
+export async function openApp(page, who = "jc") {
   execSync("node scripts/seed-emulator.mjs", { stdio: "ignore" }); // fresh data for every test
   const errors = collectErrors(page);
   const aiCalls = await mockAnthropic(page);
   await page.route(/\/plan\.json(\?|$)/, (r) => r.fulfill({ status: 404, body: "" }));   // v2.15.0: tests that need a plan mock it
   await page.route(/openfoodfacts\.org/, (r) => r.fulfill({ status: 200, contentType: "application/json", body: '{"products":[]}' }));
-  await gotoSignedIn(page);
+  await gotoSignedIn(page, who);
   await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
   return { errors, aiCalls };
 }

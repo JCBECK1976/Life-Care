@@ -27,6 +27,24 @@ test("ledger: credit and debit move the balance; a credit with the same key coun
   for (const e of Object.values(ledger)) assert.deepEqual(Object.keys(e).sort(), ["at", "kind", "pence", "ref"]);   // no content
 });
 
+test("deleteAccount (v2.21.1): refuses a platform admin and the rules-locked UID before changing anything; deletes a normal account", async () => {
+  const deleted = [];
+  const deleteUser = async (uid) => { deleted.push(uid); };
+  await db.ref(`apps/${A}/entitlements/uid-admin`).set({ tier: "gold" });
+  await assert.rejects(core.deleteAccount({ uid: "uid-admin", data: {} }, { db, deleteUser }), { code: "permission-denied", message: "This account can't be deleted here: contact the developer." });
+  await assert.rejects(core.deleteAccount({ uid: "3iEIfsbZlaUMwUiGY6Lro4jAQef1", data: {} }, { db, deleteUser }), { code: "permission-denied" });
+  await assert.rejects(core.deleteAccount({ uid: null, data: {} }, { db, deleteUser }), { code: "unauthenticated" });
+  assert.deepEqual(deleted, []);                                                                  // nothing deleted
+  assert.deepEqual((await db.ref(`apps/${A}/entitlements/uid-admin`).once("value")).val(), { tier: "gold" });
+  await db.ref(`apps/${A}/entitlements/u-del`).set({ tier: "silver" });
+  await db.ref(`apps/${A}/energy/u-del`).set({ balancePence: 10 });
+  const r = await core.deleteAccount({ uid: "u-del", data: {} }, { db, deleteUser, now: Date.UTC(2026, 10, 17) });
+  assert.deepEqual(r, { ok: true });
+  assert.deepEqual(deleted, ["u-del"]);
+  assert.equal((await db.ref(`apps/${A}/entitlements/u-del`).once("value")).val(), null);
+  assert.equal((await db.ref(`apps/${A}/energy/u-del`).once("value")).val(), null);
+});
+
 test("aiProxy: needs sign-in, an allowed tier and energy; adds the medication rule; debits the real cost; records usage", async () => {
   await assert.rejects(core.aiProxy({ uid: null, data: req }, { db, callClaude: fakeClaude }), { code: "unauthenticated" });
   await assert.rejects(core.aiProxy({ uid: "u2", data: req }, { db, callClaude: fakeClaude }), { code: "resource-exhausted" });

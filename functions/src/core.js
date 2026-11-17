@@ -1,5 +1,5 @@
 // Platform handlers as plain functions (deps injected), so they run in Cloud Functions and in emulator tests alike.
-import { DEFAULT_APP, DEFAULT_TIERS, MEDICATION_RULE, MODEL, P, PACKS, costPence } from "./config.js";
+import { DEFAULT_APP, DEFAULT_TIERS, LOCKED_UIDS, MEDICATION_RULE, MODEL, P, PACKS, costPence } from "./config.js";
 
 export class HttpsError extends Error { constructor(code, message) { super(message); this.code = code; } }
 const need = (cond, code, msg) => { if (!cond) throw new HttpsError(code, msg); };
@@ -7,6 +7,22 @@ const appOf = (data) => (data && /^[a-z0-9-]{2,20}$/.test(data.appId || "") ? da
 const day = (now) => new Date(now).toISOString().slice(0, 10);
 
 export async function isAdmin(db, uid) { return !!uid && (await db.ref(P.admin(uid)).once("value")).val() === true; }
+
+/* v2.21.1 SAFETY: account deletion on the server. Refused for the rules-locked UID and any platform admin BEFORE
+   anything is changed (deleting that sign-in would lock the household out of its data). For anyone else: the
+   person's platform records (entitlements, energy, ledger, usage, admin account row) and the Firebase Auth user.
+   deps: { db, deleteUser(uid), now } — deleteUser is admin.auth().deleteUser in Cloud Functions. */
+export async function deleteAccount({ uid, data }, { db, deleteUser, now = Date.now() }) {
+  need(uid, "unauthenticated", "Sign in first.");
+  need(LOCKED_UIDS.indexOf(uid) < 0 && !(await isAdmin(db, uid)), "permission-denied", "This account can't be deleted here: contact the developer.");
+  const app = appOf(data);
+  const up = {};
+  [P.ent(app, uid), P.energy(app, uid), P.ledger(app, uid), P.account(app, uid), `apps/${app}/usage/${uid}`].forEach((p) => { up[p] = null; });
+  up[`apps/${app}/audit/${now}_${uid.slice(0, 6)}`] = { at: new Date(now).toISOString(), action: "delete-account" };
+  await db.ref().update(up);
+  await deleteUser(uid);
+  return { ok: true };
+}
 
 export async function tierOf(db, app, uid) {
   const e = (await db.ref(P.ent(app, uid)).once("value")).val();

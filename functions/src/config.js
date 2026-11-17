@@ -22,6 +22,8 @@ export function costPence(usage) {
     + (u.cache_creation_input_tokens || 0) * PRICES.cacheWriteUsd + (u.cache_read_input_tokens || 0) * PRICES.cacheReadUsd) / 1e6;
   return Math.round(usd * USD_GBP * 100 * 10000) / 10000;   // pence, 4 dp
 }
+// v2.21.1 SAFETY: the UID the live database rules are locked to (database.rules.json). It is never deletable.
+export const LOCKED_UIDS = ["3iEIfsbZlaUMwUiGY6Lro4jAQef1"];
 export const P = {
   energy: (app, uid) => `apps/${app}/energy/${uid}`,
   ledger: (app, uid) => `apps/${app}/ledger/${uid}`,
