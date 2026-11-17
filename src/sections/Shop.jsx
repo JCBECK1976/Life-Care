@@ -10,6 +10,7 @@ import { mealName } from "../lib/mealNames.js";
 import { handleApiError } from "../lib/api.js";
 import { btnActionLg, btnClear, btnDelete, btnEdit, btnMuted, btnP } from "../constants/styles.js";
 import { BREAKFASTS, DAY_MAP, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, MEAL_DAYS, POTATO_SIDES, SNACKS, VEG_SIDES } from "../constants/food.js";
+import { ratingsShown, ratingColor, ratingBg, ratingBorder, ratingDot, ratingLabel } from "../lib/rating.js";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -117,7 +118,7 @@ export default function ShopSection({ ctx }) {
                     {foodCheckerPreview.fibre > 0 && <span><b>{foodCheckerPreview.fibre}g</b> fib</span>}
                     {foodCheckerPreview.salt > 0 && <span><b>{foodCheckerPreview.salt}g</b> salt</span>}
                   </div>
-                  <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: foodCheckerPreview.rating === "RED" ? "#fef2f2" : foodCheckerPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: foodCheckerPreview.rating === "RED" ? "#b91c1c" : foodCheckerPreview.rating === "AMBER" ? "#b45309" : "#15803d", border: "1px solid " + (foodCheckerPreview.rating === "RED" ? "#fecaca" : foodCheckerPreview.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{foodCheckerPreview.rating}</div>
+                  <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, marginBottom: 6, background: ratingBg(foodCheckerPreview.rating), color: ratingColor(foodCheckerPreview.rating), border: "1px solid " + (ratingBorder(foodCheckerPreview.rating)) }}>{ratingLabel(foodCheckerPreview.rating)}</div>
                   {foodCheckerPreview.suitability && <div style={{ fontSize: 11, color: "#475569", fontStyle: "italic", lineHeight: 1.4 }}>{foodCheckerPreview.suitability}</div>}
                 </div>
                 {!foodCheckerCategory ? (<div>

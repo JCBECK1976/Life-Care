@@ -202,7 +202,7 @@ test("the joint/admin account behaves as Platinum (all on) until the migration; 
   expect(Object.values(got).every((v) => v !== "sent")).toBe(true);
   expect(aiCalls.length).toBe(n0);
   await page.getByTestId("plan-preview").selectOption("");
-  expect(await page.evaluate(() => window._lcPlan.tier)).toBe("platinum");
+  await expect.poll(() => page.evaluate(() => window._lcPlan.tier + ":" + !!window._lcPlan.preview)).toBe("platinum:false");   // the plan reloads asynchronously
 });
 
 test("flag off (prod and beta today): no My Plan, nothing gated", async ({ page }) => {

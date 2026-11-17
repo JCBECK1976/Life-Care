@@ -7,6 +7,7 @@ import { fuzzyFind, searchGeneric, correctedQuery, words } from "../lib/foodSear
 import { searchOff, productType, needsPortionCheck, packSize } from "../lib/off.js";
 import { GENERIC_LABEL } from "../constants/genericFoods.js";
 import { planAllows } from "../lib/myPlan.js";
+import { ratingsShown, ratingLabel, NEUTRAL } from "../lib/rating.js";
 import { GatePrompt } from "./PlanGate.jsx";
 
 // v2.19.0 Update Lists (docs/design/EATING_LISTS.md §3): Single item · Build a meal · My own.
@@ -162,7 +163,7 @@ function SaveStep(props) {
     <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{item.name}</div>
     <div data-testid="portion-label" style={small}>{portionLabel(item)}</div>
     <PortionValues n={itemNutrition(item)} />
-    <div data-testid="save-rating" style={{ fontSize: 11, fontWeight: 700, color: RAGC[item.rating] || "#334155", marginTop: 2 }}>{b ? (b.indexOf("RED") === 0 ? "RED" : b) + " · " + FREQ_LABEL[b] : ""} <span style={{ fontWeight: 400, color: "#475569" }}>(per portion, against the UK reference)</span></div>
+    <div data-testid="save-rating" style={{ fontSize: 11, fontWeight: 700, color: ratingsShown() ? (RAGC[item.rating] || "#334155") : NEUTRAL, marginTop: 2 }}>{ratingLabel(b ? (b.indexOf("RED") === 0 ? "RED" : b) + " · " + FREQ_LABEL[b] : "")} <span style={{ fontWeight: 400, color: "#475569" }}>(per portion, against the UK reference)</span></div>
     <fieldset style={{ border: "none", padding: 0, margin: "8px 0 0" }}><legend style={{ fontSize: 11, fontWeight: 700, color: "#334155" }}>Add to my lists</legend>
       {props.cats.map(function(c) { return (<label key={c.k} style={{ display: "inline-flex", alignItems: "center", gap: 4, marginRight: 10, fontSize: 12 }}><input type="checkbox" checked={!!cats[c.k]} onChange={function(e) { var o = Object.assign({}, cats); o[c.k] = e.target.checked; setCats(o); }} />{c.label}</label>); })}
     </fieldset>

@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.22.0 · 17 November 2026
+> Last updated: v2.22.1 · 17 November 2026
 
 ---
 
@@ -558,7 +558,7 @@ Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
 
 ### 💳 My Plan — Bronze, Silver, Gold, Platinum Family (being tested on Build)
 Every plan includes the three pillars: **Health, Eating and Exercise**.
-- **Bronze (free):** manual tracking with progress and charts, the built-in food and exercise lists, UK products, your own lists, Build a meal (totals from stored values), mood and journal, a manual shopping list, and a **searchable Help guide**. No AI, and nutrition values can't be edited.
+- **Bronze (free):** manual tracking with progress and charts, the built-in food and exercise lists, UK products, your own lists, Build a meal (totals from stored values), mood and journal, a manual shopping list, and a **searchable Help guide**. No AI, and nutrition values can't be edited. **Food ratings** (the red / amber / green colours, words and badges) are part of Silver: on Bronze foods show in normal text, with all calories and portions; "🔒 Ratings: Silver" on the My Eating Lists header opens My Plan. Ratings are kept, so they come back if you upgrade.
 - **Silver (£5.99 a month or £49 a year):** everything in Bronze, plus the Companion: feedback everywhere, chat, food ratings, Snap, My own item, body balance, steps and health sync, Ask the Companion in Help, and auto-generated info. Includes £1.50 of Companion Energy each month.
 - **Gold (£9.99 a month or £79 a year):** everything in Silver, plus planning: generate meals, generate a shopping list, AI training plans with warm-up and cool-down. Includes £2.50 of Energy each month.
 - **Platinum Family (£15.99 a month or £159 a year):** Gold for up to **5 people** (you plus 4 invited), with **one shared family Energy pool** of £7.50 a month. Household sharing (seeing each other's data, "log for me") is Platinum only.
