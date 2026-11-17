@@ -11,7 +11,7 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; }
-    #root { max-width: 480px; margin: 0 auto; min-height: 100vh; }
+    #root { max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: calc(80px + env(safe-area-inset-bottom)); }   /* v2.20.0: room under the last buttons for the floating chat button */
     @keyframes dotPulse {
       0%, 20% { opacity: 0.3; }
       50% { opacity: 1; }
@@ -19,6 +19,16 @@
     }
     @keyframes spin {
       to { transform: rotate(360deg); }
+    }
+    /* v2.20.0 (JC): one subtle grey border and radius on every white box where data is entered or selected
+       (token also in src/constants/styles.js FIELD_BORDER / FIELD_RADIUS); inline styles may still set a colour for errors. */
+    :root { --field-border: #cbd5e1; --field-radius: 8px; }
+    input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=hidden]), select, textarea { border: 1px solid var(--field-border); border-radius: var(--field-radius); }
+    /* v2.20.0 (WCAG 2.5.5/2.5.8): on touch screens every control is at least 44 px tall, icon-only buttons 44 × 44 */
+    @media (pointer: coarse) {
+      button, select, input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=hidden]) { min-height: 44px; }
+      button[aria-label] { min-width: 44px; }
+      input[type=checkbox], input[type=radio] { width: 22px; height: 22px; }
     }
     /* v2.17.0 P6 (WCAG 2.4.7): a clearly visible keyboard focus on every control */
     :focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; border-radius: 4px; }
