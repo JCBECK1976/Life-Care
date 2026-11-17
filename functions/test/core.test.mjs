@@ -14,7 +14,11 @@ let sent = [];
 const fakeClaude = async (body) => { sent.push(body); return { content: [{ type: "text", text: "hi" }], usage: { input_tokens: 1000, output_tokens: 200 } }; };
 const req = { feature: "aiHelp", request: { max_tokens: 100, system: "You are the Companion.", messages: [{ role: "user", content: "hello" }] } };
 
-before(async () => { await db.ref().set({ platform: { admins: { "uid-admin": true } } }); });
+const ALL = { accepted: true, adult: true, termsVersion: "t", privacyVersion: "t", ai: true, photos: true, health: true, bodyBalance: true };
+before(async () => {
+  const users = {}; for (const u of ["u1", "u2", "u3", "fo", "fm1", "fm2", "fm3", "fm4", "dg"]) users[u] = { consent: ALL };   // v2.24.0: these test users said yes to everything
+  await db.ref().set({ platform: { admins: { "uid-admin": true } }, apps: { [A]: { users } } });
+});
 
 test("ledger: credit and debit move the balance; a credit with the same key counts once", async () => {
   await core.credit(db, A, "u1", 250, "test", "k1");
@@ -182,4 +186,20 @@ test("downgrade: an expired plan counts as Bronze — AI stops, data stays; an a
   const e = (await db.ref(`apps/${A}/entitlements/dg`).once("value")).val();
   assert.equal(e.source, "admin"); assert.equal(e.expires, undefined);
   assert.equal((await core.planOf(db, A, "dg", now + 1e12)).tier, "gold");
+});
+
+test("consent (v2.24.0): each opt-in switches its features off on the server; terms must be accepted; the joint account is exempt", async () => {
+  await db.ref(`apps/${A}/entitlements/cs`).set({ tier: "gold", source: "admin" });
+  await core.adminTopUp({ uid: "uid-admin", data: { uid: "cs", pence: 500 } }, { db });
+  const call = (feature) => core.aiProxy({ uid: "cs", data: { ...req, feature } }, { db, callClaude: fakeClaude });
+  await assert.rejects(call("aiFeedback"), { code: "failed-precondition", message: "Accept the Terms and Privacy Notice first." });   // no consent record
+  await db.ref(`apps/${A}/users/cs/consent`).set({ ...ALL, ai: false, photos: false, bodyBalance: false });
+  for (const f of ["aiFeedback", "chat", "mealGenerator", "foodRatings"]) await assert.rejects(call(f), { code: "failed-precondition", message: "This is off in your privacy choices (ai)." });
+  await db.ref(`apps/${A}/users/cs/consent`).set({ ...ALL, photos: false });
+  await call("aiFeedback");                                                             // AI on
+  await assert.rejects(call("snap"), { message: "This is off in your privacy choices (photos)." });
+  await db.ref(`apps/${A}/users/cs/consent`).set({ ...ALL, bodyBalance: false });
+  await call("snap");
+  await assert.rejects(call("bodyBalance"), { message: "This is off in your privacy choices (bodyBalance)." });
+  assert.equal(await core.consentMissing(db, A, "3iEIfsbZlaUMwUiGY6Lro4jAQef1", "aiFeedback"), null);   // the joint account: exempt
 });

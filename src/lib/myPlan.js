@@ -11,6 +11,7 @@ import { flag, APP_ID } from "./platform.js";
 import { APP_ENV } from "../constants/version.js";
 import { DEFAULT_TIERS, TIER_ORDER, tierAllows, gateMessage } from "../constants/tiers.js";
 import { isProtectedAccount } from "./accountGuard.js";
+import { loadAccountConsent, consentBlocks, NOTE } from "./accountConsent.js";
 
 export function tiersOn() { return APP_ENV === "build" || flag("useTiers"); }
 export var canPreview = function() { return APP_ENV === "build" || !!import.meta.env.DEV; };
@@ -28,8 +29,9 @@ export function setPreview(p) { try { if (p) localStorage.setItem("lc_plan_previ
 async function val(path) { try { return (await firebase.database().ref(path).once("value")).val(); } catch (e) { return null; } }
 
 export async function loadPlan() {
+  await loadAccountConsent();   /* v2.24.0: an individual account's consent (flag useOnboarding) */
   var u = auth.currentUser;
-  if (!tiersOn() || !u) { set(ALL_ON); return current; }
+  if (!tiersOn() || !u) { set(Object.assign({}, ALL_ON, { loaded: !!u })); return current; }   /* plans off: all on (consent still applies) */
   var tiers = (await val("apps/" + APP_ID + "/config/tiers")) || DEFAULT_TIERS;
   if (await isProtectedAccount(u.uid)) {
     var pv = canPreview() ? readPreview() : null;
@@ -65,10 +67,12 @@ export async function loadPlan() {
 }
 
 /** Does the current plan include this feature? Always true with the flag off. */
-export function planAllows(feature) { return !tiersOn() || (current.loaded === true && tierAllows(current.tier, feature, current.tiers)); }   // nothing until the plan is known
+/** v2.24.0: a declined/withdrawn consent switches the feature off whatever the plan (calm note, not "buy"). */
+export function planAllows(feature) { if (consentBlocks(feature)) return false; return !tiersOn() || (current.loaded === true && tierAllows(current.tier, feature, current.tiers)); }   // nothing until the plan is known
 
 /** The gating line: "[Feature] is part of Silver." — a Platinum member gets "Ask [owner] about your family plan". */
-export function gateText(feature) { return current.role === "member" ? "Ask " + (current.ownerName || "the plan owner") + " about your family plan." : gateMessage(feature, current.tiers); }
+export function gateReason(feature) { return consentBlocks(feature) ? "consent" : current.role === "member" ? "member" : "plan"; }
+export function gateText(feature) { var cb = consentBlocks(feature); if (cb) return NOTE[cb]; return current.role === "member" ? "Ask " + (current.ownerName || "the plan owner") + " about your family plan." : gateMessage(feature, current.tiers); }
 
 /** Show the gating prompt (the app renders it; see PlanGate). */
 var lastTap = 0;
@@ -90,6 +94,7 @@ export function usePlan() {
 /** Keeps the plan in step with the signed-in person. Called once from main.jsx / App. */
 export function startPlan() {
   auth.onAuthStateChanged(function() { loadPlan(); });
+  window.addEventListener("lc-consent-changed", function() { set(Object.assign({}, current)); });   /* re-render gated screens */
   /* v2.22.2 Snap gate: on a plan without photo checks, tapping a photo button shows the prompt BEFORE the camera or file
      picker opens (no photo taken for nothing). A label tap reaches its <input type=file> as a click, so this catches both. */
   document.addEventListener("click", function(e) {

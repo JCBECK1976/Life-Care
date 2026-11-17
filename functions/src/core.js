@@ -1,5 +1,5 @@
 // Platform handlers as plain functions (deps injected), so they run in Cloud Functions and in emulator tests alike.
-import { DEFAULT_APP, DEFAULT_TIERS, LOCKED_UIDS, MEDICATION_RULE, MODEL, P, PACKS, STRIPE_WEB_ENABLED, TIER_ORDER, costPence } from "./config.js";
+import { CONSENT_NEEDS, DEFAULT_APP, DEFAULT_TIERS, LOCKED_UIDS, MEDICATION_RULE, MODEL, P, PACKS, STRIPE_WEB_ENABLED, TIER_ORDER, costPence } from "./config.js";
 
 export class HttpsError extends Error { constructor(code, message) { super(message); this.code = code; } }
 const need = (cond, code, msg) => { if (!cond) throw new HttpsError(code, msg); };
@@ -75,12 +75,23 @@ export function withRule(system) {
   if (Array.isArray(system)) return [{ type: "text", text: MEDICATION_RULE }].concat(system);
   return MEDICATION_RULE + (system ? "\n\n" + system : "");
 }
+/* v2.24.0 (DPIA §3/§7): an individual account's consents (apps/{app}/users/{uid}/consent). The shared joint/admin
+   account predates consent records and is exempt (it is migrated to individual accounts, which go through onboarding). */
+export async function consentMissing(db, app, uid, feature) {
+  if (LOCKED_UIDS.indexOf(uid) >= 0 || await isAdmin(db, uid)) return null;
+  const c = (await db.ref(`apps/${app}/users/${uid}/consent`).once("value")).val() || {};
+  if (c.accepted !== true || c.adult !== true) return "terms";
+  for (const k of CONSENT_NEEDS[feature] || ["ai"]) if (c[k] !== true) return k;
+  return null;
+}
 export async function aiProxy({ uid, data }, { db, callClaude, now = Date.now() }) {
   need(uid, "unauthenticated", "Sign in first.");
   const app = appOf(data); const feature = (data && data.feature) || "aiFeedback";   // a switch from tiers.js FEATURES
   const plan = await planOf(db, app, uid, now);
   const tiers = await tiersConfig(db, app);
   need((tiers[plan.tier] || {})[feature] === true, "permission-denied", "Your plan doesn't include this feature.");
+  const missing = await consentMissing(db, app, uid, feature);
+  need(!missing, "failed-precondition", missing === "terms" ? "Accept the Terms and Privacy Notice first." : "This is off in your privacy choices (" + missing + ").");
   need(await walletBalance(db, plan.wallet) > 0, "resource-exhausted", "Companion Energy is empty.");
   const req = (data && data.request) || {};
   need(Array.isArray(req.messages) && req.messages.length, "invalid-argument", "No messages.");

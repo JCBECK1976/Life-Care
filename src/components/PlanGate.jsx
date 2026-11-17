@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { gateText, openPlans, usePlan, setPreview } from "../lib/myPlan.js";
+import { gateText, gateReason, openPlans, usePlan, setPreview } from "../lib/myPlan.js";
 import { useDialog } from "../lib/a11y.js";
 
 // v2.22.0 (ADR 0017): the gating prompt. "[Feature] is part of Silver." + See plans (opens Settings → My Plan).
@@ -13,7 +13,8 @@ export function GatePrompt(props) {
   return (<div data-testid={"plan-gate-" + props.feature} role="note" style={Object.assign({}, box, props.style)}>
     <div><span aria-hidden="true">ℹ️ </span>{gateText(props.feature)}</div>
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-      {plan.role !== "member" && <button type="button" data-testid="see-plans" style={seeBtn} onClick={function() { if (props.onSee) props.onSee(); openPlans(); }}>See plans</button>}
+      {gateReason(props.feature) === "plan" && <button type="button" data-testid="see-plans" style={seeBtn} onClick={function() { if (props.onSee) props.onSee(); openPlans(); }}>See plans</button>}
+      {gateReason(props.feature) === "consent" && <button type="button" data-testid="privacy-choices" style={seeBtn} onClick={function() { if (props.onSee) props.onSee(); window.dispatchEvent(new CustomEvent("lc-open-privacy")); }}>Privacy choices</button>}
       {props.actions}
     </div>
   </div>);

@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.23.0 · 18 November 2026
+> Last updated: v2.24.0 · 18 November 2026
 
 ---
 
@@ -556,6 +556,14 @@ Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
   - **📊 AI usage** (admin only): how many AI calls were made and how many tokens they used, per day and per feature (Help, Chat, My Eating, photo checks…), with the estimated cost. Only counts are kept, never what anyone typed or photographed. **⚡ Companion Energy** is worked out from these counts: what has been spent since the last **Set as 100%**.
   - **📝 Tracker** (admin only): everything sent with **💬 Send Feedback** appears here as **Feedback**, status **New** (a red badge shows how many are new). It also shows **the plan**: each time you open the Tracker it loads the plan (plan.json) and adds or updates its items (defects, features and tasks, by phase). Filters: Category (Feedback / Defect / Feature / Task), Phase, Status and Priority. Status starts on **Outstanding** (everything not Done or Won't do); choose **Completed** or **All** to see finished items. A box above the list totals the **Token %** of open plan items per phase (the estimated share of a weekly allowance). **Open** shows an item read-only. For feedback and items you added, **Edit** lets you re-categorise it, set the status, a priority, an admin note and a link/ref, then **Save**; **Remove** takes it out (asks first). Plan items say **Managed by plan**: only their admin note can be edited here, and your note is kept when the plan changes. **+ Add** adds a Defect, Feature or Task. Text only: no screenshots or images are stored.
   - **📧 Feedback email** (admin only): shows the address 💬 Send Feedback emails go to (also the contact in the Privacy Policy). Press **Edit**, change it, then **Save**: the form closes and shows **✓ Saved**. Leave it empty for no email: feedback is still saved to the 📝 Tracker.
+
+### 🔐 Starting out with your own account (being tested on Build)
+When someone signs in with **their own account** for the first time (never JC and Becks's shared account), the app asks three short things before the goal setup:
+1. **Your age:** Lifecare Companion is for people **18 and over**; under 18 the app stops there and saves nothing.
+2. **Terms and privacy:** read the Privacy Notice and Terms, then agree. The versions you agreed to are recorded.
+3. **Your choices**, each separate and **off until you turn it on**: **AI processing** (the Companion's feedback, ratings and answers), **photo analysis** (needs AI), **health sync** (steps), **body balance checks** (needs AI and photos).
+Then the usual goal setup. **Without AI processing the app still works for manual tracking** (like Bronze), whatever your plan, with a calm note where an AI feature would be and a **Privacy choices** button.
+Change any choice at any time in **Settings → 🔐 My privacy choices**. Turning one off switches its features off straight away (in the app and on our server); nothing you've recorded is deleted. Each change is recorded (when and what, never your health data).
 
 ### 💳 My Plan — Bronze, Silver, Gold, Platinum Family (being tested on Build)
 Every plan includes the three pillars: **Health, Eating and Exercise**.

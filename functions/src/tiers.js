@@ -47,6 +47,14 @@ export var TOP_UP = { productId: "energy_5", pricePence: 500, creditPence: 250 }
 export var STORE_PRODUCTS = { silver: "silver", gold: "gold", platinum: "platinum" };
 export var BASE_PLANS = { monthly: "monthly", yearly: "yearly" };
 
+// v2.24.0 (DPIA §3/§7): which of a person's consents each feature needs. A declined or withdrawn consent switches the
+// feature off whatever the plan — in the app (lib/accountConsent.js) and on the server (aiProxy).
+export var CONSENT_NEEDS = {
+  snap: ["ai", "photos"], bodyBalance: ["ai", "photos", "bodyBalance"], healthSync: ["health"],
+  foodRatings: ["ai"], myOwnItem: ["ai"], aiFeedback: ["ai"], chat: ["ai"], aiHelp: ["ai"], autoInfo: ["ai"],
+  mealGenerator: ["ai"], shoppingGenerator: ["ai"], aiPlans: ["ai"], editNutrition: ["ai"],
+};
+
 /** Does this plan include the feature? (tiers = config/tiers or DEFAULT_TIERS) */
 export function tierAllows(tier, feature, tiers) {
   var t = (tiers || DEFAULT_TIERS)[tier] || (tiers || DEFAULT_TIERS).bronze;
