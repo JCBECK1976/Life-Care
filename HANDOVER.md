@@ -2814,4 +2814,5 @@ Sizes are % of a weekly allowance, including Architect checks.
 - Docs: `docs/design/ACCOUNTS_TIERS_ENERGY.md` §6–7 rewritten (+ §1, §8, §9), ADR 0017.
 - B1 done — build `2a2e8ae`: shared `tiers.js` (app + functions, identical), 39 AI calls tagged `x-lc-feature` and gated in the fetch interceptor (no call made; prompt event), `src/lib/myPlan.js`, server planOf/family pool/Platinum-only households/adminTopUp/Stripe off/`functions/src/play.js` (playVerify, playNotify). Functions 24/24.
 - B2 done — build `0d0b28c`: `MyPlanCard.jsx`, `PlanGate.jsx` (inline + app-wide prompt, only right after a tap), `HelpFaq.jsx` + `lib/faq.js`, `lib/billing.js`; tests `v2220.spec.js` 12/12; full suite 303 passed (6 skipped) after updating the v2.16.3 proxy assertion (feature now `aiHelp`).
-- **Resume point:** next item: B3 J22 Play Console steps + migration/Platinum plan; then finish v2.22.0.
+- **v2.22.0 done — build `2b14eff`.** Suite 303 passed (6 skipped), functions 24/24, lint 0 errors. Android debug APK built with the billing plugin (BILLING permission merged).
+- **Resume point:** next item: v2.22.0 finish (CHANGELOG, plan, TECHNICAL_REFERENCE, deploy check, report).
