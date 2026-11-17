@@ -55,6 +55,14 @@ Version 1, 13 Nov 2026 (prod v2.15.1). Public document. It describes **how the c
 | `src/constants/` | Version, styles (button standard), themes, tone rules, defaults, food and exercise constants, the admin Documentation list (`docsIndex.js`). |
 | `scripts/automation/` | Nightly backup, Build refresh, post-deploy smoke test, daily database-rules drift check (run by GitHub Actions). Also `.github/workflows/codeql.yml` (code scanning) and `.github/dependabot.yml` (weekly dependency PRs to `build`). |
 
+### 2a. Native Android (v2.21.0, N1; ADR 0016)
+- `capacitor.config.json` (appId `com.companionappsstudio.lifecare`, webDir `dist-native`), `android/` (Capacitor 8 project; `app/build.gradle`: upload signing only from `LC_UPLOAD_*` env vars, `versionCode`/`versionName` from `LC_VERSION_*`, debug `.debug` suffix, `checkNativeWebRelease/Debug` run before every build).
+- `scripts/build-native.sh release|debug` → `vite build --base ./` with `VITE_NATIVE=1` (no service worker) and the env/data root (release prod/`data`, debug build/`data_build`) → `cap sync android` → `scripts/check-native.mjs` (the guard: data root, prod title, no noindex, Google client ID for release, APP_GUIDE).
+- `src/lib/native.js`: `isNative`, `nativeGoogleSignIn` (`@capgo/capacitor-social-login` → `GoogleAuthProvider.credential(idToken)` → `signInWithCredential`; `VITE_GOOGLE_WEB_CLIENT_ID`), `nativeSignOut`, `installNativeBackButton` (Back = Esc on a dialog, else minimise).
+- `src/lib/myData.js` `deleteMyAccount(person)`: `deleteMyData` + audit `delete-account` + Firebase Auth user delete (re-auth on `requires-recent-login`) + sign-out; UI in `PrivacyDataCard` (always shown).
+- Public pages: `public/delete-account.html`; `privacy-policy.html` / `terms-of-use.html` generated from `public/legal/*.md` by `scripts/md-page.mjs` (Vite plugin `legalPages`); `check-pages.mjs` requires both Play pages in prod.
+- CI: `.github/workflows/android-internal.yml` (manual) → `scripts/play-upload.mjs` (Play Developer API v3; edit → bundle upload → track → commit; refuses production).
+
 ## 3. Data (Realtime Database)
 One root per environment: `data` (prod and beta) or `data_build` (Build). Most values are **JSON strings under flat keys**, so a save rewrites that whole key. Keys are sanitised (`. # $ / [ ]` → `_`).
 

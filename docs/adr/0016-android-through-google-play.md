@@ -1,0 +1,12 @@
+# ADR 0016 — Android app through Google Play only (internal → closed testing), Capacitor shell
+
+- **Status:** Accepted (Architect/JC, 17 Nov 2026). Built in v2.21.0 on `build`.
+- **Context:** G10/N1 (store apps). JC and Becks must test the Android app through **the same pipeline the pilot will use**.
+- **Decision:**
+  - **No sideloading.** JC and Becks install from Google Play's **internal testing** track; the pilot uses **closed testing**. **Play App Signing**: Google holds the app signing key; we hold only the **upload key** (GitHub Actions secrets + one offline copy in JC's password manager, never the vault or repo).
+  - **Capacitor 8** shell around the same web app (`com.companionappsstudio.lifecare`). **Release = prod web build on `data`**; **debug = build web build on `data_build`** (`.debug` package suffix). `scripts/check-native.mjs` (run by `scripts/build-native.sh`, by Gradle before every build, and in CI) stops a release that points at `data_build` or a debug that points at `data` — the deploy guard extended to the native build.
+  - **Google sign-in:** Google blocks its sign-in page in WebViews, so the app uses Android's account picker (`@capgo/capacitor-social-login`, Credential Manager) and signs in to Firebase with the returned ID token. Rejected: `@capacitor-firebase/authentication` (needs Firebase 12; the app is on 10.12 — a large unrelated upgrade).
+  - **CI:** manual workflow `android-internal.yml` builds, signs, verifies and uploads to the internal track with our own uploader (`scripts/play-upload.mjs`, Play Developer API v3, Node built-ins) — no third-party action sees the Play credentials; it refuses `production`. The first upload is manual in Play Console (Play requires it).
+  - **Account deletion** (Play requirement): Settings → Privacy & your data → **Delete my account** for everyone, plus the public page `delete-account.html`. Minimum compliant version until per-uid accounts (Step 5).
+  - **Payments:** no Stripe in the native app; digital purchases on Android need **Google Play Billing** (and Apple IAP on iOS). The Architect revises the tiers/Energy design (plan PAY1).
+- **Consequences:** release testers use real data (as beta does). Closed testing waits for per-uid accounts, because a Play reviewer must not be able to read household health data. Health Connect is not requested yet (no declaration needed); N6 adds it with the prepared declaration.

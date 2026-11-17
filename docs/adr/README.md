@@ -21,3 +21,4 @@ One short file per significant decision: context, decision, alternatives rejecte
 | [0015](0015-eating-lists-per-portion.md) | Eating lists: per portion everywhere, Update Lists tabs (single item, build a meal, create my own), clarifying AI | Accepted (JC 15 Nov 2026; v2.19.0 build) |
 
 Candidates not yet written up: the Open pattern and button standard (v2.8.0 / v2.13.0).
+- [0016 — Android app through Google Play only (internal → closed testing), Capacitor shell](0016-android-through-google-play.md)
