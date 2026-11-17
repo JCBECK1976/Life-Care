@@ -2,7 +2,7 @@
 // One goal per person drives the daily calorie goal everywhere (Home, My Eating, every companion):
 //   Goal = Body burn (BMR + daily living) + Aim (from the person's goal and timescale) + Exercise.
 import { MET, DEFAULT_MET, MIN_PER_SET, WEEKDAY, bmrOf, leanMass, dayFoodKcal, exerciseKcal, exerciseOn, heightCm, isMale, ageOf, isoDay, planOf,
-  safeMinimum, settingsOf, stepsOn, toKg, weekDates, BASELINE_FACTOR } from "./calories.js";
+  safeMinimum, settingsOf, stepsOn, toKg, weekDates, BASELINE_FACTOR, activeOn, sourceOn } from "./calories.js";
 
 export var KCAL_PER_KG = 7700;
 export var WEEKS_PER_MONTH = 52 / 12;
@@ -226,12 +226,14 @@ export function dayTable(p, date, doc) {
   var pl = planOf(p, null, Math.max(minimum, round(b * BASELINE_FACTOR) + aim.kcal));
   var steps = stepsOn(p, date);
   var g = p.googleDaily && p.googleDaily[date]; var total = g && num(g.kcal);
-  var measured = steps != null || total != null;
+  var act = activeOn(p, date);   /* v2.23.0: Health Connect active calories (separate toggle) */
+  var measured = steps != null || total != null || act != null;
   var burn = round(b * (measured ? BASELINE_FACTOR : (ACTIVITY[activityOf(p)].factor)));
   var kg = pl.weightKg;
   var exPlanned = round(plannedExercise(p, date).reduce(function(s, x) { return s + exerciseKcal(x.met, kg, x.minutes); }, 0) * adj);
   var exActual, mode, stepsK = 0, loggedK = 0;
   if (total != null) { mode = "total"; exActual = round(Math.max(0, total - burn) * adj); }
+  else if (act != null) { mode = "active"; exActual = round(act * adj); }   /* active calories already exclude resting burn and include workouts: nothing added on top */
   else {
     mode = "parts";
     stepsK = steps != null ? Math.max(0, steps - pl.stepAllowance) * pl.kcalPerStep : 0;
@@ -244,7 +246,7 @@ export function dayTable(p, date, doc) {
   var diff = actualEat - goalA;
   var diffP = plannedEat - goalP;   /* v2.20.0: On track for the Planned column too */
   return { ready: true, date: date, bmr: b, method: pl.method, estimate: pl.estimate, burn: burn, measured: measured, activity: activityOf(p), aim: aim, minimum: minimum, floored: floored,
-    exercise: { planned: exPlanned, actual: exActual, mode: mode, steps: round(stepsK * adj), logged: round(loggedK * adj), stepsCount: steps, totalBurned: total },
+    exercise: { planned: exPlanned, actual: exActual, mode: mode, steps: round(stepsK * adj), logged: round(loggedK * adj), stepsCount: steps, totalBurned: total, activeKcal: act, source: sourceOn(p, date) },
     goal: { planned: goalP, actual: goalA }, eating: { planned: plannedEat, actual: actualEat },
     onTrack: { kcal: diff, pct: goalA ? Math.round(diff / goalA * 100) : 0, colour: diff <= 0 ? "green" : "red" }, onTrackPlanned: { kcal: diffP, pct: goalP ? Math.round(diffP / goalP * 100) : 0, colour: diffP <= 0 ? "green" : "red" }, hasActual: actualEat > 0, stepAllowance: pl.stepAllowance, adjPct: settingsOf(p).adjPct };
 }

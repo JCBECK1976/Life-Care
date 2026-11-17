@@ -1,9 +1,12 @@
 // v2.16.3 Step 4: client feature flags for the Companion platform (ADR 0011). ALL OFF by default:
 // with every flag off the app behaves exactly as before. Per device (localStorage "lc_flags"); nothing is live yet.
-export var FLAGS = ["useAiProxy", "useAccounts", "showBuyEnergy", "useTiers"];   /* v2.22.0 useTiers: on for /build/ regardless (myPlan.js) */
+export var FLAGS = ["useAiProxy", "useAccounts", "showBuyEnergy", "useTiers", "useSteps", "useOnboarding"];   /* v2.22.0 useTiers: on for /build/ regardless (myPlan.js) */
 export function flag(name) {
   try { var f = JSON.parse(localStorage.getItem("lc_flags") || "{}"); return f[name] === true; } catch (e) { return false; }
 }
+/** v2.23.0: the overnight-batch features (useSteps, useOnboarding, useAccounts) are ON for /build/ only; beta and prod
+ *  stay off unless the flag is set on the device. */
+export function buildFlag(name) { return (import.meta.env.VITE_APP_ENV === "build") || flag(name); }
 export var APP_ID = "lifecare";
 export var FUNCTIONS_BASE = "https://europe-west1-life-care-app-64d04.cloudfunctions.net/";
 

@@ -34,6 +34,7 @@ import { calcWeek, countStatus, fbIcon, fmtDate, getWeekDates, mealKey, sBg, sCo
 import { sGet, sSet } from "./lib/storage.js";
 import { handleApiError } from "./lib/api.js";
 import { planAllows } from "./lib/myPlan.js";
+import { useStepsSync } from "./lib/steps.js";
 import { BodyCard, FullChart } from "./components/charts.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import DataSection from "./sections/Data.jsx";
@@ -745,6 +746,8 @@ function Dashboard() {
   const pickMeal = (dk, id) => { const n = { ...meals, [dk]: id }; setMeals(n); saveMeals(n); setEditDay(null); };
   const clearMeal = dk => { const n = { ...meals }; delete n[dk]; setMeals(n); saveMeals(n); };
   const saveData = async (nd) => { setData(nd); await sSet("dashboard:data", JSON.stringify(nd)); };
+  window._lcData = data; window._lcSaveData = saveData;   /* v2.23.0: the steps sync uses the latest */
+  useStepsSync(data, saveData);   /* v2.23.0 N6: daily steps from Health Connect on open / resume (connected phones only) */
 
   // ─── WEIGHT LOGGING ───
   const [prevComment, setPrevComment] = useState("");

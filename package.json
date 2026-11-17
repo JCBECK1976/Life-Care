@@ -16,6 +16,7 @@
     "@capacitor/android": "8.5.3",
     "@capacitor/app": "8.1.1",
     "@capacitor/core": "8.5.3",
+    "@capgo/capacitor-health": "8.11.14",
     "@capgo/capacitor-social-login": "8.7.5",
     "@capgo/native-purchases": "8.9.6",
     "firebase": "10.12.0",

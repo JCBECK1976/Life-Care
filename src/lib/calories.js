@@ -122,12 +122,17 @@ export function dayCredit(p, date, plan) {
     var c = Math.max(0, total - plan.baseline);
     return { mode: "total", totalBurned: Math.round(total), credit: Math.round(c * adj), steps: 0, exercise: 0, stepsCount: stepsOn(p, date) };
   }
+  var act = activeOn(p, date);
+  if (act != null) return { mode: "active", credit: Math.round(act * adj), steps: 0, exercise: 0, activeKcal: Math.round(act), stepsCount: stepsOn(p, date) };
   var steps = stepsOn(p, date);
   var stepsK = steps != null ? Math.max(0, steps - plan.stepAllowance) * plan.kcalPerStep : 0;
   var ex = exerciseOn(p, date);
   var exK = ex.done.reduce(function(s, x) { return s + exerciseKcal(x.met, plan.weightKg, x.minutes); }, 0);
   return { mode: "parts", credit: Math.round((stepsK + exK) * adj), steps: Math.round(stepsK * adj), exercise: Math.round(exK * adj), stepsCount: steps, sessions: ex.done.length };
 }
+/** v2.23.0: active calories for a date (Health Connect / HealthKit, behind its own toggle), and where the day's data came from. */
+export function activeOn(p, date) { var s = p && p.dailyActivity && p.dailyActivity[date]; return s && isFinite(parseFloat(s.activeKcal)) ? parseFloat(s.activeKcal) : null; }
+export function sourceOn(p, date) { var s = p && p.dailyActivity && p.dailyActivity[date]; return (s && s.source) || ""; }
 export function stepsOn(p, date) { var s = p && p.dailyActivity && p.dailyActivity[date]; return s && isFinite(parseFloat(s.steps)) ? parseFloat(s.steps) : null; }
 
 /** Everything the calorie line shows for a date. foodKcal from the eating record. */

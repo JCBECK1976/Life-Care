@@ -4,4 +4,6 @@
     <string name="title_activity_main">Lifecare Companion</string>
     <string name="package_name">com.companionappsstudio.lifecare</string>
     <string name="custom_url_scheme">com.companionappsstudio.lifecare</string>
+    <!-- v2.23.0: the Health Connect permission rationale screen opens our privacy policy -->
+    <string name="health_connect_privacy_policy_url">https://jcbeck1976.github.io/Life-Care/privacy-policy.html</string>
 </resources>
