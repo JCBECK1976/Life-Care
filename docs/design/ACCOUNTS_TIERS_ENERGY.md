@@ -1,6 +1,6 @@
 # Accounts, tiers and Companion Energy — design
 
-> **Status:** design + local build only (14 Nov 2026, Coder overnight Step 4). **Nothing here is deployed or live.** Go-live needs JC's approval, a fresh backup and the setup in HANDOVER ("Step 4 — JC setup before go-live").
+> **Status:** design + local build only (14 Nov 2026, Coder overnight Step 4; §6–7 revised 17 Nov 2026 — four plans, Play Billing). **Nothing here is deployed or live.** Go-live needs JC's approval, a fresh backup and the setup in HANDOVER ("Step 4 — JC setup before go-live").
 > Public-safe: it states the principles. Access-control specifics, threat model and keys stay in the Architect's private SAD.
 
 Related: [ADR 0011 Companion platform](../adr/0011-companion-platform.md) · [HLD](../HLD.md) · [Payments statement](../legal/PAYMENTS_STATEMENT.md) · plan G4, G5, G7, P2, SAD-A1.
@@ -8,8 +8,8 @@ Related: [ADR 0011 Companion platform](../adr/0011-companion-platform.md) · [HL
 ## 1. Goals
 - Every person has **their own login** (Google, Apple, or email / email link) and their own data. The shared joint Google account is retired at migration.
 - People can form a **household** to see each other's data and log for each other, **only if each person chooses to** (default: private).
-- **Bronze / Silver / Gold** tiers whose features are switched in admin, with no code change.
-- **Subscriptions** and **Companion Energy packs**, paid through a payment provider (Stripe for the web app; store billing for store apps).
+- **Bronze / Silver / Gold / Platinum Family** plans whose features are switched in admin, with no code change (§6, JC 17 Nov 2026).
+- **Subscriptions** and a **Companion Energy top-up**, paid through **store billing** (Google Play Billing; Apple later). Stripe is kept out of the native apps.
 - The AI is called **only from the server** (EU region), which checks the account, tier and energy, and records usage. The API key leaves the app.
 - **Reusable:** this is the first app on the **Companion platform** (CompanionApps.studio). Each app's data is kept apart under its `appId` ([ADR 0011](../adr/0011-companion-platform.md)).
 - Household and privacy model: [ADR 0012](../adr/0012-household-privacy-model.md) (JC decision, 14 Nov 2026).
@@ -71,26 +71,52 @@ Needs JC's approval, a fresh backup (Data → Download backup **and** the nightl
 8. Keep the old paths read-only for 30 days, then delete them (separate approval).
 Rollback: switch the flag back; the old paths are unchanged until step 8.
 
-## 6. Tiers (JC, 14 Nov 2026 — defaults; the admin can change them without a code change)
-| | Bronze | Silver | Gold |
-|---|---|---|---|
-| Price | free | £5.99/month or £49/year | £9.99/month or £79/year |
-| AI allowance (AI cost included per month) | ≈ £0.20 | £1.50 | £2.50 |
-| Manual tracking, ratings, Help | ✓ | ✓ | ✓ |
-| AI feedback, Snap (photo checks), meal generator | — | ✓ | ✓ |
-| Body balance, AI-built plans, health sync, household | — | — | ✓ |
+## 6. Tiers (JC, 17 Nov 2026 — replaces the 14 Nov table; defaults, the admin can change them in `config/tiers` without a code change)
+**Principle (JC):** the three pillars — **Health, Eating, Exercise** — are in every plan. **Bronze** = manual tracking, no AI. **Silver** = + the Companion (AI feedback and auto-generated info). **Gold** = + automatic planning. **Platinum Family** = Gold for up to 5 people.
 
-**Energy packs, any tier:** £5 (= £2.50 of AI cost) and £10 (= £5 of AI cost).
-Stored as switches per tier in `apps/{appId}/config/tiers` (`help`, `aiFeedback`, `snap`, `mealGenerator`, `bodyBalance`, `aiPlans`, `healthSync`, `household`, plus `pricePence`, `yearlyPence`, `allowancePence`). The client hides switched-off features; the server refuses AI calls for them.
+| | Bronze | Silver | Gold | Platinum Family |
+|---|---|---|---|---|
+| Price | free | £5.99/month or £49/year | £9.99/month or £79/year | £15.99/month or £159/year |
+| Companion Energy included (AI cost per month) | £0 (no AI) | £1.50 | £2.50 | £7.50, one **shared family pool** |
+| People | 1 | 1 | 1 | up to 5 (owner + 4 invited) |
+| **Body:** manual entries, progress, charts | ✓ | ✓ | ✓ | ✓ |
+| **Health:** vitals, meds, bloods (record only) | ✓ | ✓ | ✓ | ✓ |
+| **Exercise:** built-in list or own, log, progress, rules-based progression | ✓ | ✓ | ✓ | ✓ |
+| **Eating:** built-in foods, UK products, own lists, Build a meal (totals from stored data; nutrition values not editable) | ✓ | ✓ | ✓ | ✓ |
+| Shopping list (manual), mood and journal, colour theme | ✓ | ✓ | ✓ | ✓ |
+| Help | searchable FAQ (from the user guide, no AI) | + Ask the Companion | + | + |
+| Food ratings (RAG), Snap, "My own" item, auto-generated info | — | ✓ | ✓ | ✓ |
+| Companion feedback (exercise, eating, body, health) and chat | — | ✓ | ✓ | ✓ |
+| Body balance, steps / health sync | — | ✓ | ✓ | ✓ |
+| Generate meals, generate shopping list, AI training plans (incl. warm-up / cool-down) | — | — | ✓ | ✓ |
+| Household sharing (visibility, "log for me") | — | — | — | ✓ |
+| Buy an Energy top-up | — | ✓ | ✓ | ✓ (into the family pool) |
 
-## 7. Subscriptions and Companion Energy
-- **Energy** = money for AI, held as **pence of AI cost** on the server. Each AI call debits its **actual cost** (from the model's token prices). The client shows a percentage only.
-- **Packs at 100 % mark-up:** a pack's price is twice the AI cost it credits. **£5 pack → £2.50 of AI cost.**
-  - Card fees (Stripe UK, about 1.5 % + 20p) come out of the margin: on a £5 pack, roughly £0.28, so the margin is about £2.22.
-  - VAT applies only if the business becomes VAT-registered.
-- **Subscriptions** (tier price TBC) include a monthly energy allowance, credited on each successful renewal.
-- **Payments:** Stripe Checkout (hosted) for the web, so card data never touches our systems (SAQ A). A webhook confirms the payment and credits energy; nothing is credited from the browser.
-- **Ledger:** append-only debit/credit entries (amount, time, reference; **no content**). The balance changes only inside a server transaction.
+Feature switches per tier in `apps/{appId}/config/tiers/{tier}`: `foodRatings`, `snap`, `myOwnItem`, `aiFeedback`, `chat`, `aiHelp`, `autoInfo`, `bodyBalance`, `healthSync`, `mealGenerator`, `shoppingGenerator`, `aiPlans`, `household`, `buyEnergy`, `editNutrition`, plus `pricePence`, `yearlyPence`, `allowancePence`, `maxMembers`, `sharedPool`.
+
+**Gating (client and server):**
+- A feature the plan doesn't include shows **"[Feature] is part of Silver."** (or Gold / Platinum) with **See plans**, which opens Settings → My Plan. No AI call is made.
+- A Platinum **secondary member** sees **"Ask [owner] about your family plan"** instead (members can't buy).
+- The server (`aiProxy`) refuses any AI call the person's tier doesn't allow (`permission-denied`), whatever the client sends.
+- **Downgrade keeps all data**, and all of it stays visible; only new generation / AI stops. Nothing is ever deleted on a plan change.
+- **Pilot:** the admin can set any tier by hand (`source: "admin"`, no payment, no expiry, never billed); pilot testers get Gold free.
+
+**Settings → My Plan** (collapsible, collapsed by default, under the colour theme): current plan, renewal date and Companion Energy % (not for Bronze) · comparison of the four plans with a monthly / yearly toggle, the current plan highlighted · Upgrade / Change plan / Manage or cancel (opens the store's subscription page) · "Top up Companion Energy: £5" (Silver and up) · Platinum owner only: **My family** (members, invite by email, remove, family pool %). A Platinum secondary member's Settings shows only the colour theme and "You're on [owner]'s Platinum Family plan".
+
+**JC and Becks:** when tiers go live, JC = **Platinum Family owner**, Becks = Platinum member, admin-granted (source "admin", no payment, no expiry, never billed). This needs the §5a migration first (Becks's own login, household created and joined, both Visible + "log for me"). **The migration and the Platinum grant are ONE approved step**: not executed without JC's go-ahead, a fresh backup and the Architect verifying. Until then the joint account behaves as Platinum (all features on). The family pool starts at £7.50/month; the admin can top it up free for testing.
+
+## 7. Subscriptions, Companion Energy and payments (JC, 17 Nov 2026)
+- **Energy** = money for AI, held as **pence of AI cost** on the server. Each AI call debits its **actual cost**. The client shows a percentage only. Bronze has no Energy.
+- **Allowance:** each plan's monthly allowance is credited on each successful renewal (Platinum: once, into the family pool, not per member).
+- **Top-up:** one product, **£5 → £2.50 of AI cost**, Silver / Gold / Platinum only (Platinum top-ups go into the family pool). Store fees come out of the margin.
+- **Family pool:** one balance per Platinum household (`energy/pool:{hid}`); every member's AI calls debit it; when it's empty, AI stops for the whole family until renewal or a top-up. Capped by what was credited — never negative.
+- **Payments (PAY1, native apps):**
+  - **Android:** Google Play Billing. Subscriptions `silver`, `gold`, `platinum`, each with base plans `monthly` and `yearly`; consumable in-app product `energy_5`. **iOS (later):** StoreKit with the same product IDs.
+  - The app only starts the purchase and sends the **purchase token** to the server. The server **verifies it with the Play Developer API**, then sets the entitlement or credits Energy. **Nothing is credited from the client.**
+  - **Real-time developer notifications** (Play → Pub/Sub → server function) keep entitlements current: renewals credit the allowance; cancellation keeps the plan to the end of the paid period; expiry returns the person to Bronze (data kept).
+  - **Idempotent ledger:** one entry per purchase / renewal (keyed by the order ID), amount, time and reference only, **no content**; a replayed token or notification changes nothing.
+  - **Stripe stays out of the native apps.** The Stripe code remains, switched off, for a possible web-only route later.
+- **Admin grants** (pilot, JC and Becks): `entitlements/{uid}` = `{ tier, source: "admin" }` with no expiry; never billed, never touched by store notifications.
 
 ## 8. Server functions (local build: `functions/`, emulator only)
 | Function | What it does |
@@ -101,12 +127,15 @@ Stored as switches per tier in `apps/{appId}/config/tiers` (`help`, `aiFeedback`
 | `adminAccounts` | Admin only: the account list (status, tier, balance) with **no health data**. |
 | `createCheckout` | Signed-in only: a Stripe Checkout session (test mode) for an energy pack. |
 | `stripeWebhook` | Verifies Stripe's signature, then credits the pack's energy once per payment (idempotent). |
+| `playVerify` | Signed-in only: verifies a Play purchase token with the Play Developer API, then sets the entitlement or credits the top-up (idempotent by order ID). |
+| `playNotify` | Real-time developer notifications (Pub/Sub push): renewals credit the allowance, expiry returns to Bronze. |
+| `familyPool` | Platinum: one shared Energy pool per household; members' AI calls debit it. |
 | `grantMonthly` | (later) monthly allowance per tier. |
 
 The region is `europe-west1`. Configuration comes from environment/secrets: no keys in the repository.
 
 ## 9. Client
-Behind flags, **all off by default**: `useAiProxy`, `useAccounts`, `showBuyEnergy`. With every flag off the app behaves exactly as today.
+Behind flags, **all off by default**: `useAiProxy`, `useAccounts`, `showBuyEnergy`, `useTiers` (v2.22.0: on for /build/ only until JC approves). With every flag off the app behaves exactly as today.
 
 ## 10. Database rules (next)
 `database.rules.next.json` (**not deployed**) implements §2–§4: own data only by default; household members read another member's data only when that person is Visible (per area if `areas` is set) and write only when "log for me" is also on; `logForMe` can't be on while Hidden; households and membership are written by server functions only; the owner has no extra data access; entitlements, energy, ledger and usage are server-only; admins read `admin/accounts` and the Tracker, never `users/*`. Emulator tests: `functions/test/rules.test.mjs`.
