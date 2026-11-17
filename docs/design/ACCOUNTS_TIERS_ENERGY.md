@@ -71,6 +71,20 @@ Needs JC's approval, a fresh backup (Data → Download backup **and** the nightl
 8. Keep the old paths read-only for 30 days, then delete them (separate approval).
 Rollback: switch the flag back; the old paths are unchanged until step 8.
 
+## 5b. JC and Becks → Platinum Family: ONE approved step (plan only — **NOT executed**)
+JC (17 Nov 2026): "Plan the migration and the Platinum grant as ONE approved step; don't execute without JC's go-ahead, a fresh backup and the Architect verifying."
+**Before:** JC says go · fresh backup (Data → Download backup **and** the nightly vault backup) checked to open · the server functions deployed (separately approved) · the Architect has reviewed the script and the target rules.
+1. Freeze: read-only mode (admin flag) for the window.
+2. Becks creates **her own login**; each of you signs in once on the new version (each gets a `uid`).
+3. The §5a copy script moves each person's data to `apps/lifecare/users/{uid}/data/{area}` (counts per person checked, no content printed).
+4. **Grant** (admin, `setTier`): JC → `platinum` (source `admin`, no payment, no expiry, never billed); Becks needs no entitlement of her own — she gets Platinum as a member.
+5. JC creates the household (My Plan → My family) and invites Becks by email; Becks accepts with her own login.
+6. Both set **Visible** and **Household members can log for me** (as today).
+7. Admin tops up the family pool for testing (`adminTopUp`, free) — the pool starts at £7.50/month.
+8. Verify with the Architect: JC's My Plan shows Platinum Family owner, Becks's Settings shows "You're on JC's Platinum Family plan", each sees the other's tab, AI works for both, counts match the backup.
+9. Switch the app to the new paths (flag); retire the joint account from the app; the joint UID stays protected from deletion.
+**Rollback:** switch the flag back; the old `data/…` paths are untouched until §5a step 8 (separately approved).
+
 ## 6. Tiers (JC, 17 Nov 2026 — replaces the 14 Nov table; defaults, the admin can change them in `config/tiers` without a code change)
 **Principle (JC):** the three pillars — **Health, Eating, Exercise** — are in every plan. **Bronze** = manual tracking, no AI. **Silver** = + the Companion (AI feedback and auto-generated info). **Gold** = + automatic planning. **Platinum Family** = Gold for up to 5 people.
 
@@ -109,7 +123,7 @@ Feature switches per tier in `apps/{appId}/config/tiers/{tier}`: `foodRatings`, 
 - **Energy** = money for AI, held as **pence of AI cost** on the server. Each AI call debits its **actual cost**. The client shows a percentage only. Bronze has no Energy.
 - **Allowance:** each plan's monthly allowance is credited on each successful renewal (Platinum: once, into the family pool, not per member).
 - **Top-up:** one product, **£5 → £2.50 of AI cost**, Silver / Gold / Platinum only (Platinum top-ups go into the family pool). Store fees come out of the margin.
-- **Family pool:** one balance per Platinum household (`energy/pool:{hid}`); every member's AI calls debit it; when it's empty, AI stops for the whole family until renewal or a top-up. Capped by what was credited — never negative.
+- **Family pool:** one balance per Platinum family (`familyEnergy/{ownerUid}`, ledger `familyLedger/{ownerUid}`); every member's AI calls debit it; when it's empty, AI stops for the whole family until renewal or a top-up. Capped by what was credited — never negative.
 - **Payments (PAY1, native apps):**
   - **Android:** Google Play Billing. Subscriptions `silver`, `gold`, `platinum`, each with base plans `monthly` and `yearly`; consumable in-app product `energy_5`. **iOS (later):** StoreKit with the same product IDs.
   - The app only starts the purchase and sends the **purchase token** to the server. The server **verifies it with the Play Developer API**, then sets the entitlement or credits Energy. **Nothing is credited from the client.**

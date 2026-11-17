@@ -51,6 +51,28 @@
 38. Send Becks the same link; she accepts and installs from Google Play.
 39. On the phone: open Lifecare Companion → **Sign in with Google** (Android's account picker) → check the footer shows **v2.21.0** and your real data (release builds use `data`).
 
+## J22 — Plans and the Energy top-up in Play Console (v2.22.0, PAY1)
+Nothing is charged until the server functions are deployed (a separate, approved step). Licence testers are never charged.
+40. Play Console → **Setup → Payments profile** → create or link the merchant (payments) profile for Companion Apps Studio™ (needed before anything can be sold).
+41. Play Console → Lifecare Companion → **Monetize with Play → Products → Subscriptions** → **Create subscription**: Product ID `silver`, name **Silver** → Create.
+42. In `silver` → **Add base plan**: ID `monthly`, Auto-renewing, billing period **1 month**, price **£5.99** (United Kingdom) → Save → **Activate**.
+43. In `silver` → **Add base plan**: ID `yearly`, Auto-renewing, billing period **1 year**, price **£49** → Save → **Activate**.
+44. **Create subscription**: Product ID `gold`, name **Gold** → Create.
+45. In `gold` → base plan `monthly`, 1 month, **£9.99** → Save → Activate.
+46. In `gold` → base plan `yearly`, 1 year, **£79** → Save → Activate.
+47. **Create subscription**: Product ID `platinum`, name **Platinum Family** → Create.
+48. In `platinum` → base plan `monthly`, 1 month, **£15.99** → Save → Activate.
+49. In `platinum` → base plan `yearly`, 1 year, **£159** → Save → Activate.
+50. **Monetize with Play → Products → One-time products** → **Create product**: Product ID `energy_5`, name **Companion Energy top-up**, description "£2.50 of Companion Energy", price **£5** → Save → **Activate**.
+51. Play Console (All apps) → **Settings → License testing** → add your Google account and Becks's → License response **RESPOND_NORMALLY** → Save. (Purchases by these accounts use test cards and are never charged.)
+52. Google Cloud console (project life-care-app-64d04) → **IAM & Admin → IAM** → copy the email of the **Cloud Functions default service account** (the server uses it to ask Google about purchases).
+53. Play Console → **Users and permissions** → Invite new users → paste that email → App permissions: Lifecare Companion → tick **View financial data** and **Manage orders and subscriptions** only → Invite.
+54. Google Cloud console → **Pub/Sub → Topics** → **Create topic** with ID `play-rtdn` (no default subscription needed) → Create.
+55. Open `play-rtdn` → **Permissions** → Add principal `google-play-developer-notifications@system.gserviceaccount.com` with role **Pub/Sub Publisher** → Save.
+56. Play Console → Lifecare Companion → **Monetize with Play → Monetization setup** → Real-time developer notifications → Topic name `projects/life-care-app-64d04/topics/play-rtdn` → Save.
+57. Same page → **Send test notification** (after the functions are deployed it shows in the function log as "playNotify: test").
+58. Tell the Coder/Architect J22 is done. The functions (`playVerify`, `playNotify`) are deployed only after JC approves, with a fresh backup.
+
 ## Fingerprints — which go where
 | Key | Where it comes from | Register in Firebase (Android app) |
 |---|---|---|
