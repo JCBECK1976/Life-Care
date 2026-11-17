@@ -13,6 +13,8 @@ import AiUsageCard from "../components/AiUsageCard.jsx";
 import Tracker from "../components/Tracker.jsx";
 import ContactEmailCard from "../components/ContactEmailCard.jsx";
 import { DOCS_INDEX, VAULT_DOCS } from "../constants/docsIndex.js";
+import MyPlanCard from "../components/MyPlanCard.jsx";
+import { tiersOn, usePlan } from "../lib/myPlan.js";
 
 // v2.15.0 C: admin sections. "Reset to Default Data" was removed (recovery = Download backup + Restore).
 var REPO = "https://github.com/JCBECK1976/Life-Care";
@@ -37,6 +39,7 @@ export default function SettingsSection({ ctx }) {
     isAdmin, isJC, measInputs, setCustomMeasTypes, setSection, setDebugLog, setDebugMode, setFormMsg, setGoogleConnected,
     setGoogleToken, setMeasInputs, setUserColour, syncGoogleHealth, syncLoading, userColour
   } = ctx;
+  const plan = usePlan();
 
   return (
 <div>
@@ -55,6 +58,10 @@ export default function SettingsSection({ ctx }) {
             </div>
           </div>
 
+          {/* v2.22.0 (ADR 0017): My Plan, under the colour theme (flag useTiers). A Platinum family member sees only the theme. */}
+          {tiersOn() && plan.role === "member" && <div data-testid="plan-member-note" style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 13, color: "#0f172a" }}>You're on {plan.ownerName}'s Platinum Family plan.</div>}
+          {tiersOn() && plan.role !== "member" && <MyPlanCard energyPct={companionEnergy && companionEnergy.pct} />}
+          {plan.role !== "member" && (<>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Data Admin</div>
 
           {/* v2.16.2 R4: Google Health (cloud API), rebuilt — token on this device only, honest status */}
@@ -185,6 +192,7 @@ export default function SettingsSection({ ctx }) {
 
           <PrivacyDataCard person={activeTab} name={(data && data[activeTab] && data[activeTab].profile && data[activeTab].profile.name) || activeTab} isAdmin={isAdmin} />
           <AccountCard />
+          </>)}
         </div>
   );
 }

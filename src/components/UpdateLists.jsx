@@ -6,6 +6,8 @@ import { clarifyTurn, identifyFood } from "../lib/clarify.js";
 import { fuzzyFind, searchGeneric, correctedQuery, words } from "../lib/foodSearch.js";
 import { searchOff, productType, needsPortionCheck, packSize } from "../lib/off.js";
 import { GENERIC_LABEL } from "../constants/genericFoods.js";
+import { planAllows } from "../lib/myPlan.js";
+import { GatePrompt } from "./PlanGate.jsx";
 
 // v2.19.0 Update Lists (docs/design/EATING_LISTS.md §3): Single item · Build a meal · My own.
 // Everything is per portion; all three end with Save → D11 rating (per portion) → the chosen category lists, optionally
@@ -414,7 +416,7 @@ export default function UpdateLists(props) {
     </div>
     {tab === "single" && <SingleItem key={"s" + k} {...common} />}
     {tab === "meal" && <MealBuilder key={"m" + k} {...common} />}
-    {tab === "own" && <OwnItem key={"o" + k} {...common} />}
+    {tab === "own" && (planAllows("myOwnItem") ? <OwnItem key={"o" + k} {...common} /> : <GatePrompt feature="myOwnItem" />)}   {/* v2.22.0: My own is part of Silver */}
   </div>);
 }
 export { withPortionValues };

@@ -65,13 +65,19 @@ export async function loadPlan() {
 }
 
 /** Does the current plan include this feature? Always true with the flag off. */
-export function planAllows(feature) { return !tiersOn() || tierAllows(current.tier, feature, current.tiers); }
+export function planAllows(feature) { return !tiersOn() || (current.loaded === true && tierAllows(current.tier, feature, current.tiers)); }   // nothing until the plan is known
 
 /** The gating line: "[Feature] is part of Silver." — a Platinum member gets "Ask [owner] about your family plan". */
 export function gateText(feature) { return current.role === "member" ? "Ask " + (current.ownerName || "the plan owner") + " about your family plan." : gateMessage(feature, current.tiers); }
 
 /** Show the gating prompt (the app renders it; see PlanGate). */
-export function showGate(feature) { window.dispatchEvent(new CustomEvent("lc-plan-gate", { detail: { feature: feature } })); }
+var lastTap = 0;
+if (typeof window !== "undefined") ["pointerdown", "keydown"].forEach(function(t) { window.addEventListener(t, function() { lastTap = Date.now(); }, true); });
+export function showGate(feature) {
+  // only right after the person tapped something: background AI work (e.g. guides refreshing) is stopped silently
+  if (Date.now() - lastTap > 4000) return;
+  window.dispatchEvent(new CustomEvent("lc-plan-gate", { detail: { feature: feature } }));
+}
 /** Open Settings → My Plan. */
 export function openPlans() { window.dispatchEvent(new CustomEvent("lc-open-plans")); }
 

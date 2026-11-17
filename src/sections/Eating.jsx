@@ -18,6 +18,8 @@ import { accentVariant } from "../lib/colour.js";
 import { personName } from "../components/PersonTabs.jsx";
 import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
 import { stripKcal as stripKcalName } from "../lib/nutrition.js";
+import { planAllows } from "../lib/myPlan.js";
+import { GatePrompt } from "../components/PlanGate.jsx";
 import { askItem, askItemsBatch, recheckBatch, recheckFlag, CLARIFY_SYSTEM } from "../lib/clarify.js";
 import { applyDefaultsTo, generatorSummary, mergeGenerated, selectionName } from "../lib/meals.js";
 import { fuzzyFind } from "../lib/foodSearch.js";
@@ -902,8 +904,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       </div>
                       {editDraft.itemType === "ingredient" && (<div style={{ marginBottom: 8 }}>
                         <div style={{ fontSize: 9, fontWeight: 600, color: "#475569", marginBottom: 4 }}>🧾 Ingredients <span style={{ fontWeight: 400 }}>(edit to match your recipe)</span></div>
-                        <textarea id={"edit-item-ingredients-" + item.id} defaultValue={(editDraft.ingredients || []).join(", ")} style={{ width: "100%", padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 10, minHeight: 50, resize: "vertical", boxSizing: "border-box", lineHeight: 1.4 }} placeholder="e.g. oats (85g), almond milk (300ml)..." />
-                        <div style={{ fontSize: 8, color: "#475569", marginTop: 3, fontStyle: "italic" }}>Any changes to ingredients or portions will update nutritional values when confirmed</div>
+                        <textarea id={"edit-item-ingredients-" + item.id} readOnly={!planAllows("editNutrition")} aria-readonly={!planAllows("editNutrition")} defaultValue={(editDraft.ingredients || []).join(", ")} style={{ width: "100%", padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 10, minHeight: 50, resize: "vertical", boxSizing: "border-box", lineHeight: 1.4 }} placeholder="e.g. oats (85g), almond milk (300ml)..." />
+                        {planAllows("editNutrition") ? <div style={{ fontSize: 8, color: "#475569", marginTop: 3, fontStyle: "italic" }}>Any changes to ingredients or portions will update nutritional values when confirmed</div> : <GatePrompt feature="editNutrition" style={{ marginTop: 6 }} />}   {/* v2.22.0 Bronze: values come from stored data only */}
                       </div>)}
                       {editClarify && (<div data-testid="edit-clarify"><div style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>Your ingredients changed — your Companion will work out the values per portion. Check the text, then Send.</div>
                         <ClarifyChat seed={editClarify} onResult={function(it) { var cur = editDraft; var ing = (cur.ingredients || []).join(", "); var upd = withRuleRating(withPortionValues(Object.assign({}, cur, { servings: it.servings, portion: it.portion, originalIngredients: ing, recalculated: true, portionCheck: false }), itemNutrition(it))); setEditDraft(upd); setEditClarify(null); setFormMsg("✅ Nutritional values updated per portion: " + upd.kcal + " kcal (" + portionLabel(upd) + "). Press Save to keep them."); }} /></div>)}

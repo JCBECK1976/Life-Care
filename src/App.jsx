@@ -33,6 +33,7 @@ import { nextLogPrefill } from "./lib/exercise.js";
 import { calcWeek, countStatus, fbIcon, fmtDate, getWeekDates, mealKey, sBg, sColor, sLabel } from "./lib/utils.js";
 import { sGet, sSet } from "./lib/storage.js";
 import { handleApiError } from "./lib/api.js";
+import { planAllows } from "./lib/myPlan.js";
 import { BodyCard, FullChart } from "./components/charts.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import DataSection from "./sections/Data.jsx";
@@ -69,6 +70,8 @@ function Dashboard() {
   const activeTabRef = useRef(activeTab);
   activeTabRef.current = activeTab;
   const [section, setSection] = useState("overview"); // always starts on Home
+  /* v2.22.0: "See plans" (a gating prompt) opens Settings → My Plan */
+  useEffect(function() { var on = function() { if (!document.querySelector("[data-testid=my-plan]")) window._lcOpenMyPlan = true; setSection("admin"); }; window.addEventListener("lc-open-plans", on); return function() { window.removeEventListener("lc-open-plans", on); }; }, []);
   useEffect(() => { window._lcSection = section; }, [section]);   // v2.14.0 item 9: AI usage per feature
   const [weekOff, setWeekOff] = useState(function() { var diff = Math.floor((new Date() - new Date(2026, 6, 19)) / (7*24*60*60*1000)); return diff; });
   const [meals, setMeals] = useState({});
@@ -772,6 +775,7 @@ function Dashboard() {
         var already = await sGet("companion_energy"); var ap = null; try { ap = already ? JSON.parse(already) : null; } catch (pe) {}
         if (ap && ap.lastCheck === today && ap.keyStatus === "active") { window._setCompanionEnergy(ap); setEnergyLoading(false); return; }
       }
+      if (!planAllows("aiFeedback")) { setEnergyLoading(false); return; }   /* v2.22.0: no key check (an AI call) on a plan without AI */
       var ak = await window.ensureApiKey();
       if (!ak) { window._setCompanionEnergy({ balance: 0, pct: 0, keyStatus: "no_key", initial: 5, spent: 0 }); setEnergyLoading(false); return; }
       var pingResp = await window._origFetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": ak, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1, messages: [{ role: "user", content: "hi" }] }) });

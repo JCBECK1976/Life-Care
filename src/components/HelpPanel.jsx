@@ -3,6 +3,8 @@ import { btnClose } from "../constants/styles.js";
 import LoadingDots from "./LoadingDots.jsx";
 import ChatThread from "./ChatThread.jsx";
 import { qaToMessages } from "../lib/memory.js";
+import { planAllows, usePlan } from "../lib/myPlan.js";
+import HelpFaq from "./HelpFaq.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -11,6 +13,7 @@ export default function HelpPanel({ ctx }) {
     accentBorder, accentChatUser, activeTab, askHelp, helpHistory, helpLoading, helpMsg, helpOpen,
     setHelpOpen, setShowHelpHistory, showHelpHistory
   } = ctx;
+  usePlan();   /* v2.22.0: re-render when the plan changes */
   const dlgRef = useDialog(!!(helpOpen), () => setHelpOpen(false));   /* v2.20.0: Esc closes, focus kept inside */
 
   return (<>
@@ -21,6 +24,7 @@ export default function HelpPanel({ ctx }) {
             <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Help — using the app</div>
             <button aria-label="Close help" onClick={() => setHelpOpen(false)} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
           </div>
+          {planAllows("aiHelp") ? (<>
           <div style={{ padding: "8px 16px 8px", borderBottom: "1px solid #f1f5f9" }}>   {/* v2.20.0: input at the top, above the newest message */}
             {helpMsg && <div role="status" aria-live="polite" style={{ marginBottom: 6, padding: 8, borderRadius: 6, background: "#fee2e2", color: "#991b1b", fontSize: 11, fontWeight: 600 }}>{helpMsg}</div>}
             <div style={{ display: "flex", gap: 6 }}>
@@ -36,6 +40,7 @@ export default function HelpPanel({ ctx }) {
               {helpHistory[activeTab].length > 3 && <button onClick={() => setShowHelpHistory(!showHelpHistory)} style={{ fontSize: 11, color: "#475569", background: "none", border: "none", cursor: "pointer", padding: "0 0 8px" }}>{showHelpHistory ? "Hide" : "Show"} older messages ({helpHistory[activeTab].length - 3})</button>}
             </div>)}
           </div>
+          </>) : <HelpFaq />}   {/* v2.22.0: Bronze → searchable guide, no AI */}
         </div>
       </div>}
   </>);
