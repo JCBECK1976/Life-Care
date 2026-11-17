@@ -21,7 +21,7 @@ import ChatThread from "./components/ChatThread.jsx";
 import { TONE_RULES, WELLBEING_RULES } from "./constants/tone.js";
 import { MOOD_COLORS, MOOD_EMOJIS, MOOD_LABELS } from "./constants/mood.js";
 import { COLOUR_THEMES } from "./constants/themes.js";
-import { DEFAULT_DATA } from "./constants/defaultData.js";
+import { DEFAULT_DATA, newAccountData } from "./constants/defaultData.js";
 import { BREAKFASTS, DAY_MAP, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, MEAL_DAYS, POTATO_SIDES, SNACKS, VEG_SIDES } from "./constants/food.js";
 import { DEFAULT_EXERCISES, EXERCISE_DATABASE, EXERCISE_TYPES, PIN_WEIGHTS } from "./constants/exercise.js";
 import { BLOOD_TESTS, DEFAULT_MEDS, DEFAULT_SUPPS, IDEALS } from "./constants/health.js";
@@ -514,10 +514,14 @@ function Dashboard() {
         if (stripOldCalorieSettings(d)) migrated = true; // v2.17.2: remove the old kcal deficit + R6 admin switch
         if (migrated) await sSet("dashboard:data", JSON.stringify(d));
         try { await refreshRatingsOnce(d); } catch (e) { /* v2.18.3: one-off refresh of current/future weeks' stored ratings */ }
+        /* v2.25.0: an individual store holds one person, under their own key (a migrated Becks stays "becks") */
+        if (!d.jc) { var _first = Object.keys(d).find(function(k) { return k !== "config"; }); if (_first) setActiveTab(_first); }
         setData(d);
       } else {
-        setData(DEFAULT_DATA);
-        await sSet("dashboard:data", JSON.stringify(DEFAULT_DATA));
+        /* v2.25.0: a new individual account starts empty — never with the household data */
+        var _start = window._lcIndividual ? newAccountData(window._lcIndividual.name) : DEFAULT_DATA;
+        setData(_start);
+        await sSet("dashboard:data", JSON.stringify(_start));
       }
       setLoading(false);
     })();

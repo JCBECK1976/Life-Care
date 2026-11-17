@@ -32,6 +32,8 @@ export const acceptInvite = onCall(opts, wrap((c) => core.acceptInvite(c, { db: 
 export const removeMember = onCall(opts, wrap((c) => core.removeMember(c, { db: db() })));
 export const leaveHousehold = onCall(opts, wrap((c) => core.leaveHousehold(c, { db: db() })));
 export const setTier = onCall(opts, wrap((c) => core.setTier(c, { db: db() })));
+export const createPilotInvite = onCall(opts, wrap((c) => core.createPilotInvite(c, { db: db() })));   // v2.25.0 admin: a pilot test user
+export const acceptPilotInvite = onCall(opts, wrap((c) => core.acceptPilotInvite(c, { db: db() })));
 export const adminTopUp = onCall(opts, wrap((c) => core.adminTopUp(c, { db: db() })));   // admin: free Energy for testing
 export const adminAccounts = onCall(opts, wrap((c) => core.adminAccounts(c, { db: db() })));
 export const createCheckout = onCall({ ...opts, secrets: [STRIPE_KEY] }, wrap((c) => core.createCheckout(c, { stripe: new Stripe(process.env.STRIPE_SECRET_KEY), baseUrl: process.env.APP_BASE_URL || "https://jcbeck1976.github.io/Life-Care/" })));

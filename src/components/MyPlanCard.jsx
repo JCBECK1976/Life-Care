@@ -134,9 +134,10 @@ export default function MyPlanCard(props) {
               <input id="family-invite" type="email" value={email} onChange={function(e) { setEmail(e.target.value); }} placeholder="name@example.com" style={{ flex: 1, minWidth: 0, padding: "8px 10px", fontSize: 14, borderRadius: 8, border: "1px solid #cbd5e1" }} />
               <button type="button" data-testid="family-invite-btn" disabled={busy || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)} style={btnP} onClick={function() { var e = email; setEmail(""); run(async function() {
                 var t = await auth.currentUser.getIdToken();
-                if (!plan.family) await callFunction("createHousehold", { appId: APP_ID }, t).catch(function() {});
+                var hid = plan.family && plan.family.hid;
+                if (!hid) hid = ((await callFunction("createHousehold", { appId: APP_ID }, t).catch(function() { return {}; })) || {}).hid || plan.hid;
                 var r = await callFunction("inviteMember", { appId: APP_ID, email: e }, t);
-                return { ok: true, msg: "✓ Invite ready for " + e + ". Send them this link: " + location.origin + location.pathname + "?join=" + encodeURIComponent((r && r.code) || "") };
+                return { ok: true, msg: "✓ Invite ready for " + e + ". Send them this link: " + location.origin + location.pathname + "?join=" + encodeURIComponent((hid || "") + "." + ((r && r.code) || "")) };
               }); }}>Invite</button>
             </div>
           </>}

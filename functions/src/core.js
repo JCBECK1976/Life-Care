@@ -207,3 +207,33 @@ export async function leaveHousehold({ uid, data }, { db }) {
   await db.ref().update(h.owner === uid ? { [H(app, hid)]: null, [M(app, uid)]: null } : { [H(app, hid) + "/members/" + uid]: null, [M(app, uid)]: null });
   return { ok: true };
 }
+
+/* ---------- v2.25.0: pilot test users (admin) ----------
+   The admin invites a test user by email with a plan (default Gold). The user opens the link, signs in with that email
+   and gets an admin grant (source "admin", pilot, never billed). Their data lives only in apps/{app}/users/{uid}. */
+const PI = (app, code) => `apps/${app}/pilotInvites/${code}`;
+export async function createPilotInvite({ uid, data }, { db, now = Date.now(), makeCode }) {
+  need(await isAdmin(db, uid) || LOCKED_UIDS.indexOf(uid) >= 0, "permission-denied", "Admins only.");
+  const app = appOf(data);
+  const email = String((data && data.email) || "").trim().toLowerCase();
+  need(/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email), "invalid-argument", "A valid email is needed.");
+  const tier = (data && data.tier) || "gold";
+  need(TIER_ORDER.includes(tier), "invalid-argument", "Unknown plan.");
+  const code = (makeCode || (() => db.ref().push().key.replace(/[^A-Za-z0-9]/g, "")))();
+  await db.ref(PI(app, code)).set({ email, tier, created: now, by: uid.slice(0, 6) });
+  return { code };
+}
+export async function acceptPilotInvite({ uid, email, data }, { db, now = Date.now() }) {
+  need(uid, "unauthenticated", "Sign in first.");
+  const app = appOf(data); const code = String((data && data.code) || "");
+  const inv = code ? (await db.ref(PI(app, code)).once("value")).val() : null;
+  need(inv, "not-found", "This invite isn't valid any more.");
+  need(inv.email === String(email || "").toLowerCase(), "permission-denied", "Sign in with the email the invite was sent to.");
+  need(now - (inv.created || 0) < 14 * 86400000, "deadline-exceeded", "This invite has expired.");
+  await db.ref().update({
+    [P.ent(app, uid)]: { tier: inv.tier, since: now, source: "admin", pilot: true },
+    [P.account(app, uid) + "/tier"]: inv.tier, [P.account(app, uid) + "/updated"]: now,
+    [PI(app, code)]: null,
+  });
+  return { tier: inv.tier };
+}

@@ -155,7 +155,7 @@ test("My Plan as a Platinum owner: family members, family pool %, invite by emai
   await expect(fam).toContainText("3 places left");
   await fam.getByLabel(/Invite by email/).fill("pat@example.com");
   await fam.getByTestId("family-invite-btn").click();
-  await expect(page.getByTestId("plan-msg")).toContainText("?join=abc123");
+  await expect(page.getByTestId("plan-msg")).toContainText("?join=h1.abc123");
   expect(invited).toBe("pat@example.com");
 });
 

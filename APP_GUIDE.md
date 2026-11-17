@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.24.0 · 18 November 2026
+> Last updated: v2.25.0 · 18 November 2026
 
 ---
 
@@ -564,6 +564,13 @@ When someone signs in with **their own account** for the first time (never JC an
 3. **Your choices**, each separate and **off until you turn it on**: **AI processing** (the Companion's feedback, ratings and answers), **photo analysis** (needs AI), **health sync** (steps), **body balance checks** (needs AI and photos).
 Then the usual goal setup. **Without AI processing the app still works for manual tracking** (like Bronze), whatever your plan, with a calm note where an AI feature would be and a **Privacy choices** button.
 Change any choice at any time in **Settings → 🔐 My privacy choices**. Turning one off switches its features off straight away (in the app and on our server); nothing you've recorded is deleted. Each change is recorded (when and what, never your health data).
+
+### 👤 Your own account, families and invites (being tested on Build)
+- **Signing in:** Continue with **Google**, **Apple**, or type your email and tap **Email me a link** (no password: open the link on the same device). On a computer, if Google asks for your phone, choose **Try another way**.
+- **Your own account** starts empty and only ever holds **your** records: it never shows JC and Becks's shared household data.
+- **Joining a family:** open the invite link from the plan owner, sign in **with the email address the invite was sent to**, tap **Join the family**, then choose who can see your data: **Hidden** (recommended, the default: others see your name greyed out) or **Visible**; with Visible you can also allow **Household members can log for me**. Change this any time. Being the owner never gives access to anyone's data.
+- **In a family:** a Visible member's records appear under their own tab; you can add entries for them only if they allowed "log for me".
+- **Pilot testers:** the developer can invite a tester by email with a free test plan; the tester opens the link, signs in with that email and taps **Accept the invite**.
 
 ### 💳 My Plan — Bronze, Silver, Gold, Platinum Family (being tested on Build)
 Every plan includes the three pillars: **Health, Eating and Exercise**.

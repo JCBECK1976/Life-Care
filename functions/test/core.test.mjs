@@ -203,3 +203,18 @@ test("consent (v2.24.0): each opt-in switches its features off on the server; te
   await assert.rejects(call("bodyBalance"), { message: "This is off in your privacy choices (bodyBalance)." });
   assert.equal(await core.consentMissing(db, A, "3iEIfsbZlaUMwUiGY6Lro4jAQef1", "aiFeedback"), null);   // the joint account: exempt
 });
+
+test("pilot test users (v2.25.0): admin invites by email with a plan (default Gold); only that email can accept, once; it lands as an admin grant", async () => {
+  await assert.rejects(core.createPilotInvite({ uid: "u1", data: { email: "t@example.com" } }, { db }), { code: "permission-denied" });
+  const { code } = await core.createPilotInvite({ uid: "uid-admin", data: { email: "Tester@Example.com" } }, { db, makeCode: () => "pil1" });
+  await assert.rejects(core.acceptPilotInvite({ uid: "t1", email: "other@example.com", data: { code } }, { db }), { code: "permission-denied" });
+  const r = await core.acceptPilotInvite({ uid: "t1", email: "tester@example.com", data: { code } }, { db });
+  assert.equal(r.tier, "gold");
+  const e = (await db.ref(`apps/${A}/entitlements/t1`).once("value")).val();
+  assert.deepEqual([e.tier, e.source, e.pilot, e.expires], ["gold", "admin", true, undefined]);
+  await assert.rejects(core.acceptPilotInvite({ uid: "t2", email: "tester@example.com", data: { code } }, { db }), { code: "not-found" });   // once
+  const s2 = (await core.createPilotInvite({ uid: "uid-admin", data: { email: "s@example.com", tier: "silver" } }, { db, makeCode: () => "pil2" })).code;
+  assert.equal((await core.acceptPilotInvite({ uid: "t3", email: "s@example.com", data: { code: s2 } }, { db })).tier, "silver");
+  const old = (await core.createPilotInvite({ uid: "uid-admin", data: { email: "o@example.com" } }, { db, now: 0, makeCode: () => "pil3" })).code;
+  await assert.rejects(core.acceptPilotInvite({ uid: "t4", email: "o@example.com", data: { code: old } }, { db }), { code: "deadline-exceeded" });
+});

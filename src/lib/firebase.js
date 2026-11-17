@@ -27,7 +27,12 @@ if (import.meta.env.DEV) {
 
 // Where the app's data lives in Firebase. Set per environment by the deploy workflow:
 // "data" for prod and beta, "data_build" for build. Defaults to "data".
-export const DATA_ROOT = import.meta.env.VITE_DATA_ROOT || "data";
+export const SHARED_ROOT = import.meta.env.VITE_DATA_ROOT || "data";
+/* v2.25.0 (Step 5, flag useAccounts): a LIVE binding — the shared joint account keeps SHARED_ROOT; an individual account
+   reads and writes only its own store, apps/lifecare/users/{uid}/store (lib/accounts.js switches it at sign-in, before
+   any data is read). Every module that imports DATA_ROOT sees the switch. */
+export let DATA_ROOT = SHARED_ROOT;
+export function setDataRoot(root) { DATA_ROOT = root || SHARED_ROOT; }
 
 // Global API key holder
 window._anthropicKey = "";

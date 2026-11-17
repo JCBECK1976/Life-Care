@@ -42,7 +42,38 @@
             },
             "consent": {
               ".read": "auth != null && auth.uid === $uid",
-              ".write": "auth != null && auth.uid === $uid"
+              "accepted": {
+                ".write": "auth != null && auth.uid === $uid"
+              },
+              "adult": {
+                ".write": "auth != null && auth.uid === $uid"
+              },
+              "termsVersion": {
+                ".write": "auth != null && auth.uid === $uid"
+              },
+              "privacyVersion": {
+                ".write": "auth != null && auth.uid === $uid"
+              },
+              "at": {
+                ".write": "auth != null && auth.uid === $uid"
+              },
+              "ai": {
+                ".write": "auth != null && auth.uid === $uid"
+              },
+              "photos": {
+                ".write": "auth != null && auth.uid === $uid"
+              },
+              "health": {
+                ".write": "auth != null && auth.uid === $uid"
+              },
+              "bodyBalance": {
+                ".write": "auth != null && auth.uid === $uid"
+              },
+              "history": {
+                "$h": {
+                  ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.exists()"
+                }
+              }
             },
             "data": {
               ".read": "auth != null && auth.uid === $uid",
@@ -51,6 +82,10 @@
                 ".read": "auth != null && root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val() && root.child('apps').child($app).child('users').child($uid).child('privacy/visible').val() === true && (!root.child('apps').child($app).child('users').child($uid).child('privacy/areas').exists() || root.child('apps').child($app).child('users').child($uid).child('privacy/areas').child($area).val() === true)",
                 ".write": "auth != null && root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val() && root.child('apps').child($app).child('users').child($uid).child('privacy/visible').val() === true && root.child('apps').child($app).child('users').child($uid).child('privacy/logForMe').val() === true && (!root.child('apps').child($app).child('users').child($uid).child('privacy/areas').exists() || root.child('apps').child($app).child('users').child($uid).child('privacy/areas').child($area).val() === true)"
               }
+            },
+            "store": {
+              ".read": "auth != null && (auth.uid === $uid || (root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val() && root.child('apps').child($app).child('users').child($uid).child('privacy/visible').val() === true))",
+              ".write": "auth != null && (auth.uid === $uid || (root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val() && root.child('apps').child($app).child('users').child($uid).child('privacy/visible').val() === true && root.child('apps').child($app).child('users').child($uid).child('privacy/logForMe').val() === true))"
             }
           }
         },
@@ -111,6 +146,9 @@
           }
         },
         "purchases": {
+          ".read": false
+        },
+        "pilotInvites": {
           ".read": false
         }
       }

@@ -3,15 +3,57 @@ import firebase, { DATA_ROOT } from "./firebase.js";
 // ═══════════════════════════════════════════════════
 // STORAGE HELPERS (bulletproof)
 // ═══════════════════════════════════════════════════
+/* v2.25.0 (Step 5, ADR 0012): in an individual account, a Visible family member's records come from THEIR store:
+   window._lcMembers = { personKey: { uid, store, canWrite } } (lib/accounts.js loadHousehold). A key named for that
+   person (journal_becks, mealplan:…:becks) is read from / written to their store; "dashboard:data" is merged (their
+   person shown under their own key) and split again on save. Writes to a member only work with "log for me" (the
+   database rules enforce it; without it the write is refused and their data is unchanged). */
+var PERSON = /(^|[_:])([a-z][a-z0-9]*)(?=$|[_:])/g;
+function memberFor(key) {
+  var m = window._lcMembers; if (!m) return null;
+  var t; PERSON.lastIndex = 0;
+  while ((t = PERSON.exec(key))) { if (m[t[2]]) return m[t[2]]; }
+  return null;
+}
+var clean = function(key) { return key.replace(/[.#$/\[\]]/g, "_"); };
 export async function sGet(key) {
   try {
-    var snap = await firebase.database().ref(DATA_ROOT + "/" + key.replace(/[.#$/\[\]]/g, "_")).once("value");
+    if (key === "dashboard:data" && window._lcMembers) return await getMerged();
+    var mem = memberFor(key);
+    var snap = await firebase.database().ref((mem ? mem.store : DATA_ROOT) + "/" + clean(key)).once("value");
     return snap.exists() ? snap.val() : null;
   } catch(e) { return null; }
 }
 
 export async function sSet(key, val) {
   try {
-    await firebase.database().ref(DATA_ROOT + "/" + key.replace(/[.#$/\[\]]/g, "_")).set(val);
+    if (key === "dashboard:data" && window._lcMembers) { await setSplit(val); return; }
+    var mem = memberFor(key);
+    if (mem && !mem.canWrite) return;   // read-only member: never written
+    await firebase.database().ref((mem ? mem.store : DATA_ROOT) + "/" + clean(key)).set(val);
   } catch(e) {}
+}
+
+async function getMerged() {
+  var own = (await firebase.database().ref(DATA_ROOT + "/dashboard:data").once("value")).val();
+  if (!own) return null;
+  var d = JSON.parse(own);
+  for (var k of Object.keys(window._lcMembers)) {
+    var m = window._lcMembers[k];
+    try { var v = (await firebase.database().ref(m.store + "/dashboard:data").once("value")).val(); var md = v ? JSON.parse(v) : null; if (md && md[k] && !d[k]) d[k] = md[k]; } catch (e) { /* not visible any more */ }
+  }
+  return JSON.stringify(d);
+}
+async function setSplit(val) {
+  var d = JSON.parse(val); var own = {};
+  Object.keys(d).forEach(function(k) { if (!window._lcMembers[k]) own[k] = d[k]; });
+  await firebase.database().ref(DATA_ROOT + "/dashboard:data").set(JSON.stringify(own));
+  for (var k of Object.keys(window._lcMembers)) {
+    var m = window._lcMembers[k]; if (!m.canWrite || !d[k]) continue;
+    try {
+      var cur = (await firebase.database().ref(m.store + "/dashboard:data").once("value")).val(); var md = cur ? JSON.parse(cur) : { config: d.config };
+      if (JSON.stringify(md[k]) === JSON.stringify(d[k])) continue;
+      md[k] = d[k]; await firebase.database().ref(m.store + "/dashboard:data").set(JSON.stringify(md));
+    } catch (e) { /* refused: their data unchanged */ }
+  }
 }
