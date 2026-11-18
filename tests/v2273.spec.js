@@ -90,3 +90,22 @@ test("5 new accounts (owner + 4): every Visible member side by side in name orde
   for (const n of ["Ada", "Bea", "Dev", "Eli"]) expect(r.out[n][0]).toBe(JSON.stringify(n + "'s journal"));
   expect(new Set(r.keys).size).toBe(6);                                                // config + 5 distinct people
 });
+
+test("Hidden members: greyed tabs after everyone else; tapping says '[Name] keeps this private'; their data is never requested", async ({ page }) => {
+  await family(["Ann", "Bob", "Zoe", "Cal"], [{ visible: true }, { visible: true, logForMe: false }, { visible: false, logForMe: false }, { visible: false, logForMe: false }]);
+  await signInAs(page, 0);
+  await expect.poll(() => tabNames(page)).toEqual(["Ann", "Bob", "🔒 Cal", "🔒 Zoe"]);
+  const hidden = page.getByTestId("hidden-tab");
+  await expect(hidden).toHaveCount(2);
+  await expect(hidden.first()).toHaveAttribute("aria-disabled", "true");
+  await expect(hidden.first()).toHaveCSS("opacity", "0.55");
+  await hidden.filter({ hasText: "Zoe" }).dispatchEvent("click");                     // the goal setup covers the header for a new account
+  await expect(page.getByTestId("hidden-note")).toHaveText("Zoe keeps this private.");
+  const r = await page.evaluate(() => ({ reads: window._lcHouseholdReads, members: Object.values(window._lcMembers || {}).map((m) => m.name), tab: document.querySelector('[data-testid="person-tabs"] [data-active="true"]').textContent }));
+  expect(r.tab).toBe("Ann");                                                           // tapping never switched person
+  expect(r.members).toEqual(["Bob"]);
+  for (const u of [uidOf(2), uidOf(3)]) {
+    expect(r.reads.filter((p) => p.includes(u))).toEqual([`apps/lifecare/users/${u}/privacy`, `apps/lifecare/users/${u}/profile`]);   // name + switch only
+    expect(r.reads.some((p) => p.includes(u + "/store"))).toBe(false);
+  }
+});

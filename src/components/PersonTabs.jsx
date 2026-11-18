@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // A row of person tabs, used in the header and in the exercise log (v2.5.0).
 // - Each tab is at least as wide as its name. With few people the tabs share the width
@@ -19,6 +19,12 @@ export function personName(data, key) {
 
 export function peopleOf(data) {
   return Object.keys(data || {}).filter((k) => k !== "config").map((k) => ({ key: k, name: personName(data, k) }));
+}
+
+/** v2.27.3: family members who keep their data private — greyed tabs after everyone else (names only; their data is
+ *  never requested). window._lcHiddenMembers comes from lib/accounts.js loadHousehold. */
+export function hiddenTabs() {
+  return (window._lcHiddenMembers || []).map((h, i) => ({ key: "hidden:" + i, name: h.name, hidden: true }));
 }
 
 export default function PersonTabs({ people, activeKey, onSelect, tabStyle, activeStyle, inactiveStyle, rowStyle, testId }) {
@@ -43,9 +49,16 @@ export default function PersonTabs({ people, activeKey, onSelect, tabStyle, acti
     for (const tab of row.children) ro.observe(tab);
     return () => ro.disconnect();
   }, [activeKey, people.length]);
-  return (
+  const [note, setNote] = useState("");
+  return (<div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
     <div ref={rowRef} data-testid={testId} style={{ display: "flex", gap: 4, flex: 1, minWidth: 0, overflowX: "auto", scrollbarWidth: "none", ...rowStyle }}>
       {people.map((p) => {
+        if (p.hidden) return (   /* v2.27.3: a greyed tab — tapping it only says why; it never switches person */
+          <button key={p.key} type="button" data-testid="hidden-tab" aria-disabled="true" title={p.name + " keeps this private"}
+            onClick={() => setNote(note === p.name ? "" : p.name)}
+            style={{ ...tabStyle, ...inactiveStyle, flex: "1 0 0", minWidth: "max-content", whiteSpace: "nowrap", opacity: 0.55, fontStyle: "italic", cursor: "default" }}>
+            <span aria-hidden="true">🔒 </span>{tabLabel(p.name)}
+          </button>);
         const active = p.key === activeKey;
         return (
           <button key={p.key} data-active={active ? "true" : "false"} aria-pressed={active} title={p.name} onClick={() => onSelect(p.key)}
@@ -55,5 +68,6 @@ export default function PersonTabs({ people, activeKey, onSelect, tabStyle, acti
         );
       })}
     </div>
-  );
+    {note && <div role="status" data-testid="hidden-note" style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", padding: "6px 4px 2px" }}>{note} keeps this private.</div>}
+  </div>);
 }

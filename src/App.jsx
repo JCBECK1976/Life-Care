@@ -54,7 +54,7 @@ import { APP_VERSION } from "./constants/version.js";
 import EnvBadge from "./components/EnvBadge.jsx";
 import { loadDebugMode, redact, summariseReply } from "./lib/debugLog.js";
 import LoadingScreen from "./components/LoadingScreen.jsx";
-import PersonTabs, { peopleOf, personName } from "./components/PersonTabs.jsx";
+import PersonTabs, { peopleOf, personName, hiddenTabs } from "./components/PersonTabs.jsx";
 import { ALLOW_ADD_PERSON } from "./constants/features.js";
 import { PHASE_LABEL, dayPhase, readFeedback, weekPhase } from "./lib/eatPhase.js";
 import SharePicker from "./components/SharePicker.jsx";
@@ -1837,7 +1837,7 @@ function Dashboard() {
         </div>
         <div style={{ fontSize: 12, color: "#cbd5e1", marginTop: 2 }}>Week {calcWeek(data.config.trainingStart)} · Updated {data.config.lastUpdate}{saving ? " · Saving..." : ""}</div>
         <div style={{ display: "flex", gap: 4, marginTop: 14, background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 4, border: "1px solid rgba(255,255,255,0.08)" }}>
-          <PersonTabs testId="person-tabs" people={peopleOf(data)} activeKey={activeTab}
+          <PersonTabs testId="person-tabs" people={peopleOf(data).concat(hiddenTabs())} activeKey={activeTab}
             tabStyle={{ padding: "10px 12px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }}
             activeStyle={{ background: "rgba(255,255,255,0.95)", color: "#0f172a", letterSpacing: "0.02em" }} inactiveStyle={{ background: "transparent", color: "rgba(255,255,255,0.45)", letterSpacing: "0" }}
             onSelect={(k) => {
