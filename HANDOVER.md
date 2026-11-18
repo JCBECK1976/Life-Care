@@ -2835,3 +2835,7 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **JC to test (/build/, footer v2.27.2-build):** Settings → My Plan (preview each plan; the yellow bar's Stop preview); Snap on a Bronze preview (prompt before the camera); the go-live switches card (visible; switches can't save until section C); the Android app's Connect my steps after the next internal-testing build.
 - **Resume point:** `build` @ `163a3ea` (v2.27.2), `beta` @ `bcac68e` (v2.20.2), prod v2.15.1. Next: JC tests /build/ → promote build → beta when asked (GO_LIVE_CHECKLIST A); Part 6 (iOS) only if asked; open items in GO_LIVE_CHECKLIST H. Do NOT merge to beta or main without JC.
 
+### (Coder) 18 Nov 2026 — v2.27.3 before pilot (build only, one commit per item) — in progress
+**Instruction (JC):** 1) two brand-new accounts in one Platinum family side by side (tests with 2 and 5); 2) Hidden members as greyed tabs, no data, no requests for it; 3) check My Plan against the v2.22.2 brief (top-up for Silver+ and the Platinum owner; the Energy explanation text, admin-configurable); 4) log per-area sharing as deferred on the plan.
+- **Resume point:** next item: item 1 commit.
+
