@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import firebase, { auth, DATA_ROOT } from "../lib/firebase.js";
 import LoadingScreen from "./LoadingScreen.jsx";
+import AppLockGate from "./AppLockGate.jsx";
 import { isNative, nativeGoogleSignIn, nativeSignOut } from "../lib/native.js";
 import { accountsOn, prepareAccount, sendEmailLink, completeEmailLink, appleSignIn } from "../lib/accounts.js";
 
@@ -48,7 +49,7 @@ export default function AuthGate({ children }) {
     }
   };
 
-  if (s.phase === "ok") return children;
+  if (s.phase === "ok") return <AppLockGate user={s.user}>{children}</AppLockGate>;   // v2.33.0: app lock (flag useAppLock)
   if (s.phase === "checking") return <LoadingScreen />;
   const logo = <img src={import.meta.env.BASE_URL + "brand/app-logo-640.webp"} alt="Lifecare Companion" width="220" height="220" />;
   if (s.phase === "signedOut") return (

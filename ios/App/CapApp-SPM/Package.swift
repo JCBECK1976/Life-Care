@@ -19,7 +19,8 @@ let package = Package(
         .package(name: "CapgoCapacitorHealth", path: "../../../node_modules/@capgo/capacitor-health"),
         .package(name: "CapgoCapacitorSocialLogin", path: "../../../node_modules/@capgo/capacitor-social-login"),
         .package(name: "CapgoNativePurchases", path: "../../../node_modules/@capgo/native-purchases"),
-        .package(name: "LcAppCheck", path: "../../../native/lc-app-check")
+        .package(name: "LcAppCheck", path: "../../../native/lc-app-check"),
+        .package(name: "LcAppLock", path: "../../../native/lc-app-lock")
     ],
     targets: [
         .target(
@@ -34,7 +35,8 @@ let package = Package(
                 .product(name: "CapgoCapacitorHealth", package: "CapgoCapacitorHealth"),
                 .product(name: "CapgoCapacitorSocialLogin", package: "CapgoCapacitorSocialLogin"),
                 .product(name: "CapgoNativePurchases", package: "CapgoNativePurchases"),
-                .product(name: "LcAppCheck", package: "LcAppCheck")
+                .product(name: "LcAppCheck", package: "LcAppCheck"),
+                .product(name: "LcAppLock", package: "LcAppLock")
             ]
         )
     ]

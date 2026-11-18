@@ -28,6 +28,18 @@ export async function deleteAccount({ uid, data }, { db, deleteUser, now = Date.
   return { ok: true };
 }
 
+/* v2.33.0 (cyber review): "Sign out everywhere" — every sign-in of this account stops working: the refresh tokens are
+   revoked (other devices are refused within the hour, when their short-lived token runs out) and a marker in the
+   person's own profile tells every open copy of the app to sign out at once. Nothing else is touched. */
+export async function signOutEverywhere({ uid, data }, { db, revoke, now = Date.now() }) {
+  need(uid, "unauthenticated", "Sign in first.");
+  const app = appOf(data);
+  await revoke(uid);
+  await db.ref(`apps/${app}/users/${uid}/profile/signedOutAt`).set(now);
+  await db.ref(`apps/${app}/audit/${now}_${uid.slice(0, 6)}`).set({ at: new Date(now).toISOString(), action: "sign-out-everywhere" });
+  return { ok: true, at: now };
+}
+
 /* ---------- plans (v2.22.0, ADR 0017) ----------
    A person's plan: their own entitlement, or — if they're in a household whose owner is on Platinum — Platinum as a
    family member. Platinum uses ONE shared Energy pool (keyed by the owner); everyone else has their own balance.

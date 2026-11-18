@@ -26,7 +26,7 @@ test("deploy workflow: manual only, waits for JC's approval (production environm
 
 test("functions: the deployable set (no Stripe: it needs secrets and is off), App Check option wired, schedules present", () => {
   const out = execSync("node -e \"import('./index.js').then(m=>console.log(Object.keys(m).sort().join(',')))\"", { cwd: "functions", encoding: "utf8" }).trim();
-  expect(out.split(",")).toEqual(["acceptInvite", "acceptPilotInvite", "adminAccounts", "adminTopUp", "aiProxy", "appleNotify", "appleVerify", "createHousehold", "createPilotInvite", "createReviewDemo", "deleteAccount", "exportMyData", "grantMonthly", "inviteMember", "leaveHousehold", "playNotify", "playVerify", "removeMember", "retentionDaily", "setTier"]);
+  expect(out.split(",")).toEqual(["acceptInvite", "acceptPilotInvite", "adminAccounts", "adminTopUp", "aiProxy", "appleNotify", "appleVerify", "createHousehold", "createPilotInvite", "createReviewDemo", "deleteAccount", "exportMyData", "grantMonthly", "inviteMember", "leaveHousehold", "playNotify", "playVerify", "removeMember", "retentionDaily", "setTier", "signOutEverywhere"]);
   const idx = fs.readFileSync("functions/index.js", "utf8");
   expect(idx).toMatch(/enforceAppCheck: process\.env\.ENFORCE_APP_CHECK === "true"/);
   expect(idx).not.toMatch(/from "stripe"/);

@@ -345,3 +345,14 @@ test("no US fallback (v2.31.1): Vertex down → 'Your Companion is unavailable r
   await db.ref(`apps/${A}/config/allowDirectFallback`).remove();
   process.env.AI_BACKEND = prev;
 });
+
+test("signOutEverywhere (v2.33.0): needs a sign-in; revokes the person's sign-ins, sets the marker in their own profile and audits it (no content)", async () => {
+  const revoked = [];
+  await assert.rejects(core.signOutEverywhere({ uid: null, data: {} }, { db, revoke: async (u) => revoked.push(u) }), { code: "unauthenticated" });
+  const r = await core.signOutEverywhere({ uid: "u3", data: { appId: A } }, { db, revoke: async (u) => revoked.push(u), now: 1795000000000 });
+  assert.deepEqual(r, { ok: true, at: 1795000000000 });
+  assert.deepEqual(revoked, ["u3"]);
+  assert.equal((await db.ref(`apps/${A}/users/u3/profile/signedOutAt`).once("value")).val(), 1795000000000);
+  assert.ok((await db.ref(`apps/${A}/users/u3/consent/accepted`).once("value")).val());              // nothing else touched
+  assert.equal((await db.ref(`apps/${A}/audit/1795000000000_u3`).once("value")).val().action, "sign-out-everywhere");
+});

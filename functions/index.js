@@ -32,6 +32,7 @@ export const createHousehold = onCall(opts, wrap((c) => core.createHousehold(c, 
 export const createReviewDemo = onCall(opts, wrap((c) => createReviewDemoImpl(c, { db: db(), auth: admin.auth() })));
 // v2.21.1: account deletion — refuses the rules-locked UID and platform admins before changing anything
 export const deleteAccount = onCall(opts, wrap((c) => core.deleteAccount(c, { db: db(), deleteUser: (uid) => admin.auth().deleteUser(uid) })));
+export const signOutEverywhere = onCall(opts, wrap((c) => core.signOutEverywhere(c, { db: db(), revoke: (uid) => admin.auth().revokeRefreshTokens(uid) })));   // v2.33.0
 export const inviteMember = onCall(opts, wrap((c) => core.inviteMember(c, { db: db() })));
 export const acceptInvite = onCall(opts, wrap((c) => core.acceptInvite(c, { db: db() })));
 export const removeMember = onCall(opts, wrap((c) => core.removeMember(c, { db: db() })));

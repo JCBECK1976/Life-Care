@@ -69,6 +69,8 @@
 	<!-- v2.29.0 -->
 	<key>CFBundleDisplayName</key>
 	<string>Lifecare Companion</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>If you turn on Lock the app, Lifecare Companion asks for Face ID to open, and to confirm it's you before deleting your account or downloading your data. Your face data stays on your iPhone.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Lifecare Companion reads your daily step total (and, if you turn it on, your daily active energy) for today and the last 7 days, so your calorie goal follows how active you really were. If you turn on Import my weigh-ins, it also reads your weight and body fat from your smart scales or weight app: one reading per day. Nothing else is read.</string>
 	<key>NSHealthUpdateUsageDescription</key>

@@ -2,6 +2,7 @@ import React from "react";
 import LegalViewer from "./LegalViewer.jsx";
 import { CHOICES, LEGAL_LABEL, consentActive, loadConsent, saveConsent } from "../lib/consent.js";
 import { deleteMyAccount, deleteMyData, exportMyData } from "../lib/myData.js";
+import { confirmItsYou } from "../lib/appLock.js";
 import { auditLog, loadAudit } from "../lib/audit.js";
 import { auth } from "../lib/firebase.js";
 import { isProtectedAccount, PROTECTED_MSG } from "../lib/accountGuard.js";
@@ -25,7 +26,7 @@ export default function PrivacyDataCard(props) {
   var say = function(t) { setMsg(t); setTimeout(function() { setMsg(""); }, 4000); };
   return (<div data-testid="privacy-data-card" style={card}>
     <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🔒 Privacy & your data — {props.name}</div>
-    <button style={btn} data-testid="export-my-data" onClick={async function() { try { await exportMyData(who); auditLog("export", who, "JSON download"); say("✓ Your data was downloaded as a JSON file"); } catch (e) { say("✗ Couldn't export: " + String(e.message || e).slice(0, 60)); } }}>⬇ Download my data (JSON)</button>
+    <button style={btn} data-testid="export-my-data" onClick={async function() { try { await confirmItsYou("Confirm it's you to download your data"); await exportMyData(who); auditLog("export", who, "JSON download"); say("✓ Your data was downloaded as a JSON file"); } catch (e) { say("✗ Couldn't export: " + String(e.message || e).slice(0, 60)); } }}>⬇ Download my data (JSON)</button>
     <div style={{ fontSize: 10, color: "#475569", marginTop: 4 }}>Everything recorded for {props.name}, in a portable file. Photos are never stored, so none are included.</div>
     {pilot && (<div>
       <div style={{ fontSize: 11, color: "#334155", margin: "10px 0 4px" }}>{LEGAL_LABEL}{c && c.at ? " · accepted " + c.at.slice(0, 10) : ""}</div>
@@ -48,11 +49,11 @@ export default function PrivacyDataCard(props) {
       <div style={{ fontSize: 11, fontWeight: 700, color: "#991b1b", marginBottom: 2 }}>Delete my account</div>
       {locked ? <div data-testid="delete-account-locked" style={{ fontSize: 11, color: "#334155", lineHeight: 1.5 }}>{PROTECTED_MSG}</div> : (<>
       <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5 }}>Erases {props.name}'s records from Lifecare Companion now, removes this Google sign-in from the app and signs you out. Your Google account itself isn't affected. Backups are deleted as they age out, within 12 months. This can't be undone. If you last signed in more than 5 minutes ago, Google asks you to confirm it's you first. Type DELETE to confirm.</div>
-      <button style={Object.assign({}, btn, { marginTop: 6 })} data-testid="delete-download-first" onClick={async function() { try { await exportMyData(who); auditLog("export", who, "JSON download before deletion"); say("✓ Your data was downloaded as a JSON file"); } catch (e) { say("✗ Couldn't export: " + String(e.message || e).slice(0, 60)); } }}>⬇ Download my data first</button>
+      <button style={Object.assign({}, btn, { marginTop: 6 })} data-testid="delete-download-first" onClick={async function() { try { await confirmItsYou("Confirm it's you to download your data"); await exportMyData(who); auditLog("export", who, "JSON download before deletion"); say("✓ Your data was downloaded as a JSON file"); } catch (e) { say("✗ Couldn't export: " + String(e.message || e).slice(0, 60)); } }}>⬇ Download my data first</button>
       <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
         <input aria-label="Type DELETE to delete the account" value={confirmAcc} onChange={function(e) { setConfirmAcc(e.target.value); }} style={{ flex: 1, padding: 6, border: "1px solid #fecaca", borderRadius: 8 }} />
         <button disabled={confirmAcc !== "DELETE" || busy} data-testid="delete-my-account" style={Object.assign({}, btn, { color: "#fff", background: confirmAcc === "DELETE" ? "#b91c1c" : "#fca5a5", border: "none" })}
-          onClick={async function() { if (!window.confirm("Delete " + props.name + "'s account and all their records now? This can't be undone.")) return; setBusy(true); try { await deleteMyAccount(who); } catch (e) { setBusy(false); say("✗ Couldn't delete the account: " + String((e && e.message) || e).slice(0, 120)); } }}>{busy ? "Deleting…" : "Delete my account"}</button>
+          onClick={async function() { if (!window.confirm("Delete " + props.name + "'s account and all their records now? This can't be undone.")) return; setBusy(true); try { await confirmItsYou("Confirm it's you to delete your account"); await deleteMyAccount(who); } catch (e) { setBusy(false); say("✗ Couldn't delete the account: " + String((e && e.message) || e).slice(0, 120)); } }}>{busy ? "Deleting…" : "Delete my account"}</button>
       </div></>)}
     </div>
     {props.isAdmin && (<div style={{ marginTop: 12 }}>
