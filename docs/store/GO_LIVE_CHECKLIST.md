@@ -96,11 +96,24 @@ Settings → **🚦 Go-live switches** (only the admin account sees it). Each sw
 56. **Check:** the tester sees an **empty** app with their own name (never your data); My Plan shows Gold; a Companion answer works.
 57. **JC** — Add each further tester the same way (a family: the tester picks Platinum and invites their people from My Plan → My family).
 
-## G. Apple / iOS — later
-58. **JC** — **J15**: enrol in the Apple Developer Program.
-59. **JC** — **J17**: confirm the spare iPhone can be used for testing.
-60. **Coder** — iOS project (Capacitor), Apple Health steps (same steps interface), StoreKit with the same product IDs, TestFlight build (overnight batch Part 6 — not started).
-61. **JC** — Firebase → Authentication → **Apple** provider (Services ID, key) — the app's Apple sign-in code is already in place.
+## G. Apple / iOS (J15) — the app is built (v2.29.0); these are the account steps
+Listing, privacy answers and App Review notes: [APP_STORE_LISTING.md](APP_STORE_LISTING.md). Nothing here changes the live app or data.
+58. **JC** — **J15**: enrol in the Apple Developer Program (developer.apple.com → Account → Enrol; as an individual or as Companion Apps Studio). Wait for the approval email.
+58a. **JC** — Certificates, IDs & Profiles → Identifiers → **+** → App IDs → App → bundle ID `com.companionappsstudio.lifecare` (explicit). Tick **HealthKit**, **Sign in with Apple** and **App Attest**. Save.
+58b. **JC** — Identifiers → **+** → **Services IDs** → e.g. `com.companionappsstudio.lifecare.signin` → tick Sign in with Apple → Configure: primary App ID = the one above; domain `life-care-app-64d04.firebaseapp.com`; return URL `https://life-care-app-64d04.firebaseapp.com/__/auth/handler`. Then Keys → **+** → Sign in with Apple key → download the .p8 (keep it private, never in the repo).
+58c. **JC** — Firebase → Authentication → Sign-in method → **Apple** → enable; paste the Services ID, Team ID, key ID and the .p8 contents.
+58d. **JC** — Firebase → Project settings → **Add app → iOS** → bundle ID as above → download `GoogleService-Info.plist`. GitHub → Settings → Secrets → Actions → new secret **`GOOGLE_SERVICE_INFO_PLIST`** = the whole file's text. Don't commit it (the repo ignores it).
+58e. **JC** — Google Cloud → APIs & Services → Credentials → **Create OAuth client ID → iOS** → same bundle ID. GitHub → Settings → Variables → **`GOOGLE_IOS_CLIENT_ID`** = the client ID, **`GOOGLE_IOS_REVERSED_CLIENT_ID`** = the "iOS URL scheme" shown next to it.
+58f. **JC** — Firebase → App Check → the iOS app → **App Attest** → register (leave **unenforced** until section E, as Android).
+58g. **JC** — App Store Connect → Apps → **+ New App** → iOS, name "Lifecare Companion", English (U.K.), the bundle ID, SKU `lifecare-ios`. Fill App Information + App Privacy from APP_STORE_LISTING §1–2.
+58h. **JC** — App Store Connect → the app → Subscriptions → group **"Lifecare plans"** → the six products and the consumable `energy_5` exactly as APP_STORE_LISTING §5 (IDs must match: the server reads them). Agreements, Tax and Banking must be complete first.
+58i. **JC** — Users and Access → **Sandbox** → add two sandbox testers (new email addresses never used for an Apple ID).
+58j. **JC** — Users and Access → Integrations → **App Store Connect API** → generate a key with **App Manager** access. GitHub secrets: **`ASC_KEY_ID`**, **`ASC_ISSUER_ID`**, **`ASC_PRIVATE_KEY`** (the .p8 text) and **`APPLE_TEAM_ID`** (Membership page).
+58k. **JC** — Integrations → **In-App Purchase** key → generate → download. Google Cloud → Secret Manager → **`APPLE_IAP_PRIVATE_KEY`** = the .p8 text (before the next functions deploy; until then the secret may hold a placeholder). GitHub → Settings → Environments → `production` → variables **`APPLE_IAP_KEY_ID`** and **`APPLE_IAP_ISSUER_ID`**. Then deploy functions (section C route, with approval).
+58l. **JC** — App Store Connect → the app → App Information → **App Store Server Notifications** → Version 2 → production and sandbox URL = the `appleNotify` function URL (shown after the deploy; ask the Architect).
+58m. **JC** — GitHub → Actions → **"iOS → TestFlight (manual)"** → Run workflow. Then App Store Connect → TestFlight → **Internal testing** → add JC and Becks → install TestFlight on the iPhone (J17: the spare iPhone) → install the app.
+58n. **Check (JC):** sign in with Apple; Settings → Connect my steps shows today's steps; My Plan → buy Silver with a sandbox tester (no real money) → the plan changes within a minute; Delete my account with a throwaway account → signing in again starts empty. Tell the Architect the result.
+59. **JC** — **J17**: confirm the spare iPhone can be used for testing (needed for 58m–58n).
 
 ---
 
@@ -109,7 +122,7 @@ Settings → **🚦 Go-live switches** (only the admin account sees it). Each sw
 - **Two NEW accounts in one family** (both start in the same slot) can't be shown side by side yet; JC + Becks are fine (they keep "jc" / "becks"). Needs a per-person key scheme before families of new pilot users share data.
 - **Hidden family members** aren't listed as greyed tabs yet (their data is correctly never shown).
 - **Per-area sharing** (e.g. exercise visible, weight hidden) — designed for later.
-- **iOS** — section G.
+- **iOS** — built (v2.29.0); account steps in section G (J15). The Apple root fingerprint pin is checked on every iOS CI build.
 
 ## I. For the Architect: private documents to update (vault)
 - **DPIA:** Health Connect replaces the Google Health API on Android (daily step / active-calorie totals only, per person, from the device); the consent model (separate opt-ins: AI processing, photo analysis, health sync, body balance; 18+; append-only consent history; withdrawal switches the feature off in app and server); individual accounts + family visibility (Hidden by default, "log for me").
