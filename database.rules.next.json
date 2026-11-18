@@ -15,6 +15,13 @@
         "$uid": {
           ".read": "auth != null && auth.uid === $uid"
         }
+      },
+      "publicFlags": {
+        ".read": true,
+        ".write": "auth != null && root.child('platform').child('admins').child(auth.uid).val() === true",
+        "$flag": {
+          ".validate": "newData.isBoolean()"
+        }
       }
     },
     "apps": {

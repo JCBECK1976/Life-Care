@@ -132,3 +132,11 @@ test("family pool and plans: a family member reads the owner's pool and plan; an
   await denied(asUser(NS, carol, "apps/lifecare/entitlements/" + alice.uid));
   await denied(asUser(NS, bob, "apps/lifecare/familyLedger/" + alice.uid));   // the ledger: the owner only
 });
+
+test("go-live switches (v2.27.0): anyone can read them (even signed out); only a platform admin can change them; booleans only", async () => {
+  await ok(fetch("http://127.0.0.1:9000/platform/publicFlags.json?ns=" + NS));
+  await denied(asUser(NS, carol, "platform/publicFlags/useTiers", "PUT", true));
+  await ok(asUser(NS, adm, "platform/publicFlags/useTiers", "PUT", true));
+  await denied(asUser(NS, adm, "platform/publicFlags/useTiers", "PUT", "yes"));   // booleans only (the emulator reports a failed validation as 401)
+  await ok(asUser(NS, adm, "platform/publicFlags/useTiers", "PUT", false));
+});

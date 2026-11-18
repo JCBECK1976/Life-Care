@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.25.0 · 18 November 2026
+> Last updated: v2.27.0 · 18 November 2026
 
 ---
 
@@ -541,6 +541,8 @@ Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
 - **📱 Google Health — calories burned** — connects your own Google account so the app can read your **daily total calories burned** for this week (Sunday–Saturday). Only the daily totals are saved; the Google sign-in stays on this device (connect again on each device, and after about an hour). The status line says exactly what happened: connected or not, when it last synced and how many days were read, or why it failed (e.g. "expired — reconnect"). **🔄 Sync this week's calories** reads them; **⏹ Disconnect on this device** forgets the sign-in. For the app owner: a switch per person to use the calculated calorie target (off by default). Being set up: needs the Google Cloud steps first (plan J10).
 - **🍎 Apple Health** (iOS) — coming soon.
 - **Admin-only settings** (for the app owner) are grouped in sections, each with a short explanation:
+  - **🚦 Go-live switches** (from v2.27.0): turn the new features on **for everyone**, in order: AI through our server → Individual accounts → Plans → Onboarding + consent → Steps → Buying. Each takes effect the next time people open the app; turning one off is the rollback. They only work once the new database rules are live (see the go-live checklist).
+  - **🧪 Pilot test users**: invite a tester by email with a free test plan (default Gold); they get their own empty account.
   - **App & AI:** **🔑 API Keys** (Claude API key from console.anthropic.com → API Keys), **⚡ Companion Energy Level** (enter the balance after a recharge; it becomes 100%), **📊 AI usage**, **📧 Feedback email** and **🔧 Debug Mode**. Debug Mode, once turned on, stays on for this device and shows a red **🔧 DEBUG ON** badge in the header. It logs a safe summary of Home check-in feedback, eating feedback and Ask a Question calls: status, stop reason and token counts, never the question, the reply or any key. The log clears when the app reloads. **Turn Off** stops it. Measurement types can also be added there.
   - **Data & backups:** **Open** next to Download backup, Restore or Data viewer opens the 🗂 Data tools page at that tool (described below). Recovery is **Download backup** then **Restore**. The old "Reset to Default Data" button was removed in v2.15.0, and "Clear old eating history" in v2.15.1 (its one-off job is done).
   - **Firebase:** the project, which data this app uses, and links to the Firebase console (database, rules, sign-in users). Rules and data are never changed from the app.

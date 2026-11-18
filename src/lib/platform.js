@@ -1,9 +1,23 @@
 // v2.16.3 Step 4: client feature flags for the Companion platform (ADR 0011). ALL OFF by default:
 // with every flag off the app behaves exactly as before. Per device (localStorage "lc_flags"); nothing is live yet.
 export var FLAGS = ["useAiProxy", "useAccounts", "showBuyEnergy", "useTiers", "useSteps", "useOnboarding"];   /* v2.22.0 useTiers: on for /build/ regardless (myPlan.js) */
+/* v2.27.0: the go-live switches. A flag is on when the admin turned it on for everyone (platform/publicFlags — readable
+   before sign-in, written by platform admins only, under the NEXT rules; until those rules are deployed nothing can read
+   it, so beta and prod behave exactly as before) or on this device (localStorage "lc_flags", for testing). */
+var remote = {};
 export function flag(name) {
+  if (remote[name] === true) return true;
   try { var f = JSON.parse(localStorage.getItem("lc_flags") || "{}"); return f[name] === true; } catch (e) { return false; }
 }
+export var GO_LIVE_ORDER = ["useAiProxy", "useAccounts", "useTiers", "useOnboarding", "useSteps", "showBuyEnergy"];
+/** Read the switches once at start-up (gives up after 3 s so the app never waits on it). */
+export function loadRemoteFlags(db) {
+  return Promise.race([
+    db.ref("platform/publicFlags").once("value").then(function(s) { remote = s.val() || {}; return remote; }).catch(function() { remote = {}; return remote; }),
+    new Promise(function(res) { setTimeout(function() { res(remote); }, 3000); }),
+  ]);
+}
+export function remoteFlags() { return Object.assign({}, remote); }
 /** v2.23.0: the overnight-batch features (useSteps, useOnboarding, useAccounts) are ON for /build/ only; beta and prod
  *  stay off unless the flag is set on the device. */
 export function buildFlag(name) { return (import.meta.env.VITE_APP_ENV === "build") || flag(name); }
