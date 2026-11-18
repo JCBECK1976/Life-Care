@@ -51,6 +51,12 @@ jobs:
         env:
           VITE_GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
         run: bash scripts/build-native.sh release
+      - name: Firebase config for the Android app (App Check / Play Integrity) — optional
+        # v2.28.2: google-services.json from Firebase (J23). Not a secret in itself, kept out of the repo by .gitignore.
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json; echo "App Check: on (Play Integrity)"; else echo "App Check: not configured yet (J23)"; fi
       - name: Upload key (from secrets) and its fingerprints
         env:
           KS: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}

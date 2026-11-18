@@ -21,7 +21,9 @@ export const auth = firebase.auth();
 /* v2.26.0: App Check (web: reCAPTCHA Enterprise). Off until JC creates the site key (GO_LIVE_CHECKLIST C) and the
    build gets VITE_APPCHECK_SITE_KEY; the server only ENFORCES it when ENFORCE_APP_CHECK=true. The Android app's Play
    Integrity provider needs a native plugin (open item), so enforcement waits until that is in place too. */
-if (!import.meta.env.DEV && import.meta.env.VITE_APPCHECK_SITE_KEY) {
+/* v2.28.2: in the native apps, App Check comes from the device (Play Integrity / App Attest) — lib/appCheck.js */
+if (import.meta.env.VITE_NATIVE) import("./appCheck.js").then(function(m) { return m.startNativeAppCheck(firebase); }).catch(function() { /* never blocks the app */ });
+else if (!import.meta.env.DEV && import.meta.env.VITE_APPCHECK_SITE_KEY) {
   import("firebase/compat/app-check").then(function() {
     try { firebase.appCheck().activate(new firebase.appCheck.ReCaptchaEnterpriseProvider(import.meta.env.VITE_APPCHECK_SITE_KEY), true); } catch (e) { /* not blocking: the server decides */ }
   });

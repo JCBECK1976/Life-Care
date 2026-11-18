@@ -1,6 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
+    buildFeatures { buildConfig true }   // v2.28.2: BuildConfig.DEBUG picks the App Check provider
     namespace = "com.companionappsstudio.lifecare"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
@@ -58,6 +59,10 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    // v2.28.2: Firebase App Check — Play Integrity for releases; the debug provider ONLY in debug builds
+    implementation platform('com.google.firebase:firebase-bom:34.19.0')
+    implementation 'com.google.firebase:firebase-appcheck-playintegrity'
+    debugImplementation 'com.google.firebase:firebase-appcheck-debug'
 }
 
 apply from: 'capacitor.build.gradle'
