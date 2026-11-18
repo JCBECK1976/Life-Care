@@ -46,7 +46,7 @@ test("privacy: Info.plist explains Health (read only), camera and photos; the pr
 
 test("workflows: the unsigned compile on a macOS runner checks the Apple root pin; TestFlight is manual and names its secrets", () => {
   const b = read(".github/workflows/ios-build.yml");
-  expect(b).toMatch(/runs-on: macos-15/); expect(b).toContain("CODE_SIGNING_ALLOWED=NO");
+  expect(b).toMatch(/runs-on: macos-26/); expect(b).toContain("CODE_SIGNING_ALLOWED=NO");
   expect(b).toContain('security find-certificate -c "Apple Root CA - G3"');
   const t = read(".github/workflows/ios-testflight.yml");
   expect(t).toMatch(/^on:\n  workflow_dispatch:/m); expect(t).not.toMatch(/^\s+push:/m);
