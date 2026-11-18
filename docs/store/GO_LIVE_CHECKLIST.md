@@ -47,7 +47,12 @@
 27. **JC** — Authentication → Sign-in method → **Email/Password** → enable it and **Email link (passwordless sign-in)** → Save. (Google is already on.)
 28. **JC** — Authentication → Settings → **Authorised domains**: check `jcbeck1976.github.io` is listed.
 29. **JC** — App Check → Apps → the **web app** → **reCAPTCHA Enterprise** → create the key → copy the **site key** (public).
-30. **JC** — GitHub → Settings → Secrets and variables → Actions → **Variables** → New repository variable `APPCHECK_SITE_KEY` → paste the site key. (Leave App Check **unenforced**: the Android app's Play Integrity needs one more Coder step, listed in section H.)
+30. **JC** — GitHub → Settings → Secrets and variables → Actions → **Variables** → New repository variable `APPCHECK_SITE_KEY` → paste the site key.
+30a. **JC (J23)** — Firebase → App Check → Apps → the **Android app** (`com.companionappsstudio.lifecare`) → **Play Integrity** → Register. (Play Console → Test and release → App integrity → **Link** the Firebase project to Play Integrity if asked.)
+30b. **JC (J23)** — Firebase → Project settings → Your apps → the Android app → **Download google-services.json**.
+30c. **JC (J23)** — GitHub → Settings → Secrets and variables → Actions → **New repository secret** `GOOGLE_SERVICES_JSON` → paste the whole file → delete the downloaded file.
+30d. **JC (J23)** — For testing a **debug** build only: run it once, copy the "debug secret" it logs (Android Studio Logcat, tag DebugAppCheckProvider) → Firebase → App Check → the Android app → ⋮ → **Manage debug tokens** → add it. (Release builds from Play need nothing extra.)
+30e. **Check:** Firebase → App Check → the Android app shows requests after testers use the Play build. Leave **unenforced** until section E.
 31. **JC** — Realtime Database → Data → add `platform/admins/<your account's user ID>` = `true`, for the account that will flip the switches (find the ID under Authentication → Users). Ask the Architect if unsure.
 
 **Deploy (dry run first):**
@@ -100,7 +105,7 @@ Settings → **🚦 Go-live switches** (only the admin account sees it). Each sw
 ---
 
 ## H. Open items (the Coder can do these; none blocks A–F unless noted)
-- **Android App Check (Play Integrity)** needs a native plugin; until then keep `ENFORCE_APP_CHECK=false`. Web App Check works from step 30.
+- **App Check:** web (step 30) and Android Play Integrity (J23, v2.28.2) are built; keep `ENFORCE_APP_CHECK=false` until both show requests, then set it to `true` in the `production` environment and redeploy (rollback: back to `false`).
 - **Two NEW accounts in one family** (both start in the same slot) can't be shown side by side yet; JC + Becks are fine (they keep "jc" / "becks"). Needs a per-person key scheme before families of new pilot users share data.
 - **Hidden family members** aren't listed as greyed tabs yet (their data is correctly never shown).
 - **Per-area sharing** (e.g. exercise visible, weight hidden) — designed for later.
