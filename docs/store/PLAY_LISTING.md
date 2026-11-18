@@ -60,8 +60,9 @@ Notes for the form:
 
 ## 4. App access (for Google's reviewers)
 - **Internal testing does not need app access instructions** (internal releases aren't fully reviewed).
-- **Closed testing (pilot) and production do.** All features sit behind Google sign-in with an allow-list, and today every allowed account can read the household's data (one shared `data` root). **A reviewer account must not be given access to real health data**, so reviewer access needs per-account data first (Step 5, per-uid accounts). Until then: don't start closed testing.
-- Text to paste once Step 5 is in place: *"Sign in with Google using the review account below. It opens an empty demo profile. Tap Home → My Profile to see the setup, My Eating → Update Eating Lists to add food, My Exercise → + Add Exercise to log a session. Account: (review Google account) · Password: (in the Play Console field)."*
+- **Closed testing (pilot) and production do.** Reviewers use the **store-review demo account** (v2.31.2, Architect decision 18 Nov): its own account with **made-up data only** (one synthetic person, "Alex (demo)"), **Gold** plan, **no family**. Never the joint account, never real data — the server refuses the joint account, admins, family members and any account that already holds its own data.
+- **Make it (JC, once):** create a Google account used only for store review → in the app, Settings → **🧾 Store review demo account** → its email → **Create review demo account** (before that account first signs in). Then sign in once with it in a private window to check Alex's data appears. Its password goes **only** into the Play Console "App access" fields — never in the repo or chat.
+- **Text to paste into App access:** *"Sign in with Google using the review account below. It opens a demo profile with made-up data (Alex), on the Gold plan. First you'll see a short setup (18+, terms, optional choices). Home shows today; My Eating → Update Eating Lists adds food; My Exercise → + Add Exercise logs a session; My Body shows weigh-ins and charts; Settings → My Plan shows the plans; Settings → Privacy & your data → Delete my account deletes the account. Account: (review Google account) · Password: (in the field below)."*
 
 ## 5. Other App content answers
 | Section | Answer |

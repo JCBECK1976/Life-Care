@@ -114,6 +114,7 @@ Listing, privacy answers and App Review notes: [APP_STORE_LISTING.md](APP_STORE_
 58m. **JC** — GitHub → Actions → **"iOS → TestFlight (manual)"** → Run workflow. Then App Store Connect → TestFlight → **Internal testing** → add JC and Becks → install TestFlight on the iPhone (J17: the spare iPhone) → install the app.
 58n. **Check (JC):** sign in with Apple; Settings → Connect my steps shows today's steps; My Plan → buy Silver with a sandbox tester (no real money) → the plan changes within a minute; Delete my account with a throwaway account → signing in again starts empty. Tell the Architect the result.
 59. **JC** — **J17**: confirm the spare iPhone can be used for testing (needed for 58m–58n).
+59a. **JC** — the **store-review demo account** (both stores): a Google account only for review → Settings → 🧾 Store review demo account → Create (after the functions deploy, before that account first signs in) → sign in once with it to check → put it in Play "App access" and App Review "Sign-in information" (PLAY_LISTING §4).
 
 ---
 
