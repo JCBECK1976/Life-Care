@@ -532,7 +532,7 @@ export default function ExerciseSection({ ctx }) {
                         <button onClick={async function(){
                           setAddExLoading(true);
                           try {
-                            var prof3 = (activeTab === "jc" ? data.jc : data.becks).profile || {};
+                            var prof3 = (data[activeTab] || (activeTab === "jc" ? data.jc : data.becks)).profile || {};
                             var profileInfo3 = buildExProfileInfo(prof3);
                             var typeCfg3 = getExerciseTypeConfig(addExConfirm.type);
                             var prompt3 = "Exercise: " + addExConfirm.name + " (type: " + typeCfg3.label + "). Person: " + profileInfo3 + ".\nReturn ONLY JSON: {\"exerciseGuide\":\"A concise how-to guide for performing this exercise correctly. Cover: starting position, movement execution with emphasis on full range of motion, breathing pattern, tempo recommendation (e.g. 3-second eccentric), and the most common mistakes to avoid. Write in direct 2nd person. 3-5 short sentences.\",\"prePostGuide\":\"Recommended warm-up stretches and preparation BEFORE this specific exercise, and cool-down stretches AFTER it. Customise to the muscle groups this exercise targets and this person's profile. Format as: PRE: 2-3 specific stretches/movements with brief instruction. POST: 2-3 specific stretches with brief instruction. Write in direct 2nd person. Keep each stretch to one sentence.\"}";
@@ -651,7 +651,7 @@ export default function ExerciseSection({ ctx }) {
                         <button onClick={async function(){
                           setAddExLoading(true);
                           try {
-                            var prof3 = (activeTab === "jc" ? data.jc : data.becks).profile || {};
+                            var prof3 = (data[activeTab] || (activeTab === "jc" ? data.jc : data.becks)).profile || {};
                             var profileInfo3 = buildExProfileInfo(prof3);
                             var typeCfg3 = getExerciseTypeConfig(addExConfirm.type);
                             var prompt3 = "Exercise: " + addExConfirm.name + " (type: " + typeCfg3.label + "). Person: " + profileInfo3 + ".\nReturn ONLY JSON: {\"exerciseGuide\":\"A concise how-to guide for performing this exercise correctly. Cover: starting position, movement execution with emphasis on full range of motion, breathing pattern, tempo recommendation (e.g. 3-second eccentric), and the most common mistakes to avoid. Write in direct 2nd person. 3-5 short sentences.\",\"prePostGuide\":\"Recommended warm-up stretches and preparation BEFORE this specific exercise, and cool-down stretches AFTER it. Customise to the muscle groups this exercise targets and this person's profile. Format as: PRE: 2-3 specific stretches/movements with brief instruction. POST: 2-3 specific stretches with brief instruction. Write in direct 2nd person. Keep each stretch to one sentence.\"}";
@@ -732,7 +732,7 @@ export default function ExerciseSection({ ctx }) {
                           setAddExLoading(true);
                           (async function(){
                             try {
-                              var prof2 = (activeTab === "jc" ? data.jc : data.becks).profile || {};
+                              var prof2 = (data[activeTab] || (activeTab === "jc" ? data.jc : data.becks)).profile || {};
                               var profileInfo = buildExProfileInfo(prof2);
                               var typeCfg = getExerciseTypeConfig(match.type);
                               var prompt2 = "Exercise: " + match.name + " (type: " + typeCfg.label + "). Person: " + profileInfo + ".\nReturn ONLY JSON: {\"sets\":" + tc.defaultSets + ",\"metric1\":\"recommended starting " + (typeCfg.metric1Label||"value") + " e.g. " + tc.defaultM1 + "\",\"metric2\":\"recommended starting " + (typeCfg.metric2Label||"value") + " e.g. " + tc.defaultM2 + "\",\"progressionNotes\":\"specific progression rules for this exercise for this person\",\"equipmentNotes\":\"any equipment or form notes specific to this person\",\"exerciseGuide\":\"A concise how-to guide for performing this exercise correctly. Cover: starting position, movement execution with emphasis on full range of motion, breathing pattern, tempo recommendation (e.g. 3-second eccentric), and the most common mistakes to avoid. Write in direct 2nd person. 3-5 short sentences.\",\"prePostGuide\":\"Recommended warm-up stretches and preparation BEFORE this specific exercise, and cool-down stretches AFTER it. Customise to the muscle groups this exercise targets and this person's profile. Format as: PRE: 2-3 specific stretches/movements with brief instruction. POST: 2-3 specific stretches with brief instruction. Write in direct 2nd person. Keep each stretch to one sentence.\"}";
@@ -765,7 +765,7 @@ export default function ExerciseSection({ ctx }) {
                         setAddExLoading(true);
                         (async function(){
                           try {
-                            var prof2 = (activeTab === "jc" ? data.jc : data.becks).profile || {};
+                            var prof2 = (data[activeTab] || (activeTab === "jc" ? data.jc : data.becks)).profile || {};
                             var profileInfo = buildExProfileInfo(prof2);
                             var prompt2 = "New exercise: " + name + ". Person: " + profileInfo + ".\nDetermine the exercise type from: weights, bodyweight, timed_hold, cardio, walking, sports, stretching.\nReturn ONLY JSON: {\"exerciseType\":\"one of weights|bodyweight|timed_hold|cardio|walking|sports|stretching\",\"sets\":3,\"metric1\":\"recommended starting value\",\"metric2\":\"recommended starting value\",\"progressionNotes\":\"specific progression rules\",\"equipmentNotes\":\"any equipment or form notes\"}";
                             var resp2 = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{ "x-lc-feature": "autoInfo","Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:400,messages:[{role:"user",content:prompt2}]})});

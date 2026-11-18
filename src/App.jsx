@@ -1044,7 +1044,7 @@ function Dashboard() {
     const tab = activeTab;
     try {
       const isJ = tab === "jc";
-      const p = isJ ? data.jc : data.becks;
+      const p = data[tab] || (isJ ? data.jc : data.becks);   /* v2.27.3: any person key (family members) */
       const prof = p.profile || {};
       const who = prof.name + " (" + (prof.sex || "") + ", " + (calcAge(prof.dob) || prof.age || "") + ", " + (prof.height || "") + ", ideal " + (prof.idealWeight || "") + ", " + (prof.bodyType || "") + ". " + (prof.notes || "") + ")";
       // Health log
@@ -1189,7 +1189,7 @@ function Dashboard() {
     const fbStoreKey = "eat_feedback";
     try {
       const isJ = tab === "jc";
-      const p = isJ ? data.jc : data.becks;
+      const p = data[tab] || (isJ ? data.jc : data.becks);   /* v2.27.3: any person key (family members) */
       const prof = p.profile || {};
       const who = prof.name + " (" + (prof.sex || "") + ", " + (calcAge(prof.dob) || prof.age || "") + ", " + (prof.height || "") + ", " + (prof.bodyType || "") + ")";
       const kf = isJ ? "jcKcal" : "beckKcal";
@@ -1345,7 +1345,7 @@ function Dashboard() {
     const fbStoreKey = "eat_feedback";
     try {
       const isJ = tab === "jc";
-      const p = isJ ? data.jc : data.becks;
+      const p = data[tab] || (isJ ? data.jc : data.becks);   /* v2.27.3: any person key (family members) */
       const prof = p.profile || {};
       const who = prof.name + " (" + (prof.sex || "") + ", " + (calcAge(prof.dob) || prof.age || "") + ", " + (prof.height || "") + ", " + (prof.bodyType || "") + ")";
       const kf = isJ ? "jcKcal" : "beckKcal";
@@ -1515,7 +1515,7 @@ function Dashboard() {
 
   // ─── ONBOARDING/PROFILE CONTEXT FOR AI FEEDBACK ───
   const getOnboardingCtx = function(tab) {
-    var p = tab === "jc" ? data.jc : data.becks;
+    var p = data[tab] || (tab === "jc" ? data.jc : data.becks);   /* v2.27.3 */
     if (!p) return "";
     var ob = p.onboarding || {};
     var prof = p.profile || {};
@@ -1776,7 +1776,7 @@ function Dashboard() {
 
   const isJC = activeTab === "jc";
   const isAdmin = activeTab === "jc";
-  const p = isJC ? data.jc : data.becks;
+  const p = data[activeTab] || (isJC ? data.jc : data.becks);   /* v2.27.3 */
   const personKeys = Object.keys(data).filter(k => k !== "config");
   const personIdx = personKeys.indexOf(activeTab);
   const accentCols = ["#1d4ed8", "#6d28d9", "#047857", "#b45309", "#b91c1c", "#0e7490", "#be123c"] /* v2.17.0 P6: darker for text contrast */;
