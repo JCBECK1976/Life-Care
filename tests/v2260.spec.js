@@ -47,3 +47,8 @@ test("My Plan shows Energy per month in Energy units (300 / 500 / 1,500 shared)"
   const row = page.getByTestId("plan-compare").getByRole("row", { name: /Companion Energy each month/ });
   await expect(row).toContainText("300"); await expect(row).toContainText("500"); await expect(row).toContainText("1,500 shared");
 });
+
+test("App Check (web): the site key reaches the build from a repository variable (public), and the app activates it only when set", () => {
+  expect(fs.readFileSync(".github/workflows/deploy.yml", "utf8")).toMatch(/VITE_APPCHECK_SITE_KEY: \$\{\{ vars\.APPCHECK_SITE_KEY \}\}/);
+  expect(fs.readFileSync("src/lib/firebase.js", "utf8")).toMatch(/if \(!import\.meta\.env\.DEV && import\.meta\.env\.VITE_APPCHECK_SITE_KEY\)/);
+});

@@ -52,6 +52,9 @@ jobs:
 
       - name: Build prod, beta and build, then check the result
         run: bash scripts/build-pages.sh dist-pages
+        env:
+          # v2.27.1: web App Check (reCAPTCHA Enterprise) site key — public, not a secret. Empty = App Check off.
+          VITE_APPCHECK_SITE_KEY: ${{ vars.APPCHECK_SITE_KEY }}
 
       - uses: actions/configure-pages@v6
 
