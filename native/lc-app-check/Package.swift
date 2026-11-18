@@ -8,7 +8,7 @@ let package = Package(
     products: [.library(name: "LcAppCheck", targets: ["LcAppCheckPlugin"])],
     dependencies: [
         .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", from: "8.0.0"),
-        .package(url: "https://github.com/firebase/firebase-ios-sdk.git", exact: "13.1.1")
+        .package(url: "https://github.com/firebase/firebase-ios-sdk.git", exact: "12.19.3")
     ],
     targets: [
         .target(

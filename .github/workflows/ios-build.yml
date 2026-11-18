@@ -30,9 +30,10 @@ jobs:
       - name: Xcode build (Debug, simulator, unsigned)
         run: |
           xcodebuild -version
-          set -o pipefail
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
             -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/dd" \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build | tail -40
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build > "$RUNNER_TEMP/xcodebuild.log" 2>&1 \
+            || { grep -nE "error:|Failed|could not" "$RUNNER_TEMP/xcodebuild.log" | head -80; tail -30 "$RUNNER_TEMP/xcodebuild.log"; exit 1; }
+          tail -20 "$RUNNER_TEMP/xcodebuild.log"
       - name: Result
         run: ls -la "$RUNNER_TEMP/dd/Build/Products/Debug-iphonesimulator/" && echo "✓ the iPhone app compiles"

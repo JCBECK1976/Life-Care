@@ -26,7 +26,7 @@ test("project: bundle ID, the release/debug data guard runs before resources, en
   const ent = read("ios/App/App/App.entitlements");
   for (const k of ["com.apple.developer.healthkit", "com.apple.developer.applesignin", "com.apple.developer.devicecheck.appattest-environment"]) expect(ent).toContain(k);
   expect(read("ios/App/CapApp-SPM/Package.swift")).toContain('path: "../../../native/lc-app-check"');
-  expect(read("native/lc-app-check/Package.swift")).toContain('"https://github.com/firebase/firebase-ios-sdk.git", exact: "13.1.1"');
+  expect(read("native/lc-app-check/Package.swift")).toContain('"https://github.com/firebase/firebase-ios-sdk.git", exact: "12.19.3"');
   const swift = read("native/lc-app-check/ios/Sources/LcAppCheckPlugin/LcAppCheckPlugin.swift");
   expect(swift).toContain("AppAttestProvider"); expect(swift).toMatch(/#if DEBUG[\s\S]*AppCheckDebugProviderFactory/);
   expect(read(".gitignore")).toContain("GoogleService-Info.plist");
