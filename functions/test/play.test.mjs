@@ -33,15 +33,15 @@ test("subscription: verified with Google, sets Gold until the paid-period end, c
   assert.equal(r.tier, "gold"); assert.equal(r.credited, true);
   const e = await ent("p1");
   assert.deepEqual([e.tier, e.source, e.expires], ["gold", "play", NOW + 30 * DAY]);
-  assert.equal(await core.balance(db, A, "p1"), 250);
+  assert.equal(await core.balance(db, A, "p1"), 500);   // Gold: 500 Energy
   assert.deepEqual(G.acks, ["gold:tok-gold-0001"]);
   // the same token again (the app retries): nothing more credited
   const again = await playVerify({ uid: "p1", data: { kind: "subscription", productId: "gold", purchaseToken: "tok-gold-0001" } }, { db, play, now: NOW });
   assert.equal(again.credited, false);
-  assert.equal(await core.balance(db, A, "p1"), 250);
+  assert.equal(await core.balance(db, A, "p1"), 500);   // Gold: 500 Energy
   const ledger = (await db.ref(`apps/${A}/ledger/p1`).once("value")).val();
   assert.deepEqual(Object.keys(ledger), ["play_GPA_1111"]);
-  for (const x of Object.values(ledger)) assert.deepEqual(Object.keys(x).sort(), ["at", "kind", "pence", "ref"]);   // no content
+  for (const x of Object.values(ledger)) assert.deepEqual(Object.keys(x).sort(), ["at", "energy", "kind", "ref"]);   // no content
 });
 
 test("nothing from the client is trusted: a token Google doesn't know, a wrong product, someone else's purchase", async () => {
@@ -57,7 +57,7 @@ test("RTDN: a renewal credits the next allowance (new order ID); a replay change
   G.subs["tok-gold-0001"] = sub("p1", "gold", "GPA.1111..0", "SUBSCRIPTION_STATE_ACTIVE", NOW + 60 * DAY);
   assert.equal(await playNotify(rtdn("tok-gold-0001", 2), { db, play, now: NOW + 30 * DAY }), "applied:gold:credited");
   assert.equal(await playNotify(rtdn("tok-gold-0001", 2), { db, play, now: NOW + 30 * DAY }), "applied:gold");          // replay
-  assert.equal(await core.balance(db, A, "p1"), 500);
+  assert.equal(await core.balance(db, A, "p1"), 1000);
   G.subs["tok-gold-0001"] = sub("p1", "gold", "GPA.1111..0", "SUBSCRIPTION_STATE_EXPIRED", NOW + 60 * DAY);
   assert.equal(await playNotify(rtdn("tok-gold-0001", 13), { db, play, now: NOW + 61 * DAY }), "applied:bronze");
   assert.equal((await core.planOf(db, A, "p1", NOW + 61 * DAY)).tier, "bronze");
@@ -82,12 +82,12 @@ test("Energy top-up: Bronze refused; Silver credited £2.50 of AI cost once and 
   const r = await playVerify({ uid: "p2", data: { kind: "topup", productId: "energy_5", purchaseToken: "tok-topup-0002" } }, { db, play, now: NOW });
   assert.equal(r.credited, true);
   await playVerify({ uid: "p2", data: { kind: "topup", productId: "energy_5", purchaseToken: "tok-topup-0002" } }, { db, play, now: NOW });
-  assert.equal(await core.balance(db, A, "p2"), 250);
+  assert.equal(await core.balance(db, A, "p2"), 500);   // £5 top-up = 500 Energy
   assert.deepEqual(G.consumed, ["tok-topup-0002"]);
   G.products["tok-topup-0003"] = { purchaseState: 0, consumptionState: 0, orderId: "GPA.7777", obfuscatedExternalAccountId: accountTag("p3") };
   const r3 = await playVerify({ uid: "p3", data: { kind: "topup", productId: "energy_5", purchaseToken: "tok-topup-0003" } }, { db, play, now: NOW });
   assert.equal(r3.pool, true);
-  assert.equal(((await db.ref(`apps/${A}/familyEnergy/p3`).once("value")).val() || {}).balancePence, 250);
+  assert.equal(((await db.ref(`apps/${A}/familyEnergy/p3`).once("value")).val() || {}).balance, 500);
   G.products["tok-topup-0004"] = { purchaseState: 1, orderId: "GPA.8888", obfuscatedExternalAccountId: accountTag("p2") };   // cancelled / pending
   await assert.rejects(playVerify({ uid: "p2", data: { kind: "topup", productId: "energy_5", purchaseToken: "tok-topup-0004" } }, { db, play, now: NOW }), { code: "failed-precondition" });
 });

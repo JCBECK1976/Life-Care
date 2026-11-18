@@ -39,7 +39,7 @@ async function applySubscription(db, app, uid, sub, now) {
   await db.ref(P.account(app, uid)).update({ tier: active ? tier : "bronze", updated: now });
   let credited = null;
   if (active && sub.latestOrderId) {
-    const allowance = ((await tiersConfig(db, app))[tier] || {}).allowancePence || 0;
+    const allowance = ((await tiersConfig(db, app))[tier] || {}).energy || 0;   // Energy units
     // one allowance per paid period: each renewal has its own order ID
     if (allowance > 0) credited = await creditPlan(db, app, uid, allowance, "play:" + tier + ":" + basePlan, key(sub.latestOrderId), now);
   }
@@ -59,7 +59,7 @@ export async function playVerify({ uid, data }, { db, play, now = Date.now() }) 
     need(pur && pur.purchaseState === 0, "failed-precondition", "This purchase isn't complete.");
     need(pur.obfuscatedExternalAccountId === accountTag(uid), "permission-denied", "This purchase belongs to another account.");
     await bindToken(db, app, uid, token);
-    const r = await move(db, plan.wallet, +TOP_UP.creditPence, "credit", "play:" + TOP_UP.productId, key(pur.orderId), now);
+    const r = await move(db, plan.wallet, +TOP_UP.energy, "credit", "play:" + TOP_UP.productId, key(pur.orderId), now);
     if (pur.consumptionState !== 1) await play.consume(productId, token);       // so it can be bought again
     return { ok: true, credited: !r.duplicate, pool: plan.role !== "solo" };
   }

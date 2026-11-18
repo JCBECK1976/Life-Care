@@ -127,7 +127,7 @@ test("My Plan as Bronze: collapsed by default; four plans compared, Bronze highl
 
 test("My Plan as Silver (Play): renewal date, Energy %, top-up offered, Manage opens Google Play's subscription page", async ({ page }) => {
   const exp = Date.UTC(2026, 11, 17);
-  await withTiers(page, "member", { entitlements: { [ME]: { tier: "silver", source: "play", expires: exp + 365 * 86400000 * 5, autoRenew: true, basePlan: "monthly" } }, energy: { [ME]: { balancePence: 75 } } });
+  await withTiers(page, "member", { entitlements: { [ME]: { tier: "silver", source: "play", expires: exp + 365 * 86400000 * 5, autoRenew: true, basePlan: "monthly" } }, energy: { [ME]: { balance: 150 } } });
   await openMyPlan(page);
   await expect(page.getByTestId("plan-current")).toContainText("You're on Silver");
   await expect(page.getByTestId("plan-renewal")).toContainText("Renews");
@@ -139,7 +139,7 @@ test("My Plan as Silver (Play): renewal date, Energy %, top-up offered, Manage o
 
 test("My Plan as a Platinum owner: family members, family pool %, invite by email", async ({ page }) => {
   await withTiers(page, "member", {
-    entitlements: { [ME]: { tier: "platinum", source: "admin" } }, familyEnergy: { [ME]: { balancePence: 375 } },
+    entitlements: { [ME]: { tier: "platinum", source: "admin" } }, familyEnergy: { [ME]: { balance: 750 } },
     households: { h1: { owner: ME, members: { [ME]: true, "uid-sam": true } } }, memberOf: { [ME]: "h1", "uid-sam": "h1" },
     users: { [ME]: { profile: { name: "Alex" } }, "uid-sam": { profile: { name: "Sam" } } },
   });

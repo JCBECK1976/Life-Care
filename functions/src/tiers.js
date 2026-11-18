@@ -32,16 +32,19 @@ var NONE = { foodRatings: false, snap: false, myOwnItem: false, aiFeedback: fals
 var SILVER = Object.assign({}, NONE, { foodRatings: true, snap: true, myOwnItem: true, aiFeedback: true, chat: true, aiHelp: true, autoInfo: true, bodyBalance: true, healthSync: true, buyEnergy: true, editNutrition: true });
 var GOLD = Object.assign({}, SILVER, { mealGenerator: true, shoppingGenerator: true, aiPlans: true });
 
-// Prices and allowances in pence. allowancePence = AI cost included per month (Platinum: one shared family pool).
+// Prices in pence. energy = Companion Energy included per month (JC 17/18 Nov: Silver 300, Gold 500, Platinum 1,500 —
+// one shared family pool). allowancePence = the AI cost that Energy stands for (Energy = AI cost in pence × 2).
 export var DEFAULT_TIERS = {
-  bronze: Object.assign({}, NONE, { pricePence: 0, yearlyPence: 0, allowancePence: 0, maxMembers: 1, sharedPool: false }),
-  silver: Object.assign({}, SILVER, { pricePence: 599, yearlyPence: 4900, allowancePence: 150, maxMembers: 1, sharedPool: false }),
-  gold: Object.assign({}, GOLD, { pricePence: 999, yearlyPence: 7900, allowancePence: 250, maxMembers: 1, sharedPool: false }),
-  platinum: Object.assign({}, GOLD, { household: true, pricePence: 1599, yearlyPence: 15900, allowancePence: 750, maxMembers: 5, sharedPool: true }),
+  bronze: Object.assign({}, NONE, { energy: 0, pricePence: 0, yearlyPence: 0, allowancePence: 0, maxMembers: 1, sharedPool: false }),
+  silver: Object.assign({}, SILVER, { energy: 300, pricePence: 599, yearlyPence: 4900, allowancePence: 150, maxMembers: 1, sharedPool: false }),
+  gold: Object.assign({}, GOLD, { energy: 500, pricePence: 999, yearlyPence: 7900, allowancePence: 250, maxMembers: 1, sharedPool: false }),
+  platinum: Object.assign({}, GOLD, { energy: 1500, household: true, pricePence: 1599, yearlyPence: 15900, allowancePence: 750, maxMembers: 5, sharedPool: true }),
 };
 
 // The Energy top-up: one product, £5 → £2.50 of AI cost; Silver and up (Platinum: into the family pool).
-export var TOP_UP = { productId: "energy_5", pricePence: 500, creditPence: 250 };
+export var TOP_UP = { productId: "energy_5", pricePence: 500, creditPence: 250, energy: 500 };
+// Every AI call costs Energy = its real AI cost in pence × 2 (the mark-up that pays for the plan).
+export var ENERGY_PER_AI_PENNY = 2;
 
 // Store product IDs (Google Play now, StoreKit later with the same IDs).
 export var STORE_PRODUCTS = { silver: "silver", gold: "gold", platinum: "platinum" };

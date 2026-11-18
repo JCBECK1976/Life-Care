@@ -17,8 +17,8 @@ before(async () => {
     users: { [alice.uid]: { profile: { name: "Alice" }, data: { body: { weight: 13 }, exercise: { squat: 40 } } }, [bob.uid]: { profile: { name: "Bob" }, data: { body: { weight: 11 } } } },
     households: { h1: { owner: alice.uid, members: { [alice.uid]: true, [bob.uid]: true } } },
     memberOf: { [alice.uid]: "h1", [bob.uid]: "h1" },
-    energy: { [alice.uid]: { balancePence: 100 } }, entitlements: { [alice.uid]: { tier: "bronze" } },
-    admin: { accounts: { [alice.uid]: { tier: "bronze", balancePence: 100 } } } } } });
+    energy: { [alice.uid]: { balance: 100 } }, entitlements: { [alice.uid]: { tier: "bronze" } },
+    admin: { accounts: { [alice.uid]: { tier: "bronze", balance: 100 } } } } } });
 });
 const U = (u) => `apps/lifecare/users/${u.uid}`;
 
@@ -66,7 +66,7 @@ test("households and membership: server-written only; can't join yourself", asyn
 
 test("balance, tier, ledger: readable by the owner, never writable from the app", async () => {
   await ok(asUser(NS, alice, `apps/lifecare/energy/${alice.uid}`));
-  await denied(asUser(NS, alice, `apps/lifecare/energy/${alice.uid}/balancePence`, "PUT", 999999));
+  await denied(asUser(NS, alice, `apps/lifecare/energy/${alice.uid}/balance`, "PUT", 999999));
   await denied(asUser(NS, alice, `apps/lifecare/entitlements/${alice.uid}/tier`, "PUT", "gold"));
   await denied(asUser(NS, alice, `apps/lifecare/ledger/${alice.uid}/x`, "PUT", { pence: 1 }));
   await denied(asUser(NS, bob, `apps/lifecare/energy/${alice.uid}`));
@@ -116,7 +116,7 @@ test("consent (v2.24.0/v2.25.0): own only; history entries can be added, never c
 
 test("server-only paths: nobody writes plans, energy, pools, ledgers, households, membership, purchases or pilot invites from the app", async () => {
   for (const p of ["entitlements/" + carol.uid, "energy/" + carol.uid, "familyEnergy/" + carol.uid, "familyLedger/" + carol.uid + "/x", "ledger/" + carol.uid + "/x", "households/hx", "memberOf/" + carol.uid, "purchases/abc", "pilotInvites/abc", "usage/" + carol.uid + "/d"])
-    await denied(asUser(NS, carol, "apps/lifecare/" + p, "PUT", { tier: "platinum", balancePence: 99999 }));
+    await denied(asUser(NS, carol, "apps/lifecare/" + p, "PUT", { tier: "platinum", balance: 99999 }));
   await denied(asUser(NS, carol, "apps/lifecare/purchases/abc"));
   await denied(asUser(NS, adm, "apps/lifecare/pilotInvites"));          // read through the function only
   await denied(asUser(NS, adm, U(alice) + "/store"));                    // the admin never reads anyone's data
@@ -125,7 +125,7 @@ test("server-only paths: nobody writes plans, energy, pools, ledgers, households
 });
 
 test("family pool and plans: a family member reads the owner's pool and plan; an outsider can't", async () => {
-  await ok(asOwner(NS, "apps/lifecare/familyEnergy/" + alice.uid, "PUT", { balancePence: 500 }));
+  await ok(asOwner(NS, "apps/lifecare/familyEnergy/" + alice.uid, "PUT", { balance: 500 }));
   await ok(asUser(NS, bob, "apps/lifecare/familyEnergy/" + alice.uid));
   await ok(asUser(NS, bob, "apps/lifecare/entitlements/" + alice.uid));
   await denied(asUser(NS, carol, "apps/lifecare/familyEnergy/" + alice.uid));

@@ -28,7 +28,7 @@ test("ledger: credit and debit move the balance; a credit with the same key coun
   assert.equal(await core.balance(db, A, "u1"), 239.5);
   const ledger = (await db.ref(`apps/${A}/ledger/u1`).once("value")).val();
   assert.equal(Object.keys(ledger).length, 2);
-  for (const e of Object.values(ledger)) assert.deepEqual(Object.keys(e).sort(), ["at", "kind", "pence", "ref"]);   // no content
+  for (const e of Object.values(ledger)) assert.deepEqual(Object.keys(e).sort(), ["at", "energy", "kind", "ref"]);   // no content
 });
 
 test("deleteAccount (v2.21.1): refuses a platform admin and the rules-locked UID before changing anything; deletes a normal account", async () => {
@@ -41,12 +41,16 @@ test("deleteAccount (v2.21.1): refuses a platform admin and the rules-locked UID
   assert.deepEqual(deleted, []);                                                                  // nothing deleted
   assert.deepEqual((await db.ref(`apps/${A}/entitlements/uid-admin`).once("value")).val(), { tier: "gold" });
   await db.ref(`apps/${A}/entitlements/u-del`).set({ tier: "silver" });
+  await db.ref(`apps/${A}/users/u-del`).set({ store: { "dashboard:data": "{}" }, consent: { ai: true, history: { h: { at: "t" } } } });
+  await db.ref(`apps/${A}/memberOf/u-del`).set("hd"); await db.ref(`apps/${A}/households/hd`).set({ owner: "ox", members: { ox: true, "u-del": true } });
   await db.ref(`apps/${A}/energy/u-del`).set({ balancePence: 10 });
   const r = await core.deleteAccount({ uid: "u-del", data: {} }, { db, deleteUser, now: Date.UTC(2026, 10, 17) });
   assert.deepEqual(r, { ok: true });
   assert.deepEqual(deleted, ["u-del"]);
   assert.equal((await db.ref(`apps/${A}/entitlements/u-del`).once("value")).val(), null);
   assert.equal((await db.ref(`apps/${A}/energy/u-del`).once("value")).val(), null);
+  assert.equal((await db.ref(`apps/${A}/users/u-del`).once("value")).val(), null);              // store + consent history gone
+  assert.deepEqual((await db.ref(`apps/${A}/households/hd/members`).once("value")).val(), { ox: true });
 });
 
 test("aiProxy: needs sign-in, an allowed tier and energy; adds the medication rule; debits the real cost; records usage", async () => {
@@ -64,7 +68,7 @@ test("aiProxy: needs sign-in, an allowed tier and energy; adds the medication ru
   assert.ok(sent[0].system.startsWith(MEDICATION_RULE));
   const cost = costPence({ input_tokens: 1000, output_tokens: 200 });
   assert.ok(cost > 0);
-  assert.equal(Math.round((before - await core.balance(db, A, "u1")) * 10000) / 10000, cost);
+  assert.equal(Math.round((before - await core.balance(db, A, "u1")) * 10000) / 10000, Math.round(cost * 2 * 10000) / 10000);   // v2.26.0: Energy = AI cost × 2
   const u = (await db.ref(`apps/${A}/usage/u1/2026-11-14`).once("value")).val();
   assert.deepEqual({ n: u.n, in: u.in, out: u.out }, { n: 1, in: 1000, out: 200 });
 });
@@ -90,7 +94,7 @@ test("Stripe (test mode): a signed checkout.session.completed credits £2.50 of 
   assert.equal((await core.stripeWebhook(ev, "t=1,v1=bad", { stripe, secret, db })).status, 400);
   assert.equal((await core.stripeWebhook(ev, sig, { stripe, secret, db })).body, "credited");
   assert.equal((await core.stripeWebhook(ev, sig, { stripe, secret, db })).body, "already credited");
-  assert.equal(await core.balance(db, A, "u3"), 250);
+  assert.equal(await core.balance(db, A, "u3"), 500);   // £5 pack = £2.50 of AI cost = 500 Energy
   // createCheckout builds a GBP £5 session for the signed-in user (fake Stripe client)
   let made; const fake = { checkout: { sessions: { create: async (o) => { made = o; return { url: "https://checkout.stripe.test/x", id: "cs_x" }; } } } };
   await assert.rejects(core.createCheckout({ uid: "u3", data: { pack: "pack5" } }, { stripe: fake, baseUrl: "https://example.test/" }), { code: "failed-precondition" });   // v2.22.0: off unless enabled
@@ -134,6 +138,9 @@ test("tier defaults (JC 17 Nov 2026): four plans, prices, allowances, Bronze has
   const { DEFAULT_TIERS, PACKS, TOP_UP } = await import("../src/config.js");
   const T = DEFAULT_TIERS;
   assert.deepEqual(["bronze", "silver", "gold", "platinum"].map((t) => T[t].allowancePence), [0, 150, 250, 750]);
+  assert.deepEqual(["bronze", "silver", "gold", "platinum"].map((t) => T[t].energy), [0, 300, 500, 1500]);       // JC: Energy a month
+  for (const t of ["silver", "gold", "platinum"]) assert.equal(T[t].energy, T[t].allowancePence * 2);              // Energy = AI cost × 2
+  assert.equal(TOP_UP.energy, 500);
   assert.deepEqual(["silver", "gold", "platinum"].map((t) => [T[t].pricePence, T[t].yearlyPence]), [[599, 4900], [999, 7900], [1599, 15900]]);
   const ai = ["foodRatings", "snap", "myOwnItem", "aiFeedback", "chat", "aiHelp", "autoInfo", "bodyBalance", "mealGenerator", "shoppingGenerator", "aiPlans", "buyEnergy"];
   for (const f of ai) assert.equal(T.bronze[f], false, "bronze " + f);
@@ -157,16 +164,16 @@ test("Platinum family: members get Platinum through the owner; ONE shared pool i
   const p = await core.planOf(db, A, "fm1");
   assert.deepEqual([p.tier, p.role, p.owner], ["platinum", "member", "fo"]);
   assert.equal((await core.planOf(db, A, "fo")).role, "owner");
-  await assert.rejects(core.adminTopUp({ uid: "fm1", data: { uid: "fo", pence: 750 } }, { db }), { code: "permission-denied" });
-  await core.adminTopUp({ uid: "uid-admin", data: { uid: "fm2", pence: 0.2 } }, { db });                     // a member's top-up goes into the pool
+  await assert.rejects(core.adminTopUp({ uid: "fm1", data: { uid: "fo", energy: 1500 } }, { db }), { code: "permission-denied" });
+  await core.adminTopUp({ uid: "uid-admin", data: { uid: "fm2", energy: 0.2 } }, { db });                     // a member's top-up goes into the pool
   assert.equal(await core.walletBalance(db, p.wallet), 0.2);
   assert.equal(await core.balance(db, A, "fm2"), 0);                                                         // nothing in a personal balance
   await core.aiProxy({ uid: "fm1", data: { ...req, feature: "mealGenerator" } }, { db, callClaude: fakeClaude });   // costs about 0.47p, more than the pool holds
   assert.equal(await core.walletBalance(db, p.wallet), 0);                                                  // capped at zero, never negative
   await assert.rejects(core.aiProxy({ uid: "fm3", data: req }, { db, callClaude: fakeClaude }), { code: "resource-exhausted" });   // empty for the whole family
-  await core.adminTopUp({ uid: "uid-admin", data: { uid: "fo", pence: 750 } }, { db });
+  await core.adminTopUp({ uid: "uid-admin", data: { uid: "fo", energy: 1500 } }, { db });
   await core.aiProxy({ uid: "fm3", data: req }, { db, callClaude: fakeClaude });
-  assert.ok(await core.walletBalance(db, p.wallet) < 750);
+  assert.ok(await core.walletBalance(db, p.wallet) < 1500);
   // removed from the family → back to their own plan (Bronze), nothing deleted
   await db.ref(`apps/${A}/users/fm4/data/body`).set({ weight: [80] });
   await core.removeMember({ uid: "fo", data: { uid: "fm4" } }, { db });
@@ -190,7 +197,7 @@ test("downgrade: an expired plan counts as Bronze — AI stops, data stays; an a
 
 test("consent (v2.24.0): each opt-in switches its features off on the server; terms must be accepted; the joint account is exempt", async () => {
   await db.ref(`apps/${A}/entitlements/cs`).set({ tier: "gold", source: "admin" });
-  await core.adminTopUp({ uid: "uid-admin", data: { uid: "cs", pence: 500 } }, { db });
+  await core.adminTopUp({ uid: "uid-admin", data: { uid: "cs", energy: 500 } }, { db });
   const call = (feature) => core.aiProxy({ uid: "cs", data: { ...req, feature } }, { db, callClaude: fakeClaude });
   await assert.rejects(call("aiFeedback"), { code: "failed-precondition", message: "Accept the Terms and Privacy Notice first." });   // no consent record
   await db.ref(`apps/${A}/users/cs/consent`).set({ ...ALL, ai: false, photos: false, bodyBalance: false });
@@ -217,4 +224,49 @@ test("pilot test users (v2.25.0): admin invites by email with a plan (default Go
   assert.equal((await core.acceptPilotInvite({ uid: "t3", email: "s@example.com", data: { code: s2 } }, { db })).tier, "silver");
   const old = (await core.createPilotInvite({ uid: "uid-admin", data: { email: "o@example.com" } }, { db, now: 0, makeCode: () => "pil3" })).code;
   await assert.rejects(core.acceptPilotInvite({ uid: "t4", email: "o@example.com", data: { code: old } }, { db }), { code: "deadline-exceeded" });
+});
+
+test("monthly allowance (v2.26.0): admin grants get 300/500/1,500 Energy once a month (Platinum into the pool; members nothing extra)", async () => {
+  const mo = Date.UTC(2026, 11, 3);
+  await db.ref(`apps/${A}/entitlements`).update({ ma_s: { tier: "silver", source: "admin" }, ma_p: { tier: "platinum", source: "admin" }, ma_play: { tier: "gold", source: "play", expires: mo + 9e9 } });
+  const before = await core.balance(db, A, "ma_s");
+  const r = await core.grantMonthly(db, A, mo);
+  assert.ok(r.credited >= 2);
+  assert.equal(await core.balance(db, A, "ma_s") - before, 300);
+  assert.equal(((await db.ref(`apps/${A}/familyEnergy/ma_p`).once("value")).val() || {}).balance, 1500);
+  assert.equal(await core.balance(db, A, "ma_play"), 0);                                  // Play plans: on renewal instead
+  await core.grantMonthly(db, A, mo + 86400000);                                          // the next day: nothing more
+  assert.equal(await core.balance(db, A, "ma_s") - before, 300);
+  await core.grantMonthly(db, A, Date.UTC(2027, 0, 2));                                    // next month
+  assert.equal(await core.balance(db, A, "ma_s") - before, 600);
+});
+
+test("export (v2.26.0, Step 2): everything about the signed-in person — and nobody else; recorded in the audit trail", async () => {
+  await db.ref(`apps/${A}/users/ex1`).set({ store: { "dashboard:data": "{\"jc\":{}}" }, profile: { name: "Ex" }, consent: { ai: true } });
+  await db.ref(`apps/${A}/users/ex2`).set({ store: { secret: "not yours" } });
+  await assert.rejects(core.exportMyData({ uid: null, data: {} }, { db }), { code: "unauthenticated" });
+  const out = await core.exportMyData({ uid: "ex1", data: {} }, { db, now: Date.UTC(2026, 10, 18) });
+  assert.equal(out.profile.name, "Ex"); assert.ok(out.store["dashboard:data"]); assert.equal(out.consent.ai, true);
+  assert.ok(!JSON.stringify(out).includes("not yours"));
+  const audit = Object.values((await db.ref(`apps/${A}/audit`).once("value")).val()).map((x) => x.action);
+  assert.ok(audit.includes("export-my-data"));
+});
+
+test("Vertex AI (EU) with a fallback to the direct API only when Vertex is down; the model and region are configurable", async () => {
+  const { pickBackend } = await import("../src/backends.js");
+  const prev = process.env.AI_BACKEND; process.env.AI_BACKEND = "vertex";
+  const urls = [];
+  const ok = { ok: true, json: async () => ({ content: [{ type: "text", text: "v" }], usage: {} }) };
+  const down = { ok: false, status: 503 };
+  let vertexUp = true;
+  const fetchImpl = async (url) => { urls.push(url.replace(/projects\/[^/]*/, "projects/P")); return url.includes("aiplatform") ? (vertexUp ? ok : down) : ok; };
+  const b = pickBackend({ fallback: "direct", vertexToken: "t", fetchImpl, vertexModel: "claude-sonnet-4-6" });
+  await b({ model: "claude-sonnet-4-6", max_tokens: 5, messages: [] });
+  assert.match(urls[0], /^https:\/\/europe-west1-aiplatform\.googleapis\.com\/v1\/projects\/P\/locations\/europe-west1\/publishers\/anthropic\/models\/claude-sonnet-4-6:rawPredict$/);
+  vertexUp = false;
+  const r = await b({ model: "claude-sonnet-4-6", max_tokens: 5, messages: [] });
+  assert.equal(r.backend, "direct-fallback"); assert.equal(urls[urls.length - 1], "https://api.anthropic.com/v1/messages");
+  const strict = pickBackend({ vertexToken: "t", fetchImpl });                             // no fallback set → the error stands
+  await assert.rejects(strict({ model: "m", messages: [] }), /Vertex AI HTTP 503/);
+  process.env.AI_BACKEND = prev;
 });

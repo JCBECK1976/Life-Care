@@ -41,4 +41,4 @@ export const P = {
   purchases: (app, key) => `apps/${app}/purchases/${key}`,          // Play purchase token (hashed) → uid; no content
 };
 // v2.22.0: the four plans (JC 17 Nov 2026) — the same file as the app's src/constants/tiers.js.
-export { DEFAULT_TIERS, TIER_ORDER, TOP_UP, STORE_PRODUCTS, CONSENT_NEEDS, tierAllows } from "./tiers.js";
+export { DEFAULT_TIERS, TIER_ORDER, TOP_UP, STORE_PRODUCTS, CONSENT_NEEDS, ENERGY_PER_AI_PENNY, tierAllows } from "./tiers.js";

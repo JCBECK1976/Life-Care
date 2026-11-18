@@ -1,0 +1,72 @@
+# v2.26.0: Deploy the server functions and/or the database rules — MANUAL ONLY, and only after JC approves.
+#  - Never runs on a push. Start it from Actions → "Deploy functions + rules" → Run workflow (branch main).
+#  - The `production` environment must require JC as a reviewer (GO_LIVE_CHECKLIST C): GitHub then waits for his approval.
+#  - Dry run is the default: it validates everything and changes nothing. Untick it only for the real deploy.
+#  - Rules: deploys database.rules.json. At go-live database.rules.next.json is copied into it in a reviewed release, so the
+#    daily rules-drift check keeps comparing against what is live.
+#  - Config comes from the environment's VARIABLES (not secrets): AI_BACKEND, AI_FALLBACK, VERTEX_REGION, VERTEX_MODEL,
+#    ENFORCE_APP_CHECK. Keys never live in the repo: the deploy service account is the secret FIREBASE_DEPLOY_SERVICE_ACCOUNT;
+#    the functions' own secrets (e.g. ANTHROPIC_API_KEY for the fallback) live in Google Secret Manager.
+name: Deploy functions + rules (manual, needs JC's approval)
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (validate only, change nothing)"
+        type: boolean
+        default: true
+      target:
+        description: "What to deploy"
+        type: choice
+        options: [functions+rules, functions, rules]
+        default: functions+rules
+permissions: { contents: read }
+concurrency: { group: deploy-functions, cancel-in-progress: false }
+jobs:
+  test:
+    name: Emulator tests (functions + rules)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-java@v6
+        with: { distribution: temurin, java-version: 21 }
+      - run: npm ci --no-audit --no-fund
+      - run: npm ci --prefix functions --no-audit --no-fund
+      - run: node scripts/make-emulator-rules.mjs
+      - run: npx firebase emulators:exec --only database,auth --project life-care-app-64d04 "npm --prefix functions test"
+  deploy:
+    name: Deploy (${{ inputs.dry_run && 'DRY RUN' || 'REAL' }} — ${{ inputs.target }})
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    runs-on: ubuntu-latest
+    env:
+      SA: ${{ secrets.FIREBASE_DEPLOY_SERVICE_ACCOUNT }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --no-audit --no-fund
+      - run: npm ci --prefix functions --omit=dev --no-audit --no-fund
+      - name: Check the deploy secret is set
+        run: '[ -n "$SA" ] || { echo "::error::FIREBASE_DEPLOY_SERVICE_ACCOUNT is not set (GO_LIVE_CHECKLIST C)"; exit 1; }'
+      - name: Functions config from the environment's variables (no secrets)
+        run: |
+          {
+            echo "AI_BACKEND=${{ vars.AI_BACKEND || 'vertex' }}"
+            echo "AI_FALLBACK=${{ vars.AI_FALLBACK || 'direct' }}"
+            echo "VERTEX_REGION=${{ vars.VERTEX_REGION || 'europe-west1' }}"
+            echo "VERTEX_MODEL=${{ vars.VERTEX_MODEL || 'claude-sonnet-4-6' }}"
+            echo "ENFORCE_APP_CHECK=${{ vars.ENFORCE_APP_CHECK || 'false' }}"
+          } > functions/.env.life-care-app-64d04
+          cat functions/.env.life-care-app-64d04
+      - name: Deploy
+        run: |
+          umask 077; printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"; export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          case "${{ inputs.target }}" in functions+rules) ONLY="functions,database";; functions) ONLY="functions";; rules) ONLY="database";; esac
+          npx firebase deploy --config firebase.deploy.json --project life-care-app-64d04 --only "$ONLY" --non-interactive ${{ inputs.dry_run && '--dry-run' || '' }}
+      - name: Remove the key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sa.json"

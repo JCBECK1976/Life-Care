@@ -1,0 +1,6 @@
+{
+  "database": { "rules": "database.rules.json" },
+  "functions": [
+    { "source": "functions", "codebase": "default", "runtime": "nodejs22", "ignore": ["node_modules", "test", ".env.local", "*.log"] }
+  ]
+}

@@ -74,7 +74,7 @@ export function plan(root, uid, now) {
   }
   up[`apps/${APP}/households/h_family`] = { owner: uid.jc, created: now, members: { [uid.jc]: true, [uid.becks]: true } };
   up[`apps/${APP}/entitlements/${uid.jc}`] = { tier: "platinum", since: now, source: "admin" };   // Becks: Platinum as a member
-  up[`apps/${APP}/familyEnergy/${uid.jc}`] = { balancePence: 750, updated: now };
+  up[`apps/${APP}/familyEnergy/${uid.jc}`] = { balance: 1500, updated: now };   // Platinum: 1,500 Energy a month
   up[`apps/${APP}/audit/${now}_migration`] = { at: new Date(now).toISOString(), action: "migrate-accounts", people: 2 };
   return { up, counts };
 }
@@ -92,7 +92,7 @@ async function main() {
   const line = (who) => `${who === "jc" ? "Person 1" : "Person 2"}: ${counts[who].keys} items (${counts[who].own} their own, ${counts[who].shared} shared lists, ${counts[who].reduced} shared records reduced to their part; ${counts[who].skippedOther} of the other person's left out; ${counts[who].never} never copied)`;
   console.log((DRY ? "DRY RUN — nothing written. " : "") + "Source: " + Object.keys(root).length + " items.");
   console.log(line("jc")); console.log(line("becks"));
-  console.log("Platinum grant: owner + 1 member, family pool 750 (pence of AI cost). Both Visible + log-for-me.");
+  console.log("Platinum grant: owner + 1 member, family pool 1500 Energy. Both Visible + log-for-me.");
   if (DRY) { await app.delete(); return; }
   for (const who of ["jc", "becks"]) {
     const existing = (await db.ref(`apps/${APP}/users/${UID[who]}/store`).once("value")).val();

@@ -1,5 +1,5 @@
 // Platform handlers as plain functions (deps injected), so they run in Cloud Functions and in emulator tests alike.
-import { CONSENT_NEEDS, DEFAULT_APP, DEFAULT_TIERS, LOCKED_UIDS, MEDICATION_RULE, MODEL, P, PACKS, STRIPE_WEB_ENABLED, TIER_ORDER, costPence } from "./config.js";
+import { CONSENT_NEEDS, ENERGY_PER_AI_PENNY, DEFAULT_APP, DEFAULT_TIERS, LOCKED_UIDS, MEDICATION_RULE, MODEL, P, PACKS, STRIPE_WEB_ENABLED, TIER_ORDER, costPence } from "./config.js";
 
 export class HttpsError extends Error { constructor(code, message) { super(message); this.code = code; } }
 const need = (cond, code, msg) => { if (!cond) throw new HttpsError(code, msg); };
@@ -17,7 +17,10 @@ export async function deleteAccount({ uid, data }, { db, deleteUser, now = Date.
   need(LOCKED_UIDS.indexOf(uid) < 0 && !(await isAdmin(db, uid)), "permission-denied", "This account can't be deleted here: contact the developer.");
   const app = appOf(data);
   const up = {};
-  [P.ent(app, uid), P.energy(app, uid), P.ledger(app, uid), P.account(app, uid), `apps/${app}/usage/${uid}`].forEach((p) => { up[p] = null; });
+  [P.ent(app, uid), P.energy(app, uid), P.ledger(app, uid), P.account(app, uid), `apps/${app}/usage/${uid}`,
+   `apps/${app}/users/${uid}`, `apps/${app}/memberOf/${uid}`].forEach((p) => { up[p] = null; });   // v2.26.0: store, consent history, family link
+  const hid = (await db.ref(`apps/${app}/memberOf/${uid}`).once("value")).val();
+  if (hid) up[`apps/${app}/households/${hid}/members/${uid}`] = null;
   up[`apps/${app}/audit/${now}_${uid.slice(0, 6)}`] = { at: new Date(now).toISOString(), action: "delete-account" };
   await db.ref().update(up);
   await deleteUser(uid);
@@ -50,25 +53,26 @@ export async function featureAllowed(db, app, uid, feature) {
 
 /* ---------- energy ledger (server only; pence of AI cost; no content) ---------- */
 function wallet(app, kind, who) { return kind === "pool" ? { energy: P.pool(app, who), ledger: P.poolLedger(app, who), account: null } : { energy: P.energy(app, who), ledger: P.ledger(app, who), account: P.account(app, who) }; }
-export async function walletBalance(db, w) { return ((await db.ref(w.energy).once("value")).val() || {}).balancePence || 0; }
+export async function walletBalance(db, w) { return ((await db.ref(w.energy).once("value")).val() || {}).balance || 0; }   // Energy units
 export async function balance(db, app, uid) { return walletBalance(db, wallet(app, "own", uid)); }
 export async function move(db, w, delta, kind, ref, key, now) {
   const entryRef = key ? db.ref(w.ledger + "/" + key) : db.ref(w.ledger).push();
-  if (key && (await entryRef.once("value")).exists()) return { duplicate: true, balancePence: await walletBalance(db, w) };
+  if (key && (await entryRef.once("value")).exists()) return { duplicate: true, balance: await walletBalance(db, w) };
   const r = await db.ref(w.energy).transaction((cur) => {
-    const c = cur || { balancePence: 0 };
+    const c = cur || { balance: 0 };
     // never below zero: the pool / balance is capped by what was credited (the last call may cost a little more)
-    return { balancePence: Math.max(0, Math.round(((c.balancePence || 0) + delta) * 10000) / 10000), updated: now };
+    return { balance: Math.max(0, Math.round(((c.balance || 0) + delta) * 10000) / 10000), updated: now };
   });
-  await entryRef.set({ at: now, kind, pence: Math.abs(delta), ref: String(ref || "").slice(0, 80) });
-  const bal = r.snapshot.val().balancePence;
-  if (w.account) await db.ref(w.account).update({ balancePence: bal, updated: now });
-  return { duplicate: false, balancePence: bal };
+  await entryRef.set({ at: now, kind, energy: Math.abs(delta), ref: String(ref || "").slice(0, 80) });
+  const bal = r.snapshot.val().balance;
+  if (w.account) await db.ref(w.account).update({ energy: bal, updated: now });
+  return { duplicate: false, balance: bal };
 }
-export const credit = (db, app, uid, pence, ref, key, now = Date.now()) => move(db, wallet(app, "own", uid), +pence, "credit", ref, key, now);
-export const debit = (db, app, uid, pence, ref, now = Date.now()) => move(db, wallet(app, "own", uid), -pence, "debit", ref, null, now);
+/* v2.26.0: balances and the ledger are in Companion ENERGY units (AI cost in pence × 2); credits are allowances / top-ups. */
+export const credit = (db, app, uid, energy, ref, key, now = Date.now()) => move(db, wallet(app, "own", uid), +energy, "credit", ref, key, now);
+export const debit = (db, app, uid, energy, ref, now = Date.now()) => move(db, wallet(app, "own", uid), -energy, "debit", ref, null, now);
 /** Credit the wallet the person's plan uses (Platinum: the family pool). */
-export async function creditPlan(db, app, uid, pence, ref, key, now = Date.now()) { return move(db, (await planOf(db, app, uid, now)).wallet, +pence, "credit", ref, key, now); }
+export async function creditPlan(db, app, uid, energy, ref, key, now = Date.now()) { return move(db, (await planOf(db, app, uid, now)).wallet, +energy, "credit", ref, key, now); }
 
 /* ---------- aiProxy ---------- */
 export function withRule(system) {
@@ -98,7 +102,7 @@ export async function aiProxy({ uid, data }, { db, callClaude, now = Date.now() 
   const body = { model: MODEL, max_tokens: Math.min(parseInt(req.max_tokens) || 1000, 4000), messages: req.messages, system: withRule(req.system) };
   const result = await callClaude(body);
   const cost = costPence(result && result.usage);
-  await move(db, plan.wallet, -cost, "debit", "ai:" + feature, null, now);
+  await move(db, plan.wallet, -cost * ENERGY_PER_AI_PENNY, "debit", "ai:" + feature, null, now);   // Energy = AI cost × 2
   await db.ref(P.usage(app, uid, day(now))).transaction((u) => {
     const x = u || { n: 0, in: 0, out: 0, costPence: 0 }; const us = result.usage || {};
     return { n: x.n + 1, in: x.in + (us.input_tokens || 0), out: x.out + (us.output_tokens || 0), costPence: Math.round((x.costPence + cost) * 10000) / 10000 };
@@ -119,8 +123,8 @@ export async function setTier({ uid, data }, { db, now = Date.now() }) {
 /** Admin only: free Energy for testing, into the person's plan wallet (Platinum: the family pool). */
 export async function adminTopUp({ uid, data }, { db, now = Date.now() }) {
   need(await isAdmin(db, uid), "permission-denied", "Admins only.");
-  const pence = Number(data && data.pence); need(data && data.uid && pence > 0 && pence <= 5000, "invalid-argument", "uid and pence (1–5000) needed.");
-  return creditPlan(db, appOf(data), data.uid, pence, "admin-top-up", null, now);
+  const energy = Number(data && data.energy); need(data && data.uid && energy > 0 && energy <= 10000, "invalid-argument", "uid and energy (1–10000) needed.");
+  return creditPlan(db, appOf(data), data.uid, energy, "admin-top-up", null, now);
 }
 export async function adminAccounts({ uid, data }, { db }) {
   need(await isAdmin(db, uid), "permission-denied", "Admins only.");
@@ -150,7 +154,7 @@ export async function stripeWebhook(rawBody, signature, { stripe, secret, db, no
   if (ev.type !== "checkout.session.completed") return { status: 200, body: "ignored" };
   const s = ev.data.object; const m = s.metadata || {}; const pack = PACKS[m.pack];
   if (!pack || !m.uid || s.payment_status !== "paid") return { status: 200, body: "not credited" };
-  const r = await credit(db, appOf({ appId: m.appId }), m.uid, pack.creditPence, "stripe:" + m.pack, "stripe_" + s.id.replace(/[^A-Za-z0-9_]/g, "_"), now);
+  const r = await credit(db, appOf({ appId: m.appId }), m.uid, pack.creditPence * ENERGY_PER_AI_PENNY, "stripe:" + m.pack, "stripe_" + s.id.replace(/[^A-Za-z0-9_]/g, "_"), now);
   return { status: 200, body: r.duplicate ? "already credited" : "credited" };
 }
 
@@ -236,4 +240,37 @@ export async function acceptPilotInvite({ uid, email, data }, { db, now = Date.n
     [PI(app, code)]: null,
   });
   return { tier: inv.tier };
+}
+
+/* ---------- v2.26.0: the monthly allowance for admin-granted plans (pilot testers, JC and Becks) ----------
+   Play subscriptions get theirs on each renewal (playNotify). Admin grants have no renewals, so a daily job credits
+   them once per calendar month: Silver 300 / Gold 500 / Platinum 1,500 (into the family pool; members get nothing
+   separately). Idempotent: one ledger entry per month (key admin_YYYY-MM). */
+export async function grantMonthly(db, app = DEFAULT_APP, now = Date.now()) {
+  const ents = (await db.ref(`apps/${app}/entitlements`).once("value")).val() || {};
+  const tiers = await tiersConfig(db, app); const month = new Date(now).toISOString().slice(0, 7);
+  let credited = 0;
+  for (const [uid, e] of Object.entries(ents)) {
+    if (!e || e.source !== "admin" || !e.tier) continue;
+    const plan = await planOf(db, app, uid, now);
+    if (plan.role === "member") continue;
+    const energy = (tiers[plan.tier] || {}).energy || 0; if (!energy) continue;
+    const r = await move(db, plan.wallet, +energy, "credit", "allowance:" + plan.tier, "admin_" + month, now);
+    if (!r.duplicate) credited++;
+  }
+  return { credited, month };
+}
+
+/* ---------- v2.26.0 (Step 2): self-service export — everything held about the signed-in person ----------
+   Their own store and profile, privacy, consent (+ history), plan, Energy, ledger and usage. No one else's data. */
+export async function exportMyData({ uid, data }, { db, now = Date.now() }) {
+  need(uid, "unauthenticated", "Sign in first.");
+  const app = appOf(data); const A = `apps/${app}`;
+  const read = async (p) => (await db.ref(p).once("value")).val();
+  const out = { exportedAt: new Date(now).toISOString(), app, account: uid,
+    store: await read(`${A}/users/${uid}/store`), profile: await read(`${A}/users/${uid}/profile`), privacy: await read(`${A}/users/${uid}/privacy`),
+    consent: await read(`${A}/users/${uid}/consent`), plan: await read(P.ent(app, uid)), energy: await read(P.energy(app, uid)),
+    ledger: await read(P.ledger(app, uid)), usage: await read(`${A}/usage/${uid}`), household: await read(`${A}/memberOf/${uid}`) };
+  await db.ref(`${A}/audit/${now}_${uid.slice(0, 6)}`).set({ at: new Date(now).toISOString(), action: "export-my-data" });
+  return out;
 }

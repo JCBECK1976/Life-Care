@@ -65,7 +65,7 @@ test("Snap gate: on Bronze a photo button shows the prompt BEFORE any camera/fil
 test("Energy bar: none on Bronze; a plan shows its own Energy; the shared account keeps the developer-key level", async ({ page }) => {
   await go(page, "member");
   await expect(page.getByText("Companion Energy").first()).toHaveCount(0);
-  await put("apps/lifecare", { entitlements: { [ME]: { tier: "silver", source: "admin" } }, energy: { [ME]: { balancePence: 75 } } });
+  await put("apps/lifecare", { entitlements: { [ME]: { tier: "silver", source: "admin" } }, energy: { [ME]: { balance: 150 } } });
   await page.evaluate(async () => { const m = await import("/Life-Care/src/lib/myPlan.js"); await m.loadPlan(); });
   await tab(page, "My Body"); await tab(page, "Home");
   await expect(page.getByText("Companion Energy").first()).toBeVisible();

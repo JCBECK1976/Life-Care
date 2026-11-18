@@ -6,11 +6,23 @@ import { isNative, nativeGoogleSignIn, nativeSignOut } from "./native.js";
 import { isProtectedAccount, needsRecentSignIn, PROTECTED_MSG } from "./accountGuard.js";
 
 import { collectMyData, deletionUpdate } from "./myDataCore.js";
+import { callFunction } from "./platform.js";
 export * from "./myDataCore.js";
 
 async function rootSnapshot() { return (await firebase.database().ref(DATA_ROOT).once("value")).val() || {}; }
+/* v2.26.0 (Step 2): an individual account's export also holds everything the platform keeps about the person
+   (profile, privacy, consent + history, plan, Energy, ledger, usage) — all readable by them under the rules. */
+async function accountExtras() {
+  var u = auth.currentUser; if (!u || !window._lcIndividual) return null;
+  var A = "apps/lifecare/", r = {};
+  var read = async function(k, p) { try { r[k] = (await firebase.database().ref(A + p).once("value")).val(); } catch (e) { r[k] = null; } };
+  await read("profile", "users/" + u.uid + "/profile"); await read("privacy", "users/" + u.uid + "/privacy"); await read("consent", "users/" + u.uid + "/consent");
+  await read("plan", "entitlements/" + u.uid); await read("energy", "energy/" + u.uid); await read("ledger", "ledger/" + u.uid); await read("usage", "usage/" + u.uid);
+  return r;
+}
 export async function exportMyData(person) {
   var data = collectMyData(await rootSnapshot(), person);
+  var extra = await accountExtras(); if (extra) data.account = extra;
   var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   var a = document.createElement("a"); a.href = URL.createObjectURL(blob);
   a.download = "lifecare-my-data-" + person + "-" + new Date().toISOString().slice(0, 10) + ".json";
@@ -40,6 +52,17 @@ export async function deleteMyAccount(person, opts) {
   if (!u) throw new Error("Not signed in");
   if (await isProtectedAccount(u.uid)) throw new Error(PROTECTED_MSG);                        // never the admin account
   if (needsRecentSignIn(u.metadata && u.metadata.lastSignInTime, opts && opts.now)) await reauthenticate(u);
+  if (window._lcIndividual) {
+    /* v2.26.0: an individual account is deleted by the server (deleteAccount): its store, profile, privacy, consent
+       history, plan, Energy, ledger, usage, family membership and the sign-in. If the server can't be reached,
+       NOTHING is erased (no half-deleted account). */
+    var t = await u.getIdToken();
+    try { await callFunction("deleteAccount", { appId: "lifecare" }, t); }
+    catch (e) { throw new Error("Couldn't delete your account just now, so nothing was erased. Please try again later. (" + ((e && e.message) || e) + ")"); }
+    await nativeSignOut();
+    try { await auth.signOut(); } catch (e) { /* the server already removed the sign-in */ }
+    return 1;
+  }
   var n = await deleteMyData(person);
   try { await auditLog("delete-account", person, n + " records"); } catch (e) { /* the deletion still goes ahead */ }
   try { await auth.currentUser.delete(); }

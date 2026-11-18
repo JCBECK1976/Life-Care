@@ -97,7 +97,7 @@ export default function MyPlanCard(props) {
             {TIER_ORDER.map(function(t) { var v = r[1](t, T); return <td key={t} style={Object.assign({}, cell, { background: t === cur ? "#eff6ff" : "transparent", color: v ? "#166534" : "#94a3b8", fontWeight: 700 })}>
               {v === true ? <span aria-label="Included">✓</span> : v ? <span style={{ fontSize: 10 }}>{v}</span> : <span aria-label="Not included">—</span>}</td>; })}</tr>; })}
           <tr><th scope="row" style={{ fontSize: 11, fontWeight: 500, textAlign: "left", padding: "6px 4px 6px 0", color: "#0f172a" }}>Companion Energy each month</th>
-            {TIER_ORDER.map(function(t) { return <td key={t} style={Object.assign({}, cell, { fontSize: 10, background: t === cur ? "#eff6ff" : "transparent" })}>{T[t].allowancePence ? money(T[t].allowancePence) + (T[t].sharedPool ? " shared" : "") : "—"}</td>; })}</tr>
+            {TIER_ORDER.map(function(t) { return <td key={t} style={Object.assign({}, cell, { fontSize: 10, background: t === cur ? "#eff6ff" : "transparent" })}>{T[t].energy ? Number(T[t].energy).toLocaleString("en-GB") + (T[t].sharedPool ? " shared" : "") : "—"}</td>; })}</tr>
         </tbody>
       </table>
       {yearly && <div style={{ fontSize: 11, color: "#475569", marginTop: 4 }}>Yearly saves about two months.</div>}
@@ -121,7 +121,7 @@ export default function MyPlanCard(props) {
         {plan.joint && !plan.preview
           ? <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>JC and Becks share this account for now. Inviting comes with your own logins (planned, needs your go-ahead).</div>
           : <>
-            {energy != null && <div style={{ fontSize: 12, color: "#0f172a", marginTop: 4 }}>Family Energy pool: <b>{energy}%</b> of {money(T.platinum.allowancePence)} this month, shared by everyone.</div>}
+            {energy != null && <div style={{ fontSize: 12, color: "#0f172a", marginTop: 4 }}>Family Energy pool: <b>{energy}%</b> of {Number(T.platinum.energy).toLocaleString("en-GB")} Energy this month, shared by everyone.</div>}
             <ul style={{ listStyle: "none", padding: 0, margin: "6px 0" }}>
               {((plan.family && plan.family.members) || [{ uid: "me", name: "You", owner: true }]).map(function(m) { return <li key={m.uid} data-testid="family-member" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #f1f5f9", fontSize: 13 }}>
                 <span>{m.name}{m.owner ? " (you, owner)" : ""}</span>

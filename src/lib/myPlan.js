@@ -54,9 +54,9 @@ export async function loadPlan() {
     var tier = live(own) ? own.tier : "bronze";
     p = { tier: tier, role: tier === "platinum" ? "owner" : "solo", owner: u.uid, hid: hid || null, source: own && own.source, expires: own && own.expires, autoRenew: own && own.autoRenew, basePlan: own && own.basePlan };
   }
-  var allowance = ((tiers[p.tier] || {}).allowancePence) || 0;
+  var allowance = ((tiers[p.tier] || {}).energy) || 0;   /* v2.26.0: Energy units */
   var bal = p.role === "solo" ? await val("apps/" + APP_ID + "/energy/" + u.uid) : await val("apps/" + APP_ID + "/familyEnergy/" + p.owner);
-  p.energyPct = allowance > 0 ? Math.max(0, Math.min(100, Math.round((((bal || {}).balancePence) || 0) / allowance * 100))) : null;
+  p.energyPct = allowance > 0 ? Math.max(0, Math.min(100, Math.round((((bal || {}).balance) || 0) / allowance * 100))) : null;
   if (p.role === "owner" && h) {
     var names = {};
     for (var m of Object.keys(h.members || {})) names[m] = ((await val("apps/" + APP_ID + "/users/" + m + "/profile")) || {}).name || "Member";
