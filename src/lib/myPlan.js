@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import firebase, { auth } from "./firebase.js";
 import { flag, APP_ID } from "./platform.js";
 import { APP_ENV } from "../constants/version.js";
-import { DEFAULT_TIERS, TIER_ORDER, tierAllows, gateMessage } from "../constants/tiers.js";
+import { DEFAULT_TIERS, TIER_ORDER, ENERGY_GUIDE, tierAllows, gateMessage } from "../constants/tiers.js";
 import { isProtectedAccount } from "./accountGuard.js";
 import { loadAccountConsent, consentBlocks, NOTE } from "./accountConsent.js";
 
@@ -33,10 +33,11 @@ export async function loadPlan() {
   var u = auth.currentUser;
   if (!tiersOn() || !u) { set(Object.assign({}, ALL_ON, { loaded: !!u })); return current; }   /* plans off: all on (consent still applies) */
   var tiers = (await val("apps/" + APP_ID + "/config/tiers")) || DEFAULT_TIERS;
+  var guide = (await val("apps/" + APP_ID + "/config/energyGuide")) || ENERGY_GUIDE;   /* v2.27.3: admin-configurable */
   if (await isProtectedAccount(u.uid)) {
     var pv = canPreview() ? readPreview() : null;
-    if (pv) { set({ tier: pv.tier, role: pv.role || (pv.tier === "platinum" ? "owner" : "solo"), ownerName: pv.ownerName || "JC", preview: true, joint: true, source: "preview", tiers: tiers, loaded: true }); return current; }
-    set(Object.assign({}, ALL_ON, { tiers: tiers, loaded: true }));
+    if (pv) { set({ tier: pv.tier, role: pv.role || (pv.tier === "platinum" ? "owner" : "solo"), ownerName: pv.ownerName || "JC", preview: true, joint: true, source: "preview", tiers: tiers, guide: guide, loaded: true }); return current; }
+    set(Object.assign({}, ALL_ON, { tiers: tiers, guide: guide, loaded: true }));
     return current;
   }
   var now = Date.now();
@@ -56,13 +57,16 @@ export async function loadPlan() {
   }
   var allowance = ((tiers[p.tier] || {}).energy) || 0;   /* v2.26.0: Energy units */
   var bal = p.role === "solo" ? await val("apps/" + APP_ID + "/energy/" + u.uid) : await val("apps/" + APP_ID + "/familyEnergy/" + p.owner);
-  p.energyPct = allowance > 0 ? Math.max(0, Math.min(100, Math.round((((bal || {}).balance) || 0) / allowance * 100))) : null;
+  /* v2.27.3: the % is this month's Energy; top-ups (never expire) are shown separately */
+  var b = bal || {}; var monthly = b.monthly != null ? b.monthly : (b.balance || 0);
+  p.energyPct = allowance > 0 ? Math.max(0, Math.min(100, Math.round(monthly / allowance * 100))) : null;
+  p.topup = Math.round(b.topup || 0);
   if (p.role === "owner" && h) {
     var names = {};
     for (var m of Object.keys(h.members || {})) names[m] = ((await val("apps/" + APP_ID + "/users/" + m + "/profile")) || {}).name || "Member";
     p.family = { hid: hid, members: Object.keys(h.members || {}).map(function(m) { return { uid: m, name: names[m], owner: m === u.uid }; }), invites: Object.keys(h.invites || {}).map(function(c) { return { code: c, email: h.invites[c].email }; }) };
   }
-  set(Object.assign(p, { tiers: tiers, loaded: true }));
+  set(Object.assign(p, { tiers: tiers, guide: guide, loaded: true }));
   return current;
 }
 

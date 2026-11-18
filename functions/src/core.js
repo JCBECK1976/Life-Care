@@ -59,9 +59,16 @@ export async function move(db, w, delta, kind, ref, key, now) {
   const entryRef = key ? db.ref(w.ledger + "/" + key) : db.ref(w.ledger).push();
   if (key && (await entryRef.once("value")).exists()) return { duplicate: true, balance: await walletBalance(db, w) };
   const r = await db.ref(w.energy).transaction((cur) => {
-    const c = cur || { balance: 0 };
-    // never below zero: the pool / balance is capped by what was credited (the last call may cost a little more)
-    return { balance: Math.max(0, Math.round(((c.balance || 0) + delta) * 10000) / 10000), updated: now };
+    // v2.27.3: two pots. MONTHLY Energy (the plan's allowance) is RESET on each renewal / month — no rollover.
+    // TOP-UPS (bought or admin-given) never expire. AI calls use the monthly pot first, then top-ups; never below zero.
+    const c = cur || {};
+    const r4 = (x) => Math.round(x * 10000) / 10000;
+    let monthly = c.monthly || 0, topup = c.topup != null ? c.topup : (c.monthly == null ? (c.balance || 0) : 0);   // an older single balance counts as top-up
+    if (kind === "allowance") monthly = delta;
+    else if (kind === "credit") topup += delta;
+    else { let d = -delta; const fromM = Math.min(monthly, d); monthly -= fromM; d -= fromM; topup = Math.max(0, topup - d); }
+    monthly = r4(Math.max(0, monthly)); topup = r4(Math.max(0, topup));
+    return { monthly, topup, balance: r4(monthly + topup), updated: now };
   });
   await entryRef.set({ at: now, kind, energy: Math.abs(delta), ref: String(ref || "").slice(0, 80) });
   const bal = r.snapshot.val().balance;
@@ -72,7 +79,7 @@ export async function move(db, w, delta, kind, ref, key, now) {
 export const credit = (db, app, uid, energy, ref, key, now = Date.now()) => move(db, wallet(app, "own", uid), +energy, "credit", ref, key, now);
 export const debit = (db, app, uid, energy, ref, now = Date.now()) => move(db, wallet(app, "own", uid), -energy, "debit", ref, null, now);
 /** Credit the wallet the person's plan uses (Platinum: the family pool). */
-export async function creditPlan(db, app, uid, energy, ref, key, now = Date.now()) { return move(db, (await planOf(db, app, uid, now)).wallet, +energy, "credit", ref, key, now); }
+export async function creditPlan(db, app, uid, energy, ref, key, now = Date.now(), kind = "credit") { return move(db, (await planOf(db, app, uid, now)).wallet, +energy, kind, ref, key, now); }   // kind "allowance" = monthly reset
 
 /* ---------- aiProxy ---------- */
 export function withRule(system) {
@@ -255,7 +262,7 @@ export async function grantMonthly(db, app = DEFAULT_APP, now = Date.now()) {
     const plan = await planOf(db, app, uid, now);
     if (plan.role === "member") continue;
     const energy = (tiers[plan.tier] || {}).energy || 0; if (!energy) continue;
-    const r = await move(db, plan.wallet, +energy, "credit", "allowance:" + plan.tier, "admin_" + month, now);
+    const r = await move(db, plan.wallet, +energy, "allowance", "allowance:" + plan.tier, "admin_" + month, now);   // resets the monthly pot
     if (!r.duplicate) credited++;
   }
   return { credited, month };

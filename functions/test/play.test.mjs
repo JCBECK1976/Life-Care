@@ -57,7 +57,7 @@ test("RTDN: a renewal credits the next allowance (new order ID); a replay change
   G.subs["tok-gold-0001"] = sub("p1", "gold", "GPA.1111..0", "SUBSCRIPTION_STATE_ACTIVE", NOW + 60 * DAY);
   assert.equal(await playNotify(rtdn("tok-gold-0001", 2), { db, play, now: NOW + 30 * DAY }), "applied:gold:credited");
   assert.equal(await playNotify(rtdn("tok-gold-0001", 2), { db, play, now: NOW + 30 * DAY }), "applied:gold");          // replay
-  assert.equal(await core.balance(db, A, "p1"), 1000);
+  assert.equal(await core.balance(db, A, "p1"), 500);   // v2.27.3: the monthly pot is reset, not added (no rollover)
   G.subs["tok-gold-0001"] = sub("p1", "gold", "GPA.1111..0", "SUBSCRIPTION_STATE_EXPIRED", NOW + 60 * DAY);
   assert.equal(await playNotify(rtdn("tok-gold-0001", 13), { db, play, now: NOW + 61 * DAY }), "applied:bronze");
   assert.equal((await core.planOf(db, A, "p1", NOW + 61 * DAY)).tier, "bronze");

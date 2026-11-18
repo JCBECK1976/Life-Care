@@ -41,7 +41,7 @@ async function applySubscription(db, app, uid, sub, now) {
   if (active && sub.latestOrderId) {
     const allowance = ((await tiersConfig(db, app))[tier] || {}).energy || 0;   // Energy units
     // one allowance per paid period: each renewal has its own order ID
-    if (allowance > 0) credited = await creditPlan(db, app, uid, allowance, "play:" + tier + ":" + basePlan, key(sub.latestOrderId), now);
+    if (allowance > 0) credited = await creditPlan(db, app, uid, allowance, "play:" + tier + ":" + basePlan, key(sub.latestOrderId), now, "allowance");   // monthly pot reset (no rollover)
   }
   return { tier: active ? tier : "bronze", expires, credited: credited ? !credited.duplicate : false };
 }

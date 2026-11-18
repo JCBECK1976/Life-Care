@@ -50,6 +50,19 @@ export var ENERGY_PER_AI_PENNY = 2;
 export var STORE_PRODUCTS = { silver: "silver", gold: "gold", platinum: "platinum" };
 export var BASE_PLANS = { monthly: "monthly", yearly: "yearly" };
 
+// v2.27.3: the Energy explanation in My Plan. Typical Energy per action (AI cost × 2, rounded; Sonnet prices) — the admin
+// can change these in apps/{appId}/config/energyGuide (and each plan's monthly Energy in config/tiers) without a code change.
+export var ENERGY_GUIDE = {
+  typical: [
+    { k: "chat", label: "A chat reply", energy: 2 },
+    { k: "snap", label: "A photo check (Snap)", energy: 2 },
+    { k: "aiFeedback", label: "Companion feedback (a day, a session, a week)", energy: 3 },
+    { k: "aiPlans", label: "A training plan or warm-up", energy: 4 },
+    { k: "mealGenerator", label: "A week of meals", energy: 8 },
+    { k: "aiHelp", label: "An answer in Help (it reads the whole guide)", energy: 12 },
+  ],
+};
+
 // v2.24.0 (DPIA §3/§7): which of a person's consents each feature needs. A declined or withdrawn consent switches the
 // feature off whatever the plan — in the app (lib/accountConsent.js) and on the server (aiProxy).
 export var CONSENT_NEEDS = {

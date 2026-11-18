@@ -61,7 +61,7 @@ export default function MyPlanCard(props) {
         {plan.joint && !plan.preview && <div style={{ fontSize: 12, color: "#475569" }}>Shared account: all features on until each of you has your own login; then JC is the Platinum Family owner and Becks a member, at no charge.</div>}
         {!plan.joint && plan.source === "admin" && <div style={{ fontSize: 12, color: "#475569" }}>Granted by the developer: never billed.</div>}
         {plan.source === "play" && plan.expires && <div data-testid="plan-renewal" style={{ fontSize: 12, color: "#475569" }}>{plan.autoRenew ? "Renews " : "Ends "}{fmtDate(plan.expires)}{plan.basePlan ? " · " + plan.basePlan : ""}</div>}
-        {cur !== "bronze" && energy != null && <div data-testid="plan-energy" style={{ marginTop: 4 }}>⚡ Companion Energy{plan.role === "owner" && !plan.joint ? " (family pool)" : ""}: <b>{energy}%</b>
+        {cur !== "bronze" && energy != null && <div data-testid="plan-energy" style={{ marginTop: 4 }}>⚡ Companion Energy this month{plan.role === "owner" && !plan.joint ? " (family pool)" : ""}: <b>{energy}%</b>{plan.topup > 0 ? <span data-testid="plan-topup-left"> + {plan.topup.toLocaleString("en-GB")} top-up</span> : null}
           <div aria-hidden="true" style={{ height: 6, background: "#e2e8f0", borderRadius: 3, marginTop: 3 }}><div style={{ width: energy + "%", height: 6, borderRadius: 3, background: energy > 20 ? "#16a34a" : "#dc2626" }} /></div></div>}
         {cur === "bronze" && <div style={{ fontSize: 12, color: "#475569" }}>Manual tracking for Health, Eating and Exercise. No AI.</div>}
       </div>
@@ -101,6 +101,19 @@ export default function MyPlanCard(props) {
         </tbody>
       </table>
       {yearly && <div style={{ fontSize: 11, color: "#475569", marginTop: 4 }}>Yearly saves about two months.</div>}
+
+      {/* v2.27.3: what Companion Energy is (figures from config: admin-configurable) */}
+      <details data-testid="energy-explainer" open style={{ marginTop: 10, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "8px 10px", fontSize: 12, color: "#0f172a", lineHeight: 1.5 }}>
+        <summary style={{ fontWeight: 700, cursor: "pointer" }}>⚡ About Companion Energy</summary>
+        <div style={{ marginTop: 4 }}>Energy pays for the Companion's AI work. Typical Energy per action:</div>
+        <ul style={{ margin: "4px 0", paddingLeft: 18 }}>
+          {(((plan.guide || {}).typical) || []).map(function(t) { return <li key={t.k}>{t.label}: about <b>{t.energy}</b></li>; })}
+        </ul>
+        <div>Each month: Silver <b>{Number(T.silver.energy || 0).toLocaleString("en-GB")}</b>, Gold <b>{Number(T.gold.energy || 0).toLocaleString("en-GB")}</b>, Platinum Family <b>{Number(T.platinum.energy || 0).toLocaleString("en-GB")}</b> (shared by the family).</div>
+        <div><b>Monthly Energy doesn't roll over:</b> it starts again at the full amount when your plan renews.</div>
+        <div><b>Top-ups never expire:</b> they're used after the month's Energy runs out.</div>
+        <div><b>Tracking never uses Energy:</b> logging food, exercise, weight and health is always free.</div>
+      </details>
 
       {/* 3. buttons */}
       {!(plan.joint && !plan.preview) && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>

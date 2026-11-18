@@ -237,8 +237,9 @@ test("monthly allowance (v2.26.0): admin grants get 300/500/1,500 Energy once a 
   assert.equal(await core.balance(db, A, "ma_play"), 0);                                  // Play plans: on renewal instead
   await core.grantMonthly(db, A, mo + 86400000);                                          // the next day: nothing more
   assert.equal(await core.balance(db, A, "ma_s") - before, 300);
-  await core.grantMonthly(db, A, Date.UTC(2027, 0, 2));                                    // next month
-  assert.equal(await core.balance(db, A, "ma_s") - before, 600);
+  await core.debit(db, A, "ma_s", 100, "ai");                                             // 200 of this month's 300 left
+  await core.grantMonthly(db, A, Date.UTC(2027, 0, 2));                                    // next month: reset to 300, no rollover
+  assert.equal(await core.balance(db, A, "ma_s") - before, 300);
 });
 
 test("export (v2.26.0, Step 2): everything about the signed-in person — and nobody else; recorded in the audit trail", async () => {
@@ -269,4 +270,23 @@ test("Vertex AI (EU) with a fallback to the direct API only when Vertex is down;
   const strict = pickBackend({ vertexToken: "t", fetchImpl });                             // no fallback set → the error stands
   await assert.rejects(strict({ model: "m", messages: [] }), /Vertex AI HTTP 503/);
   process.env.AI_BACKEND = prev;
+});
+
+test("Energy pots (v2.27.3): monthly Energy resets each month (no rollover); top-ups never expire; AI uses the monthly pot first", async () => {
+  const t0 = Date.UTC(2027, 1, 3);
+  await db.ref(`apps/${A}/entitlements/pots`).set({ tier: "silver", source: "admin" });
+  await core.grantMonthly(db, A, t0);                                                      // 300 monthly
+  await core.adminTopUp({ uid: "uid-admin", data: { uid: "pots", energy: 500 } }, { db });   // 500 top-up
+  let e = (await db.ref(`apps/${A}/energy/pots`).once("value")).val();
+  assert.deepEqual([e.monthly, e.topup, e.balance], [300, 500, 800]);
+  await core.debit(db, A, "pots", 350, "ai");                                              // 300 from monthly, 50 from top-up
+  e = (await db.ref(`apps/${A}/energy/pots`).once("value")).val();
+  assert.deepEqual([e.monthly, e.topup, e.balance], [0, 450, 450]);
+  await core.grantMonthly(db, A, Date.UTC(2027, 2, 3));                                    // next month
+  e = (await db.ref(`apps/${A}/energy/pots`).once("value")).val();
+  assert.deepEqual([e.monthly, e.topup, e.balance], [300, 450, 750]);                     // top-up kept, monthly reset
+  await core.debit(db, A, "pots", 100, "ai");
+  await core.grantMonthly(db, A, Date.UTC(2027, 3, 3));
+  e = (await db.ref(`apps/${A}/energy/pots`).once("value")).val();
+  assert.deepEqual([e.monthly, e.topup], [300, 450]);                                      // unused 200 did NOT roll over
 });

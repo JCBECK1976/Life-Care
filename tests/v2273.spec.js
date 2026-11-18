@@ -109,3 +109,36 @@ test("Hidden members: greyed tabs after everyone else; tapping says '[Name] keep
     expect(r.reads.some((p) => p.includes(u + "/store"))).toBe(false);
   }
 });
+
+/* ---------- item 3: My Plan — the top-up and the Energy explanation (v2.22.2 brief) ---------- */
+const ME = "test-uid-member";
+async function myPlanAs(page, p) {
+  await put("apps/lifecare", p);
+  await page.addInitScript(() => localStorage.setItem("lc_flags", JSON.stringify({ useTiers: true })));
+  const { openApp } = await import("./helpers.js");
+  await openApp(page, "member");
+  await page.waitForFunction(() => window._lcPlan && window._lcPlan.loaded);
+  await page.locator('button[title="Settings"]').first().click();
+  await page.getByTestId("my-plan-toggle").click();
+}
+for (const [tier, shown] of [["bronze", false], ["silver", true], ["gold", true], ["platinum", true]]) {
+  test(`My Plan (${tier}): 'Top up Companion Energy: £5' ${shown ? "shown" : "not shown"}`, async ({ page }) => {
+    await myPlanAs(page, tier === "bronze" ? null : { entitlements: { [ME]: { tier, source: "admin" } } });
+    if (tier === "platinum") await expect(page.getByTestId("my-family")).toBeVisible();      // the Platinum OWNER
+    await expect(page.getByTestId("plan-topup")).toHaveCount(shown ? 1 : 0);
+    if (shown) await expect(page.getByTestId("plan-topup")).toHaveText("⚡ Top up Companion Energy: £5");
+  });
+}
+
+test("My Plan: the Energy explanation — typical Energy per action, 300 / 500 / 1,500, no rollover, top-ups never expire, tracking is free; figures from config", async ({ page }) => {
+  await myPlanAs(page, { entitlements: { [ME]: { tier: "silver", source: "admin" } }, energy: { [ME]: { monthly: 150, topup: 450, balance: 600 } } });
+  const x = page.getByTestId("energy-explainer");
+  for (const t of ["A chat reply: about 2", "A photo check (Snap): about 2", "Companion feedback", "A week of meals: about 8", "Silver 300", "Gold 500", "Platinum Family 1,500 (shared by the family)",
+    "Monthly Energy doesn't roll over", "Top-ups never expire", "Tracking never uses Energy"]) await expect(x).toContainText(t);
+  await expect(page.getByTestId("plan-energy")).toContainText("this month: 50%");
+  await expect(page.getByTestId("plan-topup-left")).toHaveText(" + 450 top-up");
+  // the admin changes a figure in config: shown without a code change
+  await put("apps/lifecare/config/energyGuide", { typical: [{ k: "chat", label: "A chat reply", energy: 5 }] });
+  await page.evaluate(async () => { const m = await import("/Life-Care/src/lib/myPlan.js"); await m.loadPlan(); });
+  await expect(x).toContainText("A chat reply: about 5");
+});
