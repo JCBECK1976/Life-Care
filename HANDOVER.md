@@ -2837,5 +2837,6 @@ Sizes are % of a weekly allowance, including Architect checks.
 
 ### (Coder) 18 Nov 2026 — v2.27.3 before pilot (build only, one commit per item) — in progress
 **Instruction (JC):** 1) two brand-new accounts in one Platinum family side by side (tests with 2 and 5); 2) Hidden members as greyed tabs, no data, no requests for it; 3) check My Plan against the v2.22.2 brief (top-up for Silver+ and the Platinum owner; the Energy explanation text, admin-configurable); 4) log per-area sharing as deferred on the plan.
-- **Resume point:** next item: item 1 commit.
+- **Item 1 done — build `c87248a`:** new-account families side by side (view keys). Suite 343 passed (6 skipped), lint 0 errors.
+- **Resume point:** next item: item 2 (hidden members as greyed tabs).
 
