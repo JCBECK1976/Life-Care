@@ -173,7 +173,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if command -v node >/dev/null 2>&1; then NODE=node; elif [ -x /opt/homebrew/bin/node ]; then NODE=/opt/homebrew/bin/node; elif [ -x /usr/local/bin/node ]; then NODE=/usr/local/bin/node; else echo "error: Node.js is needed for the release/debug data guard"; exit 1; fi\nif [ "$CONFIGURATION" = "Release" ]; then V=release; else V=debug; fi\n"$NODE" "$SRCROOT/../../scripts/check-native.mjs" "$V" "$SRCROOT/App/public"\n";
+			shellScript = "if command -v node >/dev/null 2>&1; then NODE=node; elif [ -x /opt/homebrew/bin/node ]; then NODE=/opt/homebrew/bin/node; elif [ -x /usr/local/bin/node ]; then NODE=/usr/local/bin/node; else echo \"error: Node.js is needed for the release/debug data guard\"; exit 1; fi\nif [ \"$CONFIGURATION\" = \"Release\" ]; then V=release; else V=debug; fi\n\"$NODE\" \"$SRCROOT/../../scripts/check-native.mjs\" \"$V\" \"$SRCROOT/App/public\"\n";
 			alwaysOutOfDate = 1;
 		};
 /* End PBXShellScriptBuildPhase section */

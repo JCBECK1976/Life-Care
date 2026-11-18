@@ -10,6 +10,15 @@ test("project: bundle ID, the release/debug data guard runs before resources, en
   const pbx = read("ios/App/App.xcodeproj/project.pbxproj");
   expect((pbx.match(/PRODUCT_BUNDLE_IDENTIFIER = com\.companionappsstudio\.lifecare;/g) || []).length).toBe(2);
   expect(pbx).toMatch(/Guard: release → data, debug → data_build/);
+  // the project file must parse (old-style plist): every quoted string is properly closed (escaped inner quotes)
+  for (let i = 0, n = pbx.length; i < n; i++) {
+    if (pbx[i] === "/" && pbx[i + 1] === "*") { i = pbx.indexOf("*/", i + 2) + 1; continue; }
+    if (pbx[i] !== '"') continue;
+    let j = i + 1; while (pbx[j] !== '"') j += pbx[j] === "\\" ? 2 : 1;
+    const next = pbx.slice(j + 1).match(/^\s*(\S)/)[1];
+    expect([";", ",", "=", ")"], "unescaped quote near: " + pbx.slice(i, i + 60)).toContain(next);
+    i = j;
+  }
   expect(pbx).toContain("scripts/check-native.mjs");
   expect(pbx.indexOf("Guard: release → data, debug → data_build */,\n\t\t\t\t504EC3021FED79650016851F /* Resources */")).toBeGreaterThan(0);   // before the web files are copied
   expect((pbx.match(/CODE_SIGN_ENTITLEMENTS = App\/App\.entitlements;/g) || []).length).toBe(2);
