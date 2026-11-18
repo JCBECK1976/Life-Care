@@ -111,7 +111,7 @@ export default function HomeSection({ ctx }) {
           {/* Profile */}
           {(() => { const prof = p.profile || {}; const hasBaseline = p.body && p.body.weight && p.body.weight.length > 0; var welcomeMsgs = ["Ready to make today count?", "Let's keep the momentum going!", "Small steps, big results — let's go!", "Your future self will thank you for today.", "Consistency beats perfection — you've got this!", "Every healthy choice adds up. What's first today?", "Welcome back — let's pick up where you left off!", "Progress isn't always visible, but it's always happening.", "You're building something great here — one day at a time.", "Let's check in and keep things moving forward."]; var welcomeIdx = Math.floor((new Date().getHours() * 60 + new Date().getMinutes()) / 144) % welcomeMsgs.length; var firstName = (prof.name || "").split(" ")[0]; var greetHour = new Date().getHours(); var greetWord = greetHour < 12 ? "Good morning" : greetHour < 17 ? "Good afternoon" : "Good evening"; return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginTop: 14, marginBottom: 14, overflow: "hidden" }}>
             <div style={{ padding: "18px 16px", borderBottom: showOnboarding ? "1px solid #e2e8f0" : "none" }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em" }}>{firstName ? greetWord + ", " + firstName : "New User"}</div>
+              <div role="heading" aria-level={2} style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em" }}>{firstName ? greetWord + ", " + firstName : "New User"}</div>
               {!showOnboarding && <div style={{ fontSize: 13, color: accent, marginTop: 6, lineHeight: 1.4, fontStyle: "italic" }}>{welcomeMsgs[welcomeIdx]}</div>}
             </div>
 
@@ -536,7 +536,7 @@ export default function HomeSection({ ctx }) {
           {/* ── MY MOOD ── */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "10px 16px", marginBottom: 14 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Mood</div>
+              <div role="heading" aria-level={3} style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Mood</div>
               {userMood !== null && <div style={{ fontSize: 10, color: MOOD_TEXT[userMood], fontWeight: 600 }}>{MOOD_LABELS[userMood]}</div>}
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginTop: 6 }}>
@@ -551,7 +551,7 @@ export default function HomeSection({ ctx }) {
                   setUserMood(newMood);
                   await sSet("daily_mood_" + activeTab, JSON.stringify(newDailyMood));
                   await sSet("user_mood_" + activeTab, JSON.stringify(newMood));
-                }} title={MOOD_LABELS[idx]} style={{ flex: 1, padding: "6px 0", border: isSelected ? "2px solid " + MOOD_COLORS[idx] : "1px solid " + accentBorder, borderRadius: 8, background: isSelected ? MOOD_COLORS[idx] + "18" : accentLight, fontSize: 16, cursor: "pointer", transition: "all 0.2s ease", transform: isSelected ? "scale(1.08)" : "scale(1)", filter: (currentMood !== null && !isSelected) ? "grayscale(0.5) opacity(0.5)" : "none" }}>{emoji}</button>);
+                }} title={MOOD_LABELS[idx]} aria-label={"Mood: " + MOOD_LABELS[idx]} aria-pressed={isSelected} style={{ flex: 1, padding: "6px 0", border: isSelected ? "2px solid " + MOOD_COLORS[idx] : "1px solid " + accentBorder, borderRadius: 8, background: isSelected ? MOOD_COLORS[idx] + "18" : accentLight, fontSize: 16, cursor: "pointer", transition: "all 0.2s ease", transform: isSelected ? "scale(1.08)" : "scale(1)", filter: (currentMood !== null && !isSelected) ? "grayscale(0.5) opacity(0.5)" : "none" }}>{emoji}</button>);
               })}
             </div>
           </div>
@@ -640,7 +640,7 @@ export default function HomeSection({ ctx }) {
             return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginBottom: 14, overflow: "hidden" }}>
               <button onClick={function() { setShowMyDay(!showMyDay); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", background: "none", border: "none", cursor: "pointer" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Day</span>
+                  <span role="heading" aria-level={3} style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Day</span>
                   <span style={{ fontSize: 11, color: "#475569" }}>{todayLabel}</span>
                 </div>
                 <span style={{ fontSize: 11, color: "#475569" }}>{showMyDay ? "▲" : "▼"}</span>
@@ -661,7 +661,7 @@ export default function HomeSection({ ctx }) {
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginBottom: 14, overflow: "hidden" }}>
             <div style={{ padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Journal</span>
+                <span role="heading" aria-level={3} style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Journal</span>
                 <span style={{ fontSize: 10, color: "#475569" }}>{(() => { var todayEntries = journalEntries.filter(function(e) { return e.date === new Date().toISOString().split("T")[0]; }); return todayEntries.length > 0 ? todayEntries.length + " today" : ""; })()}</span>
               </div>
             </div>

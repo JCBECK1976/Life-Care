@@ -56,7 +56,7 @@ export default function ShopSection({ ctx }) {
 
           {/* White container wrapping all Shop content */}
           <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 12 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>My Shop</div>
+          <div role="heading" aria-level={2} style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>My Shop</div>
 
           {/* Choose my Supermarket */}
             <div style={{ background: accentLight, borderRadius: 8, padding: 10, border: "1px solid #cbd5e1", marginBottom: 14 }}>

@@ -200,7 +200,7 @@ export default function ExerciseSection({ ctx }) {
               <span style={{ flex: 1, minWidth: 0 }}>{exToast.text}</span>
               {exToast.undo && <button type="button" onClick={function() { var u = exToast.undo; setExToast(null); if (u) u(); }} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid #fff", background: "transparent", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Undo</button>}
             </div>}
-            <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800 }}>Week {currentWeek}</div><div style={{ fontSize: 10, color: "#475569" }}>{weekLabel}</div></div>
+            <div style={{ textAlign: "center" }}><div role="heading" aria-level={2} style={{ fontSize: 16, fontWeight: 800 }}>Week {currentWeek}</div><div style={{ fontSize: 10, color: "#475569" }}>{weekLabel}</div></div>
             <div style={{ width: 36 }}></div>
           </div>
           
@@ -219,7 +219,7 @@ export default function ExerciseSection({ ctx }) {
             var setDv = function(v) { setDayView(function(prev) { var n = Object.assign({}, prev); n[day] = v; return n; }); };
             return (<div key={day} style={{ marginBottom: 16 }}>
                                           <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", overflow: "hidden" }}>
-                <div style={{ padding: "8px 12px 0", fontSize: 13, fontWeight: 800, color: "#0f172a" }}>{label}</div>
+                <div role="heading" aria-level={3} style={{ padding: "8px 12px 0", fontSize: 13, fontWeight: 800, color: "#0f172a" }}>{label}</div>
                 {(function() { var ws = new Date(); ws.setHours(12, 0, 0, 0); ws.setDate(ws.getDate() - ws.getDay()); var dt = new Date(ws); dt.setDate(ws.getDate() + ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].indexOf(day)); var key = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0"); var a = p.dailyActivity && p.dailyActivity[key]; return a && a.steps != null ? <div data-testid="day-steps" style={{ padding: "2px 12px 0", fontSize: 11, color: "#334155" }}>👣 {Number(a.steps).toLocaleString("en-GB")} steps{a.source ? " (" + a.source + ")" : ""}</div> : null; })() /* v2.17.1: steps from Google/Apple Health on this day */}
                 {/* ACTIVITY TAB */}
                 {dv === "activity" && (<div>
@@ -258,7 +258,7 @@ export default function ExerciseSection({ ctx }) {
                             </div>); })()}
                         </div>
                         <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0,alignItems:"flex-end"}}>
-                        <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} style={selectedEx&&selectedEx.day===day&&selectedEx.idx===i?btnFilledOn:btnProgress}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕ Progress":"👁 Progress"}</button>
+                        <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} aria-label={(selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"Close ":"")+(ex.name||"exercise")+" progress"} aria-expanded={!!(selectedEx&&selectedEx.day===day&&selectedEx.idx===i)} style={selectedEx&&selectedEx.day===day&&selectedEx.idx===i?btnFilledOn:btnProgress}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕ Progress":"👁 Progress"}</button>
                         {!ex.stopped && <button onClick={function(){setSelectedEx({day:day,idx:i});openLogForm(day,i);}} style={btnLog}>📋 Log</button>}
                         </div>
                       </div>

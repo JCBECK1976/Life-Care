@@ -84,7 +84,7 @@ test("charts have text alternatives: a spoken summary and the numbers 'As text'"
   const r = await page.evaluate(async () => (await import("/Life-Care/src/components/charts.jsx")).seriesText("Weight", [{ wk: 1, v: 72 }, { wk: 2, v: 71.4 }, { wk: 3, v: 70.25 }]));
   expect(r).toBe("Weight: from week 1 72 to week 3 70.3 (lowest 70.3, highest 72, 3 entries)");
   await tab(page, "My Body");
-  await page.getByRole("button", { name: /Progress/ }).first().click();
+  await page.getByRole("button", { name: /progress$/i }).first().click();
   const svg = page.locator('svg[role="img"]').first();
   await expect(svg).toHaveAttribute("aria-label", /chart\. .*(from week|no data yet|week)/i);
   const t = page.getByTestId("chart-as-text").first();

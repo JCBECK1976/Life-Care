@@ -1,4 +1,5 @@
-import { installNativeBackButton, followPhoneTextSize } from "./lib/native.js";
+import { installNativeBackButton, followPhoneTextSize, watchPhoneTextSize } from "./lib/native.js";
+import { watchOrphanLabels } from "./lib/a11yLabels.js";
 import { installFieldHelpers } from "./lib/a11y.js";
 import { installUndo } from "./lib/undo.js";
 import { installTapGuard } from "./lib/tapGuard.js";
@@ -21,6 +22,8 @@ installNativeBackButton();   // v2.21.0: Android Back closes dialogs
 installUndo();   // v2.30.1: Undo after deletes of a person's records
 installTapGuard();   // v2.30.1: one tap = one save/add/delete
 followPhoneTextSize();   // v2.30.1: the phone's text size (up to 200%), in the Android and iPhone apps
+watchPhoneTextSize();   // v2.34.0: …and again whenever the app comes back to the front
+watchOrphanLabels();   // v2.34.0: screen readers get the name of every labelled box
 /* v2.27.0: read the go-live switches first (max 3 s), then start */
 loadRemoteFlags(firebase.database()).then(function() {
   captureInvite();   // v2.25.0: ?join= / ?pilot= links survive the sign-in

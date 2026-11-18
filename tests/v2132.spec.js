@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openApp, tab } from "./helpers.js";
+import { openApp, tab, PROGRESS } from "./helpers.js";
 
 // v2.13.2: Open forms / Progress panels scroll into view at 360px; tappable Open buttons; privacy notes.
 const NS = "?ns=life-care-app-64d04-default-rtdb";
@@ -38,7 +38,7 @@ test("My Body: Weigh In panel, Measurements panel and history Open forms scroll 
   await expect(open2).toHaveCSS("border-top-color", "rgb(147, 197, 253)");              // light-blue outline
   await opensIntoView(page, open2, page.getByTestId("body-hist-open-form"));
   await page.getByRole("button", { name: "Measurements", exact: true }).click();
-  await opensIntoView(page, page.getByRole("button", { name: "👁 Progress" }).last(), page.getByTestId("meas-panel"));
+  await opensIntoView(page, page.getByRole("button", { name: PROGRESS }).last(), page.getByTestId("meas-panel"));
   await opensIntoView(page, page.getByTestId("meas-panel").getByRole("button", { name: "Open week 1" }), page.getByTestId("meas-hist-open-form"));
   await page.getByTestId("meas-panel").getByRole("button", { name: /^📋 Log / }).click();
   await expect(page.getByTestId("privacy-note").first()).toHaveText("Images are analysed and then discarded — they're never stored.");
@@ -54,8 +54,8 @@ test("Exercise: Progress panel and week Open form scroll into view at 360px", as
   await setKey("dashboard:data", d); await page.reload();
   await tab(page, "My Exercise");
   await page.getByRole("button", { name: "Sun", exact: true }).click();
-  const n = await page.getByRole("button", { name: "👁 Progress" }).count();
-  await opensIntoView(page, page.getByRole("button", { name: "👁 Progress" }).nth(n - 1), page.getByTestId("ex-progress-panel"));
+  const n = await page.getByRole("button", { name: PROGRESS }).count();
+  await opensIntoView(page, page.getByRole("button", { name: PROGRESS }).nth(n - 1), page.getByTestId("ex-progress-panel"));
   await opensIntoView(page, page.getByRole("button", { name: "Open week 1" }), page.getByTestId("prog-open-form"));
   expect(errors).toEqual([]);
 });

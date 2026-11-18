@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openApp, tab } from "./helpers.js";
+import { openApp, tab, PROGRESS } from "./helpers.js";
 import { mockReplyFor } from "./mock-ai.js";
 
 // v2.16.4: JC's test fixes — Form/Range only in the Open card; F11b Companion feedback visible in Open; share picker person.
@@ -29,7 +29,7 @@ test("F11b: generate session feedback → Open the latest week → Companion fee
   const first = (await readData()).jc.exercises.sunday[0];
   await expect.poll(async () => { const e = (await readData()).jc.exercises.sunday[0]; return e.prog.some((x) => x.companion); }, { timeout: 15000 }).toBe(true);
   const wk = Math.max(...first.prog.map((x) => parseInt(x.wk)));
-  await page.getByRole("button", { name: "👁 Progress" }).first().click();
+  await page.getByRole("button", { name: PROGRESS }).first().click();
   await page.getByRole("button", { name: "Open week " + wk }).click();
   const form = page.getByTestId("prog-open-form");
   await expect(form.getByTestId("entry-companion-verdict")).toHaveText("Verdict for " + first.name);

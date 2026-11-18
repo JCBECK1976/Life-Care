@@ -48,3 +48,12 @@ export async function followPhoneTextSize(deps) {
     return v;
   } catch (e) { return null; }
 }
+/** v2.34.0: the text size is read again whenever the app comes back to the front, so changing it in the phone's
+ *  settings (Android Font size, iPhone Larger Text / Dynamic Type) takes effect without restarting the app. */
+export function watchPhoneTextSize(deps) {
+  if (!(deps && deps.native) && !isNative()) return function() {};
+  var again = function() { if (document.visibilityState !== "hidden") followPhoneTextSize(deps); };
+  document.addEventListener("resume", again);            // Capacitor: back from the background
+  document.addEventListener("visibilitychange", again);
+  return function() { document.removeEventListener("resume", again); document.removeEventListener("visibilitychange", again); };
+}

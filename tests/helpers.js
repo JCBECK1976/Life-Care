@@ -57,3 +57,6 @@ export async function openApp(page, who = "jc") {
 
 export const tab = (page, name) => page.getByRole("button", { name, exact: true }).first().click();
 export const person = (page, name) => page.getByRole("button", { name, exact: true }).first().click();
+/* v2.34.0: Progress buttons are announced with what they open ("Weight progress", "Close Weight progress"). */
+export const PROGRESS = /^(?!Close ).+ progress$/;
+export const CLOSE_PROGRESS = /^Close .+ progress$/;

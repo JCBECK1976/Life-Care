@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openApp, tab } from "./helpers.js";
+import { openApp, tab, PROGRESS } from "./helpers.js";
 import { syncAfterProgChange } from "../src/lib/exercise.js";
 import { parseReading, readingPrompt } from "../src/lib/measureReading.js";
 
@@ -41,7 +41,7 @@ test("D20 + D17 + D21: removing or editing an OLDER week never puts a Reduce pil
   await tab(page, "My Exercise");
   await page.getByRole("button", { name: "Sun", exact: true }).click();
   await expect(page.getByText("Reduce", { exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "👁 Progress" }).nth(i).click();
+  await page.getByRole("button", { name: PROGRESS }).nth(i).click();
   // edit week 2 (an older week)
   await page.getByRole("button", { name: "Open week 2" }).click();
   let form = page.getByTestId("prog-open-form");
@@ -115,7 +115,7 @@ test("F9: Weigh In and Measurements history rows = key data + Open; Edit/Save an
   await expect(rows).toHaveCount(1);
   // Measurements: chest history
   await page.getByRole("button", { name: "Measurements", exact: true }).click();
-  await page.getByRole("button", { name: "👁 Progress" }).nth(1).click();          // fullBody (added on load) is first; chest second
+  await page.getByRole("button", { name: PROGRESS }).nth(1).click();          // fullBody (added on load) is first; chest second
   const mrows = page.getByTestId("meas-hist-row");
   await expect(mrows).toHaveCount(2);
   await expect(mrows.first().getByRole("button")).toHaveText(["Open"]);

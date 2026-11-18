@@ -56,7 +56,7 @@ export default function BodySection({ ctx }) {
               {bodyView === "data" && (<div>
               <WeighInsPanel p={p} data={data} activeTab={activeTab} saveData={saveData} />   {/* v2.32.0: scales + imported weigh-ins (flag useWeighIns) */}
           {showBodyForm && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Body Composition</div>
+            <div role="heading" aria-level={3} style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Body Composition</div>
             <div style={{ marginBottom: 10 }}><label style={labelStyle}>Week</label><input type="number" value={bodyInputs.week} onChange={e => setBodyInputs(q => ({ ...q, week: e.target.value }))} style={{ ...inputStyle, width: 80 }} /></div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
               <div style={{ gridColumn: "1 / -1" }}><WeightInput id="bw" label="Weight" kg={bodyInputs.weightKg || null} unit={unitOf(p)} onUnit={saveUnit} onChange={function(k) { setBodyInputs(function(q) { return Object.assign({}, q, { weightKg: k, weight: "" }); }); }} /></div>   {/* v2.32.3: st/lb or kg */}
@@ -65,7 +65,7 @@ export default function BodySection({ ctx }) {
             <div style={{ marginTop: 10 }}><label style={labelStyle}>My Notes</label><input type="text" aria-label="My Notes" placeholder="e.g. birthday week, after a long flight" value={bodyInputs.note || ""} onChange={e => setBodyInputs(q => ({ ...q, note: e.target.value }))} style={inputStyle} /></div>
             <div style={{ display: "flex", gap: 8, marginTop: 12 }}><button onClick={saveBodyComp} style={{ ...btnP(!!bodyInputs.week), flex: 1 }}>Save</button><button onClick={() => setShowBodyForm(false)} style={btnS}>Cancel</button></div>
           </div>)}
-          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>My Body Stats</span><div style={{ display: "flex", gap: 4 }}><button onClick={() => { setShowBodyForm(true); setBodyInputs({ weight: "", bodyFat: "", muscleMass: "", muscleRate: "", skeletalMuscle: "", visceralFat: "", subcutFat: "", bmr: "", bodyWater: "", boneMass: "", bodyAge: "", bmi: "", week: String(calcWeek(data.config.trainingStart)) }); }} style={btnAction}>📋 Record</button><label style={{...btnAction, display: "inline-flex"}}>📷 Upload<input type="file" data-share="body" accept="image/*" onChange={async function(e) {
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}><span role="heading" aria-level={2}>My Body Stats</span><div style={{ display: "flex", gap: 4 }}><button onClick={() => { setShowBodyForm(true); setBodyInputs({ weight: "", bodyFat: "", muscleMass: "", muscleRate: "", skeletalMuscle: "", visceralFat: "", subcutFat: "", bmr: "", bodyWater: "", boneMass: "", bodyAge: "", bmi: "", week: String(calcWeek(data.config.trainingStart)) }); }} style={btnAction}>📋 Record</button><label style={{...btnAction, display: "inline-flex"}}>📷 Upload<input type="file" data-share="body" accept="image/*" onChange={async function(e) {
                 var file = e.target.files ? e.target.files[0] : null;
                 if (!file) return;
                 setFormMsg("Reading image...");
@@ -204,7 +204,7 @@ export default function BodySection({ ctx }) {
           </div>
               </div>)}
               {bodyView === "measurements" && (<div>
-                <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a" }}>My Body Measurements</div>
+                <div role="heading" aria-level={2} style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a" }}>My Body Measurements</div>
           <div style={{ background: accentLight, borderRadius: 8, padding: "4px 12px 12px", border: "1px solid " + accentBorder }}>
             {Object.entries(p.measurements).map(function(pair, mi) { var k = pair[0]; var d = pair[1]; var latest = d.length > 0 ? d[d.length - 1] : null; var prev = d.length > 1 ? d[d.length - 2] : null; var delta = (latest && prev && typeof latest.v === "number" && typeof prev.v === "number") ? (latest.v - prev.v).toFixed(1) : null; var measColors = ["#2563eb","#7c3aed","#059669","#d97706","#dc2626","#0891b2","#ec4899"]; return (<div key={k} style={{ padding: "10px 3px", borderBottom: mi < Object.entries(p.measurements).length - 1 ? "1px solid #e2e8f0" : "none", position: "relative" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -215,7 +215,7 @@ export default function BodySection({ ctx }) {
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0, alignItems: "flex-end" }}>
-                  <button onClick={function(){ if (measMetricOpen === k) { setMeasMetricOpen(null); setMeasLogKey(null); } else { setMeasMetricOpen(k); setMeasMetricShowAll(false); setMeasLogKey(null); } }} style={measMetricOpen === k ? btnFilledOn : btnProgress}>{measMetricOpen === k ? "✕ Progress" : "👁 Progress"}</button>
+                  <button onClick={function(){ if (measMetricOpen === k) { setMeasMetricOpen(null); setMeasLogKey(null); } else { setMeasMetricOpen(k); setMeasMetricShowAll(false); setMeasLogKey(null); } }} aria-label={(measMetricOpen === k ? "Close " : "") + k.replace(/([A-Z])/g, " $1").toLowerCase() + " progress"} aria-expanded={measMetricOpen === k} style={measMetricOpen === k ? btnFilledOn : btnProgress}>{measMetricOpen === k ? "✕ Progress" : "👁 Progress"}</button>
                   <button onClick={function(){ if (measLogKey === k) { setMeasLogKey(null); } else { setMeasMetricOpen(k); setMeasLogKey(k); setMeasLogInputs({ week: calcWeek(data.config.trainingStart), value: "", note: "", image: null }); } }} style={measLogKey === k ? btnFilledOn : btnLog}>{measLogKey === k ? "✕ Log" : "📋 Log"}</button>
                 </div>
               </div>
@@ -275,7 +275,7 @@ export default function BodySection({ ctx }) {
                 <div style={{ marginTop: 12 }}>
                   {!addMeasOpen ? (<button onClick={function() { setAddMeasOpen(true); setAddMeasName(""); }} style={{...btnActionLg, width: "100%", justifyContent: "center"}}>+ Add Body Measurement</button>)
                   : (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Add Body Measurement</div>
+                    <div role="heading" aria-level={3} style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Add Body Measurement</div>
                     <div><label style={{ fontSize: 10, color: "#475569", display: "block", marginBottom: 2 }}>Measurement name</label><input type="text" value={addMeasName} onChange={function(e) { setAddMeasName(e.target.value); }} placeholder="e.g. Hips, Neck, Thigh" style={{ width: "100%", padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12, boxSizing: "border-box" }} /></div>
                     <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                       <button onClick={async function() { var name = addMeasName.trim().toLowerCase().replace(/\s+(.)/g, function(m, c) { return c.toUpperCase(); }); if (!name) return; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].measurements) nd[activeTab].measurements = {}; if (nd[activeTab].measurements[name]) { setFormMsg("⚠️ " + addMeasName + " already exists"); setTimeout(function() { setFormMsg(""); }, 3000); return; } nd[activeTab].measurements[name] = []; await saveData(nd); setAddMeasOpen(false); setAddMeasName(""); setFormMsg("✓ " + addMeasName + " added"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(!!addMeasName.trim()), flex: 1 }}>Add</button>

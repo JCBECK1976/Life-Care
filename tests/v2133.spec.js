@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openApp, tab } from "./helpers.js";
+import { openApp, tab, PROGRESS, CLOSE_PROGRESS } from "./helpers.js";
 
 // v2.13.3: one outlined shape for Open / 📷 Snap / 👁 Progress / 📋 Log (shared styles), each in its own colour
 // family; an open panel's button stays filled. Checked at 360px: no button text is cut off.
@@ -15,18 +15,18 @@ test("shared outlined buttons: same shape, own colours, filled when open, not tr
   // My Exercise: 👁 Progress (violet) + 📋 Log (green); open = filled navy "✕ Progress"
   await tab(page, "My Exercise");
   await page.getByRole("button", { name: "Sun", exact: true }).click();
-  await check(page.getByRole("button", { name: "👁 Progress" }).first(), VIOLET);
+  await check(page.getByRole("button", { name: PROGRESS }).first(), VIOLET);
   await check(page.getByRole("button", { name: "📋 Log", exact: true }).first(), GREEN);
-  await page.getByRole("button", { name: "👁 Progress" }).first().click();
-  await expect(page.getByRole("button", { name: "✕ Progress" })).toHaveCSS("background-color", NAVY);
+  await page.getByRole("button", { name: PROGRESS }).first().click();
+  await expect(page.getByRole("button", { name: CLOSE_PROGRESS })).toHaveCSS("background-color", NAVY);
   await check(page.getByRole("button", { name: /^Open week/ }).first(), BLUE);
   // My Eating: 📷 Snap (= Open) + Open + 👁 Progress
   await tab(page, "My Eating");
   await check(page.getByRole("button", { name: "Snap a photo of your food" }).first(), BLUE);
   await check(page.getByRole("button", { name: "Add to this meal" }).first(), BLUE);
-  await check(page.getByRole("button", { name: "👁 Progress" }).first(), VIOLET);
-  await page.getByRole("button", { name: "👁 Progress" }).first().click();
-  await expect(page.getByRole("button", { name: "✕ Progress" }).first()).toHaveCSS("background-color", NAVY);
+  await check(page.getByRole("button", { name: PROGRESS }).first(), VIOLET);
+  await page.getByRole("button", { name: PROGRESS }).first().click();
+  await expect(page.getByRole("button", { name: CLOSE_PROGRESS }).first()).toHaveCSS("background-color", NAVY);
   // My Body: card 👁 Progress, Measurements 👁 Progress + 📋 Log, 📷 Snap
   await tab(page, "My Body");
   await check(page.getByTitle("View Weight detail"), VIOLET);
@@ -34,7 +34,7 @@ test("shared outlined buttons: same shape, own colours, filled when open, not tr
     return [...b.parentElement.querySelectorAll("div,span")].filter((e) => !b.contains(e) && !e.children.length && e.textContent.trim()).filter((e) => { const rg = document.createRange(); rg.selectNodeContents(e); const t = rg.getBoundingClientRect(); return t.right > r.left && t.left < r.right && t.bottom > r.top && t.top < r.bottom; }).map((e) => b.title + ": " + e.textContent.trim()); }));
   expect(covered).toEqual([]);
   await page.getByRole("button", { name: "Measurements", exact: true }).click();
-  await check(page.getByRole("button", { name: "👁 Progress" }).first(), VIOLET);
+  await check(page.getByRole("button", { name: PROGRESS }).first(), VIOLET);
   await check(page.getByRole("button", { name: "📋 Log", exact: true }).first(), GREEN);
   await page.getByRole("button", { name: "📋 Log", exact: true }).first().click();
   await expect(page.getByRole("button", { name: "✕ Log" })).toHaveCSS("background-color", NAVY);

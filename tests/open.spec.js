@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openApp, tab } from "./helpers.js";
+import { openApp, tab, PROGRESS } from "./helpers.js";
 // own helpers (importing food.spec.js would also run its tests)
 const NS = "?ns=life-care-app-64d04-default-rtdb";
 const url = (k) => "http://127.0.0.1:9000/data/" + k + ".json" + NS;
@@ -24,7 +24,7 @@ test("F1: Progress rows show key data + Open (no notes, no Del); Open → read-o
   await setKey("dashboard:data", d); await page.reload();
   await tab(page, "My Exercise");
   await page.getByRole("button", { name: "Sun", exact: true }).click();
-  await page.getByRole("button", { name: "👁 Progress" }).nth(i).click();
+  await page.getByRole("button", { name: PROGRESS }).nth(i).click();
   await expect(page.getByTestId("prog-wk")).toHaveCount(2);
   await expect(page.getByText("tough last set")).toHaveCount(0);                       // no notes text in the rows
   for (const row of await page.getByTestId("prog-wk").locator("xpath=..").all()) await expect(row.getByRole("button")).toHaveText(["Open"]);   // only Open, no Del
@@ -51,7 +51,7 @@ test("F1: Progress rows show key data + Open (no notes, no Del); Open → read-o
   await expect.poll(async () => (await getKey("dashboard:data")).jc.exercises.sunday[i].prog.length).toBe(1);
   // v2.18.3: the panel may be re-rendering after Remove; open it if needed and retry (a single count-then-click could close it)
   await expect(async () => {
-    if (!(await page.getByTestId("prog-wk").count())) await page.getByRole("button", { name: "👁 Progress" }).nth(i).click();
+    if (!(await page.getByTestId("prog-wk").count())) await page.getByRole("button", { name: PROGRESS }).nth(i).click();
     await expect(page.getByTestId("prog-wk")).toHaveText(["1"], { timeout: 1500 });     // remaining row shows the right week (old index bug)
   }).toPass({ timeout: 10000 });
   expect(errors).toEqual([]);
