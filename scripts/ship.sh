@@ -12,14 +12,17 @@ case "$branch" in main|beta) echo "REFUSED: source never goes straight to $branc
 cd "$(git rev-parse --show-toplevel)" || exit 2
 
 DEFAULT_CHECKS='npm run -s lint && npx playwright test --trace off --reporter=dot && npm --prefix functions test'
-checks="${LC_CHECKS:-$DEFAULT_CHECKS}"
-log="$(mktemp)"
-echo "== commit gate: running checks"
-if ! bash -c "$checks" >"$log" 2>&1; then
-  tail -40 "$log"
-  echo "RED: a check failed — nothing committed, nothing pushed." >&2
-  rm -f "$log"; exit 1
-fi
+log="${TMPDIR:-/tmp}/lc-ship-$(date +%s).log"
+run() {   # run one named check; on failure say which, keep the full log, stop (exit 1)
+  echo "== check: $1"
+  if ! bash -c "$2" >>"$log" 2>&1; then
+    tail -40 "$log"
+    echo "RED: a check failed ($1) — nothing committed, nothing pushed. Full log: $log" >&2
+    exit 1
+  fi
+}
+if [ -n "${LC_CHECKS:-}" ]; then run "checks" "$LC_CHECKS"
+else run "lint" "npm run -s lint"; run "playwright" "npx playwright test --trace off --reporter=dot"; run "functions" "npm --prefix functions test"; fi
 tail -5 "$log"; rm -f "$log"
 echo "== green: committing"
 

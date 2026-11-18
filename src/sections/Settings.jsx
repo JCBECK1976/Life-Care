@@ -18,6 +18,7 @@ import StepsCard from "../components/StepsCard.jsx";
 import AccountConsentCard from "../components/AccountConsentCard.jsx";
 import FamilySharingCard from "../components/FamilySharingCard.jsx";
 import PilotInviteCard from "../components/PilotInviteCard.jsx";
+import ReviewDemoCard from "../components/ReviewDemoCard.jsx";
 import GoLiveSwitches from "../components/GoLiveSwitches.jsx";
 import { buildFlag } from "../lib/platform.js";
 import { tiersOn, usePlan, setPreview } from "../lib/myPlan.js";
@@ -75,7 +76,7 @@ export default function SettingsSection({ ctx }) {
           {/* v2.16.2 R4: Google Health (cloud API), rebuilt — token on this device only, honest status */}
           {buildFlag("useSteps") && <StepsCard data={data} saveData={saveData} />}
           <GoLiveSwitches />   {/* v2.27.0: the go-live switches (admin) */}
-          <PilotInviteCard />   {/* v2.25.0: admin — pilot test users (flag useAccounts) */}   {/* v2.23.0 N6: Health Connect steps (flag; build only) */}
+          <PilotInviteCard /><ReviewDemoCard />   {/* v2.31.2: admin — store-review demo account */}   {/* v2.25.0: admin — pilot test users (flag useAccounts) */}   {/* v2.23.0 N6: Health Connect steps (flag; build only) */}
           {(function() { var gp = data && data[activeTab]; var st = ghStatus(activeTab, gp); return (
           <div data-testid="gh-card" style={{ background: "#fff", borderRadius: 12, border: "1px solid " + (googleConnected ? "#86efac" : "#e2e8f0"), padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📱 Google Health — calories burned</div>

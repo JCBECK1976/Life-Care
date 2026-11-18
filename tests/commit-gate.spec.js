@@ -26,7 +26,7 @@ test("red: a failing check (test or lint) stops everything — exit 1, nothing s
     for (const red of ["exit 1", "true && false", "node -e 'process.exit(3)'"]) {   // e.g. a failed test run, a failed lint after a green one
       const r = ship(s.work, red);
       expect(r.status).toBe(1);
-      expect(r.stderr).toContain("RED: a check failed — nothing committed, nothing pushed.");
+      expect(r.stderr).toMatch(/RED: a check failed \(checks\) — nothing committed, nothing pushed\. Full log: /);
       expect(s.head()).toBe(before); expect(s.remote()).toBe(remoteBefore);
       expect(s.sh("git diff --cached --name-only", s.work)).toBe("");                 // not even staged
     }
@@ -49,4 +49,5 @@ test("the real checks are lint + the full Playwright suite + the functions tests
   const src = fs.readFileSync(SHIP, "utf8");
   expect(src).toContain("DEFAULT_CHECKS='npm run -s lint && npx playwright test --trace off --reporter=dot && npm --prefix functions test'");
   expect(src).toMatch(/set -uo pipefail/);
+  expect(src).toContain('run "lint" "npm run -s lint"; run "playwright" "npx playwright test --trace off --reporter=dot"; run "functions" "npm --prefix functions test"');   // named, in order; each stops on red
 });

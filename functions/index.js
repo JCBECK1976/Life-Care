@@ -10,6 +10,7 @@ import { defineSecret } from "firebase-functions/params";
 import admin from "firebase-admin";
 import { REGION } from "./src/config.js";
 import { pickBackend } from "./src/backends.js";
+import { createReviewDemo as createReviewDemoImpl } from "./src/demo.js";
 import * as core from "./src/core.js";
 
 admin.initializeApp();
@@ -27,6 +28,8 @@ const wrap = (fn) => async (req) => {
 export const aiProxy = onCall({ ...opts, secrets: [ANTHROPIC_KEY] }, wrap((c) => core.aiProxy(c, { db: db(), callClaude: pickBackend({ anthropicKey: process.env.ANTHROPIC_API_KEY }) })));
 export const exportMyData = onCall(opts, wrap((c) => core.exportMyData(c, { db: db() })));   // v2.26.0 Step 2
 export const createHousehold = onCall(opts, wrap((c) => core.createHousehold(c, { db: db() })));
+// v2.31.2: the store-review demo account (admin only; synthetic data, Gold, no household; never the joint account)
+export const createReviewDemo = onCall(opts, wrap((c) => createReviewDemoImpl(c, { db: db(), auth: admin.auth() })));
 // v2.21.1: account deletion — refuses the rules-locked UID and platform admins before changing anything
 export const deleteAccount = onCall(opts, wrap((c) => core.deleteAccount(c, { db: db(), deleteUser: (uid) => admin.auth().deleteUser(uid) })));
 export const inviteMember = onCall(opts, wrap((c) => core.inviteMember(c, { db: db() })));
