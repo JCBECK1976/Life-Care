@@ -23,3 +23,4 @@ One short file per significant decision: context, decision, alternatives rejecte
 Candidates not yet written up: the Open pattern and button standard (v2.8.0 / v2.13.0).
 - [0016 — Android app through Google Play only (internal → closed testing), Capacitor shell](0016-android-through-google-play.md)
 - [0017 — Four plans (Bronze / Silver / Gold / Platinum Family), gating, and Play Billing verified on the server](0017-tiers-gating-play-billing.md)
+- [0018 — Data layout final for pilot: split by area + family shared area](0018-data-layout-by-area.md)
