@@ -2825,5 +2825,6 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **Part 4 done — build `923712f` (v2.26.0).** Suite 336 passed (6 skipped), functions + rules 33/33, lint 0 errors. Decisions: Energy is stored in Energy units (field `balance`; ledger `energy`) — the old pence fields are gone (nothing live used them); Stripe is out of the deployable set because deploying it needs Stripe secrets; the deploy workflow deploys `database.rules.json`, so go-live copies the next rules into it in a reviewed release (keeps the daily rules-drift check meaningful); App Check on Android (Play Integrity) needs a native plugin — open item, enforcement stays off until then.
 - **v2.27.0 — build `1fdddbe`:** go-live switches (central flags). Found while writing the checklist: until now every flag was per device (or build-only), so there was nothing JC could flip for everyone. Suite 339 passed (6 skipped), functions + rules 34/34, lint 0 errors.
 - **v2.27.1 — build `4111049`:** App Check site key plumbing (deploy.yml → VITE_APPCHECK_SITE_KEY). Suite 340 passed (6 skipped), lint 0 errors.
-- **Resume point:** next item: Part 5 docs (GO_LIVE_CHECKLIST, plan, CHANGELOG, LLD, TEST_STRATEGY, private-doc list), screenshots, report.
+- **v2.27.2 — build `163a3ea`:** onboarding / invite screens above the chat button (no chat before consent). Suite 340 passed (6 skipped), lint 0 errors.
+- **Resume point:** next item: finish Part 5 docs (HANDOVER final entry), report.
 
