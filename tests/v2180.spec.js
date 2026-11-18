@@ -119,7 +119,7 @@ test("UI: mandatory setup gate — no targets until complete; saving the goal sh
   await dlg.getByLabel(/Work towards a healthy body weight/).check();
   await expect(dlg.getByTestId("goal-recommend")).toContainText("Your Companion recommends:");   // v2.18.1: recommended, not typed
   await dlg.getByRole("button", { name: "Change", exact: true }).click();
-  await dlg.getByLabel("My target weight (kg)").fill("50");
+  await dlg.getByTestId("goal-target-unit-kg").click(); await dlg.getByTestId("goal-target-kg").fill("50");   // v2.32.3: unit-aware boxes
   await expect(dlg.getByTestId("goal-bmi-block")).toBeVisible();                             // never below BMI 18.5
   await dlg.getByRole("button", { name: "Accept recommendation" }).click();
   await dlg.getByLabel("Mostly sitting").check();
@@ -139,7 +139,7 @@ test("UI: the slider shows the pace colour and healthier alternatives", async ({
   await expect(dlg).toBeVisible({ timeout: 20000 });
   await dlg.getByLabel(/Work towards a healthy body weight/).check();
   await dlg.getByRole("button", { name: "Change", exact: true }).click();
-  await dlg.getByLabel("My target weight (kg)").fill("70");
+  await dlg.getByTestId("goal-target-unit-kg").click(); await dlg.getByTestId("goal-target-kg").fill("70");   // v2.32.3: unit-aware boxes
   await dlg.getByLabel(/Timescale/).fill("3");
   await expect(dlg.getByTestId("goal-pace")).toHaveAttribute("data-level", "red");
   await expect(dlg.getByTestId("goal-pace")).toContainText("Steady:");

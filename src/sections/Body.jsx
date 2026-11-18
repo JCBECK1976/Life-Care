@@ -12,7 +12,9 @@ import BodyBalance from "./BodyBalance.jsx";
 import PrivacyNote from "../components/PrivacyNote.jsx";
 import { scrollOnMount } from "../lib/scrollIntoView.js";
 import HistoryRows from "../components/HistoryRows.jsx";
-import { readWeight, withKg, latestLabel, stLabel, STONE_KG } from "../lib/weight.js";
+import { readWeight, withKg, latestLabel, stLabel, STONE_KG, unitOf, weighInEntry, fmtWeight } from "../lib/weight.js";
+import WeightInput from "../components/WeightInput.jsx";
+import WeightFix from "../components/WeightFix.jsx";
 import MeasureSnap from "../components/MeasureSnap.jsx";
 import WeighInsPanel from "../components/WeighInsPanel.jsx";
 
@@ -30,8 +32,13 @@ export default function BodySection({ ctx }) {
     updateBodyFb, updateMeasFb, userMood, weekLabel, wt, wtCheck, wtDelta, wtSign, wtStr
   } = ctx;
 
+  /* v2.32.3: the person's weight unit (st/lb or kg), saved with their profile */
+  var saveUnit = async function(u) { var nd = JSON.parse(JSON.stringify(window._lcData || data)); nd[activeTab].profile = Object.assign({}, nd[activeTab].profile, { weightUnit: u }); await saveData(nd); };
+  var unit = unitOf(p);
+  var [fix, setFix] = React.useState(null);   // { i, entry } — the "check this weigh-in" editor
   return (
 <div>
+          {fix && <WeightFix entry={fix.entry} unit={unit} onUnit={saveUnit} onClose={function() { setFix(null); }} onSave={async function(kg) { var nd = JSON.parse(JSON.stringify(window._lcData || data)); var arr = nd[activeTab].body.weight; arr[fix.i] = Object.assign({}, arr[fix.i], weighInEntry(arr[fix.i].wk, kg)); await saveData(nd); setFix(null); setFormMsg("✓ Weigh-in for week " + arr[fix.i].wk + " saved"); setTimeout(function() { setFormMsg(""); }, 2500); }} />}
           {/* BODY COMPOSITION CARD */}
           <div style={{ marginBottom: 16 }}>
             {/* Week header — centred like Eating */}
@@ -52,7 +59,8 @@ export default function BodySection({ ctx }) {
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Body Composition</div>
             <div style={{ marginBottom: 10 }}><label style={labelStyle}>Week</label><input type="number" value={bodyInputs.week} onChange={e => setBodyInputs(q => ({ ...q, week: e.target.value }))} style={{ ...inputStyle, width: 80 }} /></div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
-              {[["weight","Weight (stone)"],["bodyFat","Body Fat %"],["muscleMass","Muscle Mass"],["muscleRate","Muscle Rate %"],["skeletalMuscle","Skeletal Muscle %"],["visceralFat","Visceral Fat"],["subcutFat","Subcut Fat %"],["bmr","BMR (kcal)"],["bodyWater","Body Water %"],["boneMass","Bone Mass"],["bodyAge","Body Age"],["bmi","BMI"]].map(([k,l]) => (<div key={k}><label style={labelStyle}>{l}</label><input value={bodyInputs[k]} onChange={e => setBodyInputs(q => ({ ...q, [k]: e.target.value }))} style={inputStyle} /></div>))}
+              <div style={{ gridColumn: "1 / -1" }}><WeightInput id="bw" label="Weight" kg={bodyInputs.weightKg || null} unit={unitOf(p)} onUnit={saveUnit} onChange={function(k) { setBodyInputs(function(q) { return Object.assign({}, q, { weightKg: k, weight: "" }); }); }} /></div>   {/* v2.32.3: st/lb or kg */}
+              {[["bodyFat","Body Fat %"],["muscleMass","Muscle Mass"],["muscleRate","Muscle Rate %"],["skeletalMuscle","Skeletal Muscle %"],["visceralFat","Visceral Fat"],["subcutFat","Subcut Fat %"],["bmr","BMR (kcal)"],["bodyWater","Body Water %"],["boneMass","Bone Mass"],["bodyAge","Body Age"],["bmi","BMI"]].map(([k,l]) => (<div key={k}><label style={labelStyle}>{l}</label><input value={bodyInputs[k]} onChange={e => setBodyInputs(q => ({ ...q, [k]: e.target.value }))} style={inputStyle} /></div>))}
             </div>
             <div style={{ marginTop: 10 }}><label style={labelStyle}>My Notes</label><input type="text" aria-label="My Notes" placeholder="e.g. birthday week, after a long flight" value={bodyInputs.note || ""} onChange={e => setBodyInputs(q => ({ ...q, note: e.target.value }))} style={inputStyle} /></div>
             <div style={{ display: "flex", gap: 8, marginTop: 12 }}><button onClick={saveBodyComp} style={{ ...btnP(!!bodyInputs.week), flex: 1 }}>Save</button><button onClick={() => setShowBodyForm(false)} style={btnS}>Cancel</button></div>
@@ -84,7 +92,7 @@ export default function BodySection({ ctx }) {
                     try {
                       var parsed = JSON.parse(txt.replace(/```json|```/g, "").trim());
                       parsed.week = String(calcWeek(data.config.trainingStart));
-                      setBodyInputs(function(prev) { return Object.assign({}, prev, parsed); });
+                      setBodyInputs(function(prev) { var rw = parsed && parsed.weight ? readWeight({ v: String(parsed.weight) }) : null; return Object.assign({}, prev, parsed, { weight: "", weightKg: rw && !rw.ambiguous ? rw.kg : prev.weightKg }); });   /* v2.32.3: the photo fills the st/lb (or kg) boxes */
                       setShowBodyForm(true);
                       setFormMsg("✓ Values extracted — review and save");
                     } catch(pe) { setFormMsg("Parse error: " + txt.substring(0, 80)); setTimeout(function() { setFormMsg(""); }, 8000); }
@@ -95,7 +103,7 @@ export default function BodySection({ ctx }) {
               }} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)", border: 0 }} /></label></div></div>
           <div style={{ background: accentLight, borderRadius: 8, padding: 12, border: "1px solid " + accentBorder }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, marginBottom: 10 }}>
-            <BodyCard label="Weight" value={wtStr} rating="High" trend={wtDelta ? (wtSign === "-" ? "-" : "+") + wtDelta.split("lb")[0] + "lb" : ""} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "weight" ? null : "weight"); }} eyeOpen={bodyMetricOpen === "weight"} />{wtCheck && <div data-testid="weight-check" role="note" style={{ gridColumn: "1 / -1", fontSize: 12, color: "#92400e", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "6px 10px" }}>⚠ <b>Check this weigh-in:</b> the stored number could mean two weights (for example 1.1 lb or 11 lb over the stone). Open Weight → Progress and re-save it as you meant it.</div>}
+            <BodyCard label="Weight" value={wtStr} rating="High" trend={wtDelta ? (wtSign === "-" ? "-" : "+") + wtDelta.replace(/ from baseline$/, "") : ""} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "weight" ? null : "weight"); }} eyeOpen={bodyMetricOpen === "weight"} />{wtCheck && <div data-testid="weight-check" role="note" style={{ gridColumn: "1 / -1", fontSize: 12, color: "#92400e", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "6px 10px" }}>⚠ <b>Check this weigh-in:</b> the stored number could mean two weights (for example 1.1 lb or 11 lb over the stone). <button type="button" data-testid="weight-check-fix" onClick={function() { setFix({ i: wt.length - 1, entry: wt[wt.length - 1] }); }} style={{ marginLeft: 6, minHeight: 32, padding: "2px 10px", borderRadius: 6, border: "1px solid #92400e", background: "#fff", color: "#92400e", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Fix it</button></div>}
             <BodyCard label="Body Fat %" value={p.body.bodyFat?.[p.body.bodyFat.length-1]?.v} rating={isJC ? "Acceptable" : "Too High"} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "bodyFat" ? null : "bodyFat"); }} eyeOpen={bodyMetricOpen === "bodyFat"} />
             <BodyCard label="Muscle Mass" value={p.body.muscleMass?.[p.body.muscleMass.length-1]?.v} rating="Excellent" onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "muscleMass" ? null : "muscleMass"); }} eyeOpen={bodyMetricOpen === "muscleMass"} />
             <BodyCard label="Muscle Rate %" value={p.body.muscleRate?.[p.body.muscleRate.length-1]?.v} rating="Excellent" onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "muscleRate" ? null : "muscleRate"); }} eyeOpen={bodyMetricOpen === "muscleRate"} />
@@ -114,7 +122,7 @@ export default function BodySection({ ctx }) {
             {mArr.length === 0 && <div style={{ fontSize: 11, color: "#475569", textAlign: "center", padding: 16 }}>No progress data yet</div>}
             {mArr.length > 0 && (<div>
               {/* v2.13.0 F9: rows = week + value + Open; edit / remove inside the Open form */}
-              <HistoryRows testid="body-hist" label={metricLabels[bodyMetricOpen] || bodyMetricOpen} entries={mArr} limit={bodyMetricShowAll ? 999 : 4} fmt={bodyMetricOpen === "weight" ? function(e) { var rw = readWeight(e); return rw ? rw.label : String(e.v); } : null} badge={bodyMetricOpen === "weight" ? function(e) { var rw = readWeight(e); return rw && rw.ambiguous ? "check this weigh-in" : null; } : null}
+              <HistoryRows testid="body-hist" label={metricLabels[bodyMetricOpen] || bodyMetricOpen} entries={mArr} limit={bodyMetricShowAll ? 999 : 4} fmt={bodyMetricOpen === "weight" ? function(e) { var rw = readWeight(e); return rw ? (rw.ambiguous ? rw.label : fmtWeight(rw.kg, unit)) : String(e.v); } : null} badge={bodyMetricOpen === "weight" ? function(e) { var rw = readWeight(e); return rw && rw.ambiguous ? "check this weigh-in" : null; } : null} onBadge={bodyMetricOpen === "weight" ? function(i, e) { setFix({ i: i, entry: e }); } : null} weight={bodyMetricOpen === "weight" ? { unit: unit, onUnit: saveUnit } : null}
                 onSave={async function(ei, patch) { var nd = JSON.parse(JSON.stringify(data)); var arr = nd[activeTab].body[bodyMetricOpen]; if (bodyMetricOpen === "weight") { patch = withKg(patch, patch.v); if (!patch.kg) delete arr[ei].kg; } Object.assign(arr[ei], patch);   /* v2.32.2: + canonical kg */ if (!patch.note) delete arr[ei].note; arr.sort(function(x, y) { return x.wk - y.wk; }); await saveData(nd); setFormMsg("✓ Week " + patch.wk + " saved"); setTimeout(function() { setFormMsg(""); }, 2000); }}
                 onRemove={async function(ei) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[bodyMetricOpen].splice(ei, 1); await saveData(nd); setFormMsg("✓ Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} />
               {mArr.length > 4 && <button onClick={function() { setBodyMetricShowAll(!bodyMetricShowAll); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: accent, cursor: "pointer", marginTop: 6 }}>{bodyMetricShowAll ? "▲ Show less" : "▼ View more (" + (mArr.length - 4) + " entries)"}</button>}

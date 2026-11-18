@@ -54,9 +54,9 @@ test("UI: setup shows the recommendation; Change shows the amber note; both valu
   await expect(dlg.getByLabel(/My target weight/)).toHaveCount(0);                            // no free entry first
   const recKg = parseFloat(await dlg.getByTestId("goal-recommend-kg").innerText());
   await dlg.getByRole("button", { name: "Change", exact: true }).click();
-  await dlg.getByLabel("My target weight (kg)").fill("40");
+  await dlg.getByTestId("goal-target-unit-kg").click(); await dlg.getByTestId("goal-target-kg").fill("40");   // v2.32.3: unit-aware boxes
   await expect(dlg.getByTestId("goal-bmi-block")).toBeVisible();
-  await dlg.getByLabel("My target weight (kg)").fill(String(Math.round(recKg - 3)));
+  await dlg.getByTestId("goal-target-unit-kg").click(); await dlg.getByTestId("goal-target-kg").fill(String(Math.round(recKg - 3)));   // v2.32.3: unit-aware boxes
   await expect(dlg.getByTestId("goal-own-note")).toHaveText("This isn't your Companion's recommendation based on your profile.");
   await dlg.getByRole("button", { name: "Save my goal" }).click();
   await expect(dlg).toHaveCount(0);

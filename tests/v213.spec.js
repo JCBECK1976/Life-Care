@@ -106,9 +106,9 @@ test("F9: Weigh In and Measurements history rows = key data + Open; Edit/Save an
   await expect(form.getByRole("button")).toHaveText(["Edit", "Remove", "Close"]);
   await noTruncatedButtons(form);
   await form.getByRole("button", { name: "Edit", exact: true }).click();
-  await form.getByLabel("Value").fill("15.2");
+  await form.getByTestId("body-hist-wt-st").fill("15"); await form.getByTestId("body-hist-wt-lb").fill("2");   // v2.32.3: st + lb boxes
   await form.getByRole("button", { name: "Save", exact: true }).click();
-  await expect.poll(async () => (await getDash()).jc.body.weight[1].v).toBe(15.2);
+  await expect.poll(async () => (await getDash()).jc.body.weight[1].v).toBe("15.20");
   await page.getByRole("button", { name: "Open week 1" }).click();
   await page.getByTestId("body-hist-open-form").getByRole("button", { name: "Remove", exact: true }).click();
   await expect.poll(async () => (await getDash()).jc.body.weight.map((e) => e.wk)).toEqual([2]);

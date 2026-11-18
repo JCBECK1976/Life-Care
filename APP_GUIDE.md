@@ -205,7 +205,7 @@ The overall **Companion Check-in** looks across everything (exercise, eating, bo
 
 ### My Body Stats
 Tracks body composition, usually from a smart scale:
-- **Weight** is shown in stones and pounds (14st 6.8lb). If an older weigh-in could mean two different weights (for example "14.11" could be 14st 1.1lb or 14st 11lb), it shows **⚠ Check this weigh-in** — open Weight → Progress → Open → Edit and save it as you meant it (type 14.110 for 14st 11.0lb).
+- **Weight** — type it in **st** and **lb** boxes (for example 14 and 6.8), or switch to **kg** with the small **st/lb | kg** switch; your choice is remembered and used everywhere (My Body, history, goal setup, photos). Stones 4–40, pounds 0–13.9 with one decimal, kg 25–250 with one decimal. A photo of your scales fills the boxes for you to check. If an older weigh-in could mean two weights (for example "14.11" = 14st 1.1lb or 14st 11lb), it shows **⚠ Check this weigh-in** — tap **Fix it** (or the badge in the history), choose the one you meant (or type it) and save.
 **Weight, Body Fat %, Muscle Mass, Muscle Rate %, Visceral Fat, Subcutaneous Fat %, Body Water %, Bone Mass, BMR (kcal), Body Age.** Each shows a status (e.g. Acceptable / Too High, Standard / High, Excellent) where relevant.
 
 - **📋 Record** — type in today's values. **My Notes** (e.g. "birthday week", "after a long flight") is saved with that weigh-in; every Companion allows for it when reading your numbers. Measurements have My Notes too.

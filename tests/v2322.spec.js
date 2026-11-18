@@ -57,7 +57,7 @@ test("imports store kg; the BMR (Katch-McArdle) now reads 13.10 as 13st 1lb, not
   expect(r.imp).toMatchObject({ v: 12.88, kg: 80.2, src: "Fitdays" });
 });
 
-test("My Body: typing 14.110 saves the canonical kg (v unchanged as before); an ambiguous stored weigh-in shows 'check this weigh-in'; the change has ONE minus", async ({ page }) => {
+test("My Body: typing 14 st 11 lb saves the canonical kg + '14.110'; an ambiguous stored weigh-in shows 'check this weigh-in'; the change has ONE minus", async ({ page }) => {
   await openApp(page);
   const d = await dash(); const wk = d.config.week;
   d.jc.body.weight = [{ wk: wk - 2, v: 15.5 }, { wk: wk - 1, v: 14.11 }];                     // the latest is ambiguous
@@ -72,9 +72,9 @@ test("My Body: typing 14.110 saves the canonical kg (v unchanged as before); an 
   await page.getByRole("button", { name: /Record/ }).first().click();
   const form = page.getByText("Body Composition").locator("xpath=..");
   await form.getByText("Week", { exact: true }).locator("xpath=following::input[1]").fill(String(wk));
-  await form.getByText("Weight (stone)", { exact: true }).locator("xpath=following::input[1]").fill("14.110");
+  await form.getByTestId("bw-st").fill("14"); await form.getByTestId("bw-lb").fill("11");    // v2.32.3: st + lb boxes
   await form.getByRole("button", { name: "Save", exact: true }).click();
-  await expect.poll(async () => (await dash()).jc.body.weight.find((e) => e.wk === wk)).toMatchObject({ v: 14.11 });
+  await expect.poll(async () => (await dash()).jc.body.weight.find((e) => e.wk === wk)).toMatchObject({ v: "14.110" });   // v2.32.3: the writer keeps the zero
   const saved = (await dash()).jc.body.weight.find((e) => e.wk === wk);
   expect(saved.kg).toBeCloseTo((14 + 11 / 14) * 6.35029, 1);
   await expect(page.getByText("14st 11.0lb").first()).toBeVisible();

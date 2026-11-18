@@ -72,3 +72,36 @@ export function aiBody(body) {
 }
 /** "14st 6.8lb (92.0 kg)" for the latest weigh-in, or "" */
 export function latestLabel(arr) { var a = Array.isArray(arr) ? arr : []; var w = a.length ? readWeight(a[a.length - 1]) : null; return w ? w.label + " (" + r1(w.kg).toFixed(1) + " kg)" : ""; }
+
+/* v2.32.3 (Architect, 18 Nov — WEIGH-IN ENTRY): unit-aware entry. */
+export var LIMITS = { st: [4, 40], lb: [0, 13.9], kg: [25, 250] };
+/** The person's unit: "st" (stones and pounds, the default) or "kg". */
+export function unitOf(p) { return p && p.profile && p.profile.weightUnit === "kg" ? "kg" : "st"; }
+/** WRITER: the legacy string older versions read — stones, then the pounds with one decimal and the dot removed,
+ *  zeros KEPT as text (14st 11.0lb → "14.110"), so the new reader never finds it ambiguous. */
+export function legacyCode(kg) {
+  var f = kg / STONE_KG, st = Math.floor(f), lb = Math.round((f - st) * 14 * 10) / 10;
+  if (lb >= 14) { st += 1; lb = Math.round((lb - 14) * 10) / 10; }
+  return st + "." + lb.toFixed(1).replace(".", "");
+}
+/** A new weigh-in entry: canonical kg + the legacy string (ADR 0002 / 0019). */
+export function weighInEntry(wk, kg, extra) { return Object.assign({ wk: wk, v: legacyCode(kg), kg: Math.round(kg * 100) / 100 }, extra || {}); }
+/** st + lb → kg (null if out of range); kg text → kg. */
+export function fromStLb(st, lb) {
+  var s = Number(st), l = lb === "" || lb == null ? 0 : Number(lb);
+  if (!isFinite(s) || !isFinite(l) || s !== Math.floor(s) || s < LIMITS.st[0] || s > LIMITS.st[1] || l < 0 || l > LIMITS.lb[1] || Math.round(l * 10) !== l * 10) return null;
+  return Math.round((s + l / 14) * STONE_KG * 100) / 100;
+}
+export function fromKgText(t) { var k = Number(t); return isFinite(k) && k >= LIMITS.kg[0] && k <= LIMITS.kg[1] && Math.round(k * 10) === Math.round(k * 10 * 1000) / 1000 ? Math.round(k * 10) / 10 : null; }
+/** kg → { st, lb } for pre-filling the boxes. */
+export function toStLb(kg) { var f = kg / STONE_KG, st = Math.floor(f), lb = Math.round((f - st) * 14 * 10) / 10; if (lb >= 14) { st += 1; lb = Math.round((lb - 14) * 10) / 10; } return { st: st, lb: lb }; }
+/** How a weight is written in the person's unit. */
+export function fmtWeight(kg, unit) { return unit === "kg" ? (Math.round(kg * 10) / 10).toFixed(1) + " kg" : stLabel(kg); }
+/** For an ambiguous stored value: the possible readings to choose from (e.g. 14.11 → 14st 1.1lb or 14st 11.0lb). */
+export function readings(e) {
+  var w = readWeight(e); if (!w) return [];
+  if (!w.ambiguous) return [{ kg: w.kg, label: w.label }];
+  var n = parseFloat(typeof e === "object" ? e.v : e), st = Math.floor(n), frac = (String(n).split(".")[1] || "");
+  var a = frac.length === 1 ? [Number(frac), Number(frac) * 10] : [Number(frac[0] + "." + frac[1]), Number(frac) ];   // "1" → 1.0 / 10.0 · "11" → 1.1 / 11.0
+  return a.map(function(lb) { var kg = Math.round((st + lb / 14) * STONE_KG * 100) / 100; return { kg: kg, label: stLabel(kg) }; });
+}

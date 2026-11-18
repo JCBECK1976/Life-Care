@@ -110,7 +110,7 @@ test("a weigh-in's My Notes reaches the AI request context (Body feedback)", asy
   const { errors, aiCalls } = await openApp(page);
   await tab(page, "My Body");
   await page.getByRole("button", { name: "📋 Record" }).first().click();
-  await page.locator("label", { hasText: "Weight (stone)" }).locator("xpath=following-sibling::input").fill("13.4");
+  await page.getByTestId("bw-st").fill("13"); await page.getByTestId("bw-lb").fill("4");   // v2.32.3: st + lb boxes
   await page.getByLabel("My Notes").first().fill("birthday week, lots of cake");
   await page.getByRole("button", { name: "Save", exact: true }).first().click();
   await expect.poll(async () => JSON.stringify(JSON.parse(await (await fetch(KEY("dashboard:data"), { headers: H })).json()).jc.body)).toContain("birthday week");

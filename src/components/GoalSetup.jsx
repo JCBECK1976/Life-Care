@@ -1,6 +1,8 @@
 import React from "react";
 import { GOALS, ACTIVITY, MONTHS_MIN, MONTHS_MAX, DEFAULT_MONTHS, goalDef, recommendedTarget, isOwnTarget, currentKg, healthyRange, paceCheck, targetAllowed, conditionsOf, setupMissing, typicalBurn } from "../lib/goals.js";
 import { bmrOf, heightCm, ageOf, isMale, isoDay } from "../lib/calories.js";
+import WeightInput from "./WeightInput.jsx";
+import { unitOf } from "../lib/weight.js";
 
 // v2.18.0 mandatory goal setup (new users at onboarding; existing people once on their next visit until complete).
 // Writes: goal { id, months, targetKg, recommendedKg, targetSource: recommended|own, setAt, startKg }, profile.sex/age/height/activityLevel (+ profile.weightKg when
@@ -15,7 +17,7 @@ export default function GoalSetup(props) {
   var [f, setF] = React.useState(function() {
     var kg = currentKg(p);
     return { id: g.id || "", months: g.months || DEFAULT_MONTHS, own: g.targetSource === "own" ? String(g.targetKg || "") : "", changing: g.targetSource === "own", sex: /^m/i.test(pr.sex || "") ? "Male" : /^f/i.test(pr.sex || "") ? "Female" : "",
-      age: ageOf(p) || "", height: heightCm(p) || "", weightKg: kg ? Math.round(kg * 10) / 10 : "", activity: pr.activityLevel || "", conditions: p.healthConditions || conditionsOf(p) || "" };
+      age: ageOf(p) || "", height: heightCm(p) || "", weightKg: kg ? Math.round(kg * 10) / 10 : "", activity: pr.activityLevel || "", conditions: p.healthConditions || conditionsOf(p) || "", unit: unitOf(p) };   /* v2.32.3: weight unit */
   });
   var [msg, setMsg] = React.useState("");
   var set = function(k, v) { setF(function(q) { var o = Object.assign({}, q); o[k] = v; return o; }); };
@@ -37,7 +39,7 @@ export default function GoalSetup(props) {
   var save = async function() {
     if (blocked) { setMsg("That target is below a healthy weight (BMI 18.5). Please choose " + range.minKg + " kg or more."); return; }
     var nd = JSON.parse(JSON.stringify(data)); var q = nd[who];
-    q.profile = Object.assign({}, q.profile, { sex: f.sex, age: f.age ? String(f.age) : "", height: f.height ? f.height + "cm" : "", activityLevel: f.activity });
+    q.profile = Object.assign({}, q.profile, { sex: f.sex, age: f.age ? String(f.age) : "", height: f.height ? f.height + "cm" : "", activityLevel: f.activity, weightUnit: f.unit });
     if (!hasWeighIns && f.weightKg) q.profile.weightKg = parseFloat(f.weightKg);
     if (f.id === "support") q.healthConditions = f.conditions.trim();
     var start = hasWeighIns ? currentKg(p) : parseFloat(f.weightKg);
@@ -70,8 +72,7 @@ export default function GoalSetup(props) {
           <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{rec.why}</div>
           {!f.changing ? (<div style={{ display: "flex", gap: 6, marginTop: 6, alignItems: "center" }}><span data-testid="goal-target-accepted" style={{ fontSize: 11, color: "#166534", fontWeight: 600 }}>✓ Using the recommended target</span>
             <button type="button" onClick={function() { set("changing", true); set("own", String(rec.kg)); }} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #cbd5e1", background: "#fff", color: "#334155", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Change</button></div>)
-          : (<div style={{ marginTop: 6 }}><label style={lab} htmlFor="goal-target">My target weight (kg)</label>
-            <div style={{ display: "flex", gap: 6 }}><input id="goal-target" type="number" inputMode="decimal" value={f.own} onChange={function(e) { set("own", e.target.value); }} style={inp} />
+          : (<div style={{ marginTop: 6 }}><div style={{ display: "flex", gap: 6, alignItems: "flex-end" }}><div style={{ flex: 1 }}><WeightInput id="goal-target" label="My target weight" kg={parseFloat(f.own) || null} unit={f.unit} onUnit={function(u) { set("unit", u); }} onChange={function(k) { set("own", k ? String(Math.round(k * 10) / 10) : ""); }} /></div>
             <button type="button" onClick={function() { set("changing", false); set("own", ""); }} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #166534", background: "#fff", color: "#166534", fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>Accept recommendation</button></div>
             {own && !blocked && <div data-testid="goal-own-note" style={{ marginTop: 4, padding: 6, borderRadius: 6, background: "#fef3c7", color: "#92400e", fontSize: 11 }}>This isn't your Companion's recommendation based on your profile.</div>}</div>)}
         </div>)}
@@ -90,7 +91,7 @@ export default function GoalSetup(props) {
         <div><label style={lab} htmlFor="goal-sex">Sex</label><select id="goal-sex" value={f.sex} onChange={function(e) { set("sex", e.target.value); }} style={inp}><option value="">Choose…</option><option>Female</option><option>Male</option></select></div>
         <div><label style={lab} htmlFor="goal-age">Age</label><input id="goal-age" type="number" inputMode="numeric" value={f.age} onChange={function(e) { set("age", e.target.value); }} style={inp} /></div>
         <div><label style={lab} htmlFor="goal-height">Height (cm)</label><input id="goal-height" type="number" inputMode="numeric" value={f.height} onChange={function(e) { set("height", e.target.value); }} style={inp} /></div>
-        <div><label style={lab} htmlFor="goal-weight">Current weight (kg)</label><input id="goal-weight" type="number" inputMode="decimal" value={f.weightKg} disabled={hasWeighIns} onChange={function(e) { set("weightKg", e.target.value); }} style={inp} />{hasWeighIns && <div style={{ fontSize: 10, color: "#475569" }}>From your latest weigh-in.</div>}</div>
+        <div style={{ gridColumn: "1 / -1" }}><WeightInput id="goal-weight" label="Current weight" kg={parseFloat(f.weightKg) || null} unit={f.unit} onUnit={function(u) { set("unit", u); }} disabled={hasWeighIns} onChange={function(k) { set("weightKg", k ? String(Math.round(k * 10) / 10) : ""); }} />{hasWeighIns && <div style={{ fontSize: 10, color: "#475569" }}>From your latest weigh-in.</div>}</div>
       </div>
 
       <fieldset style={{ border: "none", padding: 0, margin: "0 0 12px" }}><legend style={lab}>Typical activity level (used on days without step data)</legend>
