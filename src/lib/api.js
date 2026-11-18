@@ -1,7 +1,7 @@
 import { sGet, sSet } from "./storage.js";
 import { withMedicationRule } from "./safety.js";
 import { withCaching } from "./caching.js";
-import { flag, viaProxy } from "./platform.js";
+import { flag, viaProxy, UNAVAILABLE_MSG } from "./platform.js";
 import { planAllows, showGate, gateText } from "./myPlan.js";
 import { allowedBy } from "./consent.js";
 import { auth } from "./firebase.js";
@@ -79,7 +79,9 @@ window.fetch = function() {
     if (url.indexOf("/v1/messages") !== -1 && (!allowedBy(window._lcConsent, "ai") || (_isPhoto && !allowedBy(window._lcConsent, "photos")))) {
       return Promise.resolve(new Response(JSON.stringify({ type: "error", error: { type: "consent", message: (_isPhoto ? "Photo checks" : "AI features") + " are off in your privacy choices (Settings → Privacy & consent)" } }), { status: 200, headers: { "Content-Type": "application/json" } }));
     }
-    var send = (flag("useAiProxy") && url.indexOf("/v1/messages") !== -1 && typeof opts.body === "string")
+    /* v2.31.1 (Architect): per-person accounts ALWAYS go through the server (EU, never the US direct API, even before the
+       go-live switch); only the joint household account keeps the direct route until useAiProxy is switched on. */
+    var send = ((flag("useAiProxy") || !!window._lcIndividual) && url.indexOf("/v1/messages") !== -1 && typeof opts.body === "string")
       ? auth.currentUser.getIdToken().then(function(t) { return viaProxy(args[1].body, planFeature || feature, t); })
       : _origFetch.apply(_self, args);
     return send.then(function(resp) {
@@ -100,7 +102,8 @@ window.isEnergyEmpty = function(e) { return e && (e.message === "ENERGY_EMPTY" |
 
 window.energyEmptyMsg = "⚡ Companion Energy Empty. Please top up!";
 
-window.aiErrorMsg = function(e, fallback) { return window.isEnergyEmpty(e) ? window.energyEmptyMsg : (fallback || ("Error: " + String(e).substring(0, 100))); };
+window.aiErrorMsg = function(e, fallback) { if (/Your Companion is unavailable/.test(String(e && e.message || e))) return UNAVAILABLE_MSG;   /* v2.31.1: said plainly */
+  return window.isEnergyEmpty(e) ? window.energyEmptyMsg : (fallback || ("Error: " + String(e).substring(0, 100))); };
 
 // Handle API errors - detect credit exhaustion
 export function handleApiError(result) {

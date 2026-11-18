@@ -108,7 +108,12 @@ export async function aiProxy({ uid, data }, { db, callClaude, now = Date.now() 
   const req = (data && data.request) || {};
   need(Array.isArray(req.messages) && req.messages.length, "invalid-argument", "No messages.");
   const body = withCaching({ model: MODEL, max_tokens: Math.min(parseInt(req.max_tokens) || 1000, 4000), messages: req.messages, system: withRule(req.system) });   // v2.31.0: prompt caching (Vertex + direct)
-  const result = await callClaude(body);
+  // v2.31.1: no US fallback unless the admin allows it (config/allowDirectFallback, default false). If the AI can't be
+  // reached, the person is told plainly; nothing is charged; everything they record keeps working.
+  const allowDirect = (await db.ref(P.config(app, "allowDirectFallback")).once("value")).val() === true;
+  let result;
+  try { result = await callClaude(body, { allowDirect }); }
+  catch (e) { if (e instanceof HttpsError) throw e; throw new HttpsError("unavailable", "Your Companion is unavailable right now."); }
   const cost = costPence(result && result.usage);
   await move(db, plan.wallet, -cost * ENERGY_PER_AI_PENNY, "debit", "ai:" + feature, null, now);   // Energy = AI cost × 2
   await db.ref(P.usage(app, uid, day(now))).transaction((u) => {

@@ -33,6 +33,7 @@ export const P = {
   usage: (app, uid, day) => `apps/${app}/usage/${uid}/${day}`,
   ent: (app, uid) => `apps/${app}/entitlements/${uid}`,
   tiers: (app) => `apps/${app}/config/tiers`,
+  config: (app, k) => `apps/${app}/config/${k}`,   // v2.31.1: admin settings (e.g. allowDirectFallback)
   account: (app, uid) => `apps/${app}/admin/accounts/${uid}`,
   admin: (uid) => `platform/admins/${uid}`,
   // v2.22.0 Platinum: ONE shared Energy pool per family, keyed by the owner's uid (members' AI calls debit it)

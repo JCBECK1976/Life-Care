@@ -265,7 +265,9 @@ test("Vertex AI (EU) with a fallback to the direct API only when Vertex is down;
   await b({ model: "claude-sonnet-4-6", max_tokens: 5, messages: [] });
   assert.match(urls[0], /^https:\/\/europe-west1-aiplatform\.googleapis\.com\/v1\/projects\/P\/locations\/europe-west1\/publishers\/anthropic\/models\/claude-sonnet-4-6:rawPredict$/);
   vertexUp = false;
-  const r = await b({ model: "claude-sonnet-4-6", max_tokens: 5, messages: [] });
+  await assert.rejects(b({ model: "claude-sonnet-4-6", max_tokens: 5, messages: [] }), /Vertex AI HTTP 503/);   // v2.31.1: no US fallback by default
+  assert.ok(!urls.some((u) => u.includes("api.anthropic.com")));
+  const r = await b({ model: "claude-sonnet-4-6", max_tokens: 5, messages: [] }, { allowDirect: true });       // only when the admin allows it
   assert.equal(r.backend, "direct-fallback"); assert.equal(urls[urls.length - 1], "https://api.anthropic.com/v1/messages");
   const strict = pickBackend({ vertexToken: "t", fetchImpl });                             // no fallback set → the error stands
   await assert.rejects(strict({ model: "m", messages: [] }), /Vertex AI HTTP 503/);
@@ -321,4 +323,25 @@ test("prompt caching (v2.31.0): aiProxy marks a long system prompt for caching o
   assert.deepEqual([u.n, u.cw, u.cr, u.f.aiHelp.n, u.f.aiHelp.cw], [1, 22000, 0, 1, 22000]);
   const { readFileSync } = await import("node:fs");
   assert.equal(readFileSync(new URL("../src/caching.js", import.meta.url), "utf8"), readFileSync(new URL("../../src/lib/caching.js", import.meta.url), "utf8"));
+});
+
+test("no US fallback (v2.31.1): Vertex down → 'Your Companion is unavailable right now', nothing charged; config/allowDirectFallback = true lets the direct API answer", async () => {
+  const { pickBackend } = await import("../src/backends.js");
+  const prev = process.env.AI_BACKEND; process.env.AI_BACKEND = "vertex";
+  const hits = [];
+  const fetchImpl = async (url) => { hits.push(url); return url.includes("aiplatform") ? { ok: false, status: 503 } : { ok: true, json: async () => ({ content: [{ type: "text", text: "direct" }], usage: { input_tokens: 10, output_tokens: 10 } }) }; };
+  const callClaude = pickBackend({ fallback: "direct", vertexToken: "t", fetchImpl });
+  await db.ref(`apps/${A}/entitlements/nf`).set({ tier: "gold", source: "admin" });
+  await db.ref(`apps/${A}/users/nf/consent`).set(ALL);
+  await core.adminTopUp({ uid: "uid-admin", data: { uid: "nf", energy: 100 } }, { db });
+  const before = await core.balance(db, A, "nf");
+  await db.ref(`apps/${A}/config/allowDirectFallback`).remove();                            // default: not set = false
+  await assert.rejects(core.aiProxy({ uid: "nf", data: req }, { db, callClaude }), { code: "unavailable", message: "Your Companion is unavailable right now." });
+  assert.ok(!hits.some((u) => u.includes("api.anthropic.com")), "the US API was never called");
+  assert.equal(await core.balance(db, A, "nf"), before);                                      // nothing charged
+  await db.ref(`apps/${A}/config/allowDirectFallback`).set(true);                             // the admin allows it (e.g. an outage)
+  const r = await core.aiProxy({ uid: "nf", data: req }, { db, callClaude });
+  assert.equal(r.backend, "direct-fallback");
+  await db.ref(`apps/${A}/config/allowDirectFallback`).remove();
+  process.env.AI_BACKEND = prev;
 });

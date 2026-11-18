@@ -9,9 +9,14 @@ export function pickBackend(env = {}) {
   const kind = AI_BACKEND();
   if (kind === "vertex" && (env.fallback || process.env.AI_FALLBACK) === "direct") {
     const primary = vertexBackend(env), backup = directBackend(env);
-    return async (body) => {
+    // v2.31.1 (Architect, 18 Nov): the US direct API is used ONLY when the admin setting config/allowDirectFallback is
+    // true (default false) — otherwise a Vertex failure is passed on and the app says the Companion is unavailable.
+    return async (body, opts = {}) => {
       try { return await primary(body); }
-      catch (e) { if (!/HTTP (429|5\d\d)|fetch|network|ECONN|ETIMEDOUT/i.test(String(e && e.message))) throw e; const r = await backup(body); r.backend = "direct-fallback"; return r; }
+      catch (e) {
+        if (opts.allowDirect !== true || !/HTTP (429|5\d\d)|fetch|network|ECONN|ETIMEDOUT/i.test(String(e && e.message))) throw e;
+        const r = await backup(body); r.backend = "direct-fallback"; return r;
+      }
     };
   }
   return pick(kind, env);
