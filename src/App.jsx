@@ -1714,6 +1714,13 @@ function Dashboard() {
   };
 
   // ─── ASK QUESTION ───
+  /* v2.31.0 (HELP/AI COST): the same words, split so they can be cached — the persona, profile summary, data and answer
+     rules become the system prompt (unchanged from one question to the next); the message is only the question. */
+  const chatSplit = (prompt, question, history) => {
+    const tag = "\n\nQuestion: " + question, at = prompt.indexOf(tag);
+    if (at < 0) return { messages: apiTurns(history, prompt) };
+    return { system: prompt.slice(0, at) + prompt.slice(at + tag.length), messages: apiTurns(history, "Question: " + question) };
+  };
   const askQuestion = async () => {
     var el = document.getElementById("qa-input-" + activeTab);
     var question = el ? el.value.trim() : "";
@@ -1739,7 +1746,7 @@ function Dashboard() {
       var response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "x-lc-feature": "chat", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: apiTurns(qaToMessages(qaHistory[activeTab]), prompt) })   /* v2.20.0: the conversation so far */
+        body: JSON.stringify(Object.assign({ model: "claude-sonnet-4-6", max_tokens: 1000 }, chatSplit(prompt, question, qaToMessages(qaHistory[activeTab]))))   /* v2.20.0: the conversation so far; v2.31.0: stable context in the system prompt (cached) */
       });
       if (debugMode) setDebugLog(function(prev) { return [{ time: new Date().toLocaleTimeString(), action: "Ask API", status: response.status, statusText: response.statusText }].concat(prev).slice(0, 20); });
       var result = await response.json();

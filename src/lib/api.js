@@ -1,5 +1,6 @@
 import { sGet, sSet } from "./storage.js";
 import { withMedicationRule } from "./safety.js";
+import { withCaching } from "./caching.js";
 import { flag, viaProxy } from "./platform.js";
 import { planAllows, showGate, gateText } from "./myPlan.js";
 import { allowedBy } from "./consent.js";
@@ -37,6 +38,8 @@ window.trackApiUsage = async function(usage, model, feature) {
 window.aiUsageTotal = async function() { try { var v = (await firebase.database().ref(DATA_ROOT + "/ai_usage").once("value")).val(); return v ? JSON.parse(v).total.cost : 0; } catch (e) { return 0; } };
 
 /* Intercept all Anthropic API calls to track usage and block when empty */
+/* v2.31.0: cache breakpoints for large stable context (lib/caching.js; the server applies the same) */
+function cached(body) { try { return JSON.stringify(withCaching(JSON.parse(body))); } catch (e) { return body; } }
 export var _origFetch = window.fetch;
 
 window._origFetch = _origFetch;
@@ -68,7 +71,7 @@ window.fetch = function() {
     var feature = featureOf(typeof opts.body === "string" ? opts.body : "", { section: window._lcSection, chatOpen: window._lcChatOpen });
     /* v2.15.2 P7: every Messages API request carries the medication safety rule (src/lib/safety.js) */
     var args = Array.prototype.slice.call(arguments);
-    if (url.indexOf("/v1/messages") !== -1 && typeof opts.body === "string") args[1] = Object.assign({}, opts, { body: withMedicationRule(opts.body) });
+    if (url.indexOf("/v1/messages") !== -1 && typeof opts.body === "string") args[1] = Object.assign({}, opts, { body: cached(withMedicationRule(opts.body)) });   /* v2.31.0: + prompt caching */
     /* v2.16.3 Step 4: flag "useAiProxy" (default OFF) sends the request to the server proxy instead (EU, energy checked server-side) */
     var _self = this;
     /* v2.16.7 P9: while pilotConsent is on, AI (and photo) requests need the person's consent */

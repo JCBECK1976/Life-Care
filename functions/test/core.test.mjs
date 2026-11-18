@@ -305,3 +305,20 @@ test("pilot features (v2.30.0): the GP prep summary is Silver and up and needs A
   assert.match(sent[0].system, /HRT \(hormone replacement therapy\): HRT entries are the person's own record only/);
   assert.match(MEDICATION_RULE, /never comment on or advise about HRT/);
 });
+
+test("prompt caching (v2.31.0): aiProxy marks a long system prompt for caching on every backend; the usage ledger keeps cache tokens per feature", async () => {
+  await db.ref(`apps/${A}/entitlements/pc`).set({ tier: "gold", source: "admin" });
+  await core.adminTopUp({ uid: "uid-admin", data: { uid: "pc", energy: 500 } }, { db });
+  await db.ref(`apps/${A}/users/pc/consent`).set(ALL);
+  const usageClaude = async (body) => { sent.push(body); return { content: [{ type: "text", text: "ok" }], usage: { input_tokens: 300, output_tokens: 200, cache_creation_input_tokens: 22000, cache_read_input_tokens: 0 } }; };
+  sent = [];
+  const big = "Guide. ".repeat(1200);
+  await core.aiProxy({ uid: "pc", data: { feature: "aiHelp", request: { max_tokens: 100, system: big, messages: [{ role: "user", content: "q" }] } } }, { db, callClaude: usageClaude, now: Date.UTC(2026, 10, 18) });
+  const sys = sent[0].system;
+  assert.ok(Array.isArray(sys) && sys[sys.length - 1].cache_control, "cache breakpoint at the end of the system prompt");
+  assert.ok(sys.map((b) => b.text).join("").startsWith(MEDICATION_RULE));                    // the rule still first
+  const u = (await db.ref(`apps/${A}/usage/pc/2026-11-18`).once("value")).val();
+  assert.deepEqual([u.n, u.cw, u.cr, u.f.aiHelp.n, u.f.aiHelp.cw], [1, 22000, 0, 1, 22000]);
+  const { readFileSync } = await import("node:fs");
+  assert.equal(readFileSync(new URL("../src/caching.js", import.meta.url), "utf8"), readFileSync(new URL("../../src/lib/caching.js", import.meta.url), "utf8"));
+});

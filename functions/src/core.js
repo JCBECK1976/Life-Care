@@ -1,4 +1,5 @@
 // Platform handlers as plain functions (deps injected), so they run in Cloud Functions and in emulator tests alike.
+import { withCaching } from "./caching.js";
 import { CONSENT_NEEDS, ENERGY_PER_AI_PENNY, DEFAULT_APP, DEFAULT_TIERS, LOCKED_UIDS, MEDICATION_RULE, MODEL, P, PACKS, STRIPE_WEB_ENABLED, TIER_ORDER, costPence } from "./config.js";
 
 export class HttpsError extends Error { constructor(code, message) { super(message); this.code = code; } }
@@ -106,13 +107,16 @@ export async function aiProxy({ uid, data }, { db, callClaude, now = Date.now() 
   need(await walletBalance(db, plan.wallet) > 0, "resource-exhausted", "Companion Energy is empty.");
   const req = (data && data.request) || {};
   need(Array.isArray(req.messages) && req.messages.length, "invalid-argument", "No messages.");
-  const body = { model: MODEL, max_tokens: Math.min(parseInt(req.max_tokens) || 1000, 4000), messages: req.messages, system: withRule(req.system) };
+  const body = withCaching({ model: MODEL, max_tokens: Math.min(parseInt(req.max_tokens) || 1000, 4000), messages: req.messages, system: withRule(req.system) });   // v2.31.0: prompt caching (Vertex + direct)
   const result = await callClaude(body);
   const cost = costPence(result && result.usage);
   await move(db, plan.wallet, -cost * ENERGY_PER_AI_PENNY, "debit", "ai:" + feature, null, now);   // Energy = AI cost × 2
   await db.ref(P.usage(app, uid, day(now))).transaction((u) => {
     const x = u || { n: 0, in: 0, out: 0, costPence: 0 }; const us = result.usage || {};
-    return { n: x.n + 1, in: x.in + (us.input_tokens || 0), out: x.out + (us.output_tokens || 0), costPence: Math.round((x.costPence + cost) * 10000) / 10000 };
+    // v2.31.0: + cache tokens and the same counts per feature (additive: older readers ignore the new fields)
+    const add = (o) => { o = o || {}; return { n: (o.n || 0) + 1, in: (o.in || 0) + (us.input_tokens || 0), out: (o.out || 0) + (us.output_tokens || 0), cw: (o.cw || 0) + (us.cache_creation_input_tokens || 0), cr: (o.cr || 0) + (us.cache_read_input_tokens || 0), costPence: Math.round(((o.costPence || 0) + cost) * 10000) / 10000 }; };
+    const f = Object.assign({}, x.f || {}); f[feature] = add(f[feature]);
+    return Object.assign(add(x), { f });
   });
   return result;
 }

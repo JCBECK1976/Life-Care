@@ -61,7 +61,7 @@ export var ENERGY_GUIDE = {
     { k: "aiPlans", label: "A training plan or warm-up", energy: 4 },
     { k: "gpSummary", label: "A GP prep summary", energy: 5 },
     { k: "mealGenerator", label: "A week of meals", energy: 8 },
-    { k: "aiHelp", label: "An answer in Help (it reads the whole guide)", energy: 12 },
+    { k: "aiHelp", label: "An answer in Help (the first question ~14, follow-ups within 5 minutes ~2)", energy: 8 },   // v2.31.0: prompt caching (was 12)
   ],
 };
 
