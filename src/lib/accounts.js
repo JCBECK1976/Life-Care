@@ -23,25 +23,41 @@ export async function prepareAccount(user) {
   return { individual: true };
 }
 
-/** v2.25.0: the family members whose data this person may see (Visible) and write ("log for me"), by person key.
- *  A member whose person key is the same as one of ours (e.g. two new accounts, both "jc") can't be shown side by
- *  side yet and is left out (GO_LIVE_CHECKLIST note). Hidden members are listed in window._lcHiddenMembers. */
+/** v2.25.0 / v2.27.3: the family members whose data this person may see (Visible) and write ("log for me").
+ *  window._lcMembers = { viewKey: { uid, store, canWrite, name, realKey } }, ordered by name (own tab first, then them).
+ *  Every NEW account keeps its own person under "jc" in its own store, so a member whose key clashes with one already
+ *  in use gets a unique view key ("m" + part of their account id); storage.js translates it back on every read/write.
+ *  Hidden members: window._lcHiddenMembers = [{ name }] — only their name and privacy switch are read (both allowed by the
+ *  rules); their data is never requested. window._lcHouseholdReads lists what was read (tests check it). */
+export function viewKeyFor(uid) { return "m" + String(uid).toLowerCase().replace(/[^a-z0-9]/g, ""); }   // the whole id: prefixes can clash
 export async function loadHousehold(uid) {
-  window._lcMembers = null; window._lcHiddenMembers = [];
+  window._lcMembers = null; window._lcHiddenMembers = []; window._lcHouseholdReads = [];
   var db = firebase.database(); var A = "apps/" + APP_ID;
-  var hid = (await db.ref(A + "/memberOf/" + uid).once("value")).val(); if (!hid) return null;
-  var h = (await db.ref(A + "/households/" + hid).once("value")).val(); if (!h) return null;
-  var ownRaw = (await db.ref(storeOf(uid) + "/dashboard:data").once("value")).val();
-  var mine = ownRaw ? Object.keys(JSON.parse(ownRaw)).filter(function(k) { return k !== "config"; }) : ["jc"];
-  var out = {};
+  var read = async function(p) { window._lcHouseholdReads.push(p); try { return (await db.ref(p).once("value")).val(); } catch (e) { return null; } };
+  var hid = await read(A + "/memberOf/" + uid); if (!hid) return null;
+  var h = await read(A + "/households/" + hid); if (!h) return null;
+  var ownRaw = await read(storeOf(uid) + "/dashboard:data");
+  var used = {}; (ownRaw ? Object.keys(JSON.parse(ownRaw)).filter(function(k) { return k !== "config"; }) : ["jc"]).forEach(function(k) { used[k] = true; });
+  var vis = [];
   for (var m of Object.keys(h.members || {})) {
     if (m === uid) continue;
-    var pv = (await db.ref(A + "/users/" + m + "/privacy").once("value").catch(function() { return { val: function() { return null; } }; })).val() || {};
-    var name = ((await db.ref(A + "/users/" + m + "/profile").once("value").catch(function() { return { val: function() { return null; } }; })).val() || {}).name || "Member";
-    if (pv.visible !== true) { window._lcHiddenMembers.push(name); continue; }
-    var raw = (await db.ref(storeOf(m) + "/dashboard:data").once("value").catch(function() { return { val: function() { return null; } }; })).val();
+    var pv = (await read(A + "/users/" + m + "/privacy")) || {};
+    var name = ((await read(A + "/users/" + m + "/profile")) || {}).name || "Member";
+    if (pv.visible !== true) { window._lcHiddenMembers.push({ name: name }); continue; }
+    vis.push({ uid: m, name: name, canWrite: pv.logForMe === true });
+  }
+  vis.sort(function(x, y) { return x.name.localeCompare(y.name); });
+  window._lcHiddenMembers.sort(function(x, y) { return x.name.localeCompare(y.name); });
+  var out = {};
+  for (var v of vis) {
+    var raw = await read(storeOf(v.uid) + "/dashboard:data");
     var keys = raw ? Object.keys(JSON.parse(raw)).filter(function(k) { return k !== "config"; }) : [];
-    keys.forEach(function(k) { if (mine.indexOf(k) < 0 && !out[k]) out[k] = { uid: m, store: storeOf(m), canWrite: pv.logForMe === true, name: name }; });
+    keys.forEach(function(k) {
+      var view = used[k] ? viewKeyFor(v.uid) + (keys.length > 1 ? k : "") : k;
+      for (var n = 2; used[view]; n++) view = viewKeyFor(v.uid) + "x" + n;   // never two people on one key
+      used[view] = true;
+      out[view] = { uid: v.uid, store: storeOf(v.uid), canWrite: v.canWrite, name: v.name, realKey: k };
+    });
   }
   window._lcMembers = Object.keys(out).length ? out : null;
   return window._lcMembers;
