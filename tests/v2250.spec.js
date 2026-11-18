@@ -194,5 +194,6 @@ test("household view: a Visible member's records show under their own tab; write
   await put(`apps/lifecare/users/${OTHER}/privacy`, { visible: false, logForMe: false });
   await page.reload();
   await expect(page.getByRole("button", { name: "Jay", exact: true }).first()).toBeVisible({ timeout: 20000 });
-  await expect(page.getByRole("button", { name: "Bee", exact: true })).toHaveCount(0);
+  await expect(page.getByTestId("hidden-tab")).toHaveText("🔒 Bee");                     // v2.27.3: a greyed tab, no data
+  expect(await page.evaluate(() => Object.keys(window._lcMembers || {}))).toEqual([]);
 });
