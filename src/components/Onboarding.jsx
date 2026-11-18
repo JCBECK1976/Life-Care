@@ -7,7 +7,7 @@ import { auth } from "../lib/firebase.js";
 // v2.24.0 (Step 4, DPIA §3/§7; flag useOnboarding): first sign-in of a NEW individual account. Never shown to the
 // shared joint/admin account. 1) 18+  2) Terms + Privacy (versions recorded)  3) separate opt-ins  → then the existing
 // mandatory goal setup (it opens by itself when the profile isn't set up).
-var page = { position: "fixed", inset: 0, zIndex: 140, background: "#f1f5f9", overflowY: "auto" };
+var page = { position: "fixed", inset: 0, zIndex: 2100, background: "#f1f5f9", overflowY: "auto" };   // v2.27.2: above the chat button (no chat before consent)
 var wrap = { maxWidth: 480, margin: "0 auto", padding: 16 };
 var cardS = { background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: "4px 12px", marginTop: 10 };
 var row = { display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 0", borderBottom: "1px solid #f1f5f9", fontSize: 13, color: "#0f172a", minHeight: 44 };

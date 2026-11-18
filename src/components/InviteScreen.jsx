@@ -8,7 +8,7 @@ import { loadPlan } from "../lib/myPlan.js";
 //  Family (?join=<hid>.<code>): the signed-in email must match the invite (the server checks) → join the Platinum
 //  family → choose visibility (default Hidden) and "Household members can log for me" (only when Visible).
 //  Pilot (?pilot=<code>): a test user set up by the admin, with the plan the admin chose (default Gold).
-var page = { position: "fixed", inset: 0, zIndex: 150, background: "#f1f5f9", overflowY: "auto" };
+var page = { position: "fixed", inset: 0, zIndex: 2150, background: "#f1f5f9", overflowY: "auto" };   // v2.27.2: above the chat button
 var box = { maxWidth: 480, margin: "0 auto", padding: 16 };
 var cardS = { background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: "4px 12px", marginTop: 10 };
 var row = { display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 0", borderBottom: "1px solid #f1f5f9", fontSize: 13, color: "#0f172a", minHeight: 44 };

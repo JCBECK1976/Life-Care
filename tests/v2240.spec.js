@@ -37,6 +37,8 @@ test("a new account: under 18 stops here (nothing saved); 18+ → Terms/Privacy 
   const { errors } = await go(page, "member");
   const ob = page.getByTestId("onboarding");
   await expect(ob).toContainText("Step 1 of 3");
+  const chatBtn = page.getByRole("button", { name: /chat/i }).first();                     // v2.27.2: no chat before consent
+  expect(await chatBtn.evaluate((b) => { const r = b.getBoundingClientRect(); const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return !b.contains(top); }).catch(() => true)).toBe(true);
   await ob.getByTestId("ob-under18").check();
   await expect(ob.getByTestId("ob-too-young")).toContainText("only for people aged 18 and over");
   await expect(ob.getByTestId("ob-next-1")).toBeDisabled();
