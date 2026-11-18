@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { usePlan, loadPlan, setPreview, canPreview } from "../lib/myPlan.js";
 import { TIER_ORDER, TIER_NAMES, TOP_UP, money, tierAllows } from "../constants/tiers.js";
 import { buyPlan, buyTopUp, manageUrl } from "../lib/billing.js";
+import { pilotOn } from "../lib/pilot.js";
 import { auth } from "../lib/firebase.js";
 import { callFunction, APP_ID } from "../lib/platform.js";
 
@@ -17,6 +18,7 @@ var ROWS = [
   ["Companion feedback and chat", function(t, T) { return tierAllows(t, "aiFeedback", T); }],
   ["Food ratings, Snap, My own item", function(t, T) { return tierAllows(t, "snap", T); }],
   ["Body balance, steps and health sync", function(t, T) { return tierAllows(t, "bodyBalance", T); }],
+  ["GP prep summary", function(t, T) { return tierAllows(t, "gpSummary", T); }, "pilot"],   // v2.30.0: only while the pilot features are on
   ["Help", function(t, T) { return tierAllows(t, "aiHelp", T) ? "Ask" : "FAQ"; }],
   ["Generate meals and shopping lists", function(t, T) { return tierAllows(t, "mealGenerator", T); }],
   ["AI training plans (warm-up, cool-down)", function(t, T) { return tierAllows(t, "aiPlans", T); }],
@@ -93,7 +95,7 @@ export default function MyPlanCard(props) {
               {on && <div style={{ fontSize: 9, fontWeight: 700, color: "#1d4ed8" }}>Yours</div>}
             </button></th>; })}</tr></thead>
         <tbody>
-          {ROWS.map(function(r) { return <tr key={r[0]}><th scope="row" style={{ fontSize: 11, fontWeight: 500, textAlign: "left", color: "#0f172a", padding: "6px 4px 6px 0", borderBottom: "1px solid #f1f5f9", lineHeight: 1.3 }}>{r[0]}</th>
+          {ROWS.filter(function(r) { return r[2] !== "pilot" || pilotOn(); }).map(function(r) { return <tr key={r[0]}><th scope="row" style={{ fontSize: 11, fontWeight: 500, textAlign: "left", color: "#0f172a", padding: "6px 4px 6px 0", borderBottom: "1px solid #f1f5f9", lineHeight: 1.3 }}>{r[0]}</th>
             {TIER_ORDER.map(function(t) { var v = r[1](t, T); return <td key={t} style={Object.assign({}, cell, { background: t === cur ? "#eff6ff" : "transparent", color: v ? "#166534" : "#94a3b8", fontWeight: 700 })}>
               {v === true ? <span aria-label="Included">✓</span> : v ? <span style={{ fontSize: 10 }}>{v}</span> : <span aria-label="Not included">—</span>}</td>; })}</tr>; })}
           <tr><th scope="row" style={{ fontSize: 11, fontWeight: 500, textAlign: "left", padding: "6px 4px 6px 0", color: "#0f172a" }}>Companion Energy each month</th>

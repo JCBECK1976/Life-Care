@@ -168,6 +168,11 @@ test("plans + consent (individual account): Bronze → GP prep is 'part of Silve
   await page.waitForFunction(() => window._lcPlan && window._lcPlan.loaded);
   await health(page, "gp");
   await expect(page.getByTestId("plan-gate-gpSummary")).toContainText("GP prep summary is part of Silver");
+  await page.locator('button[title="Settings"]').first().click();                         // My Plan lists it (pilot only): Silver and up
+  await page.getByTestId("my-plan-toggle").click();
+  const row = page.getByTestId("my-plan").getByRole("row", { name: /GP prep summary/ });
+  await expect(row.getByText("✓")).toHaveCount(3);
+  await tab(page, "My Health");
   await page.getByTestId("health-tab-symptoms").click();
   await expect(page.getByTestId("symptoms-off")).toContainText("Symptom and HRT tracking is off in your privacy choices");
   await page.getByTestId("health-tab-hrt").click();
