@@ -26,7 +26,7 @@ var KEY = "lc_steps_device";
 
 /* ---------- this phone's settings ---------- */
 export function deviceSettings() {
-  try { return Object.assign({ source: "none", person: "", activeCalories: false }, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) { return { source: "none", person: "", activeCalories: false }; }
+  try { return Object.assign({ source: "none", person: "", activeCalories: false, weighIns: false }, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) { return { source: "none", person: "", activeCalories: false, weighIns: false }; }   // v2.32.0: + weighIns
 }
 export function saveDeviceSettings(patch) {
   var s = Object.assign(deviceSettings(), patch || {});
@@ -129,7 +129,9 @@ export function useStepsSync(data, saveData) {
   useEffect(function() {
     if (!ready) return undefined;
     var busy = false;
-    var run = function() { if (busy || document.visibilityState === "hidden") return; busy = true; syncSteps(window._lcData || data, window._lcSaveData || saveData).catch(function() {}).then(function() { busy = false; }); };
+    /* v2.32.0: then the weigh-ins (their own switch), reading the data the steps sync may just have saved */
+    var run = function() { if (busy || document.visibilityState === "hidden") return; busy = true; syncSteps(window._lcData || data, window._lcSaveData || saveData).catch(function() {})
+      .then(function() { return import("./weighIns.js").then(function(w) { return w.syncWeighIns(window._lcData || data, window._lcSaveData || saveData); }); }).catch(function() {}).then(function() { busy = false; }); };
     run();
     document.addEventListener("visibilitychange", run);
     window.addEventListener("lc-steps-sync", run);

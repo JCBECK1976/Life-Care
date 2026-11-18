@@ -3,6 +3,8 @@ import { usePlan, planAllows } from "../lib/myPlan.js";
 import { GatePrompt } from "./PlanGate.jsx";
 import { SOURCES, HC_PLAY_URL, availability, connect, deviceSettings, getHealth, nativeSource, peopleOf, removeDays, saveDeviceSettings, syncSteps } from "../lib/steps.js";
 import { isoDay } from "../lib/calories.js";
+import HealthSetup from "./HealthSetup.jsx";
+import { connectWeighIns, removeWeighIns, syncWeighIns, weighInsOn } from "../lib/weighIns.js";
 
 // v2.23.0 (N6): Settings → Connect my steps. Silver and up (the shared account counts as Platinum). Android: Health Connect.
 var card = { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 };
@@ -36,6 +38,8 @@ export default function StepsCard(props) {
   var [msg, setMsg] = useState("");
   var [busy, setBusy] = useState(false);
   var [del, setDel] = useState(false);
+  var [setup, setSetup] = useState(false);     // v2.32.0: the guided health setup
+  var [wDel, setWDel] = useState(false);        // v2.32.0: delete imported weigh-ins when switching off
   var people = peopleOf(data);
   var connected = st.source !== "none" && st.source !== "manual" && !!st.person;
   var who = people.find(function(x) { return x.key === st.person; });
@@ -68,6 +72,26 @@ export default function StepsCard(props) {
     } else setMsg("Disconnected. Your stored daily totals are kept.");
     update({ source: "none", connectedAt: null, lastSync: null });
     setDel(false);
+  };
+  /* v2.32.0: "Import my weigh-ins" — its own switch (weight + body fat only); off = stop, and optionally delete the imported readings */
+  var weighOn = async function(on) {
+    setMsg("");
+    if (on) {
+      var health = await getHealth(); var a = await availability(health);
+      if (!a.ok) { setGuide(a.reason); return; }
+      if (!st.person && people.length === 1) update({ person: people[0].key });
+      var r = await connectWeighIns(health);
+      if (!r.ok) { setMsg("Weight wasn't allowed. Allow it in " + (nativeSource() === "healthKit" ? "the Health app → Apps → Lifecare Companion." : "Health Connect → App permissions → Lifecare Companion.")); return; }
+      update({ weighIns: true });
+      var w = await syncWeighIns(window._lcData || data, window._lcSaveData || props.saveData, { health: health });
+      setMsg(w.ok && w.latest ? "✓ Weigh-ins on: found " + w.readings + " from " + w.latest.source + "." : "✓ Weigh-ins on. None yet: turn on " + (nativeSource() === "healthKit" ? "Apple Health" : "Health Connect") + " sync in your scales app.");
+    } else {
+      var n = 0;
+      if (wDel && st.person && data && data[st.person]) { var nd = JSON.parse(JSON.stringify(window._lcData || data)); n = removeWeighIns(nd[st.person]); await (window._lcSaveData || props.saveData)(nd); }
+      update({ weighIns: false, weighLastSync: null });
+      setMsg(wDel ? "Weigh-ins off. " + n + " imported reading" + (n === 1 ? "" : "s") + " deleted; your typed weigh-ins are kept." : "Weigh-ins off. Imported readings are kept.");
+      setWDel(false);
+    }
   };
   var openSettings = async function() { try { var h = await getHealth(); if (h && h.openHealthConnectSettings) await h.openHealthConnectSettings(); } catch (e) { setMsg("Couldn't open Health Connect settings."); } };
 
@@ -102,6 +126,15 @@ export default function StepsCard(props) {
     {!connected && people.length > 1 && !st.person && <div style={{ fontSize: 11, color: "#475569", marginTop: 4 }}>Choose whose steps first.</div>}
     {guide && <Guide reason={guide} ios={nativeSource() === "healthKit"} calories={st.activeCalories} onOpenSettings={guide === "denied" || guide === "update" ? openSettings : null} />}
     {!guide && !connected && <button type="button" style={{ background: "none", border: "none", color: "#1d4ed8", fontSize: 12, padding: "6px 0", cursor: "pointer" }} onClick={function() { setGuide(nativeSource() === "none" ? "web" : "not-installed"); }}>Steps not showing? How to fix it</button>}
+    {weighInsOn() && <div data-testid="weighins-settings" style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid #e2e8f0" }}>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 44, fontSize: 13, fontWeight: 700 }}>
+        <input type="checkbox" data-testid="weighins-toggle" checked={!!st.weighIns} onChange={function(e) { weighOn(e.target.checked).catch(function(er) { setMsg(String((er && er.message) || er)); }); }} style={{ width: 20, height: 20 }} />
+        ⚖️ Import my weigh-ins</label>
+      <div style={small}>Reads only <b>weight and body fat</b> from your smart scales or weight app (through {nativeSource() === "healthKit" ? "Apple Health" : "Health Connect"}): one reading per day, the earliest. Weigh-ins you type always win.</div>
+      {st.weighIns && <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, fontSize: 12 }}><input type="checkbox" data-testid="weighins-delete" checked={wDel} onChange={function(e) { setWDel(e.target.checked); }} /> When switching off, also delete the imported readings (typed ones are never touched)</label>}
+      {!setup && <button type="button" data-testid="health-setup-open" style={Object.assign({}, btn, { marginTop: 8 })} onClick={function() { setSetup(true); }}>Connect my health data (step by step)</button>}
+    </div>}
+    {setup && <div style={{ marginTop: 10 }}><HealthSetup data={data} saveData={props.saveData} onDone={function() { setSetup(false); setSt(deviceSettings()); }} /></div>}
     {msg && <div role="status" aria-live="polite" data-testid="steps-msg" style={{ marginTop: 8, fontSize: 12, color: "#0f172a" }}>{msg}</div>}
   </div>);
 }

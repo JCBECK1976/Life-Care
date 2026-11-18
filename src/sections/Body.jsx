@@ -13,6 +13,7 @@ import PrivacyNote from "../components/PrivacyNote.jsx";
 import { scrollOnMount } from "../lib/scrollIntoView.js";
 import HistoryRows from "../components/HistoryRows.jsx";
 import MeasureSnap from "../components/MeasureSnap.jsx";
+import WeighInsPanel from "../components/WeighInsPanel.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -45,6 +46,7 @@ export default function BodySection({ ctx }) {
             </div>
             <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
               {bodyView === "data" && (<div>
+              <WeighInsPanel p={p} data={data} activeTab={activeTab} saveData={saveData} />   {/* v2.32.0: scales + imported weigh-ins (flag useWeighIns) */}
           {showBodyForm && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Body Composition</div>
             <div style={{ marginBottom: 10 }}><label style={labelStyle}>Week</label><input type="number" value={bodyInputs.week} onChange={e => setBodyInputs(q => ({ ...q, week: e.target.value }))} style={{ ...inputStyle, width: 80 }} /></div>

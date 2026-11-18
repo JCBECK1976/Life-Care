@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
 import LegalViewer from "./LegalViewer.jsx";
 import { optins, LEGAL_LABEL, needsOnboarding, saveAccountConsent } from "../lib/accountConsent.js";
-import { usePlan, loadPlan } from "../lib/myPlan.js";
+import { usePlan, loadPlan, planAllows } from "../lib/myPlan.js";
+import HealthSetup from "./HealthSetup.jsx";
+import { weighInsOn } from "../lib/weighIns.js";
+import { nativeSource } from "../lib/steps.js";
 import { auth } from "../lib/firebase.js";
 
 // v2.24.0 (Step 4, DPIA §3/§7; flag useOnboarding): first sign-in of a NEW individual account. Never shown to the
@@ -24,13 +27,13 @@ export default function Onboarding() {
   var [busy, setBusy] = useState(false);
   var [err, setErr] = useState("");
   useEffect(function() { setStep(1); }, [plan.loaded]);
-  if (!plan.loaded || !needsOnboarding()) return null;
+  if (!plan.loaded || (!needsOnboarding() && step !== 4)) return null;   /* step 4 (v2.32.0): the guided health setup, after consent */
   var set = function(k, v) { var n = Object.assign({}, ch); n[k] = v; if (k === "ai" && !v) { n.photos = false; n.bodyBalance = false; } if (k === "photos" && !v) n.bodyBalance = false; setCh(n); };
   var needs = { photos: !ch.ai, bodyBalance: !ch.ai || !ch.photos };
 
   return (<div role="dialog" aria-modal="true" aria-labelledby="ob-title" data-testid="onboarding" style={page}>
     <div style={wrap}>
-      <div style={{ fontSize: 11, color: "#475569", marginTop: 8 }}>Step {step} of 3</div>
+      <div style={{ fontSize: 11, color: "#475569", marginTop: 8 }}>{step === 4 ? "Last step (optional)" : "Step " + step + " of 3"}</div>
       {step === 1 && <>
         <h2 id="ob-title" style={{ fontSize: 20, margin: "4px 0 6px", color: "#0f172a" }}>Welcome to Lifecare Companion</h2>
         <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.55 }}>Lifecare Companion is for adults. Please confirm your age.</div>
@@ -65,8 +68,9 @@ export default function Onboarding() {
         </div>
         {!ch.ai && <div data-testid="ob-no-ai-note" style={{ marginTop: 10, padding: 10, borderRadius: 8, background: "#eff6ff", border: "1px solid #bfdbfe", fontSize: 12, color: "#0f172a" }}>That's fine: you can track your health, eating and exercise by hand. The Companion's feedback and other AI features stay off until you turn AI processing on.</div>}
         {err && <div role="alert" style={{ marginTop: 8, fontSize: 12, color: "#b91c1c" }}>{err}</div>}
-        <button type="button" data-testid="ob-finish" disabled={busy} style={btnP} onClick={async function() { setBusy(true); setErr(""); try { await saveAccountConsent(ch); await loadPlan(); } catch (e) { setErr("Couldn't save: " + ((e && e.message) || e)); setBusy(false); } }}>{busy ? "Saving…" : "Continue to set up your goals"}</button>
+        <button type="button" data-testid="ob-finish" disabled={busy} style={btnP} onClick={async function() { setBusy(true); setErr(""); try { await saveAccountConsent(ch); await loadPlan(); if (ch.health && weighInsOn() && planAllows("healthSync") && nativeSource() !== "none") setStep(4); }   /* v2.32.0: guided health setup next */ catch (e) { setErr("Couldn't save: " + ((e && e.message) || e)); setBusy(false); } }}>{busy ? "Saving…" : "Continue to set up your goals"}</button>
       </>}
+      {step === 4 && <div style={{ marginTop: 8 }}><HealthSetup data={window._lcData} saveData={window._lcSaveData} onDone={function() { setStep(5); }} /></div>}
     </div>
     {view && <LegalViewer which={view} onClose={function() { setView(null); }} />}
   </div>);

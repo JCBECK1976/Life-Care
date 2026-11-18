@@ -19,7 +19,12 @@ export var OPTINS = [
   { k: "symptoms", pilot: true, label: "Symptom and HRT tracking", hint: "Record daily symptoms (0–3) and your HRT in My Health. It stays in your account (your family only sees it if you share Health). It is a record only: the Companion never gives advice about HRT or medication." },
 ];
 /** The opt-ins shown now (the symptom/HRT one only while the pilot features are on). */
-export function optins() { return OPTINS.filter(function(o) { return !o.pilot || buildFlag("usePilotFeatures"); }); }
+export function optins() {
+  return OPTINS.filter(function(o) { return !o.pilot || buildFlag("usePilotFeatures"); }).map(function(o) {
+    // v2.32.0 (flag useWeighIns): health sync can also bring weigh-ins — say so before anyone agrees
+    return o.k === "health" && buildFlag("useWeighIns") ? Object.assign({}, o, { label: "Health sync (steps and weigh-ins)", hint: "Read your daily step total (and, if you choose, active calories) and — only if you switch on Import my weigh-ins — your weight and body fat from your smart scales or weight app, through Health Connect / Apple Health. Nothing is ever written there." }) : o;
+  });
+}
 export var NEEDS = CONSENT_NEEDS;   // shared with the server (constants/tiers.js)
 export var NOTE = {
   ai: "AI features are off because you chose not to use AI processing. You can turn it on in Settings → Privacy & your data.",

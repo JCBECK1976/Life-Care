@@ -51,7 +51,7 @@
     <uses-permission android:name="android.permission.health.WRITE_ACTIVE_CALORIES_BURNED" tools:node="remove" />
     <uses-permission android:name="android.permission.health.READ_HEART_RATE" tools:node="remove" />
     <uses-permission android:name="android.permission.health.WRITE_HEART_RATE" tools:node="remove" />
-    <uses-permission android:name="android.permission.health.READ_WEIGHT" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.READ_WEIGHT" />   <!-- v2.32.0: Import my weigh-ins (own switch) -->
     <uses-permission android:name="android.permission.health.WRITE_WEIGHT" tools:node="remove" />
     <uses-permission android:name="android.permission.health.READ_SLEEP" tools:node="remove" />
     <uses-permission android:name="android.permission.health.WRITE_SLEEP" tools:node="remove" />
@@ -73,7 +73,7 @@
     <uses-permission android:name="android.permission.health.WRITE_HEIGHT" tools:node="remove" />
     <uses-permission android:name="android.permission.health.READ_FLOORS_CLIMBED" tools:node="remove" />
     <uses-permission android:name="android.permission.health.WRITE_FLOORS_CLIMBED" tools:node="remove" />
-    <uses-permission android:name="android.permission.health.READ_BODY_FAT" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.READ_BODY_FAT" />   <!-- v2.32.0: Import my weigh-ins (own switch) -->
     <uses-permission android:name="android.permission.health.WRITE_BODY_FAT" tools:node="remove" />
     <uses-permission android:name="android.permission.health.READ_BASAL_BODY_TEMPERATURE" tools:node="remove" />
     <uses-permission android:name="android.permission.health.WRITE_BASAL_BODY_TEMPERATURE" tools:node="remove" />

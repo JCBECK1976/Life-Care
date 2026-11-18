@@ -132,10 +132,10 @@ test("Bronze: Connect my steps is part of Silver", async ({ page }) => {
   await expect(page.getByTestId("steps-card").getByTestId("plan-gate-healthSync")).toContainText("Steps and health sync is part of Silver.");
 });
 
-test("Android: only READ_STEPS and READ_ACTIVE_CALORIES_BURNED are requested; the rationale screen links the privacy policy; minSdk 26", () => {
+test("Android: only READ_STEPS, READ_ACTIVE_CALORIES_BURNED and (v2.32.0) READ_WEIGHT + READ_BODY_FAT are requested; the rationale screen links the privacy policy; minSdk 26", () => {
   const m = fs.readFileSync("android/app/src/main/AndroidManifest.xml", "utf8");
   const kept = [...m.matchAll(/<uses-permission android:name="(android\.permission\.health\.[A-Z0-9_]+)" \/>/g)].map((x) => x[1]);
-  expect(kept.sort()).toEqual(["android.permission.health.READ_ACTIVE_CALORIES_BURNED", "android.permission.health.READ_STEPS"]);
+  expect(kept.sort()).toEqual(["android.permission.health.READ_ACTIVE_CALORIES_BURNED", "android.permission.health.READ_BODY_FAT", "android.permission.health.READ_STEPS", "android.permission.health.READ_WEIGHT"]);   // v2.32.0: + weight, body fat (read only)
   const plugin = fs.readFileSync("node_modules/@capgo/capacitor-health/android/src/main/AndroidManifest.xml", "utf8");
   for (const p of [...plugin.matchAll(/android:name="(android\.permission\.health\.[A-Z0-9_]+)"/g)].map((x) => x[1]))
     if (!kept.includes(p)) expect(m, p).toContain('"' + p + '" tools:node="remove"');

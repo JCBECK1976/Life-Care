@@ -194,6 +194,15 @@ The overall **Companion Check-in** looks across everything (exercise, eating, bo
 
 ## 4. My Body
 
+### Connecting smart scales and health apps (v2.32.0, test site first; Silver and up)
+**What we read — and only after you allow it:** your **daily step total**, **active calories** (if you tick it), and — only if you switch on **Import my weigh-ins** — your **weight** and **body fat**. We read them from **Health Connect** (Android) or **Apple Health** (iPhone); we never write anything there, and we can't see any other app until you give permission on the phone's own screen.
+- **Set it up:** Settings → **Connect my health data (step by step)** (new accounts are offered this after the privacy choices). It checks Health Connect is on the phone (a Google Play link if not), asks you to **Allow**, then **checks that data really arrives** (the last 24 hours). If nothing arrives, it shows the fix for your phone: **Samsung** — Samsung Health → ⋮ → Settings → Health Connect → allow Steps; **Pixel** — Fitbit or Google Fit → Settings → Health Connect; **other phones** — your phone's health app → *Sync to Health Connect*; **iPhone** — the Health app → your picture → Apps → Lifecare Companion. When it works: **✓ Connected: today so far N steps.**
+- **Smart scales or a weight app** (Fitdays, Renpho, Withings, Eufy, Garmin, Fitbit, Samsung Health): answer **Yes** and allow **Weight** (and Body fat). You'll see **✓ Found weigh-ins from [app]**, or, if none have arrived yet, how to turn on **Health Connect / Apple Health sync in your scales app** (for example Fitdays or Renpho → Settings → Health Connect).
+- **How weigh-ins arrive:** each time you open the app (the last 30 days the first time). **One reading per day** — the earliest (your morning weigh-in), with the app it came from ("from Fitdays"). They feed My Body, the charts, your BMR (Katch-McArdle, from your last weigh-ins with body fat), goals and feedback. **Weigh-ins you type always win:** if you typed one for that week, the import is shown as *"also recorded"*.
+- **Shared phone:** choose **whose data is on this phone** — readings go to that person only.
+- **Turn it off:** Settings → untick **Import my weigh-ins** (tick *also delete the imported readings* first if you want them gone — typed weigh-ins are never touched). Steps: **Disconnect**. You can also remove the permission in Health Connect / the Health app at any time.
+- After three typed weigh-ins, My Body may show one tip: *"Use smart scales? Connect them and your weigh-ins arrive automatically."* Tap × and it never shows again.
+
 ### My Body Stats
 Tracks body composition, usually from a smart scale:
 **Weight, Body Fat %, Muscle Mass, Muscle Rate %, Visceral Fat, Subcutaneous Fat %, Body Water %, Bone Mass, BMR (kcal), Body Age.** Each shows a status (e.g. Acceptable / Too High, Standard / High, Excellent) where relevant.
