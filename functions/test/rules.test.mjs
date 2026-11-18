@@ -90,19 +90,38 @@ test("tracker: users can add their own entry, can't read others'; admin reads", 
 });
 
 /* ---------- v2.25.0 final rules: the individual store, consent, server-only paths ---------- */
-test("store (v2.25.0): own read/write; Hidden → others nothing; Visible → read; log-for-me → write; outsiders never", async () => {
-  await ok(asUser(NS, carol, U(carol) + "/store/dashboard:data", "PUT", JSON.stringify({ jc: { profile: { name: "Carol" } } })));
-  await ok(asUser(NS, carol, U(carol) + "/store"));
-  await ok(asOwner(NS, U(bob) + "/store", "PUT", { "dashboard:data": "{}" }));
+test("areas (v2.28.0): own read/write; a family member reads an area only when Visible AND that area is on; writes need that area's log-for-me", async () => {
+  await ok(asUser(NS, carol, U(carol) + "/data/body/dashboard_data", "PUT", "{}"));
+  await ok(asOwner(NS, U(bob) + "/data", "PUT", { exercise: { dashboard_data: "{}" }, body: { dashboard_data: "{}" }, companion: { qa_history: "[]" } }));
+  await ok(asOwner(NS, U(bob) + "/privacy", "PUT", { visible: true, logForMe: false, areas: { body: false } }));
+  await ok(asUser(NS, alice, U(bob) + "/data/exercise"));                // exercise visible
+  await denied(asUser(NS, alice, U(bob) + "/data/body"));                // body hidden
+  await denied(asUser(NS, alice, U(bob) + "/data/companion"));           // AI chats: never shown to anyone else
+  await denied(asUser(NS, alice, U(bob) + "/data/exercise/x", "PUT", "1"));   // no log-for-me
+  await ok(asOwner(NS, U(bob) + "/privacy", "PUT", { visible: true, logForMe: false, areas: { body: false }, logAreas: { exercise: true } }));
+  await ok(asUser(NS, alice, U(bob) + "/data/exercise/x", "PUT", "1"));  // log for me: exercise only
+  await denied(asUser(NS, alice, U(bob) + "/data/eating/x", "PUT", "1"));
+  await ok(asOwner(NS, U(bob) + "/privacy", "PUT", { visible: false, logForMe: false, areas: { exercise: true } }));
+  await denied(asUser(NS, alice, U(bob) + "/data/exercise"));            // Hidden overrides every area
+  await denied(asUser(NS, carol, U(alice) + "/data/exercise"));          // an outsider: never
   await ok(asOwner(NS, U(bob) + "/privacy", "PUT", { visible: false, logForMe: false }));
-  await denied(asUser(NS, alice, U(bob) + "/store"));                   // Hidden: not even the owner
-  await ok(asOwner(NS, U(bob) + "/privacy", "PUT", { visible: true, logForMe: false }));
-  await ok(asUser(NS, alice, U(bob) + "/store"));                       // Visible: family can read
-  await denied(asUser(NS, alice, U(bob) + "/store/x", "PUT", "1"));     // but not write
-  await ok(asOwner(NS, U(bob) + "/privacy", "PUT", { visible: true, logForMe: true }));
-  await ok(asUser(NS, alice, U(bob) + "/store/x", "PUT", "1"));          // log for me
-  await denied(asUser(NS, carol, U(bob) + "/store"));                   // outsider
-  await ok(asOwner(NS, U(bob) + "/privacy", "PUT", { visible: false, logForMe: false }));
+});
+
+test("family shared area (v2.28.0): members read and write it (a Hidden member too); a non-member and the admin can't; leaving removes access at once", async () => {
+  const F = "apps/lifecare/households/h1/shared";
+  await ok(asUser(NS, bob, F + "/eating/shop_defaults", "PUT", JSON.stringify(["milk"])));     // Bob is Hidden: the family area still works for him
+  await ok(asUser(NS, alice, F + "/eating/shop_defaults", "PUT", JSON.stringify(["milk", "eggs"])));   // a member edits the family shopping list
+  await ok(asUser(NS, bob, F + "/eating"));
+  await denied(asUser(NS, alice, U(bob) + "/data/eating"));                   // …while his own areas stay private
+  await denied(asUser(NS, carol, F));                                         // a non-member
+  await denied(asUser(NS, carol, F + "/eating/shop_defaults", "PUT", "[]"));
+  await denied(asUser(NS, adm, F));                                           // the admin
+  await ok(asOwner(NS, "apps/lifecare", "PATCH", { ["memberOf/" + bob.uid]: null, ["households/h1/members/" + bob.uid]: null }));   // Bob leaves (as leaveHousehold / removeMember do)
+  await denied(asUser(NS, bob, F + "/eating"));                               // at once
+  await denied(asUser(NS, bob, F + "/eating/shop_defaults", "PUT", "[]"));
+  await ok(asOwner(NS, "apps/lifecare", "PATCH", { ["memberOf/" + bob.uid]: "h1", ["households/h1/members/" + bob.uid]: true }));
+  await ok(asUser(NS, carol, U(carol) + "/shared/eating/shop_defaults", "PUT", "[]"));   // not in a family: a personal shared area
+  await denied(asUser(NS, alice, U(carol) + "/shared"));
 });
 
 test("consent (v2.24.0/v2.25.0): own only; history entries can be added, never changed or removed", async () => {
@@ -119,7 +138,7 @@ test("server-only paths: nobody writes plans, energy, pools, ledgers, households
     await denied(asUser(NS, carol, "apps/lifecare/" + p, "PUT", { tier: "platinum", balance: 99999 }));
   await denied(asUser(NS, carol, "apps/lifecare/purchases/abc"));
   await denied(asUser(NS, adm, "apps/lifecare/pilotInvites"));          // read through the function only
-  await denied(asUser(NS, adm, U(alice) + "/store"));                    // the admin never reads anyone's data
+  await denied(asUser(NS, adm, U(alice) + "/data/body"));                // the admin never reads anyone's data
   await denied(asUser(NS, adm, U(alice) + "/data"));
   await ok(asUser(NS, adm, "apps/lifecare/admin/accounts"));
 });

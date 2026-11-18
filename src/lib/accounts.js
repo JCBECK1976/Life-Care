@@ -1,6 +1,7 @@
 // v2.25.0 (Step 5, ADR 0012; flag useAccounts — build only): individual accounts.
 // - The shared joint/admin account keeps today's shared data (SHARED_ROOT). Any other account reads and writes ONLY its
-//   own store, apps/lifecare/users/{uid}/store (same key layout as today, so the whole app works unchanged), switched
+//   own data, apps/lifecare/users/{uid}/data/{area} (v2.28.0, ADR 0018: split by area; the family's shared lists in
+//   households/{hid}/shared/{area}, or users/{uid}/shared without a family — lib/storage.js does the mapping), switched
 //   here at sign-in BEFORE anything is read. It never sees the shared household data.
 // - Sign-in: Google (web popup / Android account picker), Email link (no password), Apple (client ready; JC enables
 //   the providers in Firebase, GO_LIVE_CHECKLIST).
@@ -11,7 +12,8 @@ import { isProtectedAccount } from "./accountGuard.js";
 import { isNative } from "./native.js";
 
 export function accountsOn() { return buildFlag("useAccounts"); }
-export function storeOf(uid) { return "apps/" + APP_ID + "/users/" + uid + "/store"; }
+export function storeOf(uid) { return "apps/" + APP_ID + "/users/" + uid + "/data"; }   // v2.28.0: the person's areas
+export function familyRootOf(uid, hid) { return hid ? "apps/" + APP_ID + "/households/" + hid + "/shared" : "apps/" + APP_ID + "/users/" + uid + "/shared"; }
 
 /** At sign-in: choose where this person's data lives. Returns { individual }. */
 export async function prepareAccount(user) {
@@ -19,6 +21,8 @@ export async function prepareAccount(user) {
   if (!user || !accountsOn() || await isProtectedAccount(user.uid)) { setDataRoot(null); return { individual: false }; }
   setDataRoot(storeOf(user.uid));
   window._lcIndividual = { uid: user.uid, name: user.displayName || (user.email || "").split("@")[0] || "Me" };
+  var hid = null; try { hid = (await firebase.database().ref("apps/" + APP_ID + "/memberOf/" + user.uid).once("value")).val(); } catch (e) { hid = null; }
+  window._lcFamilyRoot = familyRootOf(user.uid, hid);   // the family's shared lists (a family of one when not in a family)
   await loadHousehold(user.uid).catch(function() { window._lcMembers = null; });
   return { individual: true };
 }
@@ -36,8 +40,13 @@ export async function loadHousehold(uid) {
   var read = async function(p) { window._lcHouseholdReads.push(p); try { return (await db.ref(p).once("value")).val(); } catch (e) { return null; } };
   var hid = await read(A + "/memberOf/" + uid); if (!hid) return null;
   var h = await read(A + "/households/" + hid); if (!h) return null;
-  var ownRaw = await read(storeOf(uid) + "/dashboard:data");
-  var used = {}; (ownRaw ? Object.keys(JSON.parse(ownRaw)).filter(function(k) { return k !== "config"; }) : ["jc"]).forEach(function(k) { used[k] = true; });
+  var personsIn = async function(root) {   // the person keys in someone's areas (from whichever areas can be read)
+    var ks = {};
+    for (var a of ["settings", "exercise", "body", "eating", "health"]) { var v = await read(root + "/" + a + "/dashboard_data"); if (v) Object.keys(JSON.parse(v)).forEach(function(k) { ks[k] = true; }); }
+    return Object.keys(ks);
+  };
+  var ownKeys = await personsIn(storeOf(uid));
+  var used = {}; (ownKeys.length ? ownKeys : ["jc"]).forEach(function(k) { used[k] = true; });
   var vis = [];
   for (var m of Object.keys(h.members || {})) {
     if (m === uid) continue;
@@ -50,13 +59,12 @@ export async function loadHousehold(uid) {
   window._lcHiddenMembers.sort(function(x, y) { return x.name.localeCompare(y.name); });
   var out = {};
   for (var v of vis) {
-    var raw = await read(storeOf(v.uid) + "/dashboard:data");
-    var keys = raw ? Object.keys(JSON.parse(raw)).filter(function(k) { return k !== "config"; }) : [];
+    var keys = await personsIn(storeOf(v.uid));
     keys.forEach(function(k) {
       var view = used[k] ? viewKeyFor(v.uid) + (keys.length > 1 ? k : "") : k;
       for (var n = 2; used[view]; n++) view = viewKeyFor(v.uid) + "x" + n;   // never two people on one key
       used[view] = true;
-      out[view] = { uid: v.uid, store: storeOf(v.uid), canWrite: v.canWrite, name: v.name, realKey: k };
+      out[view] = { uid: v.uid, root: storeOf(v.uid), canWrite: v.canWrite, name: v.name, realKey: k };
     });
   }
   window._lcMembers = Object.keys(out).length ? out : null;

@@ -7,9 +7,10 @@ import { isProtectedAccount, needsRecentSignIn, PROTECTED_MSG } from "./accountG
 
 import { collectMyData, deletionUpdate } from "./myDataCore.js";
 import { callFunction } from "./platform.js";
+import { flatSnapshot } from "./storage.js";
 export * from "./myDataCore.js";
 
-async function rootSnapshot() { return (await firebase.database().ref(DATA_ROOT).once("value")).val() || {}; }
+async function rootSnapshot() { return flatSnapshot(); }   // v2.28.0: an individual account's areas as the flat key map
 /* v2.26.0 (Step 2): an individual account's export also holds everything the platform keeps about the person
    (profile, privacy, consent + history, plan, Energy, ledger, usage) — all readable by them under the rules. */
 async function accountExtras() {

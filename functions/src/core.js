@@ -275,7 +275,7 @@ export async function exportMyData({ uid, data }, { db, now = Date.now() }) {
   const app = appOf(data); const A = `apps/${app}`;
   const read = async (p) => (await db.ref(p).once("value")).val();
   const out = { exportedAt: new Date(now).toISOString(), app, account: uid,
-    store: await read(`${A}/users/${uid}/store`), profile: await read(`${A}/users/${uid}/profile`), privacy: await read(`${A}/users/${uid}/privacy`),
+    data: await read(`${A}/users/${uid}/data`), sharedAlone: await read(`${A}/users/${uid}/shared`),   /* v2.28.0: own areas (+ personal shared lists) */ profile: await read(`${A}/users/${uid}/profile`), privacy: await read(`${A}/users/${uid}/privacy`),
     consent: await read(`${A}/users/${uid}/consent`), plan: await read(P.ent(app, uid)), energy: await read(P.energy(app, uid)),
     ledger: await read(P.ledger(app, uid)), usage: await read(`${A}/usage/${uid}`), household: await read(`${A}/memberOf/${uid}`) };
   await db.ref(`${A}/audit/${now}_${uid.slice(0, 6)}`).set({ at: new Date(now).toISOString(), action: "export-my-data" });

@@ -1,7 +1,8 @@
 import { test, expect } from "@playwright/test";
 import { execFileSync, spawnSync } from "node:child_process";
 import { openApp, ensureUser, USERS, mockAnthropic } from "./helpers.js";
-import { storeFor, personOfKey } from "../scripts/migrate-accounts.mjs";
+import { storeFor, personOfKey, plan } from "../scripts/migrate-accounts.mjs";
+import { areaData, getKeyOf, getDashOf } from "./areaHelpers.js";
 import { makeFixture } from "../scripts/make-fixture.mjs";
 
 // v2.25.0 (Step 5; flag useAccounts): individual accounts, invites, pilot test users, the JC/Becks migration script.
@@ -43,13 +44,13 @@ test("an individual account gets its OWN empty store — never the shared househ
   await mockAnthropic(page);
   await page.addInitScript(() => localStorage.setItem("lc_flags", JSON.stringify({ useAccounts: true })));
   await signIn(page, "member");
-  await expect.poll(async () => (await get(`apps/lifecare/users/${ME}/store`)) && Object.keys(await get(`apps/lifecare/users/${ME}/store`)).length).toBeGreaterThan(0);
-  const d = JSON.parse((await get(`apps/lifecare/users/${ME}/store`))["dashboard:data"]);
+  await expect.poll(async () => !!(await getDashOf(ME))).toBe(true);
+  const d = await getDashOf(ME);
   expect(Object.keys(d).sort()).toEqual(["config", "jc"]);
   expect(d.jc.profile.name).toBe("member-test");
   expect(d.jc.meds).toEqual([]); expect(d.jc.body.weight).toEqual([]);                     // empty, not JC's
   await expect(page.getByRole("button", { name: "Becks", exact: true })).toHaveCount(0);
-  expect(await page.evaluate(async () => (await import("/Life-Care/src/lib/firebase.js")).DATA_ROOT)).toBe("apps/lifecare/users/test-uid-member/store");
+  expect(await page.evaluate(async () => (await import("/Life-Care/src/lib/firebase.js")).DATA_ROOT)).toBe("apps/lifecare/users/test-uid-member/data");
   const shared = JSON.parse(await get("data/dashboard%3Adata"));
   expect(shared.jc.profile.name).not.toBe("member-test");                                  // the household data untouched
 });
@@ -111,6 +112,20 @@ test("pilot test users: the admin creates an invite (default Gold); the tester o
   await p2.close();
 });
 
+test("migration plan (v2.28.0): per area per person; the family's lists once in the family area (meal_defaults whole)", () => {
+  const root = {
+    "dashboard:data": JSON.stringify({ config: { week: 9 }, jc: { profile: { name: "JC" }, body: { weight: [] }, exercises: {} }, becks: { profile: { name: "Becks" }, meds: [] } }),
+    journal_becks: "b1", custom_breakfasts: "[1,2]", meal_defaults: JSON.stringify({ jc: { b: 1 }, becks: { b: 2 } }), shop_defaults: "[]",
+  };
+  const { up, counts } = plan(root, { jc: "J", becks: "B" }, 1);
+  expect(Object.keys(up["apps/lifecare/users/B/data"]).sort()).toEqual(["health", "journal", "settings"]);
+  expect(Object.keys(up["apps/lifecare/users/J/data"]).sort()).toEqual(["body", "exercise", "settings"]);
+  expect(JSON.parse(up["apps/lifecare/households/h_family"].shared.eating.meal_defaults)).toEqual({ jc: { b: 1 }, becks: { b: 2 } });
+  for (const a of Object.keys(up)) for (const b of Object.keys(up)) if (a !== b) expect(b.startsWith(a + "/"), a + " ⊃ " + b).toBe(false);   // one update: no path inside another
+  expect(counts.family).toEqual({ eating: 3 });
+  expect(JSON.stringify(up["apps/lifecare/users/B/data"])).not.toContain("custom_breakfasts");
+});
+
 test("migration script (pure): each person's store has only their records; secrets never copied; per-person shared records reduced", () => {
   const root = {
     "dashboard:data": JSON.stringify({ config: { week: 9 }, jc: { profile: { name: "JC" } }, becks: { profile: { name: "Becks" } } }),
@@ -139,16 +154,22 @@ test("migration script (emulator): --dry-run prints COUNTS only and writes nothi
     expect(dry.status).toBe(0);
     expect(dry.stdout).toMatch(/DRY RUN — nothing written/);
     expect(dry.stdout).toMatch(/Person 1: \d+ items/);
-    expect(dry.stdout).not.toMatch(/JC|Becks|journal|anthropic|kg/i);                        // counts only
+    expect(dry.stdout).not.toMatch(/JC|Becks|journal_|anthropic|kg|custom_/i);               // counts only (area names are categories, not content)
     expect(await get("apps", ns)).toBeNull();
     expect(run([]).status).toBe(2);                                                          // refuses without the backup flag
     const real = run(["--i-have-a-fresh-backup"]);
     expect(real.stdout).toMatch(/✓ Person 1/); expect(real.stdout).toMatch(/✓ Platinum grant/);
     expect(real.status).toBe(0);
-    const becks = await get("apps/lifecare/users/uid-becks-new/store", ns);
-    expect(Object.keys(JSON.parse(becks["dashboard:data"])).sort()).toEqual(["becks", "config"]);
-    expect(Object.keys(becks).some((k) => /(^|[_:])jc([_:]|$)/.test(k))).toBe(false);
-    expect(becks.anthropic_api_key).toBeUndefined();
+    expect(Object.keys(await getDashOf("uid-becks-new", ns)).sort()).toEqual(["becks", "config"]);   // v2.28.0: assembled from her areas
+    const areas = await get("apps/lifecare/users/uid-becks-new/data", ns);
+    const keys = Object.values(areas).flatMap((v) => Object.keys(v));
+    expect(keys.some((k) => /(^|[_:])jc([_:]|$)/.test(k))).toBe(false);
+    expect(keys).not.toContain("anthropic_api_key");
+    expect(keys.some((k) => /^custom_(breakfasts|lunches|meals|snacks)$/.test(k))).toBe(false);   // food lists: the FAMILY area, not copied
+    const fam = await get("apps/lifecare/households/h_family/shared", ns);
+    expect(Object.keys(fam.eating)).toEqual(expect.arrayContaining(["custom_breakfasts", "meal_defaults", "shop_defaults"]));
+    expect(Object.keys(JSON.parse(fam.eating.meal_defaults)).length).toBeGreaterThan(0);        // kept whole (both people's defaults)
+    expect(dry.stdout).toMatch(/by area: .*body \d+/); expect(dry.stdout).toMatch(/Family area \(shared once\): eating \d+/);
     expect(await get("apps/lifecare/entitlements/uid-jc-new", ns)).toMatchObject({ tier: "platinum", source: "admin" });
     expect((await get("apps/lifecare/households/h_family", ns)).owner).toBe("uid-jc-new");
     expect(await get("apps/lifecare/users/uid-becks-new/privacy", ns)).toEqual({ visible: true, logForMe: true });
@@ -162,8 +183,8 @@ test("household view: a Visible member's records show under their own tab; write
   const store = (who, person) => ({ "dashboard:data": JSON.stringify({ config: { week: 3, session: 15, trainingStart: "2026-07-19" }, [who]: person }) });
   const person = (name) => ({ profile: { name, sex: "Female" }, meds: [], medsHistory: [], body: { weight: [{ wk: 1, v: 10.5 }] }, measurements: {}, bloods: [], exercises: {} });
   await put("apps/lifecare", { users: {
-    [ME]: { store: store("jc", person("Jay")), profile: { name: "Jay" }, privacy: { visible: true, logForMe: false } },
-    [OTHER]: { store: Object.assign(store("becks", person("Bee")), { journal_becks: "\"her journal\"" }), profile: { name: "Bee" }, privacy: { visible: true, logForMe: false } } },
+    [ME]: { data: areaData(store("jc", person("Jay"))), profile: { name: "Jay" }, privacy: { visible: true, logForMe: false } },
+    [OTHER]: { data: areaData(Object.assign(store("becks", person("Bee")), { journal_becks: "\"her journal\"" })), profile: { name: "Bee" }, privacy: { visible: true, logForMe: false } } },
     households: { h1: { owner: ME, members: { [ME]: true, [OTHER]: true } } }, memberOf: { [ME]: "h1", [OTHER]: "h1" } });
   await ensureUser("other");
   await page.addInitScript(() => localStorage.setItem("lc_flags", JSON.stringify({ useAccounts: true })));
@@ -181,15 +202,15 @@ test("household view: a Visible member's records show under their own tab; write
   });
   expect(r.j).toBe("\"her journal\"");
   expect(r.keys).toEqual(["becks", "config", "jc"]);
-  expect(await get(`apps/lifecare/users/${OTHER}/store/journal_becks`)).toBe("\"her journal\"");
-  expect(JSON.parse(await get(`apps/lifecare/users/${OTHER}/store/dashboard%3Adata`)).becks.profile.notes).toBeUndefined();
-  expect(Object.keys(JSON.parse(await get(`apps/lifecare/users/${ME}/store/dashboard%3Adata`))).sort()).toEqual(["config", "jc"]);   // her data never copied into mine
+  expect(await getKeyOf(OTHER, "journal_becks")).toBe("\"her journal\"");
+  expect((await getDashOf(OTHER)).becks.profile.notes).toBeUndefined();
+  expect(Object.keys(await getDashOf(ME)).sort()).toEqual(["config", "jc"]);   // her data never copied into mine
   // she turns on "log for me" → the same writes now reach her store
   await put(`apps/lifecare/users/${OTHER}/privacy`, { visible: true, logForMe: true });
   await page.reload();
   await expect(page.getByRole("button", { name: "Bee", exact: true }).first()).toBeVisible({ timeout: 20000 });
   await page.evaluate(async () => { const st = await import("/Life-Care/src/lib/storage.js"); await st.sSet("journal_becks", "\"logged by Jay\""); });
-  expect(await get(`apps/lifecare/users/${OTHER}/store/journal_becks`)).toBe("\"logged by Jay\"");
+  expect(await getKeyOf(OTHER, "journal_becks")).toBe("\"logged by Jay\"");
   // she hides → her tab and data are gone after reload
   await put(`apps/lifecare/users/${OTHER}/privacy`, { visible: false, logForMe: false });
   await page.reload();

@@ -41,7 +41,7 @@ test("deleteAccount (v2.21.1): refuses a platform admin and the rules-locked UID
   assert.deepEqual(deleted, []);                                                                  // nothing deleted
   assert.deepEqual((await db.ref(`apps/${A}/entitlements/uid-admin`).once("value")).val(), { tier: "gold" });
   await db.ref(`apps/${A}/entitlements/u-del`).set({ tier: "silver" });
-  await db.ref(`apps/${A}/users/u-del`).set({ store: { "dashboard:data": "{}" }, consent: { ai: true, history: { h: { at: "t" } } } });
+  await db.ref(`apps/${A}/users/u-del`).set({ data: { settings: { dashboard_data: "{}" } }, consent: { ai: true, history: { h: { at: "t" } } } });
   await db.ref(`apps/${A}/memberOf/u-del`).set("hd"); await db.ref(`apps/${A}/households/hd`).set({ owner: "ox", members: { ox: true, "u-del": true } });
   await db.ref(`apps/${A}/energy/u-del`).set({ balancePence: 10 });
   const r = await core.deleteAccount({ uid: "u-del", data: {} }, { db, deleteUser, now: Date.UTC(2026, 10, 17) });
@@ -243,11 +243,11 @@ test("monthly allowance (v2.26.0): admin grants get 300/500/1,500 Energy once a 
 });
 
 test("export (v2.26.0, Step 2): everything about the signed-in person — and nobody else; recorded in the audit trail", async () => {
-  await db.ref(`apps/${A}/users/ex1`).set({ store: { "dashboard:data": "{\"jc\":{}}" }, profile: { name: "Ex" }, consent: { ai: true } });
-  await db.ref(`apps/${A}/users/ex2`).set({ store: { secret: "not yours" } });
+  await db.ref(`apps/${A}/users/ex1`).set({ data: { body: { dashboard_data: "{\"jc\":{}}" } }, profile: { name: "Ex" }, consent: { ai: true } });
+  await db.ref(`apps/${A}/users/ex2`).set({ data: { journal: { secret: "not yours" } } });
   await assert.rejects(core.exportMyData({ uid: null, data: {} }, { db }), { code: "unauthenticated" });
   const out = await core.exportMyData({ uid: "ex1", data: {} }, { db, now: Date.UTC(2026, 10, 18) });
-  assert.equal(out.profile.name, "Ex"); assert.ok(out.store["dashboard:data"]); assert.equal(out.consent.ai, true);
+  assert.equal(out.profile.name, "Ex"); assert.ok(out.data.body.dashboard_data); assert.equal(out.consent.ai, true);
   assert.ok(!JSON.stringify(out).includes("not yours"));
   const audit = Object.values((await db.ref(`apps/${A}/audit`).once("value")).val()).map((x) => x.action);
   assert.ok(audit.includes("export-my-data"));

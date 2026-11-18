@@ -31,7 +31,7 @@ import { buildExProfileInfo, getJournalWellbeingCtx, getMoodContext } from "./li
 import { autoStatus, entrySets, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, findWeekIdx, logSetsFrom, parseReps, previousEntry, setsToSave } from "./lib/exercise.js";
 import { nextLogPrefill } from "./lib/exercise.js";
 import { calcWeek, countStatus, fbIcon, fmtDate, getWeekDates, mealKey, sBg, sColor, sLabel } from "./lib/utils.js";
-import { sGet, sSet } from "./lib/storage.js";
+import { sGet, sSet, sScan } from "./lib/storage.js";
 import { handleApiError } from "./lib/api.js";
 import { planAllows } from "./lib/myPlan.js";
 import { useStepsSync } from "./lib/steps.js";
@@ -1069,7 +1069,7 @@ function Dashboard() {
       if (p.medsHistory && p.medsHistory.length > 0) medsHistCtx = "\nMeds changes: " + p.medsHistory.slice(-5).map(h => h.date + ": " + h.snapshot).join("; ") + ".";
       // Measurement comments
       let measCommCtx = "";
-      try { const mck = await firebase.database().ref(DATA_ROOT).orderByKey().startAt("meas_comment_" + activeTab + "_").endAt("meas_comment_" + activeTab + "_\uf8ff").once("value").then(function(s) { return { keys: s.exists() ? Object.keys(s.val()) : [] }; }); if (mck && mck.keys && mck.keys.length > 0) { const mcs = []; for (const k of mck.keys.slice(-5)) { try { const v = await firebase.database().ref(DATA_ROOT + "/" + k.replace(/[.#$/\[\]]/g, "_")).once("value").then(function(s) { return s.exists() ? { value: s.val() } : null; }); if (v && v.value) mcs.push(k.split(":")[2] + ": " + v.value); } catch {} } if (mcs.length > 0) measCommCtx = "\nMeasurement notes: " + mcs.join("; ") + "."; } } catch {}
+      try { const mck = await sScan("meas_comment_" + activeTab + "_", "meas_comment_" + activeTab + "_\uf8ff").then(function(v) { return { keys: Object.keys(v) }; })   /* v2.28.0: area-aware */; if (mck && mck.keys && mck.keys.length > 0) { const mcs = []; for (const k of mck.keys.slice(-5)) { try { const v = await sGet(k).then(function(v) { return v != null ? { value: v } : null; }); if (v && v.value) mcs.push(k.split(":")[2] + ": " + v.value); } catch {} } if (mcs.length > 0) measCommCtx = "\nMeasurement notes: " + mcs.join("; ") + "."; } } catch {}
       // Q&A history context
       let qaCtx = "";
       if (qaHistory[activeTab] && qaHistory[activeTab].length > 0) qaCtx = "\nRecent Q&A: " + qaHistory[activeTab].slice(-3).map(qa => "Q: " + qa.q.slice(0, 60) + " A: " + qa.a.slice(0, 100)).join(" | ") + ".";
@@ -1103,13 +1103,13 @@ function Dashboard() {
       // Gather exercise comments \u2014 separated by current vs previous weeks
       let exComments = "";
       try {
-        const keys = await firebase.database().ref(DATA_ROOT).orderByKey().startAt("comment_" + tab + "_").endAt("comment_" + tab + "_\uf8ff").once("value").then(function(s) { return { keys: s.exists() ? Object.keys(s.val()) : [] }; });
+        const keys = await sScan("comment_" + tab + "_", "comment_" + tab + "_\uf8ff").then(function(v) { return { keys: Object.keys(v) }; })   /* v2.28.0: area-aware */;
         if (keys && keys.keys && keys.keys.length > 0) {
           const currentWkComments = [];
           const prevWkComments = [];
           var currentWeekStr = String(data.config.week);
           for (const k of keys.keys.slice(-10)) {
-            try { const v = await firebase.database().ref(DATA_ROOT + "/" + k.replace(/[.#$/\[\]]/g, "_")).once("value").then(function(s) { return s.exists() ? { value: s.val() } : null; }); if (v && v.value) { const parts = k.split(":"); var commentWk = parts[3]; var formatted = "Wk" + commentWk + " " + parts[2] + ": " + v.value; if (commentWk === currentWeekStr) { currentWkComments.push(formatted); } else { prevWkComments.push(formatted); } } } catch {}
+            try { const v = await sGet(k).then(function(v) { return v != null ? { value: v } : null; }); if (v && v.value) { const parts = k.split(":"); var commentWk = parts[3]; var formatted = "Wk" + commentWk + " " + parts[2] + ": " + v.value; if (commentWk === currentWeekStr) { currentWkComments.push(formatted); } else { prevWkComments.push(formatted); } } } catch {}
           }
           if (currentWkComments.length > 0 || prevWkComments.length > 0) {
             exComments = "";

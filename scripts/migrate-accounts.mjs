@@ -8,7 +8,9 @@
 //   (emulator, for tests: add --emulator <namespace>)
 //
 // What it does (nothing is deleted; the shared root stays as it is — rollback = switch the flag back):
-//  1. Each person gets apps/lifecare/users/{uid}/store, in today's key layout, holding ONLY their own records:
+//  v2.28.0 (ADR 0018): each person's records go to apps/lifecare/users/{uid}/data/{area}; what JC and Becks share (food
+//  lists, "All" defaults, shopping, the name lists) goes ONCE to households/h_family/shared/{area} — not copied to both.
+//  1. Each person gets their own areas, holding ONLY their own records:
 //     dashboard:data with just their person (each keeps their own key: "jc" / "becks", so per-person fields such as
 //     jcKcal / beckKcal keep working); keys named for them (journal_becks, eat_children:becks:…, mealplan:…:becks …);
 //     shared lists (custom_breakfasts …) copied to both; shared records that are keyed by person inside
@@ -20,6 +22,7 @@
 //     starts at £7.50 of Energy.
 //  4. Verifies by re-reading and comparing counts.
 import { createRequire } from "node:module";
+import { toAreas, locate } from "../src/lib/areas.js";
 const require = createRequire(new URL("../functions/package.json", import.meta.url));
 
 const args = process.argv.slice(2);
@@ -49,6 +52,7 @@ export function storeFor(root, who) {
     const p = personOfKey(k);
     if (p && p !== who) { counts.skippedOther++; continue; }
     if (p === who) { store[k] = v; counts.own++; continue; }
+    if (locate(k).scope === "family") { store[k] = v; counts.shared++; continue; }   // v2.28.0: family lists stay WHOLE (e.g. meal_defaults holds everyone's)
     // shared key: a record kept per person inside → only this person's part
     let parsed = null; try { parsed = typeof v === "string" ? JSON.parse(v) : null; } catch (e) { parsed = null; }
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && ("jc" in parsed || "becks" in parsed)) {
@@ -60,19 +64,29 @@ export function storeFor(root, who) {
   return { store, counts };
 }
 
-/** Pure: every write of the step (paths → values). */
+/** Pure: every write of the step (paths → values). Counts per person per area, and for the family area. */
 export function plan(root, uid, now) {
-  const up = {}; const counts = {};
+  const up = {}; const counts = { family: {} };
+  let familyDone = false;
   for (const who of ["jc", "becks"]) {
     const { store, counts: c } = storeFor(root, who);
-    counts[who] = Object.assign({ keys: Object.keys(store).length }, c);
-    up[`apps/${APP}/users/${uid[who]}/store`] = store;
+    const own = {}, fam = {};
+    for (const k of Object.keys(store)) (k !== "dashboard:data" && locate(k).scope === "family" ? fam : own)[k] = store[k];
+    const a = toAreas(own);
+    counts[who] = Object.assign({ keys: Object.keys(own).length, areas: Object.fromEntries(Object.entries(a.own).map(([ar, v]) => [ar, Object.keys(v).length])) }, c);
+    up[`apps/${APP}/users/${uid[who]}/data`] = a.own;
+    if (!familyDone) {   // the family's shared lists: once, from the shared root (identical for both people)
+      const f = toAreas(fam).family;
+      var familyShared = f;   // written inside the household record below (one path: an update can't hold a path and its parent)
+      counts.family = Object.fromEntries(Object.entries(f).map(([ar, v]) => [ar, Object.keys(v).length]));
+      familyDone = true;
+    }
     const d = JSON.parse(root["dashboard:data"] || "{}");
     up[`apps/${APP}/users/${uid[who]}/profile`] = { name: (d[who] && d[who].profile && d[who].profile.name) || (who === "jc" ? "JC" : "Becks") };
     up[`apps/${APP}/users/${uid[who]}/privacy`] = { visible: true, logForMe: true };
     up[`apps/${APP}/memberOf/${uid[who]}`] = "h_family";
   }
-  up[`apps/${APP}/households/h_family`] = { owner: uid.jc, created: now, members: { [uid.jc]: true, [uid.becks]: true } };
+  up[`apps/${APP}/households/h_family`] = { owner: uid.jc, created: now, members: { [uid.jc]: true, [uid.becks]: true }, shared: familyShared || {} };
   up[`apps/${APP}/entitlements/${uid.jc}`] = { tier: "platinum", since: now, source: "admin" };   // Becks: Platinum as a member
   up[`apps/${APP}/familyEnergy/${uid.jc}`] = { balance: 1500, updated: now };   // Platinum: 1,500 Energy a month
   up[`apps/${APP}/audit/${now}_migration`] = { at: new Date(now).toISOString(), action: "migrate-accounts", people: 2 };
@@ -89,21 +103,25 @@ async function main() {
   const root = (await db.ref(ROOT).once("value")).val() || {};
   const now = Date.now();
   const { up, counts } = plan(root, UID, now);
-  const line = (who) => `${who === "jc" ? "Person 1" : "Person 2"}: ${counts[who].keys} items (${counts[who].own} their own, ${counts[who].shared} shared lists, ${counts[who].reduced} shared records reduced to their part; ${counts[who].skippedOther} of the other person's left out; ${counts[who].never} never copied)`;
+  const areas = (o) => Object.entries(o || {}).map(([a, n]) => a + " " + n).join(", ");
+  const line = (who) => `${who === "jc" ? "Person 1" : "Person 2"}: ${counts[who].keys} items (${counts[who].own} their own, ${counts[who].reduced} shared records reduced to their part; ${counts[who].skippedOther} of the other person's left out; ${counts[who].never} never copied) — by area: ${areas(counts[who].areas)}`;
   console.log((DRY ? "DRY RUN — nothing written. " : "") + "Source: " + Object.keys(root).length + " items.");
   console.log(line("jc")); console.log(line("becks"));
+  console.log("Family area (shared once): " + areas(counts.family));
   console.log("Platinum grant: owner + 1 member, family pool 1500 Energy. Both Visible + log-for-me.");
   if (DRY) { await app.delete(); return; }
   for (const who of ["jc", "becks"]) {
-    const existing = (await db.ref(`apps/${APP}/users/${UID[who]}/store`).once("value")).val();
+    const existing = (await db.ref(`apps/${APP}/users/${UID[who]}/data`).once("value")).val();
     if (existing) { console.error("Refusing: " + (who === "jc" ? "person 1" : "person 2") + " already has a store. Nothing written."); await app.delete(); process.exit(3); }
   }
   await db.ref().update(up);
   // verify: counts re-read from what was written
   let okAll = true;
   for (const who of ["jc", "becks"]) {
-    const n = Object.keys((await db.ref(`apps/${APP}/users/${UID[who]}/store`).once("value")).val() || {}).length;
-    const ok = n === counts[who].keys; okAll = okAll && ok;
+    const got = (await db.ref(`apps/${APP}/users/${UID[who]}/data`).once("value")).val() || {};
+    const n = Object.values(got).reduce((t, v) => t + Object.keys(v || {}).length, 0);
+    const want = Object.values(counts[who].areas).reduce((t, x) => t + x, 0);
+    const ok = n === want; okAll = okAll && ok;
     console.log((ok ? "✓ " : "✗ ") + (who === "jc" ? "Person 1" : "Person 2") + ": " + n + " items written");
   }
   const ent = (await db.ref(`apps/${APP}/entitlements/${UID.jc}`).once("value")).val();

@@ -45,6 +45,11 @@
                 "$a": {
                   ".validate": "newData.isBoolean()"
                 }
+              },
+              "logAreas": {
+                "$a": {
+                  ".validate": "newData.isBoolean() && (newData.val() === false || newData.parent().parent().child('visible').val() === true)"
+                }
               }
             },
             "consent": {
@@ -86,19 +91,23 @@
               ".read": "auth != null && auth.uid === $uid",
               ".write": "auth != null && auth.uid === $uid",
               "$area": {
-                ".read": "auth != null && root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val() && root.child('apps').child($app).child('users').child($uid).child('privacy/visible').val() === true && (!root.child('apps').child($app).child('users').child($uid).child('privacy/areas').exists() || root.child('apps').child($app).child('users').child($uid).child('privacy/areas').child($area).val() === true)",
-                ".write": "auth != null && root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val() && root.child('apps').child($app).child('users').child($uid).child('privacy/visible').val() === true && root.child('apps').child($app).child('users').child($uid).child('privacy/logForMe').val() === true && (!root.child('apps').child($app).child('users').child($uid).child('privacy/areas').exists() || root.child('apps').child($app).child('users').child($uid).child('privacy/areas').child($area).val() === true)"
+                ".read": "auth != null && root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val() && ($area === 'exercise' || $area === 'body' || $area === 'eating' || $area === 'health' || $area === 'mood' || $area === 'journal' || $area === 'settings') && (root.child('apps').child($app).child('users').child($uid).child('privacy').child('visible').val() === true && (!root.child('apps').child($app).child('users').child($uid).child('privacy').child('areas').child($area).exists() || root.child('apps').child($app).child('users').child($uid).child('privacy').child('areas').child($area).val() === true))",
+                ".write": "auth != null && root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val() && ($area === 'exercise' || $area === 'body' || $area === 'eating' || $area === 'health' || $area === 'mood' || $area === 'journal' || $area === 'settings') && (root.child('apps').child($app).child('users').child($uid).child('privacy').child('visible').val() === true && (!root.child('apps').child($app).child('users').child($uid).child('privacy').child('areas').child($area).exists() || root.child('apps').child($app).child('users').child($uid).child('privacy').child('areas').child($area).val() === true)) && (root.child('apps').child($app).child('users').child($uid).child('privacy').child('logAreas').child($area).exists() ? root.child('apps').child($app).child('users').child($uid).child('privacy').child('logAreas').child($area).val() === true : root.child('apps').child($app).child('users').child($uid).child('privacy').child('logForMe').val() === true)"
               }
             },
-            "store": {
-              ".read": "auth != null && (auth.uid === $uid || (root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val() && root.child('apps').child($app).child('users').child($uid).child('privacy/visible').val() === true))",
-              ".write": "auth != null && (auth.uid === $uid || (root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val() && root.child('apps').child($app).child('users').child($uid).child('privacy/visible').val() === true && root.child('apps').child($app).child('users').child($uid).child('privacy/logForMe').val() === true))"
+            "shared": {
+              ".read": "auth != null && auth.uid === $uid",
+              ".write": "auth != null && auth.uid === $uid"
             }
           }
         },
         "households": {
           "$hid": {
-            ".read": "auth != null && data.child('members').child(auth.uid).val() === true"
+            ".read": "auth != null && data.child('members').child(auth.uid).val() === true",
+            "shared": {
+              ".read": "auth != null && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === $hid",
+              ".write": "auth != null && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === $hid"
+            }
           }
         },
         "entitlements": {

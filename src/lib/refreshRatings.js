@@ -2,7 +2,7 @@
 // against each person's goal and personal limits. Past weeks keep their history as recorded. Runs once per person
 // (after their goal setup is complete); a second run changes nothing.
 import firebase, { DATA_ROOT } from "./firebase.js";
-import { sGet, sSet } from "./storage.js";
+import { sGet, sSet, sScan } from "./storage.js";
 import { refreshDocRatings, ymd } from "./children.js";
 import { personalLimits } from "./goals.js";
 
@@ -13,13 +13,13 @@ export function currentSunday(now) { var d = new Date(now || Date.now()); d.setH
 export async function refreshPersonWeeks(person, p, now) {
   var limits = personalLimits(p); if (!limits) return { weeks: 0, changed: 0, skipped: true };
   var prefix = "eat_children:" + person + ":";
-  var snap = await firebase.database().ref(DATA_ROOT).orderByKey().startAt(prefix + currentSunday(now)).endAt(prefix + "").once("value");
+  var found = await sScan(prefix + currentSunday(now), prefix + "\uf8ff");   // v2.28.0: area-aware (same range as before)
   var weeks = 0, changed = 0, writes = [];
-  snap.forEach(function(ch) {
-    var raw = ch.val(); var doc; try { doc = typeof raw === "string" ? JSON.parse(raw) : raw; } catch (e) { return; }
+  Object.keys(found).forEach(function(key) {
+    var raw = found[key]; var doc; try { doc = typeof raw === "string" ? JSON.parse(raw) : raw; } catch (e) { return; }
     weeks++;
     var n = refreshDocRatings(doc, limits);
-    if (n) { changed += n; writes.push(sSet(ch.key, JSON.stringify(doc))); }
+    if (n) { changed += n; writes.push(sSet(key, JSON.stringify(doc))); }
   });
   await Promise.all(writes);
   return { weeks: weeks, changed: changed };

@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { mockAnthropic } from "./helpers.js";
+import { areaData, getKeyOf, getDashOf } from "./areaHelpers.js";
 
 // v2.27.3 (before pilot): families of BRAND-NEW accounts — every new account keeps its person under "jc" in its own
 // store, so the family view gives clashing members their own view key. Own tab first, then Visible members by name.
@@ -19,8 +20,8 @@ const person = (name, kg) => ({ profile: { name, sex: "Female" }, meds: [], meds
 async function family(names, privacy) {
   const users = {}, members = {}, memberOf = {};
   names.forEach((nm, i) => {
-    users[uidOf(i)] = { profile: { name: nm }, privacy: privacy[i] || { visible: true, logForMe: false },
-      store: { "dashboard:data": JSON.stringify({ config: { week: 2, session: 15, trainingStart: "2026-07-19" }, jc: person(nm, 60 + i) }), journal_jc: jr(nm) } };
+    users[uidOf(i)] = { profile: { name: nm }, privacy: Object.assign({ visible: true, logForMe: false }, privacy[i] || {}),
+      data: areaData({ "dashboard:data": JSON.stringify({ config: { week: 2, session: 15, trainingStart: "2026-07-19" }, jc: person(nm, 60 + i) }), journal_jc: jr(nm) }) };   // v2.28.0: by area
     members[uidOf(i)] = true; memberOf[uidOf(i)] = "hf";
   });
   await put("apps/lifecare", { users, households: { hf: { owner: uidOf(0), members } }, memberOf, entitlements: { [uidOf(0)]: { tier: "platinum", source: "admin" } } });
@@ -69,7 +70,7 @@ test("2 new accounts: writes for the member reach THEIR store (under their own k
   await signInAs(page, 0);
   await page.waitForFunction(() => window._lcMembers);
   await page.evaluate(async (val) => { const st = await import("/Life-Care/src/lib/storage.js"); const v = Object.keys(window._lcMembers)[0]; await st.sSet("journal_" + v, val); }, jr("Ann", "by Ann"));
-  expect(await get(`apps/lifecare/users/${uidOf(1)}/store/journal_jc`)).toBe(jr("Bob"));   // refused: no log-for-me
+  expect(await getKeyOf(uidOf(1), "journal_jc")).toBe(jr("Bob"));   // refused: no log-for-me
   await put(`apps/lifecare/users/${uidOf(1)}/privacy`, { visible: true, logForMe: true });
   await page.reload();
   await page.waitForFunction(() => window._lcMembers);
@@ -78,11 +79,11 @@ test("2 new accounts: writes for the member reach THEIR store (under their own k
     await st.sSet("journal_" + v, val);
     const d = JSON.parse(await st.sGet("dashboard:data")); d[v].profile.notes = "joint workout"; await st.sSet("dashboard:data", JSON.stringify(d));
   }, jr("Ann", "logged by Ann"));
-  expect(await get(`apps/lifecare/users/${uidOf(1)}/store/journal_jc`)).toBe(jr("Ann", "logged by Ann"));
-  const bob = JSON.parse(await get(`apps/lifecare/users/${uidOf(1)}/store/dashboard%3Adata`));
+  expect(await getKeyOf(uidOf(1), "journal_jc")).toBe(jr("Ann", "logged by Ann"));
+  const bob = await getDashOf(uidOf(1));
   expect(Object.keys(bob).sort()).toEqual(["config", "jc"]);                          // stays under HIS own key
   expect(bob.jc.profile.notes).toBe("joint workout");
-  const ann = JSON.parse(await get(`apps/lifecare/users/${uidOf(0)}/store/dashboard%3Adata`));
+  const ann = await getDashOf(uidOf(0));
   expect(Object.keys(ann).sort()).toEqual(["config", "jc"]);                          // nothing of his copied into hers
   expect(ann.jc.profile.name).toBe("Ann");
 });
@@ -117,7 +118,7 @@ test("Hidden members: greyed tabs after everyone else; tapping says '[Name] keep
   expect(r.members).toEqual(["Bob"]);
   for (const u of [uidOf(2), uidOf(3)]) {
     expect(r.reads.filter((p) => p.includes(u))).toEqual([`apps/lifecare/users/${u}/privacy`, `apps/lifecare/users/${u}/profile`]);   // name + switch only
-    expect(r.reads.some((p) => p.includes(u + "/store"))).toBe(false);
+    expect(r.reads.some((p) => p.includes(u + "/data"))).toBe(false);
   }
 });
 
@@ -152,4 +153,39 @@ test("My Plan: the Energy explanation — typical Energy per action, 300 / 500 /
   await put("apps/lifecare/config/energyGuide", { typical: [{ k: "chat", label: "A chat reply", energy: 5 }] });
   await page.evaluate(async () => { const m = await import("/Life-Care/src/lib/myPlan.js"); await m.loadPlan(); });
   await expect(x).toContainText("A chat reply: about 5");
+});
+
+/* ---------- v2.28.0: the final layout (ADR 0018) — family area and per-area privacy, through the app ---------- */
+test("family shared area: a member's change to the shopping list lands ONCE in the family area and another member sees it", async ({ page, browser }) => {
+  await family(["Ann", "Bob"], [{ visible: true }, { visible: false }]);              // Bob Hidden: the family lists still shared
+  await signInAs(page, 0);
+  await page.waitForFunction(() => window._lcFamilyRoot);
+  expect(await page.evaluate(() => window._lcFamilyRoot)).toBe("apps/lifecare/households/hf/shared");
+  await page.evaluate(async () => { const st = await import("/Life-Care/src/lib/storage.js"); await st.sSet("shop_defaults", JSON.stringify(["milk", "eggs"])); });
+  expect(await get("apps/lifecare/households/hf/shared/eating/shop_defaults")).toBe(JSON.stringify(["milk", "eggs"]));
+  expect(await get(`apps/lifecare/users/${uidOf(0)}/data/eating/shop_defaults`)).toBeNull();   // not in her own areas
+  const p2 = await browser.newPage();
+  await signInAs(p2, 1);
+  await p2.waitForFunction(() => window._lcFamilyRoot);
+  expect(await p2.evaluate(async () => (await import("/Life-Care/src/lib/storage.js")).sGet("shop_defaults"))).toBe(JSON.stringify(["milk", "eggs"]));
+  await p2.close();
+});
+
+test("per area: Bob shares exercise but hides body — Ann sees his exercise; his body screens are empty, never broken; nothing of his body is requested", async ({ page }) => {
+  const errs = []; page.on("pageerror", (e) => errs.push(e.message));
+  await family(["Ann", "Bob"], [{ visible: true }, { visible: true, logForMe: false, areas: { body: false } }]);
+  await signInAs(page, 0);
+  await page.waitForFunction(() => window._lcMembers);
+  const r = await page.evaluate(async () => {
+    const st = await import("/Life-Care/src/lib/storage.js");
+    const v = Object.keys(window._lcMembers)[0]; const d = JSON.parse(await st.sGet("dashboard:data"));
+    return { exercises: d[v].exercises, weight: d[v].body.weight, name: d[v].profile.name };
+  });
+  expect(r.name).toBe("Bob");
+  expect(r.weight).toEqual([]);                                                          // body private: shown empty
+  expect(r.exercises).toEqual({});
+  await page.evaluate(() => { const g = document.querySelector('[data-testid="goal-setup"]'); if (g) g.style.display = "none"; });
+  await page.getByTestId("person-tabs").getByRole("button", { name: "Bob" }).dispatchEvent("click");
+  for (const sec of ["My Body", "My Exercise"]) { await page.getByRole("button", { name: sec, exact: true }).first().dispatchEvent("click"); await page.waitForTimeout(300); await expect(page.getByText("Something went wrong in this section")).toHaveCount(0); }
+  expect(errs).toEqual([]);
 });
