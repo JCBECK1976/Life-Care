@@ -60,6 +60,8 @@ jobs:
             echo "VERTEX_REGION=${{ vars.VERTEX_REGION || 'europe-west1' }}"
             echo "VERTEX_MODEL=${{ vars.VERTEX_MODEL || 'claude-sonnet-4-6' }}"
             echo "ENFORCE_APP_CHECK=${{ vars.ENFORCE_APP_CHECK || 'false' }}"
+            echo "APPLE_IAP_KEY_ID=${{ vars.APPLE_IAP_KEY_ID || '' }}"
+            echo "APPLE_IAP_ISSUER_ID=${{ vars.APPLE_IAP_ISSUER_ID || '' }}"
           } > functions/.env.life-care-app-64d04
           cat functions/.env.life-care-app-64d04
       - name: Deploy

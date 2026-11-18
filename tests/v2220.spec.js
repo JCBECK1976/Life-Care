@@ -122,7 +122,7 @@ test("My Plan as Bronze: collapsed by default; four plans compared, Bronze highl
   await expect(page.getByTestId("plan-topup")).toHaveCount(0);                      // Bronze can't buy Energy
   await t.getByTestId("plan-col-gold").getByRole("button").click();
   await page.getByTestId("plan-upgrade").click();
-  await expect(page.getByTestId("plan-msg")).toContainText("bought in the Lifecare Companion app for Android");   // no Stripe, no web purchase
+  await expect(page.getByTestId("plan-msg")).toContainText("bought in the Lifecare Companion app (Google Play on Android, the App Store on iPhone)");   // no Stripe, no web purchase
 });
 
 test("My Plan as Silver (Play): renewal date, Energy %, top-up offered, Manage opens Google Play's subscription page", async ({ page }) => {

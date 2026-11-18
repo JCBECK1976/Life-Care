@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.28.1 · 18 November 2026
+> Last updated: v2.29.0 · 18 November 2026
 
 ---
 
@@ -537,6 +537,7 @@ Tap **Help ?** at the top right of the screen, next to the Settings gear. On **B
 Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
 - **🎨 My Colour Theme** — Blue, Purple, Green, Teal, Rose, Amber, Indigo or Slate. Changes your highlighted tabs, info boxes and accents. Each person has their own colour.
 - **💳 My Plan** (being tested on Build) — under the colour theme. Tap it to open: see below.
+- **📱 iPhone app** (from v2.29.0, through TestFlight once it's set up): the same app. Sign in with **Apple** or **Google**; the email sign-in link works in the web app. Steps come from **Apple Health** (Connect my steps: the Health app → your picture → Apps → Lifecare Companion → Steps). Plans and top-ups are bought through the **App Store** and managed in your iPhone's subscriptions.
 - **👟 Connect my steps** (Android app, being tested on Build; Silver and up) — reads only your **daily step total** (and, if you tick it, daily active calories) from **Health Connect**, for today and the last 7 days, each time you open the app. On the shared account it first asks **whose steps are on this phone** (JC or Becks) — saved on that phone, changeable any time. **Disconnect** stops it; tick "also delete the stored daily totals" to remove what it stored. If steps don't appear: on Android 13 or earlier install Health Connect from Google Play; with Samsung Health open **Samsung Health → Settings → Health Connect** and allow Steps. Steps make your calorie goal follow your real activity ("How this is calculated" shows where the steps came from).
 - **📱 Google Health — calories burned** — connects your own Google account so the app can read your **daily total calories burned** for this week (Sunday–Saturday). Only the daily totals are saved; the Google sign-in stays on this device (connect again on each device, and after about an hour). The status line says exactly what happened: connected or not, when it last synced and how many days were read, or why it failed (e.g. "expired — reconnect"). **🔄 Sync this week's calories** reads them; **⏹ Disconnect on this device** forgets the sign-in. For the app owner: a switch per person to use the calculated calorie target (off by default). Being set up: needs the Google Cloud steps first (plan J10).
 - **🍎 Apple Health** (iOS) — coming soon.

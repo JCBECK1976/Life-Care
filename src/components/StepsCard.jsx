@@ -14,13 +14,17 @@ var small = { fontSize: 12, color: "#475569", lineHeight: 1.5 };
 function Guide(props) {
   return (<div data-testid="steps-guide" style={{ marginTop: 10, padding: 10, borderRadius: 8, background: "#eff6ff", border: "1px solid #bfdbfe", fontSize: 12, color: "#0f172a", lineHeight: 1.55 }}>
     {props.reason === "web" && <div>Steps come from your phone. Open <b>Lifecare Companion on your Android phone</b> (from Google Play) and connect there. On the web, use Google Health below.</div>}
-    {(props.reason === "not-installed" || props.reason === "update") && <div>
+    {!props.ios && (props.reason === "not-installed" || props.reason === "update") && <div>
       <div><b>Health Connect {props.reason === "update" ? "needs an update" : "isn't on this phone yet"}.</b> On Android 14 and later it's built in (Settings → Security and privacy → Privacy → Health Connect). On Android 13 and earlier, install it from Google Play:</div>
       <a data-testid="hc-play-link" href={HC_PLAY_URL} target="_blank" rel="noopener noreferrer" style={Object.assign({}, btn, { display: "inline-flex", alignItems: "center", textDecoration: "none", marginTop: 6 })}>Get Health Connect on Google Play</a>
     </div>}
-    {props.reason === "denied" && <div><b>Steps weren't allowed.</b> Open Health Connect → App permissions → Lifecare Companion → turn on <b>Steps</b>{props.calories ? " (and Active calories burned)" : ""}.</div>}
-    <div style={{ marginTop: 8 }}><b>Using a Samsung phone or watch?</b> Samsung Health has to share with Health Connect: open <b>Samsung Health → Settings → Health Connect</b> and allow <b>Steps</b>. Google Fit and most watches do the same from their own settings.</div>
-    {props.onOpenSettings && <button type="button" data-testid="hc-open-settings" style={Object.assign({}, btn, { marginTop: 8 })} onClick={props.onOpenSettings}>Open Health Connect settings</button>}
+    {props.ios && <div data-testid="steps-guide-ios">
+      {props.reason === "unsupported" ? <div><b>Apple Health isn't available on this device</b> (iPads don't have it). Use the app on your iPhone.</div>
+        : <div><b>{props.reason === "denied" ? "Steps weren't allowed." : "Steps not showing?"}</b> Open the <b>Health</b> app → tap your picture → <b>Apps</b> → <b>Lifecare Companion</b> → turn on <b>Steps</b>{props.calories ? " (and Active Energy)" : ""}. Apple Watch steps arrive once your watch has synced with the iPhone.</div>}
+    </div>}
+    {!props.ios && props.reason === "denied" && <div><b>Steps weren't allowed.</b> Open Health Connect → App permissions → Lifecare Companion → turn on <b>Steps</b>{props.calories ? " (and Active calories burned)" : ""}.</div>}
+    {!props.ios && <div style={{ marginTop: 8 }}><b>Using a Samsung phone or watch?</b> Samsung Health has to share with Health Connect: open <b>Samsung Health → Settings → Health Connect</b> and allow <b>Steps</b>. Google Fit and most watches do the same from their own settings.</div>}
+    {props.onOpenSettings && !props.ios && <button type="button" data-testid="hc-open-settings" style={Object.assign({}, btn, { marginTop: 8 })} onClick={props.onOpenSettings}>Open Health Connect settings</button>}
   </div>);
 }
 
@@ -96,7 +100,7 @@ export default function StepsCard(props) {
         </div>
       : <button type="button" data-testid="steps-connect" disabled={busy || (people.length > 1 && !st.person)} style={Object.assign({}, btnP, { marginTop: 8 })} onClick={doConnect}>{busy ? "Connecting…" : "Connect my steps"}</button>}
     {!connected && people.length > 1 && !st.person && <div style={{ fontSize: 11, color: "#475569", marginTop: 4 }}>Choose whose steps first.</div>}
-    {guide && <Guide reason={guide} calories={st.activeCalories} onOpenSettings={guide === "denied" || guide === "update" ? openSettings : null} />}
+    {guide && <Guide reason={guide} ios={nativeSource() === "healthKit"} calories={st.activeCalories} onOpenSettings={guide === "denied" || guide === "update" ? openSettings : null} />}
     {!guide && !connected && <button type="button" style={{ background: "none", border: "none", color: "#1d4ed8", fontSize: 12, padding: "6px 0", cursor: "pointer" }} onClick={function() { setGuide(nativeSource() === "none" ? "web" : "not-installed"); }}>Steps not showing? How to fix it</button>}
     {msg && <div role="status" aria-live="polite" data-testid="steps-msg" style={{ marginTop: 8, fontSize: 12, color: "#0f172a" }}>{msg}</div>}
   </div>);

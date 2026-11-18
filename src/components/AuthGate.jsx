@@ -80,10 +80,12 @@ function MoreSignIn({ setMsg }) {
   if (sent) return <p data-testid="email-link-sent" role="status" style={{ maxWidth: 320 }}>Check your inbox: we sent a sign-in link to <b>{email}</b>. Open it on this device.</p>;
   return (<div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, maxWidth: 320, width: "100%" }}>
     <button style={alt} data-testid="apple-sign-in" onClick={() => appleSignIn().catch((e) => { if (!/cancel|closed/i.test(String(e.code || e.message))) setMsg("Apple sign-in didn't work: " + (e.message || e)); })}> Continue with Apple</button>
-    <form onSubmit={async (e) => { e.preventDefault(); setMsg(""); try { await sendEmailLink(email.trim()); setSent(true); } catch (er) { setMsg("Couldn't send the link: " + (er.message || er)); } }} style={{ display: "flex", gap: 6, width: "100%", marginTop: 10 }}>
+    {/* v2.29.0: an email sign-in link opens in the phone's browser, not in the app (no universal links without our own
+        domain), so the app offers Google and Apple; the email link stays for the web app. */}
+    {!isNative() && <form onSubmit={async (e) => { e.preventDefault(); setMsg(""); try { await sendEmailLink(email.trim()); setSent(true); } catch (er) { setMsg("Couldn't send the link: " + (er.message || er)); } }} style={{ display: "flex", gap: 6, width: "100%", marginTop: 10 }}>
       <input type="email" required aria-label="Your email address" placeholder="Your email address" value={email} onChange={(e) => setEmail(e.target.value)} style={{ flex: 1, minWidth: 0, padding: "10px 12px", fontSize: 15, borderRadius: 10, border: "1px solid #cbd5e1" }} />
       <button type="submit" data-testid="email-link-send" style={{ ...btn, marginTop: 0, padding: "10px 14px" }}>Email me a link</button>
-    </form>
+    </form>}
     <p style={{ fontSize: 12, color: "#475569", marginTop: 8 }}>On a computer? If Google asks for your phone, choose <b>Try another way</b>.</p>
   </div>);
 }

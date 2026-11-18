@@ -2,6 +2,8 @@
 // Everything here is a no-op on the web. Plugins are loaded only inside the native app.
 import { Capacitor } from "@capacitor/core";
 
+/** v2.29.0: "ios" | "android" | "web" */
+export function platform() { try { return Capacitor.getPlatform(); } catch (e) { return "web"; } }
 export function isNative() { try { return Capacitor.isNativePlatform(); } catch (e) { return false; } }
 
 // Google blocks its sign-in page inside app WebViews, so the native app signs in with Android's own Google account picker
@@ -9,7 +11,8 @@ export function isNative() { try { return Capacitor.isNativePlatform(); } catch 
 var ready = null;
 async function social() {
   const { SocialLogin } = await import("@capgo/capacitor-social-login");
-  if (!ready) ready = SocialLogin.initialize({ google: { webClientId: import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID, mode: "online" } });
+  /* v2.29.0: on iPhone Google also needs the iOS client ID (J15); Apple sign-in is native there (no extra settings). */
+  if (!ready) ready = SocialLogin.initialize(Object.assign({ google: { webClientId: import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID, iOSClientId: import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID || undefined, mode: "online" } }, platform() === "ios" ? { apple: {} } : {}));
   await ready;
   return SocialLogin;
 }

@@ -1,0 +1,71 @@
+# v2.29.0: build, sign and upload the iPhone app to TestFlight — MANUAL ONLY, after J15 (Apple Developer account).
+# Release → the real data ("data"), with the same guard as Android. Signing is automatic, using an App Store Connect API
+# key; nothing secret is in the repo. Secrets (repository → Settings → Secrets → Actions), set in J15:
+#   APPLE_TEAM_ID            the 10-character Team ID
+#   ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY   the App Store Connect API key (role: App Manager)
+#   GOOGLE_SERVICE_INFO_PLIST                   Firebase → the iOS app → GoogleService-Info.plist (whole file)
+# Variables: GOOGLE_WEB_CLIENT_ID (already set for Android), GOOGLE_IOS_CLIENT_ID, GOOGLE_IOS_REVERSED_CLIENT_ID.
+name: iOS → TestFlight (manual)
+on:
+  workflow_dispatch:
+    inputs:
+      ref: { description: "Branch or tag to build (normally main)", required: true, default: "main" }
+permissions: { contents: read }
+jobs:
+  testflight:
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+      GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+    steps:
+      - uses: actions/checkout@v7
+        with: { ref: "${{ inputs.ref }}" }
+      - uses: actions/setup-node@v7
+        with: { node-version: 22, cache: npm }
+      - name: Check the secrets are set (J15)
+        run: |
+          for n in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY GOOGLE_SERVICE_INFO_PLIST; do [ -n "${!n}" ] || missing="$missing $n"; done
+          [ -z "$missing" ] || { echo "::error::Missing secrets:$missing (GO_LIVE_CHECKLIST, J15)"; exit 1; }
+      - run: npm ci --no-audit --no-fund --loglevel=error
+      - name: Web build for the release (prod, data) + guard
+        env:
+          VITE_GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          VITE_GOOGLE_IOS_CLIENT_ID: ${{ vars.GOOGLE_IOS_CLIENT_ID }}
+        run: bash scripts/build-native.sh release ios
+      - name: Firebase config + the API key (temporary files)
+        run: |
+          umask 077
+          printf '%s' "$GOOGLE_SERVICE_INFO_PLIST" > ios/App/App/GoogleService-Info.plist
+          printf '%s' "$ASC_PRIVATE_KEY" > "$RUNNER_TEMP/asc.p8"
+      - name: Archive (signed automatically with the API key)
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/asc.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CURRENT_PROJECT_VERSION=$((1000 + ${{ github.run_number }})) \
+            GOOGLE_IOS_REVERSED_CLIENT_ID="${{ vars.GOOGLE_IOS_REVERSED_CLIENT_ID }}" archive | tail -40
+      - name: Upload to TestFlight
+        run: |
+          cat > "$RUNNER_TEMP/export.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+          </dict></plist>
+          PLIST
+          set -o pipefail
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/export.plist" \
+            -exportPath "$RUNNER_TEMP/export" -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/asc.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" | tail -20
+          echo "✓ uploaded — it appears in App Store Connect → TestFlight after Apple's processing (5–30 minutes)"
+      - name: Remove the key and the config
+        if: always()
+        run: rm -f "$RUNNER_TEMP/asc.p8" ios/App/App/GoogleService-Info.plist

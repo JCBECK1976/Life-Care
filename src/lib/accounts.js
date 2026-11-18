@@ -108,8 +108,9 @@ export async function completeEmailLink(askEmail) {
 }
 /** Apple: web popup; in the native app, the system Apple sign-in (iOS) via the social-login plugin. */
 export async function appleSignIn() {
-  if (isNative()) {
+  if (isNative()) {   // v2.29.0: the system Apple sign-in on iPhone (required by Apple when Google sign-in is offered)
     var SL = (await import("@capgo/capacitor-social-login")).SocialLogin;
+    try { await SL.initialize({ apple: {} }); } catch (e) { /* already set up */ }
     var raw = Math.random().toString(36).slice(2) + Date.now().toString(36);
     var r = await SL.login({ provider: "apple", options: { scopes: ["email", "name"], nonce: raw } });
     var tok = r && r.result && (r.result.idToken || (r.result.accessToken && r.result.accessToken.token));

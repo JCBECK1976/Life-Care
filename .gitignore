@@ -35,3 +35,6 @@ keystore.properties
 key.properties
 play-service-account*.json
 google-services.json
+
+# v2.29.0: Firebase iOS config (from Firebase, J15) — kept out of the repo; CI writes it from a secret
+GoogleService-Info.plist

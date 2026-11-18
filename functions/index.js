@@ -4,6 +4,7 @@ import { onCall, onRequest, HttpsError as FnError } from "firebase-functions/v2/
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onMessagePublished } from "firebase-functions/v2/pubsub";
 import { playApi, playVerify as playVerifyCore, playNotify as playNotifyCore } from "./src/play.js";
+import { appleApi, appleVerify as appleVerifyCore, appleNotify as appleNotifyCore } from "./src/apple.js";
 import { retention } from "./src/retention.js";
 import { defineSecret } from "firebase-functions/params";
 import admin from "firebase-admin";
@@ -48,6 +49,17 @@ export const playVerify = onCall(opts, wrap((c) => playVerifyCore(c, { db: db(),
 export const playNotify = onMessagePublished({ ...base, topic: "play-rtdn" }, async (ev) => {
   const r = await playNotifyCore(ev.data.message, { db: db(), play });
   console.log("playNotify: " + r);   // outcome only, no tokens
+});
+
+// v2.29.0 PAY1 (iPhone): StoreKit 2, verified on the server with the App Store Server API (key ID + issuer from the
+// environment's variables; the private key from Secret Manager — APPLE_IAP_PRIVATE_KEY, J15). The app sends only the
+// transaction ID. App Store Server Notifications v2 → appleNotify (the URL is entered in App Store Connect, J15).
+const APPLE_KEY = defineSecret("APPLE_IAP_PRIVATE_KEY");
+export const appleVerify = onCall({ ...opts, secrets: [APPLE_KEY] }, wrap((c) => appleVerifyCore(c, { db: db(), apple: appleApi() })));
+export const appleNotify = onRequest({ ...base }, async (req, res) => {
+  const r = await appleNotifyCore(req.body, { db: db() });
+  console.log("appleNotify: " + r);   // outcome only
+  res.status(r === "bad signature" ? 400 : 200).send(r);
 });
 
 // v2.26.0: the monthly Energy allowance for admin-granted plans (daily; credits once per month).
