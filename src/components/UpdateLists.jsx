@@ -9,6 +9,7 @@ import { GENERIC_LABEL } from "../constants/genericFoods.js";
 import { planAllows } from "../lib/myPlan.js";
 import { ratingsShown, ratingLabel, NEUTRAL } from "../lib/rating.js";
 import { GatePrompt } from "./PlanGate.jsx";
+import { SheetSelect } from "./BottomSheet.jsx";
 
 // v2.19.0 Update Lists (docs/design/EATING_LISTS.md §3): Single item · Build a meal · My own.
 // Everything is per portion; all three end with Save → D11 rating (per portion) → the chosen category lists, optionally
@@ -330,9 +331,7 @@ export function MealBuilder(props) {
         {c.check && <div style={Object.assign({}, small, { marginTop: 2 })}><span style={tag}>{c.check}</span>{c.hint || "check the amount — values are per 100 g"}</div>}
         <div style={{ display: "grid", gridTemplateColumns: "minmax(40px, 52px) minmax(80px, 110px) auto minmax(30px, 1fr)", alignItems: "center", columnGap: 12, marginTop: 6 }}>
           <input aria-label={"Amount of " + c.name} type="number" inputMode="decimal" value={c.amount} onChange={function(e) { upd(i, { amount: e.target.value }); }} style={Object.assign({}, inp, { width: "100%", minWidth: 0, padding: "6px 6px", fontSize: 12 })} />
-          <select aria-label={"Unit for " + c.name} value={c.unit} onChange={function(e) { upd(i, { unit: e.target.value }); }} style={Object.assign({}, inp, { width: "100%", minWidth: 0, padding: "6px 2px", fontSize: 12 })}>
-            <option value="portion">portions</option>{canUseGrams(c) && <option value="g">grams</option>}
-          </select>
+          <SheetSelect label={"Unit for " + c.name} title={"Unit for " + c.name} testId="unit-choice" value={c.unit} options={[{ value: "portion", label: "portions" }].concat(canUseGrams(c) ? [{ value: "g", label: "grams" }] : [])} onChange={function(v) { upd(i, { unit: v }); }} style={{ width: "100%", padding: "6px 6px", fontSize: 12 }} />
           <span data-testid="meal-comp-kcal" style={{ fontSize: 12, color: "#334155", whiteSpace: "nowrap" }}>{n ? n0(n.kcal) + " kcal" : "—"}</span>
           <button type="button" aria-label={"Remove " + c.name} style={Object.assign({}, btn, { padding: "4px 8px", justifySelf: "end" })} onClick={function() { setComps(comps.filter(function(x, j) { return j !== i; })); }}>✕</button>
         </div>

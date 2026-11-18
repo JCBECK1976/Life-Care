@@ -4,7 +4,7 @@ import { HRT_TYPES, HRT_ROUTES, HRT_ACTIONS, ymd, niceDate, hrtCurrent, hrtLine 
 // v2.30.0 (Part 5b, flag usePilotFeatures): the HRT log — a RECORD ONLY. Never sent to the AI (the GP summary lists it
 // as recorded, without AI), and every AI request carries the rule that the Companion never advises about HRT.
 var card = { background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 };
-var inp = { display: "block", width: "100%", boxSizing: "border-box", marginTop: 4, padding: "8px 10px", minHeight: 40, border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", background: "#fff" };
+var inp = { display: "block", width: "100%", boxSizing: "border-box", marginTop: 4, padding: "8px 10px", minHeight: 44, border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", background: "#fff" };
 var lab = { display: "block", fontSize: 12, fontWeight: 600, color: "#334155", marginTop: 8 };
 var btnMain = { width: "100%", padding: 12, minHeight: 48, marginTop: 12, borderRadius: 8, border: "none", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" };
 var EMPTY = function() { return { d: ymd(), action: "started", product: "", type: "", route: "", dose: "", notes: "" }; };
@@ -64,7 +64,7 @@ export default function HrtLog({ p, data, activeTab, saveData }) {
       <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>History</div>
       {events.map(function(e) { return (<div key={e.id + e.d + e.action} data-testid="hrt-event" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, padding: "8px 0", borderBottom: "1px solid #f1f5f9", fontSize: 12 }}>
         <div><span style={{ fontWeight: 600, color: "#475569" }}>{niceDate(e.d)}</span> <b>{HRT_ACTIONS[e.action]}</b>{e.product ? ": " + hrtLine(e) : ""}{e.notes ? <div style={{ color: "#475569" }}>{e.notes}</div> : null}</div>
-        <button type="button" aria-label={"Delete " + HRT_ACTIONS[e.action] + " " + (e.product || "") + " " + niceDate(e.d)} data-testid="hrt-del" onClick={function() { if (confirm("Delete this HRT entry?")) del(e); }} style={{ minHeight: 36, minWidth: 44, padding: "4px 10px", borderRadius: 6, border: "1px solid #fecaca", background: "#fef2f2", color: "#b91c1c", fontSize: 11, cursor: "pointer", flexShrink: 0 }}>🗑 Delete</button></div>); })}
+        <button type="button" aria-label={"Delete " + HRT_ACTIONS[e.action] + " " + (e.product || "") + " " + niceDate(e.d)} data-testid="hrt-del" onClick={function() { if (confirm("Delete this HRT entry?")) del(e); }} style={{ minHeight: 44, minWidth: 44, padding: "4px 10px", borderRadius: 6, border: "1px solid #fecaca", background: "#fef2f2", color: "#b91c1c", fontSize: 11, cursor: "pointer", flexShrink: 0 }}>🗑 Delete</button></div>); })}
     </div>}
   </div>);
 }

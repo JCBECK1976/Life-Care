@@ -41,3 +41,7 @@ export const btnMuted = { padding: "4px 8px", background: "#f1f5f9", border: "1p
 export const btnClose = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 3 };
 
 export const btnClear = { padding: "4px 10px", background: "#dc2626", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 3 };
+
+/* v2.30.1 (FINAL DROP Part 6): small action buttons (Edit, Del, Stop, Open, Progress, Log, Snap …) keep 2 px clear
+   on each side (neighbours ≥ 8 px apart, so one isn't tapped for the other); on touch screens they are 44 px tall (index.html). */
+[btnAction, btnEdit, btnStop, btnDelete, btnMuted, btnClose, btnOpen, btnProgress, btnLog, btnFilledOn, btnPortion].forEach(function(b) { Object.assign(b, { margin: "0 2px" }); });

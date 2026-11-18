@@ -1,5 +1,8 @@
-import { installNativeBackButton } from "./lib/native.js";
+import { installNativeBackButton, followPhoneTextSize } from "./lib/native.js";
 import { installFieldHelpers } from "./lib/a11y.js";
+import { installUndo } from "./lib/undo.js";
+import { installTapGuard } from "./lib/tapGuard.js";
+import UndoToast from "./components/UndoToast.jsx";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import Dashboard from "./App.jsx";
@@ -15,11 +18,14 @@ import { captureInvite } from "./lib/accounts.js";
 
 installFieldHelpers();   // v2.20.0: numeric keypad, select-all on focus, haptic tap
 installNativeBackButton();   // v2.21.0: Android Back closes dialogs
+installUndo();   // v2.30.1: Undo after deletes of a person's records
+installTapGuard();   // v2.30.1: one tap = one save/add/delete
+followPhoneTextSize();   // v2.30.1: the phone's text size (up to 200%), in the Android and iPhone apps
 /* v2.27.0: read the go-live switches first (max 3 s), then start */
 loadRemoteFlags(firebase.database()).then(function() {
   captureInvite();   // v2.25.0: ?join= / ?pilot= links survive the sign-in
   startPlan();
-  ReactDOM.createRoot(document.getElementById("root")).render(<ErrorBoundary name="App"><AuthGate><Dashboard /><PlanGateHost /><PreviewBar /><InviteScreen /><Onboarding /></AuthGate></ErrorBoundary>);
+  ReactDOM.createRoot(document.getElementById("root")).render(<ErrorBoundary name="App"><AuthGate><Dashboard /><PlanGateHost /><PreviewBar /><UndoToast /><InviteScreen /><Onboarding /></AuthGate></ErrorBoundary>);
 });
 
 // Installable app: register the network-only service worker (builds only, never the dev server).

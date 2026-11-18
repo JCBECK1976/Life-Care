@@ -1,6 +1,7 @@
 // Lifted verbatim from the legacy single-file index.html (v1.374.2).
 // Only changes: these imports replace CDN globals, and `export default`
 // replaces the ReactDOM render call (now in main.jsx).
+import { takePending, noteSave, offerUndo, undoLabel } from "./lib/undo.js";
 import React from "react";
 import { bodyNotesCtx } from "./lib/bodyNotes.js";
 import { allowedBy, consentActive, loadConsent, needsConsent } from "./lib/consent.js";
@@ -53,7 +54,7 @@ import FeedbackForm from "./components/FeedbackForm.jsx";
 import { APP_VERSION } from "./constants/version.js";
 import EnvBadge from "./components/EnvBadge.jsx";
 import { loadDebugMode, redact, summariseReply } from "./lib/debugLog.js";
-import LoadingScreen from "./components/LoadingScreen.jsx";
+import AppSkeleton from "./components/Skeleton.jsx";
 import PersonTabs, { peopleOf, personName, hiddenTabs } from "./components/PersonTabs.jsx";
 import { ALLOW_ADD_PERSON } from "./constants/features.js";
 import { PHASE_LABEL, dayPhase, readFeedback, weekPhase } from "./lib/eatPhase.js";
@@ -749,7 +750,12 @@ function Dashboard() {
   const childItemsList = childItems(weekChildren, parentLookupNow(), limitsForActive);
   const pickMeal = (dk, id) => { const n = { ...meals, [dk]: id }; setMeals(n); saveMeals(n); setEditDay(null); };
   const clearMeal = dk => { const n = { ...meals }; delete n[dk]; setMeals(n); saveMeals(n); };
-  const saveData = async (nd) => { setData(nd); await sSet("dashboard:data", JSON.stringify(nd)); };
+  const saveData = async (nd) => {
+    /* v2.30.1: after an accepted Delete/Remove/Stop confirmation, offer Undo (restores the records as they were) */
+    const armed = takePending(), prev = data; noteSave();
+    setData(nd); await sSet("dashboard:data", JSON.stringify(nd));
+    if (armed && prev) offerUndo(undoLabel(armed), () => saveData(prev));
+  };
   window._lcData = data; window._lcSaveData = saveData;   /* v2.23.0: the steps sync uses the latest */
   useStepsSync(data, saveData);   /* v2.23.0 N6: daily steps from Health Connect on open / resume (connected phones only) */
 
@@ -1768,7 +1774,7 @@ function Dashboard() {
   // ─── ADMIN IMPORT ───
   const doImport = async () => { try { const parsed = JSON.parse(importText); const merged = JSON.parse(JSON.stringify(data)); if (parsed.config) merged.config = { ...merged.config, ...parsed.config }; if (parsed.jc) { if (parsed.jc.body) merged.jc = { ...merged.jc, body: { ...merged.jc.body, ...parsed.jc.body } }; if (parsed.jc.exercises) merged.jc = { ...merged.jc, exercises: parsed.jc.exercises }; if (parsed.jc.measurements) merged.jc = { ...merged.jc, measurements: { ...merged.jc.measurements, ...parsed.jc.measurements } }; } if (parsed.becks) { if (parsed.becks.body) merged.becks = { ...merged.becks, body: { ...merged.becks.body, ...parsed.becks.body } }; if (parsed.becks.exercises) merged.becks = { ...merged.becks, exercises: parsed.becks.exercises }; if (parsed.becks.measurements) merged.becks = { ...merged.becks, measurements: { ...merged.becks.measurements, ...parsed.becks.measurements } }; } await saveData(merged); setImportMsg("✓ Data updated"); setImportText(""); setTimeout(() => setImportMsg(""), 3000); } catch (e) { setImportMsg("✗ Invalid JSON: " + e.message); } };
 
-  if (loading || !data) return <LoadingScreen />;
+  if (loading || !data) return <AppSkeleton />;   /* v2.30.1: a skeleton of the screen while the data loads */
 
   // Dev/test only (removed from builds): the selected person's loaded state, so tests can check
   // that nothing from a previously selected person is shown (tests/person-race.spec.js).

@@ -21,7 +21,7 @@ export function aimLabel(a) { return a && a.kcal > 0 ? "Your goal surplus" : "Yo
 /** The table body for one day (also used for each earlier day). */
 export function DayRows(props) {
   var t = props.t, a = t.aim;
-  return (<table data-testid={props.testid || "pa-table"} style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", color: "#0f172a" }}>
+  return (<div style={{ overflowX: "auto", maxWidth: "100%" }}><table data-testid={props.testid || "pa-table"} style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", color: "#0f172a" }}>
     <thead><tr><td style={Object.assign({}, th, { borderTop: "none" })}></td><th style={Object.assign({}, td, { borderTop: "none", color: "#475569", fontSize: 11 })}>Planned</th><th style={Object.assign({}, td, { borderTop: "none", color: "#475569", fontSize: 11 })}>Actual</th></tr></thead>
     <tbody>
       <tr data-testid="pa-burn"><th scope="row" style={Object.assign({}, th, { fontWeight: 800 })}>Body burn <span style={{ color: "#475569", fontSize: 10, fontWeight: 400 }}>(BMR + daily living)</span></th><td style={Object.assign({}, td, { fontWeight: 800 })}>{n(t.burn)}</td><td style={Object.assign({}, td, { fontWeight: 800 })}>{n(t.burn)}</td></tr>
@@ -31,7 +31,7 @@ export function DayRows(props) {
       <tr data-testid="pa-eating"><th scope="row" style={th}>Eating</th><td style={td}>{n(t.eating.planned)}</td><td style={td}>{n(t.eating.actual)}</td></tr>
       <tr data-testid="pa-ontrack"><th scope="row" style={th}>On track</th><td style={td}><OnTrackCell o={t.onTrackPlanned} testid="pa-ontrack-planned" /></td><td style={td}><OnTrackCell o={t.onTrack} testid="pa-ontrack-actual" /></td></tr>
     </tbody>
-  </table>);
+  </table></div>);
 }
 
 export default function PlanActual(props) {

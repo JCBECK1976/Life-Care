@@ -71,8 +71,8 @@ export default function ShopSection({ ctx }) {
           <div style={{ background: accentLight, borderRadius: 8, padding: 10, border: "1px solid #cbd5e1", marginBottom: 14 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>📷 Food Checker</div>
               {!foodCheckerPreview ? (<div>
-                <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-                  <input value={foodCheckerText} onChange={function(e) { setFoodCheckerText(e.target.value); }} aria-label="Food description" placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ flex: 1, padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11 }} />
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+                  <input value={foodCheckerText} onChange={function(e) { setFoodCheckerText(e.target.value); }} aria-label="Food description" placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ flex: "1 1 10em", minWidth: 0, padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11 }} />
                   <label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center" }}>
                     📷
                     <input type="file" data-share="food" accept="image/*" capture="environment" onChange={async function(e) {
@@ -254,8 +254,8 @@ export default function ShopSection({ ctx }) {
             {generatedShop && <button onClick={function() { setGeneratedShop(null); setFormMsg("Shopping list cleared"); setTimeout(function(){setFormMsg("");}, 2000); }} style={{...btnClear, padding: "8px 16px", fontSize: 11, borderRadius: 8}}>Clear List</button>}
           </div>)}
           {/* Add item input */}
-          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-            <input id="shopAddInput" placeholder="Add item to shopping list..." style={{ flex: 1, padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11, background: "#fff" }} onKeyDown={function(e) { if (e.key === "Enter") { document.getElementById("shopAddBtn").click(); } }} />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+            <input id="shopAddInput" placeholder="Add item to shopping list..." style={{ flex: "1 1 10em", minWidth: 0, padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11, background: "#fff" }} onKeyDown={function(e) { if (e.key === "Enter") { document.getElementById("shopAddBtn").click(); } }} />
             <button id="shopAddBtn" onClick={function() { var input = document.getElementById("shopAddInput"); var item = input.value.trim(); if (!item) return; if (generatedShop && Array.isArray(generatedShop)) { var isZoned = generatedShop.length > 0 && typeof generatedShop[0] === "object" && generatedShop[0].zone; if (isZoned) { var bestZone = "Added Items"; setGeneratedShop(function(prev) { var found = false; var nz = prev.map(function(z) { if (z.zone === bestZone) { found = true; return { zone: z.zone, items: [].concat(z.items, [item]) }; } return z; }); if (!found) nz.push({ zone: bestZone, items: [item] }); return nz; }); } else { setGeneratedShop(function(prev) { return [].concat(prev, [item]); }); } } else { var baseItems = shopList.map(function(pair) { return pair[0] + (pair[1] > 1 ? " ×" + pair[1] : ""); }); setGeneratedShop([{ zone: "From Meal Plan", items: baseItems }, { zone: "Added Items", items: [item] }]); } input.value = ""; setFormMsg("Added ✓"); setTimeout(function(){setFormMsg("");}, 2000); }} style={{...btnMuted, fontSize: 11}}>+ Add</button>
           </div>
           </div>{/* end Shopping List grey sub-container */}

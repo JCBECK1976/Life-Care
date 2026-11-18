@@ -1606,7 +1606,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           {/* Day content */}
           {eatDay !== "week" && <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyDayOpen(!copyDayOpen); setCopyDayTargets({}); }} style={Object.assign({},copyDayOpen?btnClose:btnAction)}>{copyDayOpen ? "✕ Close" : "📋 Copy Day"}</button><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);}} style={eatDayEyeOpen ? btnFilledOn : btnProgress}>{eatDayEyeOpen ? "✕ Progress" : "👁 Progress"}</button></div></div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 8, display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "space-between", alignItems: "center" }}><span>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyDayOpen(!copyDayOpen); setCopyDayTargets({}); }} style={Object.assign({},copyDayOpen?btnClose:btnAction)}>{copyDayOpen ? "✕ Close" : "📋 Copy Day"}</button><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);}} style={eatDayEyeOpen ? btnFilledOn : btnProgress}>{eatDayEyeOpen ? "✕ Progress" : "👁 Progress"}</button></div></div>
 
             {copyDayOpen && (<div style={{ background: accentLight, borderRadius: 8, padding: 10, marginBottom: 10, border: "1px solid " + accentBorder }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Copy {eatDay.charAt(0).toUpperCase() + eatDay.slice(1)}'s selections to:</div>
@@ -1841,8 +1841,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var _ragWarn = checkRagFrequency(getMeal(eatDay, slotKey), eatDay, slotKey);
                   var _slotItem = allItemsLookup[getMeal(eatDay, slotKey)];
                   var _ragChg = _slotItem && _slotItem._ragChanged && !_slotItem._ragChangedSeen && ratingsShown();
-                  return (<div key={"b"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
-                    <div style={{ flex: 1 }}>
+                  return (<div key={"b"+idx} style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 4, alignItems: "center" }}>
+                    <div style={{ flex: "1 1 5em", minWidth: 0 }}>
                       <MealSelect snap={getSnap(eatDay, slotKey)} items={dispBfast} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("breakfast", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
                     </div>
                     {_ragChg && <span onClick={function(){alert("Rating changed from " + (_slotItem.prevRating || "?") + " to " + _slotItem.rating + (_slotItem.ragReason ? ".\n\nReason: " + _slotItem.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem.prevRating||"?") + " → " + _slotItem.rating}>🔄</span>}
@@ -1916,8 +1916,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var _ragWarn = checkRagFrequency(getMeal(eatDay, slotKey), eatDay, slotKey);
                   var _slotItem2 = allItemsLookup[getMeal(eatDay, slotKey)];
                   var _ragChg2 = _slotItem2 && _slotItem2._ragChanged && !_slotItem2._ragChangedSeen && ratingsShown();
-                  return (<div key={"l"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
-                    <div style={{ flex: 1 }}>
+                  return (<div key={"l"+idx} style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 4, alignItems: "center" }}>
+                    <div style={{ flex: "1 1 5em", minWidth: 0 }}>
                       <MealSelect snap={getSnap(eatDay, slotKey)} items={dispLunch} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("lunch", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
                     </div>
                     {_ragChg2 && <span onClick={function(){alert("Rating changed from " + (_slotItem2.prevRating || "?") + " to " + _slotItem2.rating + (_slotItem2.ragReason ? ".\n\nReason: " + _slotItem2.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem2.prevRating||"?") + " → " + _slotItem2.rating}>🔄</span>}
@@ -1996,8 +1996,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var dpKey = "dp" + sIdx;
                   var dvKey = "dv" + sIdx;
                   return (<div key={"d"+idx}>
-                    <div style={{ display: "flex", gap: 4, marginBottom: _isPackaged ? 2 : 4, alignItems: "center" }}>
-                    <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: _isPackaged ? 2 : 4, alignItems: "center" }}>
+                    <div style={{ flex: "1 1 5em", minWidth: 0 }}>
                       <MealSelect snap={getSnap(eatDay, slotKey)} items={dispDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("dinner", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
                     </div>
                     {_ragChg3 && <span onClick={function(){alert("Rating changed from " + (_slotItem3.prevRating || "?") + " to " + _slotItem3.rating + (_slotItem3.ragReason ? ".\n\nReason: " + _slotItem3.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem3.prevRating||"?") + " → " + _slotItem3.rating}>🔄</span>}
@@ -2084,8 +2084,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {(function() {
                 var slots = []; for (var di = 1; di <= 5; di++) { if (getMeal(eatDay, "ds" + di) || di <= 1) slots.push(di); }
                 return slots.map(function(idx) {
-                  return (<div key={"ds"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
-                    <div style={{ flex: 1 }}>
+                  return (<div key={"ds"+idx} style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 4, alignItems: "center" }}>
+                    <div style={{ flex: "1 1 5em", minWidth: 0 }}>
                       <MealSelect snap={getSnap(eatDay, "ds" + idx)} items={dispDesserts} value={getMeal(eatDay, "ds" + idx) === "__empty__" ? "" : getMeal(eatDay, "ds" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("dessert", "defaults", e.target.searchText, "ds" + idx, eatDay); } else { setMeal(eatDay, "ds" + idx, e.target.value); } }} placeholder="Select dessert..." />
                     </div>
                     {snapButton("ds" + idx)}

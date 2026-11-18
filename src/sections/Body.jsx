@@ -48,7 +48,7 @@ export default function BodySection({ ctx }) {
           {showBodyForm && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Body Composition</div>
             <div style={{ marginBottom: 10 }}><label style={labelStyle}>Week</label><input type="number" value={bodyInputs.week} onChange={e => setBodyInputs(q => ({ ...q, week: e.target.value }))} style={{ ...inputStyle, width: 80 }} /></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
               {[["weight","Weight (stone)"],["bodyFat","Body Fat %"],["muscleMass","Muscle Mass"],["muscleRate","Muscle Rate %"],["skeletalMuscle","Skeletal Muscle %"],["visceralFat","Visceral Fat"],["subcutFat","Subcut Fat %"],["bmr","BMR (kcal)"],["bodyWater","Body Water %"],["boneMass","Bone Mass"],["bodyAge","Body Age"],["bmi","BMI"]].map(([k,l]) => (<div key={k}><label style={labelStyle}>{l}</label><input value={bodyInputs[k]} onChange={e => setBodyInputs(q => ({ ...q, [k]: e.target.value }))} style={inputStyle} /></div>))}
             </div>
             <div style={{ marginTop: 10 }}><label style={labelStyle}>My Notes</label><input type="text" aria-label="My Notes" placeholder="e.g. birthday week, after a long flight" value={bodyInputs.note || ""} onChange={e => setBodyInputs(q => ({ ...q, note: e.target.value }))} style={inputStyle} /></div>
@@ -91,7 +91,7 @@ export default function BodySection({ ctx }) {
                 e.target.value = "";
               }} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)", border: 0 }} /></label></div></div>
           <div style={{ background: accentLight, borderRadius: 8, padding: 12, border: "1px solid " + accentBorder }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, marginBottom: 10 }}>
             <BodyCard label="Weight" value={wtStr} rating="High" trend={wtDelta ? (wtSign === "-" ? "-" : "+") + wtDelta.split("lb")[0] + "lb" : ""} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "weight" ? null : "weight"); }} eyeOpen={bodyMetricOpen === "weight"} />
             <BodyCard label="Body Fat %" value={p.body.bodyFat?.[p.body.bodyFat.length-1]?.v} rating={isJC ? "Acceptable" : "Too High"} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "bodyFat" ? null : "bodyFat"); }} eyeOpen={bodyMetricOpen === "bodyFat"} />
             <BodyCard label="Muscle Mass" value={p.body.muscleMass?.[p.body.muscleMass.length-1]?.v} rating="Excellent" onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "muscleMass" ? null : "muscleMass"); }} eyeOpen={bodyMetricOpen === "muscleMass"} />

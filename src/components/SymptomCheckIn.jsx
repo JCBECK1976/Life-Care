@@ -43,7 +43,7 @@ export default function SymptomCheckIn({ p, data, activeTab, saveData, setFormMs
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
       <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Daily check-in</div>
       <label style={{ fontSize: 12, color: "#475569", display: "flex", alignItems: "center", gap: 6 }}>Day
-        <input type="date" data-testid="sym-date" value={d} max={today} onChange={function(e) { if (e.target.value) setD(e.target.value); }} style={{ padding: "6px 8px", minHeight: 36, border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13 }} /></label>
+        <input type="date" data-testid="sym-date" value={d} max={today} onChange={function(e) { if (e.target.value) setD(e.target.value); }} style={{ padding: "6px 8px", minHeight: 44, border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13 }} /></label>
     </div>
     <div style={{ fontSize: 12, color: "#475569", margin: "4px 0 8px" }}>How much has each one bothered you today? {existing ? "You can change today's answers." : ""}</div>
     {SYMPTOMS.map(function(sym) { var v = s[sym.k]; return (<div key={sym.k} style={{ padding: "6px 0", borderTop: "1px solid #f1f5f9" }}>
@@ -51,7 +51,7 @@ export default function SymptomCheckIn({ p, data, activeTab, saveData, setFormMs
       <div role="radiogroup" aria-labelledby={"sym-l-" + sym.k} style={{ display: "flex", gap: 6 }}>
         {SCALE.map(function(lab, val) { var on = v === val; return (<button key={val} type="button" role="radio" aria-checked={on} data-testid={"sym-" + sym.k + "-" + val}
           onClick={function() { var ns = Object.assign({}, s); if (on) delete ns[sym.k]; else ns[sym.k] = val; setS(ns); }}
-          style={{ flex: 1, minHeight: 40, padding: "4px 2px", borderRadius: 8, fontSize: 12, fontWeight: on ? 700 : 500, cursor: "pointer", border: on ? "2px solid #1e3a5f" : "1px solid #cbd5e1", background: on ? COLORS[val] : "#fff", color: "#0f172a" }}>{lab}</button>); })}
+          style={{ flex: 1, minHeight: 44, padding: "4px 2px", borderRadius: 8, fontSize: 12, fontWeight: on ? 700 : 500, cursor: "pointer", border: on ? "2px solid #1e3a5f" : "1px solid #cbd5e1", background: on ? COLORS[val] : "#fff", color: "#0f172a" }}>{lab}</button>); })}
       </div></div>); })}
     <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#334155", marginTop: 10 }}>Notes (optional)
       <textarea data-testid="sym-notes" value={n} onChange={function(e) { setN(e.target.value); }} rows={2} maxLength={1000} placeholder="Anything else about today" style={{ display: "block", width: "100%", boxSizing: "border-box", marginTop: 4, padding: 8, border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit" }} /></label>
@@ -62,7 +62,7 @@ export default function SymptomCheckIn({ p, data, activeTab, saveData, setFormMs
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Trends</div>
         <div role="group" aria-label="Period" style={{ display: "flex", gap: 6 }}>
-          {[14, 30, 90].map(function(r) { return (<button key={r} type="button" aria-pressed={range === r} data-testid={"sym-range-" + r} onClick={function() { setRange(r); }} style={{ minHeight: 36, minWidth: 48, padding: "4px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer", border: "1px solid #94a3b8", background: range === r ? "#1e3a5f" : "#fff", color: range === r ? "#fff" : "#0f172a", fontWeight: 600 }}>{r} days</button>); })}
+          {[14, 30, 90].map(function(r) { return (<button key={r} type="button" aria-pressed={range === r} data-testid={"sym-range-" + r} onClick={function() { setRange(r); }} style={{ minHeight: 44, minWidth: 48, padding: "4px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer", border: "1px solid #94a3b8", background: range === r ? "#1e3a5f" : "#fff", color: range === r ? "#fff" : "#0f172a", fontWeight: 600 }}>{r} days</button>); })}
         </div>
       </div>
       <p data-testid="sym-trend-text" style={{ fontSize: 12, color: "#334155", margin: "6px 0" }}>{text}</p>

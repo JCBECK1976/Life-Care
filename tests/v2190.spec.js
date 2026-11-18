@@ -152,7 +152,8 @@ test("UI: Build a meal — the Aldi pasta bake, serves 4, computed in code and l
     await mb.getByLabel("Search available items").fill(term);
     await mb.getByTestId("avail-off").first().click();
     const row = mb.getByTestId("meal-comp").last();
-    await row.getByLabel(/^Unit for/).selectOption("g");
+    await row.getByRole("button", { name: /^Unit for/ }).click();                       // v2.30.1: a bottom-sheet picker
+    await page.getByRole("dialog", { name: /^Unit for/ }).getByRole("option", { name: "grams" }).click();
     await row.getByLabel(/^Amount of/).fill(String(g));
   }
   await mb.getByLabel("Meal name").fill("Aldi chicken pasta bake");

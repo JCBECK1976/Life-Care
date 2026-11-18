@@ -19,6 +19,7 @@
     "@capacitor/filesystem": "8.1.5",
     "@capacitor/ios": "8.5.3",
     "@capacitor/share": "8.0.3",
+    "@capacitor/text-zoom": "8.0.1",
     "@capgo/capacitor-health": "8.11.14",
     "@capgo/capacitor-social-login": "8.7.5",
     "@capgo/native-purchases": "8.9.6",

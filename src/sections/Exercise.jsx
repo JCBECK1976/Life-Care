@@ -14,6 +14,7 @@ import { FullChart } from "../components/charts.jsx";
 import { TONE_RULES } from "../constants/tone.js";
 import { handleApiError } from "../lib/api.js";
 import PersonTabs, { peopleOf, personName } from "../components/PersonTabs.jsx";
+import { SheetSelect } from "../components/BottomSheet.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -88,7 +89,7 @@ export default function ExerciseSection({ ctx }) {
           };
           const removeExercise = async (day, idx) => {
             var exName = data[activeTab].exercises[day][idx] ? data[activeTab].exercises[day][idx].name : "this exercise";
-            if (!confirm("Remove " + exName + " from " + day + "? This cannot be undone.")) return;
+            if (!confirm("Remove " + exName + " from " + day + "?")) return;
             const nd = JSON.parse(JSON.stringify(data));
             nd[activeTab].exercises[day].splice(idx, 1);
             await saveData(nd); setFormMsg("✓ Removed"); setTimeout(() => setFormMsg(""), 3000);
@@ -233,9 +234,7 @@ export default function ExerciseSection({ ctx }) {
                   {(function() { var _renderEx = function(ex, i) { return (<div key={i} id={"ex-" + day + "-" + i} style={{ padding: "10px 3px", borderBottom: i < exList.length - 1 ? "1px solid #cbd5e1" : "none", position: "relative" }}>
                     {editExercise && editExercise.day === day && editExercise.idx === i ? (
                       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                        <select value={ex.name} onChange={function(e) { renameExercise(day, i, e.target.value); }} style={{ ...inputStyle, flex: 1 }}>
-                          {allExNames.map(function(n) { return <option key={n} value={n}>{n}</option>; })}
-                        </select>
+                        <SheetSelect label="Exercise" title="Choose an exercise" testId="ex-choice" value={ex.name} options={allExNames.map(function(n) { return { value: n, label: n }; })} onChange={function(v) { renameExercise(day, i, v); }} style={{ flex: 1 }} />
                         <button onClick={function() { removeExercise(day, i); }} style={btnDelete}>🗑 Remove</button>
                         <button onClick={function() { setEditExercise(null); }} style={btnS}>Cancel</button>
                       </div>
@@ -477,7 +476,7 @@ export default function ExerciseSection({ ctx }) {
                           setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:curM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",exerciseGuide:ex.exerciseGuide||"",prePostGuide:ex.prePostGuide||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});
                           setAddExOpen(false);
                         }} style={{...btnEdit,flex:1}}>✎ Edit</button>
-                        <button onClick={async function(){if(confirm("Delete "+ex.name+"?\n\nThis will permanently remove this exercise and all its progress history. This cannot be undone.")){var nd=JSON.parse(JSON.stringify(data));var exs=nd[activeTab].exercises[day];if(exs){exs.splice(i,1);await saveData(nd);setSelectedEx(null);setLogEx(null);}}}} style={{...btnDelete,flex:1}}>🗑 Delete</button>
+                        <button onClick={async function(){if(confirm("Delete "+ex.name+"?\n\nThis removes this exercise and all its progress history (you can Undo straight after).")){var nd=JSON.parse(JSON.stringify(data));var exs=nd[activeTab].exercises[day];if(exs){exs.splice(i,1);await saveData(nd);setSelectedEx(null);setLogEx(null);}}}} style={{...btnDelete,flex:1}}>🗑 Delete</button>
                       </div>
                       <button onClick={async function(){
                         var stopping = !ex.stopped;
@@ -497,9 +496,7 @@ export default function ExerciseSection({ ctx }) {
                       <div style={{display:"flex",gap:8,marginBottom:8}}>
                         <div style={{flex:1}}>
                           <label style={labelStyle}>Type</label>
-                          <select value={addExConfirm.type} onChange={function(e){var tc=getExerciseTypeConfig(e.target.value);setAddExConfirm(Object.assign({},addExConfirm,{type:e.target.value,sets:tc.defaultSets,m1:tc.defaultM1,m2:tc.defaultM2}));}} style={{...inputStyle,width:"100%"}}>
-                            {Object.keys(EXERCISE_TYPES).map(function(t){return <option key={t} value={t}>{EXERCISE_TYPES[t].label}</option>;})}
-                          </select>
+                          <SheetSelect label="Exercise type" title="Choose the exercise type" testId="ex-type" value={addExConfirm.type} options={Object.keys(EXERCISE_TYPES).map(function(t){return { value: t, label: EXERCISE_TYPES[t].label };})} onChange={function(v){var tc=getExerciseTypeConfig(v);setAddExConfirm(Object.assign({},addExConfirm,{type:v,sets:tc.defaultSets,m1:tc.defaultM1,m2:tc.defaultM2}));}} style={{width:"100%"}} />
                         </div>
                         <div style={{width:70}}>
                           <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].hasSets ? "Sets" : "Sessions"}</label>
@@ -614,9 +611,7 @@ export default function ExerciseSection({ ctx }) {
                       <div style={{display:"flex",gap:8,marginBottom:8}}>
                         <div style={{flex:1}}>
                           <label style={labelStyle}>Type</label>
-                          <select value={addExConfirm.type} onChange={function(e){var tc=getExerciseTypeConfig(e.target.value);setAddExConfirm(Object.assign({},addExConfirm,{type:e.target.value,sets:tc.defaultSets,m1:tc.defaultM1,m2:tc.defaultM2}));}} style={{...inputStyle,width:"100%"}}>
-                            {Object.keys(EXERCISE_TYPES).map(function(t){return <option key={t} value={t}>{EXERCISE_TYPES[t].label}</option>;})}
-                          </select>
+                          <SheetSelect label="Exercise type" title="Choose the exercise type" testId="ex-type" value={addExConfirm.type} options={Object.keys(EXERCISE_TYPES).map(function(t){return { value: t, label: EXERCISE_TYPES[t].label };})} onChange={function(v){var tc=getExerciseTypeConfig(v);setAddExConfirm(Object.assign({},addExConfirm,{type:v,sets:tc.defaultSets,m1:tc.defaultM1,m2:tc.defaultM2}));}} style={{width:"100%"}} />
                         </div>
                         <div style={{width:70}}>
                           <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].hasSets ? "Sets" : "Sessions"}</label>

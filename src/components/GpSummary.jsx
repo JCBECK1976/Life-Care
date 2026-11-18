@@ -3,12 +3,13 @@ import { GatePrompt } from "./PlanGate.jsx";
 import { planAllows, usePlan } from "../lib/myPlan.js";
 import { GP_AREAS, GP_NOTE, ymd, addDays, niceDate, gpFacts, gpPrompt, gpDocument, symptomsAllowed } from "../lib/pilot.js";
 import { makePdf, sharePdf } from "../lib/pdf.js";
+import { SkeletonLines } from "./Skeleton.jsx";
 
 // v2.30.0 (Part 5c, flag usePilotFeatures; Silver and up, uses Energy): a factual summary of the person's OWN records for a
 // GP appointment. The AI only describes what was recorded (no diagnosis, no advice, nothing about medication or HRT —
 // those are listed as recorded, never sent to the AI). The person reviews and can edit it before saving or sharing.
 var card = { background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 };
-var inp = { display: "block", width: "100%", boxSizing: "border-box", marginTop: 4, padding: "8px 10px", minHeight: 40, border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit" };
+var inp = { display: "block", width: "100%", boxSizing: "border-box", marginTop: 4, padding: "8px 10px", minHeight: 44, border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit" };
 var btnMain = { width: "100%", padding: 12, minHeight: 48, marginTop: 12, borderRadius: 8, border: "none", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" };
 var btn2 = { flex: 1, minWidth: 120, padding: 10, minHeight: 44, borderRadius: 8, border: "1px solid #94a3b8", background: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", color: "#0f172a" };
 var note = { marginTop: 10, padding: 10, borderRadius: 8, background: "#fffbeb", border: "1px solid #fcd34d", fontSize: 12, color: "#0f172a", lineHeight: 1.45 };
@@ -86,15 +87,16 @@ export default function GpSummary({ p, data, activeTab, saveData }) {
         <label style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>To<input type="date" data-testid="gp-to" value={to} max={today} onChange={function(e) { setTo(e.target.value); }} style={inp} /></label>
       </div>
       <div role="group" aria-label="Quick periods" style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-        {[[1, 29], [3, 89], [6, 182]].map(function(m) { return (<button key={m[0]} type="button" data-testid={"gp-last-" + m[0]} onClick={function() { setFrom(addDays(today, -m[1])); setTo(today); }} style={{ minHeight: 36, padding: "4px 12px", borderRadius: 8, border: "1px solid #94a3b8", background: "#fff", fontSize: 12, cursor: "pointer", color: "#0f172a" }}>Last {m[0]} month{m[0] > 1 ? "s" : ""}</button>); })}
+        {[[1, 29], [3, 89], [6, 182]].map(function(m) { return (<button key={m[0]} type="button" data-testid={"gp-last-" + m[0]} onClick={function() { setFrom(addDays(today, -m[1])); setTo(today); }} style={{ minHeight: 44, padding: "4px 12px", borderRadius: 8, border: "1px solid #94a3b8", background: "#fff", fontSize: 12, cursor: "pointer", color: "#0f172a" }}>Last {m[0]} month{m[0] > 1 ? "s" : ""}</button>); })}
       </div>
       <fieldset style={{ border: "1px solid #e2e8f0", borderRadius: 8, marginTop: 10, padding: "4px 10px 8px" }}>
         <legend style={{ fontSize: 12, fontWeight: 600, color: "#334155", padding: "0 4px" }}>Include</legend>
-        {GP_AREAS.filter(function(a) { return !a.needs || sym; }).map(function(a) { return (<label key={a.k} style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 40, fontSize: 13, color: "#0f172a" }}>
+        {GP_AREAS.filter(function(a) { return !a.needs || sym; }).map(function(a) { return (<label key={a.k} style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 44, fontSize: 13, color: "#0f172a" }}>
           <input type="checkbox" data-testid={"gp-area-" + a.k} checked={areas.indexOf(a.k) >= 0} onChange={function(e) { setAreas(e.target.checked ? areas.concat([a.k]) : areas.filter(function(x) { return x !== a.k; })); }} style={{ width: 20, height: 20 }} />{a.l}</label>); })}
       </fieldset>
       <button type="button" data-testid="gp-prepare" disabled={busy} aria-busy={busy} onClick={prepare} style={Object.assign({}, btnMain, { opacity: busy ? 0.6 : 1 })}>{busy ? "Preparing…" : "Prepare summary"}</button>
     </>}
+    {busy && !draft && <SkeletonLines lines={6} label="Preparing your summary…" testId="gp-skeleton" />}
     {draft && <div data-testid="gp-review">
       <div role="status" style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginTop: 4 }}>Check your summary</div>
       <div style={{ fontSize: 12, color: "#475569" }}>Change anything that isn't right before you save or share it. Nothing is saved yet.</div>
@@ -115,9 +117,9 @@ export default function GpSummary({ p, data, activeTab, saveData }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span style={{ fontSize: 12, color: "#0f172a" }}><b>{niceDate(s.from)} – {niceDate(s.to)}</b><br /><span style={{ color: "#475569" }}>made {niceDate(String(s.at).slice(0, 10))}</span></span>
           <span style={{ display: "flex", gap: 6 }}>
-            <button type="button" aria-expanded={openSaved === i} onClick={function() { setOpenSaved(openSaved === i ? null : i); }} style={Object.assign({}, btn2, { minWidth: 64, flex: "none", minHeight: 40, padding: "4px 10px", fontSize: 12 })}>{openSaved === i ? "Hide" : "View"}</button>
-            <button type="button" onClick={function() { pdf(s.doc); }} style={Object.assign({}, btn2, { minWidth: 64, flex: "none", minHeight: 40, padding: "4px 10px", fontSize: 12 })}>PDF</button>
-            <button type="button" aria-label={"Delete the summary for " + niceDate(s.from) + " to " + niceDate(s.to)} onClick={function() { if (confirm("Delete this summary?")) del(i); }} style={{ minHeight: 40, minWidth: 44, padding: "4px 10px", borderRadius: 8, border: "1px solid #fecaca", background: "#fef2f2", color: "#b91c1c", fontSize: 12, cursor: "pointer" }}>🗑</button>
+            <button type="button" aria-expanded={openSaved === i} onClick={function() { setOpenSaved(openSaved === i ? null : i); }} style={Object.assign({}, btn2, { minWidth: 64, flex: "none", minHeight: 44, padding: "4px 10px", fontSize: 12 })}>{openSaved === i ? "Hide" : "View"}</button>
+            <button type="button" onClick={function() { pdf(s.doc); }} style={Object.assign({}, btn2, { minWidth: 64, flex: "none", minHeight: 44, padding: "4px 10px", fontSize: 12 })}>PDF</button>
+            <button type="button" aria-label={"Delete the summary for " + niceDate(s.from) + " to " + niceDate(s.to)} onClick={function() { if (confirm("Delete this summary?")) del(i); }} style={{ minHeight: 44, minWidth: 44, padding: "4px 10px", borderRadius: 8, border: "1px solid #fecaca", background: "#fef2f2", color: "#b91c1c", fontSize: 12, cursor: "pointer" }}>🗑</button>
           </span></div>
         {openSaved === i && <><div style={{ fontSize: 12, color: "#334155", whiteSpace: "pre-wrap", marginTop: 6 }}>{(s.doc.sections[0] || { lines: [] }).lines.join("\n")}</div><DocView doc={s.doc} testid="gp-saved-doc" /></>}
       </div>); })}

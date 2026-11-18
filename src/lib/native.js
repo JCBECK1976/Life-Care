@@ -35,3 +35,16 @@ export async function installNativeBackButton() {
     } else { App.minimizeApp(); }
   });
 }
+
+/** v2.30.1 (FINAL DROP Part 6): the app follows the phone's text size (Settings → Display → Font size on Android,
+ *  Larger Text on iPhone), up to 200%; the layouts reflow (tested at double-size text, 360 px wide). */
+export async function followPhoneTextSize(deps) {
+  if (!(deps && deps.native) && !isNative()) return null;
+  try {
+    var TZ = (deps && deps.plugin) || (await import("@capacitor/text-zoom")).TextZoom;
+    var pref = await TZ.getPreferred();
+    var v = Math.max(1, Math.min(2, Number(pref && pref.value) || 1));
+    await TZ.set({ value: v });
+    return v;
+  } catch (e) { return null; }
+}
