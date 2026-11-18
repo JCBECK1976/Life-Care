@@ -25,11 +25,12 @@ export var FEATURES = {
   household: "Household sharing",
   buyEnergy: "Companion Energy top-up",
   editNutrition: "Editing nutrition values",
+  gpSummary: "GP prep summary",
 };
 
 var NONE = { foodRatings: false, snap: false, myOwnItem: false, aiFeedback: false, chat: false, aiHelp: false, autoInfo: false, bodyBalance: false, healthSync: false,
-  mealGenerator: false, shoppingGenerator: false, aiPlans: false, household: false, buyEnergy: false, editNutrition: false };
-var SILVER = Object.assign({}, NONE, { foodRatings: true, snap: true, myOwnItem: true, aiFeedback: true, chat: true, aiHelp: true, autoInfo: true, bodyBalance: true, healthSync: true, buyEnergy: true, editNutrition: true });
+  mealGenerator: false, shoppingGenerator: false, aiPlans: false, household: false, buyEnergy: false, editNutrition: false, gpSummary: false };
+var SILVER = Object.assign({}, NONE, { foodRatings: true, snap: true, myOwnItem: true, aiFeedback: true, chat: true, aiHelp: true, autoInfo: true, bodyBalance: true, healthSync: true, buyEnergy: true, editNutrition: true, gpSummary: true });
 var GOLD = Object.assign({}, SILVER, { mealGenerator: true, shoppingGenerator: true, aiPlans: true });
 
 // Prices in pence. energy = Companion Energy included per month (JC 17/18 Nov: Silver 300, Gold 500, Platinum 1,500 —
@@ -58,6 +59,7 @@ export var ENERGY_GUIDE = {
     { k: "snap", label: "A photo check (Snap)", energy: 2 },
     { k: "aiFeedback", label: "Companion feedback (a day, a session, a week)", energy: 3 },
     { k: "aiPlans", label: "A training plan or warm-up", energy: 4 },
+    { k: "gpSummary", label: "A GP prep summary", energy: 5 },
     { k: "mealGenerator", label: "A week of meals", energy: 8 },
     { k: "aiHelp", label: "An answer in Help (it reads the whole guide)", energy: 12 },
   ],
@@ -69,6 +71,9 @@ export var CONSENT_NEEDS = {
   snap: ["ai", "photos"], bodyBalance: ["ai", "photos", "bodyBalance"], healthSync: ["health"],
   foodRatings: ["ai"], myOwnItem: ["ai"], aiFeedback: ["ai"], chat: ["ai"], aiHelp: ["ai"], autoInfo: ["ai"],
   mealGenerator: ["ai"], shoppingGenerator: ["ai"], aiPlans: ["ai"], editNutrition: ["ai"],
+  gpSummary: ["ai"],
+  // v2.30.0 (pilot features): symptom + HRT tracking has its own consent (no AI; the record itself is special category data)
+  symptoms: ["symptoms"],
 };
 
 /** Does this plan include the feature? (tiers = config/tiers or DEFAULT_TIERS) */

@@ -15,13 +15,18 @@ export var OPTINS = [
   { k: "photos", label: "Photo analysis", hint: "Photos (food, labels, scales, body balance) are shrunk, analysed and then discarded, never stored. Needs AI processing." },
   { k: "health", label: "Health sync (steps)", hint: "Read your daily step total (and, if you choose, active calories) from Health Connect / Apple Health." },
   { k: "bodyBalance", label: "Body balance checks", hint: "Front, side and back photos about every 4 weeks, scored and then discarded. Needs AI processing and photo analysis." },
+  // v2.30.0 (pilot features, flag usePilotFeatures): its own consent — symptoms and HRT are special category health data
+  { k: "symptoms", pilot: true, label: "Symptom and HRT tracking", hint: "Record daily symptoms (0–3) and your HRT in My Health. It stays in your account (your family only sees it if you share Health). It is a record only: the Companion never gives advice about HRT or medication." },
 ];
+/** The opt-ins shown now (the symptom/HRT one only while the pilot features are on). */
+export function optins() { return OPTINS.filter(function(o) { return !o.pilot || buildFlag("usePilotFeatures"); }); }
 export var NEEDS = CONSENT_NEEDS;   // shared with the server (constants/tiers.js)
 export var NOTE = {
   ai: "AI features are off because you chose not to use AI processing. You can turn it on in Settings → Privacy & your data.",
   photos: "Photo checks are off in your privacy choices. You can turn photo analysis on in Settings → Privacy & your data.",
   health: "Health sync is off in your privacy choices. You can turn it on in Settings → Privacy & your data.",
   bodyBalance: "Body balance checks are off in your privacy choices. You can turn them on in Settings → Privacy & your data.",
+  symptoms: "Symptom and HRT tracking is off in your privacy choices. You can turn it on in Settings → Privacy & your data.",
 };
 
 var current = null;          // this account's consent record (null = not a new-account session, or not loaded)
@@ -48,7 +53,7 @@ export async function saveAccountConsent(choices) {
   var u = auth.currentUser; if (!u) throw new Error("Sign in first.");
   var now = new Date().toISOString();
   var rec = { accepted: true, adult: true, termsVersion: TERMS_VERSION, privacyVersion: PRIVACY_VERSION, at: now,
-    ai: !!choices.ai, photos: !!choices.photos && !!choices.ai, health: !!choices.health, bodyBalance: !!choices.bodyBalance && !!choices.ai && !!choices.photos };
+    ai: !!choices.ai, photos: !!choices.photos && !!choices.ai, health: !!choices.health, bodyBalance: !!choices.bodyBalance && !!choices.ai && !!choices.photos, symptoms: !!choices.symptoms };
   var changed = {}; OPTINS.forEach(function(o) { if (!current || current[o.k] !== rec[o.k]) changed[o.k] = rec[o.k]; });
   var ref = firebase.database().ref(path(u.uid));
   await ref.update(rec);   // the choices only; the history below is append-only and never rewritten

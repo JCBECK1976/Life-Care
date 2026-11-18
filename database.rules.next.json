@@ -81,6 +81,10 @@
               "bodyBalance": {
                 ".write": "auth != null && auth.uid === $uid"
               },
+              "symptoms": {
+                ".write": "auth != null && auth.uid === $uid",
+                ".validate": "newData.isBoolean()"
+              },
               "history": {
                 "$h": {
                   ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.exists()"

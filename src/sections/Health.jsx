@@ -5,6 +5,11 @@ import { btnAction, btnClose, btnDelete, btnEdit, btnMuted, btnP, btnStop, input
 import { sSet } from "../lib/storage.js";
 import { TONE_RULES } from "../constants/tone.js";
 import { getMoodContext } from "../lib/aiContext.js";
+import SymptomCheckIn from "../components/SymptomCheckIn.jsx";
+import HrtLog from "../components/HrtLog.jsx";
+import GpSummary from "../components/GpSummary.jsx";
+import { pilotOn, symptomsAllowed } from "../lib/pilot.js";
+import { NOTE as CONSENT_NOTE } from "../lib/accountConsent.js";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -25,16 +30,23 @@ export default function HealthSection({ ctx }) {
           var stoppedMeds = medsList.filter(function(m) { return m.active === false; });
           var allTests = BLOOD_TESTS.flatMap(function(g) { return g.tests; }).concat(customBloodTests);
           var tabs = [{ id: "general", l: "General" }, { id: "vitals", l: "Vitals" }, { id: "meds", l: "Medications" }, { id: "bloods", l: "Bloods" }];
+          /* v2.30.0 (flag usePilotFeatures): symptoms, the HRT record and the GP prep summary */
+          var pilot = pilotOn(); if (pilot) tabs = tabs.concat([{ id: "symptoms", l: "Symptoms" }, { id: "hrt", l: "HRT" }, { id: "gp", l: "GP prep" }]);
+          var pilotProps = { p: p, data: data, activeTab: activeTab, saveData: saveData, setFormMsg: setFormMsg };
+          var consentOff = (<div data-testid="symptoms-off" style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}><div role="note" style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: 12, fontSize: 13, color: "#0f172a" }}>{CONSENT_NOTE.symptoms}<div><button type="button" data-testid="privacy-choices" onClick={function() { window.dispatchEvent(new CustomEvent("lc-open-privacy")); }} style={{ marginTop: 8, padding: "10px 16px", minHeight: 44, borderRadius: 8, border: "none", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Privacy choices</button></div></div>{((p.symptoms || []).length > 0 || (p.hrt || []).length > 0) && <button type="button" data-testid="symptoms-delete-all" onClick={async function() { if (!confirm("Delete all your symptom check-ins and HRT entries? This can't be undone.")) return; var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].symptoms = []; nd[activeTab].hrt = []; await saveData(nd); setFormMsg("Deleted ✓"); setTimeout(function() { setFormMsg(""); }, 2500); }} style={{ marginTop: 10, width: "100%", padding: 10, minHeight: 44, borderRadius: 8, border: "1px solid #fecaca", background: "#fef2f2", color: "#b91c1c", fontSize: 13, cursor: "pointer" }}>Delete my symptom and HRT records</button>}</div>);
           return (<div key={"hl-"+activeTab}>          {/* Week header — centred like Eating */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
             <button onClick={function() { setWeekOff(function(o) { return o - 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&lsaquo;</button>
             <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800 }}>Week {calcWeek(data.config.trainingStart)}</div><div style={{ fontSize: 10, color: "#475569" }}>{weekLabel}</div></div>
             <button onClick={function() { setWeekOff(function(o) { return o + 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&rsaquo;</button>
           </div>
-          <div style={{ display: "flex", gap: 0, background: accentMid, borderRadius: "8px 8px 0 0", padding: 2, marginBottom: 0 }}>
-            {tabs.map(function(t) { return (<button key={t.id} onClick={function() { setHealthView(t.id); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: healthView === t.id ? "#fff" : "transparent", color: healthView === t.id ? "#0f172a" : "rgba(255,255,255,0.9)" }}>{t.l}</button>); })}
+          <div style={{ display: "flex", flexWrap: pilot ? "wrap" : "nowrap", gap: 0, background: accentMid, borderRadius: "8px 8px 0 0", padding: 2, marginBottom: 0 }}>
+            {tabs.map(function(t) { return (<button key={t.id} data-testid={"health-tab-" + t.id} aria-pressed={healthView === t.id} onClick={function() { setHealthView(t.id); }} style={{ flex: pilot ? "1 1 24%" : 1, minHeight: pilot ? 32 : undefined, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: healthView === t.id ? "#fff" : "transparent", color: healthView === t.id ? "#0f172a" : "rgba(255,255,255,0.9)" }}>{t.l}</button>); })}
           </div>
 
+          {pilot && healthView === "symptoms" && (symptomsAllowed() ? <SymptomCheckIn {...pilotProps} /> : consentOff)}
+          {pilot && healthView === "hrt" && (symptomsAllowed() ? <HrtLog {...pilotProps} /> : consentOff)}
+          {pilot && healthView === "gp" && <GpSummary {...pilotProps} />}
           {healthView === "general" && (<div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>My Health</div>
             <div style={{ background: accentLight, borderRadius: 8, padding: 12, border: "1px solid " + accentBorder }}>

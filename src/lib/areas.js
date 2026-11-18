@@ -18,7 +18,7 @@ export var SHARING_GROUPS = [
   { id: "exercise", label: "Exercise", areas: ["exercise"] },
   { id: "body", label: "Body (weight, measurements, steps)", areas: ["body"] },
   { id: "eating", label: "Eating (what I eat and plan)", areas: ["eating"] },
-  { id: "health", label: "Health (medicines, readings, notes)", areas: ["health"] },
+  { id: "health", label: "Health (medicines, readings, notes, symptoms, HRT)", areas: ["health"] },
   { id: "moodJournal", label: "Mood & journal", areas: ["mood", "journal"] },
 ];
 
@@ -28,7 +28,7 @@ export var FIELD_AREA = {
   body: "body", measurements: "body", dailyActivity: "body", googleDaily: "body", bodyBalance: "body", progressPhotos: "body", bodyAnalysis: "body",
   exercises: "exercise", sessionGuides: "exercise", exerciseLog: "exercise",
   meds: "health", medsHistory: "health", attachments: "health", bloods: "health", vitals: "health", healthProfile: "health", healthNotes: "health", healthLog: "health",
-  symptoms: "health", hrt: "health",
+  symptoms: "health", hrt: "health", gpSummaries: "health",
   eating: "eating", meals: "eating",
 };
 export function fieldArea(field) { return FIELD_AREA[field] || "settings"; }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import LegalViewer from "./LegalViewer.jsx";
-import { OPTINS, LEGAL_LABEL, needsOnboarding, saveAccountConsent } from "../lib/accountConsent.js";
+import { optins, LEGAL_LABEL, needsOnboarding, saveAccountConsent } from "../lib/accountConsent.js";
 import { usePlan, loadPlan } from "../lib/myPlan.js";
 import { auth } from "../lib/firebase.js";
 
@@ -19,7 +19,7 @@ export default function Onboarding() {
   var [step, setStep] = useState(1);
   var [adult, setAdult] = useState(null);       // true | false
   var [agree, setAgree] = useState(false);
-  var [ch, setCh] = useState({ ai: false, photos: false, health: false, bodyBalance: false });
+  var [ch, setCh] = useState({ ai: false, photos: false, health: false, bodyBalance: false, symptoms: false });
   var [view, setView] = useState(null);
   var [busy, setBusy] = useState(false);
   var [err, setErr] = useState("");
@@ -59,7 +59,7 @@ export default function Onboarding() {
         <h2 id="ob-title" style={{ fontSize: 20, margin: "4px 0 6px", color: "#0f172a" }}>Your choices</h2>
         <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.55 }}>Each one is separate and off until you turn it on. You can change any of them later in <b>Settings → Privacy &amp; your data</b>. Without AI processing the app still works for manual tracking.</div>
         <div style={cardS}>
-          {OPTINS.map(function(o) { var dis = !!needs[o.k]; return (<label key={o.k} style={Object.assign({}, row, { opacity: dis ? 0.55 : 1 })}>
+          {optins().map(function(o) { var dis = !!needs[o.k]; return (<label key={o.k} style={Object.assign({}, row, { opacity: dis ? 0.55 : 1 })}>
             <input type="checkbox" data-testid={"ob-" + o.k} disabled={dis} checked={!!ch[o.k]} onChange={function(e) { set(o.k, e.target.checked); }} style={{ width: 20, height: 20, marginTop: 2 }} />
             <span><b>{o.label}</b><br /><span style={{ color: "#475569", fontSize: 12 }}>{o.hint}</span></span></label>); })}
         </div>

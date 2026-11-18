@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { OPTINS, TERMS_VERSION, accountConsent, consentApplies, saveAccountConsent } from "../lib/accountConsent.js";
+import { optins, TERMS_VERSION, accountConsent, consentApplies, saveAccountConsent } from "../lib/accountConsent.js";
 import { usePlan } from "../lib/myPlan.js";
 
 // v2.24.0: Settings → Privacy & your data → My privacy choices (individual accounts). Each opt-in can be withdrawn
@@ -19,7 +19,7 @@ export default function AccountConsentCard() {
   if (!consentApplies()) return null;
   var c = local || accountConsent() || {};
   var toggle = async function(k, v) {
-    var n = { ai: c.ai, photos: c.photos, health: c.health, bodyBalance: c.bodyBalance }; n[k] = v;
+    var n = { ai: c.ai, photos: c.photos, health: c.health, bodyBalance: c.bodyBalance, symptoms: c.symptoms }; n[k] = v;
     if (k === "ai" && !v) { n.photos = false; n.bodyBalance = false; } if (k === "photos" && !v) n.bodyBalance = false;
     setLocal(n);
     await saveAccountConsent(n);
@@ -28,7 +28,7 @@ export default function AccountConsentCard() {
   return (<div ref={ref} data-testid="account-consent" style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
     <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>🔐 My privacy choices</div>
     <div style={{ fontSize: 12, color: "#475569", marginBottom: 6 }}>Terms and Privacy accepted ({TERMS_VERSION}). Change any choice at any time.</div>
-    {OPTINS.map(function(o) { var dis = (o.k === "photos" && !c.ai) || (o.k === "bodyBalance" && (!c.ai || !c.photos)); return (<label key={o.k} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 0", borderTop: "1px solid #f1f5f9", fontSize: 13, minHeight: 44, opacity: dis ? 0.55 : 1 }}>
+    {optins().map(function(o) { var dis = (o.k === "photos" && !c.ai) || (o.k === "bodyBalance" && (!c.ai || !c.photos)); return (<label key={o.k} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 0", borderTop: "1px solid #f1f5f9", fontSize: 13, minHeight: 44, opacity: dis ? 0.55 : 1 }}>
       <input type="checkbox" data-testid={"withdraw-" + o.k} disabled={dis} checked={c[o.k] === true} onChange={function(e) { toggle(o.k, e.target.checked); }} style={{ width: 20, height: 20, marginTop: 2 }} />
       <span><b>{o.label}</b><br /><span style={{ color: "#475569", fontSize: 12 }}>{o.hint}</span></span></label>); })}
     {msg && <div role="status" aria-live="polite" data-testid="consent-msg" style={{ fontSize: 12, marginTop: 6, color: "#0f172a" }}>{msg}</div>}

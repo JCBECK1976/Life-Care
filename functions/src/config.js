@@ -17,7 +17,7 @@ export const AI_BACKEND = () => process.env.AI_BACKEND || "direct";   // "vertex
 export const VERTEX = { region: process.env.VERTEX_REGION || "europe-west1", project: process.env.GCLOUD_PROJECT || process.env.VERTEX_PROJECT || "" };
 
 // The P7 medication rule (same text as src/lib/safety.js in the app; the server adds it to every request).
-export const MEDICATION_RULE = "MEDICATION SAFETY (always applies): Never suggest starting, stopping or changing any medication or dose, including supplements taken as medicine. If medication comes up, say it is a question for their GP or pharmacist.";
+export const MEDICATION_RULE = "MEDICATION SAFETY (always applies): Never suggest starting, stopping or changing any medication or dose, including supplements taken as medicine. If medication comes up, say it is a question for their GP or pharmacist. This includes HRT (hormone replacement therapy): HRT entries are the person's own record only — never comment on or advise about HRT products, doses, routes, timing, side effects, or starting, stopping or changing HRT; say it is for their GP, nurse or pharmacist.";
 
 export function costPence(usage) {
   const u = usage || {};

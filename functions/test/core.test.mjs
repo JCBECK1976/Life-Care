@@ -290,3 +290,18 @@ test("Energy pots (v2.27.3): monthly Energy resets each month (no rollover); top
   e = (await db.ref(`apps/${A}/energy/pots`).once("value")).val();
   assert.deepEqual([e.monthly, e.topup], [300, 450]);                                      // unused 200 did NOT roll over
 });
+
+test("pilot features (v2.30.0): the GP prep summary is Silver and up and needs AI consent; every request says HRT is a record only", async () => {
+  const call = (uid) => core.aiProxy({ uid, data: { ...req, feature: "gpSummary" } }, { db, callClaude: fakeClaude });
+  await db.ref(`apps/${A}/entitlements/gpb`).set({ tier: "bronze", source: "admin" });
+  await assert.rejects(call("gpb"), { code: "permission-denied" });                                    // Bronze: not included
+  await db.ref(`apps/${A}/entitlements/gps`).set({ tier: "silver", source: "admin" });
+  await core.adminTopUp({ uid: "uid-admin", data: { uid: "gps", energy: 100 } }, { db });
+  await db.ref(`apps/${A}/users/gps/consent`).set({ ...ALL, ai: false });
+  await assert.rejects(call("gps"), { message: "This is off in your privacy choices (ai)." });
+  await db.ref(`apps/${A}/users/gps/consent`).set({ ...ALL, symptoms: false });                    // the symptom consent doesn't block it
+  sent = [];
+  await call("gps");
+  assert.match(sent[0].system, /HRT \(hormone replacement therapy\): HRT entries are the person's own record only/);
+  assert.match(MEDICATION_RULE, /never comment on or advise about HRT/);
+});
