@@ -189,3 +189,39 @@ test("per area: Bob shares exercise but hides body — Ann sees his exercise; hi
   for (const sec of ["My Body", "My Exercise"]) { await page.getByRole("button", { name: sec, exact: true }).first().dispatchEvent("click"); await page.waitForTimeout(300); await expect(page.getByText("Something went wrong in this section")).toHaveCount(0); }
   expect(errs).toEqual([]);
 });
+
+/* ---------- v2.28.1: "What my family can see" ---------- */
+test("What my family can see: Visible → per-area switches (default all on, as today); body off + exercise log-for-me saved; the rules then apply it", async ({ page, browser }) => {
+  await family(["Ann", "Bob"], [{ visible: true }, { visible: true }]);
+  await signInAs(page, 1);                                                             // Bob changes HIS sharing
+  await page.evaluate(() => { const g = document.querySelector('[data-testid="goal-setup"]'); if (g) g.style.display = "none"; });
+  await page.locator('button[title="Settings"]').first().dispatchEvent("click");
+  const c = page.getByTestId("family-sharing");
+  await expect(c.getByTestId("fs-visible")).toBeChecked();
+  for (const g of ["exercise", "body", "eating", "health", "moodJournal"]) { await expect(c.getByTestId("fs-see-" + g)).toBeChecked(); await expect(c.getByTestId("fs-log-" + g)).not.toBeChecked(); }
+  await c.getByTestId("fs-see-body").uncheck();
+  await expect(c.getByTestId("fs-msg")).toContainText("kept private");
+  await expect(c.getByTestId("fs-log-body")).toBeDisabled();
+  await c.getByTestId("fs-log-exercise").check();
+  await expect.poll(() => get(`apps/lifecare/users/${uidOf(1)}/privacy`)).toMatchObject({ visible: true, areas: { body: false }, logAreas: { exercise: true, body: false } });   // an area left on is simply not written (absent = on)
+  // Ann's view: Bob's body private (empty), his exercise visible and writable for her
+  const p2 = await browser.newPage();
+  await signInAs(p2, 0);
+  await p2.waitForFunction(() => window._lcMembers);
+  const r = await p2.evaluate(async () => {
+    const st = await import("/Life-Care/src/lib/storage.js"); const v = Object.keys(window._lcMembers)[0];
+    const d = JSON.parse(await st.sGet("dashboard:data"));
+    d[v].exercises = { monday: [{ name: "Squat", current: "40kg" }] }; d[v].body.weight = [{ wk: 2, v: 1 }];
+    await st.sSet("dashboard:data", JSON.stringify(d));
+    return { weight: JSON.parse(await st.sGet("dashboard:data"))[v].body.weight };
+  });
+  expect(r.weight).toEqual([]);                                                          // body private: not readable (her edit didn't reach it)
+  const bob = await getDashOf(uidOf(1));
+  expect(bob.jc.exercises).toEqual({ monday: [{ name: "Squat", current: "40kg" }] });   // exercise: logged for him
+  expect(bob.jc.body.weight).toEqual([{ wk: 1, v: 61 }]);                                // body: unchanged
+  await p2.close();
+  // Hidden: everything off, and the area switches disappear
+  await c.getByTestId("fs-hidden").check();
+  await expect(c.getByTestId("fs-areas")).toHaveCount(0);
+  await expect.poll(() => get(`apps/lifecare/users/${uidOf(1)}/privacy`)).toMatchObject({ visible: false, logForMe: false });
+});

@@ -4,7 +4,7 @@
 >
 > **Keep it current.** Whenever a feature is added, moved, renamed or removed, update this file in the same release.
 >
-> Last updated: v2.28.0 · 18 November 2026
+> Last updated: v2.28.1 · 18 November 2026
 
 ---
 
@@ -572,6 +572,7 @@ Change any choice at any time in **Settings → 🔐 My privacy choices**. Turni
 - **Your own account** starts empty and only ever holds **your** records: it never shows JC and Becks's shared household data.
 - **Joining a family:** open the invite link from the plan owner, sign in **with the email address the invite was sent to**, tap **Join the family**, then choose who can see your data: **Hidden** (recommended, the default: others see your name greyed out) or **Visible**; with Visible you can also allow **Household members can log for me**. Change this any time. Being the owner never gives access to anyone's data.
 - **In a family:** a Visible member's records appear under their own tab; you can add entries for them only if they allowed "log for me".
+- **👪 What my family can see** (Settings → Privacy & your data, when you're in a family): choose **Hidden** or **Visible**; when Visible, switch each area on or off — **Exercise**, **Body**, **Eating**, **Health**, **Mood & journal** — and, for each area you share, whether your family **can log for you**. Everything starts as it was (all areas follow your Visible choice, nobody logs for you).
 - **What a family shares (from v2.28.0):** the food lists, "All" defaults, the shopping list and the exercise / measurement / medicine name lists are the **family's** (one copy everyone in the family uses, also a Hidden member). Everything else is **yours**: what you eat and plan, your exercise, body, health, mood and journal, and your Companion chats (never shown to anyone else).
 - **Pilot testers:** the developer can invite a tester by email with a free test plan; the tester opens the link, signs in with that email and taps **Accept the invite**.
 

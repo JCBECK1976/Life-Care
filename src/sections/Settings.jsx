@@ -16,6 +16,7 @@ import { DOCS_INDEX, VAULT_DOCS } from "../constants/docsIndex.js";
 import MyPlanCard from "../components/MyPlanCard.jsx";
 import StepsCard from "../components/StepsCard.jsx";
 import AccountConsentCard from "../components/AccountConsentCard.jsx";
+import FamilySharingCard from "../components/FamilySharingCard.jsx";
 import PilotInviteCard from "../components/PilotInviteCard.jsx";
 import GoLiveSwitches from "../components/GoLiveSwitches.jsx";
 import { buildFlag } from "../lib/platform.js";
@@ -64,7 +65,8 @@ export default function SettingsSection({ ctx }) {
           </div>
 
           {/* v2.22.0 (ADR 0017): My Plan, under the colour theme (flag useTiers). A Platinum family member sees only the theme. */}
-          <AccountConsentCard />   {/* v2.24.0: an individual account's privacy choices (flag useOnboarding) */}
+          <AccountConsentCard />
+          <FamilySharingCard />   {/* v2.28.1: What my family can see (individual accounts in a family) */}   {/* v2.24.0: an individual account's privacy choices (flag useOnboarding) */}
           {tiersOn() && plan.role === "member" && <div data-testid="plan-member-note" style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 13, color: "#0f172a" }}>You're on {plan.ownerName}'s Platinum Family plan.{plan.preview && <div><button type="button" onClick={function() { setPreview(null); }} style={{ marginTop: 8, padding: "8px 12px", minHeight: 44, borderRadius: 8, border: "1px solid #1e3a5f", background: "#fff", fontWeight: 700, cursor: "pointer" }}>Stop preview</button></div>}</div>}
           {tiersOn() && plan.role !== "member" && <MyPlanCard energyPct={companionEnergy && companionEnergy.pct} />}
           {plan.role !== "member" && (<>

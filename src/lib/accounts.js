@@ -53,7 +53,7 @@ export async function loadHousehold(uid) {
     var pv = (await read(A + "/users/" + m + "/privacy")) || {};
     var name = ((await read(A + "/users/" + m + "/profile")) || {}).name || "Member";
     if (pv.visible !== true) { window._lcHiddenMembers.push({ name: name }); continue; }
-    vis.push({ uid: m, name: name, canWrite: pv.logForMe === true });
+    vis.push({ uid: m, name: name, canWrite: pv.logForMe === true || Object.values(pv.logAreas || {}).some(function(x) { return x === true; }) });   // v2.28.1: per-area log-for-me (the rules decide per area)
   }
   vis.sort(function(x, y) { return x.name.localeCompare(y.name); });
   window._lcHiddenMembers.sort(function(x, y) { return x.name.localeCompare(y.name); });
