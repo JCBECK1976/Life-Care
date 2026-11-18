@@ -7,7 +7,9 @@ on:
     paths: ["ios/**", "native/**", "capacitor.config.json", "package.json", "package-lock.json", "scripts/build-native.sh", "scripts/check-native.mjs", "src/lib/native.js", "src/lib/appCheck.js", "functions/src/apple.js", ".github/workflows/ios-build.yml"]
   workflow_dispatch:
 permissions: { contents: read }
-concurrency: { group: ios-build-${{ github.ref }}, cancel-in-progress: true }
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: macos-15
