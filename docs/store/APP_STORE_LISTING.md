@@ -21,7 +21,7 @@
 **Promotional text (≤ 170):** Your private health companion — plan meals, log exercise, track your body and wellbeing, and ask a friendly AI Companion what your numbers mean.
 
 **Description:** use the Play full description (PLAY_LISTING §1), then add:
-- *Apple Health:* "With your permission, Lifecare Companion reads your daily step total (and, if you turn it on, active energy) from Apple Health to show today and the last 7 days. It never writes to Apple Health, and Health data is never used for advertising."
+- *Apple Health:* "With your permission, Lifecare Companion reads your daily step total (and, if you turn it on, active energy) from Apple Health to show today and the last 7 days, and — only if you turn on Import my weigh-ins — your weight and body fat (one reading per day). It never writes to Apple Health, and Health data is never used for advertising."
 - *Subscriptions:* "Silver, Gold and Platinum are auto-renewing subscriptions (monthly or yearly), billed to your Apple ID and renewing unless cancelled at least 24 hours before the period ends. Manage or cancel in your Apple ID settings. Terms of use: Apple's standard EULA. Privacy: the privacy policy link above."
 
 **Keywords (≤ 100):** health,meal planner,nutrition,exercise log,weight,body,wellbeing,steps,journal,companion
@@ -33,7 +33,7 @@
 |---|---|---|---|---|
 | Contact info → **Email address** | Yes | Yes | No | App functionality |
 | Contact info → **Name** (the name you enter) | Yes | Yes | No | App functionality |
-| Health & fitness → **Health** (weight, body composition, measurements, health notes, symptoms you log) | Yes | Yes | No | App functionality |
+| Health & fitness → **Health** (weight, body composition, measurements, health notes, symptoms you log; weight and body fat read from Apple Health if you turn on Import my weigh-ins) | Yes | Yes | No | App functionality |
 | Health & fitness → **Fitness** (exercise logs, daily step / active-energy totals from Apple Health) | Yes | Yes | No | App functionality |
 | User content → **Photos** (food and body photo checks) | Yes | **No** — analysed and discarded, never stored | No | App functionality |
 | User content → **Other user content** (journal, mood, Companion chats, feedback) | Yes | Yes | No | App functionality |
