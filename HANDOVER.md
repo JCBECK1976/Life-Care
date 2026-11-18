@@ -2840,5 +2840,6 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **Item 1 done — build `c87248a`:** new-account families side by side (view keys). Suite 343 passed (6 skipped), lint 0 errors.
 - **Item 2 done — build `2a22089`:** hidden members as greyed tabs. Full suite green, lint 0 errors.
 - **Item 2 test fix + item 3 done — build `8a6f641`.** Correction: item 2 (`2a22089`) was pushed with one old test red (my commit script doesn't stop on a failure); fixed in the next commit. Item 3: the Energy explanation was missing, and the server let monthly Energy roll over — now two pots (monthly reset / top-ups never expire). Suite 349 passed (6 skipped), functions 35/35, lint 0 errors.
-- **Resume point:** next item: item 4 (log per-area sharing as deferred on the plan), report.
+- **Item 1 fix — build `b27f86f`:** a new-account family member's tab crashed on selection ('jc otherwise becks' in 9 places → data[tab]); found while taking the screenshots. The test now opens every section for the member. Suite 349 passed (6 skipped), lint 0 errors.
+- **Resume point:** next item: item 4 (plan), report.
 
