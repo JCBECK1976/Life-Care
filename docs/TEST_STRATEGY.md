@@ -68,7 +68,10 @@ Draft 1.1, 13 Nov 2026 (prod v2.15.1; Architect review applied). How changes are
 - `tests/v2222.spec.js` preview bar, See plans, Snap gate, info prompts, Energy bar · `v2230` Health Connect (stand-in health store `window.__lcHealth`, dev only): calorie model with/without steps, per-person isolation, Disconnect, whose phone, guide, manifest · `v2240` onboarding + each consent switching its feature off · `v2250` sign-in options, individual store, household view, invites, pilot users, migration script (pure + emulator, dry run prints counts only) · `v2260` deploy workflow, deployable functions, App Check plumbing · `v2270` go-live switches.
 - Functions (`npm --prefix functions test`, 34): consent, Energy units, monthly grant, export, Vertex fallback, pilot invites, final rules (store, consent history, server-only paths, family pool, public flags).
 
-## 3. Test data
+### 2c. Final code drop sets (v2.28.0 – v2.30.1)
+- `tests/v2273.spec.js` + `areaHelpers.js` data by area and the family area · `v2282` App Check · `v2290` iPhone project (bundle, guard before resources, entitlements, privacy manifest, the project file parses, workflows), StoreKit client, Apple Health guide · `v2300` pilot features (one check-in per day, trends + text, HRT never sent to the AI and the rule on every request, GP summary facts-only → review → save → PDF, Bronze gate, the separate consent in onboarding and Settings) · `v2301` polish (Undo and its refusal, double-tap guard, bottom sheets, skeleton, phone text size + no sideways scroll at double-size text on six screens at 360 px, button spacing, chart text).
+- Functions (42): `apple.test.mjs` (a test certificate chain stands in for Apple: JWS verification, account tag, renewals reset Energy, refunds/expiry → Bronze, forged notices ignored, admin grants untouched), core (GP summary Silver+, AI consent, the HRT rule), rules per area.
+- iOS: the unsigned simulator build on GitHub macOS (`ios-build.yml`) on every push that touches the iPhone app; it also checks the pinned Apple root against the macOS keychain.
 - Seeded per test with **synthetic** data (`scripts/make-fixture.mjs`, two made-up people with the same data shapes; `npm run seed`); each test that changes data reseeds first. Seeding from the real backup is opt-in only (`SEED_REAL=1`), never by default (SAD-A9, v2.16.1).
 - Tests that need special shapes write them through the emulator's REST API (owner token), then reload.
 - No real photos: tests generate images in the browser (e.g. a phone-size image for the "under 1 MB" check).
@@ -84,7 +87,7 @@ Draft 1.1, 13 Nov 2026 (prod v2.15.1; Architect review applied). How changes are
 A test that fails once and passes on a rerun is **investigated, not ignored**: find the race (usually the app still saving while the test seeds data) and make the test wait for the right signal. Repeat it (`--repeat-each`) to confirm before carrying on.
 
 ## 6. Known gaps
-- No automated test on a real phone or on iOS; covered by JC's manual tests.
+- No automated test on a real phone; iOS is compile-checked in CI only (no simulator UI run). HealthKit, StoreKit, App Attest and native sharing need TestFlight (GO_LIVE_CHECKLIST G).
 - Real AI quality isn't tested automatically (mocked); prompts are reviewed and checked by hand on `/build/`.
 - Load time is measured, not tested continuously; see the Step 1b entries in HANDOVER.
 - Sign-in on a brand-new device (backlog S1) needs a manual release test on Windows, Mac, Android and iPhone before pilot users.
