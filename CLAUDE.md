@@ -40,6 +40,7 @@ npm run dev               # http://127.0.0.1:5173/Life-Care/ (uses the emulator)
 npm run lint              # ESLint: no-undef + React hooks rules, must show 0 errors
 npm test                  # Playwright smoke tests (emulator + mocked Claude API)
 ```
+**Commit gate (Architect, 18 Nov):** commit and push source ONLY with `scripts/ship.sh "<msg>"` — it runs lint, the full suite and the functions tests; any failure = no commit, no push. Never push on red.
 
 ## Deploy (since v2.1.0)
 A push to `main`, `beta` or `build` rebuilds all three into Pages: prod `/Life-Care/` (data `data`), `/beta/` (data `data`), `/build/` (data `data_build`). Only main's workflow deploys. Prod failures stop the deploy; beta/build failures skip that environment.
