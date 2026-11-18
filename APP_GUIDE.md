@@ -205,6 +205,7 @@ The overall **Companion Check-in** looks across everything (exercise, eating, bo
 
 ### My Body Stats
 Tracks body composition, usually from a smart scale:
+- **Weight** is shown in stones and pounds (14st 6.8lb). If an older weigh-in could mean two different weights (for example "14.11" could be 14st 1.1lb or 14st 11lb), it shows **⚠ Check this weigh-in** — open Weight → Progress → Open → Edit and save it as you meant it (type 14.110 for 14st 11.0lb).
 **Weight, Body Fat %, Muscle Mass, Muscle Rate %, Visceral Fat, Subcutaneous Fat %, Body Water %, Bone Mass, BMR (kcal), Body Age.** Each shows a status (e.g. Acceptable / Too High, Standard / High, Excellent) where relevant.
 
 - **📋 Record** — type in today's values. **My Notes** (e.g. "birthday week", "after a long flight") is saved with that weigh-in; every Companion allows for it when reading your numbers. Measurements have My Notes too.

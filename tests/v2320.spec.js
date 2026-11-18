@@ -54,7 +54,7 @@ test("pure: one reading per day (the earliest), the app's name, typed weigh-ins 
   expect(r.days["2026-11-16"]).toEqual({ kg: 71.8, source: "Fitdays", time: "07:05", fatPct: 24.1 });          // the earliest; a fraction → %
   expect(Object.keys(r.days).sort()).toEqual(["2026-11-02", "2026-11-09", "2026-11-16"]);                      // 999 kg ignored
   expect(r.days["2026-11-02"].source).toBe("Withings");
-  expect(r.weight).toEqual([{ wk: 16, v: 73.4 }, { wk: 17, v: r.code726, src: "Renpho", day: "2026-11-09" }, { wk: 18, v: r.code718, src: "Fitdays", day: "2026-11-16" }]);   // typed week 16 kept; imports in the app's stone format
+  expect(r.weight).toEqual([{ wk: 16, v: 73.4 }, { wk: 17, v: r.code726, src: "Renpho", day: "2026-11-09", kg: 72.6 }, { wk: 18, v: r.code718, src: "Fitdays", day: "2026-11-16", kg: 71.8 }]);   // v2.32.2: + canonical kg   // typed week 16 kept; imports in the app's stone format
   expect([r.code726, r.code718, r.code9298, r.lbl]).toEqual([11.61, 11.43, 14.9, "14st 9.0lb"]);              // 72.6 kg = 11st 6.1lb, 92.98 kg = 14st 9.0lb (as the Fitdays photo import writes)
   expect(r.fat.map((x) => x.wk)).toEqual([16, 17, 18]);                                                        // body fat for every imported week (none typed)
   expect([r.changed, r.again]).toEqual([true, false]);                                                         // re-reading the same days changes nothing

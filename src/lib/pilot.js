@@ -5,6 +5,7 @@
 import { buildFlag } from "./platform.js";
 import { consentBlocks } from "./accountConsent.js";
 
+import { readWeight } from "./weight.js";
 export function pilotOn() { return buildFlag("usePilotFeatures"); }
 /** Symptom + HRT tracking allowed (the joint account has no consent screen: allowed, as for the other opt-ins). */
 export function symptomsAllowed() { return !consentBlocks("symptoms"); }
@@ -88,7 +89,7 @@ export function gpFacts(p, from, to, areas) {
   if (on("hrt")) f.hrt = { current: hrtCurrent((p.hrt || []).filter(function(e) { return e.d <= to; })), events: inRange(p.hrt, from, to) };
   if (on("meds")) f.meds = (p.meds || []).filter(function(m) { return m.active !== false; }).map(function(m) { return [m.name, m.dose, m.freq, m.time].filter(Boolean).join(" · "); });
   if (on("vitals")) f.vitals = (Array.isArray(p.vitals) ? p.vitals : []).filter(function(v) { var d = dmy(v.date); return d >= from && d <= to; }).map(function(v) { return dmy(v.date) + (v.time ? " " + v.time : "") + ": " + vitalText(v); });
-  if (on("weight")) f.weight = ((p.body && p.body.weight) || []).map(function(w) { return { d: w.wk ? weekStart(w.wk) : dmy(w.d || w.date), v: w.v }; }).filter(function(w) { return w.d >= addDays(from, -6) && w.d <= to && w.v !== "" && w.v != null; }).map(function(w) { return "week of " + w.d + ": " + w.v + " kg"; });
+  if (on("weight")) f.weight = ((p.body && p.body.weight) || []).map(function(w) { var rw = readWeight(w); return { d: w.wk ? weekStart(w.wk) : dmy(w.d || w.date), v: rw ? Math.round(rw.kg * 10) / 10 : null }; })   /* v2.32.2: the shared reader (kg) */.filter(function(w) { return w.d >= addDays(from, -6) && w.d <= to && w.v !== "" && w.v != null; }).map(function(w) { return "week of " + w.d + ": " + w.v + " kg"; });
   if (on("notes")) f.notes = (Array.isArray(p.healthLog) ? p.healthLog : []).filter(function(h) { var d = dmy(h.date); return d >= from && d <= to; }).map(function(h) { return dmy(h.date) + ": " + h.note; });
   return f;
 }

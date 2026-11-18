@@ -5,12 +5,12 @@ import { btnFilledOn, btnProgress } from "../constants/styles.js";
 // v2.30.1 (FINAL DROP Part 6): every chart has a text alternative — a spoken summary (first → latest, lowest, highest)
 // and, under full charts, the numbers as text.
 var fmt = function(v) { return typeof v === "number" ? (v % 1 === 0 ? String(v) : v.toFixed(1)) : String(v); };
-export function seriesText(label, data) {
+export function seriesText(label, data, f) {   // v2.32.2: f = how a value is written
   var pts = (data || []).filter(function(d) { return typeof d.v === "number"; });
   if (!pts.length) return (label ? label + ": " : "") + "no data yet";
   var vals = pts.map(function(d) { return d.v; }), first = pts[0], last = pts[pts.length - 1];
   var wk = function(d) { return d.wk != null ? "week " + d.wk + " " : ""; };
-  return (label ? label + ": " : "") + (pts.length === 1 ? wk(last) + fmt(last.v) : "from " + wk(first) + fmt(first.v) + " to " + wk(last) + fmt(last.v) + " (lowest " + fmt(Math.min.apply(null, vals)) + ", highest " + fmt(Math.max.apply(null, vals)) + ", " + pts.length + " entries)");
+  return (label ? label + ": " : "") + (pts.length === 1 ? wk(last) + (f || fmt)(last.v) : "from " + wk(first) + (f || fmt)(first.v) + " to " + wk(last) + (f || fmt)(last.v) + " (lowest " + (f || fmt)(Math.min.apply(null, vals)) + ", highest " + (f || fmt)(Math.max.apply(null, vals)) + ", " + pts.length + " entries)");
 }
 export function MiniChart({ data, color, height = 48, width = 140, label }) {
   if (!data || data.length < 2) return null;
@@ -22,7 +22,7 @@ export function MiniChart({ data, color, height = 48, width = 140, label }) {
   return (<svg width={width} height={height} role="img" aria-label={"Chart. " + seriesText(label, data)} style={{ display: "block" }}><polyline points={pts} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />{vals.map((v, i) => <circle key={i} cx={(i / (vals.length - 1)) * width} cy={height - ((v - lo) / rng) * height} r="3.5" fill={color} />)}</svg>);
 }
 
-export function FullChart({ series, height = 160, title, refLine }) {
+export function FullChart({ series, height = 160, title, refLine, fmt: fmtV }) {   // v2.32.2: fmt = how a value is written (e.g. stones and pounds)
   const W = 320, PAD = 36, PR = 16, PB = 20, PT = 8;
   const cW = W - PAD - PR, cH = height - PB - PT;
   let allVals = [], allWks = [];
@@ -37,7 +37,7 @@ export function FullChart({ series, height = 160, title, refLine }) {
   return (
     <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: "10px 8px", marginBottom: 10 }}>
       {title && <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6, paddingLeft: 4 }}>{title}</div>}
-      <svg viewBox={"0 0 " + W + " " + height} role="img" aria-label={(title ? title + " chart. " : "Chart. ") + series.map(s => seriesText(s.label, s.data)).join(". ")} style={{ width: "100%", height: "auto" }}>
+      <svg viewBox={"0 0 " + W + " " + height} role="img" aria-label={(title ? title + " chart. " : "Chart. ") + series.map(s => seriesText(s.label, s.data, fmtV)).join(". ")} style={{ width: "100%", height: "auto" }}>
         {wks.map(wk => (<text key={wk} x={x(wk)} y={height - 4} textAnchor="middle" fontSize="9" fill="#94a3b8">W{wk}</text>))}
         {refLine && <line x1={PAD} x2={W - PR} y1={y(refLine)} y2={y(refLine)} stroke="#ef4444" strokeWidth="1" strokeDasharray="4,3" opacity="0.5" />}
         {refLine && <text x={PAD - 2} y={y(refLine) + 3} textAnchor="end" fontSize="8" fill="#ef4444">{refLine}</text>}
@@ -48,7 +48,7 @@ export function FullChart({ series, height = 160, title, refLine }) {
           return (<g key={si}>
             {pts.length > 1 && <polyline points={line} fill="none" stroke={s.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity={series.length > 3 ? 0.8 : 1} />}
             {pts.map((d, i) => <circle key={i} cx={x(d.wk)} cy={y(d.v)} r={series.length > 5 ? 2.5 : 3} fill={s.color} />)}
-            {series.length <= 3 && pts.map((d, i) => <text key={"t"+i} x={x(d.wk)} y={y(d.v) - 6} textAnchor="middle" fontSize="8" fill={s.color} fontWeight="600">{typeof d.v === "number" ? (d.v % 1 === 0 ? d.v : d.v.toFixed(1)) : d.v}</text>)}
+            {series.length <= 3 && pts.map((d, i) => <text key={"t"+i} x={x(d.wk)} y={y(d.v) - 6} textAnchor="middle" fontSize="8" fill={s.color} fontWeight="600">{fmtV ? fmtV(d.v) : typeof d.v === "number" ? (d.v % 1 === 0 ? d.v : d.v.toFixed(1)) : d.v}</text>)}
           </g>);
         })}
       </svg>
@@ -57,7 +57,7 @@ export function FullChart({ series, height = 160, title, refLine }) {
       </div>}
       <details data-testid="chart-as-text" style={{ marginTop: 4, paddingLeft: 4 }}>
         <summary style={{ fontSize: 11, color: "#475569", cursor: "pointer", minHeight: 24 }}>As text</summary>
-        <ul style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: 11, color: "#334155" }}>{series.map((s, i) => <li key={i}>{seriesText(s.label || title, s.data)}{s.data.filter(d => typeof d.v === "number").length > 1 ? " — " + s.data.filter(d => typeof d.v === "number").map(d => (d.wk != null ? "W" + d.wk + " " : "") + fmt(d.v)).join(", ") : ""}</li>)}</ul>
+        <ul style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: 11, color: "#334155" }}>{series.map((s, i) => <li key={i}>{seriesText(s.label || title, s.data, fmtV)}{s.data.filter(d => typeof d.v === "number").length > 1 ? " — " + s.data.filter(d => typeof d.v === "number").map(d => (d.wk != null ? "W" + d.wk + " " : "") + (fmtV || fmt)(d.v)).join(", ") : ""}</li>)}</ul>
       </details>
     </div>
   );

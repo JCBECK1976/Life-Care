@@ -3,6 +3,7 @@
 //   Goal = Body burn (BMR + daily living) + Aim (from the person's goal and timescale) + Exercise.
 import { MET, DEFAULT_MET, MIN_PER_SET, WEEKDAY, bmrOf, leanMass, dayFoodKcal, exerciseKcal, exerciseOn, heightCm, isMale, ageOf, isoDay, planOf,
   safeMinimum, settingsOf, stepsOn, toKg, weekDates, BASELINE_FACTOR, activeOn, sourceOn } from "./calories.js";
+import { entryKg } from "./weight.js";   // v2.32.2
 
 export var KCAL_PER_KG = 7700;
 export var WEEKS_PER_MONTH = 52 / 12;
@@ -35,8 +36,8 @@ export function activityOf(p) { var a = p && p.profile && p.profile.activityLeve
 
 /** Latest weight in kg: the newest weigh-in, else the weight given at setup. */
 export function currentKg(p) {
-  var w = ((p && p.body && p.body.weight) || []).filter(function(e) { return e && toKg(e.v); }).slice().sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
-  if (w.length) return toKg(w[w.length - 1].v);
+  var w = ((p && p.body && p.body.weight) || []).filter(function(e) { return e && entryKg(e); }).slice().sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
+  if (w.length) return entryKg(w[w.length - 1]);
   return num(p && p.profile && p.profile.weightKg);
 }
 export function bmiOf(kg, cm) { return kg && cm ? kg / Math.pow(cm / 100, 2) : null; }
@@ -276,11 +277,11 @@ export function progressOf(p, now) {
 /** In the healthy BMI range at every weigh-in of the last 6+ weeks (dated or by training week). */
 function healthySixWeeks(p, now) {
   var cm = heightCm(p); var r = healthyRange(cm); if (!r) return false;
-  var w = ((p.body && p.body.weight) || []).filter(function(e) { return e && toKg(e.v); });
+  var w = ((p.body && p.body.weight) || []).filter(function(e) { return e && entryKg(e); });
   if (w.length < 2) return false;
   var span = (w[w.length - 1].wk || 0) - (w[0].wk || 0);
   var recent = w.filter(function(e) { return (w[w.length - 1].wk || 0) - (e.wk || 0) <= 6; });
-  return span >= 6 && recent.every(function(e) { var k = toKg(e.v); return k >= r.minKg && k <= r.maxKg; });
+  return span >= 6 && recent.every(function(e) { var k = entryKg(e); return k >= r.minKg && k <= r.maxKg; });
 }
 /** A goal change the app (and the companions) may suggest. Suggestion only: the person accepts or dismisses. */
 export function goalSuggestion(p, now) {

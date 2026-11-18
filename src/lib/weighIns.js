@@ -13,6 +13,7 @@ import { buildFlag } from "./platform.js";
 import { planAllows } from "./myPlan.js";
 import { deviceSettings, saveDeviceSettings, getHealth } from "./steps.js";
 import { isoDay, trainingWeekOf } from "./calories.js";
+import { STONE_KG } from "./weight.js";
 
 export var WEIGH_TYPES = ["weight", "bodyFat"];
 export var FIRST_DAYS = 30, LATER_DAYS = 8;
@@ -61,13 +62,13 @@ export async function readWeighIns(health, days, now) {
 
 /** The app's weight format (as the Fitdays photo import): stones, then the pounds digits after the dot — 14st 6.8lb → 14.68.
  *  The weekly series (body.weight) is in this format for everyone, so imports use it too; the daily record keeps kg. */
-export var STONE_KG = 6.35029;
+export { STONE_KG };
 export function stCode(kg) {
   var stF = kg / STONE_KG, st = Math.floor(stF), lb = Math.round((stF - st) * 14 * 10) / 10;
   if (lb >= 14) { st += 1; lb = Math.round((lb - 14) * 10) / 10; }
   return parseFloat(st + "." + lb.toFixed(1).replace(".", ""));
 }
-export function stLabel(kg) { var stF = kg / STONE_KG, st = Math.floor(stF), lb = Math.round((stF - st) * 14 * 10) / 10; if (lb >= 14) { st += 1; lb -= 14; } return st + "st " + lb.toFixed(1) + "lb"; }
+export { stLabel } from "./weight.js";   // v2.32.2: one shared reader/labeller
 var isImported = function(e) { return !!(e && e.src); };
 /** Pure: put readings on one person; rebuild the imported weekly entries. Manual weekly entries are never changed. */
 export function mergeWeighIns(p, readings, now) {
@@ -88,7 +89,7 @@ export function mergeWeighIns(p, readings, now) {
       var v = series === "weight" ? stCode(r.kg) : r.fatPct; if (v == null) return;   // the series' own format (stones)
       var i = arr.findIndex(function(e) { return e.wk === wk; });
       if (i >= 0 && !isImported(arr[i])) return;   // a typed weigh-in wins
-      var next = { wk: wk, v: v, src: r.source, day: d };
+      var next = series === "weight" ? { wk: wk, v: v, src: r.source, day: d, kg: r.kg } : { wk: wk, v: v, src: r.source, day: d };   // v2.32.2: + canonical kg
       if (i >= 0) { if (arr[i].v !== v || arr[i].day !== d || arr[i].src !== r.source) { arr[i] = next; changed = true; } }
       else { arr.push(next); changed = true; }
     });

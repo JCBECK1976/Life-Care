@@ -15,6 +15,7 @@ export default function HistoryRows(props) {
   React.useEffect(function() { setOpen(null); }, [entries.length, setOpen]);       // a removed row never leaves a stale form open
   var shown = entries.map(function(e, i) { return { e: e, i: i }; }).reverse().slice(0, props.limit || 999);
   var fmt = function(v) { return v == null || v === "" ? "—" : String(v) + (unit ? " " + unit : ""); };
+  var show = function(e) { return props.fmt ? props.fmt(e) : fmt(e.v); };   // v2.32.2: weight shown by the shared reader
 
   var save = async function() {
     var d = open.draft; var wk = parseInt(d.wk); var v = parseFloat(d.v);
@@ -30,7 +31,7 @@ export default function HistoryRows(props) {
       return (<div key={r.i}>
         <div data-testid={pre + "-row"} style={{ display: "flex", gap: 6, alignItems: "center", padding: "4px 0", borderBottom: "1px solid #f1f5f9", fontSize: 11 }}>
           <span data-testid={pre + "-wk"} style={{ width: 40, color: "#475569", fontWeight: 600 }}>{e.wk}</span>
-          <span data-testid={pre + "-v"} style={{ flex: 1, minWidth: 0, fontWeight: 700, color: "#0f172a" }}>{fmt(e.v)}</span>
+          <span data-testid={pre + "-v"} style={{ flex: 1, minWidth: 0, fontWeight: 700, color: "#0f172a" }}>{show(e)}{props.badge && props.badge(e) ? <span data-testid={pre + "-badge"} style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 6, padding: "1px 6px" }}>⚠ {props.badge(e)}</span> : null}</span>
           <button aria-label={"Open week " + e.wk} onClick={function() { setOpen(isOpen ? null : { i: r.i, editing: false, msg: "", draft: { wk: String(e.wk), v: String(e.v), note: e.note || "" } }); }} style={btnOpen}>Open</button>
         </div>
         {isOpen && (function() {

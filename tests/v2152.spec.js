@@ -48,6 +48,6 @@ test("v2.15.2: every AI request from the app carries the medication rule (Chat a
   for (const b of real) expect(sys(b)).toContain(MEDICATION_RULE);
   for (const b of aiCalls.filter((b) => b && b.max_tokens === 1)) expect(JSON.stringify(b.messages)).toBe('[{"role":"user","content":"hi"}]');
   const help = aiCalls.find((b) => Array.isArray(b.system) && sys(b).includes("=== APP GUIDE ==="));
-  expect(help.system.at(-1).cache_control).toEqual({ type: "ephemeral" });
+  expect(help.system.at(-2).cache_control).toEqual({ type: "ephemeral" });   // v2.32.2: the fixed part (instructions + index); the matching sections follow
   expect(errors).toEqual([]);
 });

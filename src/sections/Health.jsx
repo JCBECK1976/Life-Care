@@ -9,6 +9,7 @@ import SymptomCheckIn from "../components/SymptomCheckIn.jsx";
 import HrtLog from "../components/HrtLog.jsx";
 import GpSummary from "../components/GpSummary.jsx";
 import { pilotOn, symptomsAllowed } from "../lib/pilot.js";
+import { latestLabel } from "../lib/weight.js";
 import { NOTE as CONSENT_NOTE } from "../lib/accountConsent.js";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
@@ -193,7 +194,7 @@ export default function HealthSection({ ctx }) {
             var mi = activeMeds.map(function(m) { return m.name + " " + (m.dose || "") + " " + (m.freq || "") + (m.notes ? " (" + m.notes + ")" : ""); }).join(", ") || "None";
             var bi = "";
             if (p.bloods && p.bloods.length > 0) { var lat = p.bloods[p.bloods.length - 1]; bi = "Latest (" + lat.date + "): " + Object.entries(lat.tests).map(function(e) { var def = allTests.find(function(t) { return t.key === e[0]; }); return (def ? def.name : e[0]) + "=" + e[1] + (def ? def.unit : ""); }).join(", "); }
-            var bdi = ""; if (p.body && p.body.weight && p.body.weight.length > 0) { bdi = "Weight: " + p.body.weight[p.body.weight.length-1].v + (p.body.bodyFat && p.body.bodyFat.length > 0 ? ", BF: " + p.body.bodyFat[p.body.bodyFat.length-1].v + "%" : "") + (p.body.visceralFat && p.body.visceralFat.length > 0 ? ", Visceral: " + p.body.visceralFat[p.body.visceralFat.length-1].v : ""); }
+            var bdi = ""; if (p.body && p.body.weight && p.body.weight.length > 0) { bdi = "Weight: " + latestLabel(p.body.weight) + (p.body.bodyFat && p.body.bodyFat.length > 0 ? ", BF: " + p.body.bodyFat[p.body.bodyFat.length-1].v + "%" : "") + (p.body.visceralFat && p.body.visceralFat.length > 0 ? ", Visceral: " + p.body.visceralFat[p.body.visceralFat.length-1].v : ""); }
             var prompt = "You are " + who + "'s Lifecare Companion — a trusted, knowledgeable friend reviewing your health data together. Speak directly to " + who + " using 'you' and 'your' throughout — NEVER use their name in the third person. You are their trusted friend, not an assessor writing a report.\n\nCOMMUNICATION STYLE: Be pragmatic, warm, non-judgemental and direct like a mate who happens to have clinical knowledge. NEVER be preachy. Frame concerns as information they can act on, not alarms. " + TONE_RULES + getMoodContext(userMood) + " Reference actual numbers.\n\nHealth profile: " + hp + "\nCurrent health: " + hn + "\nRecent log: " + hl + "\nMedications: " + mi + "\nBloods: " + bi + "\nBody: " + bdi + getOnboardingCtx(activeTab) + getCrossSectionCtx(activeTab, "health") + "\n\nRules: Keep each item under 20 words. Address the user as 'you' throughout — never third person. Check drug interactions. Label sources [OFFICIAL] or [ANECDOTAL]. Never recommend stopping meds.\nReturn ONLY compact JSON: {\"summary\":\"1-2 sentences\",\"concerns\":[\"short item\"],\"positives\":[\"short item\"],\"actions\":[\"short item\"],\"meds\":\"brief interaction notes\"}";
             try {
               var bodyStr = JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] });
