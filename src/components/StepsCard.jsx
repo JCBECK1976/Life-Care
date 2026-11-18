@@ -45,7 +45,7 @@ export default function StepsCard(props) {
   var who = people.find(function(x) { return x.key === st.person; });
   var today = st.person && data && data[st.person] && data[st.person].dailyActivity && data[st.person].dailyActivity[isoDay(new Date())];
   var update = function(patch) { setSt(saveDeviceSettings(patch)); };
-  useEffect(function() { var on = function() { setSt(deviceSettings()); }; window.addEventListener("lc-steps-sync", on); return function() { window.removeEventListener("lc-steps-sync", on); }; }, []);
+  useEffect(function() { var on = function() { setSt(deviceSettings()); }; window.addEventListener("lc-steps-sync", on); window.addEventListener("lc-health-settings", on); return function() { window.removeEventListener("lc-steps-sync", on); window.removeEventListener("lc-health-settings", on); }; }, []);
 
   if (!planAllows("healthSync")) return (<div data-testid="steps-card" style={card}><div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>👟 Connect my steps</div><GatePrompt feature="healthSync" /></div>);
 

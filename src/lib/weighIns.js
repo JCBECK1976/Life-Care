@@ -5,7 +5,7 @@
 // - ONE reading per person per day: the earliest of the day (the morning weigh-in), with its body fat and the app it
 //   came from ("from Fitdays"): data[person].weighIns["YYYY-MM-DD"] = { kg, fatPct?, source, time, at }.
 // - Every screen, chart, the rolling Katch-McArdle BMR, goals and feedback read the weekly series body.weight /
-//   body.bodyFat ([{ wk, v }]). Each training week gets the LATEST imported day of that week, marked
+//   body.bodyFat ([{ wk, v }], weight in the app's stone format — see stCode). Each training week gets the LATEST imported day of that week, marked
 //   { wk, v, src, day } — unless the person typed a weigh-in for that week: manual entries always win, and the import
 //   is shown as "also recorded".
 // - Disconnect stops the import and can delete the imported readings; typed ones are never touched.
@@ -59,6 +59,15 @@ export async function readWeighIns(health, days, now) {
   return perDay(await q("weight"), await q("bodyFat"));
 }
 
+/** The app's weight format (as the Fitdays photo import): stones, then the pounds digits after the dot — 14st 6.8lb → 14.68.
+ *  The weekly series (body.weight) is in this format for everyone, so imports use it too; the daily record keeps kg. */
+export var STONE_KG = 6.35029;
+export function stCode(kg) {
+  var stF = kg / STONE_KG, st = Math.floor(stF), lb = Math.round((stF - st) * 14 * 10) / 10;
+  if (lb >= 14) { st += 1; lb = Math.round((lb - 14) * 10) / 10; }
+  return parseFloat(st + "." + lb.toFixed(1).replace(".", ""));
+}
+export function stLabel(kg) { var stF = kg / STONE_KG, st = Math.floor(stF), lb = Math.round((stF - st) * 14 * 10) / 10; if (lb >= 14) { st += 1; lb -= 14; } return st + "st " + lb.toFixed(1) + "lb"; }
 var isImported = function(e) { return !!(e && e.src); };
 /** Pure: put readings on one person; rebuild the imported weekly entries. Manual weekly entries are never changed. */
 export function mergeWeighIns(p, readings, now) {
@@ -76,7 +85,7 @@ export function mergeWeighIns(p, readings, now) {
     var arr = p.body[series];
     Object.keys(byWeek).forEach(function(wkS) {
       var wk = Number(wkS), d = byWeek[wkS], r = p.weighIns[d];
-      var v = series === "weight" ? r.kg : r.fatPct; if (v == null) return;
+      var v = series === "weight" ? stCode(r.kg) : r.fatPct; if (v == null) return;   // the series' own format (stones)
       var i = arr.findIndex(function(e) { return e.wk === wk; });
       if (i >= 0 && !isImported(arr[i])) return;   // a typed weigh-in wins
       var next = { wk: wk, v: v, src: r.source, day: d };

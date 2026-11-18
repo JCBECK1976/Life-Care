@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { planAllows } from "../lib/myPlan.js";
 import { deviceSettings, saveDeviceSettings, getHealth, nativeSource } from "../lib/steps.js";
-import { alsoRecorded, connectWeighIns, manualCount, syncWeighIns, weighInsOn } from "../lib/weighIns.js";
+import { alsoRecorded, connectWeighIns, manualCount, stLabel, syncWeighIns, weighInsOn } from "../lib/weighIns.js";
 import { trainingWeekOf } from "../lib/calories.js";
 import { SCALES_APPS } from "./HealthSetup.jsx";
 
@@ -56,7 +56,7 @@ export default function WeighInsPanel({ p, data, activeTab, saveData }) {
       <div style={{ fontWeight: 700 }}>⚖️ Weigh-ins from your scales</div>
       {days.map(function(d) { var r = p.weighIns[d]; var also = alsoRecorded(p, trainingWeekOf(new Date(d + "T12:00:00")));
         return (<div key={d} data-testid="weighin-row" style={{ fontSize: 12, padding: "4px 0", borderTop: "1px solid #dcfce7" }}>
-          <b>{nice(d)}</b> {r.time ? "· " + r.time + " " : ""}· {r.kg} kg{r.fatPct != null ? " · " + r.fatPct + "%" : ""} <span style={{ color: "#475569" }}>· from {r.source}</span>
+          <b>{nice(d)}</b> {r.time ? "· " + r.time + " " : ""}· {stLabel(r.kg)} ({r.kg} kg){r.fatPct != null ? " · " + r.fatPct + "%" : ""} <span style={{ color: "#475569" }}>· from {r.source}</span>
           {also && also.day === d && <div data-testid="also-recorded" style={{ color: "#475569" }}>Also recorded — your typed weigh-in for week {trainingWeekOf(new Date(d + "T12:00:00"))} is the one used.</div>}
         </div>); })}
     </div>}

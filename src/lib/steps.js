@@ -31,6 +31,7 @@ export function deviceSettings() {
 export function saveDeviceSettings(patch) {
   var s = Object.assign(deviceSettings(), patch || {});
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* private mode: works for this session only */ }
+  try { window.dispatchEvent(new CustomEvent("lc-health-settings")); } catch (e) { /* no window in tests */ }   // v2.32.0: open cards refresh
   return s;
 }
 
