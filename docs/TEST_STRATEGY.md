@@ -64,6 +64,10 @@ Draft 1.1, 13 Nov 2026 (prod v2.15.1; Architect review applied). How changes are
 | Warnings and refresh (v2.18.3, `tests/v2183.spec.js`) | ⚠️ warning matches the displayed personal rating (stored GREAT, shown RED → RED monthly warning); refresh changes current + future weeks only, past unchanged; second run changes nothing |
 | Recommended target (v2.18.1, `tests/v2181.spec.js`) | Body-fat method 85.6 (83.5–87.8), Becks-like 64.2, age 30 → 82.5; BMI fallback 74.3 estimate; floor at BMI 18.5; accept vs own (note, both stored, companion context); ≥ 2 kg move → suggestion; UI: no free entry first, BMI block |
 
+### 2b. Overnight batch sets (v2.22.3 – v2.27.1)
+- `tests/v2222.spec.js` preview bar, See plans, Snap gate, info prompts, Energy bar · `v2230` Health Connect (stand-in health store `window.__lcHealth`, dev only): calorie model with/without steps, per-person isolation, Disconnect, whose phone, guide, manifest · `v2240` onboarding + each consent switching its feature off · `v2250` sign-in options, individual store, household view, invites, pilot users, migration script (pure + emulator, dry run prints counts only) · `v2260` deploy workflow, deployable functions, App Check plumbing · `v2270` go-live switches.
+- Functions (`npm --prefix functions test`, 34): consent, Energy units, monthly grant, export, Vertex fallback, pilot invites, final rules (store, consent history, server-only paths, family pool, public flags).
+
 ## 3. Test data
 - Seeded per test with **synthetic** data (`scripts/make-fixture.mjs`, two made-up people with the same data shapes; `npm run seed`); each test that changes data reseeds first. Seeding from the real backup is opt-in only (`SEED_REAL=1`), never by default (SAD-A9, v2.16.1).
 - Tests that need special shapes write them through the emulator's REST API (owner token), then reload.
@@ -84,4 +88,4 @@ A test that fails once and passes on a rerun is **investigated, not ignored**: f
 - Real AI quality isn't tested automatically (mocked); prompts are reviewed and checked by hand on `/build/`.
 - Load time is measured, not tested continuously; see the Step 1b entries in HANDOVER.
 - Sign-in on a brand-new device (backlog S1) needs a manual release test on Windows, Mac, Android and iPhone before pilot users.
-- No automated accessibility checks yet: add `@axe-core/playwright` on the main screens (plan P6).
+- Health Connect and Play Billing are tested with stand-ins; the real Android flows need a device test from Play internal testing (GO_LIVE_CHECKLIST B/E).
