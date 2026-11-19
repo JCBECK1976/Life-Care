@@ -113,12 +113,14 @@ Listing, privacy answers and App Review notes: [APP_STORE_LISTING.md](APP_STORE_
 58l. **JC** — App Store Connect → the app → App Information → **App Store Server Notifications** → Version 2 → production and sandbox URL = the `appleNotify` function URL (shown after the deploy; ask the Architect).
 58m. **JC** — GitHub → Actions → **"iOS → TestFlight (manual)"** → Run workflow. Then App Store Connect → TestFlight → **Internal testing** → add JC and Becks → install TestFlight on the iPhone (J17: the spare iPhone) → install the app.
 58n. **Check (JC):** sign in with Apple; Settings → Connect my steps shows today's steps; My Plan → buy Silver with a sandbox tester (no real money) → the plan changes within a minute; Delete my account with a throwaway account → signing in again starts empty. Tell the Architect the result.
+58o. **JC** — Identifiers → the App ID → tick **Declared Age Range** (v2.35.0, under-18 check) → save; tell the Coder, who then adds the entitlement (until then the app uses the 18+ confirmation only). App Store Connect → Age rating → **Override to higher age rating → 18+**.
 59. **JC** — **J17**: confirm the spare iPhone can be used for testing (needed for 58m–58n).
 59a. **JC** — the **store-review demo account** (both stores): a Google account only for review → Settings → 🧾 Store review demo account → Create (after the functions deploy, before that account first signs in) → sign in once with it to check → put it in Play "App access" and App Review "Sign-in information" (PLAY_LISTING §4).
 
 ---
 
 ## H. Open items (the Coder can do these; none blocks A–F unless noted)
+- **Advertising ID permissions in the Android app (found 18 Nov, not changed):** the Google/Apple sign-in plugin brings Facebook's SDK, which adds `AD_ID` and the Privacy Sandbox `ACCESS_ADSERVICES_*` permissions. We don't use Facebook sign-in or ads. Before the Play Data safety form is final: remove them (manifest `tools:node="remove"`, or leave Facebook out of the plugin build) — Architect decision; the Coder can do it as a small fix.
 - **App Check:** web (step 30), Android Play Integrity (J23, v2.28.2) and iPhone App Attest (58f, v2.29.0) are built; keep `ENFORCE_APP_CHECK=false` until all show requests, then set it to `true` in the `production` environment and redeploy (rollback: back to `false`).
 - **Families of new accounts, hidden members, per-area sharing** — done (v2.27.3, v2.28.0–v2.28.1). The data layout is final for the pilot (ADR 0018).
 - **iOS** — built (v2.29.0, compiles in CI); account steps in section G (J15). The Apple root fingerprint pin is checked on every iOS CI build.

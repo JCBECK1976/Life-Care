@@ -70,8 +70,9 @@ Notes for the form:
 | Section | Answer |
 |---|---|
 | Ads | No ads |
-| Content rating (IARC questionnaire) | Health & fitness reference; no violence, sexual content, gambling or user-to-user chat → expect PEGI 3 / Everyone |
-| Target audience | 18 and over |
+| Content rating (IARC questionnaire) | Answer it truthfully (health & fitness information; no violence, sexual content, gambling or user-to-user chat). **Play doesn't let an app pick a higher rating than the questionnaire gives** (expect PEGI 3 / Everyone); the adult-only limit is set by the target audience below and enforced in the app (v2.35.0). |
+| Target audience | **18 and over only** (tick no younger age groups). "Could the app unintentionally appeal to children?" → **No**. Not in the Families programme, not Teacher Approved. (Architect, cyber review 18 Nov.) |
+| Age signals (v2.35.0) | The app asks the **Play Age Signals API** at sign-up and refuses accounts Play says are under 18 (nothing stored); otherwise the 18+ confirmation applies. Nothing to switch on in the Console; declare it if the App content → Age signals section asks. |
 | News app | No |
 | COVID-19 contact tracing | No |
 | Government app | No |

@@ -11,7 +11,8 @@
 | SKU | `lifecare-ios` |
 | Primary language | English (U.K.) |
 | Category | Health & Fitness (secondary: Lifestyle) |
-| Age rating | Answer the questionnaire as it is (no violence, gambling, user-to-user chat; health/wellness information only). The app itself requires 18+ at sign-up (onboarding). |
+| Age rating | Answer the questionnaire truthfully (no violence, gambling, user-to-user chat; health/wellness information only), then choose **Override to higher age rating → 18+** (the highest; Architect, cyber review 18 Nov). The app also requires 18+ at sign-up (onboarding) and, on iOS 26+, asks **Declared Age Range** first and refuses under-18 accounts (v2.35.0). |
+| Declared Age Range (v2.35.0) | Before TestFlight: Certificates, Identifiers & Profiles → the App ID → enable **Declared Age Range**; then the Coder adds the `com.apple.developer.declared-age-range` entitlement to `ios/App/App/App.entitlements` (left out until then so signing doesn't fail). Until both are done the app falls back to the 18+ confirmation. |
 | Privacy policy URL | `https://jcbeck1976.github.io/Life-Care/privacy-policy.html` |
 | Account deletion | In the app: Settings → Privacy & your data → Delete my account. Web: `https://jcbeck1976.github.io/Life-Care/delete-account.html` |
 | Support URL | `https://jcbeck1976.github.io/Life-Care/` |

@@ -22,6 +22,7 @@ To contact us about your data, use the contact address shown in the app (Setting
   - your **goal** (e.g. "Work towards a healthy body weight"), its timescale and optional **target weight**, and your **typical activity level**;
   - the **health conditions** you record in My Health (used for the "Support my health" goal and by the Companion).
 - **From Google Health or Apple Health, only if you connect it:** your **daily steps** and **daily total calories burned** (one figure per day each; no location, heart rate or other readings).
+- **Your age band from your app store, at sign-up only (Android and iPhone apps):** we ask Google Play or Apple whether your account is for someone 18 or over, so we can turn away under-18 accounts. The answer is used once, on your phone, and **not stored**. *(Added v2.35.0 — for legal review.)*
 - **Worked out by the app from your data:** your estimated **BMR** (calories your body uses at rest), calorie goal and activity credit. These are calculated when shown and not stored separately.
 - **AI usage counts:** how many AI requests were made and how many tokens they used, per day and feature. No content is kept in these counts.
 - **Feedback:** what you send with 💬 Send Feedback, and the app owner's notes on it in the Tracker. This includes your account in masked form, the app version and the text.
