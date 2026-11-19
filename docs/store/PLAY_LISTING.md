@@ -52,11 +52,13 @@ From **v2.23.0** the Android app reads steps from Health Connect (Settings → *
 | Photos and videos → **Photos** (food and body photo checks) | Yes | No | **Yes** — analysed and discarded, never stored | Optional | App functionality |
 | App activity → **Other user-generated content** (journal, mood, Companion chats, feedback) | Yes | No | No | Optional | App functionality |
 | App activity → **Other actions** (AI usage counts per day and feature, no content) | Yes | No | No | Required | App functionality |
-| Location, contacts, messages, financial info, device IDs, web browsing, audio, calendar, files | No | — | — | — | — |
+| Location, contacts, messages, financial info, **device or other IDs (incl. advertising ID)**, web browsing, audio, calendar, files | No | — | — | — | — |
 
 Notes for the form:
 - **"Shared" is No** for every type: Google (Firebase hosting/database/sign-in) and Anthropic (AI processing) act as **service providers / processors**, which Play does not count as sharing.
 - **No advertising, no sale, no tracking or analytics SDKs.**
+- **Advertising ID** (Play Console → App content → **Advertising ID**): "Does your app use advertising ID?" → **No**. From **v2.35.1** the app declares no `AD_ID` permission (and no Privacy Sandbox `ACCESS_ADSERVICES_*` or install-referrer permission): Facebook is left out of the sign-in plugin and the manifest removes them; `tests/v2351.spec.js` keeps them out. Upload an AAB built from v2.35.1 or later before answering No, or Play rejects the release (*"This release includes the AD_ID permission"*).
+- **Device or other IDs: No** (no advertising ID, no device ID collected).
 - Data is **not** used for advertising, marketing or personalisation beyond the user's own feedback.
 - Security section: encrypted in transit (HTTPS/TLS); deletion request available; the app follows Play's Families policy — **not** directed at children (target audience 18+).
 

@@ -120,7 +120,7 @@ Listing, privacy answers and App Review notes: [APP_STORE_LISTING.md](APP_STORE_
 ---
 
 ## H. Open items (the Coder can do these; none blocks A–F unless noted)
-- **Advertising ID permissions in the Android app (found 18 Nov, not changed):** the Google/Apple sign-in plugin brings Facebook's SDK, which adds `AD_ID` and the Privacy Sandbox `ACCESS_ADSERVICES_*` permissions. We don't use Facebook sign-in or ads. Before the Play Data safety form is final: remove them (manifest `tools:node="remove"`, or leave Facebook out of the plugin build) — Architect decision; the Coder can do it as a small fix.
+- ~~**Advertising ID permissions in the Android app**~~ — removed in **v2.35.1** (Architect decision 19 Nov): Facebook left out of the sign-in plugin + manifest remove rules; test `tests/v2351.spec.js`. Play Console → App content → Advertising ID → **No** (PLAY_LISTING §3).
 - **App Check:** web (step 30), Android Play Integrity (J23, v2.28.2) and iPhone App Attest (58f, v2.29.0) are built; keep `ENFORCE_APP_CHECK=false` until all show requests, then set it to `true` in the `production` environment and redeploy (rollback: back to `false`).
 - **Families of new accounts, hidden members, per-area sharing** — done (v2.27.3, v2.28.0–v2.28.1). The data layout is final for the pilot (ADR 0018).
 - **iOS** — built (v2.29.0, compiles in CI); account steps in section G (J15). The Apple root fingerprint pin is checked on every iOS CI build.
