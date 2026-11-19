@@ -55,6 +55,7 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation "androidx.biometric:biometric:1.1.0"   // v2.33.0: the app lock (BiometricPrompt)
+    implementation "com.google.android.play:age-signals:0.0.4"   // v2.35.0: Play Age Signals (under-18 check at onboarding)
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"

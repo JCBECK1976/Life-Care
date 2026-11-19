@@ -26,7 +26,7 @@ async function phone(page, o = {}) {
         return { samples: out };
       },
       readSamples: async (q) => {
-        window.__hc.asked.push("read:" + q.dataType + ":" + Math.round((new Date(q.endDate) - new Date(q.startDate)) / 86400000));
+        window.__hc.asked.push("read:" + q.dataType + ":" + Math.ceil((new Date(q.endDate) - new Date(q.startDate)) / 86400000));
         const ws = o.weights || [];
         return { samples: ws.filter((w) => q.dataType === "weight" || w[3] != null).map((w) => ({ dataType: q.dataType, value: q.dataType === "weight" ? w[2] : w[3], unit: q.dataType === "weight" ? "kilogram" : "percent", startDate: at(w[0], w[1]), endDate: at(w[0], w[1]), sourceName: w[4] || "com.fitdays.fitdays" })) };
       },

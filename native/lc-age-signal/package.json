@@ -1,0 +1,8 @@
+{
+  "name": "lc-age-signal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "v2.35.0: the store age signal for the iPhone app (Declared Age Range, iOS 26+). Android has its own LcAgeSignalPlugin in android/app.",
+  "main": "index.js",
+  "capacitor": { "ios": { "src": "ios" } }
+}

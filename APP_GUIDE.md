@@ -586,7 +586,7 @@ Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
 
 ### 🔐 Starting out with your own account (being tested on Build)
 When someone signs in with **their own account** for the first time (never JC and Becks's shared account), the app asks three short things before the goal setup:
-1. **Your age:** Lifecare Companion is for people **18 and over**; under 18 the app stops there and saves nothing.
+1. **Your age:** Lifecare Companion is for people **18 and over**; under 18 the app stops there and saves nothing. In the Android and iPhone apps, the app first asks your app store (Google Play, or Apple on iOS 26 and later) whether the account is for an adult; if the store says under 18, the app explains it can't set up an account and saves nothing. Otherwise you confirm your age as usual. The app store's answer is not stored.
 2. **Terms and privacy:** read the Privacy Notice and Terms, then agree. The versions you agreed to are recorded.
 3. **Your choices**, each separate and **off until you turn it on**: **AI processing** (the Companion's feedback, ratings and answers), **photo analysis** (needs AI), **health sync** (steps), **body balance checks** (needs AI and photos).
 Then the usual goal setup. **Without AI processing the app still works for manual tracking** (like Bronze), whatever your plan, with a calm note where an AI feature would be and a **Privacy choices** button.
