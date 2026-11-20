@@ -2940,3 +2940,10 @@ Sizes are % of a weekly allowance, including Architect checks.
 **Decisions (Coder, v2.35.1):** both mechanisms, not one — the provider switch removes the cause (Facebook's code and permissions), the manifest rules stop any future library re-adding them; Twitter left as it was (no SDK, no permissions; out of scope).
 - **JC to test:** next internal-track build: Google sign-in still works on Android.
 - **Resume point:** `build` @ `690f716` (v2.35.1); main @ this commit. Next: the Architect verifies /build/; Apple capability (GO_LIVE 58o). Do NOT merge to beta or main without JC.
+
+### (Architect) 20 Nov 2026 21:40 — JC paused (token limit); resume order after the weekly reset
+1. **v2.35.2 (sent):** revert the 44 px buttons to the beta v2.20.2 look (WCAG AA 24 px; only the picker lists stay large — Architect's spec error), plus the exercise "why" lines, status pills, the last-week Companion feedback panel and the history "Your Companion said". **Then the Architect and JC revisit the progression rules at the week reset** (rep reset to the bottom of the range, below-range handling, how recommendations carry into the next week).
+2. **Beta:** JC tests Build against Beta on his phone → backup → build → beta → 21-line RELEASE_v2.30_CHECKLIST → Prod.
+3. **Store and console setup with the Architect:** J16 Play Console, J15 Apple Developer, J18 upload key, then J19–J22 and the Firebase/Google Cloud steps after Prod.
+4. **Cyber review:** Adam's feedback on the remaining documents expected after the weekend (v1.2 of DPIA, risk register and supplier register already sent).
+5. **Queued for JC to send:** onboarding choice + guided first use (about 5–8%), held until next week.
