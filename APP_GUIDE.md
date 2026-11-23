@@ -260,7 +260,7 @@ At the bottom of My Body. It's off until you tap **Turn on body balance checks**
 
 ### An exercise card
 - **Name** and the latest **weight · reps** (e.g. 40kg · 12x3), plus the exercise type if not weights.
-- **Status badge**, set by your session feedback:
+- **Status badge** on every exercise, set by your session feedback (until then, worked out from your logged sets):
   | Status | Meaning |
   |---|---|
   | **Building** | Below your rep target; keep building reps at this weight. |
@@ -269,6 +269,11 @@ At the bottom of My Body. It's off until you tap **Turn on body balance checks**
   | **Moved Up** | Weight has been increased. |
   | **Maintaining** | Deliberately holding at this weight. |
   | **Reduce** | Weight has been dropped (e.g. form or recovery). |
+  | **Building back up** | Your last sets were below your rep range; stay at this weight and build back into the range. |
+- **Range and why** — under the badge: your rep range (e.g. **Range 12–15**) and one line on why this is your target, e.g. *"Moved up to 29 kg: reps restart at the bottom of your range (12) and build to 15"* or *"Below range (8/8/6): stay at 29 kg, aim for 12/12/12; drop one step if form slips"*.
+- **Skipped** — one tap if you didn't do an exercise this week (strength or cardio). It saves the week as skipped, with an optional **Why?** note; it doesn't count towards your progression (status and next weight stay as they were) and isn't a failure. Tap **Undo** in the message to take it back, or **📋 Log** the week later to replace it. Skipped weeks show greyed in Progress. After three skips in a row the card gently suggests swapping the exercise or asking your Companion for an alternative.
+- **Last week's Companion feedback** — at the top of each session day: tap to see last week's recommendation for each exercise, and whether you accepted it.
+- **Open a week** (in Progress) shows **Your Companion said (week N)**: that week's recommendation, whether you accepted it, and the progression note — or *"No Companion feedback recorded this week"*.
 - **📋 NOTES FROM LAST SESSION** — notes you left last time, carried forward.
 - **👁 Progress** (violet outline) — opens the progress panel.
 - **📋 Log** (green outline) — opens the log form.
@@ -676,7 +681,7 @@ At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature
 - **Progression rules** — when to add reps or weight for an exercise.
 - **Full Range / Completed in One / Good Form** — session quality toggles.
 - **Eccentric tempo** — the lowering phase of a lift, done slowly (about 3 seconds) for control and training effect.
-- **Status** — Building, Consolidating, Ready to Move, Moved Up, Maintaining, Reduce.
+- **Status** — Building, Consolidating, Ready to Move, Moved Up, Maintaining, Reduce, Building back up.
 - **Stopped exercise** — paused, hidden, view-only until restarted.
 - **Open form** — the read-only view of a saved entry, with Edit, Remove/Delete and Close.
 - **Remove / Delete** — Remove takes something out of a week, meal or history; Delete permanently deletes a list item or measurement type.

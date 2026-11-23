@@ -52,6 +52,7 @@ export async function openApp(page, who = "jc") {
   await page.route(/openfoodfacts\.org/, (r) => r.fulfill({ status: 200, contentType: "application/json", body: '{"products":[]}' }));
   await gotoSignedIn(page, who);
   await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
+  await page.waitForFunction(() => window._lcLinkedFeedback !== undefined, null, { timeout: 5000 }).catch(() => {});   // v2.37.0: the one-time feedback link has been saved
   return { errors, aiCalls };
 }
 

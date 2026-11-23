@@ -5,6 +5,7 @@ import { takePending, noteSave, offerUndo, undoLabel } from "./lib/undo.js";
 import { readWeight, withKg, aiBody, unitOf, fmtWeight, weighInEntry } from "./lib/weight.js";
 import { faqEntries, helpIndex, helpSections } from "./lib/faq.js";
 import React from "react";
+import { linkSessionFeedback } from "./lib/exerciseWhy.js";
 import { bodyNotesCtx } from "./lib/bodyNotes.js";
 import { allowedBy, consentActive, loadConsent, needsConsent } from "./lib/consent.js";
 import ConsentScreen from "./components/ConsentScreen.jsx";
@@ -494,6 +495,15 @@ function Dashboard() {
 
   // Scroll to log form when opened
   useEffect(() => { if (logEx && logFormRef.current) logFormRef.current.scrollIntoView({ behavior: "smooth", block: "start" }); }, [logEx]);
+  /* v2.37.0 (brief P2 d): stored session feedback that isn't linked to its week + exercise yet is linked once (additive:
+     an entry's own feedback is never overwritten). The counts per person are kept in window._lcLinkedFeedback. */
+  const linkedFbRef = useRef(false);
+  useEffect(() => {
+    if (linkedFbRef.current || !data || !sessionFeedback) return;
+    linkedFbRef.current = true;
+    var nd = JSON.parse(JSON.stringify(data)), counts = linkSessionFeedback(nd, sessionFeedback);
+    if (Object.keys(counts).length) saveData(nd).then(function() { window._lcLinkedFeedback = counts; }); else window._lcLinkedFeedback = counts;
+  }, [data, sessionFeedback]);   // eslint-disable-line react-hooks/exhaustive-deps
   // Scroll back to exercise after save
   useEffect(() => {
     if (scrollTarget) {
@@ -873,7 +883,7 @@ function Dashboard() {
     setLogWeek(String(currentCalcWk2));
     // If the current week is already logged, the form opens that entry for editing (never a new log over it)
     var _cwi = findWeekIdx(ex.prog, currentCalcWk2);
-    var currentWkEntry = _cwi >= 0 ? ex.prog[_cwi] : null;
+    var currentWkEntry = _cwi >= 0 && !ex.prog[_cwi].skipped ? ex.prog[_cwi] : null;   // v2.37.0: a skipped week is logged as new (the log replaces the skip)
     window._lcEditWk = currentWkEntry ? currentCalcWk2 : null;
     if (currentWkEntry) {
       setLogSets(logSetsFrom(currentWkEntry, 3)); // D2: per-set
@@ -925,6 +935,7 @@ function Dashboard() {
     } else {
       // New entry - check for duplicates
       var logWk = parseInt(logWeek) || calcWeek(data.config.trainingStart);
+      ex.prog = (ex.prog || []).filter(function(e) { return !(e.skipped && (parseInt(e.wk, 10) || 0) === logWk); });   // v2.37.0: logging a skipped week replaces the skip
       var existingIdx = findWeekIdx(ex.prog, logWk); // D23: same week source as the Log form
       if (existingIdx >= 0) {
         var action = confirm("Week " + logWk + " already has an entry for " + ex.name + " (" + ex.prog[existingIdx].w + " " + ex.prog[existingIdx].r + ").\n\nOK = Update existing entry\nCancel = Go back");

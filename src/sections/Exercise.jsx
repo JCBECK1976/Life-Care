@@ -8,6 +8,8 @@ import { scrollOnMount } from "../lib/scrollIntoView.js";
 import { applyNextValue, displayCurrent, latestEntry, measureOf, nextLogPrefill, parseProgressionValue, progressionNote, progressionRange, resolveTargetWeight, setWeekNote, tidyNotes } from "../lib/exercise.js";
 import { attachCompanion, companionFromSession, sameExercise, setCompanionDecision, entrySets, findWeekIdx, previousEntry, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsDiffer, setsToSave, syncAfterProgChange, weightLabel } from "../lib/exercise.js";
 import React from "react";
+import { displayStatus, whyLine, rangeLabel, skipEntry, skipCheckIn, weekFeedback, weekNote, isSkipped } from "../lib/exerciseWhy.js";
+import { autoStatus } from "../lib/exercise.js";
 import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
 import { btnAction, btnActionLg, btnDelete, btnEdit, btnFilledOn, btnLog, btnMuted, btnOpen, btnP, btnProgress, btnS, inputStyle, labelStyle } from "../constants/styles.js";
 import { FullChart } from "../components/charts.jsx";
@@ -122,17 +124,19 @@ export default function ExerciseSection({ ctx }) {
           };
           const openEntry = (day, exIdx, progIdx) => {
             var e = data[activeTab].exercises[day][exIdx].prog[progIdx];
-            setOpenProg({ day: day, exIdx: exIdx, progIdx: progIdx, editing: false, msg: "", draft: { wk: String(e.wk), sets: logSetsFrom(e, Math.max(1, (e.sets || []).length || parseReps(e.r).length || 3)), fullRange: e.fullRange || "", goodForm: e.goodForm || "", note: e.note || "", companion: e.companion ? Object.assign({}, e.companion) : companionFromSession(sessionFeedback, activeTab, day, data[activeTab].exercises[day][exIdx].name, e.wk) /* F11b: older feedback */ } });
+            setOpenProg({ day: day, exIdx: exIdx, progIdx: progIdx, editing: false, msg: "", skipped: !!e.skipped, draft: { wk: String(e.wk), sets: logSetsFrom(e, Math.max(1, (e.sets || []).length || parseReps(e.r).length || 3)), fullRange: e.fullRange || "", goodForm: e.goodForm || "", note: e.note || "", companion: e.companion ? Object.assign({}, e.companion) : companionFromSession(sessionFeedback, activeTab, day, data[activeTab].exercises[day][exIdx].name, e.wk) /* F11b: older feedback */ } });
           };
           const setDraft = (patch) => setOpenProg(function(o) { return Object.assign({}, o, { draft: Object.assign({}, o.draft, patch), msg: "" }); });
           const saveEntry = async () => {
             var o = openProg; var d = o.draft;
+            var _cur = data[activeTab].exercises[o.day][o.exIdx].prog[o.progIdx];
+            if (_cur && _cur.skipped) { var ndS = JSON.parse(JSON.stringify(data)); ndS[activeTab].exercises[o.day][o.exIdx].prog[o.progIdx].note = (d.note || "").trim(); await saveData(ndS); setOpenProg(Object.assign({}, o, { editing: false, msg: "✓ Week " + _cur.wk + " saved" })); return; }   // v2.37.0: a skipped week keeps only its note
             if (!d.fullRange || !d.goodForm) { setOpenProg(Object.assign({}, o, { msg: "Choose Form and Range to save" })); return; }
             var sets = setsToSave(d.sets.filter(function(x) { return String(x.w).trim() || String(x.r).trim(); }));
             if (!sets.length) { setOpenProg(Object.assign({}, o, { msg: "Enter at least one set" })); return; }
             var nd = JSON.parse(JSON.stringify(data));
             var ex2 = nd[activeTab].exercises[o.day][o.exIdx]; var e = ex2.prog[o.progIdx];
-            var before = ex2.prog.slice().sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); }).pop(); before = Object.assign({}, before);
+            var before = ex2.prog.filter(function(x) { return !x.skipped; }).sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); }).pop(); before = Object.assign({}, before);
             e.wk = parseInt(d.wk) || e.wk; e.sets = sets; e.w = String(sets[0].w).replace(/kg$/, "") + "kg"; e.r = fmtReps(sets.map(function(x) { return parseInt(x.r) || 0; }));
             e.fullRange = d.fullRange; e.goodForm = d.goodForm; e.note = d.note.trim();
             if (d.companion && !e.companion) e.companion = { verdict: d.companion.verdict, recommendation: d.companion.recommendation, at: d.companion.at }; /* F11b: keep it once edited */
@@ -155,18 +159,19 @@ export default function ExerciseSection({ ctx }) {
               onSave={saveEntry}
               dangerKind="remove" onDanger={function() { deleteProg(o.day, o.exIdx, o.progIdx); }}>
               <Field label="Week">{ed ? <input aria-label="Week" value={d.wk} onChange={function(e) { setDraft({ wk: e.target.value }); }} style={Object.assign({}, openInput, { width: 70 })} /> : d.wk}</Field>
-              {d.sets.map(function(st, si) { return (<Field key={si} label={"Set " + (si + 1)} testid={"entry-set-" + (si + 1)}>{ed ? <div style={{ display: "flex", gap: 6 }}>
+              {o.skipped && <Field label="This week" testid="entry-skipped"><span style={{ color: "#64748b", fontStyle: "italic" }}>Skipped — doesn't count towards progression</span></Field>}
+              {!o.skipped && d.sets.map(function(st, si) { return (<Field key={si} label={"Set " + (si + 1)} testid={"entry-set-" + (si + 1)}>{ed ? <div style={{ display: "flex", gap: 6 }}>
                   <input aria-label={"Set " + (si + 1) + " " + l1} placeholder={l1} value={st.w} onChange={function(e) { var ns = d.sets.slice(); ns[si] = Object.assign({}, st, { w: e.target.value }); setDraft({ sets: ns }); }} style={openInput} />
                   <input aria-label={"Set " + (si + 1) + " " + l2} placeholder={l2} value={st.r} onChange={function(e) { var ns = d.sets.slice(); ns[si] = Object.assign({}, st, { r: e.target.value }); setDraft({ sets: ns }); }} style={openInput} />
                 </div> : <span>{st.w}{/^[\d.]+$/.test(String(st.w)) ? "kg" : ""} × {st.r}</span>}</Field>); })}
-              {ed && <button type="button" onClick={function() { setDraft({ sets: d.sets.concat([{ w: (d.sets[d.sets.length - 1] || {}).w || "", r: "" }]) }); }} style={{...btnMuted, marginBottom: 6}}>+ Add set</button>}
-              {group("fullRange", "Range")}
-              {group("goodForm", "Form")}
+              {ed && !o.skipped && <button type="button" onClick={function() { setDraft({ sets: d.sets.concat([{ w: (d.sets[d.sets.length - 1] || {}).w || "", r: "" }]) }); }} style={{...btnMuted, marginBottom: 6}}>+ Add set</button>}
+              {!o.skipped && group("fullRange", "Range")}
+              {!o.skipped && group("goodForm", "Form")}
               <Field label="My Notes" testid="entry-note">{ed ? <textarea aria-label="My Notes" value={d.note} onChange={function(e) { setDraft({ note: e.target.value }); }} style={Object.assign({}, openInput, { minHeight: 44 })} /> : (d.note || <span style={{ color: "#475569" }}>—</span>)}</Field>
               {d.companion && (function() { var c = d.companion; var setC = function(patch) { setDraft({ companion: Object.assign({}, c, patch) }); };
                 var decLabel = c.decision === "accepted" ? "✓ Accepted" : c.decision === "rejected" ? "✕ Rejected" : "No decision yet";
                 return (<div data-testid="entry-companion" style={{ margin: "8px 0 4px", padding: 8, borderRadius: 8, background: "#eff6ff", border: "1px solid #bfdbfe" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#1e40af", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Your Companion feedback{c.at ? <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, color: "#475569" }}> · {c.at}</span> : null}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#1e40af", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Your Companion said (week {d.wk}){c.at ? <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, color: "#475569" }}> · {c.at}</span> : null}</div>
                   {c.verdict && <div data-testid="entry-companion-verdict" style={{ fontSize: 11, color: "#1e293b", lineHeight: 1.5 }}>{c.verdict}</div>}
                   {c.recommendation && <div style={{ fontSize: 11, color: "#9a3412", fontWeight: 600, marginTop: 3 }}>{c.recommendation}</div>}
                   {ed ? (<div style={{ marginTop: 6 }}>
@@ -175,7 +180,9 @@ export default function ExerciseSection({ ctx }) {
                     </div>
                     <textarea aria-label="Note on the feedback" placeholder="Note on the feedback (optional)" value={c.decisionNote || ""} onChange={function(e) { setC({ decisionNote: e.target.value }); }} style={Object.assign({}, openInput, { minHeight: 36, marginTop: 6 })} />
                   </div>) : (<div data-testid="entry-companion-decision" style={{ fontSize: 11, marginTop: 4, color: "#334155" }}><b>Your decision:</b> {decLabel}{c.decisionNote ? " — " + c.decisionNote : ""}</div>)}
+                  {weekNote(ex, d.wk) && <div data-testid="entry-progression-note" style={{ fontSize: 11, marginTop: 4, color: "#334155" }}><b>Progression:</b> {weekNote(ex, d.wk)}</div>}
                 </div>); })()}
+              {!d.companion && <div data-testid="entry-companion-none" style={{ margin: "8px 0 4px", fontSize: 11, color: "#475569" }}>No Companion feedback recorded this week.{weekNote(ex, d.wk) ? <div style={{ marginTop: 3, color: "#334155" }}><b>Progression:</b> {weekNote(ex, d.wk)}</div> : null}</div>}
             </OpenForm>);
           };
           const deleteProg = async (day, exIdx, progIdx) => {
@@ -184,7 +191,7 @@ export default function ExerciseSection({ ctx }) {
             if (!confirm("Remove week " + (entry ? entry.wk : progIdx+1) + " from " + ex2.name + "?")) return;
             var nd = JSON.parse(JSON.stringify(data));
             var exN = nd[activeTab].exercises[day][exIdx];
-            var before = exN.prog.slice().sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); }).pop();
+            var before = exN.prog.filter(function(x) { return !x.skipped; }).sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); }).pop();
             exN.prog.splice(progIdx, 1);
             syncAfterProgChange(exN, before);   // D20: only a change to the LATEST week touches the card / status pill
             await saveData(nd); setOpenProg(null);
@@ -223,6 +230,12 @@ export default function ExerciseSection({ ctx }) {
                 {(function() { var ws = new Date(); ws.setHours(12, 0, 0, 0); ws.setDate(ws.getDate() - ws.getDay()); var dt = new Date(ws); dt.setDate(ws.getDate() + ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].indexOf(day)); var key = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0"); var a = p.dailyActivity && p.dailyActivity[key]; return a && a.steps != null ? <div data-testid="day-steps" style={{ padding: "2px 12px 0", fontSize: 11, color: "#334155" }}>👣 {Number(a.steps).toLocaleString("en-GB")} steps{a.source ? " (" + a.source + ")" : ""}</div> : null; })() /* v2.17.1: steps from Google/Apple Health on this day */}
                 {/* ACTIVITY TAB */}
                 {dv === "activity" && (<div>
+                {exList.length > 0 && (function() { var lw = currentWeek - 1, fbs = weekFeedback(exList, lw, sessionFeedback && sessionFeedback[activeTab + "_" + day]); /* v2.37.0 (brief P2 c) */
+                  return (<details data-testid="last-week-fb" style={{ margin: "6px 8px 0", fontSize: 11, color: "#334155" }}>
+                    <summary style={{ cursor: "pointer", fontWeight: 700, color: "#1e3a5f" }}>Last week's Companion feedback{fbs.length ? " (" + fbs.length + ")" : ""}</summary>
+                    {fbs.length ? <ul style={{ margin: "4px 0 0", paddingLeft: 16, lineHeight: 1.5 }}>{fbs.map(function(f, k) { return <li key={k} data-testid="last-week-fb-item"><b>{f.name}:</b> {f.recommendation} <span style={{ color: f.decision === "accepted" ? "#15803d" : f.decision === "rejected" ? "#b91c1c" : "#64748b" }}>({f.decision === "accepted" ? "accepted" : f.decision === "rejected" ? "not accepted" : "no decision"})</span></li>; })}</ul>
+                      : <div style={{ marginTop: 4, color: "#64748b" }}>No Companion feedback recorded for week {lw}.</div>}
+                  </details>); })()}
                 <div style={{ background: accentLight, borderRadius: 8, padding: "4px 12px 12px", margin: 8, border: "1px solid " + accentBorder }}>
                   {/* Session Warm-Up */}
                   {p.sessionGuides && p.sessionGuides[day] && p.sessionGuides[day].warmup && (
@@ -243,7 +256,14 @@ export default function ExerciseSection({ ctx }) {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }} onClick={function() { var curType=ex.exType||getExerciseType(ex.name);var tc=getExerciseTypeConfig(curType);var curM2=(ex.reps||tc.defaultM2).replace(/x\d+$/,"");setSelectedEx({day:day,idx:i});setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:ex.current||tc.defaultM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",exerciseGuide:ex.exerciseGuide||"",prePostGuide:ex.prePostGuide||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});setAddExOpen(false); }}>{ex.name} <span style={{ fontSize: 9, color: "#475569" }}>✎</span></div>
                           <div style={{ color: "#475569", fontSize: 11, fontWeight: 500 }}><span data-testid="ex-headline">{(ex.prog && ex.prog.length && setsDiffer(ex.prog[ex.prog.length - 1]) && !(ex.progressionValue && ex.progressionSetWk)) ? weightLabel(ex.prog[ex.prog.length - 1]) : displayCurrent(ex)} · {ex.reps}</span>{ex.exType && ex.exType !== "weights" && <span style={{fontSize:9,color:"#475569",marginLeft:6}}>{EXERCISE_TYPES[ex.exType] ? EXERCISE_TYPES[ex.exType].label : ""}</span>}</div>
-                          {ex.status && <div style={{ marginTop: 3 }}><span style={{ fontSize: 9, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap", border: "1px solid " + sColor(ex.status) + "40" }}>{sLabel(ex.status)}</span></div>}
+                          {(function() { var _st = displayStatus(ex, autoStatus); if (!_st) return null; var _wk = (ex.prog || []).find(function(pp) { return parseInt(pp.wk, 10) === currentWeek; }); var _ci = skipCheckIn(ex); /* v2.37.0 (brief P2 a/b/e): a status for every exercise, the range and why, Skipped */
+                            return (<>
+                              <div style={{ marginTop: 3 }} data-derived-status={!ex.status ? "1" : undefined}><span data-testid="ex-status" style={{ fontSize: 9, fontWeight: 600, color: sColor(_st), background: sBg(_st), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap", border: "1px solid " + sColor(_st) + "40" }}>{sLabel(_st)}</span></div>
+                              <div data-testid="ex-why" style={{ fontSize: 10, color: "#475569", marginTop: 3, lineHeight: 1.4 }}>{rangeLabel(ex) && <b data-testid="ex-range" style={{ color: "#334155" }}>{rangeLabel(ex)} · </b>}{whyLine(ex, _st)}</div>
+                              {isSkipped(_wk) && <div data-testid="ex-skipped" style={{ fontSize: 10, color: "#64748b", marginTop: 3, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}><span style={{ fontWeight: 700 }}>Skipped this week</span>
+                                <input aria-label={"Why did you skip " + ex.name + "? (optional)"} data-testid="skip-note" placeholder="Why? (optional)" defaultValue={_wk.note || ""} onBlur={async function(e) { var v = e.target.value.trim(); if (v === (_wk.note || "")) return; var nd = JSON.parse(JSON.stringify(data)); var pe = nd[activeTab].exercises[day][i].prog.find(function(pp) { return parseInt(pp.wk, 10) === currentWeek && pp.skipped; }); if (pe) { pe.note = v; await saveData(nd); } }} style={{ flex: 1, minWidth: 120, padding: "2px 6px", fontSize: 10, border: "1px solid #cbd5e1", borderRadius: 6 }} /></div>}
+                              {_ci && <div data-testid="ex-skip-checkin" role="note" style={{ fontSize: 10, color: "#1e3a5f", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 6, padding: "4px 8px", marginTop: 4 }}>{_ci}</div>}
+                            </>); })()}
                           {ex.status === "ready to move" && !ex.stopped && (function() { var _m = measureOf(ex), _l = latestEntry(ex.prog), _pr = progressionRange(ex, _l), _nx = nextLogPrefill(ex, _l); var _id = "next-val-" + day + "-" + i; /* v2.20.0: a concrete next step, and the person's exact value */
                             return (<div data-testid="ex-next" style={{ marginTop: 4, fontSize: 11, color: "#1e3a5f" }}>
                               <div>{ex.progressionValue && _nx && _nx.source === "your next " + (_m.unit === "kg" ? "weight" : _m.label) ? "Next: " + ex.progressionValue + " " + _m.unit + " (your choice)" : _pr ? _pr.text : "Next: move up a step"}</div>
@@ -260,6 +280,11 @@ export default function ExerciseSection({ ctx }) {
                         <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0,alignItems:"flex-end"}}>
                         <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} aria-label={(selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"Close ":"")+(ex.name||"exercise")+" progress"} aria-expanded={!!(selectedEx&&selectedEx.day===day&&selectedEx.idx===i)} style={selectedEx&&selectedEx.day===day&&selectedEx.idx===i?btnFilledOn:btnProgress}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕ Progress":"👁 Progress"}</button>
                         {!ex.stopped && <button onClick={function(){setSelectedEx({day:day,idx:i});openLogForm(day,i);}} style={btnLog}>📋 Log</button>}
+                        {!ex.stopped && !isSkipped((ex.prog || []).find(function(pp) { return parseInt(pp.wk, 10) === currentWeek; })) && <button type="button" data-testid="ex-skip" aria-label={"Skipped " + ex.name + " this week"} onClick={async function() { /* v2.37.0 (brief P2 e): one tap; never counts towards progression */
+                          var who = activeTab, nd = JSON.parse(JSON.stringify(data)), list = nd[who].exercises[day], cur = list[i], before = JSON.parse(JSON.stringify(cur));
+                          if ((cur.prog || []).some(function(pp) { return parseInt(pp.wk, 10) === currentWeek; })) { setExToast({ text: "Week " + currentWeek + " is already logged for " + cur.name + "." }); return; }
+                          cur.prog = (cur.prog || []).concat([skipEntry(cur, currentWeek, "")]); await saveData(nd);
+                          setExToast({ text: "Skipped " + cur.name + " this week — that's fine. Add why below if you like.", undo: async function() { var nd2 = JSON.parse(JSON.stringify(data)); var l2 = nd2[who].exercises[day]; var k = l2.findIndex(function(e) { return e.name === before.name; }); if (k >= 0) { l2[k] = before; await saveData(nd2); } } }); }} style={btnMuted}>Skipped</button>}
                         </div>
                       </div>
                       {ex.notes && <div data-testid="ex-notes" style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 6 }}>📋 {tidyNotes(ex.notes)}</div>}
@@ -399,8 +424,9 @@ export default function ExerciseSection({ ctx }) {
                     </div>); })()}
                     {ex.prog && ex.prog.slice().reverse().slice(0, selectedEx && selectedEx.showAll ? 999 : 4).map(function(pr, pi) { var realPi = ex.prog.length - 1 - pi; return (<div key={pi}><div style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
                       <span data-testid="prog-wk" style={{ width: 40, textAlign: "center", fontWeight: 600, color: "#334155" }}>{pr.wk}</span>
+                      {pr.skipped ? <span data-testid="prog-skipped" style={{ width: 135, fontSize: 11, color: "#64748b", fontStyle: "italic" }}>Skipped{pr.note ? " — " + pr.note : ""}</span> : <>   {/* v2.37.0: a skipped week, greyed */}
                       <span data-testid="prog-weight" style={{ width: 70, fontSize: 11 }}>{weightLabel(pr) || pr.w}</span>
-                      <span style={{ width: 65, fontSize: 11 }}>{pr.r}</span>
+                      <span style={{ width: 65, fontSize: 11 }}>{pr.r}</span></>}
                       <span style={{ flex: 1, minWidth: 0 }}></span>
                       <button aria-label={"Open week " + pr.wk} onClick={function() { openEntry(day, exIdx, realPi); }} style={Object.assign({}, btnOpen, { flexShrink: 0 })}>Open</button>
                     </div>{setsDiffer(pr) && <div data-testid="prog-sets" style={{ fontSize: 10, color: "#475569", padding: "0 0 4px 44px" }}>Sets: {fmtEntry(pr)}</div>}{/* v2.16.4: Form/Range shown only inside the Open card (JC: pills under rows looked cluttered) */}{openProg && openProg.day === day && openProg.exIdx === exIdx && openProg.progIdx === realPi && renderEntryForm(ex)}</div>); })}
@@ -413,25 +439,25 @@ export default function ExerciseSection({ ctx }) {
                     {ex.prog && ex.prog.length >= 2 && (() => {
                       var _chartTC = getExerciseTypeConfig(ex.exType || getExerciseType(ex.name));
                       var _numSets = ex.sets || 3;
-                      var repData = ex.prog.map(function(pr) { var w = parseFloat(pr.w) || 0; return { wk: pr.wk, v: w }; });
+                      var repData = ex.prog.filter(function(pp) { return !pp.skipped; }).map(function(pr) { var w = parseFloat(pr.w) || 0; return { wk: pr.wk, v: w }; });
                       var chartSeries = [];
                       if (_chartTC.metric1 !== "none") {
                         chartSeries.push({ label: _chartTC.chartLabel1, color: accent, data: repData });
                         if (_chartTC.hasSets && _numSets > 1) {
-                          var setData = ex.prog.map(function(pr) { var w = parseFloat(pr.w) || 0; return { wk: pr.wk, v: w * _numSets }; });
+                          var setData = ex.prog.filter(function(pp) { return !pp.skipped; }).map(function(pr) { var w = parseFloat(pr.w) || 0; return { wk: pr.wk, v: w * _numSets }; });
                           chartSeries.push({ label: _chartTC.chartLabel2, color: "#b45309", data: setData });
                         }
                       }
                       if (_chartTC.metric2 !== "none" && _chartTC.metric1 === "none") {
-                        var m2Data = ex.prog.map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r }; });
+                        var m2Data = ex.prog.filter(function(pp) { return !pp.skipped; }).map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r }; });
                         chartSeries.push({ label: _chartTC.chartLabel1, color: accent, data: m2Data });
                         if (_chartTC.hasSets && _numSets > 1) {
-                          var totalData = ex.prog.map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r * _numSets }; });
+                          var totalData = ex.prog.filter(function(pp) { return !pp.skipped; }).map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r * _numSets }; });
                           chartSeries.push({ label: _chartTC.chartLabel2, color: "#b45309", data: totalData });
                         }
                       }
                       if (_chartTC.chartLabel2 && _chartTC.metric1 !== "none" && _chartTC.metric2 !== "none" && !_chartTC.hasSets) {
-                        var m2Data2 = ex.prog.map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r }; });
+                        var m2Data2 = ex.prog.filter(function(pp) { return !pp.skipped; }).map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r }; });
                         chartSeries.push({ label: _chartTC.chartLabel2, color: "#b45309", data: m2Data2 });
                       }
                       if (chartSeries.length === 0) return null;
@@ -815,7 +841,7 @@ export default function ExerciseSection({ ctx }) {
                     setSessionFbLoading(true); setFbExpanded(true); var clearKey = activeTab + "_" + day; var clearFb = Object.assign({}, sessionFeedback); delete clearFb[clearKey]; setSessionFeedback(clearFb);
                     try {
                       var prof = p.profile || {};
-                      var daySummary = exList.filter(function(ex) { return !ex.stopped; }).map(function(ex) { var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null; var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null; var progNote = latest && latest.note ? latest.note : ""; var allNotes = [ex.notes, progNote].filter(Boolean).join("; "); var progRules = ex.progressionNotes || "Progression: build reps to target then increase weight. User defines increment method and ranges."; var eqInfo = ex.equipment ? " [EQUIPMENT: " + (ex.equipment.type || "") + ", increments: " + (ex.equipment.increments || "standard") + (ex.equipment.formNotes ? ", form: " + ex.equipment.formNotes : "") + "]" : ""; var histLines = ex.prog ? ex.prog.slice(-4).map(function(p){var ql=""; if(p.fullRange||p.goodForm){ql=" [FR:"+(p.fullRange==="good"?"Good":"WT")+",GF:"+(p.goodForm==="good"?"Good":"WT")+"]";} return "Wk"+p.wk+": "+fmtEntry(p)+ql+(p.note?" ("+p.note+")":"");}).join(", ") : "no data";
+                      var daySummary = exList.filter(function(ex) { return !ex.stopped; }).map(function(ex) { var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null; var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null; var progNote = latest && latest.note ? latest.note : ""; var allNotes = [ex.notes, progNote].filter(Boolean).join("; "); var progRules = ex.progressionNotes || "Progression: build reps to target then increase weight. User defines increment method and ranges."; var eqInfo = ex.equipment ? " [EQUIPMENT: " + (ex.equipment.type || "") + ", increments: " + (ex.equipment.increments || "standard") + (ex.equipment.formNotes ? ", form: " + ex.equipment.formNotes : "") + "]" : ""; var histLines = ex.prog ? ex.prog.slice(-4).map(function(p){var ql=""; if(p.fullRange||p.goodForm){ql=" [FR:"+(p.fullRange==="good"?"Good":"WT")+",GF:"+(p.goodForm==="good"?"Good":"WT")+"]";} if (p.skipped) return "Wk"+p.wk+": SKIPPED"+(p.note?" (why: "+p.note+")":""); return "Wk"+p.wk+": "+fmtEntry(p)+ql+(p.note?" ("+p.note+")":"");}).join(", ") : "no data";
                         // Cross-day context: pull data from other sessions of the same exercise (parent/child model)
                         var crossDayCtx = "";
                         var otherDays = ["sunday", "monday", "friday"].filter(function(cd) { return cd !== day; });
@@ -887,6 +913,7 @@ export default function ExerciseSection({ ctx }) {
                         (function(){ var ac = ""; if (p.activity && p.activity.length > 0) { ac = "Recent activity: " + p.activity.slice(-3).map(function(a){return a.date+": "+(a.steps||"")+"steps "+(a.activity||"");}).join(", ") + ". "; } return ac; })() +
                         getOnboardingCtx(activeTab) + prevSfbCtx + getCrossSectionCtx(activeTab, "session") + "\n\n" +
                         "DATA & PROGRESSION RULES:\n" +
+                        "- Weeks marked SKIPPED were skipped on purpose: they don't count towards progression and are not a failure. Read the person's reason if given. If an exercise was skipped 3 weeks in a row, gently check in or suggest an easier alternative — never criticise.\n" +
                         "1) USE THE LATEST LOGGED DATA AND HISTORY for each exercise — this is the actual recorded data. Do NOT use card display values which may reflect targets, not actuals. If notes mention holding, injury, pain, protection, concern, or any reason for caution, respect that decision and do NOT recommend increasing weight. A deliberate hold means MAINTAINING status, not building. If a hold has lasted several weeks and notes suggest recovery, you MAY gently suggest a cautious attempt, but acknowledge the concern.\n" +
                         "2) If current autoStatus seems wrong based on data and notes, set newStatus to what it SHOULD be and explain why in the verdict.\n" +
                         "3) Be genuinely honest — if someone is sandbagging, say so warmly. If they should push harder, encourage it like a mate would.\n" +

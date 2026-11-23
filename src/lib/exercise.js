@@ -120,7 +120,8 @@ export function setsToSave(logSets) {
 // `ex.prog` must already hold the change; `before` is the latest entry as it was before the change.
 export function latestKey(e) { return e ? [e.wk, e.w, e.r, JSON.stringify(e.sets || null)].join("|") : ""; }
 export function syncAfterProgChange(ex, before) {
-  var prog = (ex.prog || []).slice().sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
+  if (before && before.skipped) return false;   // v2.37.0: a skipped week never changes the card
+  var prog = (ex.prog || []).filter(function(e) { return !e.skipped; }).sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
   var latest = prog.length ? prog[prog.length - 1] : null;
   if (latest && before && latestKey(latest) === latestKey(before)) return false;   // an older week: nothing on the card changes
   if (latest) { ex.current = latest.w; ex.reps = latest.r; ex.notes = latest.note || ""; }
@@ -140,14 +141,14 @@ export function findWeekIdx(prog, wk) {
 /** The person's latest logged entry BEFORE the current training week (null if none). */
 export function previousEntry(prog, currentWeek) {
   var best = null;
-  (prog || []).forEach(function(e) { var w = wkNum(e); if (w && w < currentWeek && (!best || w > wkNum(best))) best = e; });
+  (prog || []).forEach(function(e) { var w = wkNum(e); if (e && e.skipped) return; /* v2.37.0: a skipped week never counts */ if (w && w < currentWeek && (!best || w > wkNum(best))) best = e; });
   return best;
 }
 
 /* v2.16.0 F11: the Companion's per-exercise feedback is kept with the logged week it was about,
    with the person's Accept / Reject and note. Entries without it are unchanged (backward compatible). */
 export function latestEntry(prog) {
-  var best = null; (prog || []).forEach(function(e) { if (!best || wkNum(e) >= wkNum(best)) best = e; }); return best;
+  var best = null; (prog || []).forEach(function(e) { if (e && e.skipped) return; /* v2.37.0: skipped weeks don't count towards progression */ if (!best || wkNum(e) >= wkNum(best)) best = e; }); return best;
 }
 export function attachCompanion(ex, fbEx, when) {
   var e = ex && latestEntry(ex.prog); if (!e || !fbEx) return null;
