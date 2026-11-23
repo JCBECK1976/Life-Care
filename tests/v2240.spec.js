@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openApp, tab } from "./helpers.js";
+import { openApp, tab, withBodyPhotos } from "./helpers.js";
 
 // v2.24.0 (Step 4, DPIA §3/§7; flag useOnboarding): onboarding + consent for NEW individual accounts.
 const NS = "?ns=life-care-app-64d04-default-rtdb";
@@ -19,6 +19,7 @@ const tryAll = (page) => page.evaluate(async (feats) => {
 async function go(page, who, consent) {
   await put("apps/lifecare", consent ? { users: { [ME]: { consent } } } : null);
   await page.addInitScript(() => localStorage.setItem("lc_flags", JSON.stringify({ useOnboarding: true, useSteps: true })));
+  await withBodyPhotos(page);   // v2.37.2: the Body Balance consent shows only with the switch (these tests cover it)
   const r = await openApp(page, who);
   await page.waitForFunction(() => window._lcPlan && window._lcPlan.loaded);
   return r;

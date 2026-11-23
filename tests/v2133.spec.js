@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { openApp, tab, PROGRESS, CLOSE_PROGRESS } from "./helpers.js";
+import { openApp, tab, PROGRESS, CLOSE_PROGRESS, withBodyPhotos } from "./helpers.js";
+test.beforeEach(async ({ page }) => { await withBodyPhotos(page); });   // v2.37.2: these features are hidden unless switched on
 
 // v2.13.3: one outlined shape for Open / 📷 Snap / 👁 Progress / 📋 Log (shared styles), each in its own colour
 // family; an open panel's button stays filled. Checked at 360px: no button text is cut off.

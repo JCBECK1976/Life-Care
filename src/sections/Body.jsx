@@ -16,6 +16,7 @@ import { readWeight, withKg, latestLabel, stLabel, STONE_KG, unitOf, weighInEntr
 import WeightInput from "../components/WeightInput.jsx";
 import WeightFix from "../components/WeightFix.jsx";
 import MeasureSnap from "../components/MeasureSnap.jsx";
+import { bodyPhotosOn } from "../lib/platform.js";
 import WeighInsPanel from "../components/WeighInsPanel.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
@@ -206,7 +207,7 @@ export default function BodySection({ ctx }) {
               {bodyView === "measurements" && (<div>
                 <div role="heading" aria-level={2} style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a" }}>My Body Measurements</div>
           <div style={{ background: accentLight, borderRadius: 8, padding: "4px 12px 12px", border: "1px solid " + accentBorder }}>
-            {Object.entries(p.measurements).map(function(pair, mi) { var k = pair[0]; var d = pair[1]; var latest = d.length > 0 ? d[d.length - 1] : null; var prev = d.length > 1 ? d[d.length - 2] : null; var delta = (latest && prev && typeof latest.v === "number" && typeof prev.v === "number") ? (latest.v - prev.v).toFixed(1) : null; var measColors = ["#2563eb","#7c3aed","#059669","#d97706","#dc2626","#0891b2","#ec4899"]; return (<div key={k} style={{ padding: "10px 3px", borderBottom: mi < Object.entries(p.measurements).length - 1 ? "1px solid #e2e8f0" : "none", position: "relative" }}>
+            {Object.entries(p.measurements).filter(function(pair) { return pair[0] !== "fullBody" || bodyPhotosOn(); }).map(function(pair, mi) { var k = pair[0]; var d = pair[1]; var latest = d.length > 0 ? d[d.length - 1] : null; var prev = d.length > 1 ? d[d.length - 2] : null; var delta = (latest && prev && typeof latest.v === "number" && typeof prev.v === "number") ? (latest.v - prev.v).toFixed(1) : null; var measColors = ["#2563eb","#7c3aed","#059669","#d97706","#dc2626","#0891b2","#ec4899"]; return (<div key={k} style={{ padding: "10px 3px", borderBottom: mi < Object.entries(p.measurements).length - 1 ? "1px solid #e2e8f0" : "none", position: "relative" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>{k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})} <span onClick={function(e) { e.stopPropagation(); setMeasMetricOpen(k); setEditMeasKey(k); setEditMeasName(k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})); }} style={{ fontSize: 9, color: "#475569", cursor: "pointer" }}>✎</span></div>
@@ -229,7 +230,7 @@ export default function BodySection({ ctx }) {
                     <div><label style={{ fontSize: 10, color: "#475569", display: "block", marginBottom: 2 }}>Week</label><input type="number" value={measLogInputs.week} onChange={function(e){ setMeasLogInputs(Object.assign({}, measLogInputs, { week: e.target.value })); }} style={{ width: 50, padding: "4px 6px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12 }} /></div>
                     <div><label style={{ fontSize: 10, color: "#475569", display: "block", marginBottom: 2 }}>cm</label><input type="number" step="0.5" value={measLogInputs.value} onChange={function(e){ setMeasLogInputs(Object.assign({}, measLogInputs, { value: e.target.value })); }} style={{ width: 60, padding: "4px 6px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12 }} placeholder={latest ? "was " + latest.v : "cm"} /></div>
                     {/* v2.13.0 F10: 📷 Snap reads the value from a photo; Confirm fills the value; the photo is never saved */}
-                    <MeasureSnap key={k} label={k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})} unit="cm" previous={latest ? latest.v : null} onConfirm={function(v) { setMeasLogInputs(function(prev) { return Object.assign({}, prev, { value: String(v) }); }); }} />
+                    {bodyPhotosOn() && <MeasureSnap key={k} label={k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})} unit="cm" previous={latest ? latest.v : null} onConfirm={function(v) { setMeasLogInputs(function(prev) { return Object.assign({}, prev, { value: String(v) }); }); }} />}   {/* v2.37.2: measurement photos hidden (BUG-MEASPHOTO) */}
                   </div>
                   <div style={{ marginTop: 8 }}><label style={{ fontSize: 10, color: "#475569", display: "block", marginBottom: 2 }}>My Notes</label><input type="text" value={measLogInputs.note} onChange={function(e){ setMeasLogInputs(Object.assign({}, measLogInputs, { note: e.target.value })); }} style={{ width: "100%", padding: "4px 6px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11, boxSizing: "border-box" }} placeholder="optional" /></div>
                   <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
@@ -357,7 +358,7 @@ export default function BodySection({ ctx }) {
           </div>
 
           {/* v2.12.0 F2: body balance from progress photos (analyse-and-discard) */}
-          <BodyBalance p={p} data={data} activeTab={activeTab} saveData={saveData} />
+          {bodyPhotosOn() && <BodyBalance p={p} data={data} activeTab={activeTab} saveData={saveData} />}   {/* v2.37.2: Body Balance hidden (BUG-MEASPHOTO) */}
         </div>
   );
 }

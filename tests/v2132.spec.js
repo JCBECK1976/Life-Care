@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { openApp, tab, PROGRESS } from "./helpers.js";
+import { openApp, tab, PROGRESS, withBodyPhotos } from "./helpers.js";
+test.beforeEach(async ({ page }) => { await withBodyPhotos(page); });   // v2.37.2: these features are hidden unless switched on
 
 // v2.13.2: Open forms / Progress panels scroll into view at 360px; tappable Open buttons; privacy notes.
 const NS = "?ns=life-care-app-64d04-default-rtdb";

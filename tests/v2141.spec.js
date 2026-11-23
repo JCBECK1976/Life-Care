@@ -1,9 +1,10 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
-import { openApp, tab } from "./helpers.js";
+import { openApp, tab, withBodyPhotos } from "./helpers.js";
 import { noFood } from "../src/lib/snap.js";
 import { parseReading } from "../src/lib/measureReading.js";
+test.beforeEach(async ({ page }) => { await withBodyPhotos(page); });   // v2.37.2: these features are hidden unless switched on
 
 // v2.14.1: feedback email as an admin setting (not in the source); "no food" / "unreadable" photo results.
 const NS = "?ns=life-care-app-64d04-default-rtdb";

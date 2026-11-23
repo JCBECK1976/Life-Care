@@ -21,6 +21,9 @@ export function remoteFlags() { return Object.assign({}, remote); }
 /** v2.23.0: the overnight-batch features (useSteps, useOnboarding, useAccounts) are ON for /build/ only; beta and prod
  *  stay off unless the flag is set on the device. */
 export function buildFlag(name) { return (import.meta.env.VITE_APP_ENV === "build") || flag(name); }
+/** v2.37.2 (Architect brief 23 Nov, PART 4): body-measurement photos, the Full Body row and Body Balance are HIDDEN
+ *  everywhere (build included) until they are redesigned (plan BUG-MEASPHOTO). Code kept; on only with this device switch. */
+export function bodyPhotosOn() { return flag("useBodyPhotos"); }
 export var APP_ID = "lifecare";
 export var FUNCTIONS_BASE = "https://europe-west1-life-care-app-64d04.cloudfunctions.net/";
 

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openApp, tab, PROGRESS } from "./helpers.js";
+import { openApp, tab, PROGRESS, withBodyPhotos } from "./helpers.js";
 import { syncAfterProgChange } from "../src/lib/exercise.js";
 import { parseReading, readingPrompt } from "../src/lib/measureReading.js";
 
@@ -180,6 +180,7 @@ test("F10: measurement Log 📷 Snap — description, AI reads the value, Confir
 
 // v2.13.1: one-off idempotent cleanup of photos stored in old measurement entries
 import { stripMeasurementPhotos } from "../src/lib/bodyBalance.js";
+test.beforeEach(async ({ page }) => { await withBodyPhotos(page); });   // v2.37.2: these features are hidden unless switched on
 const JPEG_URL = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/";
 
 test("v2.13.1 pure: only measurements[].img is removed; a second run changes nothing", () => {

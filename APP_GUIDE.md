@@ -85,7 +85,7 @@ You can install Lifecare Companion like a normal app, with its own icon on your 
 ### Share to Lifecare Companion (Android)
 Once the app is installed, you can send a photo straight from your Gallery, Camera or another app: tap **Share** → **Lifecare Companion**. The app opens and asks **"What is this?"**:
 - **📏 Body measurements**: a screenshot from your scales or measurement app (goes to My Body → 📷 Upload).
-- **📸 Progress photo**: goes to the **Body balance check** (My Body). Analysed, never stored.
+- **📸 Progress photo** (switched off for now with the Body balance check): goes to the **Body balance check** (My Body). Analysed, never stored.
 - **🍽 Food**: checked in the Food Checker (My Shop).
 - **Later (keep it)** keeps the image on the phone until you choose; **Discard** throws it away.
 
@@ -220,7 +220,7 @@ Tracks body composition, usually from a smart scale:
 ### My Body Measurements
 Tape measurements in cm (e.g. chest, waist, hips, arms, thighs).
 - For each measurement: **📋 Log** today's value (shows **Previous** for comparison) with an optional **Note**.
-- **📷 Snap** (in the Log form) reads the value from a photo, e.g. a tape measure or a scale screen:
+- **Measurement photos are switched off for now** (they weren't reliable enough; they'll come back once redesigned). Type the value from your tape measure. When they return: **📷 Snap** (in the Log form) reads the value from a photo, e.g. a tape measure or a scale screen:
   1. Optionally describe it first ("tape at nipple level", "reading in inches"), then take the photo.
   2. The Companion shows the value it read and where it read it. You can still edit the description.
   3. **Confirm** fills in the value (then press **Save**); **Re-check** asks for an independent, closer look and shows the first reading for comparison; **Cancel** keeps nothing. Nothing is saved until you Confirm and Save, and the photo is never stored.
@@ -230,7 +230,7 @@ Tape measurements in cm (e.g. chest, waist, hips, arms, thighs).
 - **When:** re-check every 4 weeks. Measure chest at nipple level and waist at the midpoint between the lowest rib and the hip bone, the same way each time.
 
 ### 📸 Body balance check
-At the bottom of My Body. It's off until you tap **Turn on body balance checks** (each person chooses for themselves).
+**Switched off for now** (with the Full Body measurement and the 📸 Progress photo share option) while body photos are redesigned. When it returns: at the bottom of My Body. It's off until you tap **Turn on body balance checks** (each person chooses for themselves).
 - About **every 4 weeks**, choose **front, side and back** photos (same light, same distance, relaxed). Until you have done one, it says "No progress photos yet".
 - The Companion scores the same checklist each time from 1 to 5, with a short note each: upper chest, lower chest, shoulders, shoulder-to-waist ratio, left/right arm symmetry, back, core/waist, glutes, quads and calves.
 - From the second check on, it compares with your last check (▲ / ▼ with the old and new score) and with your tape measurements.

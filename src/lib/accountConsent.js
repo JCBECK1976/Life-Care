@@ -3,7 +3,7 @@
 // in consent/history (time + what changed, no health data). Never asked of the shared joint/admin account.
 // Each opt-in switches its features off when declined or withdrawn — here (the app) and in the server (aiProxy).
 import firebase, { auth } from "./firebase.js";
-import { buildFlag, APP_ID } from "./platform.js";
+import { buildFlag, APP_ID, bodyPhotosOn } from "./platform.js";
 import { LEGAL_VERSION, LEGAL_LABEL } from "./consent.js";
 import { isProtectedAccount } from "./accountGuard.js";
 import { CONSENT_NEEDS } from "../constants/tiers.js";
@@ -20,7 +20,7 @@ export var OPTINS = [
 ];
 /** The opt-ins shown now (the symptom/HRT one only while the pilot features are on). */
 export function optins() {
-  return OPTINS.filter(function(o) { return !o.pilot || buildFlag("usePilotFeatures"); }).map(function(o) {
+  return OPTINS.filter(function(o) { return (!o.pilot || buildFlag("usePilotFeatures")) && (o.k !== "bodyBalance" || bodyPhotosOn()); }).map(function(o) {   // v2.37.2: Body Balance hidden
     // v2.32.0 (flag useWeighIns): health sync can also bring weigh-ins — say so before anyone agrees
     return o.k === "health" && buildFlag("useWeighIns") ? Object.assign({}, o, { label: "Health sync (steps and weigh-ins)", hint: "Read your daily step total (and, if you choose, active calories) and — only if you switch on Import my weigh-ins — your weight and body fat from your smart scales or weight app, through Health Connect / Apple Health. Nothing is ever written there." }) : o;
   });

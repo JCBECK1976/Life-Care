@@ -1,5 +1,6 @@
 import React from "react";
 import PersonTabs from "./PersonTabs.jsx";
+import { bodyPhotosOn } from "../lib/platform.js";
 
 // v2.11.0 F8 "Share to Lifecare Companion" (Android). The service worker keeps images shared from another app in
 // Cache Storage ("lc-share"). This picker appears once the user is signed in (so nothing is lost while signing in),
@@ -36,7 +37,7 @@ async function handTo(kind, files) {
 
 var KINDS = [
   { k: "body", label: "📏 Body measurements", hint: "a screenshot from your scales or measurement app" },
-  { k: "progress", label: "📸 Progress photo", hint: "body balance check (analysed, never stored)" },
+  { k: "progress", label: "📸 Progress photo", hint: "body balance check (analysed, never stored)", bodyPhotos: true },   // v2.37.2: hidden with Body Balance
   { k: "food", label: "🍽 Food", hint: "checked in the Food Checker" },
 ];
 
@@ -69,7 +70,7 @@ export default function SharePicker(props) {
             onSelect={function(k) { setWho(k); }} />
         </div>
       </div>)}
-      {KINDS.map(function(o) { return <button key={o.k} onClick={function() { choose(o.k); }} style={btn}>{o.label}<div style={{ fontSize: 10, fontWeight: 400, color: "#475569" }}>{o.hint}</div></button>; })}
+      {KINDS.filter(function(o) { return !o.bodyPhotos || bodyPhotosOn(); }).map(function(o) { return <button key={o.k} onClick={function() { choose(o.k); }} style={btn}>{o.label}<div style={{ fontSize: 10, fontWeight: 400, color: "#475569" }}>{o.hint}</div></button>; })}
       {msg && <div role="alert" style={{ fontSize: 11, color: "#991b1b", fontWeight: 600, margin: "4px 0 8px" }}>{msg}</div>}
       <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
         <button onClick={function() { setFiles(null); tidyUrl(); }} style={{ flex: 1, padding: 10, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>Later (keep it)</button>

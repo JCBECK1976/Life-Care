@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openApp, tab } from "./helpers.js";
+import { openApp, tab, withBodyPhotos } from "./helpers.js";
 import { REGIONS, buildPrompt, parseAnalysis, makeRecord } from "../src/lib/bodyBalance.js";
 
 // v2.12.0 F2 Body balance — analyse-and-discard: photos go to the AI only; just the structured scores are saved.
@@ -66,6 +66,7 @@ test("opt-in, no photos yet, first check: scores saved, nothing image-like store
 
 // v2.12.1: Body Type Photos keeps no image data; old fragments are removed on load (one-off, idempotent).
 import { stripPhotoFragments } from "../src/lib/bodyBalance.js";
+test.beforeEach(async ({ page }) => { await withBodyPhotos(page); });   // v2.37.2: these features are hidden unless switched on
 const dashUrl = "http://127.0.0.1:9000/data/dashboard:data.json" + NS;
 const putDash = (d) => fetch(dashUrl, { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify(JSON.stringify(d)) });
 

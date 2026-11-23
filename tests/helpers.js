@@ -78,3 +78,9 @@ export async function targetSize258(page) {
     return bad;
   });
 }
+
+/* v2.37.2: measurement photos, the Full Body row and Body Balance are hidden unless the device switch useBodyPhotos is on;
+   tests of those features turn it on (merged into any other switches set before it). */
+export async function withBodyPhotos(page) {
+  await page.addInitScript(() => { try { const f = JSON.parse(localStorage.getItem("lc_flags") || "{}"); f.useBodyPhotos = true; localStorage.setItem("lc_flags", JSON.stringify(f)); } catch (e) { /* private mode */ } });
+}

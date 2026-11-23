@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
-import { openApp, tab } from "./helpers.js";
+import { openApp, tab, withBodyPhotos } from "./helpers.js";
 import { addToLedger, energyFromLedger, featureOf, costOf, summarise } from "../src/lib/aiUsage.js";
+test.beforeEach(async ({ page }) => { await withBodyPhotos(page); });   // v2.37.2: these features are hidden unless switched on
 
 // v2.14.0 Step 1b + tracker.
 const NS = "?ns=life-care-app-64d04-default-rtdb";
