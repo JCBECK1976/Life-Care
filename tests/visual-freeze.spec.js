@@ -26,24 +26,25 @@ async function open(page) {
   return errors;
 }
 async function snap(page, name) {
+  if (process.env.VISUAL_OUT) await page.screenshot({ path: process.env.VISUAL_OUT + "/" + name + ".png", fullPage: true, animations: "disabled", caret: "hide" });   // evidence copies: the screen as it really is (nothing hidden)
   /* v2.20.0 added blank space under the page so the floating chat button never covers the last control (WCAG 2.4.11,
      kept); it is blank, so it is left out of the comparison. */
-  await page.addStyleTag({ content: "#root { padding-bottom: 0 !important; }" });
+  const tags = [await page.addStyleTag({ content: "#root { padding-bottom: 0 !important; }" })];
   /* New cards the Architect asked for since beta (not changes to existing screens) are left out of the comparison:
      Settings → Go-live switches (admin, v2.27.0) and Delete my account (v2.21.0, Google Play requirement); My Exercise →
      the brief of 23 Nov PART 2: the range + why line, Skipped, last week's Companion feedback, the skip check-in, and the
      status pills on exercises that had none (data-derived-status). REMOVED by the brief's PART 4 (hidden for now): the
      Body Balance card — left out on both sides, my-body baseline re-taken from beta that way (HANDOVER, 23 Nov).
      Add one here only with an approval note in HANDOVER. */
-  await page.addStyleTag({ content: "[data-testid=go-live-switches], [data-testid=delete-account], [data-testid=ex-why], [data-testid=ex-skip], [data-testid=last-week-fb], [data-testid=ex-skipped], [data-testid=ex-skip-checkin], [data-derived-status], [data-testid=body-balance] { display: none !important; }" });
+  tags.push(await page.addStyleTag({ content: "[data-testid=go-live-switches], [data-testid=delete-account], [data-testid=ex-why], [data-testid=ex-skip], [data-testid=last-week-fb], [data-testid=ex-skipped], [data-testid=ex-skip-checkin], [data-derived-status], [data-testid=body-balance] { display: none !important; }" }));
   await page.waitForFunction(() => [...document.images].every((i) => i.complete));
   await page.evaluate(async () => { await Promise.all([...document.images].map((i) => i.decode().catch(() => {}))); await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); });
-  if (process.env.VISUAL_OUT) await page.screenshot({ path: process.env.VISUAL_OUT + "/" + name + ".png", fullPage: true, animations: "disabled", caret: "hide" });   // evidence copies
   await expect.soft(page).toHaveScreenshot(name + ".png", {
     fullPage: true, animations: "disabled", caret: "hide",
     mask: [page.getByText(/^v2\.\d+\.\d+/)],   // the footer version differs by design
     threshold: 0.2, maxDiffPixelRatio: 0.01,   // "a small threshold": ≤ 1% of pixels may differ (anti-aliasing, fonts)
   });
+  for (const t of tags) await t.evaluate((el) => el.remove());   // the next screen starts as it really is
 }
 
 // Part 0 ships the test before Part 1 restores the beta sizes; until then build is EXPECTED to differ (test.fail).

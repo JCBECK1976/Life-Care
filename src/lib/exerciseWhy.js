@@ -42,7 +42,9 @@ var below = function(ex, e) { if (!usesRepRange(ex) || !e) return false; var r =
 export function displayStatus(ex, auto) {
   if (!ex || ex.stopped) return "";
   var last = latestEntry(ex.prog);
-  if (last && below(ex, last) && ex.status !== "moved up") return "building back up";
+  // v2.38.1: only when nothing more specific was set — a Companion / rules status (Ready to Move, Consolidating,
+  // Maintaining, Moved Up, Reduce) is kept as it is
+  if (last && below(ex, last) && (!ex.status || ex.status === "building")) return "building back up";
   if (ex.status) return ex.status;
   if (!last) return "building";
   var prior = (ex.prog || []).filter(function(e) { return e !== last && !isSkipped(e); });
@@ -66,7 +68,7 @@ export function whyLine(ex, status) {
   switch (status) {
     case "building back up": return "Below range (" + reps.join("/") + "): stay" + at + ", aim for " + aim + "; drop one step if form slips.";
     case "moved up": return "Moved up" + (wTxt ? " to " + wTxt : "") + ": reps restart at the bottom of your range (" + rr.lo + ") and build to " + rr.hi + ".";
-    case "ready to move": return full + " twice" + at + ": time to move up" + (kg && w ? " (next " + nextSteps(w, ex)[0] + " kg)" : " a step") + ".";
+    case "ready to move": return (reps.length && reps.every(function(x) { return x >= rr.hi; }) ? full + " twice" + at : "Your Companion suggests it" + at) + ": time to move up" + (kg && w ? " (next " + nextSteps(w, ex)[0] + " kg)" : " a step") + ".";
     case "consolidating": return reps.length && reps.every(function(x) { return x >= rr.hi; }) ? full + " once" + at + ": repeat it to confirm, then move up." : "Settling in" + at + ": keep the weight and build towards " + rr.hi + " on every set.";
     case "reduce": return "Weight lowered" + (wTxt ? " to " + wTxt : "") + ": build back to " + rr.hi + " before moving on.";
     case "maintaining": return "Maintaining" + at + ": keep it steady.";

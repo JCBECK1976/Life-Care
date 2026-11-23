@@ -24,6 +24,12 @@ test("rules: range, a status for every exercise ('Building back up' below range)
   expect(whyLine(moved, displayStatus(moved, autoStatus))).toBe("Moved up to 29 kg: reps restart at the bottom of your range (12) and build to 15.");
   const ready = PRESS({ status: "ready to move", prog: [{ wk: CW - 2, w: "29kg", r: "15x3" }, { wk: CW - 1, w: "29kg", r: "15x3" }] });
   expect(whyLine(ready, "ready to move")).toMatch(/^15\/15\/15 twice at 29 kg: time to move up \(next \d+(\.\d+)? kg\)\.$/);
+  // v2.38.1: a status the Companion set is kept even when a set was below range, and the why line doesn't invent reps
+  const set = PRESS({ status: "ready to move", prog: [{ wk: CW - 1, w: "38kg", r: "14/8/14" }] });
+  expect(displayStatus(set, autoStatus)).toBe("ready to move");
+  expect(whyLine(set, "ready to move")).toMatch(/^Your Companion suggests it at 38 kg: time to move up/);
+  for (const st of ["maintaining", "consolidating", "moved up", "reduce"]) expect(displayStatus(PRESS({ status: st }), autoStatus)).toBe(st);
+  expect(displayStatus(PRESS({ status: "building" }), autoStatus)).toBe("building back up");
   expect(displayStatus(PRESS({ prog: [] }), autoStatus)).toBe("building");                       // a pill even before the first log
   expect(displayStatus(PRESS({ prog: [{ wk: CW - 1, w: "29kg", r: "13/13/12" }] }), autoStatus)).toBe("building");   // derived when the stored one was cleared
   // skips: zeros marked skipped, never the latest/previous entry, never the pre-fill
