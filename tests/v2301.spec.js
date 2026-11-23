@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openApp, tab } from "./helpers.js";
+import { openApp, tab, targetSize258 } from "./helpers.js";
 
 // v2.30.1 (FINAL DROP Part 6): polish — Undo after deletes, the double-tap guard, bottom-sheet pickers, skeletons,
 // following the phone's text size + reflow at double-size text, spacing of small buttons, text alternatives for charts.
@@ -63,7 +63,7 @@ test("bottom-sheet pickers: the exercise type (Add Exercise) and the person list
   await expect(sheet).toBeVisible();
   const opts = sheet.getByRole("option");
   expect(await opts.count()).toBeGreaterThan(1);
-  const box = await opts.first().boundingBox(); expect(box.height).toBeGreaterThanOrEqual(48);
+  const box = await opts.first().boundingBox(); expect(box.height).toBeGreaterThanOrEqual(56);   // v2.36.0: picker rows ≥ 56 px
   const other = opts.nth(1); const label = (await other.innerText()).trim();
   await other.click();
   await expect(sheet).toHaveCount(0);
@@ -126,15 +126,9 @@ test("text size: the apps follow the phone's text size up to 200%; at double-siz
   }
 });
 
-test("small action buttons: clear space between neighbours (no two closer than 8 px)", async ({ page }) => {
+test("small action buttons (✎ Edit, 🗑 Del): beta sizes, and WCAG 2.5.8 is met by spacing (v2.36.0: no extra margins)", async ({ page }) => {
   await openApp(page);
   await tab(page, "My Health");
-  const r = await page.evaluate(() => {
-    const b = [...document.querySelectorAll("button")].filter((x) => /✎ Edit|🗑 Del/.test(x.textContent));
-    const R = b.map((x) => x.getBoundingClientRect());
-    let minGap = 99;
-    R.forEach((a, i) => R.forEach((o, j) => { if (i < j && Math.abs(a.top - o.top) < 4) minGap = Math.min(minGap, Math.max(o.left - a.right, a.left - o.right)); }));
-    return { n: b.length, minH: Math.min(...R.map((x) => x.height)), minGap };
-  });
-  expect(r.n).toBeGreaterThan(1); expect(r.minGap).toBeGreaterThanOrEqual(8);   // (on touch screens they're 44 px tall: v2200 test)
+  expect(await page.locator("button", { hasText: /✎ Edit|🗑 Del/ }).count()).toBeGreaterThan(1);
+  expect(await targetSize258(page)).toEqual([]);
 });

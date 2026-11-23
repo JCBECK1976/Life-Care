@@ -36,7 +36,7 @@ export function SheetSelect({ value, options, onChange, label, title, testId, st
       {options.length > 12 && <input type="search" aria-label={"Search " + (title || label)} value={q} onChange={function(e) { setQ(e.target.value); }} placeholder="Search" style={{ width: "100%", boxSizing: "border-box", minHeight: 44, padding: "8px 12px", margin: "0 0 8px", border: "1px solid #cbd5e1", borderRadius: 10, fontSize: 15 }} />}
       <div role="listbox" aria-label={title || label}>
         {shown.map(function(o) { var on = o.value === value; return (<button key={String(o.value)} type="button" role="option" aria-selected={on} aria-disabled={o.disabled || undefined} data-testid={testId ? testId + "-opt" : undefined} onClick={function() { pick(o); }}
-          style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between", minHeight: 48, padding: "10px 12px", marginBottom: 4, border: "none", borderRadius: 10, background: on ? "#eff6ff" : "transparent", color: o.disabled ? "#64748b" : "#0f172a", fontSize: 15, fontWeight: on ? 700 : 500, textAlign: "left", cursor: o.disabled ? "default" : "pointer" }}>
+          style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between", minHeight: 56, padding: "10px 12px", marginBottom: 4, border: "none", borderRadius: 10, background: on ? "#eff6ff" : "transparent", color: o.disabled ? "#64748b" : "#0f172a", fontSize: 15, fontWeight: on ? 700 : 500, textAlign: "left", cursor: o.disabled ? "default" : "pointer" }}>
           <span>{o.label}</span>{on && <span aria-hidden="true" style={{ color: "#2563eb" }}>✓</span>}</button>); })}
         {!shown.length && <div style={{ padding: 12, fontSize: 13, color: "#475569" }}>Nothing matches.</div>}
       </div>

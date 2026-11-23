@@ -352,18 +352,8 @@ test("8 Chat and Help are dialogs: focus moves into the box, Tab stays inside, E
   expect(errors).toEqual([]);
 });
 
-test("8 touch screens: buttons and fields are at least 44 px tall; icon-only buttons 44 × 44", async ({ browser }) => {
-  const ctx = await browser.newContext({ viewport: { width: 360, height: 800 }, hasTouch: true, isMobile: true });
-  const page = await ctx.newPage();
-  const { errors } = await openApp(page);
-  await tab(page, "My Exercise");
-  const small = await page.evaluate(() => [...document.querySelectorAll("button, select, input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=hidden])")]
-    .filter((e) => e.offsetParent !== null).map((e) => { const r = e.getBoundingClientRect(); return { t: (e.getAttribute("aria-label") || e.innerText || e.tagName).slice(0, 30), h: r.height, w: r.width, icon: e.hasAttribute("aria-label") && e.tagName === "BUTTON" }; })
-    .filter((x) => x.h < 43.5 || (x.icon && x.w < 43.5)));
-  expect(small).toEqual([]);
-  expect(errors).toEqual([]);
-  await ctx.close();
-});
+// v2.36.0 (Architect, 23 Nov): the 44 px touch minimum was WCAG 2.5.5 (AAA, not required) and is removed; the AA
+// target-size check (2.5.8: 24 px or spacing) is tests/v2360.spec.js.
 
 /* ---------- 9. Polish ---------- */
 test("9a/b phone picker: forgiving search, 56 px rows, current item highlighted, ✕ Close; picking shows 'Added: …' with Undo", async ({ page }) => {

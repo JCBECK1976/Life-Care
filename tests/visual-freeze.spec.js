@@ -10,7 +10,7 @@ import { collectErrors, gotoSignedIn, tab, mockAnthropic } from "./helpers.js";
 const NOW = new Date(2026, 10, 18, 10, 0, 0);   // Wed 18 Nov 2026, 10:00
 const SEED = "http://127.0.0.1:9000/data.json?ns=life-care-app-64d04-default-rtdb";
 if (process.env.VISUAL_BASE) test.use({ baseURL: process.env.VISUAL_BASE });
-test.use({ viewport: { width: 360, height: 780 } });
+test.use({ viewport: { width: 360, height: 780 }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 });   // a phone: touch-screen CSS applies
 
 async function open(page) {
   const r = await fetch(SEED, { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify(makeFixture(NOW)) });
@@ -26,8 +26,16 @@ async function open(page) {
   return errors;
 }
 async function snap(page, name) {
+  /* v2.20.0 added blank space under the page so the floating chat button never covers the last control (WCAG 2.4.11,
+     kept); it is blank, so it is left out of the comparison. */
+  await page.addStyleTag({ content: "#root { padding-bottom: 0 !important; }" });
+  /* New cards the Architect asked for since beta (not changes to existing screens) are left out of the comparison:
+     Settings → Go-live switches (admin, v2.27.0) and Delete my account (v2.21.0, Google Play requirement).
+     Add one here only with an approval note in HANDOVER. */
+  await page.addStyleTag({ content: "[data-testid=go-live-switches], [data-testid=delete-account] { display: none !important; }" });
   await page.waitForFunction(() => [...document.images].every((i) => i.complete));
   await page.evaluate(async () => { await Promise.all([...document.images].map((i) => i.decode().catch(() => {}))); await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); });
+  if (process.env.VISUAL_OUT) await page.screenshot({ path: process.env.VISUAL_OUT + "/" + name + ".png", fullPage: true, animations: "disabled", caret: "hide" });   // evidence copies
   await expect.soft(page).toHaveScreenshot(name + ".png", {
     fullPage: true, animations: "disabled", caret: "hide",
     mask: [page.getByText(/^v2\.\d+\.\d+/)],   // the footer version differs by design
@@ -36,7 +44,7 @@ async function snap(page, name) {
 }
 
 // Part 0 ships the test before Part 1 restores the beta sizes; until then build is EXPECTED to differ (test.fail).
-const PART1_DONE = false;
+const PART1_DONE = true;
 test.fail(!PART1_DONE && !process.env.VISUAL_BASE, "build still has the 44 px buttons; Part 1 restores the beta sizes and sets PART1_DONE");
 
 test("360 px: Home, My Body, My Exercise (a session), My Eating (day + Update Lists), My Shop, My Health, Settings match beta v2.20.2", async ({ page }) => {

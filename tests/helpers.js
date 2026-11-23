@@ -60,3 +60,20 @@ export const person = (page, name) => page.getByRole("button", { name, exact: tr
 /* v2.34.0: Progress buttons are announced with what they open ("Weight progress", "Close Weight progress"). */
 export const PROGRESS = /^(?!Close ).+ progress$/;
 export const CLOSE_PROGRESS = /^Close .+ progress$/;
+
+/* v2.36.0: WCAG 2.2 AA 2.5.8 Target Size (Minimum) — returns the targets that fail (tests/v2360.spec.js). */
+export async function targetSize258(page) {
+  return page.evaluate(() => {
+    const els = [...document.querySelectorAll("button, a[href], input:not([type=hidden]), select, textarea, [role=button], [role=tab], [role=option]")]
+      .filter((e) => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && !e.closest("[inert]"); })
+      .filter((e) => !(e.tagName === "A" && e.closest("p, li, span") && !e.closest("button")))   // inline links in a sentence are exempt
+      .filter((e) => getComputedStyle(e).position !== "fixed");   // the floating Chat button sits over the page; where depends on scrolling (WCAG 2.4.11: the page has room under it)
+    const t = els.map((e) => { const r = e.getBoundingClientRect(); return { e, r, cx: r.left + r.width / 2, cy: r.top + r.height / 2, small: r.width < 24 || r.height < 24 }; });
+    const hitsRect = (c, r) => { const dx = Math.max(r.left - c.cx, 0, c.cx - r.right), dy = Math.max(r.top - c.cy, 0, c.cy - r.bottom); return dx * dx + dy * dy < 144; };
+    const bad = [];
+    t.forEach((a, i) => { if (!a.small) return;
+      const clash = t.find((b, j) => j !== i && !a.e.contains(b.e) && !b.e.contains(a.e) && (hitsRect(a, b.r) || (b.small && Math.hypot(a.cx - b.cx, a.cy - b.cy) < 24)));
+      if (clash) bad.push((a.e.getAttribute("aria-label") || a.e.innerText || a.e.tagName).trim().slice(0, 24) + " " + Math.round(a.r.width) + "×" + Math.round(a.r.height) + " ↔ " + (clash.e.getAttribute("aria-label") || clash.e.innerText || clash.e.tagName).trim().slice(0, 24)); });
+    return bad;
+  });
+}
