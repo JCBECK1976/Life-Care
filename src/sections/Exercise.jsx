@@ -25,7 +25,7 @@ export default function ExerciseSection({ ctx }) {
     accent, accentBorder, accentLight, accentMid, activeTab, addExConfirm, addExLoading, addExOpen,
     addExSearch, btnST, coolDownOpen, customExercises, data, dayView, decisionsExpanded, editExercise,
     editPrev, exInfoOpen, exerciseDay, fbExpanded, getCrossSectionCtx, getOnboardingCtx, isJC, loadUserSettings,
-    logComment, logEx, logFormRef, logFullRange, logGoodForm, logOverride, logSets, logWeek,
+    logComment, logSkipped, setLogSkipped, logEx, logFormRef, logFullRange, logGoodForm, logOverride, logSets, logWeek,
     newExName, openLogForm, p, prevComment, renderThread, saveData, saveLog, selectedEx,
     sessionFbLoading, sessionFeedback, sessionGuideLoading, setActiveTab, setAddExConfirm, setAddExLoading, setAddExOpen, setAddExSearch,
     setCoolDownOpen, setCustomExercises, setDayView, setDecisionsExpanded, setEditExercise, setEditPrev, setExInfoOpen, setExerciseDay,
@@ -170,8 +170,8 @@ export default function ExerciseSection({ ctx }) {
               <Field label="My Notes" testid="entry-note">{ed ? <textarea aria-label="My Notes" value={d.note} onChange={function(e) { setDraft({ note: e.target.value }); }} style={Object.assign({}, openInput, { minHeight: 44 })} /> : (d.note || <span style={{ color: "#475569" }}>—</span>)}</Field>
               {d.companion && (function() { var c = d.companion; var setC = function(patch) { setDraft({ companion: Object.assign({}, c, patch) }); };
                 var decLabel = c.decision === "accepted" ? "✓ Accepted" : c.decision === "rejected" ? "✕ Rejected" : "No decision yet";
-                return (<div data-testid="entry-companion" style={{ margin: "8px 0 4px", padding: 8, borderRadius: 8, background: "#eff6ff", border: "1px solid #bfdbfe" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#1e40af", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Your Companion said (week {d.wk}){c.at ? <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, color: "#475569" }}> · {c.at}</span> : null}</div>
+                return (<div data-testid="entry-companion" style={{ margin: "8px 0 4px", padding: 8, borderRadius: 8, background: "#fef3c7", border: "1px solid #fcd34d" }}>   {/* v2.40.0 (night batch P2): yellow */}
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Your Companion said (week {d.wk}){c.at ? <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, color: "#475569" }}> · {c.at}</span> : null}</div>
                   {c.verdict && <div data-testid="entry-companion-verdict" style={{ fontSize: 11, color: "#1e293b", lineHeight: 1.5 }}>{c.verdict}</div>}
                   {c.recommendation && <div style={{ fontSize: 11, color: "#9a3412", fontWeight: 600, marginTop: 3 }}>{c.recommendation}</div>}
                   {ed ? (<div style={{ marginTop: 6 }}>
@@ -277,11 +277,31 @@ export default function ExerciseSection({ ctx }) {
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>📋 NOTES FROM LAST SESSION</div>
                 <div style={{ fontSize: 11, color: "#92400e", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{prevComment}</div>
               </div>)}
+              {/* v2.40.0 (night batch P2b): last week's Companion feedback for this exercise — yellow, hidden every time the form opens */}
+              {(function() { var lc = prev && (prev.companion || companionFromSession(sessionFeedback, activeTab, logEx.day, ex.name, prev.wk)); if (!lc || !(lc.recommendation || lc.verdict)) return null;
+                return (<details data-testid="log-fb" onToggle={function(e) { var t = e.currentTarget.querySelector("[data-fb-toggle]"); if (t) t.textContent = e.currentTarget.open ? "Hide" : "Show"; }} style={{ padding: 8, background: "#fef3c7", borderRadius: 8, marginBottom: 8, border: "1px solid #fcd34d", color: "#92400e" }}>
+                  <summary style={{ fontSize: 10, fontWeight: 700, cursor: "pointer", display: "flex", justifyContent: "space-between", listStyle: "none" }}><span>💬 COMPANION FEEDBACK (WEEK {prev.wk})</span><span data-fb-toggle="1" style={{ textDecoration: "underline" }}>Show</span></summary>
+                  <div style={{ fontSize: 11, lineHeight: 1.5, marginTop: 4 }}>
+                    {lc.recommendation && <div><b>Recommendation:</b> {lc.recommendation}</div>}
+                    {lc.verdict && <div><b>Why:</b> {lc.verdict}</div>}
+                    <div data-testid="log-fb-decision"><b>You:</b> {lc.decision === "accepted" ? "accepted it" : lc.decision === "rejected" || lc.decision === "declined" ? "didn't accept it" : "didn't decide"}{lc.decisionNote ? " — " + lc.decisionNote : ""}</div>
+                  </div>
+                </details>); })()}
+              {/* v2.40.0 (night batch P2c): one small line — range + why */}
+              {(function() { var st = displayStatus(ex, autoStatus), why = whyLine(ex, st), rl = rangeLabel(ex); return (why || rl) ? <div data-testid="log-why" style={{ fontSize: 10, color: "#475569", marginBottom: 6, lineHeight: 1.4 }}>{rl && <b style={{ color: "#334155" }}>{rl} · </b>}{why}</div> : null; })()}
               {prev && <button onClick={() => { setEditPrev(!editPrev); if (!editPrev) { window._lcEditWk = prev.wk; setLogSets(logSetsFrom(prev, 3)); setLogWeek(String(prev.wk)); setLogFullRange(prev.fullRange || ""); setLogGoodForm(prev.goodForm || ""); setLogComment(prev.note || ""); } else { setLogSets(logSetsFrom(prev, 3).map(function(x) { return { w: x.w, r: "" }; })); window._lcEditWk = null; setLogWeek(String(currentWeek)); setLogFullRange(""); setLogGoodForm(""); setLogComment(""); } }} style={{ ...btnST, marginBottom: 8, fontSize: 11, background: editPrev ? "#fef3c7" : "#f1f5f9" }}>{editPrev ? "Cancel Edit — Log New Instead" : "Edit Previous Entry"}</button>}
               <div style={{ marginBottom: 8 }}><label htmlFor="log-week" style={labelStyle}>Week</label><input id="log-week" type="number" inputMode="numeric" value={logWeek} onChange={e => setLogWeek(e.target.value)} style={{ ...inputStyle, width: 80 }} /></div>
+              <div data-testid="log-sets" aria-disabled={logSkipped || undefined} style={{ opacity: logSkipped ? 0.45 : 1 }}>
               {(() => { var exTypeName = ex.exType || getExerciseType(ex.name); var etc = getExerciseTypeConfig(exTypeName); var numSets = ex.sets || 3; var showM1 = etc.metric1 !== "none"; var m1ph = etc.metric1Label ? etc.metric1Label.replace(/\s*\(.*\)/,"") : "value"; var m2ph = etc.metric2Label ? etc.metric2Label.replace(/\s*\(.*\)/,"") : "value"; var showM2 = etc.metric2 !== "none"; var setsLabel = etc.hasSets ? "Sets" : "Log"; return (<div><div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>{etc.hasSets ? setsLabel + " (" + (showM1 ? m1ph : "") + (showM1 && showM2 ? " × " : "") + (showM2 ? m2ph : "") + ")" : "Log (" + (showM1 ? m1ph : "") + (showM1 && showM2 ? " / " : "") + (showM2 ? m2ph : "") + ")"}</div>
-              {logSets.slice(0, etc.hasSets ? numSets : 1).map((s, i) => (<div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}>{etc.hasSets && <span style={{ fontSize: 12, fontWeight: 600, color: "#475569", width: 20 }}>S{i + 1}</span>}{showM1 && <input type="number" placeholder={m1ph} value={s.w} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], w: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} />}{showM1 && showM2 && <span style={{ color: "#475569" }}>×</span>}{showM2 && <input type="number" placeholder={m2ph} value={s.r} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], r: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} />}</div>))}</div>); })()}
+              {logSets.slice(0, etc.hasSets ? numSets : 1).map((s, i) => (<div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}>{etc.hasSets && <span style={{ fontSize: 12, fontWeight: 600, color: "#475569", width: 20 }}>S{i + 1}</span>}{showM1 && <input type="number" disabled={logSkipped} placeholder={m1ph} value={s.w} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], w: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} />}{showM1 && showM2 && <span style={{ color: "#475569" }}>×</span>}{showM2 && <input type="number" disabled={logSkipped} placeholder={m2ph} value={s.r} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], r: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} />}</div>))}</div>); })()}
+              </div>
 
+              {/* v2.40.0 (night batch P2e): Skipped this session — between the sets and Session Quality */}
+              <label data-testid="log-skipped" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, fontSize: 12, fontWeight: 600, color: "#334155", cursor: "pointer" }}>
+                <input type="checkbox" checked={!!logSkipped} onChange={function(e) { setLogSkipped(e.target.checked); setLogNeedChoice(""); }} style={{ width: 18, height: 18 }} /> Skipped this session
+                <span style={{ fontWeight: 400, color: "#475569", fontSize: 11 }}>{logSkipped ? "— add why in My Notes if you like" : ""}</span>
+              </label>
+              {skipCheckIn(ex) && <div data-testid="log-skip-checkin" role="note" style={{ fontSize: 11, color: "#1e3a5f", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 6, padding: "4px 8px", marginTop: 4 }}>{skipCheckIn(ex)}</div>}
               {/* Quality toggles — Full Range / Completed in One + Good Form */}
               {(() => { var exTypeName2 = ex.exType || getExerciseType(ex.name); var isWeightType = ["weights","bodyweight","timed_hold","stretching"].indexOf(exTypeName2) >= 0; var toggle1Label = isWeightType ? "Full Range of Motion" : "Completed in One"; var toggle1Tip = isWeightType ? "Full controlled movement through the complete range" : "Completed without stopping and restarting";
               return (<>

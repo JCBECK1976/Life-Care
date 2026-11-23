@@ -270,10 +270,9 @@ Tape measurements in cm (e.g. chest, waist, hips, arms, thighs).
   | **Maintaining** | Deliberately holding at this weight. |
   | **Reduce** | Weight has been dropped (e.g. form or recovery). |
   | **Building back up** | Your last sets were below your rep range; stay at this weight and build back into the range. |
-- **Range and why** — under the badge: your rep range (e.g. **Range 12–15**) and one line on why this is your target, e.g. *"Moved up to 29 kg: reps restart at the bottom of your range (12) and build to 15"* or *"Below range (8/8/6): stay at 29 kg, aim for 12/12/12; drop one step if form slips"*.
-- **Skipped** — one tap if you didn't do an exercise this week (strength or cardio). It saves the week as skipped, with an optional **Why?** note; it doesn't count towards your progression (status and next weight stay as they were) and isn't a failure. Tap **Undo** in the message to take it back, or **📋 Log** the week later to replace it. Skipped weeks show greyed in Progress. After three skips in a row the card gently suggests swapping the exercise or asking your Companion for an alternative.
-- **Last week's Companion feedback** — at the top of each session day: tap to see last week's recommendation for each exercise, and whether you accepted it.
-- **Open a week** (in Progress) shows **Your Companion said (week N)**: that week's recommendation, whether you accepted it, and the progression note — or *"No Companion feedback recorded this week"*.
+- **📋 Log** opens the Log form. From the top: the notes you left last session (yellow); **💬 Companion feedback (last week)** — yellow, tap **Show** to see that exercise's recommendation, the reason and whether you accepted it (it's hidden each time the form opens); one small line with your **range** and **why** this is your target; your **sets**; **☐ Skipped this session**; then Session Quality, Progression, My Notes and **Save**.
+- **Skipped this session** — tick it if you didn't do the exercise (strength or cardio). The set boxes grey out and Form/Range aren't needed; put the reason in **My Notes** if you like. It saves as skipped, never changes the pill or your target, and isn't a failure. Skipped weeks show greyed in Progress. After three skips in a row the form gently suggests swapping the exercise or asking your Companion for an alternative.
+- **Open a week** (in Progress) shows **Your Companion said (week N)** (yellow): that week's recommendation, whether you accepted it, and the progression note — or *"No Companion feedback recorded this week"*.
 - **📋 NOTES FROM LAST SESSION** — notes you left last time, carried forward.
 - **👁 Progress** (violet outline) — opens the progress panel.
 - **📋 Log** (green outline) — opens the log form.

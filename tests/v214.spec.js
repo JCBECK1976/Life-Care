@@ -125,6 +125,7 @@ test("item 9: a mocked AI reply's token counts are recorded (counts only) and dr
   const L = await get("ai_usage"); const day = Object.keys(L.days)[0];
   expect(L.days[day].Help).toEqual({ n: 1, in: 1000, out: 200, cw: 0, cr: 12000, cost: 0.0096 });
   expect(JSON.stringify(L)).not.toContain("secret question");                              // counts only, no content
+  await expect.poll(async () => ((await get("companion_energy")) || {}).spent - (before.spent || 0)).toBeGreaterThan(0);   // Energy is updated just after the usage record
   const after = await get("companion_energy");
   expect(after.spent - (before.spent || 0)).toBeCloseTo(0.0096, 6);
   expect(after.ledgerAtCalibration).toBeDefined();

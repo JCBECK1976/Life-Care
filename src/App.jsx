@@ -5,7 +5,7 @@ import { takePending, noteSave, offerUndo, undoLabel } from "./lib/undo.js";
 import { readWeight, withKg, aiBody, unitOf, fmtWeight, weighInEntry } from "./lib/weight.js";
 import { faqEntries, helpIndex, helpSections } from "./lib/faq.js";
 import React from "react";
-import { linkSessionFeedback } from "./lib/exerciseWhy.js";
+import { linkSessionFeedback, skipEntry } from "./lib/exerciseWhy.js";
 import { bodyNotesCtx } from "./lib/bodyNotes.js";
 import { allowedBy, consentActive, loadConsent, needsConsent } from "./lib/consent.js";
 import ConsentScreen from "./components/ConsentScreen.jsx";
@@ -91,6 +91,7 @@ function Dashboard() {
   const [logEx, setLogEx] = useState(null);
   const [logSets, setLogSets] = useState([{ w: "", r: "" }, { w: "", r: "" }, { w: "", r: "" }]);
   const [logComment, setLogComment] = useState("");
+  const [logSkipped, setLogSkipped] = useState(false);   // v2.40.0 (night batch P2e): "Skipped this session" in the Log form
   const [logOverride, setLogOverride] = useState("standard");
   const [logWeek, setLogWeek] = useState("");
   const [logFullRange, setLogFullRange] = useState("working");
@@ -861,7 +862,7 @@ function Dashboard() {
 
     const ex = data[activeTab].exercises[day][idx];
     const last = previousEntry(ex.prog, calcWeek(data.config.trainingStart)); // D23: latest week BEFORE the current one
-    setLogEx({ day, idx, who: activeTab }); setLogNeedChoice(""); // D1: the form belongs to this person
+    setLogEx({ day, idx, who: activeTab }); setLogNeedChoice(""); setLogSkipped(false); // D1: the form belongs to this person
     var targetW = "";
     var targetR = "";
     if (ex.target) {
@@ -917,6 +918,19 @@ function Dashboard() {
     const nd = JSON.parse(JSON.stringify(data));
     const ex = nd[activeTab].exercises[day][idx];
     if (ex && ex.stopped) { setFormMsg("⏸ " + ex.name + " is stopped — restart it in Exercise Settings to log"); setTimeout(() => setFormMsg(""), 4000); return; }
+    /* v2.40.0 (night batch P2e): "Skipped this session" — zeros marked skipped, the reason from My Notes; Form/Range not
+       needed; never changes the pill or the target (status, current, reps, target untouched) */
+    if (logSkipped) {
+      var skWk = parseInt(logWeek) || calcWeek(data.config.trainingStart);
+      var had = findWeekIdx(ex.prog, skWk);
+      if (had >= 0 && !ex.prog[had].skipped && !confirm("Week " + skWk + " already has an entry for " + ex.name + ". Replace it with Skipped?")) return;
+      ex.prog = (ex.prog || []).filter(function(e) { return (parseInt(e.wk, 10) || 0) !== skWk; }).concat([skipEntry(ex, skWk, logComment)]);
+      setLogNeedChoice(""); setLogSkipped(false);
+      var skY = window.scrollY; setLogEx(null); setSelectedEx(null); requestAnimationFrame(function() { window.scrollTo(0, skY); });
+      await saveData(nd);
+      setFormMsg("✓ " + ex.name + ": skipped this session — that's fine"); setTimeout(function() { setFormMsg(""); }, 3000);
+      return;
+    }
     // D12: Form and Range must be chosen (for everyone being saved from this form)
     if (!logGoodForm || !logFullRange) { setLogNeedChoice("Choose Form and Range to save"); return; }
     setLogNeedChoice("");
@@ -1904,7 +1918,7 @@ function Dashboard() {
         {section === "body" && (<ErrorBoundary name="Body"><BodySection ctx={{ accent, accentBorder, accentLight, accentMid, activeTab, addMeasName, addMeasOpen, bodyFbAll, bodyFbExpanded, bodyFbLoading, bodyFeedback, bodyInputs, bodyMetricOpen, bodyMetricShowAll, bodyView, btnST, data, editMeasKey, editMeasName, getCrossSectionCtx, getOnboardingCtx, idealSt, isJC, measFbAll, measFbExpanded2, measFbLoading, measFeedback, measLogInputs, measLogKey, measMetricOpen, measMetricShowAll, p, renderThread, saveBodyComp, saveData, setAddMeasName, setAddMeasOpen, setBodyFbExpanded, setBodyFbLoading, setBodyFeedback, setBodyInputs, setBodyMetricOpen, setBodyMetricShowAll, setBodyView, setEditMeasKey, setEditMeasName, setFormMsg, setMeasFbExpanded2, setMeasFbLoading, setMeasFeedback, setMeasLogInputs, setMeasLogKey, setMeasMetricOpen, setMeasMetricShowAll, setShowBodyForm, showBodyForm, updateBodyFb, updateMeasFb, userMood, weekLabel, wt, wtCheck, wtDelta, wtSign, wtStr }} /></ErrorBoundary>)}
 
         {/* WEIGHTS */}
-        {section === "weights" && <ErrorBoundary name="Exercise"><ExerciseSection ctx={{ accent, accentBorder, accentLight, accentMid, activeTab, addExConfirm, addExLoading, addExOpen, addExSearch, btnST, coolDownOpen, customExercises, data, dayView, decisionsExpanded, editExercise, editPrev, exInfoOpen, exerciseDay, fbExpanded, getCrossSectionCtx, getOnboardingCtx, isJC, loadUserSettings, logComment, logEx, logFormRef, logFullRange, logGoodForm, logOverride, logSets, logWeek, newExName, openLogForm, p, prevComment, renderThread, saveData, saveLog, selectedEx, sessionFbLoading, sessionFeedback, sessionGuideLoading, setActiveTab, setAddExConfirm, setAddExLoading, setAddExOpen, setAddExSearch, setCoolDownOpen, setCustomExercises, setDayView, setDecisionsExpanded, setEditExercise, setEditPrev, setExInfoOpen, setExerciseDay, setFbExpanded, setFormMsg, setLogComment, setLogEx, setLogFullRange, setLogGoodForm, setLogOverride, setLogSets, setLogWeek, setNewExName, setNewSectionName, setSelectedEx, setSessionFbLoading, setSessionFeedback, setSessionGuideLoading, setShowNewExForm, setShowNewSection, setStoppedExOpen, setWarmUpOpen, stoppedExOpen, updateSessionFb, userMood, warmUpOpen, weekLabel , logNeedChoice, setLogNeedChoice}} /></ErrorBoundary>}
+        {section === "weights" && <ErrorBoundary name="Exercise"><ExerciseSection ctx={{ accent, accentBorder, accentLight, accentMid, activeTab, addExConfirm, addExLoading, addExOpen, addExSearch, btnST, coolDownOpen, customExercises, data, dayView, decisionsExpanded, editExercise, editPrev, exInfoOpen, exerciseDay, fbExpanded, getCrossSectionCtx, getOnboardingCtx, isJC, loadUserSettings, logComment, logSkipped, setLogSkipped, logEx, logFormRef, logFullRange, logGoodForm, logOverride, logSets, logWeek, newExName, openLogForm, p, prevComment, renderThread, saveData, saveLog, selectedEx, sessionFbLoading, sessionFeedback, sessionGuideLoading, setActiveTab, setAddExConfirm, setAddExLoading, setAddExOpen, setAddExSearch, setCoolDownOpen, setCustomExercises, setDayView, setDecisionsExpanded, setEditExercise, setEditPrev, setExInfoOpen, setExerciseDay, setFbExpanded, setFormMsg, setLogComment, setLogEx, setLogFullRange, setLogGoodForm, setLogOverride, setLogSets, setLogWeek, setNewExName, setNewSectionName, setSelectedEx, setSessionFbLoading, setSessionFeedback, setSessionGuideLoading, setShowNewExForm, setShowNewSection, setStoppedExOpen, setWarmUpOpen, stoppedExOpen, updateSessionFb, userMood, warmUpOpen, weekLabel , logNeedChoice, setLogNeedChoice}} /></ErrorBoundary>}
 
         {/* MEDS */}
 
