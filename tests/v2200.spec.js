@@ -230,23 +230,12 @@ test("5 chain (UI): card shows the real weight + a concrete next range; the log 
   await expect(page.getByText("Seated Cable Row").first()).toBeVisible();
   await expect(page.locator("body")).not.toContainText("Next increment up from");
   await expect(page.getByText(/^42kg · 12x3/).first()).toBeVisible();
-  await expect(page.getByTestId("ex-next").nth(0)).toContainText("Next: try 49–55 kg (the next 1–2 steps on your stack)");
+  await expect(page.getByTestId("ex-next")).toHaveCount(0);                                             // v2.39.0: the card is the beta layout (no Set row)
   await page.getByRole("button", { name: "📋 Log", exact: true }).nth(0).click();
   await expect(page.getByTestId("log-previous")).toContainText("Previous: 42kg");
   await expect(page.getByTestId("log-progression")).toHaveText("Progression: 49 kg × 12 (accepted progression) — pre-filled below");
   const w1 = page.locator('input[placeholder="Weight"]').first();
   await expect(w1).toHaveValue("49");
-  // Becks-style: the person sets their own next weight (5 → 8 kg) and it is recorded and pre-filled
-  const calfNext = page.getByTestId("ex-next").nth(1);
-  await calfNext.getByTestId("next-value-input").fill("8");
-  await calfNext.getByTestId("next-value-save").click();
-  await expect(page.getByTestId("ex-next")).toHaveCount(1);                                             // v2.20.2: Set applies it and the row closes
-  await expect(page.getByText(/next weight 8 kg \(set by you\)/).first()).toBeVisible();
-  await page.getByRole("button", { name: "📋 Log", exact: true }).nth(1).click();
-  await expect(page.getByTestId("log-progression")).toContainText("Progression: 8 kg × 12 (your next weight)");
-  await expect(page.locator('input[placeholder="Weight"]').first()).toHaveValue("8");
-  const saved = (await get("dashboard:data")).jc.exercises[DAYS[new Date().getDay()]].find((e) => e.name === "Single-leg Calf Raise");
-  expect(saved.progressionValue).toBe(8);
   expect(errors).toEqual([]);
 });
 

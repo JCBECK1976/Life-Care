@@ -35,8 +35,10 @@ async function snap(page, name) {
      the brief of 23 Nov PART 2: the range + why line, Skipped, last week's Companion feedback, the skip check-in, and the
      status pills on exercises that had none (data-derived-status). REMOVED by the brief's PART 4 (hidden for now): the
      Body Balance card — left out on both sides, my-body baseline re-taken from beta that way (HANDOVER, 23 Nov).
+     REMOVED by the night batch's PART 1 (JC): the card's "Next: try… / My next weight / Set" row (ex-next) — left out on
+     both sides, my-exercise-session baseline re-taken from beta that way (HANDOVER, 23 Nov night batch).
      Add one here only with an approval note in HANDOVER. */
-  tags.push(await page.addStyleTag({ content: "[data-testid=go-live-switches], [data-testid=delete-account], [data-testid=ex-why], [data-testid=ex-skip], [data-testid=last-week-fb], [data-testid=ex-skipped], [data-testid=ex-skip-checkin], [data-derived-status], [data-testid=body-balance] { display: none !important; }" }));
+  tags.push(await page.addStyleTag({ content: "[data-testid=go-live-switches], [data-testid=delete-account], [data-testid=ex-why], [data-testid=ex-skip], [data-testid=last-week-fb], [data-testid=ex-skipped], [data-testid=ex-skip-checkin], [data-derived-status], [data-testid=body-balance], [data-testid=ex-next] { display: none !important; }" }));
   await page.waitForFunction(() => [...document.images].every((i) => i.complete));
   await page.evaluate(async () => { await Promise.all([...document.images].map((i) => i.decode().catch(() => {}))); await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); });
   await expect.soft(page).toHaveScreenshot(name + ".png", {

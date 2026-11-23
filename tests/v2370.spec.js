@@ -57,67 +57,25 @@ test("last week's feedback + linking unlinked recommendations to their week and 
   expect(linkSessionFeedback(data, { jc_sunday: sfb })).toEqual({});                             // already linked
 });
 
-test("My Exercise: every card has a status pill and its range + why; Skipped saves zeros (status, weight and target unchanged), a note, Undo; Progress shows it greyed; logging the week replaces it", async ({ page }) => {
-  await page.setViewportSize({ width: 360, height: 800 });
-  page.on("dialog", (d) => d.accept());
+test("v2.39.0 (night batch P1): the card is back to the beta layout — no range/why line, no Skipped button, no last-week panel", async ({ page }) => {
   await openApp(page);
   const d = DAYS[new Date().getDay()];
   const dash = await get("dashboard:data");
-  dash.jc.exercises[d] = [PRESS(), { name: "Leg Curl", exType: "weights", status: "ready to move", current: "33kg", reps: "15x3", sets: 3, target: "36kg", prog: [{ wk: CW - 2, w: "33kg", r: "15x3" }, { wk: CW - 1, w: "33kg", r: "15x3" }] }];
+  dash.jc.exercises[d] = [PRESS({ prog: [{ wk: CW - 1, w: "29kg", r: "8/8/6", companion: { recommendation: "Stay", decision: "accepted" } }] })];
   await put("dashboard:data", dash); await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
   await tab(page, "My Exercise");
-  await expect(page.getByTestId("ex-status")).toHaveText(["Building back up", "Ready to Move"]);
-  await expect(page.getByTestId("ex-why").first()).toContainText("Range 12–15 · Below range (8/8/6): stay at 29 kg, aim for 12/12/12");
-  // Skip Leg Curl (one tap)
-  await page.getByRole("button", { name: "Skipped Leg Curl this week" }).click();
-  await expect.poll(async () => (await get("dashboard:data")).jc.exercises[d][1].prog.find((e) => e.wk === CW)).toMatchObject({ skipped: true, w: "0kg", r: "0×3" });
-  const after = (await get("dashboard:data")).jc.exercises[d][1];
-  expect([after.status, after.current, after.target]).toEqual(["ready to move", "33kg", "36kg"]);   // not counted
-  await expect(page.getByTestId("ex-skipped")).toContainText("Skipped this week");
-  await expect(page.getByTestId("ex-status").nth(1)).toHaveText("Ready to Move");
-  await page.getByTestId("skip-note").fill("knee sore"); await page.getByTestId("skip-note").blur();
-  await expect.poll(async () => (await get("dashboard:data")).jc.exercises[d][1].prog.find((e) => e.wk === CW).note).toBe("knee sore");
-  await page.getByRole("button", { name: PROGRESS }).nth(1).click();
-  await expect(page.getByTestId("prog-skipped").first()).toHaveText("Skipped — knee sore");
-  await page.screenshot({ path: "test-results/v2370-shots/exercise-skip-360.png", fullPage: true });
-  // Log the week instead → the skip is replaced
-  await page.getByRole("button", { name: "📋 Log", exact: true }).nth(1).click();
-  await expect(page.getByRole("button", { name: "Good", exact: true }).first()).toBeVisible();
-  for (const b of await page.getByRole("button", { name: "Good", exact: true }).all()) await b.click();
-  await page.getByRole("button", { name: "Save", exact: true }).click();
-  await expect.poll(async () => (await get("dashboard:data")).jc.exercises[d][1].prog.filter((e) => e.wk === CW).map((e) => !!e.skipped)).toEqual([false]);
+  await expect(page.getByText("Chest Press").first()).toBeVisible();
+  for (const id of ["ex-why", "ex-skip", "last-week-fb", "ex-skipped", "ex-skip-checkin", "ex-next"]) await expect(page.getByTestId(id)).toHaveCount(0);
+  await expect(page.getByTestId("ex-status")).toHaveCount(1);
 });
 
-test("Undo a skip; three skips in a row → a gentle check-in; the Companion is told about skips", async ({ page }) => {
-  const { aiCalls } = await openApp(page);
-  const d = DAYS[new Date().getDay()];
-  const dash = await get("dashboard:data");
-  dash.jc.exercises[d] = [{ name: "Leg Curl", exType: "weights", status: "building", current: "33kg", reps: "12x3", sets: 3, prog: [{ wk: CW - 4, w: "33kg", r: "12x3" }, skipEntry({}, CW - 3, "away"), skipEntry({}, CW - 2), skipEntry({}, CW - 1, "tired")] }];
-  await put("dashboard:data", dash); await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
-  await tab(page, "My Exercise");
-  await expect(page.getByTestId("ex-skip-checkin")).toContainText("three weeks running — that's fine");
-  await page.getByRole("button", { name: "Skipped Leg Curl this week" }).click();
-  await expect.poll(async () => (await get("dashboard:data")).jc.exercises[d][0].prog.length).toBe(5);
-  await page.getByTestId("ex-toast").getByRole("button", { name: "Undo" }).click();
-  await expect.poll(async () => (await get("dashboard:data")).jc.exercises[d][0].prog.length).toBe(4);
-  const n0 = aiCalls.length;
-  await page.getByRole("button", { name: "My Companion Session Feedback" }).click();
-  await expect.poll(() => aiCalls.length).toBeGreaterThan(n0);
-  const sent = JSON.stringify(aiCalls.slice(n0));
-  expect(sent).toContain("SKIPPED (why: tired)");
-  expect(sent).toContain("If an exercise was skipped 3 weeks in a row, gently check in or suggest an easier alternative — never criticise.");
-});
-
-test("last week's Companion feedback at the top of the day; Open a week: 'Your Companion said (week N)' or 'No Companion feedback recorded this week'", async ({ page }) => {
+test("Open a week: 'Your Companion said (week N)' or 'No Companion feedback recorded this week'", async ({ page }) => {
   await openApp(page);
   const d = DAYS[new Date().getDay()];
   const dash = await get("dashboard:data");
   dash.jc.exercises[d] = [PRESS({ notes: "Wk" + (CW - 1) + ": next weight 29 kg (set by you)", prog: [{ wk: CW - 2, w: "27kg", r: "15x3" }, { wk: CW - 1, w: "29kg", r: "8/8/6", goodForm: "good", fullRange: "good", companion: { verdict: "Good effort.", recommendation: "Stay at 29 kg and build to 12", decision: "accepted" } }] })];
   await put("dashboard:data", dash); await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
   await tab(page, "My Exercise");
-  const fb = page.getByTestId("last-week-fb");
-  await fb.locator("summary").click();
-  await expect(fb.getByTestId("last-week-fb-item")).toHaveText(["Chest Press: Stay at 29 kg and build to 12 (accepted)"]);
   await page.getByRole("button", { name: PROGRESS }).first().click();
   await page.getByRole("button", { name: "Open week " + (CW - 1) }).click();
   const f = page.getByTestId("prog-open-form");
