@@ -41,8 +41,8 @@ export function PortionValues(props) {
 
 /** Search as you type (2+ letters): own lists, then common foods (the app's catalogue + the UK generic list), then
  *  UK products (Open Food Facts, debounced, spelling-corrected, retried). Local results never wait for the network. */
-function useSearch(props, catalogue) {
-  var [q, setQ] = React.useState("");
+function useSearch(props, catalogue, initial) {
+  var [q, setQ] = React.useState(initial || "");   // v2.37.1 (brief P3b): what was typed in the meal picker, with its results showing
   var [off, setOff] = React.useState([]);
   var [offState, setOffState] = React.useState("");   // "" | "loading" | "none" | "down"
   var [retry, setRetry] = React.useState(0);
@@ -219,7 +219,9 @@ function SavedCard(props) {
 
 /* ---------- a) Single item ---------- */
 function SingleItem(props) {
-  var s = useSearch(props, props.catalogue);
+  var s = useSearch(props, props.catalogue, (props.returnTo && props.returnTo.text) || "");
+  var typed = (props.returnTo && props.returnTo.text) || "";
+  React.useEffect(function() { if (typed) s.setQ(typed); }, [typed]);   // eslint-disable-line react-hooks/exhaustive-deps
   var [pick, setPick] = React.useState(null);   // the item being confirmed
   var [grams, setGrams] = React.useState("");
   var [guard, setGuard] = React.useState(null); // v2.19.2 wrong-match guard: { type, pack, ok }

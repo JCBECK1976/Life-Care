@@ -360,6 +360,7 @@ Plenty of fibre (5 g+) or protein (20 g+) lifts an item one band (never above AM
 - **+ Add New** adds another row for that meal; an empty extra row has a **✕** to remove it.
 - **Open** (next to 📷 Snap) on a filled slot opens **that meal's own copy** of the food, read-only: portion, changes, nutrition, its rating today and your list item's rating (with why they differ, if they do).
   - **Edit** → set the **Portion** (½×, 1×, 1½×, 2× or type a number) and any **Changes** ("chips instead of potato", "no sauce"). With changes, the Companion recalculates the nutrition of what you actually ate and the rating is worked out again. A portion change on a photo-checked meal scales the photo's values.
+  - If a change isn't clear, the Companion **asks you a short question** (e.g. *"How much extra cheese, roughly?"*) — answer it and tap **Answer**. It then shows the new values to **check**; tap **Save** (or **Save these values**) to keep them. Nothing is saved until you've seen them.
   - **Save** shows *"Saved for this meal only. To update the list item permanently, please go to 'Update Eating Lists'."* Your list item is never changed here.
   - **Remove** takes the food out of this meal (asks first). It doesn't touch your list.
   - **Open** on an empty slot starts adding a food to that meal.
@@ -416,7 +417,7 @@ For meals made of several things, e.g. a pasta bake: search on the left (the sam
 Describe it (ingredients, amounts, brand) and tap **Send**. Your Companion asks about anything it needs, one question at a time: raw or cooked weights, amounts, the brand, or **how many portions it makes**. Answer and **Send** again. When it has enough it shows the values **per portion** (and any assumptions); **Confirm** → choose lists → **Save**. Items you create can be used in **Build a meal**.
 
 #### Adding from a meal slot
-Each meal drop-down shows **only the items already in that list**. If what you want isn't there, choose **+ Not in my list?** at the bottom. Update Lists opens, saying *"Adding for Monday lunch"*. Add the item any of the three ways and leave **Add to Monday lunch now** ticked; when you **Save**, it's added to your list **and** to that meal, and you're taken back to that day, scrolled to the meal, with it highlighted and **"Added to Monday lunch"** with **Undo** at the bottom. Carry on choosing the rest of the day. **Back to Monday lunch** returns without adding.
+Each meal drop-down shows **only the items already in that list**. If what you want isn't there, choose **+ Not in my list?** at the bottom. Update Lists opens, saying *"Adding for Monday lunch"*, with what you typed already searched in **Single item**. Add the item any of the three ways and leave **Add to Monday lunch now** ticked; when you **Save**, it's added to your list **and** to that meal, and you're taken back to that day, scrolled to the meal, with it highlighted and **"Added to Monday lunch"** with **Undo** at the bottom. Carry on choosing the rest of the day. **Back to Monday lunch** returns without adding.
 
 #### Your lists
 - **Check me** badge: items added by bulk upload, flagged by Re-rate or Re-check nutrition, or **older recipes that need their portions confirmed** ("Check me — confirm portions"), show **Check me** next to the name. Tap or hover for the reason. It clears once you open the item and save it.

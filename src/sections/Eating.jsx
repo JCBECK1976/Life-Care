@@ -22,7 +22,7 @@ import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm
 import { stripKcal as stripKcalName } from "../lib/nutrition.js";
 import { planAllows } from "../lib/myPlan.js";
 import { GatePrompt } from "../components/PlanGate.jsx";
-import { askItem, askItemsBatch, recheckBatch, recheckFlag, CLARIFY_SYSTEM } from "../lib/clarify.js";
+import { askItem, askItemsBatch, recheckBatch, recheckFlag, CLARIFY_SYSTEM, clarifyMealChange, mealChangeRequest } from "../lib/clarify.js";
 import { applyDefaultsTo, generatorSummary, mergeGenerated, selectionName } from "../lib/meals.js";
 import { fuzzyFind } from "../lib/foodSearch.js";
 import { NO_FOOD_MSG, NO_FOOD_RULE, compareLine, gramsLine, noFood, requestBody } from "../lib/snap.js";
@@ -167,34 +167,31 @@ export default function EatingSection({ ctx }) {
               {!filled && !first && v !== undefined && v !== "" && <button aria-label="Remove this empty row" onClick={function() { setMeal(eatDay, slotKey, ""); }} style={{...btnDelete, fontSize: 10, flexShrink: 0}}>✕</button>}
             </>);
           };
-          var recalcWithVariations = async function(c, factor, text) {
-            var base = c.snapshot || {};
-            var prompt = "A meal item is \"" + base.name + "\". One standard portion has: " + (base.kcal || 0) + " kcal, " + (base.protein || 0) + "g protein, " + (base.fat || 0) + "g fat, " + (base.satFat || 0) + "g saturated fat, " + (base.addedSugar || 0) + "g added sugar, " + (base.carbs || 0) + "g carbs, " + (base.fibre || 0) + "g fibre, " + (base.salt || 0) + "g salt. The person ate " + factor + " × that portion, with these changes: \"" + text + "\". Work out the nutrition of what they actually ate. Return ONLY JSON: {\"kcal\":number,\"protein\":g,\"fat\":g,\"satFat\":g,\"addedSugar\":added_sugar_g,\"carbs\":g,\"fibre\":g,\"salt\":g,\"change\":\"one short sentence on what changed\"}";
-            /* v2.19.1: strict parse + one retry; never "did not return" — a friendly message instead */
-            for (var _try = 0; _try < 2; _try++) {
-              var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-lc-feature": "autoInfo", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 400, temperature: 0, messages: [{ role: "user", content: prompt }] }) });
-              var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
-              var txt = ""; (result.content || []).forEach(function(x) { if (x.text) txt += x.text; });
-              var r = parseJsonReply(txt);
-              if (r && parseFloat(r.kcal) > 0) return r;
-            }
-            throw new Error("your Companion couldn't work out those changes — try describing them a little differently");
-          };
           var renderSlotForm = function() {
             var o = slotOpen; var c = childAt(o.day, o.slot); if (!c) return null;
             var parent = c.parentId ? _listLookup[c.parentId] : null; var n = c.nutrition || {};
             var d = o.draft || { factor: String((c.portion && c.portion.factor) || 1), text: (c.variations && c.variations.text) || "" };
-            var setD = function(patch) { setSlotOpen(Object.assign({}, o, { draft: Object.assign({}, d, patch), msg: "" })); };
+            var setD = function(patch) { setSlotOpen(Object.assign({}, o, { draft: Object.assign({}, d, patch), chat: null, msg: "" })); };   // a change starts the conversation again
             var portionText = c.portion && c.portion.values ? (c.portion.source === "variations" ? "×" + (c.portion.factor || 1) + " with changes" : "checked by photo" + (c.portion.factor && c.portion.factor !== 1 ? " ×" + c.portion.factor : "") + (c.portion.assumed ? " — " + c.portion.assumed : "")) : "×" + ((c.portion && c.portion.factor) || 1) + " of the list portion";
             var note = ragNote(c, parent, personalLimits(data && data[activeTab]));   // v2.18.2: the selection against this person's goal
+            var runTurn = async function(turns) {
+              setSlotOpen(Object.assign({}, o, { draft: d, chat: { turns: turns }, msg: "⏳ Working out the changes…" }));
+              try {
+                var rr = await clarifyMealChange(turns);
+                if (rr.type === "question") setSlotOpen(Object.assign({}, o, { editing: true, draft: d, chat: { turns: turns.concat([{ role: "assistant", text: rr.question }]), question: rr.question }, msg: "" }));
+                else setSlotOpen(Object.assign({}, o, { editing: true, draft: d, chat: { turns: turns, reply: rr.reply }, msg: "" }));
+              } catch (e) { setSlotOpen(Object.assign({}, o, { editing: true, draft: d, chat: null, msg: "⚠️ Couldn't reach your Companion: " + String(e.message || e).substring(0, 90) + ". Nothing was changed." })); }
+            };
             var save = async function() {
               var factor = parseFloat(d.factor) || 1; var text = (d.text || "").trim();
               var next = Object.assign({}, c, { variations: { text: text, subs: (c.variations && c.variations.subs) || [] } });
               try {
                 if (text) {
-                  setSlotOpen(Object.assign({}, o, { draft: d, msg: "⏳ Recalculating this meal…" }));
-                  var r = await recalcWithVariations(c, factor, text);
-                  next.portion = { factor: factor, source: "variations", values: { kcal: Math.round(parseFloat(r.kcal)), protein: parseFloat(r.protein) || 0, fat: parseFloat(r.fat) || 0, satFat: parseFloat(r.satFat) || 0, addedSugar: parseFloat(r.addedSugar) || 0, carbs: parseFloat(r.carbs) || 0, fibre: parseFloat(r.fibre) || 0, salt: parseFloat(r.salt) || 0 }, change: r.change || "" };
+                  /* v2.37.1 (brief P3a): a conversation, as "My own" — a question instead of a rejection; the person reviews the
+                     values, then Save (here, or "Save these values") stores them. Nothing is saved before the review. */
+                  if (!(o.chat && o.chat.reply)) { await runTurn([{ role: "user", text: mealChangeRequest(c.snapshot, factor, text) }]); return; }
+                  var r = o.chat.reply.perPortion || {};
+                  next.portion = { factor: factor, source: "variations", values: { kcal: Math.round(parseFloat(r.kcal)), protein: parseFloat(r.protein) || 0, fat: parseFloat(r.fat) || 0, satFat: parseFloat(r.satFat) || 0, addedSugar: parseFloat(r.addedSugar) || 0, carbs: parseFloat(r.carbs) || 0, fibre: parseFloat(r.fibre) || 0, salt: parseFloat(r.salt) || 0 }, change: o.chat.reply.change || o.chat.reply.assumptions || "" };
                 } else if (c.portion && c.portion.values && c.portion.source !== "variations") {
                   /* v2.11.1: a photo-checked portion is scaled from the PHOTO values (kept as photoValues), never reset to the list */
                   var pv = c.portion.photoValues || c.portion.values; var sc = {};
@@ -219,6 +216,18 @@ export default function EatingSection({ ctx }) {
                   <input aria-label="Portion factor" value={d.factor} onChange={function(e) { setD({ factor: e.target.value }); }} style={Object.assign({}, openInput, { width: 60 })} />
                 </div> : portionText}</Field>
               <Field label="Changes" testid="slot-variations">{o.editing ? <textarea aria-label="Changes to this meal" value={d.text} onChange={function(e) { setD({ text: e.target.value }); }} placeholder="e.g. chips instead of potato, peas instead of beans, no sauce" style={Object.assign({}, openInput, { minHeight: 44 })} /> : ((c.variations && c.variations.text) || <span style={{ color: "#475569" }}>none</span>)}</Field>
+              {o.editing && o.chat && o.chat.question && <div data-testid="slot-clarify" role="status" style={{ margin: "6px 0", padding: 8, borderRadius: 8, background: "#eff6ff", border: "1px solid #bfdbfe", fontSize: 12, color: "#0f172a" }}>
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>💬 {o.chat.question}</div>
+                <textarea aria-label="Your answer" data-testid="slot-clarify-answer" id="slot-clarify-answer" style={Object.assign({}, openInput, { minHeight: 36 })} />
+                <button type="button" data-testid="slot-clarify-send" onClick={function() { var el = document.getElementById("slot-clarify-answer"); var a = el ? el.value.trim() : ""; if (!a) return; runTurn(o.chat.turns.concat([{ role: "user", text: a }])); }} style={{ ...btnMuted, marginTop: 4 }}>Answer</button>
+              </div>}
+              {o.editing && o.chat && o.chat.reply && (function() { var pp = o.chat.reply.perPortion || {}; return (<div data-testid="slot-review" role="status" style={{ margin: "6px 0", padding: 8, borderRadius: 8, background: "#f0fdf4", border: "1px solid #bbf7d0", fontSize: 12, color: "#0f172a" }}>
+                <div style={{ fontWeight: 700, marginBottom: 2 }}>Check these, then Save</div>
+                {o.chat.reply.change && <div style={{ marginBottom: 2 }}>{o.chat.reply.change}</div>}
+                <div data-testid="slot-review-values">{Math.round(parseFloat(pp.kcal) || 0)} kcal · protein {pp.protein} g · fat {pp.fat} g (sat {pp.satFat} g) · carbs {pp.carbs} g · added sugar {pp.addedSugar} g · fibre {pp.fibre} g · salt {pp.salt} g</div>
+                {o.chat.reply.assumptions && <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>Assumed: {o.chat.reply.assumptions}</div>}
+                <button type="button" data-testid="slot-review-save" onClick={save} style={{ ...btnMuted, marginTop: 4 }}>Save these values</button>
+              </div>); })()}
               {c.portion && c.portion.change && !o.editing && <Field label="What changed">{c.portion.change}</Field>}
               {nutritionRows(n, n.kcal)}
               {ratingsShown() && <Field label="Rating today" testid="slot-rating"><span style={{ fontWeight: 700, color: ratingColor(c.rating) }}>{ragText(c)}</span>{c.ragReason ? <div style={{ fontSize: 10, color: "#475569" }}>{c.ragReason}</div> : null}</Field>}

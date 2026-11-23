@@ -84,7 +84,7 @@ test("F5: a meal selection opens as the CHILD — variations recalculate the chi
   await setKey("custom_meals", [dinner, ...((await getKey("custom_meals")) || [])]);
   await setKey(key, { [today]: { d: dinner.id } });
   const prompts = [];
-  await page.route("https://api.anthropic.com/**", (r) => { const t = r.request().postData() || ""; if (!/The person ate/.test(t)) return r.fallback(); prompts.push(JSON.parse(t)); return r.fulfill(aiText({ kcal: 760, protein: 30, fat: 38, satFat: 14, addedSugar: 1, carbs: 70, fibre: 6, salt: 2, change: "Chips add about 260 kcal and 10g sat fat." })); });
+  await page.route("https://api.anthropic.com/**", (r) => { const t = r.request().postData() || ""; if (!/CLARIFY_MEAL_CHANGE/.test(t)) return r.fallback(); prompts.push(JSON.parse(t)); return r.fulfill(aiText({ type: "item", name: "Test Fish & Chips", servings: 1, perPortion: { kcal: 760, protein: 30, fat: 38, satFat: 14, carbs: 70, sugar: 2, addedSugar: 1, fibre: 6, salt: 2 }, change: "Chips add about 260 kcal and 10g sat fat." })); });   // v2.37.1: the clarifying conversation
   await freshReload(page); await tab(page, "My Eating");
   await page.getByRole("button", { name: "Open this meal" }).first().click();
   const form = page.getByTestId("slot-open-form");
@@ -95,6 +95,9 @@ test("F5: a meal selection opens as the CHILD — variations recalculate the chi
   expect(await form.locator("button").evaluateAll((bs) => bs.filter((b) => b.scrollWidth > b.clientWidth + 1).length)).toBe(0);
   await form.getByRole("button", { name: "Edit", exact: true }).click();
   await form.getByLabel("Changes to this meal").fill("chips instead of potato");
+  await form.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(form.getByTestId("slot-review-values")).toContainText("760 kcal");              // v2.37.1: reviewed before it is saved
+  expect(await childOf(today, "d")).toMatchObject({ nutrition: { kcal: 500 } });
   await form.getByRole("button", { name: "Save", exact: true }).click();
   await expect(form.getByTestId("open-form-msg")).toHaveText("✓ Saved for this meal only. To update the list item permanently, please go to 'Update Eating Lists'.");
   expect(prompts[0].temperature).toBe(0);

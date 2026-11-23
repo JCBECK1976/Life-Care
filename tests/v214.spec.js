@@ -71,9 +71,9 @@ test("item 4: the boot/sign-in logo is the small WebP file, same 640px resolutio
   await page.goto("./");
   const img = page.locator('img[alt="Lifecare Companion"]').first();
   await expect(img).toBeVisible();
-  await expect.poll(() => img.evaluate((i) => i.complete && i.getBoundingClientRect().width)).toBe(220);   // loaded and laid out
-  const r = await img.evaluate((i) => ({ src: i.currentSrc, nw: i.naturalWidth, w: i.getBoundingClientRect().width }));
-  expect(r.src).toMatch(/app-logo-640\.webp$/); expect(r.nw).toBe(640); expect(r.w).toBe(220);
+  // one read of all three: React replaces the loading-screen logo with the sign-in one, so two separate reads could see
+  // two different images (the cause of an occasional 0 px width)
+  await expect.poll(() => img.evaluate((i) => ({ src: /app-logo-640\.webp$/.test(i.currentSrc), nw: i.naturalWidth, w: i.complete ? i.getBoundingClientRect().width : 0 })).catch(() => null)).toEqual({ src: true, nw: 640, w: 220 });
 });
 
 test("item 8: the energy ping runs once a day on open; ↻ Refresh still pings", async ({ page }) => {
