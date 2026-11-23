@@ -129,3 +129,10 @@ For what's planned next see [backlog/PRODUCT_BACKLOG.md](backlog/PRODUCT_BACKLOG
 | v2.34.0 | Screen readers: every box and button on the main screens is announced by name (Record form boxes, "Weight progress", "Mood: Good"), section titles are headings, decorative icons are skipped. The apps pick up a change to the phone's text size when you come back to them. |
 | v2.35.0 | Under-18 check at sign-up in the apps: the app asks Google Play (Age Signals) or Apple (Declared Age Range, iOS 26+) and kindly turns away accounts the store says are under 18; otherwise you confirm you're 18+ as before. Nothing about your age is stored. |
 | v2.35.1 | The Android app no longer asks for the advertising ID or ad-attribution permissions (they came with Facebook's code in the sign-in plugin, which we don't use). Google, Apple and email sign-in unchanged. |
+| v2.35.2 | (Tests only) A visual check compares the main screens with beta v2.20.2. |
+| v2.36.0 | Buttons, boxes and rows are back to their beta size (the larger touch sizes are gone); list pickers keep bigger rows. |
+| v2.37.0 | My Exercise: each exercise shows its range and why its target is what it is, a status on every exercise (new: Building back up), last week's Companion feedback at the top of the day, "Your Companion said" in each week's history, and a one-tap **Skipped** (doesn't count against you; Undo). |
+| v2.37.1 | Changing a meal (Open → Edit → Changes): the Companion asks if something's unclear and shows you the new values before saving. "+ Not in my list?" opens with what you typed already searched. |
+| v2.37.2 | Body-measurement photos, the Full Body measurement and the Body balance check are switched off for now (being redesigned). The scales photo stays. |
+| v2.38.0 | Help starts with **How Lifecare works** (what every button means), then the guide search, then Ask the Companion. "Record" is now "Log" in My Body. New accounts choose how to get started (explore, quick or full set-up); Settings → Set-up guide for everyone else (switch useOnboarding). |
+| v2.38.1 | Exercise statuses your Companion set are kept (Building back up only replaces an empty or Building status). |

@@ -1,4 +1,4 @@
-# Release v2.30.x (prod jumps from v2.15.1) — checklist
+# Release v2.30.x → v2.38.x (prod jumps from v2.15.1) — checklist
 
 > Written 18 Nov 2026 (Coder) for the release of `build` (now v2.32.1) through beta to prod. Everything new since v2.20
 > is behind switches that are **off** on beta and prod; the joint account (JC + Becks) keeps working as today.
@@ -8,6 +8,8 @@
 - **Test:** `tests/release-compat.spec.js` (runs only where the 3 Nov backup exists, local emulator only, **counts only**, never prints data). With no switches on, the joint account opens on the real-shaped backup; every section (Home, My Body, My Exercise, My Eating, My Shop, My Health and its four tabs, Settings) opens with no errors; none of the build-only features appear (symptoms/HRT/GP prep, weigh-ins, sharing, consent, plans, demo, pilot invites, go-live switches); no server function is called.
 - **Result (18 Nov):** 32 counts compared before/after — weigh-ins, body fat, measurements, exercises, progress weeks, medicines, medicine history, bloods, vitals, health log, photos per person; every food list; journal entries — **all unchanged**; 100 top-level keys before and after; nothing written to the per-person/area layout; no new-feature fields written.
 - **One expected change on first open:** the **goal setup** (v2.18.0, already on beta) opens once for each of you, because the 3 Nov data has no goal yet. Choose a goal and timescale; it's then saved.
+
+**Re-run 23 Nov (v2.38.0, build):** joint account, every new switch off, the 3 Nov backup in the local emulator, counts only: 32 counts unchanged, keys 100 → 100; the goal setup shows once on first open (expected). Visual freeze vs beta v2.20.2 (`tests/visual-freeze.spec.js`): all 8 screens within 1%.
 
 ## B. Every stored-data change since v2.15.1 — all backward compatible (ADR 0002)
 v2.15.1 must still read anything a newer version writes (rollback). It reads `dashboard:data` and the lists whole and writes them back whole, so **fields it doesn't know are kept**.
@@ -27,8 +29,13 @@ v2.15.1 must still read anything a newer version writes (rollback). It reads `da
 | v2.30.0 | Person `symptoms`, `hrt`, `gpSummaries` | No (`usePilotFeatures` off) | Yes |
 | v2.31.0 | Server usage ledger: `cw`, `cr`, per-feature counts (server tree) | Only once the functions run | Yes |
 | v2.32.0–v2.32.1 | Person `weighIns`, `tips`; imported weekly weigh-ins `{wk, v, src, day}` | No (`useWeighIns` off) | Yes — `src`/`day` ignored, `v` in the existing stone format |
+| v2.32.2–v2.32.3 | New weigh-ins also store `kg`; `v` is written as text with its zeros ("14.110"); person `profile.weightUnit` | Yes | Yes — `kg`/`weightUnit` ignored; v2.15.1 reads `v` as before (only the change-from-baseline sign could differ, ADR 0019) |
+| v2.33.0 | `security:signedOutAt` (Sign out everywhere) | No (`useAppLock` off) | Yes — new key, ignored |
+| v2.37.0 | A skipped exercise week: a normal `prog[]` entry with `skipped: true`, 0 kg / 0 reps, optional note. **Once on first open (switches off too):** stored session feedback not yet linked is copied into the matching week's `prog[].companion` (added field, nothing overwritten; 3 Nov backup: 11 JC + 11 Becks) | Skips: only when someone taps Skipped · link: yes | Yes — v2.15.1 shows a skipped week as a 0 kg week (cosmetic); `companion` was already an accepted field (v2.16.0) |
+| v2.37.1 | A changed meal keeps its values in the same `portion` fields (`source: "variations"`) | Yes | Yes — same shape |
+| v2.38.0 | `setup_guide_<person>` (the set-up guide's progress) | No (`useOnboarding` off) | Yes — new key, ignored |
 
-**Known, not changed:** the stone format is ambiguous from 10 lb (plan BUG-ST) — pre-existing in v2.15.1, unchanged by the release.
+**Known:** the stone format is ambiguous from 10 lb (plan BUG-ST, pre-existing in v2.15.1). From v2.32.2 one reader handles it and unclear old weigh-ins show "⚠ Check this weigh-in"; stored values are never rewritten.
 
 ## C. JC's regression checklist — Beta first, then Prod (one action per line; tick each)
 **Before anything: back up (part D).** Then close the tab, reopen, and check the footer shows the new version.
@@ -42,7 +49,7 @@ v2.15.1 must still read anything a newer version writes (rollback). It reads `da
 8. My Exercise: log this week for one exercise (weight + reps) → Save.
 9. My Exercise: + Add Exercise → search → pick one → choose the type (opens from the bottom) → Add.
 10. My Exercise: open an exercise's Progress chart.
-11. My Body: Record a weigh-in in stone → it shows on the card and the chart.
+11. My Body: **📋 Log** a weigh-in in the st + lb boxes → it shows on the card and the chart.
 12. My Body: delete a test measurement → tap **Undo** → it's back.
 13. My Health → Vitals: add a reading.
 14. My Health → Medications: Stop one, then Restart it.
@@ -52,7 +59,12 @@ v2.15.1 must still read anything a newer version writes (rollback). It reads `da
 18. My Eating: My Companion Eating Feedback → it appears.
 19. Switch between JC and Becks → each shows their own data.
 20. Settings → Privacy & your data → Download my data (a file saves).
-21. Prod only, the next morning: open on your phone and check yesterday's entries are all there.
+21. My Exercise: tap **Skipped** on one exercise → "Skipped this week" shows, its status and weight don't change → **Undo** puts it back.
+22. My Exercise: each exercise shows its range and a "why" line; open **Last week's Companion feedback** at the top of the day.
+23. My Eating: Open a meal → Edit → Changes (e.g. "extra cheese") → Save → answer if the Companion asks → check the values → Save.
+24. Help: **How Lifecare works** is at the top; search the guide below it.
+25. My Body → Measurements: no 📷 photo button, no Full Body row; no Body Balance card at the bottom of My Body (hidden for now).
+26. Prod only, the next morning: open on your phone and check yesterday's entries are all there.
 
 ## D. Backup first (before the beta → main merge)
 1. **JC** — Settings → Data → **Download backup** (save the file somewhere safe, not in the repo).
