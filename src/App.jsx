@@ -10,6 +10,7 @@ import { bodyNotesCtx } from "./lib/bodyNotes.js";
 import { allowedBy, consentActive, loadConsent, needsConsent } from "./lib/consent.js";
 import ConsentScreen from "./components/ConsentScreen.jsx";
 import GoalSetup from "./components/GoalSetup.jsx";
+import SetupGuide from "./components/SetupGuide.jsx";
 import { setupComplete, goalCtx, kcalTargetText, dayTable, aimText, personalLimits } from "./lib/goals.js";
 import LegalViewer from "./components/LegalViewer.jsx";
 import { auditLog } from "./lib/audit.js";
@@ -77,7 +78,8 @@ function Dashboard() {
   const [section, setSection] = useState("overview"); // always starts on Home
   /* v2.22.0: "See plans" (a gating prompt) opens Settings → My Plan */
   useEffect(function() { var on = function() { if (!document.querySelector("[data-testid=my-plan]")) window._lcOpenMyPlan = true; setQaOpen(false); setHelpOpen(false); setSection("admin"); };   /* v2.22.2: close Chat / Help so My Plan is visible */ window.addEventListener("lc-open-plans", on); var onP = function() { if (!document.querySelector("[data-testid=account-consent]")) window._lcOpenPrivacy = true; setQaOpen(false); setHelpOpen(false); setSection("admin"); }; window.addEventListener("lc-open-privacy", onP); return function() { window.removeEventListener("lc-open-plans", on); window.removeEventListener("lc-open-privacy", onP); }; }, []);
-  useEffect(() => { window._lcSection = section; }, [section]);   // v2.14.0 item 9: AI usage per feature
+  useEffect(() => { window._lcSection = section; }, [section]);
+  useEffect(() => { window._lcGo = function(s) { setSection(s); }; }, []);   // v2.38.0: the set-up guide moves between sections   // v2.14.0 item 9: AI usage per feature
   const [weekOff, setWeekOff] = useState(function() { var diff = Math.floor((new Date() - new Date(2026, 6, 19)) / (7*24*60*60*1000)); return diff; });
   const [meals, setMeals] = useState({});
   const [mealLoading, setMealLoading] = useState(true);
@@ -128,6 +130,7 @@ function Dashboard() {
   /* v2.18.0: mandatory goal setup — shown until complete ("Later" hides it until the next visit); also opened from My Profile */
   const [goalSetupOpen, setGoalSetupOpen] = useState(false);
   const [goalLater, setGoalLater] = useState({});
+  const [goalHold, setGoalHold] = useState({});   // v2.38.0: "explore" waits for a goal feature before the goal setup
   const openGoalSetup = function() { setGoalSetupOpen(true); };
   /* v2.16.7 P9: consent for the person being used (only acts while the pilotConsent flag is on) */
   const [consentRec, setConsentRec] = useState(undefined);
@@ -1894,6 +1897,7 @@ function Dashboard() {
       <div style={{ padding: 16 }}>
         {/* HOME */}
         <SharePicker people={data ? peopleOf(data) : []} activeKey={activeTab} accentMid={accentMid} setPerson={function(k) { setActiveTab(k); loadUserSettings(k); }} go={function(kind) { if (kind === "body" || kind === "progress") setSection("body"); else if (kind === "food") setSection("shop"); }} />
+        {data && data[activeTab] && <SetupGuide who={activeTab} p={data[activeTab]} section={section} go={setSection} openGoal={openGoalSetup} goalOpen={goalSetupOpen} colour={userColour} setColour={setUserColour} onHold={function(h) { setGoalHold(function(q) { if (!!q[activeTab] === h) return q; var o = Object.assign({}, q); o[activeTab] = h; return o; }); }} />}   {/* v2.38.0 (brief P5c): set-up guide, checklist, tips */}
         {section === "overview" && (<ErrorBoundary name="Home"><HomeSection ctx={{ weekChildren, openGoalSetup, accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, assessment, assessmentExpanded, btnMT, calcAge, checkCompanionEnergy, companionEnergy, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, dailyMood, data, energyLoading, feedbackHistory, feedbackLoading, feedbackResults, genPlanLoading, generateFeedback, generatedTargets, getCrossSectionCtx, homeFbExpanded, isJC, journalEntries, journalText, meals, onboardInputs, p, profileInputs, renderThread, saveData, setAssessment, setAssessmentExpanded, setDailyMood, setEatDay, setExerciseDay, setFormMsg, setGenPlanLoading, setGeneratedTargets, setHomeFbExpanded, setJournalEntries, setJournalText, setOnboardInputs, setProfileInputs, setSection, setSetupDirty, setSetupTab, setShowFbHistory, setShowFullJournal, setShowMyDay, setShowOnboarding, setShowProfile, setShowRecentJournal, setUserMood, setupDirty, setupTab, showFbHistory, showFullJournal, showMyDay, showOnboarding, showProfile, showRecentJournal, updateHomeFb, userMood }} /></ErrorBoundary>)}
 
         {/* BODY */}
@@ -1937,7 +1941,7 @@ function Dashboard() {
       {consentActive() ? (showPrivacy && <LegalViewer which="privacy" onClose={function() { setShowPrivacy(false); }} />) /* v2.16.7 P8: pilot Privacy Notice replaces the old policy */
         : <ErrorBoundary name="PrivacyPolicy"><PrivacyPolicy ctx={{ accent, setShowPrivacy, showPrivacy }} /></ErrorBoundary>}
       {data && consentRec !== undefined && needsConsent(consentRec) && <ConsentScreen person={activeTab} name={personName(data, activeTab)} current={consentRec} onDone={function(c) { window._lcConsent = c; setConsentRec(c); auditLog("consent", activeTab, "pilot legal docs + choices"); }} />}
-      {data && data[activeTab] && !(consentRec !== undefined && needsConsent(consentRec)) && (goalSetupOpen || (!setupComplete(data[activeTab]) && !goalLater[activeTab])) && <GoalSetup key={activeTab} data={data} who={activeTab} name={personName(data, activeTab)} saveData={saveData} editing={goalSetupOpen && setupComplete(data[activeTab])} onDone={function() { setGoalSetupOpen(false); setFormMsg("✓ Goal saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} onLater={function() { setGoalSetupOpen(false); setGoalLater(function(q) { var o = Object.assign({}, q); o[activeTab] = true; return o; }); }} laterLabel={goalSetupOpen && setupComplete(data[activeTab]) ? "Cancel" : "Later"} />}
+      {data && data[activeTab] && !(consentRec !== undefined && needsConsent(consentRec)) && (goalSetupOpen || (!setupComplete(data[activeTab]) && !goalLater[activeTab] && !goalHold[activeTab])) && <GoalSetup key={activeTab} data={data} who={activeTab} name={personName(data, activeTab)} saveData={saveData} editing={goalSetupOpen && setupComplete(data[activeTab])} onDone={function() { setGoalSetupOpen(false); setFormMsg("✓ Goal saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} onLater={function() { setGoalSetupOpen(false); setGoalLater(function(q) { var o = Object.assign({}, q); o[activeTab] = true; return o; }); }} laterLabel={goalSetupOpen && setupComplete(data[activeTab]) ? "Cancel" : "Later"} />}
       <div style={{ textAlign: "center", fontSize: 9, color: "#475569", paddingBottom: 12 }}>{APP_VERSION}
       </div>
 

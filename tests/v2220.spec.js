@@ -82,7 +82,7 @@ test("Bronze: chat shows the prompt and See plans opens Settings → My Plan; He
   await page.getByRole("button", { name: /help/i }).first().click();
   await page.getByLabel("Search the guide").fill("colour theme");
   await expect(page.getByTestId("faq-entry").first()).toBeVisible();
-  await expect(page.getByTestId("help-faq").getByTestId("plan-gate-aiHelp")).toContainText("Ask the Companion in Help is part of Silver.");
+  await expect(page.getByTestId("help-ask").getByTestId("plan-gate-aiHelp")).toContainText("Ask the Companion in Help is part of Silver.");   // v2.38.0: under "Ask the Companion"
   await page.keyboard.press("Escape");
   // My own
   await tab(page, "My Eating");

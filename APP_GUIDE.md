@@ -59,7 +59,7 @@ You can pinch to zoom anywhere in the app (since v2.15.2). With a keyboard, the 
 | **My Health** | Health profile and notes, health log, vital observations, medications, blood results and health feedback. |
 
 ### Help and Chat
-- **Help ?** (top right, next to the Settings gear) — ask how to use the app. Your Companion answers using this guide.
+- **Help ?** (top right, next to the Settings gear) — first **How Lifecare works** (what every button and label means), then a search of this guide, then **Ask the Companion** (Silver and up), which answers using this guide.
 - **💬 Chat** (round button, bottom right) — chat with your Companion about your health, training, nutrition or progress, using your full data history.
 
 ### Signing in
@@ -212,7 +212,7 @@ Tracks body composition, usually from a smart scale:
 - **Weight** — type it in **st** and **lb** boxes (for example 14 and 6.8), or switch to **kg** with the small **st/lb | kg** switch; your choice is remembered and used everywhere (My Body, history, goal setup, photos). Stones 4–40, pounds 0–13.9 with one decimal, kg 25–250 with one decimal. A photo of your scales fills the boxes for you to check. If an older weigh-in could mean two weights (for example "14.11" = 14st 1.1lb or 14st 11lb), it shows **⚠ Check this weigh-in** — tap **Fix it** (or the badge in the history), choose the one you meant (or type it) and save.
 **Weight, Body Fat %, Muscle Mass, Muscle Rate %, Visceral Fat, Subcutaneous Fat %, Body Water %, Bone Mass, BMR (kcal), Body Age.** Each shows a status (e.g. Acceptable / Too High, Standard / High, Excellent) where relevant.
 
-- **📋 Record** — type in today's values. **My Notes** (e.g. "birthday week", "after a long flight") is saved with that weigh-in; every Companion allows for it when reading your numbers. Measurements have My Notes too.
+- **📋 Log** — type in today's values. **My Notes** (e.g. "birthday week", "after a long flight") is saved with that weigh-in; every Companion allows for it when reading your numbers. Measurements have My Notes too.
 - **📷 Upload** — upload a screenshot from your scales app; the Companion reads the values ("✓ Values extracted — review and save"). Check them, then save.
 - **👁 Progress** (under each stat) — the history, newest first, one row per week (week + value) with **Open**, and a chart once there are 2+ entries. **Open** shows the entry read-only (week, value, note); **Edit** to change it and **Save**, or **Remove** to take it out (asks first).
 - Your calorie goal is shown on **Home** and on each day in **My Eating** (see "Your goal and your calorie goal" under My Eating). Weigh-ins with body fat % make it more accurate.
@@ -559,6 +559,15 @@ Ask anything about your health, training, nutrition or progress, e.g. "Why did m
 
 ### Help ?
 Tap **Help ?** at the top right of the screen, next to the Settings gear. On **Bronze**, Help is a **searchable guide** (type a few words, open a result) with no AI; asking the Companion is part of Silver. Ask how to use the app: where something is, what something means, how to do something, why it works the way it does. The Help companion answers from this guide, in the same conversation style. It helps with the **app**; for questions about your own health data, use 💬 Chat.
+- **Help, top to bottom:** **How Lifecare works** — the app's real buttons and labels (Progress, Open, Snap, Log, Remove, Delete, Copy Day, Status pills, RAG colours…), each with one plain line on what it does, for every plan; then **Search the guide** (every plan); then **Ask the Companion** (Silver and up; on Bronze it shows what each plan includes).
+
+### Getting started (new accounts) and Settings → 🧭 Set-up guide
+After the age check, Terms and Privacy and your privacy choices, you choose **How would you like to get started?**
+- **I'll explore myself** — straight to Home. A **Finish setting up** checklist there shows what's left (profile and goal, health data, first weigh-in, food lists, exercise plan, colour). The goal setup appears the first time you open My Body, My Exercise or My Eating.
+- **Quick set-up (about 3 min)** — your profile and goal (st/lb or kg, timescale with the safety limits), then the **How Lifecare works** guide once, your colour, and connecting your health data (Silver and up; skippable).
+- **Full set-up (about 10–15 min)** — the quick set-up, then a guided first visit to each section (Body, Exercise, Eating, Shop, Health, Home). Every step can be skipped; **Stop the set-up** ends it. Sections you skipped show 2–3 tips the first time you open them (✕ to dismiss).
+- Your progress is saved after every step, so it carries on where you stopped. Anything that needs a paid plan says so and never blocks you.
+- Already using the app? **Settings → 🧭 Set-up guide → Open the set-up guide** lets you pick any of the three.
 
 ---
 

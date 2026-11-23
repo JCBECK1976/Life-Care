@@ -201,6 +201,7 @@ test("onboarding offers the symptom/HRT choice (off until ticked) while the pilo
   await expect(ob.getByTestId("ob-symptoms")).not.toBeChecked();
   await ob.getByTestId("ob-symptoms").check();
   await ob.getByTestId("ob-finish").click();
+  await ob.getByTestId("ob-path-explore").click();                                           // v2.38.0: then the start choice
   await expect(ob).toHaveCount(0);
   expect(await get("apps/lifecare/users/" + ME + "/consent/symptoms")).toBe(true);
 });

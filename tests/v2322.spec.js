@@ -69,7 +69,7 @@ test("My Body: typing 14 st 11 lb saves the canonical kg + '14.110'; an ambiguou
   await page.getByTitle("View Weight detail").click();
   await expect(page.getByTestId("body-hist-badge")).toContainText("check this weigh-in");
   // record this week's weigh-in as typed: 14.110 = 14 st 11.0 lb
-  await page.getByRole("button", { name: /Record/ }).first().click();
+  await page.getByRole("button", { name: "📋 Log", exact: true }).first().click();
   const form = page.getByText("Body Composition").locator("xpath=..");
   await form.getByText("Week", { exact: true }).locator("xpath=following::input[1]").fill(String(wk));
   await form.getByTestId("bw-st").fill("14"); await form.getByTestId("bw-lb").fill("11");    // v2.32.3: st + lb boxes

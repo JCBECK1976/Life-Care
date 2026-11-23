@@ -54,6 +54,7 @@ test("a new account: under 18 stops here (nothing saved); 18+ → Terms/Privacy 
   await ob.getByTestId("ob-health").check();
   await expect(ob.getByTestId("ob-no-ai-note")).toBeVisible();
   await ob.getByTestId("ob-finish").click();
+  await ob.getByTestId("ob-path-explore").click();                                           // v2.38.0: then the start choice
   await expect(ob).toHaveCount(0);
   const c = await get("apps/lifecare/users/" + ME + "/consent");
   expect(c).toMatchObject({ accepted: true, adult: true, termsVersion: "pilot-2026-11-14", privacyVersion: "pilot-2026-11-14", ai: false, photos: false, health: true, bodyBalance: false });

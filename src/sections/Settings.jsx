@@ -8,6 +8,7 @@ import { APP_ENV, APP_VERSION } from "../constants/version.js";
 import { saveDebugMode } from "../lib/debugLog.js";
 import AccountCard from "../components/AccountCard.jsx";
 import PrivacyDataCard from "../components/PrivacyDataCard.jsx";
+import { SetupGuideCard } from "../components/SetupGuide.jsx";
 import { auditLog } from "../lib/audit.js";
 import AiUsageCard from "../components/AiUsageCard.jsx";
 import Tracker from "../components/Tracker.jsx";
@@ -203,6 +204,7 @@ export default function SettingsSection({ ctx }) {
           </div>)}
 
           <PrivacyDataCard person={activeTab} name={(data && data[activeTab] && data[activeTab].profile && data[activeTab].profile.name) || activeTab} isAdmin={isAdmin} />
+          <SetupGuideCard />   {/* v2.38.0 (brief P5c): Settings → Set-up guide */}
           <AccountCard />
           </>)}
         </div>

@@ -30,7 +30,7 @@ test("what TalkBack hears on the main flows (360 px): every control has a name, 
   const { errors } = await openApp(page);
   const cdp = await page.context().newCDPSession(page);
   const screens = [["Home"], ["My Body"], ["My Exercise"], ["My Eating"], ["My Shop"], ["My Health"],
-    ["My Body → Record", async () => { await tab(page, "My Body"); await page.getByRole("button", { name: /Record/ }).first().click(); }],
+    ["My Body → Record", async () => { await tab(page, "My Body"); await page.getByRole("button", { name: "📋 Log", exact: true }).first().click(); }],
     ["Settings", async () => { await page.getByRole("button", { name: /Settings/ }).first().click(); }]];
   for (const [name, go] of screens) {
     if (go) await go(); else await tab(page, name);
@@ -47,7 +47,7 @@ test("the Record form's boxes are announced with their labels (Week, Body Fat %,
   await expect(page.getByRole("button", { name: "Mood: Good" })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("heading", { name: "My Mood" })).toBeVisible();
   await tab(page, "My Body");
-  await page.getByRole("button", { name: /Record/ }).first().click();
+  await page.getByRole("button", { name: "📋 Log", exact: true }).first().click();
   await page.getByRole("textbox", { name: "Body Fat %" }).fill("25.1");                      // found by its label
   await expect(page.getByRole("textbox", { name: "Body Fat %" })).toHaveValue("25.1");
   await expect(page.getByRole("spinbutton", { name: "Week" })).toBeVisible();

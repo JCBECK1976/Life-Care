@@ -9,7 +9,7 @@ const H = { Authorization: "Bearer owner" };
 const dash = async () => JSON.parse(await (await fetch("http://127.0.0.1:9000/data/dashboard:data.json" + NS, { headers: H })).json());
 const putDash = (d) => fetch("http://127.0.0.1:9000/data/dashboard:data.json" + NS, { method: "PUT", headers: H, body: JSON.stringify(JSON.stringify(d)) });
 const ready = (page) => expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
-const record = async (page) => { await page.getByRole("button", { name: /Record/ }).first().click(); return page.getByText("Body Composition").locator("xpath=.."); };
+const record = async (page) => { await page.getByRole("button", { name: "📋 Log", exact: true }).first().click(); return page.getByText("Body Composition").locator("xpath=.."); };
 
 test("writer: kg + the legacy string with its zeros (14st 11.0lb → '14.110', never ambiguous); validation limits", () => {
   expect(weighInEntry(7, fromStLb(14, 11))).toEqual({ wk: 7, v: "14.110", kg: 93.89 });

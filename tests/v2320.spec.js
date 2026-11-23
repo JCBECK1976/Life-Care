@@ -197,7 +197,7 @@ test("plans: on Bronze (individual account) the weigh-ins import is part of Silv
   expect(guide).toMatch(/we can't see any other app until you give permission/);
 });
 
-test("onboarding: after the privacy choices, if health sync was chosen (Silver+), the guided setup follows as an optional last step; Skip closes it", async ({ page }) => {
+test("onboarding: after the privacy choices and the start choice (quick set-up), if health sync was chosen (Silver+), the guided health setup follows, optional; Skip closes it", async ({ page }) => {
   await fetch("http://127.0.0.1:9000/apps/lifecare.json" + NS, { method: "PUT", headers: H, body: "null" });
   await phone(page, { flags: { useOnboarding: true }, device: { person: "jc" } });
   await openApp(page, "member");
@@ -207,8 +207,9 @@ test("onboarding: after the privacy choices, if health sync was chosen (Silver+)
   await expect(ob.getByText("Health sync (steps and weigh-ins)")).toBeVisible();                            // the choice says weigh-ins before anyone agrees
   await ob.getByTestId("ob-health").check();
   await ob.getByTestId("ob-finish").click();
+  await ob.getByTestId("ob-path-quick").click();                                             // v2.38.0: quick / full set-up include the health connection
   await expect(ob.getByTestId("health-setup")).toBeVisible();
-  await expect(ob).toContainText("Last step (optional)");
+  await expect(ob).toContainText("Optional");
   await ob.getByTestId("hs-skip").click();
   await expect(page.getByTestId("onboarding")).toHaveCount(0);
   await fetch("http://127.0.0.1:9000/apps/lifecare.json" + NS, { method: "PUT", headers: H, body: "null" });

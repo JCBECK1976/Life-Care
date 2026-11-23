@@ -347,7 +347,8 @@ test("8 Chat and Help are dialogs: focus moves into the box, Tab stays inside, E
   await expect(dlg).toHaveCount(0);
   await page.getByRole("button", { name: /Help/ }).first().click();
   const h = page.getByRole("dialog", { name: "Help — using the app" });
-  await expect(page.locator("#help-input-jc")).toBeFocused();
+  await expect(page.locator("#help-faq-search")).toBeFocused();   // v2.38.0: Help starts with the guide and its search box (Ask the Companion is below)
+  expect(await h.evaluate((d) => d.contains(document.activeElement))).toBe(true);
   await page.keyboard.press("Escape"); await expect(h).toHaveCount(0);
   expect(errors).toEqual([]);
 });
