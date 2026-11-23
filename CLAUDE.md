@@ -24,6 +24,8 @@ Owner: JC (not a developer). Live app used daily by JC and Becks. Full brief: `M
 11. Keep this file short (under 60 lines).
 12. **Keep the plan live.** Update `docs/plan.json` (on `main`) whenever an item starts or finishes: status, version, notes. Main deploys publish it as `/Life-Care/plan.json`; the admin Tracker loads it (v2.15.0+).
 
+13. **Visual freeze vs beta v2.20.2 (Architect, 23 Nov).** No visual/layout change to an existing screen unless JC or the Architect asked for it, or it fixes a named accessibility failure (state the WCAG criterion). Agreed exceptions: subtle borders on input boxes; larger selection lists. `tests/visual-freeze.spec.js` (Playwright project `visual`, in the gate) compares 360 px screenshots with `tests/visual-baseline/`; a baseline changes only with an approval note in `HANDOVER.md`.
+
 ## Session limits and where things go
 - Docs (HANDOVER.md etc.) are committed **straight to `main`**. Source: commit to **`build`** → the Architect verifies `/build/` → PR `build → beta` (merge commit) → JC tests `/beta/` → PR `beta → main` (release; the Architect tags it). Never push source straight to `beta` or `main`.
 - No tag pushes and no PAT from Coder sessions: report what's needed; the Architect or JC does it.
