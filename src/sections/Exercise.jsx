@@ -271,7 +271,7 @@ export default function ExerciseSection({ ctx }) {
                       {ex.notes && <div data-testid="ex-notes" style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 6 }}>📋 {tidyNotes(ex.notes)}</div>}
                     
                     {selectedEx&&selectedEx.day===day&&selectedEx.idx===i&&(<div ref={scrollOnMount} data-testid="ex-progress-panel" style={{marginTop:10,padding:12,background:accentLight,borderRadius:8,border:"1px solid "+accentBorder,width:"100%"}}>
-                      {(function() { var _nx = prefillFrom(ex, latestEntry(ex.prog)); var _mu = measureOf(ex).unit; return _nx ? <div data-testid="progress-next" style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 8 }}>Next session: {_mu === "kg" ? _nx.w + " kg × " + _nx.r : _nx.r + " " + _mu} ({_nx.source})</div> : null; })()}
+                      {(function() { var _nx = prefillFrom(ex, latestEntry(ex.prog)); var _mu = measureOf(ex).unit; return _nx ? <div data-testid="progress-next" style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 8 }}>Next session: {targetHeadline(ex) || (_mu === "kg" ? _nx.w + " kg × " + _nx.r : _nx.r + " " + _mu)} ({_nx.source})</div> : null; })()}
                       {ex.stopped ? <div style={{fontSize:11,color:"#475569",background:"#f1f5f9",padding:"8px 10px",borderRadius:6,textAlign:"center"}}>⏸ Stopped — view only. Restart in Exercise Settings to log again.</div> : <button onClick={function() { openLogForm(day, i); }} style={btnActionLg}>📋 Log {ex.name}</button>}
                       {logEx && logEx.day === day && logEx.idx === i && (() => {
             const ex = p.exercises[logEx.day] && p.exercises[logEx.day][logEx.idx]; if (!ex) return null;
@@ -279,8 +279,8 @@ export default function ExerciseSection({ ctx }) {
             return (<div ref={logFormRef} style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginTop: 10, marginBottom: 14 }}>
               <div data-testid="log-for" style={{ fontSize: 11, fontWeight: 700, color: accent, marginBottom: 2 }}>Logging for {personName(data, activeTab)}</div>
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Log: {ex.name}</div>
-              <div style={{ fontSize: 11, color: "#475569", marginBottom: 6 }}><span data-testid="log-previous">Previous: {prev ? fmtEntry(prev) + " (Wk " + prev.wk + ")" : "No data"}</span></div>
-              {(function() { var _nx = prefillFrom(ex, prev); var _mu = measureOf(ex).unit; return _nx ? <div data-testid="log-progression" style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>Progression: {_mu === "kg" ? _nx.w + " kg × " + _nx.r : _nx.r + " " + _mu} ({_nx.source}) — pre-filled below</div> : null; })()}
+              <div style={{ fontSize: 11, color: "#475569", marginBottom: 6 }}><span data-testid="log-previous">Previous: {prev ? (isCardioEx(ex) ? String(prev.w || "").replace(/kg$/i, "") + " min" + (prev.r && String(prev.r) !== "0" ? " · " + prev.r + " km" : "") : fmtEntry(prev)) + " (Wk " + prev.wk + ")" : "No data"}</span></div>
+              {(function() { var _nx = prefillFrom(ex, prev); var _mu = measureOf(ex).unit; return _nx ? <div data-testid="log-progression" style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>Progression: {targetHeadline(ex) || (_mu === "kg" ? _nx.w + " kg × " + _nx.r : _nx.r + " " + _mu)} ({_nx.source}) — pre-filled below</div> : null; })()}
               {prevComment && (<div style={{ padding: 8, background: "#fef3c7", borderRadius: 8, marginBottom: 8, border: "1px solid #fcd34d" }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>📋 NOTES FROM LAST SESSION</div>
                 <div style={{ fontSize: 11, color: "#92400e", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{prevComment}</div>

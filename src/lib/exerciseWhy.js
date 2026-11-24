@@ -3,6 +3,7 @@
 // Architect and JC revisit them at the week reset) — this module explains them.
 import { getExerciseType, parseReps, fmtReps, latestEntry, measureOf, wkNum, sameExercise, tidyNotes, skippedWeek } from "./exercise.js";
 import { targetHeadline } from "./nextTarget.js";
+import { isCardioEx } from "./cardio.js";
 
 var num = function(v) { var m = /-?\d+(?:[.,]\d+)?/.exec(String(v == null ? "" : v)); return m ? parseFloat(m[0].replace(",", ".")) : 0; };
 
@@ -51,6 +52,11 @@ export function whyLine(ex, status) {
   if (!ex || ex.stopped) return "";
   var t = targetHeadline(ex), rr = repRange(ex), reps = usesRepRange(ex);
   if (!latestEntry(ex.prog) && !t) return "First time: log your sets and the next step is worked out from them.";
+  if (isCardioEx(ex)) {   // v2.48.1: cardio talks about effort, never range and form
+    if (status === "move up") return "You reached " + (t || "your plan") + " and it felt Easy or About right: add a little — one thing at a time (time first), no more than 10% a week.";
+    if (status === "reduce") return "Ease back a step and rebuild until it feels About right.";
+    return t ? "Keep it here: reach " + t + " and when it feels Easy or About right, move up." : "Keep it steady until it feels Easy or About right, then add a little time (no more than 10% a week).";
+  }
   if (status === "move up") return "Range and form Good and you hit " + (t ? t : reps ? rr.hi + " reps on every set" : "your target") + ": move up a small step (about 2.5–10% more load) and restart reps at the bottom of your range.";
   if (status === "reduce") return "Drop the load a step (about 5–10%) and rebuild with Good range and form.";
   if (t) return "Keep this load: reach " + t + " on every set with Good range and form, then move up.";

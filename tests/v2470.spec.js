@@ -69,6 +69,10 @@ test("cardio Log form: 'How hard did it feel?' instead of Range/Form; saved as e
   expect(await q.getByTestId("quality-effort").getByRole("button").allInnerTexts()).toEqual(["Easy", "About right", "Very hard"]);
   await expect(q).not.toContainText("Full Range");
   await expect(q.getByTestId("quality-form")).toHaveCount(0);                                  // no Form on a bike
+  await expect(page.getByTestId("log-progression")).toContainText("Progression: 21 min (set by you)");   // v2.48.1: the one target, in minutes
+  await expect(page.getByTestId("log-previous")).toHaveText("Previous: 20 min · 8 km (Wk " + (CW - 1) + ")");
+  await expect(page.getByTestId("log-why")).toContainText("Easy or About right");
+  await expect(page.getByTestId("log-why")).not.toContainText("range and form");
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByTestId("log-need-choice")).toHaveText("Choose how hard it felt to save");
   await q.getByRole("button", { name: "About right" }).click();
