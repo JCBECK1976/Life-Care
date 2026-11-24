@@ -1,13 +1,13 @@
 import React from "react";
 import { btnP, btnS, btnAction, btnEdit, btnOpen, btnSnap, btnProgress, btnLog, btnFilledOn, btnDelete, btnMuted, btnClose, btnClear } from "../constants/styles.js";
-import { sColor, sBg, sLabel } from "../lib/utils.js";
+import { PILLS, SKIPPED_PILL } from "../lib/pills.js";
 import { MOOD_EMOJIS } from "../constants/mood.js";
 
 // v2.38.0 (Architect brief 23 Nov, PART 5a): "How Lifecare works" — the app's REAL controls (the same shared styles the
 // screens use), grouped, one plain line each, generic meanings. No AI, all plans. Shown once in onboarding (after the
 // profile, on every path) and always at the top of Help. The samples are pictures of controls, not working buttons.
 var sample = function(style, text) { return <span aria-hidden="true" style={Object.assign({}, style, { display: "inline-flex", width: "auto", cursor: "default", whiteSpace: "nowrap", margin: 0 }, style && style.width === "100%" ? { padding: "6px 12px", fontSize: 11 } : {})}>{text}</span>; };
-var pill = function(s) { return <span aria-hidden="true" style={{ fontSize: 9, fontWeight: 600, color: sColor(s), background: sBg(s), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap", border: "1px solid " + sColor(s) + "40" }}>{sLabel(s)}</span>; };
+var pill = function(s) { var p = s === "skipped" ? SKIPPED_PILL : PILLS[s]; return <span aria-hidden="true" style={{ fontSize: 9, fontWeight: 600, color: p.color, background: p.bg, padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap", border: "1px solid " + p.color + "40" }}>{p.label}</span>; };
 var chip = function(text, on) { return <span aria-hidden="true" style={{ display: "inline-block", padding: "3px 10px", borderRadius: 12, fontSize: 11, fontWeight: 600, background: on ? "#dcfce7" : "#fef3c7", color: on ? "#15803d" : "#b45309", border: "1px solid " + (on ? "#86efac" : "#fcd34d") }}>{text}</span>; };
 var tab = function(text, on) { return <span aria-hidden="true" style={{ display: "inline-block", padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: on ? "#fff" : "transparent", color: on ? "#0f172a" : "#475569", border: "1px solid #cbd5e1" }}>{text}</span>; };
 var rag = function(c, t) { return <span aria-hidden="true" style={{ fontSize: 10, fontWeight: 700, color: c }}>{t}</span>; };
@@ -48,7 +48,8 @@ export var GUIDE = [
     [<>{sample(btnP(true), "Confirm")} {sample(btnMuted, "Re-check")} {sample(btnS, "Cancel")}</>, "Confirm / Re-check / Cancel", "For photo results: keep it, look again, or keep nothing."],
   ]],
   ["Exercise", [
-    [<>{pill("building")} {pill("ready to move")} {pill("moved up")} {pill("consolidating")} {pill("building back up")}</>, "Status pills", "Where each exercise is: building reps, ready to move up, just moved up, confirming, or building back into your range."],
+    [<>{pill("move up")} {pill("consolidate")} {pill("reduce")} {pill("skipped")}</>, "Status pills", "Worked out each time you Log: Move Up (Range and Form Good and you hit your target), Consolidate (keep this load and build), Reduce (drop a step). Skipped greys out a week you didn't do."],
+    [<>{chip("Standard Progression", true)} {chip("Maintain")} {chip("Reduce")}</>, "Progression", "In the Log form: Standard Progression lets the pill move up when you're ready; Maintain keeps it at Consolidate; Reduce sets Reduce."],
     [<>{chip("Working towards")} {chip("Good", true)}</>, "Range / Form", "How the reps felt: still working towards it, or good."],
     [sample(btnMuted, "Set"), "Set (next weight)", "Choose your next weight yourself."],
     [sample(btnMuted, "Skipped"), "Skipped", "You didn't do it this week. It doesn't count against you."],

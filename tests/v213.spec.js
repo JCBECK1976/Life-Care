@@ -61,7 +61,7 @@ test("D20 + D17 + D21: removing or editing an OLDER week never puts a Reduce pil
   await expect.poll(async () => (await getDash()).jc.exercises.sunday[i].prog.length).toBe(2);
   expect((await getDash()).jc.exercises.sunday[i]).toMatchObject({ status: "building", current: "60kg" });
   await expect(page.getByText("Reduce", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("Building", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Consolidate", { exact: true }).first()).toBeVisible();   // v2.42.0: "building" shows as Consolidate
   expect(errors).toEqual([]);
 });
 

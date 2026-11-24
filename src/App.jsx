@@ -34,7 +34,8 @@ import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnMute
 import { accentVariant, hexToHsl, hslToHex } from "./lib/colour.js";
 import { buildExProfileInfo, getJournalWellbeingCtx, getMoodContext } from "./lib/aiContext.js";
 import { autoStatus, entrySets, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, findWeekIdx, logSetsFrom, parseReps, previousEntry, setsToSave } from "./lib/exercise.js";
-import { prefillFrom, aiExerciseContext } from "./lib/nextTarget.js";
+import { prefillFrom, aiExerciseContext, nextTarget } from "./lib/nextTarget.js";
+import { pillAfterLog } from "./lib/pills.js";
 import { calcWeek, countStatus, fbIcon, fmtDate, getWeekDates, mealKey, sBg, sColor, sLabel } from "./lib/utils.js";
 import { sGet, sSet, sScan } from "./lib/storage.js";
 import { handleApiError } from "./lib/api.js";
@@ -862,7 +863,7 @@ function Dashboard() {
 
     const ex = data[activeTab].exercises[day][idx];
     const last = previousEntry(ex.prog, calcWeek(data.config.trainingStart)); // D23: latest week BEFORE the current one
-    setLogEx({ day, idx, who: activeTab }); setLogNeedChoice(""); setLogSkipped(false); // D1: the form belongs to this person
+    setLogEx({ day, idx, who: activeTab }); setLogNeedChoice(""); setLogSkipped(false); setLogOverride("standard"); // D1: the form belongs to this person
     /* v2.41.0 (night batch P4a): the ONE next target (nextTarget) — the same object the card headline, the pill check
        and the AI read; reps-only targets pre-fill too; app-worked-out stack weights are never used */
     var _tg = prefillFrom(ex, last);
@@ -913,6 +914,7 @@ function Dashboard() {
     const { day, idx } = logEx;
     const nd = JSON.parse(JSON.stringify(data));
     const ex = nd[activeTab].exercises[day][idx];
+    var _tgBefore = ex ? nextTarget(ex) : null;   // v2.42.0 (night batch P3): the pill checks the logged sets against the ONE target
     if (ex && ex.stopped) { setFormMsg("⏸ " + ex.name + " is stopped — restart it in Exercise Settings to log"); setTimeout(() => setFormMsg(""), 4000); return; }
     /* v2.40.0 (night batch P2e): "Skipped this session" — zeros marked skipped, the reason from My Notes; Form/Range not
        needed; never changes the pill or the target (status, current, reps, target untouched) */
@@ -943,7 +945,7 @@ function Dashboard() {
       prev.fullRange = logFullRange; prev.goodForm = logGoodForm; prev.sets = _sets;
       ex.current = prev.w; ex.reps = prev.r;
       // Status and target deferred to AI feedback
-      ex.status = "";
+      ex.status = pillAfterLog(logOverride, logSets, { range: logFullRange, form: logGoodForm }, _tgBefore, ex); ex.statusSource = "rules";   // v2.42.0: worked out on every save
       delete ex.target;
     } else {
       // New entry - check for duplicates
@@ -962,7 +964,7 @@ function Dashboard() {
         ex.reps = ex.prog[existingIdx].r;
         ex.notes = logComment.trim() || "";
         // Status and target deferred to AI feedback
-        ex.status = "";
+        ex.status = pillAfterLog(logOverride, logSets, { range: logFullRange, form: logGoodForm }, _tgBefore, ex); ex.statusSource = "rules";   // v2.42.0: worked out on every save
         delete ex.target;
         nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
         if (logComment.trim()) await sSet("comment:" + activeTab + ":" + ex.name + ":" + logWk, logComment.trim());
@@ -975,7 +977,7 @@ function Dashboard() {
       ex.prog.push({ wk, w: wStr, r: repsStr, sets: _sets, note: logComment.trim() || "", fullRange: logFullRange, goodForm: logGoodForm });
       ex.current = wStr; ex.reps = repsStr;
       // Status and target deferred to AI feedback
-      ex.status = "";
+      ex.status = pillAfterLog(logOverride, logSets, { range: logFullRange, form: logGoodForm }, _tgBefore, ex); ex.statusSource = "rules";   // v2.42.0: worked out on every save
       delete ex.target;
       nd.config.week = Math.max(nd.config.week, wk);
     }

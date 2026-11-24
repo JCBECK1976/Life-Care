@@ -261,16 +261,14 @@ Tape measurements in cm (e.g. chest, waist, hips, arms, thighs).
 ### An exercise card
 - **Name** and your **next target** (e.g. 45kg · 12×3 — the same numbers the Log form fills in), or the latest **weight · reps** if no target is set, plus the exercise type if not weights. A target comes from you ("set by you") or from your Companion's feedback you accepted; the app never invents a weight. If an older target was worked out by the app, the card says **→ Set my next session** instead.
 - Weeks saved with nothing in them (0 kg, 0 reps) count as **Skipped**: shown greyed, left out of charts and progression.
-- **Status badge** on every exercise, set by your session feedback (until then, worked out from your logged sets):
-  | Status | Meaning |
+- **Status pill** on every exercise — one of three, worked out each time you **Log**, for the following week:
+  | Pill | Meaning |
   |---|---|
-  | **Building** | Below your rep target; keep building reps at this weight. |
-  | **Consolidating** | Hit your target once; repeat it to confirm. |
-  | **Ready to Move** | Hit your target two sessions in a row; ready to increase weight. The card shows a concrete next step, e.g. **"Next: try 49–55 kg (the next 1–2 steps on your stack)"**, and a **My next weight** box (or reps / seconds for that exercise): type the exact value you'll use and tap **Set**. The card then shows it like any progressed exercise: the new target as the headline (e.g. **70kg · 12x3**, reps at the bottom of your range), status **Moved Up**, and **"✓ Next weight set: 70 kg"** with **Undo** for about 5 seconds. Your next log pre-fills it, and Previous still shows last week. The week's note is one line (e.g. *"Wk18: next weight 70 kg (set by you)"*), replaced if you change it, never repeated. To change it later, tap **✎** on the exercise and change the weight. (Your stack steps come from "increments: 45, 47, 49" in the exercise's progression notes, if you add them; otherwise the usual pin stack.) |
-  | **Moved Up** | Weight has been increased. |
-  | **Maintaining** | Deliberately holding at this weight. |
-  | **Reduce** | Weight has been dropped (e.g. form or recovery). |
-  | **Building back up** | Your last sets were below your rep range; stay at this weight and build back into the range. |
+  | **Move Up** | Progression is Standard, Range and Form were both Good, and every set reached your next target (or, with no target, the top of your rep range). Next time, a small step up (about 2.5–10% more load) with reps back at the bottom of your range. |
+  | **Consolidate** | Keep this load and build — anything that isn't Move Up or Reduce, or Progression set to **Maintain**. |
+  | **Reduce** | You chose **Reduce** in Progression: drop a step and rebuild with Good range and form. |
+  | **Skipped** (grey) | You didn't do it this week. It never changes the pill or your target. |
+- **Progression** in the Log form: **Standard Progression** (the default), **Maintain** or **Reduce**. Older pills (Building, Ready to Move, Moved Up…) now show as the nearest of the three; nothing stored is changed. Accepting your Companion's feedback can change the pill; your next Log works it out again.
 - **📋 Log** opens the Log form. From the top: the notes you left last session (yellow); **💬 Companion feedback (last week)** — yellow, tap **Show** to see that exercise's recommendation, the reason and whether you accepted it (it's hidden each time the form opens); one small line with your **range** and **why** this is your target; your **sets**; **☐ Skipped this session**; then Session Quality, Progression, My Notes and **Save**.
 - **Skipped this session** — tick it if you didn't do the exercise (strength or cardio). The set boxes grey out and Form/Range aren't needed; put the reason in **My Notes** if you like. It saves as skipped, never changes the pill or your target, and isn't a failure. Skipped weeks show greyed in Progress. After three skips in a row the form gently suggests swapping the exercise or asking your Companion for an alternative.
 - **Open a week** (in Progress) shows **Your Companion said (week N)** (yellow): that week's recommendation, whether you accepted it, and the progression note — or *"No Companion feedback recorded this week"*.
@@ -691,7 +689,7 @@ At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature
 - **Progression rules** — when to add reps or weight for an exercise.
 - **Full Range / Completed in One / Good Form** — session quality toggles.
 - **Eccentric tempo** — the lowering phase of a lift, done slowly (about 3 seconds) for control and training effect.
-- **Status** — Building, Consolidating, Ready to Move, Moved Up, Maintaining, Reduce, Building back up.
+- **Status** — Move Up, Consolidate, Reduce (and Skipped, grey).
 - **Stopped exercise** — paused, hidden, view-only until restarted.
 - **Open form** — the read-only view of a saved entry, with Edit, Remove/Delete and Close.
 - **Remove / Delete** — Remove takes something out of a week, meal or history; Delete permanently deletes a list item or measurement type.

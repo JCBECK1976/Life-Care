@@ -1,7 +1,8 @@
 // v2.37.0 (Architect brief 23 Nov, PART 2): the reasons behind each exercise target, a status for every exercise,
 // last week's Companion feedback, and Skip. Rules only (no AI). The progression rules themselves are unchanged (the
 // Architect and JC revisit them at the week reset) — this module explains them.
-import { getExerciseType, parseReps, fmtReps, latestEntry, measureOf, nextSteps, wkNum, sameExercise, tidyNotes, skippedWeek } from "./exercise.js";
+import { getExerciseType, parseReps, fmtReps, latestEntry, measureOf, wkNum, sameExercise, tidyNotes, skippedWeek } from "./exercise.js";
+import { targetHeadline } from "./nextTarget.js";
 
 var num = function(v) { var m = /-?\d+(?:[.,]\d+)?/.exec(String(v == null ? "" : v)); return m ? parseFloat(m[0].replace(",", ".")) : 0; };
 
@@ -37,43 +38,23 @@ export function skipEntry(ex, wk, note) {
 
 var below = function(ex, e) { if (!usesRepRange(ex) || !e) return false; var r = parseReps(e.r); var lo = repRange(ex).lo; return r.length > 0 && r.some(function(x) { return x > 0 && x < lo; }); };
 
-/** The status shown on the card: the stored one, or — when logging cleared it (status waits for Companion feedback) —
- *  one worked out from the logged sets; "building back up" when the last sets were below the range. */
-export function displayStatus(ex, auto) {
+/** The pill shown (v2.42.0, night batch P3): one of "move up" | "consolidate" | "reduce" — older stored statuses are mapped
+ *  for display only (ready to move → move up; reduce → reduce; everything else → consolidate). */
+export function displayStatus(ex) {
   if (!ex || ex.stopped) return "";
-  var last = latestEntry(ex.prog);
-  // v2.38.1: only when nothing more specific was set — a Companion / rules status (Ready to Move, Consolidating,
-  // Maintaining, Moved Up, Reduce) is kept as it is
-  if (last && below(ex, last) && (!ex.status || ex.status === "building")) return "building back up";
-  if (ex.status) return ex.status;
-  if (!last) return "building";
-  var prior = (ex.prog || []).filter(function(e) { return e !== last && !isSkipped(e); });
-  return (auto && auto(last.w, last.r, prior, "")) || "building";
+  var s = String(ex.status || "").toLowerCase().trim();
+  return s === "move up" || s === "ready to move" ? "move up" : s === "reduce" ? "reduce" : "consolidate";
 }
 
-/** One plain line: why this is the target. e.g. "Moved up to 29 kg: reps restart at the bottom of your range (12) and
- *  build to 15" / "Below range (8/8/6): stay at 29 kg, aim for 12/12/12; drop one step if form slips". */
+/** One plain line: why (technical ranges only — never an exact stack weight). */
 export function whyLine(ex, status) {
   if (!ex || ex.stopped) return "";
-  var last = latestEntry(ex.prog), m = measureOf(ex);
-  if (!last) return "First time: log your sets and the next step is worked out from them.";
-  var kg = m.unit === "kg", w = num(last.w), wTxt = kg ? w + " kg" : m.unit === "plate" ? "plate " + w : "";
-  var reps = parseReps(last.r), sets = ex.sets || reps.length || 3;
-  if (!usesRepRange(ex)) {
-    var top = reps.length ? Math.max.apply(null, reps) : 0;
-    if (status === "ready to move") return "Done comfortably at " + top + " " + m.unit + ": add a little next time.";
-    return "Building at " + top + " " + m.unit + ": add a little when it feels steady.";
-  }
-  var rr = repRange(ex), at = wTxt ? " at " + wTxt : "", aim = Array(sets).fill(rr.lo).join("/"), full = Array(sets).fill(rr.hi).join("/");
-  switch (status) {
-    case "building back up": return "Below range (" + reps.join("/") + "): stay" + at + ", aim for " + aim + "; drop one step if form slips.";
-    case "moved up": return "Moved up" + (wTxt ? " to " + wTxt : "") + ": reps restart at the bottom of your range (" + rr.lo + ") and build to " + rr.hi + ".";
-    case "ready to move": return (reps.length && reps.every(function(x) { return x >= rr.hi; }) ? full + " twice" + at : "Your Companion suggests it" + at) + ": time to move up a small step (about 2.5–10% more load), reps back to the bottom of your range.";   // v2.41.0: a technical range, never a stack weight
-    case "consolidating": return reps.length && reps.every(function(x) { return x >= rr.hi; }) ? full + " once" + at + ": repeat it to confirm, then move up." : "Settling in" + at + ": keep the weight and build towards " + rr.hi + " on every set.";
-    case "reduce": return "Weight lowered" + (wTxt ? " to " + wTxt : "") + ": build back to " + rr.hi + " before moving on.";
-    case "maintaining": return "Maintaining" + at + ": keep it steady.";
-    default: return "Building" + at + ": add a rep where you can, up to " + rr.hi + " on every set.";
-  }
+  var t = targetHeadline(ex), rr = repRange(ex), reps = usesRepRange(ex);
+  if (!latestEntry(ex.prog) && !t) return "First time: log your sets and the next step is worked out from them.";
+  if (status === "move up") return "Range and form Good and you hit " + (t ? t : reps ? rr.hi + " reps on every set" : "your target") + ": move up a small step (about 2.5–10% more load) and restart reps at the bottom of your range.";
+  if (status === "reduce") return "Drop the load a step (about 5–10%) and rebuild with Good range and form.";
+  if (t) return "Keep this load: reach " + t + " on every set with Good range and form, then move up.";
+  return reps ? "Build towards " + rr.hi + " reps on every set with Good range and form, then move up." : "Keep it steady until it feels comfortable with Good range and form.";
 }
 
 /** Gentle check-in after 3 skips in a row (never criticism). */
