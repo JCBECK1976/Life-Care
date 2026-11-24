@@ -86,7 +86,7 @@ test("F5: a meal selection opens as the CHILD — variations recalculate the chi
   const prompts = [];
   await page.route("https://api.anthropic.com/**", (r) => { const t = r.request().postData() || ""; if (!/CLARIFY_MEAL_CHANGE/.test(t)) return r.fallback(); prompts.push(JSON.parse(t)); return r.fulfill(aiText({ type: "item", name: "Test Fish & Chips", servings: 1, perPortion: { kcal: 760, protein: 30, fat: 38, satFat: 14, carbs: 70, sugar: 2, addedSugar: 1, fibre: 6, salt: 2 }, change: "Chips add about 260 kcal and 10g sat fat." })); });   // v2.37.1: the clarifying conversation
   await freshReload(page); await tab(page, "My Eating");
-  await page.getByRole("button", { name: "Open this meal" }).first().click();
+  await page.locator('[data-testid=picker-trigger]:has([data-testid=row-icon]:text-is("✎"))').first().click(); await page.getByTestId("act-edit").click();   // v2.50.0: Edit Item in the picker
   const form = page.getByTestId("slot-open-form");
   await expect(form).toContainText("Test Fish & Potato");
   await expect(form.getByTestId("slot-rating")).toContainText("GREAT");                    // 4g sat fat = 20%, protein credit
@@ -117,7 +117,7 @@ test("F5: a meal selection opens as the CHILD — variations recalculate the chi
 test("F5: Open on an empty slot starts adding an item", async ({ page }) => {
   const { errors } = await openApp(page);
   await tab(page, "My Eating");
-  await page.getByRole("button", { name: "Add to this meal" }).first().click();
+  await page.locator('[data-testid=picker-trigger]:has([data-testid=row-icon]:text-is("+"))').first().click(); await page.getByTestId("act-add").click();   // v2.50.0: Add New in the picker
   await expect(page.getByTestId("update-lists").getByTestId("return-to")).toContainText(/Adding for \w+day breakfast/);   // v2.19.0: Update Lists, remembering the slot
   expect(errors).toEqual([]);
 });
@@ -132,7 +132,7 @@ test("v2.11.1: changing the portion of a photo-checked meal scales the PHOTO val
   await setKey("portion_overrides:jc", { [today]: { d: { kcal: 600, protein: 20, satFat: 6, addedSugar: 4 } } });   // photo-checked (migrated)
   await freshReload(page); await tab(page, "My Eating");
   await expect.poll(async () => (await childOf(today, "d"))?.portion?.values?.kcal).toBe(600);
-  await page.getByRole("button", { name: "Open this meal" }).first().click();
+  await page.locator('[data-testid=picker-trigger]:has([data-testid=row-icon]:text-is("✎"))').first().click(); await page.getByTestId("act-edit").click();   // v2.50.0: Edit Item in the picker
   const form = page.getByTestId("slot-open-form");
   await form.getByRole("button", { name: "Edit", exact: true }).click();
   await form.getByRole("button", { name: "1½×", exact: true }).click();

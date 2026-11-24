@@ -48,7 +48,7 @@ test("My Eating → Open → Edit → Changes: the Companion asks, you answer, y
   await page.waitForTimeout(300); await fetch(KEY(thisWeek().childKey), { method: "DELETE", headers: H });
   await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
   await tab(page, "My Eating");
-  await page.getByRole("button", { name: "Open this meal" }).first().click();
+  await page.locator('[data-testid=picker-trigger]:has([data-testid=row-icon]:text-is("✎"))').first().click(); await page.getByTestId("act-edit").click();   // v2.50.0: Edit Item in the picker
   const form = page.getByTestId("slot-open-form");
   await form.getByRole("button", { name: "Edit", exact: true }).click();
   await form.getByLabel("Changes to this meal").fill("extra cheese on top");
@@ -76,7 +76,7 @@ test("'+ Not in my list?' → Single item opens with what you typed already sear
   await tab(page, "My Eating");
   const wd = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()];
   await page.getByRole("button", { name: new RegExp("^" + wd + "( |$)") }).first().click();
-  await page.getByText(/Select breakfast|Select\.\.\./).first().click().catch(async () => { await page.locator('[data-testid="selected-item"]').first().click(); });
+  await page.getByText(/Add breakfast…|Select\.\.\./).first().click().catch(async () => { await page.locator('[data-testid="selected-item"]').first().click(); });
   await page.getByLabel("Search items").first().fill("granola crunch");
   await page.getByText("+ Not in my list?").first().click();
   const ul = page.getByTestId("update-lists");

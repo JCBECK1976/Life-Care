@@ -1,3 +1,4 @@
+import { setFav } from "../lib/favourites.js";
 import React from "react";
 import { sSet } from "../lib/storage.js";
 import { withRuleRating, bandOf, FREQ_LABEL } from "../lib/rag.js";
@@ -129,7 +130,8 @@ function SaveStep(props) {
   var [addNow, setAddNow] = React.useState(!!rt);
   var [msg, setMsg] = React.useState("");
   var [clash, setClash] = React.useState(null);
-  var [saved, setSaved] = React.useState(null);   // v2.20.1: { name, lists, kcal, ids: { catKey: id }, item } → the confirmation card   // v2.20.1: [{ label, kcal }] — a different item with the same name is already there
+  var [saved, setSaved] = React.useState(null);
+  var [fav, setFavBox] = React.useState(false);   // v2.50.0 (P2f): ♥ Favourite, per person   // v2.20.1: { name, lists, kcal, ids: { catKey: id }, item } → the confirmation card   // v2.20.1: [{ label, kcal }] — a different item with the same name is already there
   var item = withRuleRating(props.item);   // D11 per portion, against the UK reference (list item)
   var b = bandOf(item) || "";
   var key = function(x) { return String((x && x.name) || "").trim().toLowerCase(); };
@@ -154,6 +156,7 @@ function SaveStep(props) {
       if (u) { c.setCustoms(u); await sSet(c.storageKey, JSON.stringify(u)); }
       if (!firstId) firstId = id; if (rt && c.k === rt.cat) forSlot = { id: id, item: it };
       ids[c.k] = id; if (!savedItem) savedItem = it;
+      if (fav) await setFav(id, true);
     }
     if (addNow && rt && props.onAddNow) { await props.onAddNow(forSlot || { id: firstId, item: Object.assign({}, item, { id: firstId }) }, rt); if (props.onSaved) props.onSaved(); return; }   // back to the day
     setSaved({ name: name, lists: chosen.map(function(c) { return c.label; }), firstCat: chosen[0].k, kcal: n0(itemNutrition(item).kcal), ids: ids, firstId: firstId, item: savedItem });
@@ -168,6 +171,7 @@ function SaveStep(props) {
     <fieldset style={{ border: "none", padding: 0, margin: "8px 0 0" }}><legend style={{ fontSize: 11, fontWeight: 700, color: "#334155" }}>Add to my lists</legend>
       {props.cats.map(function(c) { return (<label key={c.k} style={{ display: "inline-flex", alignItems: "center", gap: 4, marginRight: 10, fontSize: 12 }}><input type="checkbox" checked={!!cats[c.k]} onChange={function(e) { var o = Object.assign({}, cats); o[c.k] = e.target.checked; setCats(o); }} />{c.label}</label>); })}
     </fieldset>
+    <label data-testid="save-fav" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, marginTop: 6 }}><input type="checkbox" checked={fav} onChange={function(e) { setFavBox(e.target.checked); }} /><span><span aria-hidden="true" style={{ color: "#dc2626" }}>♥</span> Favourite</span></label>
     {rt && <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, marginTop: 6 }}><input type="checkbox" checked={addNow} onChange={function(e) { setAddNow(e.target.checked); }} />Add to {rt.label} now</label>}
     {msg && <div role="status" style={{ fontSize: 12, fontWeight: 600, marginTop: 6, color: msg.charAt(0) === "✅" ? "#166534" : "#991b1b" }}>{msg}</div>}
     {clash && (<div role="alertdialog" aria-label="Same name already in your list" data-testid="name-clash" style={{ marginTop: 8, padding: 10, borderRadius: 8, background: "#fffbeb", border: "1px solid #fcd34d", fontSize: 12, color: "#0f172a" }}>

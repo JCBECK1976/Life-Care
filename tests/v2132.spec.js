@@ -71,7 +71,8 @@ test("Eating: meal-slot Open and Update Lists Open scroll into view at 360px; ne
   await setKey(key, { [today]: { d: dinner.id } });
   await page.waitForTimeout(300); await fetch(url(childKey), { method: "DELETE", headers: { Authorization: "Bearer owner" } });
   await page.reload(); await tab(page, "My Eating");
-  await opensIntoView(page, page.getByRole("button", { name: "Open this meal" }).first(), page.getByTestId("slot-open-form"));
+  await page.locator('[data-testid=picker-trigger]:has([data-testid=row-icon]:text-is("✎"))').first().click();   // v2.50.0: the box → Edit Item
+  await opensIntoView(page, page.getByTestId("act-edit"), page.getByTestId("slot-open-form"));
   const form = page.getByTestId("slot-open-form");
   await form.getByRole("button", { name: "Edit", exact: true }).click();
   await form.getByRole("button", { name: "2×", exact: true }).click();

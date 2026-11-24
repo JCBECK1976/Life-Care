@@ -300,7 +300,7 @@ test("7 every input/select/textarea (and the meal picker) has the subtle 1px bor
   }
   expect(bad).toEqual([]);
   await tab(page, "My Eating");
-  const picker = page.getByTestId("selected-item").first().locator("xpath=ancestor::div[1]");
+  const picker = page.getByTestId("selected-item").first().locator("xpath=ancestor::button[1]");   // v2.50.0: the row box is a button
   if (await page.getByTestId("selected-item").count()) {
     await expect(picker).toHaveCSS("border-top-color", "rgb(203, 213, 225)");
     await expect(picker).toHaveCSS("border-top-left-radius", "8px");
@@ -350,7 +350,7 @@ test("8 Chat and Help are dialogs: focus moves into the box, Tab stays inside, E
 // target-size check (2.5.8: 24 px or spacing) is tests/v2360.spec.js.
 
 /* ---------- 9. Polish ---------- */
-test("9a/b phone picker: forgiving search, 56 px rows, current item highlighted, ✕ Close; picking shows 'Added: …' with Undo", async ({ page }) => {
+test("9a/b phone picker: forgiving search, ~44 px rows (v2.50.0), current item highlighted, ✕ Close; picking shows 'Added: …' with Undo", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   const { errors } = await openApp(page);
   const list = (await get("custom_breakfasts")) || [];
@@ -366,8 +366,9 @@ test("9a/b phone picker: forgiving search, 56 px rows, current item highlighted,
   await page.getByLabel("Search items").fill("porrige");                                             // misspelt
   const row = sheet.getByTestId("picker-row").filter({ hasText: "Test Porridge Oats" });
   await expect(row).toBeVisible();
-  expect((await row.boundingBox()).height).toBeGreaterThanOrEqual(56);
+  expect((await row.boundingBox()).height).toBeGreaterThanOrEqual(43);
   await row.dispatchEvent("mousedown");
+  await page.getByTestId("pick-confirm").click();                                                   // v2.50.0: confirm the pick
   await expect(sheet).toHaveCount(0);
   const toast = page.getByTestId("pick-toast");
   await expect(toast).toContainText("Added: Test Porridge Oats");

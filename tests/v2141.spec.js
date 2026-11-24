@@ -70,7 +70,7 @@ test("v2.14.1: no food in a 📷 Snap photo (empty and filled slots) — message
   await tab(page, "My Eating"); await page.waitForTimeout(500);
   const before = JSON.stringify(await getRaw("eat_children:jc:" + await page.evaluate(() => { const b = new Date(2026, 6, 19), n = new Date(); const w = new Date(b); w.setDate(w.getDate() + Math.floor((n - b) / (7 * 864e5)) * 7); return w.getFullYear() + "-" + String(w.getMonth() + 1).padStart(2, "0") + "-" + String(w.getDate()).padStart(2, "0"); })));
   for (const slotIdx of [0, 2]) {                                                                 // breakfast (empty), dinner
-    await page.getByRole("button", { name: "Snap a photo of your food" }).nth(slotIdx).click();
+    await page.getByTestId("picker-trigger").nth(slotIdx).click(); await page.getByTestId("act-snap").click();   // v2.50.0: Snap is in the picker
     await page.getByTestId("snap-pre").locator('input[type="file"]').setInputFiles(PNG);
     await expect(page.getByTestId("snap-no-food")).toHaveText(NO_FOOD);
     await expect(page.getByTestId("snap-rating")).toHaveCount(0);

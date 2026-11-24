@@ -362,15 +362,16 @@ Plenty of fibre (5 g+) or protein (20 g+) lifts an item one band (never above AM
 
 ### A day tab
 **Daily Eating Tracker** with **Breakfast, Lunch, Dinner, Desserts, Snacks, Drinks**:
-- Each slot is a searchable picker of your list items, colour coded by rating, with kcal. The search forgives spelling ("porrige" finds porridge). On a phone the rows are large, your current choice is highlighted, and **✕ Close** closes it. After you pick, the row flashes and **"Added: …"** appears at the bottom with **Undo** for about 5 seconds. On a phone the picker opens as a full-screen sheet with the search box at the top, so the keyboard never hides the results.
-- **+ Add New** adds another row for that meal; an empty extra row has a **✕** to remove it.
-- **Open** (next to 📷 Snap) on a filled slot opens **that meal's own copy** of the food, read-only: portion, changes, nutrition, its rating today and your list item's rating (with why they differ, if they do).
-  - **Edit** → set the **Portion** (½×, 1×, 1½×, 2× or type a number) and any **Changes** ("chips instead of potato", "no sauce"). With changes, the Companion recalculates the nutrition of what you actually ate and the rating is worked out again. A portion change on a photo-checked meal scales the photo's values.
-  - If a change isn't clear, the Companion **asks you a short question** (e.g. *"How much extra cheese, roughly?"*) — answer it and tap **Answer**. It then shows the new values to **check**; tap **Save** (or **Save these values**) to keep them. Nothing is saved until you've seen them.
+- **Each row is one box.** An empty row says **Add breakfast…** (lunch, dinner…) with a **+**; a filled row shows the food with a **✎**. Tap the box to open the **picker**. (The same rows are used in **Week → Set Defaults**, which keeps **Individual / All**.)
+- **The picker** has an action bar at the top: **📷 Snap** (this row — not on Set Defaults), **♡ Favourites** (tap to show only your ♥ favourites; tap again for everything), **+ Add New** (a food that isn't in your list — **+ Not in my list?** at the bottom does the same), **✎ Edit Item** (greyed on an empty row; on a filled row it opens that meal's own copy — see below) and **🗑 Remove** (empty row: just closes; filled row: removes the food **and its row**, and the rows below move up; the only row goes back to "Add …"). The search forgives spelling ("porrige" finds porridge); your current choice is highlighted; **✕ Close** closes it.
+- **Pick a food → confirm it:** say **how many portions** (e.g. *3 biscuits* = 3; ½, 1, 1½, 2, 3 or type it) and tap **Confirm**. It fills the row (on a filled row it **replaces** the food) and shows *"Added: …"* with **Undo**. Confirming on a category's last row adds **one** new blank row under it — never more than one.
+- **♥ Favourites:** tick **♥ Favourite** when you save an item (Single item, Build a meal, My own) or in **Open → Edit** in Update Eating Lists. Favourites show a red ♥ in the picker. Each person has their own.
+- **✎ Edit Item** on a filled row opens **that meal's own copy** of the food, read-only: portion, changes, nutrition, its rating today and your list item's rating (with why they differ, if they do).
+  - **Edit** → set the **Portion** (½×, 1×, 1½×, 2× or type a number) and any **Changes** ("chips instead of potato", "no sauce"). With changes, the Companion recalculates the nutrition of what you actually ate and the rating is worked out again.
+  - If a change isn't clear, the Companion **asks you a short question** — answer it and tap **Answer**. It then shows the new values to **check**; tap **Save** to keep them.
   - **Save** shows *"Saved for this meal only. To update the list item permanently, please go to 'Update Eating Lists'."* Your list item is never changed here.
   - **Remove** takes the food out of this meal (asks first). It doesn't touch your list.
-  - **Open** on an empty slot starts adding a food to that meal.
-- **📷 Snap** (on every slot, empty or filled) photographs your food:
+- **📷 Snap** (in the picker of any row, empty or filled) photographs your food:
   1. Optionally describe it first ("large plate", "2 sausages", "28g bar", "half eaten"); the Companion gives your description priority. Then **📷 Take photo**.
   2. The result shows the food, its values, its rating and the weight it assumed, e.g. **"Assumed: ~450g — rice 200g, frankfurters 120g, beans 130g"**.
   - The note box under a Snap result is highlighted (yellow, 💡): *"To re-check, it helps if you add any known weight or calories for the portion."* — e.g. "28g bar" or "the pack says 210 kcal".

@@ -135,7 +135,7 @@ async function portionSetup(page, reply, desc, plan) {
 }
 // v2.6.5: 📷 Snap → optional description → 📷 Take photo
 async function snap(page, desc, nth = 0) {
-  await page.getByRole("button", { name: "Snap a photo of your food" }).nth(nth).click();
+  await page.getByTestId("picker-trigger").nth(nth).click(); await page.getByTestId("act-snap").click();   // v2.50.0: Snap is in the picker
   if (desc) await page.getByLabel("Photo description").fill(desc);
   await page.locator("label", { hasText: "📷 Take photo" }).locator("input[type=file]").setInputFiles({ name: "p.png", mimeType: "image/png", buffer: PNG });
 }
@@ -236,9 +236,10 @@ test("children: editing or deleting a parent list item never changes the child; 
   expect(c.snapshot).toMatchObject({ name: "Test Oat Bar", kcal: 200 });
   await expect(page.getByText("Test Oat Bar", { exact: true }).first()).toBeVisible();   // still shown from the child
   // manual pick in the empty row → a child from the parent
-  await page.getByText("Select breakfast...").first().click();
+  await page.getByText("Add breakfast…").first().click();
   await page.getByPlaceholder("Type to search...").fill("Test Toast");
   await page.getByText("Test Toast", { exact: false }).first().click();
+  await page.getByTestId("pick-confirm").click();                                                   // v2.50.0: confirm the pick
   await expect.poll(async () => (await childOf(today, "b2"))?.parentId).toBe(b.id);
   expect(await childOf(today, "b2")).toMatchObject({ source: "manual", snapshot: { name: "Test Toast", kcal: 150 } });
   expect(errors).toEqual([]);
@@ -249,10 +250,9 @@ test("D13: a portion logged this Monday is not shown next Monday (children are d
   const { today } = await portionSetup(page, { name: "Test Oat Bar", matchesPlanned: true, assumed: "40g bar", kcal: 180, protein: 4, satFat: 1 });
   await page.getByRole("button", { name: "Confirm", exact: true }).click();
   await expect.poll(async () => (await childOf(today, "b"))?.portion?.values?.kcal).toBe(180);
-  await expect(page.getByTitle("Portion verified").first()).toBeVisible();
+  await expect(page.getByText("Test Oat Bar", { exact: true }).first()).toBeVisible();   // v2.50.0: no ✓ beside the row any more
   await page.locator("button", { hasText: "›" }).first().click();                         // next week
   await expect(page.getByText(/Week \d+/).first()).toBeVisible();
-  await expect(page.getByTitle("Portion verified")).toHaveCount(0);
   await expect(page.getByText("Test Oat Bar", { exact: true })).toHaveCount(0);
   expect(errors).toEqual([]);
 });
@@ -382,7 +382,7 @@ test("D16: on a phone the picker is a sheet sized to the visible viewport — re
   await page.setViewportSize({ width: 412, height: 915 });
   const { errors } = await openApp(page);
   await tab(page, "My Eating");
-  await page.getByText("Select breakfast...").first().click();
+  await page.getByText("Add breakfast…").first().click();
   const sheet = page.getByTestId("picker-sheet");
   await expect(sheet).toBeVisible();
   await expect(page.getByLabel("Search items")).toBeFocused();
@@ -391,7 +391,7 @@ test("D16: on a phone the picker is a sheet sized to the visible viewport — re
   await expect.poll(async () => (await sheet.boundingBox()).height).toBeLessThanOrEqual(420);
   const input = await page.getByLabel("Search items").boundingBox();
   const firstRow = await page.getByTestId("picker-results").locator("div").first().boundingBox();
-  expect(input.y).toBeLessThan(60);                                                                 // search at the top
+  expect(input.y).toBeLessThan(170);                                                                // search at the top, under the title and the action bar (v2.50.0)
   expect(firstRow.y).toBeGreaterThan(input.y);
   expect(firstRow.y + firstRow.height).toBeLessThanOrEqual(420);                                   // results directly under it, above the keyboard
   await page.getByRole("button", { name: "Close the list" }).click();

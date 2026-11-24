@@ -23,8 +23,7 @@ test("shared outlined buttons: same shape, own colours, filled when open, not tr
   await check(page.getByRole("button", { name: /^Open week/ }).first(), BLUE);
   // My Eating: 📷 Snap (= Open) + Open + 👁 Progress
   await tab(page, "My Eating");
-  await check(page.getByRole("button", { name: "Snap a photo of your food" }).first(), BLUE);
-  await check(page.getByRole("button", { name: "Add to this meal" }).first(), BLUE);
+  // v2.50.0: the rows' Snap / Open buttons moved into the picker's action bar
   await check(page.getByRole("button", { name: PROGRESS }).first(), VIOLET);
   await page.getByRole("button", { name: PROGRESS }).first().click();
   await expect(page.getByRole("button", { name: CLOSE_PROGRESS }).first()).toHaveCSS("background-color", NAVY);

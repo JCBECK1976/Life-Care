@@ -27,7 +27,7 @@ test("item 1: every photo feature sends a shrunk photo (request < 1 MB, long edg
   const expectSent = async (n) => { await expect.poll(() => sizes.length, { timeout: 10000 }).toBe(n); };
   // 📷 Snap (My Eating)
   await tab(page, "My Eating");
-  await page.getByRole("button", { name: "Snap a photo of your food" }).first().click();
+  await page.getByTestId("picker-trigger").first().click(); await page.getByTestId("act-snap").click();   // v2.50.0: Snap is in the picker
   await page.getByTestId("snap-pre").locator('input[type="file"]').setInputFiles(photo); await expectSent(1);
   // Food Checker (My Shop)
   await tab(page, "My Shop"); await page.locator('input[data-share="food"]').setInputFiles(photo); await expectSent(2);

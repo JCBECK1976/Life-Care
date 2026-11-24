@@ -1,3 +1,4 @@
+import { useFavs, isFav, setFav, setFavPerson } from "../lib/favourites.js";
 import { companionProfileCtx } from "../lib/profileCtx.js";
 import { readImageForAI } from "../lib/image.js";
 import RagCue from "../components/RagCue.jsx";
@@ -16,7 +17,7 @@ import { handleApiError } from "../lib/api.js";
 import { sGet, sSet } from "../lib/storage.js";
 import React from "react";
 import { withRuleRating, rateByPortion, frequencyWarning, FREQ_LABEL, bandOf } from "../lib/rag.js";
-import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnFilledOn, btnMuted, btnOpen, btnPortion, btnProgress, btnSnap } from "../constants/styles.js";
+import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnFilledOn, btnMuted, btnOpen, btnP, btnPortion, btnProgress, btnS, btnSnap } from "../constants/styles.js";
 import { accentVariant } from "../lib/colour.js";
 import { personName } from "../components/PersonTabs.jsx";
 import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
@@ -49,11 +50,14 @@ export default function EatingSection({ ctx }) {
     setHelpEatCat, setHelpEatLoading, setHelpEatResult, setHelpEatText, setManageListsOpen, setMealDefaults, setMealTracking, setMeals,
     setNewItemLoading, setNewItemName, setOffResults, setOffSearchTerm, setPortionLoading, setPortionOverrides, setPortionPlanned, setPortionResult,
     setPortionSlot, setQuickPrepMins, setRagRecalcMsg, setReviewCategories, setReviewSideType, setSaving, setWeekOff, updateEatDayFb,
-    updateEatWeekFb, weekLabel, weekOff, weekStart, saveData, mealLoading
+    updateEatWeekFb, weekLabel, weekOff, weekStart, saveData, mealLoading, setFactorNow
   } = ctx;
   /* v2.6.2 D10/F7: Undo for a replaced item, and the optional photo description */
   const [portionUndo, setPortionUndo] = React.useState(null);
-  const [pickToast, setPickToast] = React.useState(null);   // v2.20.0: { name, undo } — "Added: …" with Undo for ~5 s
+  const [pickToast, setPickToast] = React.useState(null);
+  const [picker, setPicker] = React.useState(null);   // v2.50.0: the open picker (row key, search, ♥ filter, item to confirm, quantity)
+  React.useEffect(function() { setFavPerson(activeTab); }, [activeTab]);   // v2.50.0: favourites are per person
+  useFavs();   // re-render when a favourite changes (the ♥ boxes and the picker)   // v2.20.0: { name, undo } — "Added: …" with Undo for ~5 s
   const [pickFlash, setPickFlash] = React.useState(null);   // the picked item's id, highlighted briefly
   React.useEffect(function() { if (!pickToast) return; var t = setTimeout(function() { setPickToast(null); }, 5000); return function() { clearTimeout(t); }; }, [pickToast]);
   React.useEffect(function() { if (!pickFlash) return; var s1 = setTimeout(function() { var el = document.querySelector('[data-testid="picker-trigger"][data-flash="true"]'); if (el && el.scrollIntoView) el.scrollIntoView({ block: "center" }); }, 250); var t = setTimeout(function() { setPickFlash(null); }, 4000); return function() { clearTimeout(s1); clearTimeout(t); }; }, [pickFlash]);
@@ -803,56 +807,174 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {item.suitability && <Field label="About">{item.suitability}</Field>}
             </OpenForm>);
           };
+          /* ═══ v2.50.0 (Architect night batch 24 Nov, PART 2): ONE wide box per row (✎ filled / + empty) that opens the picker;
+             the picker has a sticky action bar — Snap · ♥ Favourites · Add New · Edit Item · Remove; picking an item asks to
+             confirm it (with the quantity on a day); Confirm fills the row and, on a category's last row, adds ONE blank row. ═══ */
+          var ROW_LABEL = { b: "breakfast", l: "lunch", d: "dinner", ds: "dessert", dr: "drink", o: "snack" };
+          var rowPrefix = function(slot) { var m = /^(ds|dr|dp|dv|o|b|l|d)/.exec(slot || ""); return m ? m[1] : ""; };
+          /* the slot keys of a category, in order (as the rows are laid out): day ds/dr are ds1–ds5, snacks o1–o20; defaults use "ds", "ds2"… */
+          var rowKeys = function(prefix, mode) {
+            var out = [], numbered = prefix === "o" || (mode === "day" && (prefix === "ds" || prefix === "dr"));
+            var max = prefix === "o" ? 20 : mode === "day" && (prefix === "ds" || prefix === "dr") ? 5 : 10;
+            for (var i = 1; i <= max; i++) out.push(numbered ? prefix + i : (i === 1 ? prefix : prefix + i));
+            return out;
+          };
+          var rowVal = function(row, k) { return row.mode === "defaults" ? (defs[k] || "") : getMeal(row.day, k); };
+          var isFilled = function(v) { return !!v && v !== "__empty__" && v !== "__placeholder__"; };
+          var blankVal = function(row) { return row.mode === "defaults" ? "__placeholder__" : "__empty__"; };
+          /* Several slots at once (one save, so nothing races); a packaged dinner gets its default sides, as setMeal does. */
+          var putMeals = function(dayKey, patch) {
+            var n = Object.assign({}, meals); n[dayKey] = Object.assign({}, n[dayKey] || {});
+            Object.keys(patch).forEach(function(slot) {
+              var val = patch[slot]; if (val === "") delete n[dayKey][slot]; else n[dayKey][slot] = val;
+              if (/^d\d*$/.test(slot) && !/^d[pvsrc]/.test(slot)) {
+                var sIdx = slot === "d" ? "" : slot.replace("d", "");
+                if (val && isPackagedDinner(val)) { if (!n[dayKey]["dp" + sIdx]) n[dayKey]["dp" + sIdx] = "baby_potatoes"; if (!n[dayKey]["dv" + sIdx]) n[dayKey]["dv" + sIdx] = "garden_salad"; }
+              }
+            });
+            setMeals(n); return saveMeals(n);
+          };
+          var putDefs = function(patch) {
+            var nd = Object.assign({}, mealDefaults); nd[activeTab] = Object.assign({}, nd[activeTab] || {});
+            Object.keys(patch).forEach(function(k) { if (patch[k] === "") delete nd[activeTab][k]; else nd[activeTab][k] = patch[k]; });
+            setMealDefaults(nd); sSet("meal_defaults", JSON.stringify(nd));
+          };
+          /* Confirm a pick: it fills (or replaces) the row; on the category's last row ONE blank row follows. */
+          var confirmPick = async function(row, item, qty) {
+            var keys = rowKeys(rowPrefix(row.slot), row.mode), i = keys.indexOf(row.slot), patch = {};
+            patch[row.slot] = item.id;
+            var later = keys.slice(i + 1).some(function(k) { return !!rowVal(row, k); });
+            if (!later && i >= 0 && i + 1 < keys.length) patch[keys[i + 1]] = blankVal(row);
+            var undo = {}; Object.keys(patch).forEach(function(k) { undo[k] = rowVal(row, k) || ""; });   // for Undo
+            if (row.mode === "defaults") { putDefs(patch); return undo; }
+            await putMeals(row.day, patch);
+            var q = parseFloat(qty); if (q && q !== 1 && setFactorNow) await setFactorNow(row.day, row.slot, q);
+            return undo;
+          };
+          /* Remove: a filled row loses its item AND its row (the rows below move up); the category's only row is cleared. */
+          var removeRow = function(row) {
+            if (!isFilled(rowVal(row, row.slot))) return;
+            var prefix = rowPrefix(row.slot), keys = rowKeys(prefix, row.mode), patch = {};
+            var keep = keys.filter(function(k) { return k !== row.slot && !!rowVal(row, k); });
+            var side = function(k, s) { return s + (k === "d" ? "" : k.replace("d", "")); };   // dinner sides move with their dinner
+            keys.forEach(function(k, j) {
+              var from = keep[j], v = from ? rowVal(row, from) : "";
+              var want = v || (j === 0 && /^[bld]$/.test(prefix) && row.mode !== "defaults" ? "__empty__" : "");   // the only row: back to "Add …"
+              if (rowVal(row, k) !== want) patch[k] = want;
+              if (prefix === "d" && row.mode !== "defaults") { ["dp", "dv"].forEach(function(s) { var fv = from ? (getMeal(row.day, side(from, s)) || "") : ""; if ((getMeal(row.day, side(k, s)) || "") !== fv) patch[side(k, s)] = fv; }); }
+            });
+            if (row.mode === "defaults") putDefs(patch); else putMeals(row.day, patch);
+          };
+          var editRow = function(row) {
+            var v = rowVal(row, row.slot); if (!isFilled(v)) return;
+            if (row.mode === "defaults") {
+              var it = allItemsLookup[v]; if (!it || it._isCustom === false) return;
+              setManageListsOpen(true); setItemOpen(null); setEditingItem(it.id); setEditDraft(Object.assign({}, it, { originalIngredients: (it.ingredients || []).join(", "), recalculated: false })); setFormMsg("");
+              setTimeout(function() { var el = document.querySelector('[data-item-id="' + it.id + '"]'); if (el && el.scrollIntoView) el.scrollIntoView({ block: "center" }); }, 120);
+              return;
+            }
+            setSlotOpen({ day: row.day, slot: row.slot, first: /^[bld]$/.test(row.slot), editing: false, msg: "" });   // as Open did: the meal's form, Edit from there
+          };
           var MealSelect = function(props) {
-            var items = props.items; var value = props.value; var onChange = props.onChange; var placeholder = props.placeholder || "Select...";
-            var _s = React.useState(""); var search = _s[0]; var setSearch = _s[1];
-            var _o = React.useState(false); var open = _o[0]; var setOpen = _o[1];
+            useFavs();
+            var items = props.items; var value = props.value; var onChange = props.onChange; var row = props.row || null;
+            var placeholder = props.placeholder || "Select...";
+            /* the open picker's state lives in the section (this component is re-created on every render) */
+            var pk = row ? row.mode + ":" + (row.day || "") + ":" + row.slot : (props.pickerKey || "x:" + placeholder);
+            var ps = picker && picker.key === pk ? picker : null, open = !!ps;
+            var upd = function(patch) { setPicker(function(cur) { return cur && cur.key === pk ? Object.assign({}, cur, patch) : cur; }); };
+            var search = ps ? ps.search : "", favOnly = !!(ps && ps.favOnly), pending = ps ? ps.pending : null, qty = ps ? ps.qty : "1";
+            var setSearch = function(v) { upd({ search: v }); }, setFavOnly = function(v) { upd({ favOnly: v }); }, setPending = function(v) { upd({ pending: v }); }, setQty = function(v) { upd({ qty: v }); };
+            var setOpen = function(on) { setPicker(on ? { key: pk, search: "", favOnly: false, pending: null, qty: "1" } : null); };
             var sorted = items.slice().sort(function(a,b) { return a.name.localeCompare(b.name); });
-            var filtered = search ? fuzzyFind(search, sorted, function(it) { return it.name || ""; }, 200) : sorted;   /* v2.20.0: forgiving search, as in Update Lists */
+            var pool = favOnly ? sorted.filter(function(it) { return isFav(it.id); }) : sorted;
+            var filtered = search ? fuzzyFind(search, pool, function(it) { return it.name || ""; }, 200) : pool;   /* v2.20.0: forgiving search, as in Update Lists */
             var flash = !!value && !!pickFlash && (pickFlash === value || !!(allItemsLookup[value] && allItemsLookup[value].parentId === pickFlash));
-            var choose = function(item) { var prev = value; onChange({ target: { value: item.id } }); setOpen(false); setSearch(""); setPickFlash(item.id); setPickToast({ text: "Added: " + item.name, undo: function() { onChange({ target: { value: prev || "" } }); } }); try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) { /* no haptics */ } };   /* v2.20.0: confirmation + Undo (state kept in the section: this picker is re-created on each render) */
+            var close = function() { setOpen(false); };
+            var choose = function(item) {
+              if (row) { upd({ pending: item, qty: "1" }); return; }   // v2.50.0: confirm first
+              var prev = value; onChange({ target: { value: item.id } }); close(); setPickFlash(item.id); setPickToast({ text: "Added: " + item.name, undo: function() { onChange({ target: { value: prev || "" } }); } }); try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) { /* no haptics */ }
+            };
+            var confirm = async function() {
+              var item = pending; close();
+              var u = await confirmPick(row, item, row.mode === "defaults" ? 1 : qty);
+              setPickFlash(item.id); setPickToast({ text: "Added: " + item.name, undo: function() { if (row.mode === "defaults") putDefs(u); else putMeals(row.day, u); } }); try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) { /* no haptics */ }
+            };
             var selected = value ? items.find(function(it) { return it.id === value; }) : null;
-            var displayName = value && value !== "__empty__" ? selectionName(value, props.snap, selected || allItemsLookup[value] || allItemsLookup["gb_" + value]) : null; // D6: never the raw id
+            var filled = !!value && value !== "__empty__" && value !== "__placeholder__";
+            var displayName = filled ? selectionName(value, props.snap, selected || allItemsLookup[value] || allItemsLookup["gb_" + value]) : null; // D6: never the raw id
             var inputRef = React.useRef(null);
-            var pickerPhone = typeof window !== "undefined" && !!window.matchMedia && window.matchMedia("(max-width: 600px)").matches;
             var readVV = function() { var v = typeof window !== "undefined" && window.visualViewport; return v ? { top: v.offsetTop, height: v.height } : { top: 0, height: typeof window !== "undefined" ? window.innerHeight : 600 }; };
             var _vv = React.useState(readVV); var vv = _vv[0]; var setVV = _vv[1];
             React.useEffect(function() {
-              if (!open || !pickerPhone || !window.visualViewport) return;
+              if (!open || !window.visualViewport) return;
               var onVV = function() { setVV(readVV()); };
               onVV(); window.visualViewport.addEventListener("resize", onVV); window.visualViewport.addEventListener("scroll", onVV);
               return function() { window.visualViewport.removeEventListener("resize", onVV); window.visualViewport.removeEventListener("scroll", onVV); };
-            }, [open, pickerPhone, setVV]);
+            }, [open, setVV]);
+            var it0 = filled ? (selected || allItemsLookup[value]) : null;
+            var ragWarn = row && row.mode !== "defaults" && filled ? checkRagFrequency(value, row.day, row.slot) : null;
+            var ragChg = it0 && it0._ragChanged && !it0._ragChangedSeen && ratingsShown();
             if (!open) {
-              return (<div style={{position:"relative"}}>
-                <div data-testid="picker-trigger" data-flash={flash ? "true" : "false"} onClick={function(){setOpen(true);setSearch("");setTimeout(function(){if(inputRef.current)inputRef.current.focus();},50);}} style={{width:"100%",padding:"8px 10px",border:"1px solid #cbd5e1",borderRadius:8,fontSize:11,background:flash ? "#dcfce7" : "#fff",transition:"background 0.3s",cursor:"pointer",boxSizing:"border-box",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  {(function() { var it = value && value !== "__empty__" ? (selected || allItemsLookup[value]) : null; var rc = !displayName ? "#475569" : !it || !it.rating ? "#0f172a" : ratingColor(it.rating); /* D14: the selection's own (child) RAG colour, as in the lists; P6: darker text colours */ return <span><span data-testid="selected-item" data-rag={it && it.rating && ratingsShown() ? it.rating : ""} title={it && it.ragReason ? it.ragReason : ""} style={{ color: rc, fontWeight: it && it._child ? 600 : 400 }}>{displayName || placeholder}</span>{it && it.rating && displayName ? <RagCue rating={it.rating} reason={it.ragReason} /> : null}</span>; })()}
-                  <span style={{fontSize:8,color:"#475569"}}>▼</span>
-                </div>
-              </div>);
+              var rc = !displayName ? "#475569" : !it0 || !it0.rating ? "#0f172a" : ratingColor(it0.rating);   /* D14 */
+              return (<button type="button" data-testid="picker-trigger" data-flash={flash ? "true" : "false"} aria-label={(displayName || placeholder) + (filled ? " — tap to change" : " — tap to add")}
+                onClick={function(){ setOpen(true); }}
+                style={{width:"100%",minHeight:36,padding:"8px 10px",border:"1px solid #cbd5e1",borderRadius:8,fontSize:11,background:flash ? "#dcfce7" : "#fff",transition:"background 0.3s",cursor:"pointer",boxSizing:"border-box",display:"flex",justifyContent:"space-between",alignItems:"center",gap:6,textAlign:"left",color:"#0f172a",margin:0}}>
+                <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{isFav(value) || (it0 && it0.parentId && isFav(it0.parentId)) ? <span aria-hidden="true" style={{ color: "#dc2626" }}>♥ </span> : null}<span data-testid="selected-item" data-rag={it0 && it0.rating && ratingsShown() ? it0.rating : ""} title={it0 && it0.ragReason ? it0.ragReason : ""} style={{ color: rc, fontWeight: it0 && it0._child ? 600 : 400 }}>{displayName || placeholder}</span>{it0 && it0.rating && displayName ? <RagCue rating={it0.rating} reason={it0.ragReason} /> : null}</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                  {ragChg && <span title={"Rating changed: " + (it0.prevRating || "?") + " → " + it0.rating} style={{ fontSize: 12 }}>🔄</span>}
+                  {ragWarn && <span title={ragWarn} style={{ fontSize: 12 }}>⚠️</span>}
+                  <span data-testid="row-icon" aria-hidden="true" style={{ display: "inline-flex", width: 22, height: 22, alignItems: "center", justifyContent: "center", borderRadius: 11, background: filled ? "#eff6ff" : "#f1f5f9", color: "#1e3a5f", fontSize: 12, fontWeight: 700 }}>{filled ? "✎" : "+"}</span>
+                </span>
+              </button>);
             }
+            var act = function(icon, label, testid, onClick, opts) { opts = opts || {}; return <button type="button" data-testid={testid} aria-label={label} aria-pressed={opts.pressed} disabled={opts.disabled} title={opts.title} onClick={onClick}
+              style={{ flex: "1 1 0", minWidth: 0, minHeight: 44, padding: "4px 2px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1, border: "1px solid " + (opts.pressed ? "#dc2626" : "#cbd5e1"), borderRadius: 8, background: opts.pressed ? "#fee2e2" : "#fff", color: opts.disabled ? "#94a3b8" : opts.danger ? "#b91c1c" : "#1e3a5f", cursor: opts.disabled ? "not-allowed" : "pointer" }}>
+                <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1, color: opts.heart ? "#dc2626" : undefined }}>{icon}</span><span style={{ fontSize: 10, fontWeight: 700, whiteSpace: "nowrap" }}>{label}</span></button>; };
+            var catName = row ? ROW_LABEL[rowPrefix(row.slot)] || "item" : "item";
+            var bar = row ? (<div data-testid="picker-actions" style={{ display: "flex", gap: 4, padding: "8px 12px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc" }}>
+              {row.mode !== "defaults" && act("📷", "Snap", "act-snap", function() { close(); openSnap(row.slot); })}
+              {act(favOnly ? "♥" : "♡", "Favourites", "act-fav", function() { setFavOnly(!favOnly); }, { pressed: favOnly, heart: true })}
+              {act("+", "Add New", "act-add", function() { close(); onChange({ target: { value: "__add_new__", searchText: search } }); })}
+              {act("✎", "Edit Item", "act-edit", function() { close(); editRow(row); }, { disabled: !filled || (row.mode === "defaults" && !(it0 && it0._isCustom !== false)), title: !filled ? "Nothing to edit yet" : "" })}
+              {act("🗑", "Remove", "act-remove", function() { close(); removeRow(row); }, { danger: true })}
+            </div>) : null;
             var rowsEl = (<>
-                {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var isAdded = item._isCustom !== false; var color = isAdded ? (ratingColor(item.rating)) : "#94a3b8"; var hasRagChange = item._ragChanged && !item._ragChangedSeen && ratingsShown(); var _cur = value && allItemsLookup[value]; var isCur = item.id === value || !!(_cur && _cur.parentId && _cur.parentId === item.id); return (<div key={item.id} data-testid="picker-row" aria-selected={isCur} role="option" onMouseDown={function(e){e.preventDefault();choose(item);}} style={{boxSizing:"border-box",padding:pickerPhone ? "8px 14px" : "6px 10px",minHeight:pickerPhone ? 56 : undefined,fontSize:pickerPhone ? 14 : 11,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:pickerPhone ? "1px solid #f1f5f9" : "1px solid #f8fafc",background:isCur ? "#eff6ff" : undefined,borderLeft:isCur ? "4px solid #2563eb" : undefined,color:color}}>
-                  <span>{hasRagChange ? "🔄 " : ""}{item.name} ({kcal} kcal){!isAdded ? " — not added" : ""}{item.checkMe && <span data-testid="check-me" title={item.checkReason || "Added by bulk upload: open and save it once you have checked it"} style={{ marginLeft: 4, fontSize: 9, fontWeight: 600, color: "#475569", border: "1px solid #cbd5e1", borderRadius: 4, padding: "0 4px", whiteSpace: "nowrap" }}>Check me</span>}{hasRagChange ? " (was " + item.prevRating + ")" : ""}</span>
-
+                {filtered.map(function(item) { var kcal = isJC ? item.jcKcal : item.beckKcal; var isAdded = item._isCustom !== false; var color = isAdded ? (ratingColor(item.rating)) : "#94a3b8"; var hasRagChange = item._ragChanged && !item._ragChangedSeen && ratingsShown(); var _cur = value && allItemsLookup[value]; var isCur = item.id === value || !!(_cur && _cur.parentId && _cur.parentId === item.id); return (<div key={item.id} data-testid="picker-row" aria-selected={isCur} role="option" onMouseDown={function(e){e.preventDefault();choose(item);}} style={{boxSizing:"border-box",padding:"6px 14px",minHeight:44,fontSize:14,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f1f5f9",background:isCur ? "#eff6ff" : undefined,borderLeft:isCur ? "4px solid #2563eb" : undefined,color:color}}>
+                  <span>{isFav(item.id) && <span data-testid="fav-heart" aria-label="Favourite" style={{ color: "#dc2626" }}>♥ </span>}{hasRagChange ? "🔄 " : ""}{item.name} ({kcal} kcal){!isAdded ? " — not added" : ""}{item.checkMe && <span data-testid="check-me" title={item.checkReason || "Added by bulk upload: open and save it once you have checked it"} style={{ marginLeft: 4, fontSize: 9, fontWeight: 600, color: "#475569", border: "1px solid #cbd5e1", borderRadius: 4, padding: "0 4px", whiteSpace: "nowrap" }}>Check me</span>}{hasRagChange ? " (was " + item.prevRating + ")" : ""}</span>
                 </div>); })}
-                <div onMouseDown={function(e){e.preventDefault();onChange({target:{value:"__add_new__", searchText: search}});setOpen(false);setSearch("");}} style={{padding:pickerPhone ? "8px 14px" : "8px 10px",minHeight:pickerPhone ? 56 : undefined,display:"flex",alignItems:"center",boxSizing:"border-box",fontSize:pickerPhone ? 14 : 11,fontWeight:600,color:accent,cursor:"pointer",borderTop:"1px solid #e2e8f0"}}>+ Not in my list?</div>
+                {favOnly && !filtered.length && <div data-testid="fav-none" style={{ padding: "10px 14px", fontSize: 13, color: "#475569" }}>No favourites here yet. Tick ♥ Favourite when you save or edit an item in Update Eating Lists.</div>}
+                <div onMouseDown={function(e){e.preventDefault();close();onChange({target:{value:"__add_new__", searchText: search}});}} style={{padding:"6px 14px",minHeight:44,display:"flex",alignItems:"center",boxSizing:"border-box",fontSize:14,fontWeight:600,color:accent,cursor:"pointer",borderTop:"1px solid #e2e8f0"}}>+ Not in my list?</div>
             </>);
-            /* D16: on phones the picker is a full-height sheet sized to the VISIBLE viewport (visualViewport), search at the
-               top and results straight under it, so the keyboard can never cover the list. */
-            if (pickerPhone) {
-              return (<div role="dialog" aria-label="Choose an item" data-testid="picker-sheet" style={{position:"fixed",left:0,right:0,top:vv.top,height:vv.height,zIndex:95,background:"#fff",display:"flex",flexDirection:"column",boxShadow:"0 -4px 24px rgba(0,0,0,0.2)"}}>
-                <div style={{display:"flex",gap:6,padding:"10px 12px",borderBottom:"1px solid #e2e8f0",alignItems:"center"}}>
-                  <input ref={inputRef} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Type to search..." aria-label="Search items" style={{flex:1,minWidth:0,padding:"10px 12px",border:"1px solid "+accent,borderRadius:8,fontSize:16,background:"#fff",boxSizing:"border-box"}} />
-                  <button aria-label="Close the list" onClick={function(){setOpen(false);setSearch("");}} style={{minWidth:44,minHeight:44,padding:"10px 12px",background:"#fff",border:"1px solid #2563eb",borderRadius:8,fontSize:13,fontWeight:700,color:"#1e3a8a",cursor:"pointer"}}>✕ Close</button>
+            var kcalOf = function(it) { return Number((isJC ? it.jcKcal : it.beckKcal) || it.kcal || 0); };
+            var confirmEl = pending ? (<div data-testid="pick-confirm-form" style={{ padding: "12px 14px" }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>{pending.name}</div>
+              <div style={{ fontSize: 12, color: "#475569", margin: "2px 0 10px" }}>{kcalOf(pending)} kcal per portion{pending.servingDesc ? " · " + pending.servingDesc : ""}</div>
+              {row.mode !== "defaults" && (<div>
+                <label htmlFor="pick-qty" style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#334155", marginBottom: 4 }}>How many portions? (e.g. 3 biscuits = 3)</label>
+                <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                  <input id="pick-qty" type="number" inputMode="decimal" min="0.25" step="0.25" value={qty} onChange={function(e) { setQty(e.target.value); }} style={{ width: 80, padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 16 }} />
+                  {["0.5", "1", "1.5", "2", "3"].map(function(f) { return <button key={f} type="button" aria-pressed={qty === f} onClick={function() { setQty(f); }} style={{ minWidth: 40, minHeight: 36, borderRadius: 8, border: "1px solid " + (qty === f ? "#1e3a5f" : "#cbd5e1"), background: qty === f ? "#eff6ff" : "#fff", fontSize: 13, fontWeight: 600, color: "#1e3a5f", cursor: "pointer" }}>{f === "0.5" ? "½" : f === "1.5" ? "1½" : f}</button>; })}
                 </div>
-                <div data-testid="picker-results" role="listbox" aria-label="Items" style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>{rowsEl}</div>
-              </div>);
-            }
-            return (<div style={{position:"relative"}}>
-              <input ref={inputRef} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Type to search..." style={{width:"100%",padding:"8px 10px",border:"1px solid "+accent,borderRadius: 8,fontSize:11,background:"#fff",boxSizing:"border-box"}} onBlur={function(){setTimeout(function(){setOpen(false);},200);}} />
-              <div style={{position:"absolute",top:"100%",left:0,right:0,zIndex:50,background:"#fff",border:"1px solid #e2e8f0",borderRadius:6,maxHeight:200,overflowY:"auto",boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}>
-                {rowsEl}
+                <div data-testid="pick-total" style={{ fontSize: 12, color: "#0f172a", marginTop: 6 }}>Total: {Math.round(kcalOf(pending) * (parseFloat(qty) || 0))} kcal</div>
+              </div>)}
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <button type="button" data-testid="pick-confirm" onClick={confirm} style={Object.assign({}, btnP(true), { flex: 1 })}>Confirm</button>
+                <button type="button" onClick={function() { setPending(null); }} style={Object.assign({}, btnS, { flex: 1 })}>Back to the list</button>
+              </div>
+            </div>) : null;
+            /* D16 + v2.50.0: a sheet sized to the VISIBLE viewport (the keyboard never covers the list), on every screen size */
+            return (<div role="dialog" aria-label={row ? "Choose a " + catName : "Choose an item"} data-testid="picker-sheet" style={{position:"fixed",left:0,right:0,top:vv.top,height:vv.height,zIndex:95,background:"rgba(15,23,42,0.35)",display:"flex",justifyContent:"center"}}>
+              <div style={{ width: "100%", maxWidth: 560, background: "#fff", display: "flex", flexDirection: "column", boxShadow: "0 -4px 24px rgba(0,0,0,0.2)" }}>
+                <div style={{position:"sticky",top:0,zIndex:1,background:"#fff"}}>
+                  <div style={{display:"flex",gap:6,padding:"10px 12px 6px",alignItems:"center"}}>
+                    <b style={{ flex: 1, fontSize: 14, color: "#0f172a" }}>{row ? (filled ? "Change " : "Add ") + catName : "Choose an item"}</b>
+                    <button aria-label="Close the list" onClick={close} style={{minWidth:44,minHeight:40,padding:"8px 12px",background:"#fff",border:"1px solid #2563eb",borderRadius:8,fontSize:13,fontWeight:700,color:"#1e3a8a",cursor:"pointer"}}>✕ Close</button>
+                  </div>
+                  {bar}
+                  {!pending && <div style={{ padding: "8px 12px", borderBottom: "1px solid #e2e8f0" }}><input ref={inputRef} autoFocus={!(window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches)} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Type to search..." aria-label="Search items" style={{width:"100%",padding:"10px 12px",border:"1px solid "+accent,borderRadius:8,fontSize:16,background:"#fff",boxSizing:"border-box"}} /></div>}
+                </div>
+                {pending ? confirmEl : <div data-testid="picker-results" role="listbox" aria-label="Items" style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>{rowsEl}</div>}
               </div>
             </div>);
           };
@@ -938,6 +1060,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                       </div>)}
                       {editClarify && (<div data-testid="edit-clarify"><div style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>Your ingredients changed — your Companion will work out the values per portion. Check the text, then Send.</div>
                         <ClarifyChat seed={editClarify} onResult={function(it) { var cur = editDraft; var ing = (cur.ingredients || []).join(", "); var upd = withRuleRating(withPortionValues(Object.assign({}, cur, { servings: it.servings, portion: it.portion, originalIngredients: ing, recalculated: true, portionCheck: false }), itemNutrition(it))); setEditDraft(upd); setEditClarify(null); setFormMsg("✅ Nutritional values updated per portion: " + upd.kcal + " kcal (" + portionLabel(upd) + "). Press Save to keep them."); }} /></div>)}
+                      <label data-testid="edit-fav" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, margin: "0 0 8px", color: "#0f172a" }}><input type="checkbox" checked={isFav(item.id)} onChange={function(e) { setFav(item.id, e.target.checked); }} /><span><span aria-hidden="true" style={{ color: "#dc2626" }}>♥</span> Favourite</span></label>   {/* v2.50.0 (P2f) */}
                       {formMsg && <div role="status" aria-live="polite" style={{ padding: 8, borderRadius: 6, marginBottom: 8, fontSize: 11, fontWeight: 600, lineHeight: 1.4, background: formMsg.indexOf("✅") === 0 ? "#dcfce7" : formMsg.indexOf("🔄") === 0 ? "#e0f2fe" : "#fee2e2", color: formMsg.indexOf("✅") === 0 ? "#166534" : formMsg.indexOf("🔄") === 0 ? "#0c4a6e" : "#991b1b" }}>{formMsg}</div>}
                       <div style={{ display: "flex", gap: 6 }}>
                         <button disabled={formMsg.indexOf("🔄") === 0} onClick={function() { saveEditItem(cat); }} style={{...btnActionLg, flex: 1, borderRadius: 6, opacity: formMsg.indexOf("🔄") === 0 ? 0.5 : 1}}>{formMsg.indexOf("🔄") === 0 ? "Recalculating…" : editDraft.recalculated ? "✓ Continue — Save" : "✓ Confirm"}</button>
@@ -1402,14 +1525,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slotKey = n === 1 ? "b" : "b" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <MealSelect items={dispBfast} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("breakfast", "defaults", e.target.searchText, slotKey); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select breakfast..." />
+                    <MealSelect row={{ mode: "defaults", slot: slotKey }} items={dispBfast} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("breakfast", "defaults", e.target.searchText, slotKey); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Add breakfast…" />
                   </div>
-                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
-                    <button onClick={function(){ if (!confirm("Remove this default? This cannot be undone.")) return; saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
-                  )}
                 </div>);
               })}
-              <button onClick={function() { var next = 1; var pk = "b"; while (defs[next === 1 ? pk : pk + next]) next++; saveDef(next === 1 ? pk : pk + next, "__placeholder__", "individual"); }} style={{...btnMuted, marginTop: 4}}>+ Add New</button>
               {addingNew && addingSource === "defaults" && addingCategory === "breakfast" && (<div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 4, border: "1px solid #bfdbfe" }}><div style={{ marginBottom: 4 }}><span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a5f" }}>Add New Breakfast Item</span></div><div style={{ display: "flex", gap: 6, marginBottom: 6 }}><input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); searchOFF(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, minWidth: 0, padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11 }} /><label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label></div><div style={{ display: "flex", gap: 6 }}><button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ flex: 1, padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button><button onClick={function() { setAddingNew(false); setNewItemName(""); setOffResults([]); setAddingSlotKey(null); setAddingSlotDay(null); }} style={{ padding: "8px 16px", background: accentBtnLight, border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer", flexShrink: 0 }}>Cancel</button></div><div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type to search UK food products or describe a homemade dish.</div>{(offResults.length > 0 || offLoading) && newItemName.length >= 2 && !cameraPreview && (<div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, maxHeight: 180, overflowY: "auto", marginTop: 4, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>{offLoading && <div style={{ padding: "6px 8px", fontSize: 10, color: "#475569" }}>🔍 Searching...</div>}{offResults.map(function(prod, pi) { var ragC = ratingColor(calcRAG(prod), "bright"); return (<div key={pi} onClick={function() { var rating = calcRAG(prod); var ingArr = prod.ingredients ? prod.ingredients.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length>0;}) : []; setCameraPreview({ name: prod.name, kcal: prod.kcal, protein: prod.protein, fat: prod.fat, satFat: prod.satFat, carbs: prod.carbs, fibre: prod.fibre, salt: prod.salt, sugar: prod.sugar, rating: rating, itemType: "packaged", ingredients: ingArr, originalIngredients: ingArr.join(", "), barcode: prod.barcode, servingSize: prod.servingSize, source: "openfoodfacts", suitability: "Open Food Facts · " + (prod.servingSize || "per portion"), category: addingCategory }); setReviewCategories(addingCategory ? [addingCategory] : []); setOffResults([]); }} style={{ padding: "5px 8px", cursor: "pointer", borderBottom: "1px solid #f1f5f9", fontSize: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 4 }}><span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prod.name}</span><span style={{ display: "flex", gap: 4, flexShrink: 0, color: "#475569", fontSize: 9 }}><b>{prod.kcal}</b>kcal <b>{prod.protein}g</b>P {ratingsShown() && <span style={{ color: ragC, fontWeight: 700 }}>{calcRAG(prod)}</span>}</span></div>); })}{offResults.length > 0 && <div style={{ padding: "3px 8px", fontSize: 7, color: "#475569", textAlign: "center" }}>Open Food Facts · ODbL</div>}</div>)}</div>)}
             </div>
             <div style={{ marginBottom: 8 }}>
@@ -1424,14 +1543,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slotKey = n === 1 ? "l" : "l" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <MealSelect items={dispLunch} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("lunch", "defaults", e.target.searchText, slotKey); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select lunch..." />
+                    <MealSelect row={{ mode: "defaults", slot: slotKey }} items={dispLunch} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("lunch", "defaults", e.target.searchText, slotKey); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Add lunch…" />
                   </div>
-                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
-                    <button onClick={function(){ if (!confirm("Remove this default? This cannot be undone.")) return; saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
-                  )}
                 </div>);
               })}
-              <button onClick={function() { var next = 1; var pk = "l"; while (defs[next === 1 ? pk : pk + next]) next++; saveDef(next === 1 ? pk : pk + next, "__placeholder__", "individual"); }} style={{...btnMuted, marginTop: 4}}>+ Add New</button>
               {addingNew && addingSource === "defaults" && addingCategory === "lunch" && (<div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 4, border: "1px solid #bfdbfe" }}><div style={{ marginBottom: 4 }}><span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a5f" }}>Add New Lunch Item</span></div><div style={{ display: "flex", gap: 6, marginBottom: 6 }}><input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); searchOFF(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, minWidth: 0, padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11 }} /><label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label></div><div style={{ display: "flex", gap: 6 }}><button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ flex: 1, padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button><button onClick={function() { setAddingNew(false); setNewItemName(""); setOffResults([]); setAddingSlotKey(null); setAddingSlotDay(null); }} style={{ padding: "8px 16px", background: accentBtnLight, border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer", flexShrink: 0 }}>Cancel</button></div><div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type to search UK food products or describe a homemade dish.</div>{(offResults.length > 0 || offLoading) && newItemName.length >= 2 && !cameraPreview && (<div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, maxHeight: 180, overflowY: "auto", marginTop: 4, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>{offLoading && <div style={{ padding: "6px 8px", fontSize: 10, color: "#475569" }}>🔍 Searching...</div>}{offResults.map(function(prod, pi) { var ragC = ratingColor(calcRAG(prod), "bright"); return (<div key={pi} onClick={function() { var rating = calcRAG(prod); var ingArr = prod.ingredients ? prod.ingredients.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length>0;}) : []; setCameraPreview({ name: prod.name, kcal: prod.kcal, protein: prod.protein, fat: prod.fat, satFat: prod.satFat, carbs: prod.carbs, fibre: prod.fibre, salt: prod.salt, sugar: prod.sugar, rating: rating, itemType: "packaged", ingredients: ingArr, originalIngredients: ingArr.join(", "), barcode: prod.barcode, servingSize: prod.servingSize, source: "openfoodfacts", suitability: "Open Food Facts · " + (prod.servingSize || "per portion"), category: addingCategory }); setReviewCategories(addingCategory ? [addingCategory] : []); setOffResults([]); }} style={{ padding: "5px 8px", cursor: "pointer", borderBottom: "1px solid #f1f5f9", fontSize: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 4 }}><span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prod.name}</span><span style={{ display: "flex", gap: 4, flexShrink: 0, color: "#475569", fontSize: 9 }}><b>{prod.kcal}</b>kcal <b>{prod.protein}g</b>P {ratingsShown() && <span style={{ color: ragC, fontWeight: 700 }}>{calcRAG(prod)}</span>}</span></div>); })}{offResults.length > 0 && <div style={{ padding: "3px 8px", fontSize: 7, color: "#475569", textAlign: "center" }}>Open Food Facts · ODbL</div>}</div>)}</div>)}
             </div>
             <div style={{ marginBottom: 8 }}>
@@ -1446,14 +1561,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slotKey = n === 1 ? "d" : "d" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <MealSelect items={dispDinners} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("dinner", "defaults", e.target.searchText, slotKey); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select dinner..." />
+                    <MealSelect row={{ mode: "defaults", slot: slotKey }} items={dispDinners} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("dinner", "defaults", e.target.searchText, slotKey); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Add dinner…" />
                   </div>
-                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
-                    <button onClick={function(){ if (!confirm("Remove this default? This cannot be undone.")) return; saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
-                  )}
                 </div>);
               })}
-              <button onClick={function() { var next = 1; var pk = "d"; while (defs[next === 1 ? pk : pk + next]) next++; saveDef(next === 1 ? pk : pk + next, "__placeholder__", "individual"); }} style={{...btnMuted, marginTop: 4}}>+ Add New</button>
               {addingNew && addingSource === "defaults" && addingCategory === "dinner" && (<div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 4, border: "1px solid #bfdbfe" }}><div style={{ marginBottom: 4 }}><span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a5f" }}>Add New Dinner Item</span></div><div style={{ display: "flex", gap: 6, marginBottom: 6 }}><input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); searchOFF(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, minWidth: 0, padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11 }} /><label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label></div><div style={{ display: "flex", gap: 6 }}><button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ flex: 1, padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button><button onClick={function() { setAddingNew(false); setNewItemName(""); setOffResults([]); setAddingSlotKey(null); setAddingSlotDay(null); }} style={{ padding: "8px 16px", background: accentBtnLight, border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer", flexShrink: 0 }}>Cancel</button></div><div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type to search UK food products or describe a homemade dish.</div>{(offResults.length > 0 || offLoading) && newItemName.length >= 2 && !cameraPreview && (<div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, maxHeight: 180, overflowY: "auto", marginTop: 4, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>{offLoading && <div style={{ padding: "6px 8px", fontSize: 10, color: "#475569" }}>🔍 Searching...</div>}{offResults.map(function(prod, pi) { var ragC = ratingColor(calcRAG(prod), "bright"); return (<div key={pi} onClick={function() { var rating = calcRAG(prod); var ingArr = prod.ingredients ? prod.ingredients.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length>0;}) : []; setCameraPreview({ name: prod.name, kcal: prod.kcal, protein: prod.protein, fat: prod.fat, satFat: prod.satFat, carbs: prod.carbs, fibre: prod.fibre, salt: prod.salt, sugar: prod.sugar, rating: rating, itemType: "packaged", ingredients: ingArr, originalIngredients: ingArr.join(", "), barcode: prod.barcode, servingSize: prod.servingSize, source: "openfoodfacts", suitability: "Open Food Facts · " + (prod.servingSize || "per portion"), category: addingCategory }); setReviewCategories(addingCategory ? [addingCategory] : []); setOffResults([]); }} style={{ padding: "5px 8px", cursor: "pointer", borderBottom: "1px solid #f1f5f9", fontSize: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 4 }}><span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prod.name}</span><span style={{ display: "flex", gap: 4, flexShrink: 0, color: "#475569", fontSize: 9 }}><b>{prod.kcal}</b>kcal <b>{prod.protein}g</b>P {ratingsShown() && <span style={{ color: ragC, fontWeight: 700 }}>{calcRAG(prod)}</span>}</span></div>); })}{offResults.length > 0 && <div style={{ padding: "3px 8px", fontSize: 7, color: "#475569", textAlign: "center" }}>Open Food Facts · ODbL</div>}</div>)}</div>)}
             </div>
             <div style={{ marginBottom: 8 }}>
@@ -1468,14 +1579,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slotKey = n === 1 ? "ds" : "ds" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <MealSelect items={dispDesserts} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("dessert", "defaults", e.target.searchText, slotKey); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select dessert..." />
+                    <MealSelect row={{ mode: "defaults", slot: slotKey }} items={dispDesserts} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("dessert", "defaults", e.target.searchText, slotKey); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Add dessert…" />
                   </div>
-                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
-                    <button onClick={function(){ if (!confirm("Remove this default? This cannot be undone.")) return; saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
-                  )}
                 </div>);
               })}
-              <button onClick={function() { var next = 1; var pk = "ds"; while (defs[next === 1 ? pk : pk + next]) next++; saveDef(next === 1 ? pk : pk + next, "__placeholder__", "individual"); }} style={{...btnMuted, marginTop: 4}}>+ Add New</button>
               {addingNew && addingSource === "defaults" && addingCategory === "dessert" && (<div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 4, border: "1px solid #bfdbfe" }}><div style={{ marginBottom: 4 }}><span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a5f" }}>Add New Dessert Item</span></div><div style={{ display: "flex", gap: 6, marginBottom: 6 }}><input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); searchOFF(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, minWidth: 0, padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11 }} /><label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label></div><div style={{ display: "flex", gap: 6 }}><button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ flex: 1, padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button><button onClick={function() { setAddingNew(false); setNewItemName(""); setOffResults([]); setAddingSlotKey(null); setAddingSlotDay(null); }} style={{ padding: "8px 16px", background: accentBtnLight, border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer", flexShrink: 0 }}>Cancel</button></div><div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type to search UK food products or describe a homemade dish.</div>{(offResults.length > 0 || offLoading) && newItemName.length >= 2 && !cameraPreview && (<div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, maxHeight: 180, overflowY: "auto", marginTop: 4, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>{offLoading && <div style={{ padding: "6px 8px", fontSize: 10, color: "#475569" }}>🔍 Searching...</div>}{offResults.map(function(prod, pi) { var ragC = ratingColor(calcRAG(prod), "bright"); return (<div key={pi} onClick={function() { var rating = calcRAG(prod); var ingArr = prod.ingredients ? prod.ingredients.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length>0;}) : []; setCameraPreview({ name: prod.name, kcal: prod.kcal, protein: prod.protein, fat: prod.fat, satFat: prod.satFat, carbs: prod.carbs, fibre: prod.fibre, salt: prod.salt, sugar: prod.sugar, rating: rating, itemType: "packaged", ingredients: ingArr, originalIngredients: ingArr.join(", "), barcode: prod.barcode, servingSize: prod.servingSize, source: "openfoodfacts", suitability: "Open Food Facts · " + (prod.servingSize || "per portion"), category: addingCategory }); setReviewCategories(addingCategory ? [addingCategory] : []); setOffResults([]); }} style={{ padding: "5px 8px", cursor: "pointer", borderBottom: "1px solid #f1f5f9", fontSize: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 4 }}><span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prod.name}</span><span style={{ display: "flex", gap: 4, flexShrink: 0, color: "#475569", fontSize: 9 }}><b>{prod.kcal}</b>kcal <b>{prod.protein}g</b>P {ratingsShown() && <span style={{ color: ragC, fontWeight: 700 }}>{calcRAG(prod)}</span>}</span></div>); })}{offResults.length > 0 && <div style={{ padding: "3px 8px", fontSize: 7, color: "#475569", textAlign: "center" }}>Open Food Facts · ODbL</div>}</div>)}</div>)}
             </div>
 
@@ -1491,14 +1598,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slotKey = n === 1 ? "dr" : "dr" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <MealSelect items={dispDrinks} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("drink", "defaults", e.target.searchText, slotKey); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select drink..." />
+                    <MealSelect row={{ mode: "defaults", slot: slotKey }} items={dispDrinks} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("drink", "defaults", e.target.searchText, slotKey); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Add drink…" />
                   </div>
-                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
-                    <button onClick={function(){ if (!confirm("Remove this default? This cannot be undone.")) return; saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
-                  )}
                 </div>);
               })}
-              <button onClick={function() { var next = 1; var pk = "dr"; while (defs[next === 1 ? pk : pk + next]) next++; saveDef(next === 1 ? pk : pk + next, "__placeholder__", "individual"); }} style={{...btnMuted, marginTop: 4}}>+ Add New</button>
               {addingNew && addingSource === "defaults" && addingCategory === "drink" && (<div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 4, border: "1px solid #bfdbfe" }}><div style={{ marginBottom: 4 }}><span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a5f" }}>Add New Drink Item</span></div><div style={{ display: "flex", gap: 6, marginBottom: 6 }}><input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); searchOFF(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, minWidth: 0, padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11 }} /><label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label></div><div style={{ display: "flex", gap: 6 }}><button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ flex: 1, padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button><button onClick={function() { setAddingNew(false); setNewItemName(""); setOffResults([]); setAddingSlotKey(null); setAddingSlotDay(null); }} style={{ padding: "8px 16px", background: accentBtnLight, border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer", flexShrink: 0 }}>Cancel</button></div><div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type to search UK food products or describe a homemade dish.</div>{(offResults.length > 0 || offLoading) && newItemName.length >= 2 && !cameraPreview && (<div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, maxHeight: 180, overflowY: "auto", marginTop: 4, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>{offLoading && <div style={{ padding: "6px 8px", fontSize: 10, color: "#475569" }}>🔍 Searching...</div>}{offResults.map(function(prod, pi) { var ragC = ratingColor(calcRAG(prod), "bright"); return (<div key={pi} onClick={function() { var rating = calcRAG(prod); var ingArr = prod.ingredients ? prod.ingredients.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length>0;}) : []; setCameraPreview({ name: prod.name, kcal: prod.kcal, protein: prod.protein, fat: prod.fat, satFat: prod.satFat, carbs: prod.carbs, fibre: prod.fibre, salt: prod.salt, sugar: prod.sugar, rating: rating, itemType: "packaged", ingredients: ingArr, originalIngredients: ingArr.join(", "), barcode: prod.barcode, servingSize: prod.servingSize, source: "openfoodfacts", suitability: "Open Food Facts · " + (prod.servingSize || "per portion"), category: addingCategory }); setReviewCategories(addingCategory ? [addingCategory] : []); setOffResults([]); }} style={{ padding: "5px 8px", cursor: "pointer", borderBottom: "1px solid #f1f5f9", fontSize: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 4 }}><span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prod.name}</span><span style={{ display: "flex", gap: 4, flexShrink: 0, color: "#475569", fontSize: 9 }}><b>{prod.kcal}</b>kcal <b>{prod.protein}g</b>P {ratingsShown() && <span style={{ color: ragC, fontWeight: 700 }}>{calcRAG(prod)}</span>}</span></div>); })}{offResults.length > 0 && <div style={{ padding: "3px 8px", fontSize: 7, color: "#475569", textAlign: "center" }}>Open Food Facts · ODbL</div>}</div>)}</div>)}
             </div>
             <div style={{ marginBottom: 8 }}>
@@ -1513,14 +1616,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 var slotKey = "o" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <MealSelect items={dispOther} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("snack", "defaults", e.target.searchText, slotKey); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Select snack..." />
+                    <MealSelect row={{ mode: "defaults", slot: slotKey }} items={dispOther} value={defs[slotKey] === "__placeholder__" ? "" : (defs[slotKey] || "")} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("snack", "defaults", e.target.searchText, slotKey); } else { saveDef(slotKey, e.target.value, "individual"); } }} placeholder="Add snack…" />
                   </div>
-                  {defs[slotKey] && defs[slotKey] !== "__placeholder__" && (
-                    <button onClick={function(){ if (!confirm("Remove this default? This cannot be undone.")) return; saveDef(slotKey, "", "individual"); }} style={btnDelete}>🗑 Del</button>
-                  )}
                 </div>);
               })}
-              <button onClick={function() { var next = 1; while (defs["o" + next]) next++; saveDef("o" + next, "__placeholder__", "individual"); }} style={{...btnMuted, marginTop: 4}}>+ Add New</button>
               {addingNew && addingSource === "defaults" && addingCategory === "snack" && (<div style={{ background: "#eff6ff", borderRadius: 8, padding: 10, marginTop: 4, marginBottom: 4, border: "1px solid #bfdbfe" }}><div style={{ marginBottom: 4 }}><span style={{ fontSize: 11, fontWeight: 600, color: "#1e3a5f" }}>Add New Snack Item</span></div><div style={{ display: "flex", gap: 6, marginBottom: 6 }}><input value={newItemName} onChange={function(e) { setNewItemName(e.target.value); searchOFF(e.target.value); }} placeholder="e.g. item name..." style={{ flex: 1, minWidth: 0, padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11 }} /><label style={{ padding: "6px 8px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}>📷<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) addFromCamera(e.target.files[0]); e.target.value=""; }} style={{ display: "none" }} /></label></div><div style={{ display: "flex", gap: 6 }}><button onClick={addNewItem} disabled={newItemLoading || !newItemName.trim()} style={{ flex: 1, padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? "..." : "Add"}</button><button onClick={function() { setAddingNew(false); setNewItemName(""); setOffResults([]); setAddingSlotKey(null); setAddingSlotDay(null); }} style={{ padding: "8px 16px", background: accentBtnLight, border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer", flexShrink: 0 }}>Cancel</button></div><div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type to search UK food products or describe a homemade dish.</div>{(offResults.length > 0 || offLoading) && newItemName.length >= 2 && !cameraPreview && (<div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, maxHeight: 180, overflowY: "auto", marginTop: 4, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>{offLoading && <div style={{ padding: "6px 8px", fontSize: 10, color: "#475569" }}>🔍 Searching...</div>}{offResults.map(function(prod, pi) { var ragC = ratingColor(calcRAG(prod), "bright"); return (<div key={pi} onClick={function() { var rating = calcRAG(prod); var ingArr = prod.ingredients ? prod.ingredients.split(",").map(function(s){return s.trim();}).filter(function(s){return s.length>0;}) : []; setCameraPreview({ name: prod.name, kcal: prod.kcal, protein: prod.protein, fat: prod.fat, satFat: prod.satFat, carbs: prod.carbs, fibre: prod.fibre, salt: prod.salt, sugar: prod.sugar, rating: rating, itemType: "packaged", ingredients: ingArr, originalIngredients: ingArr.join(", "), barcode: prod.barcode, servingSize: prod.servingSize, source: "openfoodfacts", suitability: "Open Food Facts · " + (prod.servingSize || "per portion"), category: addingCategory }); setReviewCategories(addingCategory ? [addingCategory] : []); setOffResults([]); }} style={{ padding: "5px 8px", cursor: "pointer", borderBottom: "1px solid #f1f5f9", fontSize: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 4 }}><span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prod.name}</span><span style={{ display: "flex", gap: 4, flexShrink: 0, color: "#475569", fontSize: 9 }}><b>{prod.kcal}</b>kcal <b>{prod.protein}g</b>P {ratingsShown() && <span style={{ color: ragC, fontWeight: 700 }}>{calcRAG(prod)}</span>}</span></div>); })}{offResults.length > 0 && <div style={{ padding: "3px 8px", fontSize: 7, color: "#475569", textAlign: "center" }}>Open Food Facts · ODbL</div>}</div>)}</div>)}
             </div>
 
@@ -1871,13 +1970,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var _ragChg = _slotItem && _slotItem._ragChanged && !_slotItem._ragChangedSeen && ratingsShown();
                   return (<div key={"b"+idx} style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: "1 1 5em", minWidth: 0 }}>
-                      <MealSelect snap={getSnap(eatDay, slotKey)} items={dispBfast} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("breakfast", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select breakfast..." onDelete={deleteCustomItem} />
+                      <MealSelect row={{ mode: "day", day: eatDay, slot: slotKey }} snap={getSnap(eatDay, slotKey)} items={dispBfast} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("breakfast", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Add breakfast…" onDelete={deleteCustomItem} />
                     </div>
-                    {_ragChg && <span onClick={function(){alert("Rating changed from " + (_slotItem.prevRating || "?") + " to " + _slotItem.rating + (_slotItem.ragReason ? ".\n\nReason: " + _slotItem.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem.prevRating||"?") + " → " + _slotItem.rating}>🔄</span>}
-                    {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
-                    {snapButton(slotKey)}
-                    {slotButtons(slotKey, idx)}
-                    {(function(){ var _c = childAt(eatDay, slotKey); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
@@ -1915,7 +2009,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>)}
               </div>)}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <button onClick={function() { var nk = 2; while (getMeal(eatDay, "b" + nk)) nk++; setMeal(eatDay, "b" + nk, "__empty__"); }} style={btnMuted}>+ Add New</button>
             </div>
             </div>
 
@@ -1946,13 +2039,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   var _ragChg2 = _slotItem2 && _slotItem2._ragChanged && !_slotItem2._ragChangedSeen && ratingsShown();
                   return (<div key={"l"+idx} style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: "1 1 5em", minWidth: 0 }}>
-                      <MealSelect snap={getSnap(eatDay, slotKey)} items={dispLunch} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("lunch", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select lunch..." onDelete={deleteCustomItem} />
+                      <MealSelect row={{ mode: "day", day: eatDay, slot: slotKey }} snap={getSnap(eatDay, slotKey)} items={dispLunch} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("lunch", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Add lunch…" onDelete={deleteCustomItem} />
                     </div>
-                    {_ragChg2 && <span onClick={function(){alert("Rating changed from " + (_slotItem2.prevRating || "?") + " to " + _slotItem2.rating + (_slotItem2.ragReason ? ".\n\nReason: " + _slotItem2.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem2.prevRating||"?") + " → " + _slotItem2.rating}>🔄</span>}
-                    {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
-                    {snapButton(slotKey)}
-                    {slotButtons(slotKey, idx)}
-                    {(function(){ var _c = childAt(eatDay, slotKey); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
@@ -1990,7 +2078,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>)}
               </div>)}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <button onClick={function() { var nk = 2; while (getMeal(eatDay, "l" + nk)) nk++; setMeal(eatDay, "l" + nk, "__empty__"); }} style={btnMuted}>+ Add New</button>
             </div>
             </div>
 
@@ -2026,13 +2113,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   return (<div key={"d"+idx}>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: _isPackaged ? 2 : 4, alignItems: "center" }}>
                     <div style={{ flex: "1 1 5em", minWidth: 0 }}>
-                      <MealSelect snap={getSnap(eatDay, slotKey)} items={dispDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("dinner", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Select dinner..." onDelete={deleteCustomItem} />
+                      <MealSelect row={{ mode: "day", day: eatDay, slot: slotKey }} snap={getSnap(eatDay, slotKey)} items={dispDinners} value={getMeal(eatDay, slotKey) === "__empty__" ? "" : getMeal(eatDay, slotKey)} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("dinner", "defaults", e.target.searchText, slotKey, eatDay); } else { setMeal(eatDay, slotKey, e.target.value); } }} placeholder="Add dinner…" onDelete={deleteCustomItem} />
                     </div>
-                    {_ragChg3 && <span onClick={function(){alert("Rating changed from " + (_slotItem3.prevRating || "?") + " to " + _slotItem3.rating + (_slotItem3.ragReason ? ".\n\nReason: " + _slotItem3.ragReason : "") + "\n\nBased on your current health profile.");}} style={{cursor:"pointer",fontSize:14}} title={"Rating changed: " + (_slotItem3.prevRating||"?") + " → " + _slotItem3.rating}>🔄</span>}
-                    {_ragWarn && <span onClick={function(){alert(_ragWarn);}} style={{cursor:"pointer",fontSize:14}} title={_ragWarn}>⚠️</span>}
-                    {snapButton(slotKey)}
-                    {slotButtons(slotKey, idx)}
-                    {(function(){ var _c = childAt(eatDay, slotKey); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                     </div>
                     {_isPackaged && (<div style={{ marginLeft: 12, marginBottom: 6, paddingLeft: 8, borderLeft: "2px solid #bfdbfe" }}>
                       <div style={{ fontSize: 9, color: "#475569", marginBottom: 2, fontWeight: 600 }}>📦 Sides for packaged product</div>
@@ -2088,7 +2170,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>)}
               </div>)}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <button onClick={function() { var nk = 2; while (getMeal(eatDay, "d" + nk)) nk++; setMeal(eatDay, "d" + nk, "__empty__"); }} style={btnMuted}>+ Add New</button>
             </div>
             </div>
 
@@ -2114,11 +2195,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 return slots.map(function(idx) {
                   return (<div key={"ds"+idx} style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: "1 1 5em", minWidth: 0 }}>
-                      <MealSelect snap={getSnap(eatDay, "ds" + idx)} items={dispDesserts} value={getMeal(eatDay, "ds" + idx) === "__empty__" ? "" : getMeal(eatDay, "ds" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("dessert", "defaults", e.target.searchText, "ds" + idx, eatDay); } else { setMeal(eatDay, "ds" + idx, e.target.value); } }} placeholder="Select dessert..." />
+                      <MealSelect row={{ mode: "day", day: eatDay, slot: "ds" + idx }} snap={getSnap(eatDay, "ds" + idx)} items={dispDesserts} value={getMeal(eatDay, "ds" + idx) === "__empty__" ? "" : getMeal(eatDay, "ds" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("dessert", "defaults", e.target.searchText, "ds" + idx, eatDay); } else { setMeal(eatDay, "ds" + idx, e.target.value); } }} placeholder="Add dessert…" />
                     </div>
-                    {snapButton("ds" + idx)}
-                    {slotButtons("ds" + idx, idx)}
-                    {(function(){ var _c = childAt(eatDay, "ds" + idx); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
@@ -2157,7 +2235,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               </div>)}
             </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <button onClick={function() { var nk = 1; while (getMeal(eatDay, "ds" + nk)) nk++; setMeal(eatDay, "ds" + nk, "__empty__"); }} style={btnMuted}>+ Add New</button>
             </div>
 
             
@@ -2182,11 +2259,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 return slots.map(function(idx) {
                   return (<div key={"dr"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
-                      <MealSelect snap={getSnap(eatDay, "dr" + idx)} items={dispDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("drink", "defaults", e.target.searchText, "dr" + idx, eatDay); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Select drink..." />
+                      <MealSelect row={{ mode: "day", day: eatDay, slot: "dr" + idx }} snap={getSnap(eatDay, "dr" + idx)} items={dispDrinks} value={getMeal(eatDay, "dr" + idx) === "__empty__" ? "" : getMeal(eatDay, "dr" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("drink", "defaults", e.target.searchText, "dr" + idx, eatDay); } else { setMeal(eatDay, "dr" + idx, e.target.value); } }} placeholder="Add drink…" />
                     </div>
-                    {snapButton("dr" + idx)}
-                    {slotButtons("dr" + idx, idx)}
-                    {(function(){ var _c = childAt(eatDay, "dr" + idx); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
                   </div>);
                 });
               })()}
@@ -2225,7 +2299,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               </div>)}
             </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <button onClick={function() { var nk = 1; while (getMeal(eatDay, "dr" + nk)) nk++; setMeal(eatDay, "dr" + nk, "__empty__"); }} style={btnMuted}>+ Add New</button>
             </div>
 
             
@@ -2248,11 +2321,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             {otherSlots.map(function(idx) {
               return (<div key={idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                 <div style={{ flex: 1 }}>
-                  <MealSelect snap={getSnap(eatDay, "o" + idx)} items={dispOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("snack", "defaults", e.target.searchText, "o" + idx, eatDay); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Select snack..." />
+                  <MealSelect row={{ mode: "day", day: eatDay, slot: "o" + idx }} snap={getSnap(eatDay, "o" + idx)} items={dispOther} value={getMeal(eatDay, "o" + idx) === "__empty__" ? "" : getMeal(eatDay, "o" + idx)} onChange={function(e) { if (e.target.value === "__add_new__") { notInList("snack", "defaults", e.target.searchText, "o" + idx, eatDay); } else { setMeal(eatDay, "o" + idx, e.target.value); } }} placeholder="Add snack…" />
                 </div>
-                {snapButton("o" + idx)}
-                {slotButtons("o" + idx, idx)}
-                {(function(){ var _c = childAt(eatDay, "o" + idx); return !!(_c && _c.portion && _c.portion.values); })() && (<span style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 600 }} title="Portion verified">✓</span>)}
               </div>);
             })}
             {slotOpen && slotOpen.day === eatDay && /^o/.test(slotOpen.slot) && renderSlotForm()}
@@ -2289,7 +2359,6 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>)}
               </div>)}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <button onClick={function() { addOtherSlot(eatDay); }} style={btnMuted}>+ Add New</button>
             </div>
             </div>
 
