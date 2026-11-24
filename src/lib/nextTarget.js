@@ -29,6 +29,7 @@ export function nextTarget(ex) {
   var u = measureOf(ex).unit, weighted = u === "kg" || u === "plate";
   if (ex.progressionValue != null && ex.progressionSetWk) {   // v2.20.x "Set" on the card: set by the person
     return weighted ? { m1: String(num(ex.progressionValue)), m2: String(firstRep(ex.reps) || ""), source: "set by you", setAt: "Wk" + ex.progressionSetWk, legacy: true }
+      : u === "minutes" ? { m1: String(num(ex.progressionValue)), m2: "", source: "set by you", setAt: "Wk" + ex.progressionSetWk, legacy: true }   // v2.43.0: duration is the first measure, as in the Log form
       : { m1: "", m2: String(num(ex.progressionValue)), source: "set by you", setAt: "Wk" + ex.progressionSetWk, legacy: true };
   }
   // an older stored target counts only if the person typed it (the app's own stack weights look the same once stored, e.g.
@@ -36,6 +37,7 @@ export function nextTarget(ex) {
   if (ex.target && ex._userOverride) {
     var w = weighted ? explicitWeight(ex.target) : null;
     if (weighted && w) return { m1: String(w), m2: String(repsIn(ex.target) || firstRep(ex.reps) || ""), source: "set by you", setAt: "", legacy: true };
+    if (u === "minutes" && /\d/.test(String(ex.target))) return { m1: String(num(ex.target)), m2: "", source: "set by you", setAt: "", legacy: true };
     if (!weighted && /\d/.test(String(ex.target))) return { m1: "", m2: String(firstRep(ex.target) || num(ex.target)), source: "set by you", setAt: "", legacy: true };
   }
   return null;
@@ -50,8 +52,8 @@ export function autoDerivedTarget(ex) {
 export function targetHeadline(ex) {
   var t = nextTarget(ex); if (!t) return null;
   var u = measureOf(ex).unit, sets = parseInt(ex.sets, 10) || 3;
-  var a = t.m1 !== "" && t.m1 != null ? (u === "plate" ? "Plate " + t.m1 : u === "kg" ? t.m1 + "kg" : t.m1) : "";
-  var b = t.m2 !== "" && t.m2 != null ? (u === "minutes" ? t.m2 + " min" : t.m2 + "×" + sets) : "";
+  var a = t.m1 !== "" && t.m1 != null ? (u === "plate" ? "Plate " + t.m1 : u === "kg" ? t.m1 + "kg" : u === "minutes" ? t.m1 + " min" : t.m1) : "";
+  var b = t.m2 !== "" && t.m2 != null ? (u === "minutes" ? t.m2 + " km" : t.m2 + "×" + sets) : "";
   return [a, b].filter(Boolean).join(" · ");
 }
 /** What the Log form pre-fills from the target: { w, r, source } — a blank measure falls back to the last entry. */

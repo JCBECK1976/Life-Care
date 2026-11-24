@@ -39,7 +39,7 @@ async function snap(page, name) {
      both sides, my-exercise-session baseline re-taken from beta that way (HANDOVER, 23 Nov night batch). ADDED by its
      PART 4: "→ Set my next session" where an app-worked target is ignored (ex-set-next).
      Add one here only with an approval note in HANDOVER. */
-  tags.push(await page.addStyleTag({ content: "[data-testid=go-live-switches], [data-testid=delete-account], [data-testid=ex-why], [data-testid=ex-skip], [data-testid=last-week-fb], [data-testid=ex-skipped], [data-testid=ex-skip-checkin], [data-derived-status], [data-testid=body-balance], [data-testid=ex-next], [data-testid=ex-set-next] { display: none !important; }" }));
+  tags.push(await page.addStyleTag({ content: "[data-testid=go-live-switches], [data-testid=delete-account], [data-testid=ex-why], [data-testid=ex-skip], [data-testid=last-week-fb], [data-testid=ex-skipped], [data-testid=ex-skip-checkin], [data-derived-status], [data-testid=body-balance], [data-testid=ex-next], [data-testid=ex-set-next], [data-testid=training-style] { display: none !important; }" }));
   await page.waitForFunction(() => [...document.images].every((i) => i.complete));
   await page.evaluate(async () => { await Promise.all([...document.images].map((i) => i.decode().catch(() => {}))); await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); });
   await expect.soft(page).toHaveScreenshot(name + ".png", {
