@@ -70,6 +70,7 @@ export function aiExerciseContext(ex, weeks) {
   var logged = (ex.prog || []).slice().sort(function(a, b) { return wkNum(a) - wkNum(b); }).slice(-(weeks || 8)).map(function(p) {
     if (isSkippedEntry(p)) return "Wk" + p.wk + ": SKIPPED" + (p.note ? " (why: " + p.note + ")" : "");
     var q = p.fullRange || p.goodForm ? " [range " + (p.fullRange === "good" ? "Good" : "Working towards") + ", form " + (p.goodForm === "good" ? "Good" : "Working towards") + "]" : "";
+    if (p.effort) q = " [felt " + ({ easy: "Easy", right: "About right", hard: "Very hard" }[p.effort] || p.effort) + (p.goodForm ? ", form " + (p.goodForm === "good" ? "Good" : "Working towards") : "") + "]";   // v2.47.0: cardio
     return "Wk" + p.wk + ": " + (p.w || "") + " " + (p.r || "") + q + (p.note ? " (" + p.note + ")" : "");
   });
   var t = nextTarget(ex);

@@ -6,6 +6,7 @@
 import { measureOf, parseReps, entrySets } from "./exercise.js";
 import { nextTarget } from "./nextTarget.js";
 import { repRange, usesRepRange } from "./exerciseWhy.js";
+import { isCardioEx } from "./cardio.js";
 
 export var PILLS = {
   "move up": { label: "Move Up", color: "#1d4ed8", bg: "#dbeafe" },
@@ -45,8 +46,23 @@ export function metTarget(sets, target, ex) {
 export function pillAfterLog(choice, sets, quality, target, ex) {
   if (choice === "reduce") return "reduce";
   if (choice === "maintain" || choice === "hold") return "consolidate";
+  if (isCardioEx(ex)) {   // v2.47.0 (brief 24 Nov P2): effort Easy or About right AND the target met (or the plan completed)
+    var eff = quality && quality.effort;
+    if (eff !== "easy" && eff !== "right") return "consolidate";
+    return metCardio(sets, target, quality && quality.plan) ? "move up" : "consolidate";
+  }
   if (!quality || quality.range !== "good" || quality.form !== "good") return "consolidate";
   return metTarget(sets, target, ex) ? "move up" : "consolidate";
+}
+/** Cardio: every logged set reached the target's measures; with no target, the planned time/distance (the card's values
+ *  before this log). Nothing planned → not met. */
+export function metCardio(sets, target, plan) {
+  var s = (sets || []).filter(function(x) { return String(x.w == null ? "" : x.w).trim() !== "" || String(x.r == null ? "" : x.r).trim() !== ""; });
+  if (!s.length) return false;
+  var a = target && String(target.m1 || "") !== "" ? num(target.m1) : null, b = target && String(target.m2 || "") !== "" ? num(target.m2) : null;
+  if (a == null && b == null) { a = plan ? num(plan.w) || null : null; b = plan ? num(plan.r) || null : null; }
+  if (a == null && b == null) return false;
+  return s.every(function(x) { return (a == null || num(x.w) >= a) && (b == null || num(x.r) >= b); });
 }
 /** Sets from a stored entry (for the checks above). */
 export function setsOf(entry) { var s = entrySets(entry); return s.length ? s : parseReps(entry && entry.r).map(function(r) { return { w: entry.w, r: r }; }); }

@@ -64,6 +64,7 @@ import PersonTabs, { peopleOf, personName, hiddenTabs } from "./components/Perso
 import { ALLOW_ADD_PERSON } from "./constants/features.js";
 import { PHASE_LABEL, dayPhase, readFeedback, weekPhase } from "./lib/eatPhase.js";
 import SharePicker from "./components/SharePicker.jsx";
+import { isCardioEx, cardioHasForm } from "./lib/cardio.js";
 import { startNativeShare } from "./lib/nativeShare.js";
 import { stripMeasurementPhotos, stripPhotoFragments } from "./lib/bodyBalance.js";
 import { childItems, dateOf, emptyDoc, loadParentLookup, loadWeekDoc, reconcile, recalcChild, saveWeekDoc, viewFromDoc, weekKey, ymd } from "./lib/children.js";
@@ -99,6 +100,7 @@ function Dashboard() {
   const [logWeek, setLogWeek] = useState("");
   const [logFullRange, setLogFullRange] = useState("working");
   const [logGoodForm, setLogGoodForm] = useState("working");
+  const [logEffort, setLogEffort] = useState("");   // v2.47.0 (brief 24 Nov P2): cardio — How hard did it feel?
   const [logNeedChoice, setLogNeedChoice] = useState(""); // D12: inline "Choose Form and Range" prompt
   const [logStatus, setLogStatus] = useState("");
   const [editPrev, setEditPrev] = useState(false);
@@ -865,7 +867,7 @@ function Dashboard() {
 
     const ex = data[activeTab].exercises[day][idx];
     const last = previousEntry(ex.prog, calcWeek(data.config.trainingStart)); // D23: latest week BEFORE the current one
-    setLogEx({ day, idx, who: activeTab }); setLogNeedChoice(""); setLogSkipped(false); setLogOverride("standard"); // D1: the form belongs to this person
+    setLogEx({ day, idx, who: activeTab }); setLogNeedChoice(""); setLogSkipped(false); setLogOverride("standard"); setLogEffort(""); // D1: the form belongs to this person
     /* v2.41.0 (night batch P4a): the ONE next target (nextTarget) — the same object the card headline, the pill check
        and the AI read; reps-only targets pre-fill too; app-worked-out stack weights are never used */
     var _tg = prefillFrom(ex, last);
@@ -916,6 +918,7 @@ function Dashboard() {
     const { day, idx } = logEx;
     const nd = JSON.parse(JSON.stringify(data));
     const ex = nd[activeTab].exercises[day][idx];
+    var _planBefore = ex ? { w: ex.current, r: ex.reps } : null;   // v2.47.0: cardio with no target — the planned time/distance
     var _tgBefore = ex ? nextTarget(ex) : null;   // v2.42.0 (night batch P3): the pill checks the logged sets against the ONE target
     if (ex && ex.stopped) { setFormMsg("⏸ " + ex.name + " is stopped — restart it in Exercise Settings to log"); setTimeout(() => setFormMsg(""), 4000); return; }
     /* v2.40.0 (night batch P2e): "Skipped this session" — zeros marked skipped, the reason from My Notes; Form/Range not
@@ -932,7 +935,9 @@ function Dashboard() {
       return;
     }
     // D12: Form and Range must be chosen (for everyone being saved from this form)
-    if (!logGoodForm || !logFullRange) { setLogNeedChoice("Choose Form and Range to save"); return; }
+    var _cardio = isCardioEx(ex);   // v2.47.0: cardio asks "How hard did it feel?" instead of Range/Form (Form only where it makes sense)
+    if (_cardio ? (!logEffort || (cardioHasForm(ex) && !logGoodForm)) : (!logGoodForm || !logFullRange)) { setLogNeedChoice(_cardio ? "Choose how hard it felt to save" : "Choose Form and Range to save"); return; }
+    var _cardioMark = function(e) { if (!_cardio || !e) return; e.effort = logEffort; delete e.fullRange; if (!cardioHasForm(ex)) delete e.goodForm; };
     setLogNeedChoice("");
     var _sets = setsToSave(logSets); // D2: weight and reps per set
     var _editIdx = editPrev ? findWeekIdx(ex.prog, window._lcEditWk) : -1; // D23: edit the entry that was opened, not the last array item
@@ -944,10 +949,10 @@ function Dashboard() {
       prev.r = fmtReps(logSets.map(s => parseInt(s.r) || 0));
       prev.wk = parseInt(logWeek) || prev.wk;
       prev.note = logComment.trim() || prev.note || "";
-      prev.fullRange = logFullRange; prev.goodForm = logGoodForm; prev.sets = _sets;
+      prev.fullRange = logFullRange; prev.goodForm = logGoodForm; prev.sets = _sets; _cardioMark(prev);
       ex.current = prev.w; ex.reps = prev.r;
       // Status and target deferred to AI feedback
-      ex.status = pillAfterLog(logOverride, logSets, { range: logFullRange, form: logGoodForm }, _tgBefore, ex); ex.statusSource = "rules";   // v2.42.0: worked out on every save
+      ex.status = pillAfterLog(logOverride, logSets, { range: logFullRange, form: logGoodForm, effort: logEffort, plan: _planBefore }, _tgBefore, ex); ex.statusSource = "rules";   // v2.42.0: worked out on every save
       delete ex.target;
     } else {
       // New entry - check for duplicates
@@ -961,12 +966,12 @@ function Dashboard() {
         ex.prog[existingIdx].w = (logSets[0].w || String(parseInt(ex.current) || 0)) + "kg";
         ex.prog[existingIdx].r = fmtReps(logSets.map(s => parseInt(s.r) || 0));
         ex.prog[existingIdx].note = logComment.trim() || ex.prog[existingIdx].note || "";
-        ex.prog[existingIdx].fullRange = logFullRange; ex.prog[existingIdx].goodForm = logGoodForm; ex.prog[existingIdx].sets = _sets;
+        ex.prog[existingIdx].fullRange = logFullRange; ex.prog[existingIdx].goodForm = logGoodForm; ex.prog[existingIdx].sets = _sets; _cardioMark(ex.prog[existingIdx]);
         ex.current = ex.prog[existingIdx].w;
         ex.reps = ex.prog[existingIdx].r;
         ex.notes = logComment.trim() || "";
         // Status and target deferred to AI feedback
-        ex.status = pillAfterLog(logOverride, logSets, { range: logFullRange, form: logGoodForm }, _tgBefore, ex); ex.statusSource = "rules";   // v2.42.0: worked out on every save
+        ex.status = pillAfterLog(logOverride, logSets, { range: logFullRange, form: logGoodForm, effort: logEffort, plan: _planBefore }, _tgBefore, ex); ex.statusSource = "rules";   // v2.42.0: worked out on every save
         delete ex.target;
         nd.config.lastUpdate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
         if (logComment.trim()) await sSet("comment:" + activeTab + ":" + ex.name + ":" + logWk, logComment.trim());
@@ -976,10 +981,10 @@ function Dashboard() {
       const repsStr = fmtReps(logSets.map(s => parseInt(s.r) || 0));
       const wStr = w + "kg";
       const wk = parseInt(logWeek) || calcWeek(data.config.trainingStart);
-      ex.prog.push({ wk, w: wStr, r: repsStr, sets: _sets, note: logComment.trim() || "", fullRange: logFullRange, goodForm: logGoodForm });
+      ex.prog.push({ wk, w: wStr, r: repsStr, sets: _sets, note: logComment.trim() || "", fullRange: logFullRange, goodForm: logGoodForm }); _cardioMark(ex.prog[ex.prog.length - 1]);
       ex.current = wStr; ex.reps = repsStr;
       // Status and target deferred to AI feedback
-      ex.status = pillAfterLog(logOverride, logSets, { range: logFullRange, form: logGoodForm }, _tgBefore, ex); ex.statusSource = "rules";   // v2.42.0: worked out on every save
+      ex.status = pillAfterLog(logOverride, logSets, { range: logFullRange, form: logGoodForm, effort: logEffort, plan: _planBefore }, _tgBefore, ex); ex.statusSource = "rules";   // v2.42.0: worked out on every save
       delete ex.target;
       nd.config.week = Math.max(nd.config.week, wk);
     }
@@ -1918,7 +1923,7 @@ function Dashboard() {
         {section === "body" && (<ErrorBoundary name="Body"><BodySection ctx={{ accent, accentBorder, accentLight, accentMid, activeTab, addMeasName, addMeasOpen, bodyFbAll, bodyFbExpanded, bodyFbLoading, bodyFeedback, bodyInputs, bodyMetricOpen, bodyMetricShowAll, bodyView, btnST, data, editMeasKey, editMeasName, getCrossSectionCtx, getOnboardingCtx, idealSt, isJC, measFbAll, measFbExpanded2, measFbLoading, measFeedback, measLogInputs, measLogKey, measMetricOpen, measMetricShowAll, p, renderThread, saveBodyComp, saveData, setAddMeasName, setAddMeasOpen, setBodyFbExpanded, setBodyFbLoading, setBodyFeedback, setBodyInputs, setBodyMetricOpen, setBodyMetricShowAll, setBodyView, setEditMeasKey, setEditMeasName, setFormMsg, setMeasFbExpanded2, setMeasFbLoading, setMeasFeedback, setMeasLogInputs, setMeasLogKey, setMeasMetricOpen, setMeasMetricShowAll, setShowBodyForm, showBodyForm, updateBodyFb, updateMeasFb, userMood, weekLabel, wt, wtCheck, wtDelta, wtSign, wtStr }} /></ErrorBoundary>)}
 
         {/* WEIGHTS */}
-        {section === "weights" && <ErrorBoundary name="Exercise"><ExerciseSection ctx={{ accent, accentBorder, accentLight, accentMid, activeTab, addExConfirm, addExLoading, addExOpen, addExSearch, btnST, coolDownOpen, customExercises, data, dayView, decisionsExpanded, editExercise, editPrev, exInfoOpen, exerciseDay, fbExpanded, getCrossSectionCtx, getOnboardingCtx, isJC, loadUserSettings, logComment, logSkipped, setLogSkipped, logEx, logFormRef, logFullRange, logGoodForm, logOverride, logSets, logWeek, newExName, openLogForm, p, prevComment, renderThread, saveData, saveLog, selectedEx, sessionFbLoading, sessionFeedback, sessionGuideLoading, setActiveTab, setAddExConfirm, setAddExLoading, setAddExOpen, setAddExSearch, setCoolDownOpen, setCustomExercises, setDayView, setDecisionsExpanded, setEditExercise, setEditPrev, setExInfoOpen, setExerciseDay, setFbExpanded, setFormMsg, setLogComment, setLogEx, setLogFullRange, setLogGoodForm, setLogOverride, setLogSets, setLogWeek, setNewExName, setNewSectionName, setSelectedEx, setSessionFbLoading, setSessionFeedback, setSessionGuideLoading, setShowNewExForm, setShowNewSection, setStoppedExOpen, setWarmUpOpen, stoppedExOpen, updateSessionFb, userMood, warmUpOpen, weekLabel , logNeedChoice, setLogNeedChoice}} /></ErrorBoundary>}
+        {section === "weights" && <ErrorBoundary name="Exercise"><ExerciseSection ctx={{ accent, accentBorder, accentLight, accentMid, activeTab, addExConfirm, addExLoading, addExOpen, addExSearch, btnST, coolDownOpen, customExercises, data, dayView, decisionsExpanded, editExercise, editPrev, exInfoOpen, exerciseDay, fbExpanded, getCrossSectionCtx, getOnboardingCtx, isJC, loadUserSettings, logComment, logSkipped, setLogSkipped, logEffort, setLogEffort, logEx, logFormRef, logFullRange, logGoodForm, logOverride, logSets, logWeek, newExName, openLogForm, p, prevComment, renderThread, saveData, saveLog, selectedEx, sessionFbLoading, sessionFeedback, sessionGuideLoading, setActiveTab, setAddExConfirm, setAddExLoading, setAddExOpen, setAddExSearch, setCoolDownOpen, setCustomExercises, setDayView, setDecisionsExpanded, setEditExercise, setEditPrev, setExInfoOpen, setExerciseDay, setFbExpanded, setFormMsg, setLogComment, setLogEx, setLogFullRange, setLogGoodForm, setLogOverride, setLogSets, setLogWeek, setNewExName, setNewSectionName, setSelectedEx, setSessionFbLoading, setSessionFeedback, setSessionGuideLoading, setShowNewExForm, setShowNewSection, setStoppedExOpen, setWarmUpOpen, stoppedExOpen, updateSessionFb, userMood, warmUpOpen, weekLabel , logNeedChoice, setLogNeedChoice}} /></ErrorBoundary>}
 
         {/* MEDS */}
 

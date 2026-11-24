@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { latestEntry, measureOf, getExerciseType, getExerciseTypeConfig, sameExercise, setWeekNote } from "../lib/exercise.js";
 import { makeTarget, prefillFrom, targetHeadline } from "../lib/nextTarget.js";
-import { setAdvice, pillAfterSet, styleFor } from "../lib/trainingStyle.js";
+import { setAdvice, pillAfterSet, styleForEx } from "../lib/trainingStyle.js";
 
 // v2.43.0 (night batch P5e): "Set my next session" under each recommendation in the session feedback, above its note box.
 // Two boxes for the exercise's measures + Set. On Set: instant rules-based advice (a jump outside 2.5–10%, reps outside the
@@ -32,7 +32,7 @@ export default function SetNextSession(props) {
   if (!ex || ex.stopped) return null;
   var boxes = measureBoxes(ex);
   if (!boxes.length) return null;
-  var style = styleFor(data[who], ex.name);
+  var style = styleForEx(data[who], ex);   // v2.47.0: the cardio style for cardio exercises
   var reason = function() { var n = props.noteId && document.getElementById(props.noteId); return n ? n.value : ""; };
 
   async function commit() {
@@ -40,7 +40,7 @@ export default function SetNextSession(props) {
     if (i < 0) return;
     var t = l[i];
     t.next = makeTarget(v.m1, v.m2, "set by you");
-    t.status = pillAfterSet(t, v.m1); t.statusSource = "set by you";
+    t.status = pillAfterSet(ex, v.m1, v.m2); t.statusSource = "set by you";
     var head = targetHeadline(t);
     t.notes = setWeekNote(t.notes, wk, "Wk" + wk + ": next session " + head + " (set by you)");
     await props.saveData(nd);
