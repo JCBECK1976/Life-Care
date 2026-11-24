@@ -34,7 +34,7 @@ import { btnAction, btnActionLg, btnClear, btnClose, btnDelete, btnEdit, btnMute
 import { accentVariant, hexToHsl, hslToHex } from "./lib/colour.js";
 import { buildExProfileInfo, getJournalWellbeingCtx, getMoodContext } from "./lib/aiContext.js";
 import { autoStatus, entrySets, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, findWeekIdx, logSetsFrom, parseReps, previousEntry, setsToSave } from "./lib/exercise.js";
-import { nextLogPrefill } from "./lib/exercise.js";
+import { prefillFrom, aiExerciseContext } from "./lib/nextTarget.js";
 import { calcWeek, countStatus, fbIcon, fmtDate, getWeekDates, mealKey, sBg, sColor, sLabel } from "./lib/utils.js";
 import { sGet, sSet, sScan } from "./lib/storage.js";
 import { handleApiError } from "./lib/api.js";
@@ -863,14 +863,11 @@ function Dashboard() {
     const ex = data[activeTab].exercises[day][idx];
     const last = previousEntry(ex.prog, calcWeek(data.config.trainingStart)); // D23: latest week BEFORE the current one
     setLogEx({ day, idx, who: activeTab }); setLogNeedChoice(""); setLogSkipped(false); // D1: the form belongs to this person
-    var targetW = "";
-    var targetR = "";
-    if (ex.target) {
-      var tm = ex.target.match(/([\.\d]+)kg/);
-      var tr = ex.target.match(/(\d+)[x×](\d+)/);
-      if (tm) targetW = tm[1];
-      if (tr) targetR = tr[1];
-    }
+    /* v2.41.0 (night batch P4a): the ONE next target (nextTarget) — the same object the card headline, the pill check
+       and the AI read; reps-only targets pre-fill too; app-worked-out stack weights are never used */
+    var _tg = prefillFrom(ex, last);
+    var targetW = _tg ? _tg.w : "";
+    var targetR = _tg ? _tg.r : "";
     var useW = targetW || (last ? last.w.replace("kg", "") : "");
     var lastReps = last && last.r ? parseReps(last.r) : [];
     var r1 = targetR || (lastReps[0] ? String(lastReps[0]) : "");
@@ -880,8 +877,7 @@ function Dashboard() {
     var wFor = function(i) { return targetW || (lastSets[i] ? lastSets[i].w : useW); }; // D2: last session's per-set weights
     if (last && Array.isArray(last.sets) && last.sets.length) setLogSets(logSetsFrom(last, 3)); // each set from the previous entry
     else setLogSets([{ w: wFor(0), r: r1 }, { w: wFor(1), r: r2 }, { w: wFor(2), r: r3 }]);
-    var _pf = nextLogPrefill(ex, last);   /* v2.20.0: Ready to Move / accepted / set by the person → the NEXT weight, reps at the bottom of the range */
-    if (_pf) setLogSets([0, 1, 2].map(function() { return { w: _pf.w, r: _pf.r }; }));
+    if (_tg) setLogSets([0, 1, 2].map(function() { return { w: _tg.w, r: _tg.r }; }));
     // D23: the Week always defaults to the CURRENT training week (the header week)
     var currentCalcWk2 = calcWeek(data.config.trainingStart);
     setLogWeek(String(currentCalcWk2));
@@ -1179,7 +1175,7 @@ function Dashboard() {
           var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
           var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null;
           var qualInfo = ""; if (latest) { var et = ex.exType || "weights"; var frLbl = ["weights","bodyweight","timed_hold","stretching"].indexOf(et) >= 0 ? "FullRange" : "CompletedInOne"; qualInfo = frLbl + "=" + (latest.fullRange === "good" ? "Good" : "Working") + ",GoodForm=" + (latest.goodForm === "good" ? "Good" : "Working"); }
-          return { name: ex.name, current: ex.current, reps: ex.reps, status: ex.status, target: ex.target || "", progressionValue: ex.progressionValue || "", notes: ex.notes || "", prev: prev ? fmtEntry(prev) + " Wk" + prev.wk : "", weeksTracked: ex.prog ? ex.prog.length : 0, quality: qualInfo };
+          return { name: ex.name, current: ex.current, reps: ex.reps, status: ex.status, session: days[di], history: aiExerciseContext(ex, 8),   /* v2.41.0 (night batch P4c): logged weeks and the next target, labelled apart */ notes: ex.notes || "", prev: prev ? fmtEntry(prev) + " Wk" + prev.wk : "", weeksTracked: ex.prog ? ex.prog.length : 0, quality: qualInfo };
         });
       }
       const prompt = "You are " + (prof.name || "the user") + "'s Lifecare Companion — a trusted, knowledgeable friend checking in on their progress in Week " + data.config.week + ". You know " + (prof.name || "them") + " well: " + who + ".\n\nSCENE: You're giving your honest take on how things are going across their exercise, eating, body, health, medications, and life in general. You have access to ALL their data and you weave it together naturally like a friend who's been following their journey.\n\nCOMMUNICATION STYLE: Start with 'Hi " + (prof.name || "") + ",' then get straight into your observations. Speak directly using 'you' and 'your' — NEVER third person. Do NOT ask them questions about themselves (unless you genuinely need a specific piece of information to make a recommendation). Do NOT suggest doing things together — you're an AI companion, not a real person. Do NOT use fake-casual openers like 'grab a coffee' or 'good to see you'. Write as flowing, natural paragraphs. No bullet points, no headers, no structured sections.\n\n" + TONE_RULES + getMoodContext(userMood) + getJournalWellbeingCtx(journalEntries, wellbeingFlags) + "\n\nDATA TO WEAVE INTO YOUR CHAT:\nExercises: " + JSON.stringify(exSummary) + "\nBody: " + JSON.stringify(aiBody(p.body)) + "\nMeasurements: " + JSON.stringify(p.measurements) + mealSummary + exComments + healthContext + bloodContext + medsContext + medsHistCtx + measCommCtx + qaCtx + attachCtx + photoCtx + activityCtx + getOnboardingCtx(tab) + prevContext + getCrossSectionCtx(tab, "home") + (function() { if (!journalEntries || journalEntries.length === 0) return ""; var todayStr = new Date().toISOString().split("T")[0]; var todayEntries = journalEntries.filter(function(e) { return e.date === todayStr; }); var recentEntries = journalEntries.slice(0, 10); var moodCounts = {}; recentEntries.forEach(function(e) { if (e.mood !== null && e.mood !== undefined) { var label = MOOD_LABELS[e.mood]; moodCounts[label] = (moodCounts[label] || 0) + 1; } }); return "\n\nJOURNAL ENTRIES (read these carefully — the user is sharing what's on their mind):\nToday's entries: " + (todayEntries.length > 0 ? todayEntries.map(function(e) { return (e.mood !== null && e.mood !== undefined ? "[" + MOOD_LABELS[e.mood] + "] " : "") + e.text; }).join(" | ") : "None yet") + "\nRecent entries (last 10): " + JSON.stringify(recentEntries.map(function(e) { return { date: e.date, mood: e.mood !== null && e.mood !== undefined ? MOOD_LABELS[e.mood] : null, text: e.text }; })) + "\nMood distribution (recent): " + JSON.stringify(moodCounts) + "\nTotal journal entries: " + journalEntries.length; })() + "\n\nRULES:\n- Write 3-4 short paragraphs of natural conversation — like actual speech, not a report.\n- Reference SPECIFIC numbers from the data (weights, reps, calories, blood results, measurements).\n- Cover the full picture: what's going well, what could be better, and one thing to focus on — but woven together naturally, not in labelled sections.\n- MEDICATION: Note interactions between active meds AND with diet/exercise. Label [OFFICIAL] vs [ANECDOTAL]. Never recommend stopping medication.\n- Keep total length under 200 words. Quality over quantity.\n- Return ONLY a JSON object: {\"chat\":\"your conversational paragraphs here\", \"wellbeingFlags\":{}} where wellbeingFlags is OPTIONAL — only include it if you are flagging a wellbeing concern at Tier 2+. Format: {\"concern_key\":{\"tier\":2,\"concern\":\"recurring headaches\",\"signposted\":\"GP\",\"date\":\"" + new Date().toISOString().split("T")[0] + "\"}}. Use snake_case keys like 'headaches', 'low_mood', 'work_stress'. Omit wellbeingFlags entirely if no concerns at Tier 2+.\n- Use \\n\\n between paragraphs in the chat value.";

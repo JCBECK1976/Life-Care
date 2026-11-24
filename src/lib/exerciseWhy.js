@@ -1,7 +1,7 @@
 // v2.37.0 (Architect brief 23 Nov, PART 2): the reasons behind each exercise target, a status for every exercise,
 // last week's Companion feedback, and Skip. Rules only (no AI). The progression rules themselves are unchanged (the
 // Architect and JC revisit them at the week reset) — this module explains them.
-import { getExerciseType, parseReps, fmtReps, latestEntry, measureOf, nextSteps, wkNum, sameExercise, tidyNotes } from "./exercise.js";
+import { getExerciseType, parseReps, fmtReps, latestEntry, measureOf, nextSteps, wkNum, sameExercise, tidyNotes, skippedWeek } from "./exercise.js";
 
 var num = function(v) { var m = /-?\d+(?:[.,]\d+)?/.exec(String(v == null ? "" : v)); return m ? parseFloat(m[0].replace(",", ".")) : 0; };
 
@@ -22,7 +22,7 @@ export function rangeLabel(ex) {
   return u === "seconds" ? "Hold time: builds 5–10 s at a time" : u === "minutes" ? "Duration: builds 2–5 min at a time" : "";
 }
 
-export function isSkipped(e) { return !!(e && e.skipped); }
+export function isSkipped(e) { return skippedWeek(e); }   // v2.41.0: incl. legacy all-zero weeks
 /** How many of the latest logged weeks in a row were skipped. */
 export function skipStreak(prog) {
   var s = (prog || []).slice().sort(function(a, b) { return wkNum(a) - wkNum(b); }), n = 0;
@@ -68,7 +68,7 @@ export function whyLine(ex, status) {
   switch (status) {
     case "building back up": return "Below range (" + reps.join("/") + "): stay" + at + ", aim for " + aim + "; drop one step if form slips.";
     case "moved up": return "Moved up" + (wTxt ? " to " + wTxt : "") + ": reps restart at the bottom of your range (" + rr.lo + ") and build to " + rr.hi + ".";
-    case "ready to move": return (reps.length && reps.every(function(x) { return x >= rr.hi; }) ? full + " twice" + at : "Your Companion suggests it" + at) + ": time to move up" + (kg && w ? " (next " + nextSteps(w, ex)[0] + " kg)" : " a step") + ".";
+    case "ready to move": return (reps.length && reps.every(function(x) { return x >= rr.hi; }) ? full + " twice" + at : "Your Companion suggests it" + at) + ": time to move up a small step (about 2.5–10% more load), reps back to the bottom of your range.";   // v2.41.0: a technical range, never a stack weight
     case "consolidating": return reps.length && reps.every(function(x) { return x >= rr.hi; }) ? full + " once" + at + ": repeat it to confirm, then move up." : "Settling in" + at + ": keep the weight and build towards " + rr.hi + " on every set.";
     case "reduce": return "Weight lowered" + (wTxt ? " to " + wTxt : "") + ": build back to " + rr.hi + " before moving on.";
     case "maintaining": return "Maintaining" + at + ": keep it steady.";

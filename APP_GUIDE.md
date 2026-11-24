@@ -259,7 +259,8 @@ Tape measurements in cm (e.g. chest, waist, hips, arms, thighs).
 6. **My Companion Session Feedback**.
 
 ### An exercise card
-- **Name** and the latest **weight · reps** (e.g. 40kg · 12x3), plus the exercise type if not weights.
+- **Name** and your **next target** (e.g. 45kg · 12×3 — the same numbers the Log form fills in), or the latest **weight · reps** if no target is set, plus the exercise type if not weights. A target comes from you ("set by you") or from your Companion's feedback you accepted; the app never invents a weight. If an older target was worked out by the app, the card says **→ Set my next session** instead.
+- Weeks saved with nothing in them (0 kg, 0 reps) count as **Skipped**: shown greyed, left out of charts and progression.
 - **Status badge** on every exercise, set by your session feedback (until then, worked out from your logged sets):
   | Status | Meaning |
   |---|---|

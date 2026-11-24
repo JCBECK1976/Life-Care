@@ -23,7 +23,7 @@ test("rules: range, a status for every exercise ('Building back up' below range)
   const moved = PRESS({ status: "moved up", reps: "12x3", prog: [{ wk: CW - 2, w: "27kg", r: "15x3" }, { wk: CW - 1, w: "29kg", r: "12x3" }] });
   expect(whyLine(moved, displayStatus(moved, autoStatus))).toBe("Moved up to 29 kg: reps restart at the bottom of your range (12) and build to 15.");
   const ready = PRESS({ status: "ready to move", prog: [{ wk: CW - 2, w: "29kg", r: "15x3" }, { wk: CW - 1, w: "29kg", r: "15x3" }] });
-  expect(whyLine(ready, "ready to move")).toMatch(/^15\/15\/15 twice at 29 kg: time to move up \(next \d+(\.\d+)? kg\)\.$/);
+  expect(whyLine(ready, "ready to move")).toBe("15/15/15 twice at 29 kg: time to move up a small step (about 2.5–10% more load), reps back to the bottom of your range.");   // v2.41.0: no stack weight
   // v2.38.1: a status the Companion set is kept even when a set was below range, and the why line doesn't invent reps
   const set = PRESS({ status: "ready to move", prog: [{ wk: CW - 1, w: "38kg", r: "14/8/14" }] });
   expect(displayStatus(set, autoStatus)).toBe("ready to move");

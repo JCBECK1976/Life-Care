@@ -198,23 +198,27 @@ test("4 Exercise feedback thread at 360 px: full-width textarea (never a narrow 
 });
 
 /* ---------- 5. Exercise progression chain ---------- */
-import { nextLogPrefill, progressionRange, resolveTargetWeight, displayCurrent, parseProgressionValue } from "../src/lib/exercise.js";
 const ROW = { name: "Seated Cable Row", exType: "weights", status: "ready to move", current: "Next increment up from 42kg", reps: "12x3", target: "Next increment up from 42kg x 12x3", sets: 3,
   prog: [{ wk: 1, w: "42kg", r: "15x3" }, { wk: 2, w: "42kg", r: "15x3" }] };
-test("5 progression helpers: Ready to Move pre-fills the NEXT weight (never the previous), a concrete range, the person's own value", () => {
-  const last = ROW.prog[1];
-  expect(resolveTargetWeight("Next increment up from 42kg", 42, ROW)).toBe(49);          // pin stack 42 → 49
-  expect(resolveTargetWeight("45–47kg", 42, ROW)).toBe(45);
-  expect(resolveTargetWeight("49kg", 42, ROW)).toBe(49);
-  expect(nextLogPrefill(ROW, last)).toMatchObject({ w: "49", r: "12" });
-  expect(nextLogPrefill({ ...ROW, target: "", progressionNotes: "increments: 45, 47, 49" }, last)).toMatchObject({ w: "45", r: "12", source: "next step up" });
-  expect(progressionRange({ ...ROW, progressionNotes: "increments: 45, 47, 49" }, last).text).toBe("Next: try 45–47 kg (the next 1–2 steps on your stack)");
-  expect(nextLogPrefill({ ...ROW, progressionValue: 47 }, last)).toMatchObject({ w: "47", source: "your next weight" });
-  expect(nextLogPrefill({ ...ROW, progressionValue: 40, status: "building", target: "" }, last)).toBe(null);           // stale value ignored
-  expect(nextLogPrefill({ name: "Single-leg Calf Raise", exType: "weights", status: "moved up", progressionValue: 8 }, { w: "5kg", r: "15x3" })).toMatchObject({ w: "8" });   // Becks 5 → 8 kg
-  expect(nextLogPrefill({ ...ROW, status: "building", target: "" }, last)).toBe(null);                                // not ready: previous stays
-  expect(displayCurrent(ROW)).toBe("42kg");
-  expect(parseProgressionValue("I'll use 47kg")).toBe(47); expect(parseProgressionValue("plate 8")).toBe(8);
+/* v2.41.0 (night batch P4): ONE next target; "next increment" text is never turned into an exact stack weight; app-worked
+   targets are ignored and the card says "Set my next session". (These replace the v2.20.0 stack-step tests.) */
+test("5 helpers: no stack weights from 'next increment'; explicit weights stay; the person's value pre-fills", async ({ page }) => {
+  await openApp(page);
+  const r = await page.evaluate(async (ROW) => {
+    const e = await import("/Life-Care/src/lib/exercise.js"); const t = await import("/Life-Care/src/lib/nextTarget.js");
+    const last = ROW.prog[1];
+    return [e.resolveTargetWeight("Next increment up from 42kg", 42, ROW), e.resolveTargetWeight("45–47kg", 42, ROW), e.resolveTargetWeight("49kg", 42, ROW),
+      t.prefillFrom(ROW, last), t.autoDerivedTarget(ROW), t.prefillFrom({ ...ROW, progressionValue: 47, progressionSetWk: 3 }, last),
+      t.prefillFrom({ ...ROW, next: t.makeTarget("", "9", "set by you") }, { w: "22kg", r: "8x3" }), t.targetHeadline({ ...ROW, next: t.makeTarget("", "9", "set by you"), current: "22kg" }),
+      e.displayCurrent(ROW), e.parseProgressionValue("I'll use 47kg")];
+  }, ROW);
+  expect(r[0]).toBe(null);                                                                   // never a stack step
+  expect(r.slice(1, 3)).toEqual([45, 49]);
+  expect(r[3]).toBe(null); expect(r[4]).toBe(true);                                          // app-worked target ignored
+  expect(r[5]).toMatchObject({ w: "47", r: "12", source: "set by you" });
+  expect(r[6]).toMatchObject({ w: "22", r: "9" });                                           // Butterfly: reps-only target pre-fills (was 8)
+  expect(r[7]).toBe("9×3");
+  expect(r[8]).toBe("42kg"); expect(r[9]).toBe(47);
 });
 
 async function seedExercises(page, list) {
@@ -223,34 +227,34 @@ async function seedExercises(page, list) {
   await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
   await tab(page, "My Exercise");
 }
-test("5 chain (UI): card shows the real weight + a concrete next range; the log pre-fills 49 kg × 12, Previous stays 42 kg; a user-set weight wins", async ({ page }) => {
+test("5 chain (UI): an app-worked target is ignored — the card says 'Set my next session', the log pre-fills from the last entry", async ({ page }) => {
   const { errors } = await openApp(page);
-  const CALF = { name: "Single-leg Calf Raise", exType: "weights", status: "ready to move", current: "5kg", reps: "15x3", sets: 3, prog: [{ wk: 1, w: "5kg", r: "15x3" }, { wk: 2, w: "5kg", r: "15x3" }] };
-  await seedExercises(page, [ROW, CALF]);
+  await seedExercises(page, [ROW]);
   await expect(page.getByText("Seated Cable Row").first()).toBeVisible();
   await expect(page.locator("body")).not.toContainText("Next increment up from");
-  await expect(page.getByText(/^42kg · 12x3/).first()).toBeVisible();
-  await expect(page.getByTestId("ex-next")).toHaveCount(0);                                             // v2.39.0: the card is the beta layout (no Set row)
+  await expect(page.getByTestId("ex-set-next")).toContainText("Set my next session");
   await page.getByRole("button", { name: "📋 Log", exact: true }).nth(0).click();
   await expect(page.getByTestId("log-previous")).toContainText("Previous: 42kg");
-  await expect(page.getByTestId("log-progression")).toHaveText("Progression: 49 kg × 12 (accepted progression) — pre-filled below");
-  const w1 = page.locator('input[placeholder="Weight"]').first();
-  await expect(w1).toHaveValue("49");
+  await expect(page.getByTestId("log-progression")).toHaveCount(0);
+  await expect(page.locator('input[placeholder="Weight"]').first()).toHaveValue("42");
   expect(errors).toEqual([]);
 });
 
-test("5 chain (UI): accepting 'Next increment up from 42kg' stores 49kg (a number, not the sentence) and the next log pre-fills it", async ({ page }) => {
+test("5 chain (UI): accepting 'Next increment up from 42kg' stores no invented weight; accepting with your own numbers sets the one target (card = log pre-fill)", async ({ page }) => {
   const { errors } = await openApp(page);
   const d = DAYS[new Date().getDay()];
-  await put("session_feedback_all", { ["jc_" + d]: { summary: "Good", nextSession: "", exercises: [{ name: "Seated Cable Row", verdict: "Two clean 15×3s.", icon: "star", newStatus: "ready to move", recommendation: "Move up — tell me the exact weight you'll use.", targetWeight: "Next increment up from 42kg", targetReps: "12x3" }] } });
+  const fb = (rec) => ({ ["jc_" + d]: { summary: "Good", nextSession: "", exercises: [{ name: "Seated Cable Row", verdict: "Two clean 15×3s.", icon: "star", newStatus: "ready to move", recommendation: rec, targetWeight: "Next increment up from 42kg", targetReps: "12x3" }], _feedbackWeek: 0, _generatedAt: "now" } });
+  await put("session_feedback_all", fb("Move up a small step"));
   await seedExercises(page, [{ ...ROW, status: "consolidating", current: "42kg", target: "" }]);
   await page.getByRole("button", { name: "▼ Show Feedback" }).first().click();
   await page.getByRole("button", { name: /Exercise Feedback & Recommendations/ }).click();
+  await page.locator('[id^="user-note-"]').first().fill("I'll do 45kg x 12");
   await page.getByRole("button", { name: "Accept", exact: true }).click();
-  await expect.poll(async () => (await get("dashboard:data")).jc.exercises[d][0].current).toBe("49kg");
+  await expect.poll(async () => (await get("dashboard:data")).jc.exercises[d][0].next).toMatchObject({ m1: "45", m2: "12", source: "set by you" });
+  await expect(page.getByTestId("ex-headline").first()).toHaveText("45kg · 12×3");
   await page.getByRole("button", { name: "📋 Log", exact: true }).first().click();
-  await expect(page.locator('input[placeholder="Weight"]').first()).toHaveValue("49");
-  await expect(page.getByTestId("log-previous")).toContainText("42kg");
+  await expect(page.locator('input[placeholder="Weight"]').first()).toHaveValue("45");
+  await expect(page.locator('input[placeholder="Reps"]').first()).toHaveValue("12");
   expect(errors).toEqual([]);
 });
 

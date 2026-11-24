@@ -120,8 +120,8 @@ export function setsToSave(logSets) {
 // `ex.prog` must already hold the change; `before` is the latest entry as it was before the change.
 export function latestKey(e) { return e ? [e.wk, e.w, e.r, JSON.stringify(e.sets || null)].join("|") : ""; }
 export function syncAfterProgChange(ex, before) {
-  if (before && before.skipped) return false;   // v2.37.0: a skipped week never changes the card
-  var prog = (ex.prog || []).filter(function(e) { return !e.skipped; }).sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
+  if (skippedWeek(before)) return false;   // v2.37.0: a skipped week never changes the card
+  var prog = (ex.prog || []).filter(function(e) { return !skippedWeek(e); }).sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
   var latest = prog.length ? prog[prog.length - 1] : null;
   if (latest && before && latestKey(latest) === latestKey(before)) return false;   // an older week: nothing on the card changes
   if (latest) { ex.current = latest.w; ex.reps = latest.r; ex.notes = latest.note || ""; }
@@ -133,6 +133,12 @@ export function syncAfterProgChange(ex, before) {
 /* v2.16.0 D23: one source of truth for weeks in the Log form and the overwrite check.
    Weeks can be stored as numbers or strings, and prog is not always in week order. */
 export function wkNum(e) { return parseInt(e && e.wk, 10) || 0; }
+/** v2.41.0 (night batch P4d): a skipped week — marked skipped, or a legacy all-zero entry (0 kg 0×3), display only. */
+export function skippedWeek(e) {
+  if (!e) return false; if (e.skipped) return true;
+  var r = parseReps(e.r), w = parseFloat(String(e.w == null ? "" : e.w).replace(/[^\d.]/g, "")) || 0;
+  return !w && r.length > 0 && r.every(function(x) { return !x; }) && (Array.isArray(e.sets) ? e.sets : []).every(function(x) { return !(parseFloat(x.w) || 0) && !(parseFloat(x.r) || 0); });
+}
 export function findWeekIdx(prog, wk) {
   var n = parseInt(wk, 10) || 0; if (!prog || !n) return -1;
   for (var i = 0; i < prog.length; i++) { if (wkNum(prog[i]) === n) return i; }
@@ -141,14 +147,14 @@ export function findWeekIdx(prog, wk) {
 /** The person's latest logged entry BEFORE the current training week (null if none). */
 export function previousEntry(prog, currentWeek) {
   var best = null;
-  (prog || []).forEach(function(e) { var w = wkNum(e); if (e && e.skipped) return; /* v2.37.0: a skipped week never counts */ if (w && w < currentWeek && (!best || w > wkNum(best))) best = e; });
+  (prog || []).forEach(function(e) { var w = wkNum(e); if (skippedWeek(e)) return; /* v2.37.0/v2.41.0: a skipped (or all-zero) week never counts */ if (w && w < currentWeek && (!best || w > wkNum(best))) best = e; });
   return best;
 }
 
 /* v2.16.0 F11: the Companion's per-exercise feedback is kept with the logged week it was about,
    with the person's Accept / Reject and note. Entries without it are unchanged (backward compatible). */
 export function latestEntry(prog) {
-  var best = null; (prog || []).forEach(function(e) { if (e && e.skipped) return; /* v2.37.0: skipped weeks don't count towards progression */ if (!best || wkNum(e) >= wkNum(best)) best = e; }); return best;
+  var best = null; (prog || []).forEach(function(e) { if (skippedWeek(e)) return; /* v2.37.0/v2.41.0: skipped (or all-zero) weeks don't count towards progression */ if (!best || wkNum(e) >= wkNum(best)) best = e; }); return best;
 }
 export function attachCompanion(ex, fbEx, when) {
   var e = ex && latestEntry(ex.prog); if (!e || !fbEx) return null;
@@ -223,8 +229,7 @@ export function resolveTargetWeight(text, prevW, ex) {
   var cleaned = t.replace(/(?:up\s+)?from\s+\d+(?:\.\d+)?\s*kg/ig, "");
   var m = /(\d+(?:\.\d+)?)\s*kg/i.exec(cleaned);
   if (m) return num(m[1]);
-  if (/increment|step|move up|go up|heavier|next/i.test(t) && p) return nextSteps(p, ex)[0];
-  return null;
+  return null;   // v2.41.0 (night batch P4b): "move up / next increment" is NEVER turned into an exact weight (no stack steps)
 }
 /** The value a person chose for their next progression ("47kg", "47 kg", "plate 8", "8"), or null. */
 export function parseProgressionValue(note) {

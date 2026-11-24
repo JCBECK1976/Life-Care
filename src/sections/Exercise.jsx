@@ -5,11 +5,12 @@ import { calcWeek, fbIcon, sBg, sColor, sLabel, setPlainNote } from "../lib/util
 import { buildExProfileInfo, getMoodContext } from "../lib/aiContext.js";
 import { sSet } from "../lib/storage.js";
 import { scrollOnMount } from "../lib/scrollIntoView.js";
-import { applyNextValue, displayCurrent, latestEntry, measureOf, nextLogPrefill, parseProgressionValue, progressionNote, progressionRange, resolveTargetWeight, setWeekNote, tidyNotes } from "../lib/exercise.js";
+import { applyNextValue, displayCurrent, latestEntry, measureOf, parseProgressionValue, progressionNote, progressionRange, resolveTargetWeight, setWeekNote, tidyNotes } from "../lib/exercise.js";
 import { attachCompanion, companionFromSession, sameExercise, setCompanionDecision, entrySets, findWeekIdx, previousEntry, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsDiffer, setsToSave, syncAfterProgChange, weightLabel } from "../lib/exercise.js";
 import React from "react";
 import { displayStatus, whyLine, rangeLabel, skipEntry, skipCheckIn, weekFeedback, weekNote, isSkipped } from "../lib/exerciseWhy.js";
 import { autoStatus } from "../lib/exercise.js";
+import { aiExerciseContext, autoDerivedTarget, isSkippedEntry, makeTarget, nextTarget, prefillFrom, targetHeadline } from "../lib/nextTarget.js";
 import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
 import { btnAction, btnActionLg, btnDelete, btnEdit, btnFilledOn, btnLog, btnMuted, btnOpen, btnP, btnProgress, btnS, inputStyle, labelStyle } from "../constants/styles.js";
 import { FullChart } from "../components/charts.jsx";
@@ -124,13 +125,13 @@ export default function ExerciseSection({ ctx }) {
           };
           const openEntry = (day, exIdx, progIdx) => {
             var e = data[activeTab].exercises[day][exIdx].prog[progIdx];
-            setOpenProg({ day: day, exIdx: exIdx, progIdx: progIdx, editing: false, msg: "", skipped: !!e.skipped, draft: { wk: String(e.wk), sets: logSetsFrom(e, Math.max(1, (e.sets || []).length || parseReps(e.r).length || 3)), fullRange: e.fullRange || "", goodForm: e.goodForm || "", note: e.note || "", companion: e.companion ? Object.assign({}, e.companion) : companionFromSession(sessionFeedback, activeTab, day, data[activeTab].exercises[day][exIdx].name, e.wk) /* F11b: older feedback */ } });
+            setOpenProg({ day: day, exIdx: exIdx, progIdx: progIdx, editing: false, msg: "", skipped: isSkippedEntry(e), draft: { wk: String(e.wk), sets: logSetsFrom(e, Math.max(1, (e.sets || []).length || parseReps(e.r).length || 3)), fullRange: e.fullRange || "", goodForm: e.goodForm || "", note: e.note || "", companion: e.companion ? Object.assign({}, e.companion) : companionFromSession(sessionFeedback, activeTab, day, data[activeTab].exercises[day][exIdx].name, e.wk) /* F11b: older feedback */ } });
           };
           const setDraft = (patch) => setOpenProg(function(o) { return Object.assign({}, o, { draft: Object.assign({}, o.draft, patch), msg: "" }); });
           const saveEntry = async () => {
             var o = openProg; var d = o.draft;
             var _cur = data[activeTab].exercises[o.day][o.exIdx].prog[o.progIdx];
-            if (_cur && _cur.skipped) { var ndS = JSON.parse(JSON.stringify(data)); ndS[activeTab].exercises[o.day][o.exIdx].prog[o.progIdx].note = (d.note || "").trim(); await saveData(ndS); setOpenProg(Object.assign({}, o, { editing: false, msg: "✓ Week " + _cur.wk + " saved" })); return; }   // v2.37.0: a skipped week keeps only its note
+            if (isSkippedEntry(_cur)) { var ndS = JSON.parse(JSON.stringify(data)); ndS[activeTab].exercises[o.day][o.exIdx].prog[o.progIdx].note = (d.note || "").trim(); await saveData(ndS); setOpenProg(Object.assign({}, o, { editing: false, msg: "✓ Week " + _cur.wk + " saved" })); return; }   // v2.37.0: a skipped week keeps only its note
             if (!d.fullRange || !d.goodForm) { setOpenProg(Object.assign({}, o, { msg: "Choose Form and Range to save" })); return; }
             var sets = setsToSave(d.sets.filter(function(x) { return String(x.w).trim() || String(x.r).trim(); }));
             if (!sets.length) { setOpenProg(Object.assign({}, o, { msg: "Enter at least one set" })); return; }
@@ -249,7 +250,8 @@ export default function ExerciseSection({ ctx }) {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }} onClick={function() { var curType=ex.exType||getExerciseType(ex.name);var tc=getExerciseTypeConfig(curType);var curM2=(ex.reps||tc.defaultM2).replace(/x\d+$/,"");setSelectedEx({day:day,idx:i});setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:ex.current||tc.defaultM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",exerciseGuide:ex.exerciseGuide||"",prePostGuide:ex.prePostGuide||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});setAddExOpen(false); }}>{ex.name} <span style={{ fontSize: 9, color: "#475569" }}>✎</span></div>
-                          <div style={{ color: "#475569", fontSize: 11, fontWeight: 500 }}><span data-testid="ex-headline">{(ex.prog && ex.prog.length && setsDiffer(ex.prog[ex.prog.length - 1]) && !(ex.progressionValue && ex.progressionSetWk)) ? weightLabel(ex.prog[ex.prog.length - 1]) : displayCurrent(ex)} · {ex.reps}</span>{ex.exType && ex.exType !== "weights" && <span style={{fontSize:9,color:"#475569",marginLeft:6}}>{EXERCISE_TYPES[ex.exType] ? EXERCISE_TYPES[ex.exType].label : ""}</span>}</div>
+                          <div style={{ color: "#475569", fontSize: 11, fontWeight: 500 }}><span data-testid="ex-headline">{targetHeadline(ex) || <>{(ex.prog && ex.prog.length && setsDiffer(ex.prog[ex.prog.length - 1]) && !(ex.progressionValue && ex.progressionSetWk)) ? weightLabel(ex.prog[ex.prog.length - 1]) : displayCurrent(ex)} · {ex.reps}</>}</span>{ex.exType && ex.exType !== "weights" && <span style={{fontSize:9,color:"#475569",marginLeft:6}}>{EXERCISE_TYPES[ex.exType] ? EXERCISE_TYPES[ex.exType].label : ""}</span>}</div>
+                          {autoDerivedTarget(ex) && !ex.stopped && <div data-testid="ex-set-next" style={{ fontSize: 10, color: "#1e3a5f", marginTop: 2 }}>→ Set my next session (in My Companion Session Feedback)</div>}   {/* v2.41.0 (night batch P4b): an app-worked-out target is ignored */}
                           {(function() { var _st = displayStatus(ex, autoStatus); if (!_st) return null; /* v2.39.0 (night batch P1): the card is the beta layout — the pill only; range/why, Skipped and feedback live in the Log form */
                             return (<>
                               <div style={{ marginTop: 3 }} data-derived-status={!ex.status ? "1" : undefined}><span data-testid="ex-status" style={{ fontSize: 9, fontWeight: 600, color: sColor(_st), background: sBg(_st), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap", border: "1px solid " + sColor(_st) + "40" }}>{sLabel(_st)}</span></div>
@@ -263,7 +265,7 @@ export default function ExerciseSection({ ctx }) {
                       {ex.notes && <div data-testid="ex-notes" style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 6 }}>📋 {tidyNotes(ex.notes)}</div>}
                     
                     {selectedEx&&selectedEx.day===day&&selectedEx.idx===i&&(<div ref={scrollOnMount} data-testid="ex-progress-panel" style={{marginTop:10,padding:12,background:accentLight,borderRadius:8,border:"1px solid "+accentBorder,width:"100%"}}>
-                      {(function() { var _nx = nextLogPrefill(ex, latestEntry(ex.prog)); var _mu = measureOf(ex).unit; return _nx ? <div data-testid="progress-next" style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 8 }}>Next session: {_mu === "kg" ? _nx.w + " kg × " + _nx.r : _nx.r + " " + _mu} ({_nx.source})</div> : null; })()}
+                      {(function() { var _nx = prefillFrom(ex, latestEntry(ex.prog)); var _mu = measureOf(ex).unit; return _nx ? <div data-testid="progress-next" style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 8 }}>Next session: {_mu === "kg" ? _nx.w + " kg × " + _nx.r : _nx.r + " " + _mu} ({_nx.source})</div> : null; })()}
                       {ex.stopped ? <div style={{fontSize:11,color:"#475569",background:"#f1f5f9",padding:"8px 10px",borderRadius:6,textAlign:"center"}}>⏸ Stopped — view only. Restart in Exercise Settings to log again.</div> : <button onClick={function() { openLogForm(day, i); }} style={btnActionLg}>📋 Log {ex.name}</button>}
                       {logEx && logEx.day === day && logEx.idx === i && (() => {
             const ex = p.exercises[logEx.day] && p.exercises[logEx.day][logEx.idx]; if (!ex) return null;
@@ -272,7 +274,7 @@ export default function ExerciseSection({ ctx }) {
               <div data-testid="log-for" style={{ fontSize: 11, fontWeight: 700, color: accent, marginBottom: 2 }}>Logging for {personName(data, activeTab)}</div>
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Log: {ex.name}</div>
               <div style={{ fontSize: 11, color: "#475569", marginBottom: 6 }}><span data-testid="log-previous">Previous: {prev ? fmtEntry(prev) + " (Wk " + prev.wk + ")" : "No data"}</span></div>
-              {(function() { var _nx = nextLogPrefill(ex, prev); var _mu = measureOf(ex).unit; return _nx ? <div data-testid="log-progression" style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>Progression: {_mu === "kg" ? _nx.w + " kg × " + _nx.r : _nx.r + " " + _mu} ({_nx.source}) — pre-filled below</div> : null; })()}
+              {(function() { var _nx = prefillFrom(ex, prev); var _mu = measureOf(ex).unit; return _nx ? <div data-testid="log-progression" style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>Progression: {_mu === "kg" ? _nx.w + " kg × " + _nx.r : _nx.r + " " + _mu} ({_nx.source}) — pre-filled below</div> : null; })()}
               {prevComment && (<div style={{ padding: 8, background: "#fef3c7", borderRadius: 8, marginBottom: 8, border: "1px solid #fcd34d" }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>📋 NOTES FROM LAST SESSION</div>
                 <div style={{ fontSize: 11, color: "#92400e", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{prevComment}</div>
@@ -417,7 +419,7 @@ export default function ExerciseSection({ ctx }) {
                     </div>); })()}
                     {ex.prog && ex.prog.slice().reverse().slice(0, selectedEx && selectedEx.showAll ? 999 : 4).map(function(pr, pi) { var realPi = ex.prog.length - 1 - pi; return (<div key={pi}><div style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
                       <span data-testid="prog-wk" style={{ width: 40, textAlign: "center", fontWeight: 600, color: "#334155" }}>{pr.wk}</span>
-                      {pr.skipped ? <span data-testid="prog-skipped" style={{ width: 135, fontSize: 11, color: "#64748b", fontStyle: "italic" }}>Skipped{pr.note ? " — " + pr.note : ""}</span> : <>   {/* v2.37.0: a skipped week, greyed */}
+                      {isSkippedEntry(pr) ? <span data-testid="prog-skipped" style={{ width: 135, fontSize: 11, color: "#64748b", fontStyle: "italic" }}>Skipped{pr.note ? " — " + pr.note : ""}</span> : <>   {/* v2.37.0: a skipped week, greyed */}
                       <span data-testid="prog-weight" style={{ width: 70, fontSize: 11 }}>{weightLabel(pr) || pr.w}</span>
                       <span style={{ width: 65, fontSize: 11 }}>{pr.r}</span></>}
                       <span style={{ flex: 1, minWidth: 0 }}></span>
@@ -432,25 +434,25 @@ export default function ExerciseSection({ ctx }) {
                     {ex.prog && ex.prog.length >= 2 && (() => {
                       var _chartTC = getExerciseTypeConfig(ex.exType || getExerciseType(ex.name));
                       var _numSets = ex.sets || 3;
-                      var repData = ex.prog.filter(function(pp) { return !pp.skipped; }).map(function(pr) { var w = parseFloat(pr.w) || 0; return { wk: pr.wk, v: w }; });
+                      var repData = ex.prog.filter(function(pp) { return !isSkippedEntry(pp); }).map(function(pr) { var w = parseFloat(pr.w) || 0; return { wk: pr.wk, v: w }; });
                       var chartSeries = [];
                       if (_chartTC.metric1 !== "none") {
                         chartSeries.push({ label: _chartTC.chartLabel1, color: accent, data: repData });
                         if (_chartTC.hasSets && _numSets > 1) {
-                          var setData = ex.prog.filter(function(pp) { return !pp.skipped; }).map(function(pr) { var w = parseFloat(pr.w) || 0; return { wk: pr.wk, v: w * _numSets }; });
+                          var setData = ex.prog.filter(function(pp) { return !isSkippedEntry(pp); }).map(function(pr) { var w = parseFloat(pr.w) || 0; return { wk: pr.wk, v: w * _numSets }; });
                           chartSeries.push({ label: _chartTC.chartLabel2, color: "#b45309", data: setData });
                         }
                       }
                       if (_chartTC.metric2 !== "none" && _chartTC.metric1 === "none") {
-                        var m2Data = ex.prog.filter(function(pp) { return !pp.skipped; }).map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r }; });
+                        var m2Data = ex.prog.filter(function(pp) { return !isSkippedEntry(pp); }).map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r }; });
                         chartSeries.push({ label: _chartTC.chartLabel1, color: accent, data: m2Data });
                         if (_chartTC.hasSets && _numSets > 1) {
-                          var totalData = ex.prog.filter(function(pp) { return !pp.skipped; }).map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r * _numSets }; });
+                          var totalData = ex.prog.filter(function(pp) { return !isSkippedEntry(pp); }).map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r * _numSets }; });
                           chartSeries.push({ label: _chartTC.chartLabel2, color: "#b45309", data: totalData });
                         }
                       }
                       if (_chartTC.chartLabel2 && _chartTC.metric1 !== "none" && _chartTC.metric2 !== "none" && !_chartTC.hasSets) {
-                        var m2Data2 = ex.prog.filter(function(pp) { return !pp.skipped; }).map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r }; });
+                        var m2Data2 = ex.prog.filter(function(pp) { return !isSkippedEntry(pp); }).map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r }; });
                         chartSeries.push({ label: _chartTC.chartLabel2, color: "#b45309", data: m2Data2 });
                       }
                       if (chartSeries.length === 0) return null;
@@ -841,7 +843,7 @@ export default function ExerciseSection({ ctx }) {
                         var crossDayLines = [];
                         otherDays.forEach(function(cd) { var cdExList = p.exercises[cd] || []; for (var cdi = 0; cdi < cdExList.length; cdi++) { if (cdExList[cdi].name === ex.name && cdExList[cdi].prog && cdExList[cdi].prog.length > 0) { crossDayLines.push(cd + ": " + cdExList[cdi].prog.slice(-3).map(function(cp) { return "Wk" + cp.wk + ": " + cp.w + " " + cp.r + (cp.note ? " (" + cp.note + ")" : ""); }).join(", ")); } } });
                         if (crossDayLines.length > 0) { crossDayCtx = " [OTHER SESSIONS: " + crossDayLines.join("; ") + "]"; }
-                        var qualityCtx = ""; if (latest) { var frLabel = (function(){ var et = ex.exType || "weights"; return ["weights","bodyweight","timed_hold","stretching"].indexOf(et) >= 0 ? "Full Range" : "Completed in One"; })(); qualityCtx = " [QUALITY: " + frLabel + "=" + (latest.fullRange === "good" ? "Good" : "Working Towards") + ", Good Form=" + (latest.goodForm === "good" ? "Good" : "Working Towards") + "]"; } var guideCtx = ex.exerciseGuide ? " [EXERCISE GUIDE: " + ex.exerciseGuide.substring(0, 200) + "]" : ""; return ex.name + ": LATEST LOGGED=" + (latest ? latest.w + " " + latest.r : "none") + " (" + ex.status + ")" + qualityCtx + " HISTORY=[" + histLines + "]" + (ex.target ? " TARGET: " + ex.target : "") + (allNotes ? " [NOTES: " + allNotes + "]" : "") + " [PROGRESSION RULES: " + progRules + "]" + eqInfo + guideCtx + crossDayCtx; }).join("; ");
+                        var qualityCtx = ""; if (latest) { var frLabel = (function(){ var et = ex.exType || "weights"; return ["weights","bodyweight","timed_hold","stretching"].indexOf(et) >= 0 ? "Full Range" : "Completed in One"; })(); qualityCtx = " [QUALITY: " + frLabel + "=" + (latest.fullRange === "good" ? "Good" : "Working Towards") + ", Good Form=" + (latest.goodForm === "good" ? "Good" : "Working Towards") + "]"; } var guideCtx = ex.exerciseGuide ? " [EXERCISE GUIDE: " + ex.exerciseGuide.substring(0, 200) + "]" : ""; var _real = latestEntry(ex.prog); void histLines; /* v2.41.0 (night batch P4c): logged history and the target, labelled apart; this session day only */ return ex.name + " (" + day + " session): LATEST LOGGED=" + (_real ? _real.w + " " + _real.r : "none") + " (" + ex.status + ")" + qualityCtx + " [" + aiExerciseContext(ex, 8) + "]" + (allNotes ? " [NOTES: " + allNotes + "]" : "") + " [PROGRESSION RULES: " + progRules + "]" + eqInfo + guideCtx + crossDayCtx; }).join("; ");
                       var jsonFormat = '{"exercises":[{"name":"...","verdict":"max 25 words honest assessment","icon":"check|triangle|arrow|warning|circle|star","newStatus":"building|moved up|consolidating|ready to move|maintaining|reduce","recommendation":"optional progression suggestion","targetWeight":"next session weight as a NUMBER or concrete range, e.g. 49kg or 45–47kg (the next 1–2 steps) or BW — never \"up from X\"","targetReps":"recommended reps for next session e.g. 12x3 or 15x3"}],"summary":"2-3 sentences honest overall assessment — speak like a mate who trains with them","nextSession":"one sentence — specific focus for next session, warm and direct"}';
                       // Build previous session feedback context including accept/decline decisions
                       var prevSfbKey = activeTab + "_" + day;
@@ -947,6 +949,7 @@ export default function ExerciseSection({ ctx }) {
                       {ex._decision ? (<div style={{ fontSize: 11, fontWeight: 600, color: ex._decision === "accepted" ? "#0c4a6e" : "#475569", padding: 4 }}>{ex._decision === "accepted" ? "Accepted — " + ex.name + " updated" + (ex._userNote ? " — " + ex._userNote : "") : "Declined — no changes made" + (ex._userNote ? " — " + ex._userNote : "")}</div>) : (<div><div style={{ fontSize: 10, color: "#9a3412", fontWeight: 600, marginBottom: 4 }}>{ex.recommendation || ("Recommendation: " + ex.newStatus)}</div>
                       <div style={{marginTop:6,marginBottom:6}}><input id={"user-note-"+ei+"-"+day} placeholder="Add a note (optional)..." style={{width:"100%",padding:6,border: "1px solid #cbd5e1",borderRadius: 8,fontSize:10,boxSizing:"border-box"}} /></div><div style={{ display: "flex", gap: 6 }}>
                         <button onClick={async function() {
+                          var _ne0 = document.getElementById("user-note-"+ei+"-"+day); var userNote = _ne0 ? _ne0.value.trim() : "";   /* v2.41.0 bug fix: the note was read after the loop that uses it, so numbers typed before Accept were ignored */
                           var nd3 = JSON.parse(JSON.stringify(data));
                           var dayExs3 = nd3[activeTab].exercises[day] || [];
                           for (var di3 = 0; di3 < dayExs3.length; di3++) {
@@ -972,6 +975,11 @@ export default function ExerciseSection({ ctx }) {
                                 dayExs3[di3].notes = setWeekNote(dayExs3[di3].notes, currentWeek, _pv ? progressionNote(dayExs3[di3], currentWeek, _pv, "set by you") : "Wk" + currentWeek + " accepted: " + userNote);   /* v2.20.2: one line per week, replaced */
                               }
                               dayExs3[di3].target = newW + " x " + newR;
+                              /* v2.41.0 (night batch P4a): the one next target — the person's numbers, else the Companion's explicit ones */
+                              var _u3 = measureOf(dayExs3[di3]).unit, _w3 = _u3 === "kg" || _u3 === "plate";
+                              var _m1 = _w3 ? (isUserOverride && wM ? wM[1] : (_rw || "")) : "";
+                              var _m2 = isUserOverride && rM ? rM[1] : (ex.targetReps ? String(parseInt(ex.targetReps, 10) || "") : "");
+                              if (_m1 || _m2) dayExs3[di3].next = makeTarget(_m1, _m2, isUserOverride ? "set by you" : "Companion");
                               dayExs3[di3].current = newW;
                               dayExs3[di3].reps = newR;
                               dayExs3[di3]._userOverride = isUserOverride;
@@ -1002,6 +1010,7 @@ export default function ExerciseSection({ ctx }) {
                                   var nW2 = wM2 ? wM2[1] + "kg" : origW4;
                                   var nR2 = rM2 ? rM2[1] + "x3" : origR4;
                                   dayExs4[di4].target = nW2 + " x " + nR2;
+                                  dayExs4[di4].next = makeTarget(wM2 ? wM2[1] : "", rM2 ? rM2[1] : "", "set by you");   // v2.41.0: their own numbers
                                   dayExs4[di4].current = nW2;
                                   dayExs4[di4].reps = nR2;
                                   isUserOverride4 = true;
