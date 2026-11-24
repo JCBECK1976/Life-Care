@@ -4,15 +4,20 @@ import React from "react";
 var FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /** Returns a ref for the dialog's panel. open: whether it is shown; onClose: called on Esc. */
-export function useDialog(open, onClose) {
+/** opts.noTypingFocus: on a touch phone, move focus to the first button rather than a text box (no keyboard pop-up). */
+export function isTouchPhone() { try { return window.matchMedia("(hover: none) and (pointer: coarse)").matches; } catch (e) { return false; } }
+export function useDialog(open, onClose, opts) {
   var ref = React.useRef(null);
   var close = React.useRef(onClose); close.current = onClose;
+  var optsRef = React.useRef(opts); optsRef.current = opts;
   React.useEffect(function() {
     if (!open) return;
     var before = document.activeElement;
     var t = setTimeout(function() {
       var el = ref.current; if (!el || el.contains(document.activeElement)) return;
-      var first = el.querySelector("textarea:not([disabled]), input:not([disabled]):not([type=hidden])") || el.querySelector(FOCUSABLE);
+      var vis = function(sel) { return Array.prototype.find.call(el.querySelectorAll(sel), function(x) { return x.getClientRects().length > 0 && (x.tagName === "SUMMARY" || !x.closest("details:not([open])")); }); };   // v2.45.0: never a field inside a closed section
+      var o = optsRef.current;
+      var first = (o && o.noTypingFocus && isTouchPhone() ? vis("button:not([disabled])") : vis("textarea:not([disabled]), input:not([disabled]):not([type=hidden])")) || vis(FOCUSABLE);
       if (first) first.focus();
     }, 30);
     var onKey = function(e) {

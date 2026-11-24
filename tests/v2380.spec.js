@@ -12,7 +12,7 @@ const getKey = async (k) => { const v = await (await fetch(KEY(k), { headers: H 
 const delKey = (k) => fetch(KEY(k), { method: "DELETE", headers: H });
 const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const axe = async (page, sel) => (await new AxeBuilder({ page }).include(sel).withTags(AXE_TAGS).analyze()).violations.map((v) => v.id);
-const BRIEF_ITEMS = ["Progress", "Open", "Snap", "Log", "Remove", "Delete", "Edit", "Add / + Add New / + Add Exercise / + Add Week", "Copy Day / Copy Week", "Default (Individual / All)", "Upload", "Re-rate all lists", "Re-check nutrition", "Check / Check me badge", "Confirm / Re-check / Cancel", "Set (next weight)", "Skipped", "Undo", "Clear Week", "Single item / Build a meal / My own", "+ Not in my list?", "Help Me with What to Eat", "Quick Prep Days", "Shopping generator (Gold)", "Generate Warm-up & Cool-down", "My Companion Feedback", "Chat 💬", "Help", "Journal", "Mood", "Energy meter", "Settings ⚙", "Person tabs", "Week ‹ › and day tabs", "Today table (Planned vs Actual)", "RAG colours", "Status pills", "Range / Form", "🔒 plan prompts / See plans"];
+const BRIEF_ITEMS = ["Progress", "Open", "Snap", "Log", "Remove", "Delete", "Edit", "Add / + Add New / + Add Exercise / + Add Week", "Copy Day / Copy Week", "Default (Individual / All)", "Upload", "Re-rate all lists", "Re-check nutrition", "Check / Check me badge", "Confirm / Re-check / Cancel", "Set my next session", "Skipped this session", "Undo", "Clear Week", "Single item / Build a meal / My own", "+ Not in my list?", "Help Me with What to Eat", "Quick Prep Days", "Shopping generator (Gold)", "Generate Warm-up & Cool-down", "My Companion Feedback", "Chat 💬", "Help", "Journal", "Mood", "Energy meter", "Settings ⚙", "Person tabs", "Week ‹ › and day tabs", "Today table (Planned vs Actual)", "RAG colours", "Status pills", "Range / Form", "🔒 plan prompts / See plans"];
 
 async function joint(page, flags) {
   await delKey("setup_guide_jc");
@@ -31,8 +31,8 @@ test("Help: How Lifecare works at the top (every item in the brief, real styles)
   await page.getByRole("button", { name: /help/i }).first().click();
   const order = await page.getByTestId("help-scroll").evaluate((el) => [...el.children].map((c) => c.getAttribute("data-testid")));
   expect(order).toEqual(["help-how", "help-faq", "help-ask"]);
-  await page.getByTestId("help-how").locator("summary").click();
-  const names = await page.getByTestId("hiw-item").locator("dd b").allTextContents();
+  await page.getByTestId("help-how").locator(":scope > summary").click();
+  const names = await page.getByTestId("hiw-name").allTextContents();
   expect(names.map((n) => n.replace(/:$/, ""))).toEqual(BRIEF_ITEMS.filter((x) => names.map((n) => n.replace(/:$/, "")).includes(x)).length === BRIEF_ITEMS.length ? names.map((n) => n.replace(/:$/, "")) : BRIEF_ITEMS);
   for (const b of BRIEF_ITEMS) expect(names.map((n) => n.replace(/:$/, ""))).toContain(b);
   await expect(page.getByTestId("help-ask")).toContainText("Ask the Companion");

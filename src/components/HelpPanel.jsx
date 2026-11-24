@@ -16,7 +16,7 @@ export default function HelpPanel({ ctx }) {
     setHelpOpen, setShowHelpHistory, showHelpHistory
   } = ctx;
   usePlan();   /* v2.22.0: re-render when the plan changes */
-  const dlgRef = useDialog(!!(helpOpen), () => setHelpOpen(false));   /* v2.20.0: Esc closes, focus kept inside */
+  const dlgRef = useDialog(!!(helpOpen), () => setHelpOpen(false), { noTypingFocus: true });   /* v2.45.0 (P7): no keyboard pop-up on phones */   /* v2.20.0: Esc closes, focus kept inside */
 
   return (<>
 {helpOpen && <div style={{ position: "fixed", bottom: 0, right: 0, left: 0, top: 0, zIndex: 1001 }}>

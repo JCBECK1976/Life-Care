@@ -561,7 +561,7 @@ Ask anything about your health, training, nutrition or progress, e.g. "Why did m
 
 ### Help ?
 Tap **Help ?** at the top right of the screen, next to the Settings gear. On **Bronze**, Help is a **searchable guide** (type a few words, open a result) with no AI; asking the Companion is part of Silver. Ask how to use the app: where something is, what something means, how to do something, why it works the way it does. The Help companion answers from this guide, in the same conversation style. It helps with the **app**; for questions about your own health data, use 💬 Chat.
-- **Help, top to bottom:** **How Lifecare works** — the app's real buttons and labels (Progress, Open, Snap, Log, Remove, Delete, Copy Day, Status pills, RAG colours…), each with one plain line on what it does, for every plan; then **Search the guide** (every plan); then **Ask the Companion** (Silver and up; on Bronze it shows what each plan includes).
+- **Help, top to bottom:** **How Lifecare works** — the app's real buttons and labels in sections you open one at a time (**Everywhere · Eating · Exercise · Body & Health · Your Companion · Home · Account & plans**, all closed to start). Each section is a table: **Button / label · What it does · Where you'll see it** (on a phone, "Where" sits under the explanation). **Find a button or label** filters the rows and opens the sections that match. Help doesn't pop the keyboard up on a phone; then **Search the guide** (every plan); then **Ask the Companion** (Silver and up; on Bronze it shows what each plan includes).
 
 ### Getting started (new accounts) and Settings → 🧭 Set-up guide
 After the age check, Terms and Privacy and your privacy choices, you choose **How would you like to get started?**
