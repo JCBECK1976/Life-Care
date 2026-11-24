@@ -20,7 +20,7 @@ test("sections in order, all closed; three columns; then the FAQ, then Ask the C
   expect(await ex.locator("thead th").allTextContents()).toEqual(["Button / label", "What it does", "Where you'll see it"]);
   const names = await ex.getByTestId("hiw-name").allTextContents();
   for (const n of ["Status pills", "Progression", "Range / Form", "Skipped this session", "Set my next session"]) expect(names).toContain(n);
-  await expect(ex.locator("tr", { hasText: "Status pills" })).toContainText("Move Up");
+  await expect(ex.locator("tr", { hasText: "Status pills" })).toContainText("Ready to Progress");
   await expect(ex.locator("tr", { hasText: "Status pills" })).toContainText("Skipped");
   await expect(ex.locator("tr", { hasText: "Progression" }).first()).toContainText("Standard Progression");
   await expect(ex.locator("td.hiw-w").first()).toBeVisible();                                     // wide: column 3

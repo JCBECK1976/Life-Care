@@ -18,7 +18,7 @@ const sets = (w, ...r) => r.map((x) => ({ w: String(w), r: String(x) }));
 
 test("rules: the dropdown, the three pills, met / not met, no target, legacy mapping", () => {
   expect(PROGRESSION.map((o) => o[1])).toEqual(["Standard Progression", "Maintain", "Reduce"]);
-  expect(Object.values(PILLS).map((p) => p.label)).toEqual(["Move Up", "Consolidate", "Reduce"]);
+  expect(Object.values(PILLS).map((p) => p.label)).toEqual(["Ready to Progress", "Consolidate", "Reduce"]);
   const T = { m1: "30", m2: "12" }, ex = PRESS();
   expect(pillAfterLog("standard", sets(30, 12, 12, 12), GOOD, T, ex)).toBe("move up");
   expect(pillAfterLog("standard", sets(30, 12, 12, 10), GOOD, T, ex)).toBe("consolidate");        // one set short
@@ -31,7 +31,7 @@ test("rules: the dropdown, the three pills, met / not met, no target, legacy map
   expect([metTarget(sets(29, 15, 15, 15), null, ex), metTarget(sets(29, 15, 15, 14), null, ex)]).toEqual([true, false]);
   expect(metTarget(sets(0, 60), null, { name: "Plank", exType: "timed_hold" })).toBe(false);
   // legacy display mapping (no data rewrite)
-  expect(["ready to move", "Move Up", "reduce", "moved up", "building", "maintaining", "consolidating", "building back up", ""].map(pillOf))
+  expect(["ready to move", "Ready to Progress", "reduce", "moved up", "building", "maintaining", "consolidating", "building back up", ""].map(pillOf))
     .toEqual(["move up", "move up", "reduce", "consolidate", "consolidate", "consolidate", "consolidate", "consolidate", "consolidate"]);
 });
 
@@ -59,7 +59,7 @@ test("every Log save works out the pill: met → Move Up; one set short → Cons
   await expect(page.getByTestId("ex-status").first()).toHaveText("Consolidate");                   // legacy "consolidating"
   let ex = await logOnce(page, {});
   expect([ex.status, ex.statusSource]).toEqual(["move up", "rules"]);
-  await expect(page.getByTestId("ex-status").first()).toHaveText("Move Up");
+  await expect(page.getByTestId("ex-status").first()).toHaveText("Ready to Progress");
   ex = await logOnce(page, { reps: 10 });
   expect(ex.status).toBe("consolidate");
   ex = await logOnce(page, { choice: "maintain" });

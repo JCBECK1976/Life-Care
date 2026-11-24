@@ -47,7 +47,7 @@ export var GUIDE = [
     [sample(btnMuted, "🍴 Add to today's eating"), "Add to today's eating", "Share a food photo from another app: it becomes a new row today, checked with Snap (Silver and up).", "When you share a photo to the app"],
   ]],
   ["Exercise", [
-    [<>{pill("move up")} {pill("consolidate")} {pill("reduce")} {pill("skipped")}</>, "Status pills", "Worked out each time you Log: Move Up (Range and Form Good and you hit your target), Consolidate (keep this load and build), Reduce (drop a step). Skipped greys out a week you didn't do.", "Each exercise card"],
+    [<>{pill("move up")} {pill("consolidate")} {pill("reduce")} {pill("skipped")}</>, "Status pills", "Worked out each time you Log: Ready to Progress (Range and Form Good and you hit your target), Consolidate (keep this load and build), Reduce (drop a step). Skipped greys out a week you didn't do.", "Each exercise card"],
     [<>{chip("Standard Progression", true)} {chip("Maintain")} {chip("Reduce")}</>, "Progression", "In the Log form: Standard Progression lets the pill move up when you're ready; Maintain keeps it at Consolidate; Reduce sets Reduce.", "The Log form"],
     [<>{chip("Working towards")} {chip("Good", true)}</>, "Range / Form", "How the reps felt: still working towards it, or good.", "The Log form (Session Quality)"],
     [<span aria-hidden="true" style={{ fontSize: 11, color: "#334155" }}>☐ Skipped this session</span>, "Skipped this session", "Tick it in the Log form if you didn't do it. It never counts against you.", "The Log form"],

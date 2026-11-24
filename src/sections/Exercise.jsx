@@ -12,6 +12,8 @@ import { displayStatus, whyLine, rangeLabel, skipEntry, skipCheckIn, weekFeedbac
 import { autoStatus } from "../lib/exercise.js";
 import { PILLS, SKIPPED_PILL, PROGRESSION, pillOf } from "../lib/pills.js";
 import { styleContext } from "../lib/trainingStyle.js";
+import { fromGenerated, showMeasure, measureProse, isProse, cardioHeadline } from "../lib/exerciseGen.js";
+var BLANK_TYPE = { hasSets: true, metric1: "none", metric2: "none", metric1Label: "", metric2Label: "" };   // v2.49.0: no type yet → no measures
 import { companionProfileCtx } from "../lib/profileCtx.js";
 import { isCardioEx, cardioHasForm, EFFORT, effortLabel } from "../lib/cardio.js";
 import SetNextSession from "../components/SetNextSession.jsx";
@@ -130,14 +132,15 @@ export default function ExerciseSection({ ctx }) {
           };
           const openEntry = (day, exIdx, progIdx) => {
             var e = data[activeTab].exercises[day][exIdx].prog[progIdx];
-            setOpenProg({ day: day, exIdx: exIdx, progIdx: progIdx, editing: false, msg: "", skipped: isSkippedEntry(e), draft: { wk: String(e.wk), sets: logSetsFrom(e, Math.max(1, (e.sets || []).length || parseReps(e.r).length || 3)), fullRange: e.fullRange || "", goodForm: e.goodForm || "", note: e.note || "", companion: e.companion ? Object.assign({}, e.companion) : companionFromSession(sessionFeedback, activeTab, day, data[activeTab].exercises[day][exIdx].name, e.wk) /* F11b: older feedback */ } });
+            setOpenProg({ day: day, exIdx: exIdx, progIdx: progIdx, editing: false, msg: "", skipped: isSkippedEntry(e), draft: { wk: String(e.wk), sets: (function() { var _x = data[activeTab].exercises[day][exIdx], _c = getExerciseTypeConfig(_x.exType || getExerciseType(_x.name)); return isCardioEx(_x) && !_c.hasSets ? logSetsFrom(e, 1).slice(0, 1) : logSetsFrom(e, Math.max(1, (e.sets || []).length || parseReps(e.r).length || 3)); })(), effort: e.effort || "", fullRange: e.fullRange || "", goodForm: e.goodForm || "", note: e.note || "", companion: e.companion ? Object.assign({}, e.companion) : companionFromSession(sessionFeedback, activeTab, day, data[activeTab].exercises[day][exIdx].name, e.wk) /* F11b: older feedback */ } });
           };
           const setDraft = (patch) => setOpenProg(function(o) { return Object.assign({}, o, { draft: Object.assign({}, o.draft, patch), msg: "" }); });
           const saveEntry = async () => {
             var o = openProg; var d = o.draft;
             var _cur = data[activeTab].exercises[o.day][o.exIdx].prog[o.progIdx];
             if (isSkippedEntry(_cur)) { var ndS = JSON.parse(JSON.stringify(data)); ndS[activeTab].exercises[o.day][o.exIdx].prog[o.progIdx].note = (d.note || "").trim(); await saveData(ndS); setOpenProg(Object.assign({}, o, { editing: false, msg: "✓ Week " + _cur.wk + " saved" })); return; }   // v2.37.0: a skipped week keeps only its note
-            if (!d.fullRange || !d.goodForm) { setOpenProg(Object.assign({}, o, { msg: "Choose Form and Range to save" })); return; }
+            var _oex = data[activeTab].exercises[o.day][o.exIdx], _oc = isCardioEx(_oex);   // v2.49.0 (P1d): cardio — How hard did it feel?
+            if (_oc ? (!d.effort || (cardioHasForm(_oex) && !d.goodForm)) : (!d.fullRange || !d.goodForm)) { setOpenProg(Object.assign({}, o, { msg: _oc ? "Choose how hard it felt to save" : "Choose Form and Range to save" })); return; }
             var sets = setsToSave(d.sets.filter(function(x) { return String(x.w).trim() || String(x.r).trim(); }));
             if (!sets.length) { setOpenProg(Object.assign({}, o, { msg: "Enter at least one set" })); return; }
             var nd = JSON.parse(JSON.stringify(data));
@@ -145,6 +148,7 @@ export default function ExerciseSection({ ctx }) {
             var before = ex2.prog.filter(function(x) { return !x.skipped; }).sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); }).pop(); before = Object.assign({}, before);
             e.wk = parseInt(d.wk) || e.wk; e.sets = sets; e.w = String(sets[0].w).replace(/kg$/, "") + "kg"; e.r = fmtReps(sets.map(function(x) { return parseInt(x.r) || 0; }));
             e.fullRange = d.fullRange; e.goodForm = d.goodForm; e.note = d.note.trim();
+            if (_oc) { e.effort = d.effort; delete e.fullRange; if (!cardioHasForm(_oex)) delete e.goodForm; }
             if (d.companion && !e.companion) e.companion = { verdict: d.companion.verdict, recommendation: d.companion.recommendation, at: d.companion.at }; /* F11b: keep it once edited */
             if (d.companion && e.companion) { if (d.companion.decision) e.companion.decision = d.companion.decision; else delete e.companion.decision; e.companion.decisionNote = (d.companion.decisionNote || "").trim(); } // F11
             ex2.prog.sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
@@ -155,6 +159,11 @@ export default function ExerciseSection({ ctx }) {
           const renderEntryForm = (ex) => {
             var o = openProg; var d = o.draft; var ed = o.editing; var cfg = getExerciseTypeConfig(ex.exType || getExerciseType(ex.name));
             var l1 = cfg.metric1 !== "none" ? cfg.metric1Label : "Weight"; var l2 = cfg.metric2 !== "none" ? cfg.metric2Label : "Reps";
+            var cardio = isCardioEx(ex), oneRow = cardio && !cfg.hasSets;   // v2.49.0 (P1d): the cardio layout, as in the Log form
+            var unit = function(lbl) { var m = /\(([^)]+)\)/.exec(lbl || ""); return m ? " " + m[1] : ""; };
+            var choice = function(field, label, opts) { var v = d[field], hit = opts.find(function(x) { return x[0] === v; });
+              if (!ed) return <Field label={label} testid={"entry-" + field}>{hit ? <span data-testid={"entry-" + field + "-chip"} style={{ display: "inline-block", padding: "3px 10px", borderRadius: 12, fontSize: 11, fontWeight: 700, color: "#fff", background: v === "hard" ? "#b45309" : "#166534" }}>{hit[1]}</span> : <span style={{ color: "#475569" }}>not recorded</span>}</Field>;
+              return <Field label={label} testid={"entry-" + field}><div style={{ display: "flex", border: "1px solid " + (ed && !d[field] && o.msg ? "#dc2626" : "#cbd5e1"), borderRadius: 6, overflow: "hidden" }}>{opts.map(function(x) { return seg(field, x[0], x[1]); })}</div></Field>; };
             var seg = function(field, val, label) { var on = d[field] === val; return <button key={val} type="button" aria-pressed={on} disabled={!ed} onClick={function() { setDraft({ [field]: val }); }} style={{ flex: 1, padding: "6px 4px", fontSize: 11, fontWeight: 600, border: "none", cursor: ed ? "pointer" : "default", background: on ? (val === "good" ? "#166534" : "#b45309") : "#fff", color: on ? "#fff" : "#475569" }}>{label}</button>; };
             var group = function(field, label) { if (!ed) { var v = d[field]; /* D21: viewing shows the chosen value as one chip */ return <Field label={label} testid={"entry-" + field}>{v ? <span data-testid={"entry-" + field + "-chip"} style={{ display: "inline-block", padding: "3px 10px", borderRadius: 12, fontSize: 11, fontWeight: 700, color: "#fff", background: v === "good" ? "#166534" : "#b45309" }}>{v === "good" ? "Good" : "Working towards"}</span> : <span style={{ color: "#475569" }}>not recorded</span>}</Field>; }
               return <Field label={label} testid={"entry-" + field}><div style={{ display: "flex", border: "1px solid " + (ed && !d[field] && o.msg ? "#dc2626" : "#cbd5e1"), borderRadius: 6, overflow: "hidden" }}>{seg(field, "working", "Working towards")}{seg(field, "good", "Good")}</div></Field>; };
@@ -166,13 +175,14 @@ export default function ExerciseSection({ ctx }) {
               dangerKind="remove" onDanger={function() { deleteProg(o.day, o.exIdx, o.progIdx); }}>
               <Field label="Week">{ed ? <input aria-label="Week" value={d.wk} onChange={function(e) { setDraft({ wk: e.target.value }); }} style={Object.assign({}, openInput, { width: 70 })} /> : d.wk}</Field>
               {o.skipped && <Field label="This week" testid="entry-skipped"><span style={{ color: "#64748b", fontStyle: "italic" }}>Skipped — doesn't count towards progression</span></Field>}
-              {!o.skipped && d.sets.map(function(st, si) { return (<Field key={si} label={"Set " + (si + 1)} testid={"entry-set-" + (si + 1)}>{ed ? <div style={{ display: "flex", gap: 6 }}>
-                  <input aria-label={"Set " + (si + 1) + " " + l1} placeholder={l1} value={st.w} onChange={function(e) { var ns = d.sets.slice(); ns[si] = Object.assign({}, st, { w: e.target.value }); setDraft({ sets: ns }); }} style={openInput} />
-                  <input aria-label={"Set " + (si + 1) + " " + l2} placeholder={l2} value={st.r} onChange={function(e) { var ns = d.sets.slice(); ns[si] = Object.assign({}, st, { r: e.target.value }); setDraft({ sets: ns }); }} style={openInput} />
-                </div> : <span>{st.w}{/^[\d.]+$/.test(String(st.w)) ? "kg" : ""} × {st.r}</span>}</Field>); })}
-              {ed && !o.skipped && <button type="button" onClick={function() { setDraft({ sets: d.sets.concat([{ w: (d.sets[d.sets.length - 1] || {}).w || "", r: "" }]) }); }} style={{...btnMuted, marginBottom: 6}}>+ Add set</button>}
-              {!o.skipped && group("fullRange", "Range")}
-              {!o.skipped && group("goodForm", "Form")}
+              {!o.skipped && d.sets.map(function(st, si) { return (<Field key={si} label={oneRow ? (cfg.metric2 !== "none" ? "Log (" + l1.replace(/ \(.*\)/, "") + " / " + l2.replace(/ \(.*\)/, "") + ")" : l1) : "Set " + (si + 1)} testid={"entry-set-" + (si + 1)}>{ed ? <div style={{ display: "flex", gap: 6 }}>
+                  <input aria-label={(oneRow ? "" : "Set " + (si + 1) + " ") + l1} placeholder={l1} value={st.w} onChange={function(e) { var ns = d.sets.slice(); ns[si] = Object.assign({}, st, { w: e.target.value }); setDraft({ sets: ns }); }} style={openInput} />
+                  {(!oneRow || cfg.metric2 !== "none") && <input aria-label={(oneRow ? "" : "Set " + (si + 1) + " ") + l2} placeholder={l2} value={st.r} onChange={function(e) { var ns = d.sets.slice(); ns[si] = Object.assign({}, st, { r: e.target.value }); setDraft({ sets: ns }); }} style={openInput} />}
+                </div> : cardio ? <span>{showMeasure(String(st.w).replace(/kg$/i, ""))}{unit(l1)}{cfg.metric2 !== "none" && String(st.r) !== "" && String(st.r) !== "0" ? " · " + showMeasure(st.r) + unit(l2) : ""}</span> : <span>{st.w}{/^[\d.]+$/.test(String(st.w)) ? "kg" : ""} × {st.r}</span>}</Field>); })}
+              {ed && !o.skipped && !oneRow && <button type="button" onClick={function() { setDraft({ sets: d.sets.concat([{ w: (d.sets[d.sets.length - 1] || {}).w || "", r: "" }]) }); }} style={{...btnMuted, marginBottom: 6}}>+ Add set</button>}
+              {!o.skipped && cardio && choice("effort", "How hard did it feel?", EFFORT)}
+              {!o.skipped && !cardio && group("fullRange", "Range")}
+              {!o.skipped && (!cardio || cardioHasForm(ex)) && group("goodForm", "Form")}
               <Field label="My Notes" testid="entry-note">{ed ? <textarea aria-label="My Notes" value={d.note} onChange={function(e) { setDraft({ note: e.target.value }); }} style={Object.assign({}, openInput, { minHeight: 44 })} /> : (d.note || <span style={{ color: "#475569" }}>—</span>)}</Field>
               {d.companion && (function() { var c = d.companion; var setC = function(patch) { setDraft({ companion: Object.assign({}, c, patch) }); };
                 var decLabel = c.decision === "accepted" ? "✓ Accepted" : c.decision === "rejected" ? "✕ Rejected" : "No decision yet";
@@ -255,7 +265,7 @@ export default function ExerciseSection({ ctx }) {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }} onClick={function() { var curType=ex.exType||getExerciseType(ex.name);var tc=getExerciseTypeConfig(curType);var curM2=(ex.reps||tc.defaultM2).replace(/x\d+$/,"");setSelectedEx({day:day,idx:i});setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:ex.current||tc.defaultM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",exerciseGuide:ex.exerciseGuide||"",prePostGuide:ex.prePostGuide||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});setAddExOpen(false); }}>{ex.name} <span style={{ fontSize: 9, color: "#475569" }}>✎</span></div>
-                          <div style={{ color: "#475569", fontSize: 11, fontWeight: 500 }}><span data-testid="ex-headline">{targetHeadline(ex) || <>{(ex.prog && ex.prog.length && setsDiffer(ex.prog[ex.prog.length - 1]) && !(ex.progressionValue && ex.progressionSetWk)) ? weightLabel(ex.prog[ex.prog.length - 1]) : displayCurrent(ex)} · {ex.reps}</>}</span>{ex.exType && ex.exType !== "weights" && <span style={{fontSize:9,color:"#475569",marginLeft:6}}>{EXERCISE_TYPES[ex.exType] ? EXERCISE_TYPES[ex.exType].label : ""}</span>}</div>
+                          <div style={{ color: "#475569", fontSize: 11, fontWeight: 500 }}><span data-testid="ex-headline">{targetHeadline(ex) || (isCardioEx(ex) ? cardioHeadline(ex) : <>{(ex.prog && ex.prog.length && setsDiffer(ex.prog[ex.prog.length - 1]) && !(ex.progressionValue && ex.progressionSetWk)) ? weightLabel(ex.prog[ex.prog.length - 1]) : showMeasure(displayCurrent(ex))} · {showMeasure(ex.reps)}</>)}</span>{ex.exType && ex.exType !== "weights" && <span style={{fontSize:9,color:"#475569",marginLeft:6}}>{EXERCISE_TYPES[ex.exType] ? EXERCISE_TYPES[ex.exType].label : ""}</span>}</div>
                           {autoDerivedTarget(ex) && !ex.stopped && <div data-testid="ex-set-next" style={{ fontSize: 10, color: "#1e3a5f", marginTop: 2 }}>→ Set my next session (in My Companion Session Feedback)</div>}   {/* v2.41.0 (night batch P4b): an app-worked-out target is ignored */}
                           {!ex.stopped && (function() { var _st = pillOf(ex.status), _pl = PILLS[_st], _wkE = (ex.prog || []).find(function(pp) { return parseInt(pp.wk, 10) === currentWeek; }); /* v2.42.0 (night batch P3): three pills; older statuses shown as one of them; a greyed Skipped marker */
                             return (<div style={{ marginTop: 3 }} data-derived-status={!ex.status ? "1" : undefined}>
@@ -269,6 +279,7 @@ export default function ExerciseSection({ ctx }) {
                         </div>
                       </div>
                       {ex.notes && <div data-testid="ex-notes" style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 6 }}>📋 {tidyNotes(ex.notes)}</div>}
+                      {measureProse(ex) && <div data-testid="ex-plan-note" style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 4 }}>📋 Plan: {measureProse(ex)}</div>}   {/* v2.49.0 (P1c): words from an older plan, shown as a note */}
                     
                     {selectedEx&&selectedEx.day===day&&selectedEx.idx===i&&(<div ref={scrollOnMount} data-testid="ex-progress-panel" style={{marginTop:10,padding:12,background:accentLight,borderRadius:8,border:"1px solid "+accentBorder,width:"100%"}}>
                       {(function() { var _nx = prefillFrom(ex, latestEntry(ex.prog)); var _mu = measureOf(ex).unit; return _nx ? <div data-testid="progress-next" style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 8 }}>Next session: {targetHeadline(ex) || (_mu === "kg" ? _nx.w + " kg × " + _nx.r : _nx.r + " " + _mu)} ({_nx.source})</div> : null; })()}
@@ -279,7 +290,7 @@ export default function ExerciseSection({ ctx }) {
             return (<div ref={logFormRef} style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginTop: 10, marginBottom: 14 }}>
               <div data-testid="log-for" style={{ fontSize: 11, fontWeight: 700, color: accent, marginBottom: 2 }}>Logging for {personName(data, activeTab)}</div>
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Log: {ex.name}</div>
-              <div style={{ fontSize: 11, color: "#475569", marginBottom: 6 }}><span data-testid="log-previous">Previous: {prev ? (isCardioEx(ex) ? String(prev.w || "").replace(/kg$/i, "") + " min" + (prev.r && String(prev.r) !== "0" ? " · " + prev.r + " km" : "") : fmtEntry(prev)) + " (Wk " + prev.wk + ")" : "No data"}</span></div>
+              <div style={{ fontSize: 11, color: "#475569", marginBottom: 6 }}><span data-testid="log-previous">Previous: {prev ? (isCardioEx(ex) ? (isProse(prev.w) ? "—" : String(prev.w || "").replace(/kg$/i, "") + " min") + (prev.r && String(prev.r) !== "0" ? " · " + (isProse(prev.r) ? "—" : prev.r + " km") : "") : fmtEntry(prev)) + " (Wk " + prev.wk + ")" : "No data"}</span></div>
               {(function() { var _nx = prefillFrom(ex, prev); var _mu = measureOf(ex).unit; return _nx ? <div data-testid="log-progression" style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>Progression: {targetHeadline(ex) || (_mu === "kg" ? _nx.w + " kg × " + _nx.r : _nx.r + " " + _mu)} ({_nx.source}) — pre-filled below</div> : null; })()}
               {prevComment && (<div style={{ padding: 8, background: "#fef3c7", borderRadius: 8, marginBottom: 8, border: "1px solid #fcd34d" }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>📋 NOTES FROM LAST SESSION</div>
@@ -532,27 +543,29 @@ export default function ExerciseSection({ ctx }) {
                     <div style={{marginTop:12,padding:10,background:"#fff",borderRadius:10,border:"2px solid "+accent}}>
                       <div style={{fontSize:11,fontWeight:700,color:accent,marginBottom:2}}>{(p.profile && p.profile.name) || activeTab}</div>
                       <div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Edit: {addExConfirm.name}</div>
-                      {addExLoading && <div style={{fontSize:11,color:"#475569",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Getting AI recommendations...</div>}
+                      {addExConfirm._generating && <div role="status" data-testid="ex-generating" style={{fontSize:12,fontWeight:600,color:"#1e3a5f",marginBottom:8,padding:8,background:"#eff6ff",borderRadius:8,display:"flex",alignItems:"center",gap:6}}><span aria-hidden="true" style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Your Companion is generating a plan…</div>}{addExConfirm._failed && !addExConfirm.type && <div role="status" data-testid="ex-gen-failed" style={{fontSize:11,color:"#92400e",marginBottom:8}}>Your Companion couldn't make a plan this time. Choose the type first, then fill in the rest.</div>}
+                      {addExLoading && !addExConfirm._generating && <div style={{fontSize:11,color:"#475569",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Getting AI recommendations...</div>}
+                      <fieldset disabled={!!addExConfirm._generating} data-testid="ex-add-fields" style={{border:0,padding:0,margin:0,minWidth:0}}>
                       <div style={{display:"flex",gap:8,marginBottom:8}}>
                         <div style={{flex:1}}>
                           <label style={labelStyle}>Type</label>
-                          <SheetSelect label="Exercise type" title="Choose the exercise type" testId="ex-type" value={addExConfirm.type} options={Object.keys(EXERCISE_TYPES).map(function(t){return { value: t, label: EXERCISE_TYPES[t].label };})} onChange={function(v){var tc=getExerciseTypeConfig(v);setAddExConfirm(Object.assign({},addExConfirm,{type:v,sets:tc.defaultSets,m1:tc.defaultM1,m2:tc.defaultM2}));}} style={{width:"100%"}} />
+                          <SheetSelect label="Exercise type" title="Choose the exercise type" testId="ex-type" value={addExConfirm.type} options={Object.keys(EXERCISE_TYPES).map(function(t){return { value: t, label: EXERCISE_TYPES[t].label };})} onChange={function(v){var tc=getExerciseTypeConfig(v);var blank=!addExConfirm.type;setAddExConfirm(Object.assign({},addExConfirm,{type:v,sets:blank?"":tc.defaultSets,m1:blank?"":tc.defaultM1,m2:blank?"":tc.defaultM2}));}} style={{width:"100%"}} />
                         </div>
                         <div style={{width:70}}>
-                          <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].hasSets ? "Sets" : "Sessions"}</label>
+                          <label style={labelStyle}>{(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).hasSets ? "Sets" : "Sessions"}</label>
                           <input type="number" value={addExConfirm.sets} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{sets:parseInt(e.target.value)||1}));}} style={{...inputStyle,width:"100%"}} min="1" max="10" />
                         </div>
                       </div>
                       <div style={{display:"flex",gap:8,marginBottom:8}}>
-                        {EXERCISE_TYPES[addExConfirm.type].metric1 !== "none" && (
+                        {(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).metric1 !== "none" && (
                           <div style={{flex:1}}>
-                            <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].metric1Label}</label>
+                            <label style={labelStyle}>{(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).metric1Label}</label>
                             <input value={addExConfirm.m1} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{m1:e.target.value}));}} style={{...inputStyle,width:"100%"}} />
                           </div>
                         )}
-                        {EXERCISE_TYPES[addExConfirm.type].metric2 !== "none" && (
+                        {(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).metric2 !== "none" && (
                           <div style={{flex:1}}>
-                            <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].metric2Label}</label>
+                            <label style={labelStyle}>{(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).metric2Label}</label>
                             <input value={addExConfirm.m2} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{m2:e.target.value}));}} style={{...inputStyle,width:"100%"}} />
                           </div>
                         )}
@@ -565,6 +578,7 @@ export default function ExerciseSection({ ctx }) {
                         <label style={labelStyle}>My Notes (equipment / form)</label>
                         <textarea value={addExConfirm.notes||""} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{notes:e.target.value}));}} placeholder="Optional notes..." style={{...inputStyle,width:"100%",minHeight:40,resize:"vertical",boxSizing:"border-box"}} />
                       </div>
+                      </fieldset>
                       <div style={{marginBottom:10}}>
                         <button onClick={async function(){
                           setAddExLoading(true);
@@ -647,27 +661,29 @@ export default function ExerciseSection({ ctx }) {
                     <div style={{padding:10,background:"#fff",borderRadius:10,border:"2px solid "+accent}}>
                       <div style={{fontSize:11,fontWeight:700,color:accent,marginBottom:2}}>{(p.profile && p.profile.name) || activeTab}</div>
                       <div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Confirm: {addExConfirm.name}</div>
-                      {addExLoading && <div style={{fontSize:11,color:"#475569",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Getting AI recommendations...</div>}
+                      {addExConfirm._generating && <div role="status" data-testid="ex-generating" style={{fontSize:12,fontWeight:600,color:"#1e3a5f",marginBottom:8,padding:8,background:"#eff6ff",borderRadius:8,display:"flex",alignItems:"center",gap:6}}><span aria-hidden="true" style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Your Companion is generating a plan…</div>}{addExConfirm._failed && !addExConfirm.type && <div role="status" data-testid="ex-gen-failed" style={{fontSize:11,color:"#92400e",marginBottom:8}}>Your Companion couldn't make a plan this time. Choose the type first, then fill in the rest.</div>}
+                      {addExLoading && !addExConfirm._generating && <div style={{fontSize:11,color:"#475569",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Getting AI recommendations...</div>}
+                      <fieldset disabled={!!addExConfirm._generating} data-testid="ex-add-fields" style={{border:0,padding:0,margin:0,minWidth:0}}>
                       <div style={{display:"flex",gap:8,marginBottom:8}}>
                         <div style={{flex:1}}>
                           <label style={labelStyle}>Type</label>
-                          <SheetSelect label="Exercise type" title="Choose the exercise type" testId="ex-type" value={addExConfirm.type} options={Object.keys(EXERCISE_TYPES).map(function(t){return { value: t, label: EXERCISE_TYPES[t].label };})} onChange={function(v){var tc=getExerciseTypeConfig(v);setAddExConfirm(Object.assign({},addExConfirm,{type:v,sets:tc.defaultSets,m1:tc.defaultM1,m2:tc.defaultM2}));}} style={{width:"100%"}} />
+                          <SheetSelect label="Exercise type" title="Choose the exercise type" testId="ex-type" value={addExConfirm.type} options={Object.keys(EXERCISE_TYPES).map(function(t){return { value: t, label: EXERCISE_TYPES[t].label };})} onChange={function(v){var tc=getExerciseTypeConfig(v);var blank=!addExConfirm.type;setAddExConfirm(Object.assign({},addExConfirm,{type:v,sets:blank?"":tc.defaultSets,m1:blank?"":tc.defaultM1,m2:blank?"":tc.defaultM2}));}} style={{width:"100%"}} />
                         </div>
                         <div style={{width:70}}>
-                          <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].hasSets ? "Sets" : "Sessions"}</label>
+                          <label style={labelStyle}>{(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).hasSets ? "Sets" : "Sessions"}</label>
                           <input type="number" value={addExConfirm.sets} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{sets:parseInt(e.target.value)||1}));}} style={{...inputStyle,width:"100%"}} min="1" max="10" />
                         </div>
                       </div>
                       <div style={{display:"flex",gap:8,marginBottom:8}}>
-                        {EXERCISE_TYPES[addExConfirm.type].metric1 !== "none" && (
+                        {(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).metric1 !== "none" && (
                           <div style={{flex:1}}>
-                            <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].metric1Label}</label>
+                            <label style={labelStyle}>{(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).metric1Label}</label>
                             <input value={addExConfirm.m1} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{m1:e.target.value}));}} style={{...inputStyle,width:"100%"}} />
                           </div>
                         )}
-                        {EXERCISE_TYPES[addExConfirm.type].metric2 !== "none" && (
+                        {(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).metric2 !== "none" && (
                           <div style={{flex:1}}>
-                            <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].metric2Label}</label>
+                            <label style={labelStyle}>{(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).metric2Label}</label>
                             <input value={addExConfirm.m2} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{m2:e.target.value}));}} style={{...inputStyle,width:"100%"}} />
                           </div>
                         )}
@@ -680,6 +696,7 @@ export default function ExerciseSection({ ctx }) {
                         <label style={labelStyle}>My Notes (equipment / form)</label>
                         <textarea value={addExConfirm.notes||""} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{notes:e.target.value}));}} placeholder="Optional notes..." style={{...inputStyle,width:"100%",minHeight:40,resize:"vertical",boxSizing:"border-box"}} />
                       </div>
+                      </fieldset>
                       {/* Update Guides button — regenerate AI guides */}
                       {addExConfirm._editMode && (
                       <div style={{marginBottom:10}}>
@@ -744,7 +761,7 @@ export default function ExerciseSection({ ctx }) {
                           var triggerDay = c._editMode ? c._editDay : day;
                           regenerateSessionGuides(activeTab, triggerDay, nd);
                           setAddExConfirm(null); setAddExOpen(false); setAddExSearch("");
-                        }} style={{...btnP(true),flex:1}}>{addExConfirm && addExConfirm._editMode ? "Save Changes" : "Add Exercise"}</button>
+                        }} disabled={!!(addExConfirm && (addExConfirm._generating || !addExConfirm.type))} style={Object.assign({},btnP(true),{flex:1},addExConfirm && (addExConfirm._generating || !addExConfirm.type) ? {opacity:0.5,cursor:"not-allowed"} : {})}>{addExConfirm && addExConfirm._editMode ? "Save Changes" : "Add Exercise"}</button>
                         {!addExConfirm._editMode && <button onClick={function(){setAddExConfirm(null);setAddExOpen(true);}} style={btnS}>Back</button>}
                         <button onClick={function(){setAddExConfirm(null);setAddExOpen(false);setAddExSearch("");}} style={btnS}>Cancel</button>
                       </div>
@@ -795,22 +812,22 @@ export default function ExerciseSection({ ctx }) {
                       {addExSearch.trim() && (<button onClick={function(){
                         var name = addExSearch.trim();
                         var tc = getExerciseTypeConfig("weights");
-                        setAddExConfirm({name:name,type:"weights",sets:tc.defaultSets,m1:tc.defaultM1,m2:tc.defaultM2,progression:"Loading AI recommendation...",notes:"",isCustom:true});
+                        void tc; setAddExConfirm({name:name,type:"",sets:"",m1:"",m2:"",progression:"",notes:"",isCustom:true,_generating:true});   /* v2.49.0 (P1b): blank while the Companion generates */
                         setAddExOpen(false);
                         setAddExLoading(true);
                         (async function(){
                           try {
                             var prof2 = (data[activeTab] || (activeTab === "jc" ? data.jc : data.becks)).profile || {};
                             var profileInfo = buildExProfileInfo(prof2);
-                            var prompt2 = "New exercise: " + name + ". Person: " + profileInfo + ".\nDetermine the exercise type from: weights, bodyweight, timed_hold, cardio, walking, sports, stretching.\nReturn ONLY JSON: {\"exerciseType\":\"one of weights|bodyweight|timed_hold|cardio|walking|sports|stretching\",\"sets\":3,\"metric1\":\"recommended starting value\",\"metric2\":\"recommended starting value\",\"progressionNotes\":\"specific progression rules\",\"equipmentNotes\":\"any equipment or form notes\"}";
+                            var prompt2 = "New exercise: " + name + ". Person: " + profileInfo + ".\nDetermine the exercise type from: weights, bodyweight, timed_hold, cardio, walking, sports, stretching.\nmetric1 and metric2 are PLAIN NUMBERS ONLY (no words, no ranges, no units): metric1 = kg for weights, seconds for holds/stretches, minutes for cardio/walking/sports, 0 if none; metric2 = reps per set, seconds, km, or 0 if none. Put every description (pace, effort, sessions per week) in progressionNotes.\nReturn ONLY JSON: {\"exerciseType\":\"one of weights|bodyweight|timed_hold|cardio|walking|sports|stretching\",\"sets\":3,\"metric1\":20,\"metric2\":10,\"progressionNotes\":\"specific progression rules (all advice and plan wording goes HERE)\",\"equipmentNotes\":\"any equipment or form notes\"}";
                             var resp2 = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{ "x-lc-feature": "autoInfo","Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:400,messages:[{role:"user",content:prompt2}]})});
                             var result2 = await resp2.json();
                             var txt2 = ""; if(result2.content){for(var ri=0;ri<result2.content.length;ri++){if(result2.content[ri].text)txt2+=result2.content[ri].text;}}
                             var info2 = JSON.parse(txt2.replace(/```json|```/g,"").trim());
-                            var detectedType = info2.exerciseType && EXERCISE_TYPES[info2.exerciseType] ? info2.exerciseType : "weights";
-                            setAddExConfirm(function(prev){if(!prev||prev.name!==name)return prev;return Object.assign({},prev,{type:detectedType,sets:info2.sets||prev.sets,m1:info2.metric1||prev.m1,m2:info2.metric2||prev.m2,progression:info2.progressionNotes||"Double progression: build reps to target then increase weight.",notes:info2.equipmentNotes||""});});
+                            var _g = fromGenerated(info2, "");   /* v2.49.0 (P1c): numbers only in the measures; words go to the progression notes */
+                            setAddExConfirm(function(prev){if(!prev||prev.name!==name)return prev;return Object.assign({},prev,{type:_g.type,sets:_g.sets,m1:_g.m1,m2:_g.m2,progression:_g.progression||"Double progression: build reps to target then increase weight.",notes:_g.notes,_generating:false,_failed:!_g.type});});
                           } catch(ae) {
-                            setAddExConfirm(function(prev){if(!prev)return prev;return Object.assign({},prev,{progression:"Double progression: build reps to target then increase weight."});});
+                            setAddExConfirm(function(prev){if(!prev)return prev;return Object.assign({},prev,{_generating:false,_failed:true});});   /* v2.49.0: blank, choose the type first */
                           }
                           setAddExLoading(false);
                         })();
@@ -864,7 +881,7 @@ export default function ExerciseSection({ ctx }) {
                         otherDays.forEach(function(cd) { var cdExList = p.exercises[cd] || []; for (var cdi = 0; cdi < cdExList.length; cdi++) { if (cdExList[cdi].name === ex.name && cdExList[cdi].prog && cdExList[cdi].prog.length > 0) { crossDayLines.push(cd + ": " + cdExList[cdi].prog.slice(-3).map(function(cp) { return "Wk" + cp.wk + ": " + cp.w + " " + cp.r + (cp.note ? " (" + cp.note + ")" : ""); }).join(", ")); } } });
                         if (crossDayLines.length > 0) { crossDayCtx = " [OTHER SESSIONS: " + crossDayLines.join("; ") + "]"; }
                         var qualityCtx = ""; if (latest && latest.effort) { qualityCtx = " [QUALITY (cardio): How hard it felt=" + effortLabel(latest.effort) + (latest.goodForm ? ", Good Form=" + (latest.goodForm === "good" ? "Good" : "Working Towards") : "") + "]"; } else if (latest) { var frLabel = (function(){ var et = ex.exType || "weights"; return ["weights","bodyweight","timed_hold","stretching"].indexOf(et) >= 0 ? "Full Range" : "Completed in One"; })(); qualityCtx = " [QUALITY: " + frLabel + "=" + (latest.fullRange === "good" ? "Good" : "Working Towards") + ", Good Form=" + (latest.goodForm === "good" ? "Good" : "Working Towards") + "]"; } var guideCtx = ex.exerciseGuide ? " [EXERCISE GUIDE: " + ex.exerciseGuide.substring(0, 200) + "]" : ""; var _real = latestEntry(ex.prog); void histLines; /* v2.41.0 (night batch P4c): logged history and the target, labelled apart; this session day only */ return ex.name + " (" + day + " session): LATEST LOGGED=" + (_real ? _real.w + " " + _real.r : "none") + " (" + ex.status + ")" + qualityCtx + " [" + aiExerciseContext(ex, 8) + "]" + styleContext(ex, p) + (allNotes ? " [NOTES: " + allNotes + "]" : "") + " [PROGRESSION RULES: " + progRules + "]" + eqInfo + guideCtx + crossDayCtx; }).join("; ");
-                      var jsonFormat = '{"exercises":[{"name":"...","verdict":"max 25 words honest assessment","icon":"check|triangle|arrow|warning|circle|star","newStatus":"move up|consolidate|reduce","recommendation":"ONE primary recommendation in technical ranges (e.g. add 2.5–5%, reps back to the bottom of the range)","alternative":"optional: at most ONE close alternative and its trade-off, else empty","targetWeight":"a technical step only, e.g. +2.5–5% or same load — NEVER an exact equipment weight","targetReps":"recommended reps for next session e.g. 12x3 or 15x3"}],"summary":"2-3 sentences honest overall assessment — speak like a mate who trains with them","nextSession":"one sentence — specific focus for next session, warm and direct"}';
+                      var jsonFormat = '{"exercises":[{"name":"...","verdict":"max 25 words honest assessment","icon":"check|triangle|arrow|warning|circle|star","newStatus":"ready to progress|consolidate|reduce","recommendation":"ONE primary recommendation in technical ranges (e.g. add 2.5–5%, reps back to the bottom of the range)","alternative":"optional: at most ONE close alternative and its trade-off, else empty","targetWeight":"a technical step only, e.g. +2.5–5% or same load — NEVER an exact equipment weight","targetReps":"recommended reps for next session e.g. 12x3 or 15x3"}],"summary":"2-3 sentences honest overall assessment — speak like a mate who trains with them","nextSession":"one sentence — specific focus for next session, warm and direct"}';
                       // Build previous session feedback context including accept/decline decisions
                       var prevSfbKey = activeTab + "_" + day;
                       var prevSfb = sessionFeedback ? sessionFeedback[prevSfbKey] : null;
@@ -933,7 +950,7 @@ export default function ExerciseSection({ ctx }) {
                         "2) If current autoStatus seems wrong based on data and notes, set newStatus to what it SHOULD be and explain why in the verdict.\n" +
                         "3) Be genuinely honest — if someone is sandbagging, say so warmly. If they should push harder, encourage it like a mate would.\n" +
                         "4) PROGRESSION: Each exercise has [PROGRESSION RULES] and a [STYLE] (rep range and step size). Follow them. Only recommend more load when range and form are both Good and the next target was met (or the top of the [STYLE] rep range on every set).\n" +
-                        "5) STATUS (only three): move up = range AND form both Good and the logged sets met the next target (or the top of the rep range on every set when no target); reduce = the person chose Reduce or there is a clear reason to drop the load; consolidate = everything else. newStatus must be exactly one of: move up, consolidate, reduce.\n" +
+                        "5) STATUS (only three): ready to progress = range AND form both Good and the logged sets met the next target (or the top of the rep range on every set when no target); reduce = the person chose Reduce or there is a clear reason to drop the load; consolidate = everything else. newStatus must be exactly one of: ready to progress, consolidate, reduce.\n" +
                         "6) Max 25 words per verdict. Be specific not generic.\n" +
                         "7) QUALITY TRACKING: Each exercise has [QUALITY] data — Full Range (or Completed in One for cardio) and Good Form toggles. 'Working Towards' means they are still developing that aspect. CRITICAL: If Full Range is 'Working Towards', do NOT recommend increasing weight — prioritise full range of motion with controlled 3-second eccentric tempo first. If Good Form is 'Working Towards', acknowledge their honesty and encourage form focus. Only recommend weight increases when BOTH quality indicators are 'Good' AND rep targets are met. Praise honesty when someone marks Working Towards — it shows self-awareness.\n\n" +
                         "8) STYLE-AWARE PROGRESSION: use the 4-week [PATTERN] (an observation, never a verdict — you may mention it), the [STYLE], their goal, form/range and notes. Give ONE primary recommendation and at most ONE close alternative (in alternative) with its trade-off. TECHNICAL RANGES ONLY (e.g. add 2.5–5%, one small step, reps back to the bottom of the range) — NEVER an exact equipment weight or stack step. If something is marked [UNSOUND], or they want a jump over 10%, more load while form or range is Working towards, or they keep failing sets, do not simply agree: say so kindly and give the sounder option. They choose their exact numbers with Set my next session.\n9) CARDIO (exercises with a [CARDIO STYLE]): change ONE variable at a time — time first, then speed or level, in line with their cardio focus (Endurance and Fat burn: more time first; Fitness-speed: same time, faster or a higher level; Intervals: the balance of work and recovery); keep weekly increases to 10% or less; technical ranges only (e.g. add 5–10% time); [QUALITY (cardio)] is how hard it felt: suggest progressing only after Easy or About right; ONE primary recommendation + at most ONE alternative; kindly flag unsafe jumps.\n" +

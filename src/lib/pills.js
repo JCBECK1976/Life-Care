@@ -9,7 +9,7 @@ import { repRange, usesRepRange } from "./exerciseWhy.js";
 import { isCardioEx } from "./cardio.js";
 
 export var PILLS = {
-  "move up": { label: "Move Up", color: "#1d4ed8", bg: "#dbeafe" },
+  "move up": { label: "Ready to Progress", color: "#1d4ed8", bg: "#dbeafe" },
   "consolidate": { label: "Consolidate", color: "#6d28d9", bg: "#ede9fe" },
   "reduce": { label: "Reduce", color: "#b91c1c", bg: "#fee2e2" },
 };
@@ -20,7 +20,7 @@ export var PROGRESSION = [["standard", "Standard Progression"], ["maintain", "Ma
 /** Any stored status → one of the three (legacy mapping; display only). */
 export function pillOf(status) {
   var s = String(status || "").toLowerCase().trim();
-  if (s === "move up" || s === "ready to move") return "move up";
+  if (s === "move up" || s === "ready to move" || s === "ready to progress") return "move up";   // v2.49.0: the AI now says "ready to progress"
   if (s === "reduce") return "reduce";
   return "consolidate";
 }

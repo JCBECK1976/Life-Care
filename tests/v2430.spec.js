@@ -105,7 +105,7 @@ test("session feedback: one primary + an alternative; Set my next session gives 
   expect(ex.next).toMatchObject({ m1: "46", m2: "12", source: "set by you" });
   expect([ex.status, ex.statusSource]).toEqual(["move up", "set by you"]);
   await expect(page.getByTestId("ex-headline").first()).toHaveText("46kg · 12×3");
-  await expect(page.getByTestId("ex-status").first()).toHaveText("Move Up");
+  await expect(page.getByTestId("ex-status").first()).toHaveText("Ready to Progress");
   await page.getByRole("button", { name: "📋 Log", exact: true }).first().click();
   await expect(page.locator('input[placeholder="Weight"]').first()).toHaveValue("46");
   await expect(page.locator('input[placeholder="Reps"]').first()).toHaveValue("12");

@@ -102,10 +102,16 @@ export function weightLabel(entry) {
   return entry.w || "";
 }
 // One line for display and AI prompts: "16kg×10, 22kg×8, 22kg×8" when weights differ, else the old "16kg 10x3" style.
+var UNIT_WORDS = /\b(kg|kgs|km|kms|mi|miles?|m|min|mins|minutes?|sec|secs|seconds?|s|reps?|x|plate|level|lvl|bw|cal|kcal)\b/gi;
+/** v2.49.0: true when a measure holds words, not a number (older Companion plans wrote sentences into the measures). */
+export function isProse(v) {
+  var words = String(v == null ? "" : v).replace(UNIT_WORDS, " ").replace(/[\d.,×x/\-–+()%:;]/g, " ").split(/\s+/).filter(function(w) { return /[a-z]{2,}/i.test(w); });
+  return words.length >= 3;   // a sentence, not a short label such as "Red band"
+}
 export function fmtEntry(entry) {
   if (!entry) return "";
-  if (setsDiffer(entry)) return entry.sets.map(function(s) { return s.w + "kg×" + s.r; }).join(", ");
-  return (entry.w || "") + " " + (entry.r || "");
+  if (setsDiffer(entry)) return entry.sets.map(function(s) { return (isProse(s.w) ? "—" : s.w + "kg") + "×" + (isProse(s.r) ? "—" : s.r); }).join(", ");
+  return (isProse(entry.w) ? "—" : (entry.w || "")) + " " + (isProse(entry.r) ? "—" : (entry.r || ""));   // v2.49.0: sentences never shown as a measure
 }
 // The sets to save from the form; a blank weight on a later set means "same as set 1".
 export function setsToSave(logSets) {
