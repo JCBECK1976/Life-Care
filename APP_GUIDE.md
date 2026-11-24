@@ -183,6 +183,7 @@ Tap **▼ My Profile** under the greeting to open your setup. It has tabs:
 | **Food & Drink** | Current eating habits and relationship with food. |
 | **Wellbeing** | Sleep, mental health and neurodiversity, which affect how support is approached. |
 | **My Health** | Medical history and current health status. |
+- **🏋️ My training style** (in **My Profile**, right after your goal; Silver and up) — how your Companion suggests your next step. **Strength:** **Focus** Mixed (your current ranges, the default), Strength 6–8 reps, Muscle 8–12, Endurance 12–15+; **Pace** Steady small steps, Consolidate a week then move, or Bigger jumps when ready. Set it for all your strength exercises, or pick one exercise to give it its own style. It is also part of the full set-up's Exercise step.
 
 Tap **Save Setup** to save answers. 🔒 Your information is private and used only by your Companion.
 
@@ -577,7 +578,6 @@ After the age check, Terms and Privacy and your privacy choices, you choose **Ho
 
 Open with the **⚙ Settings** gear (top right, to the right of **Help ?**).
 - **🎨 My Colour Theme** — Blue, Purple, Green, Teal, Rose, Amber, Indigo or Slate. Changes your highlighted tabs, info boxes and accents. Each person has their own colour.
-- **🏋️ My training style** (Silver and up) — how your Companion suggests your next step. **Focus:** Mixed (your current ranges, the default), Strength 6–8 reps, Muscle 8–12, Endurance 12–15+. **Pace:** Steady small steps, Consolidate a week then move, or Bigger jumps when ready. Set it for all your exercises, or pick one exercise to give it its own style.
 - **💳 My Plan** (being tested on Build) — under the colour theme. Tap it to open: see below.
 - **📱 iPhone app** (from v2.29.0, through TestFlight once it's set up): the same app. Sign in with **Apple** or **Google**; the email sign-in link works in the web app. Steps come from **Apple Health** (Connect my steps: the Health app → your picture → Apps → Lifecare Companion → Steps). Plans and top-ups are bought through the **App Store** and managed in your iPhone's subscriptions.
 - **👟 Connect my steps** (Android app, being tested on Build; Silver and up) — reads only your **daily step total** (and, if you tick it, daily active calories) from **Health Connect**, for today and the last 7 days, each time you open the app. On the shared account it first asks **whose steps are on this phone** (JC or Becks) — saved on that phone, changeable any time. **Disconnect** stops it; tick "also delete the stored daily totals" to remove what it stored. If steps don't appear: on Android 13 or earlier install Health Connect from Google Play; with Samsung Health open **Samsung Health → Settings → Health Connect** and allow Steps. Steps make your calorie goal follow your real activity ("How this is calculated" shows where the steps came from).

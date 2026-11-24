@@ -1,5 +1,6 @@
 import React from "react";
 import { HowItWorksDialog } from "./HowItWorks.jsx";
+import TrainingStyleCard from "./TrainingStyleCard.jsx";
 import { COLOUR_THEMES } from "../constants/themes.js";
 import { btnP, btnS, btnMuted, btnClose } from "../constants/styles.js";
 import { sSet } from "../lib/storage.js";
@@ -77,6 +78,7 @@ export default function SetupGuide(props) {
     out.push(<section key={"v" + visit} data-testid="setup-visit" aria-label={"First visit: " + SECTION_NAME[visit]} style={card}>
       {head("First visit: " + SECTION_NAME[visit])}
       <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.5 }}>{VISITS[visit].map(function(t, k) { var o = typeof t === "string" ? { text: t } : t; var locked = o.tier && !planAllows(o.tier); return <li key={k}>{o.text}{locked ? <span data-testid="setup-visit-tier" style={small}> (part of Gold — 🔒 See plans)</span> : null}</li>; })}</ul>
+      {visit === "weights" && props.data && props.saveData && <TrainingStyleCard data={props.data} activeTab={who} saveData={props.saveData} />}   {/* v2.46.0: the Exercise step */}
       <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
         <button type="button" data-testid="setup-next" onClick={function() { next(); }} style={Object.assign({}, btnP(true), { width: "auto", padding: "8px 14px", fontSize: 12 })}>{after ? "Next: " + SECTION_NAME[after] + " ›" : "Finish"}</button>
         <button type="button" data-testid="setup-skip" onClick={function() { next({ skipped: Object.assign({}, s.skipped, { [visit]: true }) }); }} style={btnS}>Skip this section</button>{stop}

@@ -16,6 +16,7 @@ import { MOOD_COLORS, MOOD_EMOJIS, MOOD_LABELS, MOOD_TEXT } from "../constants/m
 import { sSet } from "../lib/storage.js";
 import { BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, SNACKS } from "../constants/food.js";
 import { tiersOn, usePlan } from "../lib/myPlan.js";
+import TrainingStyleCard from "../components/TrainingStyleCard.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -213,6 +214,7 @@ export default function HomeSection({ ctx }) {
                     {isOwnTarget(_g, _r) && <div data-testid="my-target-own" style={{ marginTop: 4, padding: 6, borderRadius: 6, background: "#fef3c7", color: "#92400e" }}>Your target: {_g.targetKg} kg. This isn't your Companion's recommendation based on your profile.</div>}
                   </div>); })()}
 
+                  <TrainingStyleCard data={data} activeTab={activeTab} saveData={saveData} />   {/* v2.46.0 (brief 24 Nov P1): its own section after the goal */}
                   {/* Read-only profile summary */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 11, color: "#475569", padding: 10, background: accentVariant(accent, 88), borderRadius: 8, border: "1px solid " + accentBorder }}>
                     <div>Name: <strong>{prof.name || ob.name || "—"}</strong></div>

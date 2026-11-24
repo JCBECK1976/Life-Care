@@ -16,7 +16,6 @@ import ContactEmailCard from "../components/ContactEmailCard.jsx";
 import { DOCS_INDEX, VAULT_DOCS } from "../constants/docsIndex.js";
 import MyPlanCard from "../components/MyPlanCard.jsx";
 import StepsCard from "../components/StepsCard.jsx";
-import TrainingStyleCard from "../components/TrainingStyleCard.jsx";
 import AccountConsentCard from "../components/AccountConsentCard.jsx";
 import FamilySharingCard from "../components/FamilySharingCard.jsx";
 import PilotInviteCard from "../components/PilotInviteCard.jsx";
@@ -67,7 +66,6 @@ export default function SettingsSection({ ctx }) {
             </div>
           </div>
 
-          <TrainingStyleCard data={data} activeTab={activeTab} saveData={saveData} />   {/* v2.43.0 (night batch P5a) */}
           {/* v2.22.0 (ADR 0017): My Plan, under the colour theme (flag useTiers). A Platinum family member sees only the theme. */}
           <AccountConsentCard />
           <FamilySharingCard />   {/* v2.28.1: What my family can see (individual accounts in a family) */}   {/* v2.24.0: an individual account's privacy choices (flag useOnboarding) */}

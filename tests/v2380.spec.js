@@ -126,6 +126,7 @@ test("full set-up: a guided first visit to each section (it opens the section); 
   expect(await axe(page, "[data-testid=setup-visit]")).toEqual([]);
   await v.getByTestId("setup-next").click();
   await expect(v).toContainText("First visit: My Exercise");
+  await expect(v.getByTestId("training-style")).toBeVisible();                                     // v2.46.0: My training style in the Exercise step
   await v.getByTestId("setup-next").click();
   await expect(v).toContainText("First visit: My Eating");
   await v.getByTestId("setup-skip").click();                                                      // skip Eating

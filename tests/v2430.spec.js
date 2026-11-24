@@ -63,10 +63,11 @@ async function seed(page, list, fb) {
   await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
 }
 
-test("Settings → My training style: focus and pace per person, and per exercise", async ({ page }) => {
+test("My Profile → My training style: focus and pace per person, and per exercise", async ({ page }) => {
   const { errors } = await openApp(page);
   await seed(page, [PRESS([E(CW - 1, 40, "12x3")])]);
-  await page.evaluate(() => window._lcGo("admin"));
+  await page.evaluate(() => window._lcGo("overview"));
+  await page.getByRole("button", { name: "▼ My Profile" }).click();   // v2.46.0: moved from Settings
   const card = page.getByTestId("training-style");
   await expect(card).toContainText("never an exact weight");
   await card.locator("#ts-focus").selectOption("muscle");
