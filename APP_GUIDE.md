@@ -87,6 +87,7 @@ Once the app is installed, you can send a photo straight from your Gallery, Came
 - **📏 Body measurements**: a screenshot from your scales or measurement app (goes to My Body → 📷 Upload).
 - **📸 Progress photo** (switched off for now with the Body balance check): goes to the **Body balance check** (My Body). Analysed, never stored.
 - **🍽 Food**: checked in the Food Checker (My Shop).
+- **🍴 Add to today's eating** (Silver and up): choose the category (it starts on the one for the time of day: breakfast until 10:30, lunch until 14:30, dinner 17:00–21:30, otherwise a snack) and, on a shared account, the person. The app opens **My Eating → today**, adds a **new row** in that category and runs the usual **📷 Snap** check on the photo. (Works from the installed web app and the Android app; iPhone sharing is not available yet.)
 - **Later (keep it)** keeps the image on the phone until you choose; **Discard** throws it away.
 
 ### Photos and privacy
@@ -367,6 +368,7 @@ Plenty of fibre (5 g+) or protein (20 g+) lifts an item one band (never above AM
 - **📷 Snap** (on every slot, empty or filled) photographs your food:
   1. Optionally describe it first ("large plate", "2 sausages", "28g bar", "half eaten"); the Companion gives your description priority. Then **📷 Take photo**.
   2. The result shows the food, its values, its rating and the weight it assumed, e.g. **"Assumed: ~450g — rice 200g, frankfurters 120g, beans 130g"**.
+  - The note box under a Snap result is highlighted (yellow, 💡): *"To re-check, it helps if you add any known weight or calories for the portion."* — e.g. "28g bar" or "the pack says 210 kcal".
   3. **Confirm** saves it; **↻ Re-check** asks for an independent **deep dive** (component by component, with grams), shown as "Re-check deep dive — re-assessed outcome" with a comparison line ("First check: large · RED → Deep dive: medium · GOOD"). You can change the description and re-check again. **Cancel** saves nothing.
   4. On Confirm:
      - the **same food** as the slot updates this meal's portion only;
