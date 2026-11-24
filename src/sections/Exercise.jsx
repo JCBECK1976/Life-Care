@@ -12,6 +12,7 @@ import { displayStatus, whyLine, rangeLabel, skipEntry, skipCheckIn, weekFeedbac
 import { autoStatus } from "../lib/exercise.js";
 import { PILLS, SKIPPED_PILL, PROGRESSION, pillOf } from "../lib/pills.js";
 import { styleContext } from "../lib/trainingStyle.js";
+import { companionProfileCtx } from "../lib/profileCtx.js";
 import { isCardioEx, cardioHasForm, EFFORT, effortLabel } from "../lib/cardio.js";
 import SetNextSession from "../components/SetNextSession.jsx";
 import { aiExerciseContext, autoDerivedTarget, isSkippedEntry, makeTarget, nextTarget, prefillFrom, targetHeadline } from "../lib/nextTarget.js";
@@ -832,6 +833,7 @@ export default function ExerciseSection({ ctx }) {
                           if (p.measurements) { var measParts = []; Object.keys(p.measurements).forEach(function(mk){ if (p.measurements[mk] && p.measurements[mk].length > 0) { measParts.push(mk + ": " + p.measurements[mk][p.measurements[mk].length - 1].v + "cm"); } }); if (measParts.length > 0) healthCtx += " Measurements: " + measParts.join(", ") + "."; }
                           var exerciseList = exList.map(function(ex) { return ex.name + " (" + (ex.exType || "weights") + ", " + ex.current + " " + ex.reps + ")"; }).join(", ");
                           var guidePrompt = "Generate a warm-up and cool-down for this training session.\n\nPerson: " + profileInfo + "." + healthCtx + "\n\nSession exercises: " + exerciseList + "\n\nRules:\n- Warm-up: 3 minutes max. 3-4 activities. Tailored to the specific exercises in this session and this person's health profile.\n- Cool-down: 3 minutes max. 3-4 stretches. Target the muscle groups worked in this session. Consider any injuries, conditions, or medications.\n- Each line should be one activity with brief instruction (e.g. '1. Arm circles — 20 seconds each direction, loosen shoulders').\n- Number each line. Keep each to one short sentence.\n- Write in direct 2nd person.\n- Do NOT include any JSON formatting or labels — just the plain text.\n\nReturn ONLY JSON: {\"warmup\":\"numbered lines for warm-up\",\"cooldown\":\"numbered lines for cool-down\"}";
+                          guidePrompt += "\n\n" + companionProfileCtx(p);   /* v2.48.0 (brief 24 Nov P3): goal + training style */
                           var guideResp = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{ "x-lc-feature": "aiPlans","Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:500,messages:[{role:"user",content:guidePrompt}]})});
                           var guideResult = await guideResp.json();
                           var guideTxt = ""; if(guideResult.content){for(var gi=0;gi<guideResult.content.length;gi++){if(guideResult.content[gi].text)guideTxt+=guideResult.content[gi].text;}}

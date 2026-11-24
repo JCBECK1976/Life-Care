@@ -65,6 +65,7 @@ import { ALLOW_ADD_PERSON } from "./constants/features.js";
 import { PHASE_LABEL, dayPhase, readFeedback, weekPhase } from "./lib/eatPhase.js";
 import SharePicker from "./components/SharePicker.jsx";
 import { isCardioEx, cardioHasForm } from "./lib/cardio.js";
+import { trainingStyleCtx, companionProfileCtx } from "./lib/profileCtx.js";
 import { startNativeShare } from "./lib/nativeShare.js";
 import { stripMeasurementPhotos, stripPhotoFragments } from "./lib/bodyBalance.js";
 import { childItems, dateOf, emptyDoc, loadParentLookup, loadWeekDoc, reconcile, recalcChild, saveWeekDoc, viewFromDoc, weekKey, ymd } from "./lib/children.js";
@@ -1525,6 +1526,7 @@ function Dashboard() {
     var _bn = bodyNotesCtx(data && data[tab]); if (_bn) lines.push(_bn);
     /* v2.18.0: the person's goal, timescale, required pace and progress — every companion */
     try { lines.push(goalCtx(data && data[tab])); } catch (e) { /* goal context is optional */ }
+    var _ts = trainingStyleCtx(data && data[tab]); if (_ts) lines.push(_ts);   // v2.48.0 (brief 24 Nov P3): the training style, every Companion
     /* v2.20.0: one shared summary of THIS person's recent Companion conversations (14 days, small budget). Every source is
        keyed by `tab`; state that only holds the active person (body/measurement feedback, journal) is used only when tab is active. */
     var areas = [], th = function(fb) { return fb && fb._thread ? fb._thread : null; };
@@ -1729,7 +1731,7 @@ function Dashboard() {
         { type: "text", text: "You are the user's Lifecare Companion, helping them USE the Lifecare Companion app. Answer ONLY from the app guide below. Be warm, friendly and direct, and speak to them as \"you\". Use UK English.\n\nHOW TO ANSWER:\n- Say exactly where things are: tab → section → button, using the names as they appear in the app.\n- For how-to questions give short numbered steps.\n- Explain the why when it helps them use the app well.\n- Keep it short: usually under 120 words. Plain text only: no headings, no bold, no tables. Simple numbered or dash lists are fine.\n- If the guide doesn't cover it, say so honestly and suggest 💬 Send Feedback at the bottom of the app. Never invent buttons, screens or features.\n- For questions about their own health, food, training or results (rather than how the app works), point them to the 💬 Chat button, which uses their data.\n- Never give medical advice.\n\n(v2.32.2) You get only the parts of the guide that match the question, plus an index of ALL its sections. If the answer isn't in the parts below, don't guess: point them to the right place with the index (\"see Help → …\") or say you're not sure.\n\n=== GUIDE SECTIONS (index) ===\n" + helpIndex(window._helpEntries), cache_control: { type: "ephemeral" } },   /* the fixed part first (instructions + index) */
         { type: "text", text: "=== APP GUIDE ===\n(only the parts that match this question)\n" + helpSections(window._helpEntries, question, secNames[section] || "Home").join("\n\n") }   /* v2.32.2: ≤ 5 sections, ≈ 3,000 tokens (was the whole guide) */
       ];
-      var msgs = apiTurns(qaToMessages(helpHistory[activeTab]), "[I'm " + who + ", currently on the " + (secNames[section] || "Home") + " tab]\n" + question);   /* v2.20.0: last 20 messages + summary */
+      var msgs = apiTurns(qaToMessages(helpHistory[activeTab]), "[I'm " + who + ", currently on the " + (secNames[section] || "Home") + " tab]\n[" + companionProfileCtx(data && data[activeTab]).replace(/\n/g, " ") + "]\n" + question);   /* v2.20.0: last 20 messages + summary */
       var resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "x-lc-feature": "aiHelp", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },

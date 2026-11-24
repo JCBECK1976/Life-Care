@@ -1,3 +1,4 @@
+import { companionProfileCtx } from "../lib/profileCtx.js";
 import { NO_FOOD_MSG, NO_FOOD_RULE, noFood } from "../lib/snap.js";
 import LoadingDots from "../components/LoadingDots.jsx";
 import { readImageForAI } from "../lib/image.js";
@@ -180,7 +181,8 @@ export default function ShopSection({ ctx }) {
                 if (pDays) mealNames += pName + ": " + pDays + ". ";
               }
               var defaultItems = shopDefaults.length > 0 ? " Always include these default items: " + shopDefaults.join(", ") + "." : "";
-              const prompt = "Generate a shopping list containing ONLY the ingredients needed to make these specific meals at " + supermarket + " (UK). Meals: " + mealNames + "." + defaultItems + " ONLY include ingredients required for the meals listed above. Do NOT add weekly staples, household items, or anything not directly needed for these meals. Group items by supermarket aisle zone. Return ONLY a JSON array of objects: [{\"zone\":\"Fruit & Veg\",\"items\":[\"2x bananas\",\"1x broccoli\"]},{\"zone\":\"Meat & Poultry\",\"items\":[\"2x chicken breast\"]}]. Use these zones in order: Fruit & Veg, Bakery & Bread, Meat & Poultry, Fish, Dairy & Eggs, Chilled, Frozen, Tinned & Packets, Rice Pasta & Noodles, Cooking Oils & Sauces, Cereals & Porridge, Snacks & Bars, Drinks, Health & Free From, Household. Only include zones that have items.";
+              let prompt = "Generate a shopping list containing ONLY the ingredients needed to make these specific meals at " + supermarket + " (UK). Meals: " + mealNames + "." + defaultItems + " ONLY include ingredients required for the meals listed above. Do NOT add weekly staples, household items, or anything not directly needed for these meals. Group items by supermarket aisle zone. Return ONLY a JSON array of objects: [{\"zone\":\"Fruit & Veg\",\"items\":[\"2x bananas\",\"1x broccoli\"]},{\"zone\":\"Meat & Poultry\",\"items\":[\"2x chicken breast\"]}]. Use these zones in order: Fruit & Veg, Bakery & Bread, Meat & Poultry, Fish, Dairy & Eggs, Chilled, Frozen, Tinned & Packets, Rice Pasta & Noodles, Cooking Oils & Sauces, Cereals & Porridge, Snacks & Bars, Drinks, Health & Free From, Household. Only include zones that have items.";
+              prompt += "\n\n" + companionProfileCtx(data && data[activeTab]);   /* v2.48.0 (brief 24 Nov P3) */
               const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-lc-feature": "shoppingGenerator", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
               if (!response.ok) throw new Error("HTTP " + response.status);
               const result = await response.json();
