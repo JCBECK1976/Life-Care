@@ -21,6 +21,9 @@ export function thisWeek() {
 export async function freshReload(page) { await page.waitForTimeout(300); await fetch(url(thisWeek().childKey), { method: "DELETE", headers: { Authorization: "Bearer owner" } }); await page.reload(); }
 export async function childOf(day, slot) { const w = thisWeek(); const doc = await getKey(w.childKey); return doc ? doc.children["c_" + w.dateOf(day) + "_" + slot] || null : null; }
 
+// v2.52.0: Cancel in a picker Snap goes back to the picker list — close it before the next row
+async function closePicker(page) { const c = page.getByRole("button", { name: "Close the list" }); if (await c.count()) await c.first().click(); }
+
 test("D6: snapshot rules (pure)", () => {
   const item = { id: "x1", name: "Granola (300 kcal)", jcKcal: 300, beckKcal: 250, satFat: 2, rating: "GOOD" };
   const dates = { monday: new Date(2020, 0, 6), friday: new Date(2999, 0, 3) };
@@ -135,7 +138,7 @@ async function portionSetup(page, reply, desc, plan) {
 }
 // v2.6.5: 📷 Snap → optional description → 📷 Take photo
 async function snap(page, desc, nth = 0) {
-  await page.getByTestId("picker-trigger").nth(nth).click(); await page.getByTestId("act-snap").click();   // v2.50.0: Snap is in the picker
+  await closePicker(page); await page.getByTestId("picker-trigger").nth(nth).click(); await page.getByTestId("act-snap").click();   // v2.50.0: Snap is in the picker
   if (desc) await page.getByLabel("Photo description").fill(desc);
   await page.locator("label", { hasText: "📷 Take photo" }).locator("input[type=file]").setInputFiles({ name: "p.png", mimeType: "image/png", buffer: PNG });
 }
@@ -182,8 +185,9 @@ test("Snap result: Confirm, Re-check and Cancel sit in one row of equal-height b
     await snap(page, "", slot);
     const row = page.getByTestId("snap-actions");
     await expect(row).toBeVisible();
-    const boxes = await Promise.all(["Confirm", "↻ Re-check", "Cancel"].map((n) => row.getByRole("button", { name: n, exact: true }).boundingBox()));
-    expect(boxes.every((b) => b && Math.abs(b.y - boxes[0].y) < 1 && Math.abs(b.height - boxes[0].height) < 1)).toBe(true);
+    const measure = () => Promise.all(["Confirm", "↻ Re-check", "Cancel"].map((n) => row.getByRole("button", { name: n, exact: true }).boundingBox()));
+    await expect.poll(async () => { const b = await measure(); return b.every((x) => x && Math.abs(x.y - b[0].y) < 1 && Math.abs(x.height - b[0].height) < 1); }).toBe(true);   // v2.52.0: measured once settled (the picker slides in)
+    const boxes = await measure();
     expect(boxes[0].x < boxes[1].x && boxes[1].x < boxes[2].x).toBe(true);
     await row.getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(row).toHaveCount(0);

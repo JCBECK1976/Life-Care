@@ -17,6 +17,9 @@ async function bigPhoto(page) {
   return { name: "phone.jpg", mimeType: "image/jpeg", buffer: Buffer.from(b64, "base64") };
 }
 
+// v2.52.0: Cancel in a picker Snap goes back to the picker list — close it before the next row
+async function closePicker(page) { const c = page.getByRole("button", { name: "Close the list" }); if (await c.count()) await c.first().click(); }
+
 test("item 1: every photo feature sends a shrunk photo (request < 1 MB, long edge ≤ 1568)", async ({ page }) => {
   test.setTimeout(120000);
   const { errors } = await openApp(page);
@@ -27,8 +30,9 @@ test("item 1: every photo feature sends a shrunk photo (request < 1 MB, long edg
   const expectSent = async (n) => { await expect.poll(() => sizes.length, { timeout: 10000 }).toBe(n); };
   // 📷 Snap (My Eating)
   await tab(page, "My Eating");
-  await page.getByTestId("picker-trigger").first().click(); await page.getByTestId("act-snap").click();   // v2.50.0: Snap is in the picker
+  await closePicker(page); await page.getByTestId("picker-trigger").first().click(); await page.getByTestId("act-snap").click();   // v2.50.0: Snap is in the picker
   await page.getByTestId("snap-pre").locator('input[type="file"]').setInputFiles(photo); await expectSent(1);
+  await closePicker(page);   // v2.52.0: the Snap result is in the picker
   // Food Checker (My Shop)
   await tab(page, "My Shop"); await page.locator('input[data-share="food"]').setInputFiles(photo); await expectSent(2);
   // Body balance (My Body)

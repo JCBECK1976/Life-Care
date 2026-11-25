@@ -808,6 +808,39 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {item.suitability && <Field label="About">{item.suitability}</Field>}
             </OpenForm>);
           };
+          /* v2.52.0 (night batch 25 Nov P1a): the Snap panel, once — under its category, or inside the picker when Snap was started there */
+          var renderSnapPanel = function() { return (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
+                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
+                {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 Snap a photo of your food</div>
+                  <input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: size and detail, e.g. 'large plate', '2 sausages', '28g bar', 'half eaten'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 8, fontSize: 11, marginBottom: 6 }} />
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <label style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", textAlign: "center" }}>📷 Take photo<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(portionSlot, e.target.files[0], listForSlot(portionSlot), portionDesc); e.target.value=""; }} style={{ display: "none" }} /></label>
+                    <button onClick={function() { cancelPortion(); if (picker && picker.snap) setPicker(Object.assign({}, picker, { snap: false })); }} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>
+                </div>)}
+                {portionResult && (<div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
+                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
+                    <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
+                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#b91c1c" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#1d4ed8" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
+                    <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
+                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#b91c1c" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
+                  </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
+                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
+                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult, personalLimits(data && data[activeTab]));   /* v2.18.2: a selection → this person's limits */ return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: ratingColor(rr.rating) }}>{ratingLabel(rr.rating + " · " + rr.freqLabel)}</div>; })()}
+                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
+                  {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
+                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
+                  <div data-testid="snap-recheck-hint" style={{ marginBottom: 8, padding: 6, border: "2px solid #f59e0b", background: "#fffbeb", borderRadius: 8 }}><div style={{ fontSize: 10, color: "#78350f", fontWeight: 600, marginBottom: 4 }}>{portionResult && portionResult._deep ? "💡 Re-check – for improved accuracy, you may provide any known weight, calories or portion sizes to help your companion analysis" : "💡 Additional Information – for improved accuracy, you may provide any known weight, calories or portion sizes to help your companion analysis"}</div><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #f59e0b", borderRadius: 8, fontSize: 10 }} /></div>
+                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
+                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+                    <button onClick={async function() { await confirmPortion(); if (picker && picker.snap) setPicker(null); }} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
+                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
+                    <button onClick={function() { cancelPortion(); if (picker && picker.snap) setPicker(Object.assign({}, picker, { snap: false })); }} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
+                  </div>
+                </div>)}
+              </div>); };
           /* ═══ v2.50.0 (Architect night batch 24 Nov, PART 2): ONE wide box per row (✎ filled / + empty) that opens the picker;
              the picker has a sticky action bar — Snap · ♥ Favourites · Add New · Edit Item · Remove; picking an item asks to
              confirm it (with the quantity on a day); Confirm fills the row and, on a category's last row, adds ONE blank row. ═══ */
@@ -938,7 +971,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1, color: opts.heart ? "#dc2626" : undefined }}>{icon}</span><span style={{ fontSize: 10, fontWeight: 700, whiteSpace: "nowrap" }}>{label}</span></button>; };
             var catName = row ? ROW_LABEL[rowPrefix(row.slot)] || "item" : "item";
             var bar = row ? (<div data-testid="picker-actions" style={{ display: "flex", gap: 4, padding: "8px 12px", borderBottom: "1px solid #e2e8f0", background: "#f8fafc" }}>
-              {row.mode !== "defaults" && act("📷", "Snap", "act-snap", function() { close(); openSnap(row.slot); })}
+              {row.mode !== "defaults" && act("📷", "Snap", "act-snap", function() { setPicker(Object.assign({}, ps, { snap: true, pending: null })); openSnap(row.slot); })}
               {act(favOnly ? "♥" : "♡", "Favourites", "act-fav", function() { setFavOnly(!favOnly); }, { pressed: favOnly, heart: true })}
               {act("+", "Add New", "act-add", function() { close(); onChange({ target: { value: "__add_new__", searchText: search } }); })}
               {act("✎", "Edit Item", "act-edit", function() { close(); editRow(row); }, { disabled: !filled || (row.mode === "defaults" && !(it0 && it0._isCustom !== false)), title: !filled ? "Nothing to edit yet" : "" })}
@@ -977,9 +1010,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <button aria-label="Close the list" onClick={close} style={{minWidth:44,minHeight:40,padding:"8px 12px",background:"#fff",border:"1px solid #2563eb",borderRadius:8,fontSize:13,fontWeight:700,color:"#1e3a8a",cursor:"pointer"}}>✕ Close</button>
                   </div>
                   {bar}
-                  {!pending && <div style={{ padding: "8px 12px", borderBottom: "1px solid #e2e8f0" }}><input ref={inputRef} autoFocus={!(window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches)} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Type to search..." aria-label="Search items" style={{width:"100%",padding:"10px 12px",border:"1px solid "+accent,borderRadius:8,fontSize:16,background:"#fff",boxSizing:"border-box"}} /></div>}
+                  {!pending && !(ps && ps.snap) && <div style={{ padding: "8px 12px", borderBottom: "1px solid #e2e8f0" }}><input ref={inputRef} autoFocus={!(window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches)} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Type to search..." aria-label="Search items" style={{width:"100%",padding:"10px 12px",border:"1px solid "+accent,borderRadius:8,fontSize:16,background:"#fff",boxSizing:"border-box"}} /></div>}
                 </div>
-                {pending ? confirmEl : <div data-testid="picker-results" role="listbox" aria-label="Items" style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>{rowsEl}</div>}
+                {ps && ps.snap && portionSlot === row.slot ? <div data-testid="picker-snap" style={{ flex: 1, overflowY: "auto", padding: "10px 12px" }}>{renderSnapPanel()}</div> : pending ? confirmEl : <div data-testid="picker-results" role="listbox" aria-label="Items" style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>{rowsEl}</div>}
               </div>
             </div>);
           };
@@ -1982,38 +2015,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 });
               })()}
               {slotOpen && slotOpen.day === eatDay && /^b\d*$/.test(slotOpen.slot) && renderSlotForm()}
-              {portionSlot && portionSlot.match(/^b\d*$/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
-                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
-                {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 Snap a photo of your food</div>
-                  <input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: size and detail, e.g. 'large plate', '2 sausages', '28g bar', 'half eaten'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 8, fontSize: 11, marginBottom: 6 }} />
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <label style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", textAlign: "center" }}>📷 Take photo<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(portionSlot, e.target.files[0], listForSlot(portionSlot), portionDesc); e.target.value=""; }} style={{ display: "none" }} /></label>
-                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
-                  </div>
-                </div>)}
-                {portionResult && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
-                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
-                    <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
-                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#b91c1c" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#1d4ed8" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
-                    <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
-                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#b91c1c" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
-                  </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
-                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
-                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult, personalLimits(data && data[activeTab]));   /* v2.18.2: a selection → this person's limits */ return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: ratingColor(rr.rating) }}>{ratingLabel(rr.rating + " · " + rr.freqLabel)}</div>; })()}
-                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
-                  {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
-                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
-                  <div data-testid="snap-recheck-hint" style={{ marginBottom: 8, padding: 6, border: "2px solid #f59e0b", background: "#fffbeb", borderRadius: 8 }}><div style={{ fontSize: 10, color: "#78350f", fontWeight: 600, marginBottom: 4 }}><span aria-hidden="true">💡 </span>To re-check, it helps if you add any known weight or calories for the portion.</div><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #f59e0b", borderRadius: 8, fontSize: 10 }} /></div>
-                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
-                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-                    <button onClick={confirmPortion} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
-                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
-                    <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
-                  </div>
-                </div>)}
-              </div>)}
+              {portionSlot && portionSlot.match(/^b\d*$/) && (portionLoading || portionResult || snapPre === portionSlot) && !(picker && picker.snap) && renderSnapPanel()}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             </div>
             </div>
@@ -2051,38 +2053,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 });
               })()}
               {slotOpen && slotOpen.day === eatDay && /^l\d*$/.test(slotOpen.slot) && renderSlotForm()}
-              {portionSlot && portionSlot.match(/^l\d*$/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
-                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
-                {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 Snap a photo of your food</div>
-                  <input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: size and detail, e.g. 'large plate', '2 sausages', '28g bar', 'half eaten'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 8, fontSize: 11, marginBottom: 6 }} />
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <label style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", textAlign: "center" }}>📷 Take photo<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(portionSlot, e.target.files[0], listForSlot(portionSlot), portionDesc); e.target.value=""; }} style={{ display: "none" }} /></label>
-                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
-                  </div>
-                </div>)}
-                {portionResult && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
-                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
-                    <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
-                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#b91c1c" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#1d4ed8" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
-                    <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
-                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#b91c1c" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
-                  </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
-                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
-                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult, personalLimits(data && data[activeTab]));   /* v2.18.2: a selection → this person's limits */ return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: ratingColor(rr.rating) }}>{ratingLabel(rr.rating + " · " + rr.freqLabel)}</div>; })()}
-                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
-                  {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
-                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
-                  <div data-testid="snap-recheck-hint" style={{ marginBottom: 8, padding: 6, border: "2px solid #f59e0b", background: "#fffbeb", borderRadius: 8 }}><div style={{ fontSize: 10, color: "#78350f", fontWeight: 600, marginBottom: 4 }}><span aria-hidden="true">💡 </span>To re-check, it helps if you add any known weight or calories for the portion.</div><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #f59e0b", borderRadius: 8, fontSize: 10 }} /></div>
-                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
-                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-                    <button onClick={confirmPortion} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
-                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
-                    <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
-                  </div>
-                </div>)}
-              </div>)}
+              {portionSlot && portionSlot.match(/^l\d*$/) && (portionLoading || portionResult || snapPre === portionSlot) && !(picker && picker.snap) && renderSnapPanel()}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             </div>
             </div>
@@ -2143,38 +2114,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 });
               })()}
               {slotOpen && slotOpen.day === eatDay && /^d\d*$/.test(slotOpen.slot) && renderSlotForm()}
-              {portionSlot && portionSlot.match(/^d\d*$/) && !portionSlot.match(/^d[sr]/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
-                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
-                {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 Snap a photo of your food</div>
-                  <input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: size and detail, e.g. 'large plate', '2 sausages', '28g bar', 'half eaten'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 8, fontSize: 11, marginBottom: 6 }} />
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <label style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", textAlign: "center" }}>📷 Take photo<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(portionSlot, e.target.files[0], listForSlot(portionSlot), portionDesc); e.target.value=""; }} style={{ display: "none" }} /></label>
-                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
-                  </div>
-                </div>)}
-                {portionResult && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
-                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
-                    <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
-                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#b91c1c" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#1d4ed8" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
-                    <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
-                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#b91c1c" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
-                  </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
-                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
-                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult, personalLimits(data && data[activeTab]));   /* v2.18.2: a selection → this person's limits */ return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: ratingColor(rr.rating) }}>{ratingLabel(rr.rating + " · " + rr.freqLabel)}</div>; })()}
-                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
-                  {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
-                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
-                  <div data-testid="snap-recheck-hint" style={{ marginBottom: 8, padding: 6, border: "2px solid #f59e0b", background: "#fffbeb", borderRadius: 8 }}><div style={{ fontSize: 10, color: "#78350f", fontWeight: 600, marginBottom: 4 }}><span aria-hidden="true">💡 </span>To re-check, it helps if you add any known weight or calories for the portion.</div><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #f59e0b", borderRadius: 8, fontSize: 10 }} /></div>
-                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
-                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-                    <button onClick={confirmPortion} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
-                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
-                    <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
-                  </div>
-                </div>)}
-              </div>)}
+              {portionSlot && portionSlot.match(/^d\d*$/) && !portionSlot.match(/^d[sr]/) && (portionLoading || portionResult || snapPre === portionSlot) && !(picker && picker.snap) && renderSnapPanel()}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             </div>
             </div>
@@ -2207,38 +2147,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 });
               })()}
               {slotOpen && slotOpen.day === eatDay && /^ds/.test(slotOpen.slot) && renderSlotForm()}
-              {portionSlot && portionSlot.match(/^ds/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
-                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
-                {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 Snap a photo of your food</div>
-                  <input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: size and detail, e.g. 'large plate', '2 sausages', '28g bar', 'half eaten'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 8, fontSize: 11, marginBottom: 6 }} />
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <label style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", textAlign: "center" }}>📷 Take photo<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(portionSlot, e.target.files[0], listForSlot(portionSlot), portionDesc); e.target.value=""; }} style={{ display: "none" }} /></label>
-                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
-                  </div>
-                </div>)}
-                {portionResult && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
-                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
-                    <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
-                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#b91c1c" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#1d4ed8" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
-                    <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
-                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#b91c1c" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
-                  </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
-                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
-                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult, personalLimits(data && data[activeTab]));   /* v2.18.2: a selection → this person's limits */ return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: ratingColor(rr.rating) }}>{ratingLabel(rr.rating + " · " + rr.freqLabel)}</div>; })()}
-                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
-                  {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
-                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
-                  <div data-testid="snap-recheck-hint" style={{ marginBottom: 8, padding: 6, border: "2px solid #f59e0b", background: "#fffbeb", borderRadius: 8 }}><div style={{ fontSize: 10, color: "#78350f", fontWeight: 600, marginBottom: 4 }}><span aria-hidden="true">💡 </span>To re-check, it helps if you add any known weight or calories for the portion.</div><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #f59e0b", borderRadius: 8, fontSize: 10 }} /></div>
-                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
-                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-                    <button onClick={confirmPortion} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
-                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
-                    <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
-                  </div>
-                </div>)}
-              </div>)}
+              {portionSlot && portionSlot.match(/^ds/) && (portionLoading || portionResult || snapPre === portionSlot) && !(picker && picker.snap) && renderSnapPanel()}
             </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             </div>
@@ -2271,38 +2180,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 });
               })()}
               {slotOpen && slotOpen.day === eatDay && /^dr/.test(slotOpen.slot) && renderSlotForm()}
-              {portionSlot && portionSlot.match(/^dr/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
-                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
-                {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 Snap a photo of your food</div>
-                  <input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: size and detail, e.g. 'large plate', '2 sausages', '28g bar', 'half eaten'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 8, fontSize: 11, marginBottom: 6 }} />
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <label style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", textAlign: "center" }}>📷 Take photo<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(portionSlot, e.target.files[0], listForSlot(portionSlot), portionDesc); e.target.value=""; }} style={{ display: "none" }} /></label>
-                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
-                  </div>
-                </div>)}
-                {portionResult && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
-                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
-                    <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
-                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#b91c1c" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#1d4ed8" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
-                    <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
-                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#b91c1c" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
-                  </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
-                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
-                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult, personalLimits(data && data[activeTab]));   /* v2.18.2: a selection → this person's limits */ return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: ratingColor(rr.rating) }}>{ratingLabel(rr.rating + " · " + rr.freqLabel)}</div>; })()}
-                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
-                  {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
-                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
-                  <div data-testid="snap-recheck-hint" style={{ marginBottom: 8, padding: 6, border: "2px solid #f59e0b", background: "#fffbeb", borderRadius: 8 }}><div style={{ fontSize: 10, color: "#78350f", fontWeight: 600, marginBottom: 4 }}><span aria-hidden="true">💡 </span>To re-check, it helps if you add any known weight or calories for the portion.</div><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #f59e0b", borderRadius: 8, fontSize: 10 }} /></div>
-                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
-                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-                    <button onClick={confirmPortion} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
-                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
-                    <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
-                  </div>
-                </div>)}
-              </div>)}
+              {portionSlot && portionSlot.match(/^dr/) && (portionLoading || portionResult || snapPre === portionSlot) && !(picker && picker.snap) && renderSnapPanel()}
             </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             </div>
@@ -2332,38 +2210,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               </div>);
             })}
             {slotOpen && slotOpen.day === eatDay && /^o/.test(slotOpen.slot) && renderSlotForm()}
-              {portionSlot && portionSlot.match(/^o/) && (portionLoading || portionResult || snapPre === portionSlot) && (<div style={{ background: "#faf5ff", borderRadius: 8, padding: 10, marginBottom: 8, border: "1px solid #ddd6fe" }}>
-                {portionLoading && <div style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600 }}>⏳ Looking at your photo...</div>}
-                {snapPre === portionSlot && !portionLoading && !portionResult && (<div data-testid="snap-pre">
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📷 Snap a photo of your food</div>
-                  <input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: size and detail, e.g. 'large plate', '2 sausages', '28g bar', 'half eaten'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #ddd6fe", borderRadius: 8, fontSize: 11, marginBottom: 6 }} />
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <label style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", textAlign: "center" }}>📷 Take photo<input type="file" accept="image/*" capture="environment" onChange={function(e) { if (e.target.files && e.target.files[0]) portionAnalyze(portionSlot, e.target.files[0], listForSlot(portionSlot), portionDesc); e.target.value=""; }} style={{ display: "none" }} /></label>
-                    <button onClick={cancelPortion} style={{ padding: "8px 16px", background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
-                  </div>
-                </div>)}
-                {portionResult && (<div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>{noFood(portionResult) ? "📷 No food found" : portionResult._deep ? "🔎 Re-check deep dive — re-assessed outcome" : !portionPlanned ? "📷 " + (portionResult.name || "Food") : portionResult.matchesPlanned === false ? "⚠️ Looks like " + (portionResult.name || "a different food") + ", not " + portionPlanned.name : "📷 Portion Analysis"}</div>
-                  {noFood(portionResult) ? <div data-testid="snap-no-food" role="alert" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: 8, marginBottom: 6 }}>{NO_FOOD_MSG}</div> : portionPlanned ? (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, fontSize: 10, marginBottom: 6 }}>
-                    <div style={{ fontWeight: 600, color: "#475569" }}></div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Planned</div><div style={{ fontWeight: 600, color: "#475569", textAlign: "center" }}>Actual</div>
-                    <div style={{ color: "#475569" }}>kcal</div><div style={{ textAlign: "center" }}>{portionPlanned.kcal}</div><div style={{ textAlign: "center", color: portionResult.kcal > portionPlanned.kcal * 1.1 ? "#b91c1c" : portionResult.kcal < portionPlanned.kcal * 0.9 ? "#1d4ed8" : "#0c4a6e", fontWeight: 600 }}>{portionResult.kcal}</div>
-                    <div style={{ color: "#475569" }}>Protein</div><div style={{ textAlign: "center" }}>{portionPlanned.protein}g</div><div style={{ textAlign: "center", fontWeight: 600 }}>{portionResult.protein}g</div>
-                    <div style={{ color: "#475569" }}>Sat fat</div><div style={{ textAlign: "center" }}>{portionPlanned.satFat}g</div><div style={{ textAlign: "center", color: portionResult.satFat > portionPlanned.satFat * 1.1 ? "#b91c1c" : "#0c4a6e", fontWeight: 600 }}>{portionResult.satFat}g</div>
-                  </div>) : (<div data-testid="snap-values" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10, marginBottom: 6 }}><span><b>{portionResult.kcal}</b> kcal</span><span><b>{portionResult.protein || 0}g</b> prot</span><span><b>{portionResult.satFat || 0}g</b> s/fat</span><span><b>{portionResult.addedSugar || 0}g</b> added sugar</span></div>)}
-                  {!noFood(portionResult) && portionResult.portionNote && <div style={{ fontSize: 10, color: "#6b21a8", fontStyle: "italic", marginBottom: 6 }}>{portionResult.portionNote}</div>}
-                  {!noFood(portionResult) && (function() { var rr = rateByPortion(portionResult, personalLimits(data && data[activeTab]));   /* v2.18.2: a selection → this person's limits */ return <div data-testid="snap-rating" style={{ fontSize: 10, fontWeight: 700, marginBottom: 4, color: ratingColor(rr.rating) }}>{ratingLabel(rr.rating + " · " + rr.freqLabel)}</div>; })()}
-                  {!noFood(portionResult) && portionResult._deep && portionFirst && <div data-testid="deep-compare" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>{compareLine(portionFirst, portionResult)}</div>}
-                  {portionResult._deep && <div style={{ fontSize: 11, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>{portionResult.name}</div>}
-                  {!noFood(portionResult) && gramsLine(portionResult) && <div data-testid="portion-assumed" style={{ fontSize: 10, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Assumed: {gramsLine(portionResult)} — {portionResult.kcal} kcal</div>}
-                  <div data-testid="snap-recheck-hint" style={{ marginBottom: 8, padding: 6, border: "2px solid #f59e0b", background: "#fffbeb", borderRadius: 8 }}><div style={{ fontSize: 10, color: "#78350f", fontWeight: 600, marginBottom: 4 }}><span aria-hidden="true">💡 </span>To re-check, it helps if you add any known weight or calories for the portion.</div><input aria-label="Photo description" value={portionDesc} onChange={function(e){ setPortionDesc(e.target.value); }} placeholder="Optional: add detail, e.g. '28g bar', 'small bowl', 'half eaten', 'brand'" style={{ width: "100%", boxSizing: "border-box", padding: "6px 8px", border: "1px solid #f59e0b", borderRadius: 8, fontSize: 10 }} /></div>
-                  {!noFood(portionResult) && portionResult.matchesPlanned === false && portionPlanned && <div data-testid="snap-update-to" style={{ fontSize: 11, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>Update to {portionResult.name || "this food"}</div>}
-                  <div data-testid="snap-actions" style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-                    <button onClick={confirmPortion} disabled={noFood(portionResult)} style={Object.assign({}, btnActionLg, snapBtn, noFood(portionResult) ? { opacity: 0.45, cursor: "not-allowed" } : {})}>Confirm</button>
-                    <button onClick={recheckPortion} style={Object.assign({}, btnMuted, snapBtn)}>↻ Re-check</button>
-                    <button onClick={cancelPortion} style={Object.assign({ background: accentBtnLight, color: "#475569", border: "1px solid " + accentBtnBorder, borderRadius: 6, cursor: "pointer" }, snapBtn)}>Cancel</button>
-                  </div>
-                </div>)}
-              </div>)}
+              {portionSlot && portionSlot.match(/^o/) && (portionLoading || portionResult || snapPre === portionSlot) && !(picker && picker.snap) && renderSnapPanel()}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             </div>
             </div>

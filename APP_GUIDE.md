@@ -371,10 +371,9 @@ Plenty of fibre (5 g+) or protein (20 g+) lifts an item one band (never above AM
   - If a change isn't clear, the Companion **asks you a short question** — answer it and tap **Answer**. It then shows the new values to **check**; tap **Save** to keep them.
   - **Save** shows *"Saved for this meal only. To update the list item permanently, please go to 'Update Eating Lists'."* Your list item is never changed here.
   - **Remove** takes the food out of this meal (asks first). It doesn't touch your list.
-- **📷 Snap** (in the picker of any row, empty or filled) photographs your food:
+- **📷 Snap** (in the picker of any row, empty or filled) photographs your food: the photo, the result, the notes box and **Confirm / Re-check / Cancel** all stay **inside the picker** (where the portions confirm appears); **Cancel** takes you back to the same list with nothing changed. A yellow **💡** box under the result says *"Additional Information – for improved accuracy, you may provide any known weight, calories or portion sizes to help your companion analysis"* (after a Re-check it starts *"Re-check – …"*).
   1. Optionally describe it first ("large plate", "2 sausages", "28g bar", "half eaten"); the Companion gives your description priority. Then **📷 Take photo**.
   2. The result shows the food, its values, its rating and the weight it assumed, e.g. **"Assumed: ~450g — rice 200g, frankfurters 120g, beans 130g"**.
-  - The note box under a Snap result is highlighted (yellow, 💡): *"To re-check, it helps if you add any known weight or calories for the portion."* — e.g. "28g bar" or "the pack says 210 kcal".
   3. **Confirm** saves it; **↻ Re-check** asks for an independent **deep dive** (component by component, with grams), shown as "Re-check deep dive — re-assessed outcome" with a comparison line ("First check: large · RED → Deep dive: medium · GOOD"). You can change the description and re-check again. **Cancel** saves nothing.
   4. On Confirm:
      - the **same food** as the slot updates this meal's portion only;
