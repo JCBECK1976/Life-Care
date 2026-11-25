@@ -392,7 +392,8 @@ Plenty of fibre (5 g+) or protein (20 g+) lifts an item one band (never above AM
 
 ### The Week tab
 - **My Week** shows average kcal/day. **📋 Copy Week** copies the week's selections to future weeks.
-- **Week — Nutrition Overview (g)** has a table per day plus totals and percentages of your recommendations.
+- **Week — Nutrition Overview (g)** has a table per day plus totals and percentages of your recommendations. Every total, recommended and +/− figure is shown to **one decimal** (calories as whole numbers).
+- The day heading (e.g. **Monday — 1,988 kcal**) counts **every** row of the day (extra breakfast rows, sides, desserts, drinks, snacks). On a phone, **Copy Day / Copy Week** and **👁 Progress** sit on their own line under the heading so nothing is squashed.
 - **⏱ Quick Prep Days**: tick days when you're short of time; the generator then picks dinners within that prep time.
 - **Set Defaults** sets default meals for each slot (**Individual** or **All**).
 - **My Companion Meals Generator**, for every day and slot:

@@ -409,7 +409,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             setTimeout(function() { setMeal(today, k, "__empty__"); portionAnalyze(k, sh.file, listForSlot(k), ""); }, 0);
           })();
           var removeOtherSlot = function(dayKey, idx) { var n = Object.assign({}, meals); if (n[dayKey]) { delete n[dayKey]["o" + idx]; } setMeals(n); saveMeals(n); };
-          var getDayKcal = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; var total = 0; var kf = isJC ? "jcKcal" : "beckKcal"; ["b","l","d"].forEach(function(s) { if (m[s]) { var item = allItems.find(function(x) { return x.id === m[s]; }); if (item) total += item[kf] || 0; } }); for (var i = 1; i <= 20; i++) { if (m["o" + i]) { var oi = allOther.find(function(x) { return x.id === m["o" + i]; }); if (oi) total += oi[kf] || 0; } } return total; };
+          /* v2.51.0 (P3): the day's total counts EVERY row (extra breakfast rows, sides, desserts, drinks, snacks), not just the first of each */
+          var getDayKcal = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; var total = 0; var kf = isJC ? "jcKcal" : "beckKcal"; Object.keys(m).forEach(function(k) { var v = m[k]; if (!/^(b|l|d|dp|dv|ds|dr|o)\d*$/.test(k) || !v || v === "__empty__") return; var it = _listLookup[v] || allItemsLookup[v] || allItems.find(function(x) { return x.id === v; }); if (it) total += Number(it[kf] != null ? it[kf] : it.kcal) || 0; }); return Math.round(total); };
 
           var clearWeek = function() { if (!confirm("Clear ALL meals for this week? This cannot be undone.")) return; var n = {}; setMeals(n); saveMeals(n); setFormMsg("Week cleared"); setTimeout(function() { setFormMsg(""); }, 3000); };
 
@@ -875,6 +876,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             }
             setSlotOpen({ day: row.day, slot: row.slot, first: /^[bld]$/.test(row.slot), editing: false, msg: "" });   // as Open did: the meal's form, Edit from there
           };
+          /* v2.51.0 (night batch P3a): totals, recommended and +/- values — one decimal (whole kcal); no float artefacts */
+          var f1 = function(v) { var n = Number(v); return isFinite(n) ? Math.round(n * 10) / 10 : 0; };
+          var fk = function(v) { var n = Number(v); return isFinite(n) ? Math.round(n) : 0; };
+          var sgn = function(v, dp) { var r = dp ? f1(v) : fk(v); return (r > 0 ? "+" : "") + r; };
           var MealSelect = function(props) {
             useFavs();
             var items = props.items; var value = props.value; var onChange = props.onChange; var row = props.row || null;
@@ -1218,8 +1223,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     
           
 
+          <style>{".lc-head-title{flex:1 1 auto;min-width:0}@media (max-width:480px){.lc-head-title{flex-basis:100%}}"}</style>   {/* v2.51.0 (P3b): on a phone the buttons get their own line */}
           {eatDay === "week" && (<div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "nowrap", gap: 6 }}><span role="heading" aria-level={2} style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", minWidth: 0, flexShrink: 1 }}>My Week{(() => {
+            <div data-testid="week-head" className="lc-head" style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}><span role="heading" aria-level={2} className="lc-head-title" style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", minWidth: 0, flexShrink: 1 }}>My Week{(() => {
               var totalKcal2 = 0; var dayCount2 = 0;
               DAYS.forEach(function(d) { var dk = getDayKcal(d); if (dk > 0) { totalKcal2 += dk; dayCount2++; } });
               var avg2 = dayCount2 > 0 ? Math.round(totalKcal2 / dayCount2) : 0;
@@ -1371,16 +1377,16 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                             if (dr.kcal === 0 && dr.prot === 0) return null;
                             return (<tr key={dr.day} style={{ borderBottom: "1px solid #f1f5f9" }}>
                               <td style={{ padding: "3px 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dr.day.charAt(0).toUpperCase() + dr.day.slice(1, 3)}</td>
-                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{dr.kcal}</td>
-                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{dr.prot || "-"}</td>
-                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{Math.round(dr.sfat * 10) / 10 || "-"}</td>
-                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{dr.carbs || "-"}</td>
-                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{dr.fib || "-"}</td>
-                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{Math.round(dr.salt * 10) / 10 || "-"}</td>
+                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{fk(dr.kcal)}</td>
+                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{f1(dr.prot) || "-"}</td>
+                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{f1(dr.sfat) || "-"}</td>
+                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{f1(dr.carbs) || "-"}</td>
+                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{f1(dr.fib) || "-"}</td>
+                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{f1(dr.salt) || "-"}</td>
                               <td></td>
                             </tr>);
                           })}
-                          <tr style={{ borderBottom: "1px solid #cbd5e1" }}><td style={{ padding: "3px 2px", fontWeight: 600, fontSize: 9, color: "#475569" }}>{cs.label} total</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{cs.weekKcal}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{cs.weekProt || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{Math.round(cs.weekSfat * 10) / 10 || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{cs.weekCarbs || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{cs.weekFib || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{Math.round(cs.weekSalt * 10) / 10 || "-"}</td><td></td></tr>
+                          <tr style={{ borderBottom: "1px solid #cbd5e1" }}><td style={{ padding: "3px 2px", fontWeight: 600, fontSize: 9, color: "#475569" }}>{cs.label} total</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{fk(cs.weekKcal)}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{f1(cs.weekProt) || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{f1(cs.weekSfat) || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{f1(cs.weekCarbs) || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{f1(cs.weekFib) || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{f1(cs.weekSalt) || "-"}</td><td></td></tr>
                         </React.Fragment>);
                       })}
                       <tr><td colSpan={8} style={{ padding: "8px 2px 2px", fontWeight: 700, color: "#0f172a", fontSize: 11 }}>Daily Totals</td></tr>
@@ -1388,12 +1394,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         if (dg.kcal === 0 && dg.conKcal === 0) return null;
                         return (<tr key={dg.day} style={{ borderBottom: "1px solid #f1f5f9" }}>
                           <td style={{ padding: "3px 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", marginRight: 4, background: ratingsShown() ? dg.ragColor : "#cbd5e1", verticalAlign: "middle" }}></span>{dg.day.charAt(0).toUpperCase() + dg.day.slice(1, 3)}</td>
-                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{dg.kcal}</td>
-                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{dg.prot || "-"}</td>
-                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{Math.round(dg.sfat * 10) / 10 || "-"}</td>
-                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{dg.carbs || "-"}</td>
-                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{dg.fib || "-"}</td>
-                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{Math.round(dg.salt * 10) / 10 || "-"}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{fk(dg.kcal)}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{f1(dg.prot) || "-"}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{f1(dg.sfat) || "-"}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{f1(dg.carbs) || "-"}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{f1(dg.fib) || "-"}</td>
+                          <td style={{ padding: "3px 2px", textAlign: "right" }}>{f1(dg.salt) || "-"}</td>
                           <td style={{ padding: "3px 2px", textAlign: "center", fontSize: 9 }}>{dg.inRange}/6</td>
                         </tr>);
                       })}
@@ -1401,22 +1407,22 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <tfoot>
                       <tr style={{ background: "#e0f2fe", borderTop: "2px solid #0f172a" }}>
                         <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 11, color: "#0c4a6e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Total</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekTotalConsumed > limKcal * 7 ? "#b91c1c" : "#0c4a6e" }}>{weekTotalConsumed}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekProtConsumed < (isJC ? 110 : 90) * 7 ? "#b91c1c" : "#0c4a6e" }}>{weekProtConsumed || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekSfatConsumed > 20 * 7 ? "#b91c1c" : "#0c4a6e" }}>{Math.round(weekSfatConsumed * 10) / 10 || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekCarbsConsumed > limCarbs * 7 ? "#b91c1c" : "#0c4a6e" }}>{weekCarbsConsumed || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekFibConsumed < (isJC ? 30 : 25) * 7 ? "#b91c1c" : "#0c4a6e" }}>{weekFibConsumed || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekSaltConsumed > 6 * 7 ? "#b91c1c" : "#0c4a6e" }}>{Math.round(weekSaltConsumed * 10) / 10 || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekTotalConsumed > limKcal * 7 ? "#b91c1c" : "#0c4a6e" }}>{fk(weekTotalConsumed)}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekProtConsumed < (isJC ? 110 : 90) * 7 ? "#b91c1c" : "#0c4a6e" }}>{f1(weekProtConsumed) || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekSfatConsumed > 20 * 7 ? "#b91c1c" : "#0c4a6e" }}>{f1(weekSfatConsumed) || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekCarbsConsumed > limCarbs * 7 ? "#b91c1c" : "#0c4a6e" }}>{f1(weekCarbsConsumed) || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekFibConsumed < (isJC ? 30 : 25) * 7 ? "#b91c1c" : "#0c4a6e" }}>{f1(weekFibConsumed) || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: weekSaltConsumed > 6 * 7 ? "#b91c1c" : "#0c4a6e" }}>{f1(weekSaltConsumed) || "-"}</td>
                         <td></td>
                       </tr>
                       <tr style={{ background: "#f1f5f9" }}>
                         <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 10, color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Recommended</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{limKcal * 7}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{limProt * 7}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{limSfat * 7}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{limCarbs * 7}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{limFib * 7}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{limSalt * 7}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{fk(limKcal * 7)}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{f1(limProt * 7)}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{f1(limSfat * 7)}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{f1(limCarbs * 7)}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{f1(limFib * 7)}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{f1(limSalt * 7)}</td>
                         <td></td>
                       </tr>
                       {(function() {
@@ -1429,12 +1435,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         var dSalt = weekSaltConsumed - wLimSalt;
                         return (<tr style={{ background: "#fafafa" }}>
                           <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 10, color: "#475569" }}>+/−</td>
-                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dKcal > 0 ? "#b91c1c" : "#0c4a6e" }}>{(dKcal > 0 ? "+" : "") + dKcal}</td>
-                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dProt < 0 ? "#b91c1c" : "#0c4a6e" }}>{(dProt > 0 ? "+" : "") + dProt}</td>
-                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dSfat > 0 ? "#b91c1c" : "#0c4a6e" }}>{(dSfat > 0 ? "+" : "") + Math.round(dSfat * 10) / 10}</td>
-                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dCarbs > 0 ? "#b91c1c" : "#0c4a6e" }}>{(dCarbs > 0 ? "+" : "") + dCarbs}</td>
-                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dFib < 0 ? "#b91c1c" : "#0c4a6e" }}>{(dFib > 0 ? "+" : "") + dFib}</td>
-                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dSalt > 0 ? "#b91c1c" : "#0c4a6e" }}>{(dSalt > 0 ? "+" : "") + Math.round(dSalt * 10) / 10}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dKcal > 0 ? "#b91c1c" : "#0c4a6e" }}>{sgn(dKcal, 0)}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dProt < 0 ? "#b91c1c" : "#0c4a6e" }}>{sgn(dProt, 1)}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dSfat > 0 ? "#b91c1c" : "#0c4a6e" }}>{sgn(dSfat, 1)}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dCarbs > 0 ? "#b91c1c" : "#0c4a6e" }}>{sgn(dCarbs, 1)}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dFib < 0 ? "#b91c1c" : "#0c4a6e" }}>{sgn(dFib, 1)}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: dSalt > 0 ? "#b91c1c" : "#0c4a6e" }}>{sgn(dSalt, 1)}</td>
                           <td></td>
                         </tr>);
                       })()}
@@ -1733,7 +1739,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           {/* Day content */}
           {eatDay !== "week" && <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 8, display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}><span role="heading" aria-level={3}>{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyDayOpen(!copyDayOpen); setCopyDayTargets({}); }} style={Object.assign({},copyDayOpen?btnClose:btnAction)}>{copyDayOpen ? "✕ Close" : "📋 Copy Day"}</button><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);}} aria-label={(eatDayEyeOpen ? "Close " : "") + "Day eating progress"} aria-expanded={!!eatDayEyeOpen} style={eatDayEyeOpen ? btnFilledOn : btnProgress}>{eatDayEyeOpen ? "✕ Progress" : "👁 Progress"}</button></div></div>
+            <div data-testid="day-head" className="lc-head" style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 8, display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 6 }}><span role="heading" aria-level={3} className="lc-head-title">{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyDayOpen(!copyDayOpen); setCopyDayTargets({}); }} style={Object.assign({},copyDayOpen?btnClose:btnAction)}>{copyDayOpen ? "✕ Close" : "📋 Copy Day"}</button><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);}} aria-label={(eatDayEyeOpen ? "Close " : "") + "Day eating progress"} aria-expanded={!!eatDayEyeOpen} style={eatDayEyeOpen ? btnFilledOn : btnProgress}>{eatDayEyeOpen ? "✕ Progress" : "👁 Progress"}</button></div></div>
 
             {copyDayOpen && (<div style={{ background: accentLight, borderRadius: 8, padding: 10, marginBottom: 10, border: "1px solid " + accentBorder }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Copy {eatDay.charAt(0).toUpperCase() + eatDay.slice(1)}'s selections to:</div>
@@ -1836,31 +1842,31 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                           {cat.items.map(function(it, ii) {
                             return (<tr key={ii} style={{ borderBottom: "1px solid #f1f5f9" }}>
                               <td style={{ padding: "3px 2px", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", marginRight: 4, background: ratingDot(it.rating), verticalAlign: "middle" }}></span>{it.name}</td>
-                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{it.kcal}</td>
-                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{it.prot || "-"}</td>
-                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{it.sfat || "-"}</td>
-                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{it.carbs || "-"}</td>
-                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{it.fibre || "-"}</td>
-                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{it.salt || "-"}</td>
+                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{fk(it.kcal)}</td>
+                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{f1(it.prot) || "-"}</td>
+                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{f1(it.sfat) || "-"}</td>
+                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{f1(it.carbs) || "-"}</td>
+                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{f1(it.fibre) || "-"}</td>
+                              <td style={{ padding: "3px 2px", textAlign: "right" }}>{f1(it.salt) || "-"}</td>
                             </tr>);
                           })}
-                          <tr style={{ borderBottom: "1px solid #cbd5e1" }}><td style={{ padding: "3px 2px", fontWeight: 600, fontSize: 9, color: "#475569" }}>{cat.label} total</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{catKcal}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{catProt || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{catSfat || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{catCarbs || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{catFib || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{catSalt || "-"}</td></tr>
+                          <tr style={{ borderBottom: "1px solid #cbd5e1" }}><td style={{ padding: "3px 2px", fontWeight: 600, fontSize: 9, color: "#475569" }}>{cat.label} total</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{fk(catKcal)}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{f1(catProt) || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{f1(catSfat) || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{f1(catCarbs) || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{f1(catFib) || "-"}</td><td style={{ padding: "3px 2px", textAlign: "right", fontWeight: 600, fontSize: 9 }}>{f1(catSalt) || "-"}</td></tr>
                         </React.Fragment>);
                       })}
                     </tbody>
                     <tfoot>
                       <tr style={{ background: "#e0f2fe", borderTop: "2px solid #0f172a" }}>
                         <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 11, color: "#0c4a6e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Total</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayTotalConsumed > dayGoalK ? "#b91c1c" : "#0c4a6e" }}>{dayTotalConsumed}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayProtConsumed < (isJC ? 110 : 90) ? "#b91c1c" : "#0c4a6e" }}>{dayProtConsumed || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: daySfatConsumed > 20 ? "#b91c1c" : "#0c4a6e" }}>{daySfatConsumed || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayCarbsConsumed > (isJC ? 300 : 260) ? "#b91c1c" : "#0c4a6e" }}>{dayCarbsConsumed || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayFibConsumed < (isJC ? 30 : 25) ? "#b91c1c" : "#0c4a6e" }}>{dayFibConsumed || "-"}</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: daySaltConsumed > 6 ? "#b91c1c" : "#0c4a6e" }}>{daySaltConsumed || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayTotalConsumed > dayGoalK ? "#b91c1c" : "#0c4a6e" }}>{fk(dayTotalConsumed)}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayProtConsumed < (isJC ? 110 : 90) ? "#b91c1c" : "#0c4a6e" }}>{f1(dayProtConsumed) || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: daySfatConsumed > 20 ? "#b91c1c" : "#0c4a6e" }}>{f1(daySfatConsumed) || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayCarbsConsumed > (isJC ? 300 : 260) ? "#b91c1c" : "#0c4a6e" }}>{f1(dayCarbsConsumed) || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: dayFibConsumed < (isJC ? 30 : 25) ? "#b91c1c" : "#0c4a6e" }}>{f1(dayFibConsumed) || "-"}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 11, color: daySaltConsumed > 6 ? "#b91c1c" : "#0c4a6e" }}>{f1(daySaltConsumed) || "-"}</td>
                       </tr>
                     <tr style={{ background: "#f1f5f9" }}>
                         <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 10, color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Recommended</td>
-                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{dayGoalK === Infinity ? "—" : dayGoalK}</td>
+                        <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{dayGoalK === Infinity ? "—" : fk(dayGoalK)}</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{isJC ? "130" : "110"}</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>20</td>
                         <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 600, fontSize: 10, color: "#475569" }}>{isJC ? "300" : "260"}</td>
@@ -1888,12 +1894,12 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                         var saltColor = dSalt > 0 ? "#dc2626" : "#0c4a6e";
                         return (<tr style={{ background: "#fafafa" }}>
                           <td style={{ padding: "4px 2px", fontWeight: 700, fontSize: 10, color: "#475569" }}>+/−</td>
-                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: kcalColor }}>{(dKcal > 0 ? "+" : "") + dKcal}</td>
-                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: protColor }}>{(dProt > 0 ? "+" : "") + dProt}</td>
-                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: sfatColor }}>{(dSfat > 0 ? "+" : "") + Math.round(dSfat*10)/10}</td>
-                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: carbsColor }}>{(dCarbs > 0 ? "+" : "") + dCarbs}</td>
-                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: fibColor }}>{(dFib > 0 ? "+" : "") + dFib}</td>
-                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: saltColor }}>{(dSalt > 0 ? "+" : "") + Math.round(dSalt*10)/10}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: kcalColor }}>{sgn(dKcal, 0)}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: protColor }}>{sgn(dProt, 1)}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: sfatColor }}>{sgn(dSfat, 1)}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: carbsColor }}>{sgn(dCarbs, 1)}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: fibColor }}>{sgn(dFib, 1)}</td>
+                          <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 700, fontSize: 10, color: saltColor }}>{sgn(dSalt, 1)}</td>
                         </tr>);
                       })()}
                     </tfoot>
