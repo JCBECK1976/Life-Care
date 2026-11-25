@@ -391,6 +391,7 @@ Plenty of fibre (5 g+) or protein (20 g+) lifts an item one band (never above AM
 
 ### The Week tab
 - **My Week** shows average kcal/day. **📋 Copy Week** copies the week's selections to future weeks.
+- **Week Summary** (My Eating → Week, at the top): two pills — **Average daily calories** (over the days with eating logged so far; green on or under your average goal, red over) and **Week to date ±kcal (±%)** (as on Home). **▸ Show days** opens a table: **Day · Body Burn · Target Deficit** (*Target Surplus* when your goal adds calories) **· Exercise Benefit · Goal · Actual · On Track**. Body Burn − Deficit + Exercise = Goal; Actual = the calories logged; On Track = Actual − Goal (green at or under, red over, with %). Days still to come show "—". **👁 Full Breakdown** (was Progress) shows the days and opens the nutrition detail below.
 - **Week — Nutrition Overview (g)** has a table per day plus totals and percentages of your recommendations. Every total, recommended and +/− figure is shown to **one decimal** (calories as whole numbers).
 - The day heading (e.g. **Monday — 1,988 kcal**) counts **every** row of the day (extra breakfast rows, sides, desserts, drinks, snacks). On a phone, **Copy Day / Copy Week** and **👁 Progress** sit on their own line under the heading so nothing is squashed.
 - **⏱ Quick Prep Days**: tick days when you're short of time; the generator then picks dinners within that prep time.

@@ -38,7 +38,7 @@ test("Nutrition Overview (week and day): one decimal, whole kcal, no float artef
   const { errors } = await openApp(page);
   const today = await seed(page);
   await page.getByRole("button", { name: "Week", exact: true }).first().click();
-  await page.getByRole("button", { name: "Week eating progress" }).click();
+  await page.getByRole("button", { name: "Week full breakdown" }).click();
   const week = page.getByText("Week — Nutrition Overview (g)").locator("xpath=ancestor::div[2]");
   await expect(week).toContainText("Recommended");
   const wt = await week.innerText();
@@ -64,7 +64,7 @@ test("headers at 360 px: 'My Week — Avg … kcal/day' and 'Monday — 1988 kca
   await page.getByRole("button", { name: "Week", exact: true }).first().click();
   const below = async (head) => head.evaluate((h) => { const t = h.querySelector('[role="heading"]').getBoundingClientRect(); return [...h.querySelectorAll("button")].every((b) => b.getBoundingClientRect().top >= t.bottom - 1); });
   const wh = page.getByTestId("week-head");
-  await expect(wh).toContainText("Avg");
+  await expect(wh).not.toContainText("Avg");                                                       // v2.53.0: the Avg moved into the Week Summary
   expect(await below(wh)).toBe(true);
   await wh.screenshot({ path: "test-results/v2510-shots/week-header-360.png" });
   await page.getByRole("button", { name: new RegExp("^" + today.slice(0, 1).toUpperCase() + today.slice(1, 3) + "( \\d+)?$") }).first().click();

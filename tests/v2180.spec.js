@@ -168,8 +168,8 @@ test("UI: one goal everywhere — Home Today and My Eating show the same goal; t
   await expect(day.getByTestId("pa-footnote")).toBeVisible();
   await expect(page.getByText("Deficit:", { exact: false })).toHaveCount(0);                  // no user-facing deficit control
   await page.getByRole("button", { name: "Week", exact: true }).first().click();
-  await expect(page.getByTestId("week-plan-actual").getByTestId("wpa-row")).toHaveCount(7);
-  await expect(page.getByTestId("week-plan-actual").getByTestId("pa-footnote")).toBeVisible();
+  await page.getByTestId("week-summary").getByTestId("sum-toggle").click();                    // v2.53.0: Week Summary, days on Show
+  await expect(page.getByTestId("week-summary").getByTestId("sum-row")).toHaveCount(7);
   expect(errors).toEqual([]);
 });
 

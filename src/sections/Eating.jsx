@@ -1,3 +1,4 @@
+import { WeekSummary, DaySummary } from "../components/EatSummary.jsx";
 import { useFavs, isFav, setFav, setFavPerson } from "../lib/favourites.js";
 import { companionProfileCtx } from "../lib/profileCtx.js";
 import { readImageForAI } from "../lib/image.js";
@@ -55,7 +56,8 @@ export default function EatingSection({ ctx }) {
   /* v2.6.2 D10/F7: Undo for a replaced item, and the optional photo description */
   const [portionUndo, setPortionUndo] = React.useState(null);
   const [pickToast, setPickToast] = React.useState(null);
-  const [picker, setPicker] = React.useState(null);   // v2.50.0: the open picker (row key, search, ♥ filter, item to confirm, quantity)
+  const [picker, setPicker] = React.useState(null);
+  const [weekSumOpen, setWeekSumOpen] = React.useState(false);   // v2.53.0: the Week Summary days (hidden until shown or Full Breakdown)   // v2.50.0: the open picker (row key, search, ♥ filter, item to confirm, quantity)
   React.useEffect(function() { setFavPerson(activeTab); }, [activeTab]);   // v2.50.0: favourites are per person
   useFavs();   // re-render when a favourite changes (the ♥ boxes and the picker)   // v2.20.0: { name, undo } — "Added: …" with Undo for ~5 s
   const [pickFlash, setPickFlash] = React.useState(null);   // the picked item's id, highlighted briefly
@@ -1258,17 +1260,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           <style>{".lc-head-title{flex:1 1 auto;min-width:0}@media (max-width:480px){.lc-head-title{flex-basis:100%}}"}</style>   {/* v2.51.0 (P3b): on a phone the buttons get their own line */}
           {eatDay === "week" && (<div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
-            <div data-testid="week-head" className="lc-head" style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}><span role="heading" aria-level={2} className="lc-head-title" style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", minWidth: 0, flexShrink: 1 }}>My Week{(() => {
-              var totalKcal2 = 0; var dayCount2 = 0;
-              DAYS.forEach(function(d) { var dk = getDayKcal(d); if (dk > 0) { totalKcal2 += dk; dayCount2++; } });
-              var avg2 = dayCount2 > 0 ? Math.round(totalKcal2 / dayCount2) : 0;
-              var _wg = DAYS.map(function(d) { return goalKcal(data && data[activeTab], dateOf(weekStart, d), weekChildren); }).filter(function(x) { return x != null; }); var limit2 = _wg.length ? _wg.reduce(function(a, b) { return a + b; }, 0) / _wg.length : Infinity; // v2.18.0: the person's goal
-              var color2 = avg2 === 0 ? "#94a3b8" : avg2 > limit2 ? "#b91c1c" : "#15803d";
-              return avg2 > 0 ? (<span style={{ fontSize: 11, fontWeight: 600, color: color2 }}> — Avg {avg2} kcal/day</span>) : null;
-            })()}</span><div style={{ display: "flex", gap: 4, flexShrink: 0 }}><button onClick={function(){ setCopyWeekOpen(!copyWeekOpen); setCopyWeekTargets({}); }} style={Object.assign({}, copyWeekOpen ? btnClose : btnAction)}>{copyWeekOpen ? "✕" : <span>📋 Copy Week</span>}</button><button onClick={function(){setEatWeekEyeOpen(!eatWeekEyeOpen);}} aria-label={(eatWeekEyeOpen ? "Close " : "") + "Week eating progress"} aria-expanded={!!eatWeekEyeOpen} style={eatWeekEyeOpen ? btnFilledOn : btnProgress}>{eatWeekEyeOpen ? "✕ Progress" : "👁 Progress"}</button></div></div>
+            <div data-testid="week-head" className="lc-head" style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}><span role="heading" aria-level={2} className="lc-head-title" style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", minWidth: 0, flexShrink: 1 }}>My Week</span><div style={{ display: "flex", gap: 4, flexShrink: 0 }}><button onClick={function(){ setCopyWeekOpen(!copyWeekOpen); setCopyWeekTargets({}); }} style={Object.assign({}, copyWeekOpen ? btnClose : btnAction)}>{copyWeekOpen ? "✕" : <span>📋 Copy Week</span>}</button><button onClick={function(){ if (!eatWeekEyeOpen) setWeekSumOpen(true); setEatWeekEyeOpen(!eatWeekEyeOpen); }} aria-label={(eatWeekEyeOpen ? "Close " : "") + "Week full breakdown"} aria-expanded={!!eatWeekEyeOpen} style={eatWeekEyeOpen ? btnFilledOn : btnProgress}>{eatWeekEyeOpen ? "✕ Full Breakdown" : "👁 Full Breakdown"}</button></div></div>
 
             {/* v2.18.0: the same Planned | Actual figures for the week, one row per day */}
-            <WeekPlanActual data={data} who={activeTab} dates={DAYS.map(function(d) { return dateOf(weekStart, d); })} doc={weekChildren} />
+            <WeekSummary data={data} who={activeTab} dates={DAYS.map(function(d) { return dateOf(weekStart, d); })} doc={weekChildren} open={weekSumOpen} setOpen={setWeekSumOpen} />   {/* v2.53.0 (night batch 25 Nov P2) */}
             {copyWeekOpen && (<div style={{ background: accentLight, borderRadius: 8, padding: 10, marginBottom: 10, border: "1px solid " + accentBorder }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Copy this week's day selections to:</div>
               <div style={{ maxHeight: 200, overflowY: "auto", marginBottom: 8 }}>
