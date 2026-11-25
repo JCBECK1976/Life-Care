@@ -1353,7 +1353,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   return { day: day, kcal: tKcal, prot: tProt, sfat: tSfat, carbs: tCarbs, fib: tFib, salt: tSalt, conKcal: tKcal, conProt: tProt, conSfat: tSfat, conCarbs: tCarbs, conFib: tFib, conSalt: tSalt, ragColor: ragColor, inRange: inRange };
                 });
                 return (<div>
-                  <div style={{ overflowX: "auto", width: "100%", boxSizing: "border-box" }}><table style={{ width: "100%", fontSize: 10, borderCollapse: "collapse", tableLayout: "fixed" }}>
+                  <div style={{ overflowX: "auto", width: "100%", boxSizing: "border-box" }}><table data-testid="nutrition-table" style={{ width: "100%", fontSize: 10, borderCollapse: "collapse", tableLayout: "auto", whiteSpace: "nowrap" }}>
                     <colgroup><col style={{ width: "30%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "8%" }} /><col style={{ width: "8%" }} /><col style={{ width: "14%" }} /></colgroup>
                     <thead>
                       <tr style={{ borderBottom: "2px solid #e2e8f0", textAlign: "left" }}>
@@ -1820,7 +1820,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   return { label: cat.label, items: catItems };
                 });
                 return (<div>
-                  <div style={{ overflowX: "auto", width: "100%", boxSizing: "border-box" }}><table style={{ width: "100%", fontSize: 10, borderCollapse: "collapse", tableLayout: "fixed" }}>
+                  <div style={{ overflowX: "auto", width: "100%", boxSizing: "border-box" }}><table data-testid="nutrition-table" style={{ width: "100%", fontSize: 10, borderCollapse: "collapse", tableLayout: "auto", whiteSpace: "nowrap" }}>
                     <colgroup><col style={{ width: "40%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /></colgroup>
                     <thead>
                       <tr style={{ borderBottom: "2px solid #e2e8f0", textAlign: "left" }}>

@@ -29,7 +29,8 @@ async function seed(page) {
 }
 const noOverlap = async (table) => table.evaluate((t) => [...t.querySelectorAll("tr")].every((tr) => {
   const cells = [...tr.children].map((c) => c.getBoundingClientRect()).filter((r) => r.width > 0);
-  return cells.every((r, i) => i === 0 || r.left >= cells[i - 1].right - 0.5);
+  return cells.every((r, i) => i === 0 || r.left >= cells[i - 1].right - 0.5)
+    && [...tr.children].every((c) => c.colSpan > 1 || c.scrollWidth <= c.clientWidth + 1);   // v2.51.1: no number spills out of its cell
 }));
 
 test("Nutrition Overview (week and day): one decimal, whole kcal, no float artefacts, columns don't overlap at 360 px", async ({ page }) => {
