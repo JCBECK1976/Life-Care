@@ -34,15 +34,15 @@ async function addCustom(page, name) {
   await tab(page, "My Exercise");
   await page.getByRole("button", { name: "+ Add Exercise" }).first().click();
   await page.getByPlaceholder("Search exercises or type new name...").fill(name);
-  await page.getByRole("button", { name: "Add Custom: " + name }).click();
+  await page.getByTestId("ex-add-custom").click();
 }
 
-test("adding Running: a BLANK form with 'Your Companion is generating a plan…' and inputs off until it arrives; numbers only after", async ({ page }) => {
+test("adding Running: a BLANK form with 'Your Companion is looking for recommendations…' and inputs off until it arrives; numbers only after", async ({ page }) => {
   const { errors } = await openApp(page);
   let release; const gate = new Promise((r) => { release = r; });
   await page.route("https://api.anthropic.com/**", async (r) => { if (!/New exercise: Running/.test(r.request().postData() || "")) return r.fallback(); await gate; return r.fulfill(aiJson(SWIM_PROSE)); });
   await addCustom(page, "Running");
-  await expect(page.getByTestId("ex-generating")).toHaveText(/Your Companion is generating a plan…/);
+  await expect(page.getByTestId("ex-generating")).toHaveText(/Your Companion is looking for recommendations…/)   // v2.55.0 wording;
   await expect(page.locator("[data-testid=ex-add-fields][disabled]")).toHaveCount(1);
   const f = page.locator("[data-testid=ex-add-fields][disabled]");
   await expect(f.getByTestId("ex-type")).toContainText("Choose…");                               // no "Weights"
@@ -67,7 +67,9 @@ test("if generating fails: a blank form, the type first; the measures follow the
   await openApp(page);
   await page.route("https://api.anthropic.com/**", (r) => /New exercise: Rowing/.test(r.request().postData() || "") ? r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ content: [{ type: "text", text: "not json" }] }) }) : r.fallback());
   await addCustom(page, "Rowing");
-  await expect(page.getByTestId("ex-gen-failed")).toContainText("Choose the type first");
+  await expect(page.getByTestId("ex-gen-failed")).toContainText("couldn't prepare a plan");   // v2.55.0: Try again / Fill in myself
+  await page.getByTestId("ex-gen-self").click();
+  await expect(page.getByTestId("ex-gen-type-first")).toContainText("Choose the type first");
   const t = page.getByTestId("ex-type").filter({ hasText: "Choose…" });
   await expect(t).toHaveCount(1);
   const f = t.locator("xpath=ancestor::fieldset[1]");

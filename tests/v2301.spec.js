@@ -55,7 +55,8 @@ test("bottom-sheet pickers: the exercise type (Add Exercise) and the person list
   await page.getByRole("button", { name: "Sun", exact: true }).click();
   await page.getByRole("button", { name: /\+ Add Exer/ }).first().click();
   await page.getByPlaceholder("Search exercises or type new name...").fill("Dumbbell Bench");
-  await page.getByText("Dumbbell Bench Press", { exact: true }).first().click();
+  await page.getByTestId("ex-match").filter({ hasText: /^Dumbbell Bench Press · / }).first().click();   // v2.55.0: the match is a main button
+  await expect(page.getByTestId("ex-generating")).toHaveCount(0);                                    // the form opens once the plan is ready
   const pick = page.getByTestId("ex-type").first();
   await expect(pick).toHaveAttribute("aria-label", /^Exercise type: /);
   await pick.click();

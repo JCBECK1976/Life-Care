@@ -313,10 +313,11 @@ Tape measurements in cm (e.g. chest, waist, hips, arms, thighs).
 Weights, Bodyweight, Timed Hold, Cardio, Walking, Sports/Activity, Stretching/Mobility. The type decides what you log (weight and reps, time, distance, sessions, etc.).
 
 ### + Add Exercise
-- When you add a new exercise by name (e.g. *Running*), the form stays **blank** with **"Your Companion is generating a plan…"** until the plan arrives — nothing to fill in yet. The measures it fills are **numbers only** (e.g. 20 and 2); any description (pace, effort, sessions a week) goes into the **Progression Rules**. If the plan can't be made, the form stays blank and asks for the **type** first; the measure boxes follow the type.
+- Type a name (e.g. *Running*): a matching exercise shows as the main button (**Running · Cardio**) — tap it. **Add custom: Running** (the outlined button below) adds your own exercise of that name instead.
+- Either way the form stays **blank** and greyed, with **"Your Companion is looking for recommendations…"** above it, until the plan arrives — nothing to fill in yet. The measures it fills are **numbers only** (e.g. 20 and 2); any description (pace, effort, sessions a week) goes into the **Progression Rules**. If the plan doesn't come within 20 seconds, it says so: **Try again**, or **Fill in myself** (choose the **type** first; the measure boxes follow the type).
 - Older exercises whose measures were filled with sentences show **"—"** in the card and history, with the words shown as a note (📋 Plan: …). Nothing you stored is changed.
 - **Open a week** on a cardio exercise shows its own measures (e.g. *Log (Duration / Distance)*: 20 min · 0.8 km — no Set 1–3) and **How hard did it feel?** instead of Range and Form (Form stays for rowing and swimming).
-Search the exercise database or type a new name. Select a match or **Add Custom**, confirm the type and starting values, and the Companion suggests progression rules and generates guides.
+Search the exercise database or type a new name. Select a match or **Add custom**, confirm the type and starting values, and the Companion suggests progression rules and generates guides.
 
 ### My Companion Session Feedback
 Generate after logging a session. It includes:

@@ -156,6 +156,31 @@ export default function ExerciseSection({ ctx }) {
             await saveData(nd);
             setOpenProg(Object.assign({}, o, { progIdx: ex2.prog.indexOf(e), editing: false, msg: "✓ Week " + e.wk + " saved" }));
           };
+          /* v2.55.0 (Architect night batch 25 Nov, PART 4): the Companion prepares a new exercise's plan — the form stays blank
+             and disabled with a status above the fields; numbers only; a friendly failure within 20 s (Try again / Fill in myself). */
+          const startExGen = (spec) => {
+            var name = spec.name;
+            setAddExConfirm({ name: name, type: spec.type || "", sets: "", m1: "", m2: "", progression: "", notes: "", exerciseGuide: "", prePostGuide: "", isCustom: !!spec.isCustom, _generating: true, _spec: spec });
+            setAddExOpen(false); setAddExLoading(true);
+            (async function() {
+              var done = false;
+              try {
+                var prof2 = (data[activeTab] || (activeTab === "jc" ? data.jc : data.becks)).profile || {};
+                var known = spec.type ? " It is a " + getExerciseTypeConfig(spec.type).label + " exercise (exerciseType: " + spec.type + ")." : "";
+                var prompt2 = "New exercise: " + name + "." + known + " Person: " + buildExProfileInfo(prof2) + ".\nDetermine the exercise type from: weights, bodyweight, timed_hold, cardio, walking, sports, stretching.\nmetric1 and metric2 are PLAIN NUMBERS ONLY (no words, no ranges, no units): metric1 = kg for weights, seconds for holds/stretches, minutes for cardio/walking/sports, 0 if none; metric2 = reps per set, seconds, km, or 0 if none. Put every description (pace, effort, sessions per week) in progressionNotes.\nReturn ONLY JSON: {\"exerciseType\":\"one of weights|bodyweight|timed_hold|cardio|walking|sports|stretching\",\"sets\":3,\"metric1\":20,\"metric2\":10,\"progressionNotes\":\"specific progression rules (all advice and plan wording goes HERE)\",\"equipmentNotes\":\"any equipment or form notes\"}";
+                var call = fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-lc-feature": "autoInfo", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: prompt2 }] }) }).then(function(r) { return r.json(); });
+                var slow = new Promise(function(_, rej) { setTimeout(function() { rej(new Error("slow")); }, window.__lcExGenTimeout || 20000); });
+                var result2 = await Promise.race([call, slow]);
+                var txt2 = ""; if (result2.content) { for (var ri = 0; ri < result2.content.length; ri++) { if (result2.content[ri].text) txt2 += result2.content[ri].text; } }
+                var g = fromGenerated(JSON.parse(txt2.replace(/```json|```/g, "").trim()), spec.type || "");
+                if (spec.type) g.type = spec.type;
+                setAddExConfirm(function(prev) { if (!prev || prev.name !== name || !prev._generating) return prev; return Object.assign({}, prev, { type: g.type, sets: g.sets, m1: g.m1, m2: g.m2, progression: g.progression || "Double progression: build reps to target then increase weight.", notes: g.notes, _generating: false, _failed: !g.type }); });
+                done = true;
+              } catch (ae) { /* falls through to the friendly failure */ }
+              if (!done) setAddExConfirm(function(prev) { if (!prev || prev.name !== name || !prev._generating) return prev; return Object.assign({}, prev, { _generating: false, _failed: true, _offer: true }); });
+              setAddExLoading(false);
+            })();
+          };
           const renderEntryForm = (ex) => {
             var o = openProg; var d = o.draft; var ed = o.editing; var cfg = getExerciseTypeConfig(ex.exType || getExerciseType(ex.name));
             var l1 = cfg.metric1 !== "none" ? cfg.metric1Label : "Weight"; var l2 = cfg.metric2 !== "none" ? cfg.metric2Label : "Reps";
@@ -543,7 +568,7 @@ export default function ExerciseSection({ ctx }) {
                     <div style={{marginTop:12,padding:10,background:"#fff",borderRadius:10,border:"2px solid "+accent}}>
                       <div style={{fontSize:11,fontWeight:700,color:accent,marginBottom:2}}>{(p.profile && p.profile.name) || activeTab}</div>
                       <div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Edit: {addExConfirm.name}</div>
-                      {addExConfirm._generating && <div role="status" data-testid="ex-generating" style={{fontSize:12,fontWeight:600,color:"#1e3a5f",marginBottom:8,padding:8,background:"#eff6ff",borderRadius:8,display:"flex",alignItems:"center",gap:6}}><span aria-hidden="true" style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Your Companion is generating a plan…</div>}{addExConfirm._failed && !addExConfirm.type && <div role="status" data-testid="ex-gen-failed" style={{fontSize:11,color:"#92400e",marginBottom:8}}>Your Companion couldn't make a plan this time. Choose the type first, then fill in the rest.</div>}
+                      {addExConfirm._generating && <div role="status" data-testid="ex-generating" style={{fontSize:12,fontWeight:600,color:"#1e3a5f",marginBottom:8,padding:8,background:"#eff6ff",borderRadius:8,display:"flex",alignItems:"center",gap:6}}><span aria-hidden="true" style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Your Companion is looking for recommendations…</div>}{addExConfirm._failed && addExConfirm._offer && <div role="status" data-testid="ex-gen-failed" style={{fontSize:12,color:"#92400e",background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:8,padding:8,marginBottom:8}}>Your Companion couldn't prepare a plan just now.<div style={{display:"flex",gap:6,marginTop:6}}><button type="button" data-testid="ex-gen-retry" onClick={function(){ startExGen(addExConfirm._spec || { name: addExConfirm.name, type: addExConfirm.type }); }} style={{...btnS,flex:1}}>Try again</button><button type="button" data-testid="ex-gen-self" onClick={function(){ setAddExConfirm(Object.assign({}, addExConfirm, { _offer: false })); }} style={{...btnS,flex:1}}>Fill in myself</button></div></div>}{addExConfirm._failed && !addExConfirm._offer && !addExConfirm.type && <div role="status" data-testid="ex-gen-type-first" style={{fontSize:11,color:"#92400e",marginBottom:8}}>Choose the type first, then fill in the rest.</div>}
                       {addExLoading && !addExConfirm._generating && <div style={{fontSize:11,color:"#475569",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Getting AI recommendations...</div>}
                       <fieldset disabled={!!addExConfirm._generating} data-testid="ex-add-fields" style={{border:0,padding:0,margin:0,minWidth:0}}>
                       <div style={{display:"flex",gap:8,marginBottom:8}}>
@@ -553,7 +578,7 @@ export default function ExerciseSection({ ctx }) {
                         </div>
                         <div style={{width:70}}>
                           <label style={labelStyle}>{(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).hasSets ? "Sets" : "Sessions"}</label>
-                          <input type="number" value={addExConfirm.sets} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{sets:parseInt(e.target.value)||1}));}} style={{...inputStyle,width:"100%"}} min="1" max="10" />
+                          <input type="number" aria-label={(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).hasSets ? "Sets" : "Sessions"} value={addExConfirm.sets} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{sets:parseInt(e.target.value)||1}));}} style={{...inputStyle,width:"100%",minHeight:44,boxSizing:"border-box"}} min="1" max="10" />
                         </div>
                       </div>
                       <div style={{display:"flex",gap:8,marginBottom:8}}>
@@ -661,7 +686,7 @@ export default function ExerciseSection({ ctx }) {
                     <div style={{padding:10,background:"#fff",borderRadius:10,border:"2px solid "+accent}}>
                       <div style={{fontSize:11,fontWeight:700,color:accent,marginBottom:2}}>{(p.profile && p.profile.name) || activeTab}</div>
                       <div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Confirm: {addExConfirm.name}</div>
-                      {addExConfirm._generating && <div role="status" data-testid="ex-generating" style={{fontSize:12,fontWeight:600,color:"#1e3a5f",marginBottom:8,padding:8,background:"#eff6ff",borderRadius:8,display:"flex",alignItems:"center",gap:6}}><span aria-hidden="true" style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Your Companion is generating a plan…</div>}{addExConfirm._failed && !addExConfirm.type && <div role="status" data-testid="ex-gen-failed" style={{fontSize:11,color:"#92400e",marginBottom:8}}>Your Companion couldn't make a plan this time. Choose the type first, then fill in the rest.</div>}
+                      {addExConfirm._generating && <div role="status" data-testid="ex-generating" style={{fontSize:12,fontWeight:600,color:"#1e3a5f",marginBottom:8,padding:8,background:"#eff6ff",borderRadius:8,display:"flex",alignItems:"center",gap:6}}><span aria-hidden="true" style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Your Companion is looking for recommendations…</div>}{addExConfirm._failed && addExConfirm._offer && <div role="status" data-testid="ex-gen-failed" style={{fontSize:12,color:"#92400e",background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:8,padding:8,marginBottom:8}}>Your Companion couldn't prepare a plan just now.<div style={{display:"flex",gap:6,marginTop:6}}><button type="button" data-testid="ex-gen-retry" onClick={function(){ startExGen(addExConfirm._spec || { name: addExConfirm.name, type: addExConfirm.type }); }} style={{...btnS,flex:1}}>Try again</button><button type="button" data-testid="ex-gen-self" onClick={function(){ setAddExConfirm(Object.assign({}, addExConfirm, { _offer: false })); }} style={{...btnS,flex:1}}>Fill in myself</button></div></div>}{addExConfirm._failed && !addExConfirm._offer && !addExConfirm.type && <div role="status" data-testid="ex-gen-type-first" style={{fontSize:11,color:"#92400e",marginBottom:8}}>Choose the type first, then fill in the rest.</div>}
                       {addExLoading && !addExConfirm._generating && <div style={{fontSize:11,color:"#475569",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Getting AI recommendations...</div>}
                       <fieldset disabled={!!addExConfirm._generating} data-testid="ex-add-fields" style={{border:0,padding:0,margin:0,minWidth:0}}>
                       <div style={{display:"flex",gap:8,marginBottom:8}}>
@@ -671,7 +696,7 @@ export default function ExerciseSection({ ctx }) {
                         </div>
                         <div style={{width:70}}>
                           <label style={labelStyle}>{(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).hasSets ? "Sets" : "Sessions"}</label>
-                          <input type="number" value={addExConfirm.sets} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{sets:parseInt(e.target.value)||1}));}} style={{...inputStyle,width:"100%"}} min="1" max="10" />
+                          <input type="number" aria-label={(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).hasSets ? "Sets" : "Sessions"} value={addExConfirm.sets} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{sets:parseInt(e.target.value)||1}));}} style={{...inputStyle,width:"100%",minHeight:44,boxSizing:"border-box"}} min="1" max="10" />
                         </div>
                       </div>
                       <div style={{display:"flex",gap:8,marginBottom:8}}>
@@ -776,62 +801,15 @@ export default function ExerciseSection({ ctx }) {
                         var dbMatches = EXERCISE_DATABASE.filter(function(e){return e.name.toLowerCase().indexOf(term)>=0;});
                         var customMatches = customExercises.filter(function(n){return n.toLowerCase().indexOf(term)>=0 && !dbMatches.find(function(d){return d.name===n;});});
                         var allMatches = dbMatches.map(function(e){return {name:e.name,type:e.type,cat:e.category,isCustom:false};}).concat(customMatches.map(function(n){return {name:n,type:"weights",cat:"Custom",isCustom:true};}));
-                        var openConfirmForm = function(match) {
-                          var tc = getExerciseTypeConfig(match.type);
-                          setAddExConfirm({name:match.name,type:match.type,sets:tc.defaultSets,m1:tc.defaultM1,m2:tc.defaultM2,progression:"Loading AI recommendation...",notes:"",exerciseGuide:"",prePostGuide:"",isCustom:match.isCustom});
-                          setAddExOpen(false);
-                          // Call AI for personalised defaults
-                          setAddExLoading(true);
-                          (async function(){
-                            try {
-                              var prof2 = (data[activeTab] || (activeTab === "jc" ? data.jc : data.becks)).profile || {};
-                              var profileInfo = buildExProfileInfo(prof2);
-                              var typeCfg = getExerciseTypeConfig(match.type);
-                              var prompt2 = "Exercise: " + match.name + " (type: " + typeCfg.label + "). Person: " + profileInfo + ".\nReturn ONLY JSON: {\"sets\":" + tc.defaultSets + ",\"metric1\":\"recommended starting " + (typeCfg.metric1Label||"value") + " e.g. " + tc.defaultM1 + "\",\"metric2\":\"recommended starting " + (typeCfg.metric2Label||"value") + " e.g. " + tc.defaultM2 + "\",\"progressionNotes\":\"specific progression rules for this exercise for this person\",\"equipmentNotes\":\"any equipment or form notes specific to this person\",\"exerciseGuide\":\"A concise how-to guide for performing this exercise correctly. Cover: starting position, movement execution with emphasis on full range of motion, breathing pattern, tempo recommendation (e.g. 3-second eccentric), and the most common mistakes to avoid. Write in direct 2nd person. 3-5 short sentences.\",\"prePostGuide\":\"Recommended warm-up stretches and preparation BEFORE this specific exercise, and cool-down stretches AFTER it. Customise to the muscle groups this exercise targets and this person's profile. Format as: PRE: 2-3 specific stretches/movements with brief instruction. POST: 2-3 specific stretches with brief instruction. Write in direct 2nd person. Keep each stretch to one sentence.\"}";
-                              var resp2 = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{ "x-lc-feature": "autoInfo","Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:900,messages:[{role:"user",content:prompt2}]})});
-                              var result2 = await resp2.json();
-                              var txt2 = ""; if(result2.content){for(var ri=0;ri<result2.content.length;ri++){if(result2.content[ri].text)txt2+=result2.content[ri].text;}}
-                              var info2 = JSON.parse(txt2.replace(/```json|```/g,"").trim());
-                              setAddExConfirm(function(prev){if(!prev||prev.name!==match.name)return prev;return Object.assign({},prev,{sets:info2.sets||prev.sets,m1:info2.metric1||prev.m1,m2:info2.metric2||prev.m2,progression:info2.progressionNotes||"Double progression: build reps to target then increase weight.",notes:info2.equipmentNotes||"",exerciseGuide:info2.exerciseGuide||"",prePostGuide:info2.prePostGuide||""});});
-                            } catch(ae) {
-                              setAddExConfirm(function(prev){if(!prev||prev.name!==match.name)return prev;return Object.assign({},prev,{progression:"Double progression: build reps to target then increase weight. User defines increment method and ranges.",exerciseGuide:"",prePostGuide:""});});
-                            }
-                            setAddExLoading(false);
-                          })();
-                        };
-                        return (<div style={{maxHeight:200,overflowY:"auto"}}>
-                          {allMatches.slice(0,8).map(function(m){return (<div key={m.name} onClick={function(){openConfirmForm(m);}} style={{padding:"6px 8px",fontSize:11,cursor:"pointer",borderBottom:"1px solid #f1f5f9",color:"#0f172a",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                            <span>{m.name}</span>
-                            <span style={{fontSize:9,color:"#475569",background:"#f1f5f9",padding:"1px 6px",borderRadius:10}}>{EXERCISE_TYPES[m.type] ? EXERCISE_TYPES[m.type].label : m.type}{m.cat ? " · " + m.cat : ""}</span>
-                          </div>);})}
+                        var openConfirmForm = function(match) { startExGen({ name: match.name, type: match.type, isCustom: match.isCustom }); };   /* v2.55.0 */
+                        return (<div style={{maxHeight:260,overflowY:"auto",paddingTop:6}}>
+                          {allMatches.slice(0,8).map(function(m){ var tl = EXERCISE_TYPES[m.type] ? EXERCISE_TYPES[m.type].label : m.type; return (<button type="button" key={m.name} data-testid="ex-match" onClick={function(){openConfirmForm(m);}} style={{display:"flex",width:"100%",justifyContent:"center",alignItems:"center",minHeight:44,margin:"0 0 6px",padding:"10px 12px",border:"none",borderRadius:10,background:"linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>{m.name + " · " + tl}</button>);})}   {/* v2.55.0: the match is the main action, one label */}
                           {allMatches.length === 0 && addExSearch.trim() && (
                             <div style={{padding:"8px",fontSize:11,color:"#475569",textAlign:"center"}}>No matches found</div>
                           )}
                         </div>);
                       })()}
-                      {addExSearch.trim() && (<button onClick={function(){
-                        var name = addExSearch.trim();
-                        var tc = getExerciseTypeConfig("weights");
-                        void tc; setAddExConfirm({name:name,type:"",sets:"",m1:"",m2:"",progression:"",notes:"",isCustom:true,_generating:true});   /* v2.49.0 (P1b): blank while the Companion generates */
-                        setAddExOpen(false);
-                        setAddExLoading(true);
-                        (async function(){
-                          try {
-                            var prof2 = (data[activeTab] || (activeTab === "jc" ? data.jc : data.becks)).profile || {};
-                            var profileInfo = buildExProfileInfo(prof2);
-                            var prompt2 = "New exercise: " + name + ". Person: " + profileInfo + ".\nDetermine the exercise type from: weights, bodyweight, timed_hold, cardio, walking, sports, stretching.\nmetric1 and metric2 are PLAIN NUMBERS ONLY (no words, no ranges, no units): metric1 = kg for weights, seconds for holds/stretches, minutes for cardio/walking/sports, 0 if none; metric2 = reps per set, seconds, km, or 0 if none. Put every description (pace, effort, sessions per week) in progressionNotes.\nReturn ONLY JSON: {\"exerciseType\":\"one of weights|bodyweight|timed_hold|cardio|walking|sports|stretching\",\"sets\":3,\"metric1\":20,\"metric2\":10,\"progressionNotes\":\"specific progression rules (all advice and plan wording goes HERE)\",\"equipmentNotes\":\"any equipment or form notes\"}";
-                            var resp2 = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{ "x-lc-feature": "autoInfo","Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:400,messages:[{role:"user",content:prompt2}]})});
-                            var result2 = await resp2.json();
-                            var txt2 = ""; if(result2.content){for(var ri=0;ri<result2.content.length;ri++){if(result2.content[ri].text)txt2+=result2.content[ri].text;}}
-                            var info2 = JSON.parse(txt2.replace(/```json|```/g,"").trim());
-                            var _g = fromGenerated(info2, "");   /* v2.49.0 (P1c): numbers only in the measures; words go to the progression notes */
-                            setAddExConfirm(function(prev){if(!prev||prev.name!==name)return prev;return Object.assign({},prev,{type:_g.type,sets:_g.sets,m1:_g.m1,m2:_g.m2,progression:_g.progression||"Double progression: build reps to target then increase weight.",notes:_g.notes,_generating:false,_failed:!_g.type});});
-                          } catch(ae) {
-                            setAddExConfirm(function(prev){if(!prev)return prev;return Object.assign({},prev,{_generating:false,_failed:true});});   /* v2.49.0: blank, choose the type first */
-                          }
-                          setAddExLoading(false);
-                        })();
-                      }} style={{width:"100%",padding:8,background:"linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",color:"#fff",border:"none",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer",marginTop:4}}>Add Custom: {addExSearch}</button>)}
+                      {addExSearch.trim() && (<button type="button" data-testid="ex-add-custom" onClick={function(){ startExGen({ name: addExSearch.trim(), type: "", isCustom: true }); }} style={{width:"100%",minHeight:40,padding:8,background:"#fff",color:"#1e3a5f",border:"1px solid #1e3a5f",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",marginTop:4}}>Add custom: {addExSearch}</button>)}   {/* v2.55.0: secondary */}
                       <button onClick={function(){setAddExOpen(false);setAddExSearch("");}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:10,color:"#475569",cursor:"pointer",marginTop:4}}>Cancel</button>
                     </div>
                   )}
