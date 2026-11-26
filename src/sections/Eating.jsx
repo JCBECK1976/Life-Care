@@ -955,6 +955,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             var sorted = items.slice().sort(function(a,b) { return a.name.localeCompare(b.name); });
             var pool = favOnly ? sorted.filter(function(it) { return isFav(it.id); }) : sorted;
             var filtered = search ? fuzzyFind(search, pool, function(it) { return it.name || ""; }, 200) : pool;   /* v2.20.0: forgiving search, as in Update Lists */
+            /* v2.60.1 (JC): a filled row opens the list with its SELECTED item first (highlighted), on day rows and Set Defaults */
+            if (!search && value) { var _ci = allItemsLookup[value], _cid = _ci && _ci.parentId ? _ci.parentId : value; var _ix = filtered.findIndex(function(it) { return it.id === _cid || it.id === value; }); if (_ix > 0) filtered = [filtered[_ix]].concat(filtered.slice(0, _ix), filtered.slice(_ix + 1)); }
             var flash = !!value && !!pickFlash && (pickFlash === value || !!(allItemsLookup[value] && allItemsLookup[value].parentId === pickFlash));
             var close = function() { setOpen(false); if (slotOpen && slotOpen.inPicker) setSlotOpen(null); };
             var choose = function(item) {

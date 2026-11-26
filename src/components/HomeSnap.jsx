@@ -78,7 +78,7 @@ export default function HomeSnap(props) {
       style={{ background: "#faf5ff", border: "1px solid #ddd6fe", borderRadius: 12, padding: 10, marginBottom: 10, outline: "none" }}>
       <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
         <b style={{ flex: 1, fontSize: 13, color: "#0f172a" }}>{res ? (noFood(res) ? "📷 No food found" : res._deep ? "🔎 Re-check deep dive — re-assessed outcome" : "📷 " + (res.name || "Food")) : "📷 Snap a photo of your food"}</b>
-        <button type="button" aria-label="Close Snap" onClick={close} style={{ minWidth: 44, minHeight: 36, background: "#fff", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12, fontWeight: 700, color: "#334155", cursor: "pointer" }}>✕ Close</button>
+        <button type="button" aria-label="Close Snap" data-testid="home-snap-close" onClick={close} style={{ minWidth: 44, minHeight: 40, padding: "8px 12px", background: "#fff", border: "1px solid #2563eb", borderRadius: 8, fontSize: 13, fontWeight: 700, color: "#1e3a8a", cursor: "pointer" }}>✕ Close</button>{/* v2.60.1: the standard Close (as the picker's) */}
       </div>
       {busy && <div role="status" style={{ fontSize: 12, fontWeight: 600, color: "#1e3a5f", marginBottom: 6 }}>⏳ Your Companion is looking at your photo…</div>}
       {err && <div role="alert" style={{ fontSize: 12, color: "#991b1b", marginBottom: 6 }}>{err}</div>}
