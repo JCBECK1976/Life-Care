@@ -41,7 +41,7 @@ test("share → Add to today's eating → My Eating today, a new row in that cat
   await expect(page.getByTestId("snap-values")).toContainText("kcal");                       // the normal Snap result
   expect(JSON.stringify(aiCalls)).toContain('"media_type":"image/png"');                     // the shared photo was sent
   const hint = page.getByTestId("snap-recheck-hint");
-  await expect(hint).toContainText("Additional Information – for improved accuracy, you may provide any known weight, calories or portion sizes to help your companion analysis");   // v2.52.0 wording
+  await expect(hint).toContainText("Re-check – for improved accuracy, you may provide any known weight, calories or portion sizes to help your companion analysis");   // v2.56.2: the result shows only the Re-check tip
   await expect(hint).toHaveCSS("border-top-color", "rgb(245, 158, 11)");
   await hint.screenshot({ path: "test-results/v2440-shots/snap-recheck-hint-360.png" });
   // the new row is today's first dessert row, and the shared copy is gone
