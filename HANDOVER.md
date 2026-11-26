@@ -28,7 +28,7 @@ The version table (changelog) is in **[docs/CHANGELOG.md](docs/CHANGELOG.md)** (
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.20.2** (PR #27, merged 17 Nov 2026, `bcac68e`) — awaiting JC's beta test; build = **v2.56.2** (`f7f418e`, 26 Nov 2026; Snap tip + Summary tables + one week-to-date rule after the 25 Nov night batch — awaiting JC's test of /build/).
+- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.56.2** (PR #28, merged 26 Nov 2026, `31af816`) — awaiting JC's beta test; build = **v2.56.2** (`f7f418e`, 26 Nov 2026; Snap tip + Summary tables + one week-to-date rule after the 25 Nov night batch — awaiting JC's test of /build/).
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -3077,3 +3077,12 @@ Sizes are % of a weekly allowance, including Architect checks.
   - **Decision (JC, 26 Nov):** today counts "so far" in Week to date everywhere. Reason: the Week Summary's average included today but Week to date didn't (+754 vs +16 with Thursday). Alternative rejected: leave today out everywhere.
   - Tests `tests/v2562.spec.js` (week pills = the sum/average of the rows shown, today included; the day Summary for today agrees; equal row heights; centred headers/cells; fits 360 px); v2180 moved to the new rule. APP_GUIDE (Home pill, Week to date FAQ, glossary) updated. **Visual (approval: JC 26 Nov, Summary tables):** `my-eating-day.png` and `my-eating-update-lists.png` re-taken (the day Summary row is taller).
 - **Resume point:** `build` @ `f7f418e` (v2.56.2). Next: JC tests /build/, then beta. Do NOT merge to beta or main without JC.
+
+### (Coder) 26 Nov 2026 — v2.56.2 → beta (PR #28)
+- **Done:** JC tested v2.56.2 on /build/ and approved it. PR #28 `build → beta` was merged (merge commit `31af816`). The merged tree is identical to build `f7f418e`, so APP_GUIDE comes from build. Beta goes from v2.20.2 to v2.56.2. **Nothing merged to main**: prod stays v2.15.1.
+- **New features are off on beta:** the build-only switches are on only when `VITE_APP_ENV === "build"`; the go-live switches (`platform/publicFlags`) are off and no device flags are set.
+- **Checks before the merge:** release-compat on the real-shaped 3 Nov backup (local emulator only, counts only, all new switches off): 32 counts unchanged, keys 100 → 100, goal setup shown once on first open (expected).
+- **Deploy:** main's Pages deploy, run 657, succeeded at 07:49. `scripts/build-pages.sh`, re-run locally, built prod, beta and build with no environment skipped; beta uses `data`.
+- **Smoke test (open):** the smoke test that followed the merge (run 246) started before the deploy finished, so it still saw beta at v2.20.2 (expected v2.56.2). It also fails on **/build/**: the "Sign in with Google" text isn't found within 20 s. That has happened on every run today and predates this merge (build shows a different first screen). It needs a look: either the smoke test or the build sign-in screen.
+- **Next (JC):** test /beta/ (close the tab, reopen it, and check the footer says v2.56.2-beta.N). The prod release (beta → main) only on JC's yes; the Architect tags it.
+- **Resume point:** beta @ `31af816`, build @ `f7f418e`, main @ this commit. Do NOT merge to main without JC.
