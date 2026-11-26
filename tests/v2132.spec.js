@@ -74,11 +74,10 @@ test("Eating: meal-slot Open and Update Lists Open scroll into view at 360px; ne
   await page.locator('[data-testid=picker-trigger]:has([data-testid=row-icon]:text-is("✎"))').first().click();   // v2.50.0: the box → Edit Item
   await opensIntoView(page, page.getByTestId("act-edit"), page.getByTestId("slot-open-form"));
   const form = page.getByTestId("slot-open-form");
-  await form.getByRole("button", { name: "Edit", exact: true }).click();
-  await form.getByRole("button", { name: "2×", exact: true }).click();
+  await form.getByRole("button", { name: "2×", exact: true }).click();                              // v2.57.0: opens already editing
   await form.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(form.getByTestId("open-form-msg")).toHaveText("✓ Saved for this meal only. To update the list item permanently, please go to 'Update Eating Lists'.");
-  await form.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(page.getByTestId("pick-toast")).toContainText("✓ Saved for this meal only");         // back to the picker list
+  await page.getByTestId("picker-sheet").getByRole("button", { name: "Close the list" }).click();
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
   await opensIntoView(page, page.getByRole("button", { name: "Open Test Fish & Potato" }), page.getByTestId("item-view"));
   expect(errors).toEqual([]);

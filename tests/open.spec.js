@@ -91,20 +91,21 @@ test("F5: a meal selection opens as the CHILD — variations recalculate the chi
   await expect(form).toContainText("Test Fish & Potato");
   await expect(form.getByTestId("slot-rating")).toContainText("GREAT");                    // 4g sat fat = 20%, protein credit
   await page.setViewportSize({ width: 360, height: 800 });                                // v2.13.0: buttons fit at 360px, never truncated
-  await expect(form.getByRole("button")).toHaveText(["Edit", "Remove", "Close"]);
+  for (const b of ["Save", "Remove", "Cancel"]) await expect(form.getByRole("button", { name: b, exact: true })).toBeVisible();   // v2.57.0: opens already editing, inside the picker
   expect(await form.locator("button").evaluateAll((bs) => bs.filter((b) => b.scrollWidth > b.clientWidth + 1).length)).toBe(0);
-  await form.getByRole("button", { name: "Edit", exact: true }).click();
   await form.getByLabel("Changes to this meal").fill("chips instead of potato");
   await form.getByRole("button", { name: "Save", exact: true }).click();
   await expect(form.getByTestId("slot-review-values")).toContainText("760 kcal");              // v2.37.1: reviewed before it is saved
   expect(await childOf(today, "d")).toMatchObject({ nutrition: { kcal: 500 } });
   await form.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(form.getByTestId("open-form-msg")).toHaveText("✓ Saved for this meal only. To update the list item permanently, please go to 'Update Eating Lists'.");
+  await expect(page.getByTestId("pick-toast")).toContainText("✓ Saved for this meal only");      // v2.57.0: Save → back to the picker list
+  await expect(page.getByTestId("picker-results")).toBeVisible();
   expect(prompts[0].temperature).toBe(0);
   expect(prompts[0].messages[0].content).toContain('with these changes: "chips instead of potato"');
   const c = await childOf(today, "d");
   expect(c).toMatchObject({ variations: { text: "chips instead of potato" }, nutrition: { kcal: 760, satFat: 14 }, rating: "AMBER", ragFreq: "", parentId: dinner.id });   // v2.18.2: against JC's own limits (1,966 kcal, sat fat 19.7 g; protein credit)
   expect((await getKey("custom_meals")).find((x) => x.id === dinner.id)).toMatchObject(dinner);          // parent untouched
+  await page.getByTestId("act-edit").click();                                                     // Edit Item again, from the same picker
   await expect(form.getByTestId("slot-rag-diff")).toHaveText("Differs today: AMBER today — with changes");
   page.on("dialog", (dg) => dg.accept());
   await expect(form.getByRole("button", { name: "Remove", exact: true })).toHaveAttribute("data-kind", "remove");   // D18
@@ -134,13 +135,11 @@ test("v2.11.1: changing the portion of a photo-checked meal scales the PHOTO val
   await expect.poll(async () => (await childOf(today, "d"))?.portion?.values?.kcal).toBe(600);
   await page.locator('[data-testid=picker-trigger]:has([data-testid=row-icon]:text-is("✎"))').first().click(); await page.getByTestId("act-edit").click();   // v2.50.0: Edit Item in the picker
   const form = page.getByTestId("slot-open-form");
-  await form.getByRole("button", { name: "Edit", exact: true }).click();
   await form.getByRole("button", { name: "1½×", exact: true }).click();
   await form.getByRole("button", { name: "Save", exact: true }).click();
   await expect.poll(async () => (await childOf(today, "d"))?.nutrition?.kcal).toBe(900);               // 600 × 1.5, not 500 × 1.5
   expect((await childOf(today, "d")).portion).toMatchObject({ source: "photo", factor: 1.5, photoValues: { kcal: 600 }, values: { kcal: 900, satFat: 9 } });
-  await expect(form.getByTestId("slot-portion")).toHaveText("checked by photo ×1.5");
-  await form.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByTestId("act-edit").click();                                                     // v2.57.0: Edit Item again (Save went back to the picker)
   await form.getByRole("button", { name: "½×", exact: true }).click();
   await form.getByRole("button", { name: "Save", exact: true }).click();
   await expect.poll(async () => (await childOf(today, "d"))?.nutrition?.kcal).toBe(300);               // always from the photo, not from 900

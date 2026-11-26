@@ -32,7 +32,7 @@ export var GUIDE = [
   ]],
   ["Eating", [
     [<span aria-hidden="true" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 8px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11, color: "#475569" }}>Add breakfast… <b style={{ color: "#1e3a5f" }}>+</b></span>, "Eating row (✎ / +)", "One box per item: + adds, ✎ changes. Tap it to open the picker.", "My Eating days and Week → Set Defaults"],
-    [<span aria-hidden="true" style={{ fontSize: 11, color: "#1e3a5f" }}>📷 Snap · ♡ Favourites · + Add New · ✎ Edit Item · 🗑 Remove</span>, "Picker action bar", "At the top of the picker: Snap this row, show favourites only, add a food not in your list, edit the item, or remove it (and its row).", "The eating picker"],
+    [<span aria-hidden="true" style={{ fontSize: 11, color: "#1e3a5f" }}>📷 Snap · ♡ Favourites · + Add New · ✎ Edit Item · 🗑 Remove</span>, "Picker action bar", "At the top of the picker: Snap this row, show favourites only, add a food not in your list, edit the item right there in the picker, or remove it (and its row).", "The eating picker"],
     [<span aria-hidden="true" style={{ color: "#dc2626", fontSize: 13 }}>♥</span>, "♥ Favourite", "Tick ♥ Favourite when you save or edit an item; it shows with a red ♥ and the Favourites filter. Each person has their own.", "Update Eating Lists; the picker"],
     [sample(btnP(true), "Confirm"), "Confirm (portions)", "After you pick: say how many portions (e.g. 3 biscuits), then Confirm. A new blank row appears under the last one.", "The eating picker"],
     [sample(btnMuted, "+ Not in my list?"), "+ Not in my list?", "Add a food that isn't in that list yet.", "Food pickers"],
