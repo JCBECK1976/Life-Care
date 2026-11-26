@@ -28,7 +28,7 @@ The version table (changelog) is in **[docs/CHANGELOG.md](docs/CHANGELOG.md)** (
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.20.2** (PR #27, merged 17 Nov 2026, `bcac68e`) — awaiting JC's beta test; build = **v2.56.2** (`d4ba2de`, 26 Nov 2026; Snap tip fix after the 25 Nov night batch — awaiting JC's test of /build/).
+- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.20.2** (PR #27, merged 17 Nov 2026, `bcac68e`) — awaiting JC's beta test; build = **v2.56.2** (`f7f418e`, 26 Nov 2026; Snap tip + Summary tables + one week-to-date rule after the 25 Nov night batch — awaiting JC's test of /build/).
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -3071,3 +3071,9 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **Done — build `d4ba2de` (v2.56.2):** the yellow "💡 Additional Information – …" box is now on the FIRST Snap step ("Snap a photo of your food"), directly above 📷 Take photo, with the optional details box inside it (yellow outline, `snap-pre-hint`). The result screen shows only "💡 Re-check – …" (never Additional Information again). One shared panel (`renderSnapPanel`), so the same everywhere it's used: the picker and the day rows. The shared photo ("Add to today's eating") already has its photo, so it goes straight to the result and its Re-check tip. The scales/measurement photo uses a different panel (`MeasureSnap`, body measurements, switched off), so it's unchanged. Tests: v2520 (tip on the first step, above Take photo, yellow details box; result = Re-check only), v2440 (share → Re-check tip). APP_GUIDE updated. No visual baseline change.
 - **Next (JC):** test /build/ (footer v2.56.2): Snap from a meal's picker → the first step shows the tip; take a photo → the result shows the Re-check tip.
 - **Resume point:** `build` @ `d4ba2de` (v2.56.2). Do NOT merge to beta or main without JC.
+- **Added to v2.56.2 (JC: "same small fix release"; the version stays v2.56.2) — build `f7f418e`:**
+  1. **Summary tables (Week and Day):** every row the same height (40 px, future days included; "—" centred), column headers centred over their columns (two-line headers too) and the numbers centred to match; Day stays left. Fits 360 px with no sideways scroll.
+  2. **One week-to-date rule everywhere:** `weekToDate` (Home, PlanActual) now counts the days up to AND INCLUDING today (it used to stop at yesterday), so it matches the Week Summary's Average daily calories and the Day Summary (a past day: up to and including that day). Today's row shows "(today, so far)" in muted text.
+  - **Decision (JC, 26 Nov):** today counts "so far" in Week to date everywhere. Reason: the Week Summary's average included today but Week to date didn't (+754 vs +16 with Thursday). Alternative rejected: leave today out everywhere.
+  - Tests `tests/v2562.spec.js` (week pills = the sum/average of the rows shown, today included; the day Summary for today agrees; equal row heights; centred headers/cells; fits 360 px); v2180 moved to the new rule. APP_GUIDE (Home pill, Week to date FAQ, glossary) updated. **Visual (approval: JC 26 Nov, Summary tables):** `my-eating-day.png` and `my-eating-update-lists.png` re-taken (the day Summary row is taller).
+- **Resume point:** `build` @ `f7f418e` (v2.56.2). Next: JC tests /build/, then beta. Do NOT merge to beta or main without JC.
