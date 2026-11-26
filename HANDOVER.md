@@ -28,7 +28,7 @@ The version table (changelog) is in **[docs/CHANGELOG.md](docs/CHANGELOG.md)** (
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.56.3** (hotfix PR #29, merged 26 Nov 2026, `dd2aa66`; v2.56.2 via PR #28) — awaiting JC's beta test; build = **v2.60.0** (`85dedee`, 26 Nov 2026; brief 26 Nov evening P1–P4 + steps in the day — awaiting JC's test of /build/).
+- **Version**: **v2.60.1 in prod** (released 26 Nov 2026, PR #31, merge `0305355`, tag v2.60.1 by auto-tag); beta = **v2.60.1** (PR #30, `bf50d60`); build = **v2.60.1** (`f307ffe`).
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -3130,3 +3130,11 @@ Sizes are % of a weekly allowance, including Architect checks.
   - **Companions:** `getCrossSectionCtx` adds a STEPS line (today, yesterday, week total/average; "may mention steps briefly"), with the feature only.
   - No new permissions; nothing written. Tests `tests/v2600.spec.js` (day line, "—", week total/average, active calories, Home, Connect link → Settings, the breakdown parts add up, the Companion request contains the steps, feature off = nothing). APP_GUIDE updated. No visual baseline change.
 - **Resume point:** `build` @ `85dedee` (v2.60.0); beta `dd2aa66` (v2.56.3); main @ this commit. STOP for JC's test. Do NOT merge to beta or main without JC.
+
+### (Coder) 26 Nov 2026 — v2.60.1 + RELEASE to beta and prod (JC)
+- **v2.60.1 — build `f307ffe`:** (1) the picker shows a filled row's SELECTED item FIRST in the list, highlighted, when nothing is typed (day rows and Week → Set Defaults). Scrolling it into view wasn't enough for items near the end of the alphabet. (2) Home Snap's ✕ Close uses the standard Close style (the picker's). Tests `tests/v2601.spec.js`. Full gate green.
+- **Release:** release-compat (local emulator, 3 Nov backup, all new switches off, counts only): 32 counts unchanged, keys 100 → 100, goal setup once on first open (expected). PR #30 build → beta merged (`bf50d60`). PR #31 beta → main merged (`0305355`); source and APP_GUIDE are identical to build, and main keeps its own docs. Build-only flags and go-live switches are off on beta and prod.
+- **After deploy:** Pages deploy 685 succeeded. Smoke run 266 is green: prod, beta and build each at their branch's version (all v2.60.1). Auto-tag created **v2.60.1** on `0305355`.
+- **Now possible:** `.github/workflows/android-internal.yml` is on `main`, so Actions → "Android → Play internal testing" → Run workflow (ref `main`) can be dispatched. This also unblocks the signing check from 24 Nov P5 (compare the upload-key fingerprints in the run summary with Firebase).
+- **Rollback:** `git revert -m 1 0305355` on main.
+- **Resume point:** main = beta = build source at v2.60.1. Next: JC on prod (close the tab, reopen it, check the footer says v2.60.1).
