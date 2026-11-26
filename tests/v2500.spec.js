@@ -17,7 +17,7 @@ async function pick(page, i, name, qty) {
   await page.getByTestId("pick-confirm").click();
   await expect(sheet(page)).toHaveCount(0);
 }
-const header = (page) => page.getByText(/^Sunday — \d[\d,]* kcal$/).first();
+const header = (page) => page.getByTestId("day-summary").getByTestId("sum-day");   // v2.54.0: the day's calories are in the Summary
 
 test("rows: one aligned box each, '+' when empty / '✎' when filled, 'Add breakfast…'; no Snap/Open/✕/✓/Del/+ Add New beside them", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
@@ -59,7 +59,7 @@ test("pick → confirm (3 portions) fills the row; ONE blank row follows; pickin
   await expect(trig(page, 0)).toContainText("Greek Yoghurt Pot");
   await expect(trig(page, 0).getByTestId("row-icon")).toHaveText("✎");
   await expect(trig(page, 1)).toContainText("Add breakfast…");                                     // the automatic blank row
-  await expect(header(page)).toHaveText("Sunday — 540 kcal");                                        // 3 × 180
+  await expect(header(page)).toHaveText("Day Calories: 540");                                        // 3 × 180
   await pick(page, 1, "Wholemeal Toast");
   await expect(trig(page, 2)).toContainText("Add breakfast…");
   await expect(trig(page, 3)).toContainText("Add lunch…");                                          // never more than one blank

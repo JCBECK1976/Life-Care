@@ -163,9 +163,8 @@ test("UI: one goal everywhere — Home Today and My Eating show the same goal; t
   await tab(page, "My Eating");
   const wd = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()];
   await page.getByRole("button", { name: wd, exact: true }).first().click();
-  const day = page.getByTestId("day-plan-actual");
-  await expect(day.getByTestId("pa-goal").locator("td").nth(1)).toHaveText(homeGoal);
-  await expect(day.getByTestId("pa-footnote")).toBeVisible();
+  const day = page.getByTestId("day-summary");                                                  // v2.54.0: the day's Summary
+  await expect(day.getByTestId("sum-row").locator('[data-col="goal"]')).toHaveText(homeGoal);
   await expect(page.getByText("Deficit:", { exact: false })).toHaveCount(0);                  // no user-facing deficit control
   await page.getByRole("button", { name: "Week", exact: true }).first().click();
   await page.getByTestId("week-summary").getByTestId("sum-toggle").click();                    // v2.53.0: Week Summary, days on Show

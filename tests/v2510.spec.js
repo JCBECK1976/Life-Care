@@ -48,7 +48,7 @@ test("Nutrition Overview (week and day): one decimal, whole kcal, no float artef
   for (const t of await week.locator("table").all()) expect(await noOverlap(t)).toBe(true);
   await week.screenshot({ path: "test-results/v2510-shots/nutrition-overview-360.png" });
   await page.getByRole("button", { name: new RegExp("^" + today.slice(0, 1).toUpperCase() + today.slice(1, 3) + "( \\d+)?$") }).first().click();
-  await page.getByRole("button", { name: PROGRESS }).first().click();
+  await page.getByRole("button", { name: "Day full breakdown" }).click();   // v2.54.0: was Progress
   const day = page.getByText(/ — Nutrition Overview/).last().locator("xpath=ancestor::div[2]");
   const dt = await day.innerText();
   expect(dt).not.toMatch(LONG);
@@ -69,7 +69,7 @@ test("headers at 360 px: 'My Week — Avg … kcal/day' and 'Monday — 1988 kca
   await wh.screenshot({ path: "test-results/v2510-shots/week-header-360.png" });
   await page.getByRole("button", { name: new RegExp("^" + today.slice(0, 1).toUpperCase() + today.slice(1, 3) + "( \\d+)?$") }).first().click();
   const dh = page.getByTestId("day-head");
-  await expect(dh).toContainText("390 kcal");
+  await expect(page.getByTestId("day-summary").getByTestId("sum-day")).toHaveText("Day Calories: 390");   // v2.54.0: moved from the header
   expect(await below(dh)).toBe(true);
   // wide screens keep one line
   await page.setViewportSize({ width: 900, height: 800 });

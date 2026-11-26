@@ -24,9 +24,9 @@ test("shared outlined buttons: same shape, own colours, filled when open, not tr
   // My Eating: 📷 Snap (= Open) + Open + 👁 Progress
   await tab(page, "My Eating");
   // v2.50.0: the rows' Snap / Open buttons moved into the picker's action bar
-  await check(page.getByRole("button", { name: PROGRESS }).first(), VIOLET);
-  await page.getByRole("button", { name: PROGRESS }).first().click();
-  await expect(page.getByRole("button", { name: CLOSE_PROGRESS }).first()).toHaveCSS("background-color", NAVY);
+  await check(page.getByRole("button", { name: /^(?!Close ).+ full breakdown$/ }).first(), VIOLET);   // v2.54.0: My Eating's Progress is "Full Breakdown"
+  await page.getByRole("button", { name: /^(?!Close ).+ full breakdown$/ }).first().click();
+  await expect(page.getByRole("button", { name: /^Close .+ full breakdown$/ }).first()).toHaveCSS("background-color", NAVY);
   // My Body: card 👁 Progress, Measurements 👁 Progress + 📋 Log, 📷 Snap
   await tab(page, "My Body");
   await check(page.getByTitle("View Weight detail"), VIOLET);

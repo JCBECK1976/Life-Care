@@ -1767,7 +1767,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           {/* Day content */}
           {eatDay !== "week" && <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
-            <div data-testid="day-head" className="lc-head" style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 8, display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 6 }}><span role="heading" aria-level={3} className="lc-head-title">{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)} — {getDayKcal(eatDay)} kcal</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyDayOpen(!copyDayOpen); setCopyDayTargets({}); }} style={Object.assign({},copyDayOpen?btnClose:btnAction)}>{copyDayOpen ? "✕ Close" : "📋 Copy Day"}</button><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);}} aria-label={(eatDayEyeOpen ? "Close " : "") + "Day eating progress"} aria-expanded={!!eatDayEyeOpen} style={eatDayEyeOpen ? btnFilledOn : btnProgress}>{eatDayEyeOpen ? "✕ Progress" : "👁 Progress"}</button></div></div>
+            <div data-testid="day-head" className="lc-head" style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 8, display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 6 }}><span role="heading" aria-level={3} className="lc-head-title">{eatDay.charAt(0).toUpperCase() + eatDay.slice(1)}</span><div style={{ display: "flex", gap: 4 }}><button onClick={function(){ setCopyDayOpen(!copyDayOpen); setCopyDayTargets({}); }} style={Object.assign({},copyDayOpen?btnClose:btnAction)}>{copyDayOpen ? "✕ Close" : "📋 Copy Day"}</button><button onClick={function(){setEatDayEyeOpen(!eatDayEyeOpen);}} aria-label={(eatDayEyeOpen ? "Close " : "") + "Day full breakdown"} aria-expanded={!!eatDayEyeOpen} style={eatDayEyeOpen ? btnFilledOn : btnProgress}>{eatDayEyeOpen ? "✕ Full Breakdown" : "👁 Full Breakdown"}</button></div></div>
+            <DaySummary data={data} who={activeTab} date={dateOf(weekStart, eatDay)} dates={DAYS.map(function(d) { return dateOf(weekStart, d); })} doc={weekChildren} dayKcal={getDayKcal(eatDay)} />   {/* v2.54.0 (night batch 25 Nov P3) */}
 
             {copyDayOpen && (<div style={{ background: accentLight, borderRadius: 8, padding: 10, marginBottom: 10, border: "1px solid " + accentBorder }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Copy {eatDay.charAt(0).toUpperCase() + eatDay.slice(1)}'s selections to:</div>
@@ -1848,8 +1849,8 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   return { label: cat.label, items: catItems };
                 });
                 return (<div>
-                  <div style={{ overflowX: "auto", width: "100%", boxSizing: "border-box" }}><table data-testid="nutrition-table" style={{ width: "100%", fontSize: 10, borderCollapse: "collapse", tableLayout: "auto", whiteSpace: "nowrap" }}>
-                    <colgroup><col style={{ width: "40%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /></colgroup>
+                  <div style={{ overflowX: "auto", width: "100%", boxSizing: "border-box" }}><table data-testid="nutrition-table" data-day="1" style={{ width: "100%", fontSize: 10, borderCollapse: "collapse", tableLayout: "fixed" }}>
+                    <colgroup><col style={{ width: "28%" }} /><col style={{ width: "13%" }} /><col style={{ width: "12%" }} /><col style={{ width: "12%" }} /><col style={{ width: "13%" }} /><col style={{ width: "11%" }} /><col style={{ width: "11%" }} /></colgroup>
                     <thead>
                       <tr style={{ borderBottom: "2px solid #e2e8f0", textAlign: "left" }}>
                         <th style={{ padding: "4px 2px", color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Item</th>
@@ -2338,7 +2339,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             </div>
 
             {/* v2.17.1: the day's calorie line (goal · food · activity · left) */}
-            {eatDay !== "week" && (function() { var dd = dateOf(weekStart, eatDay); return <PlanActual testid="day-plan-actual" title={eatDay.charAt(0).toUpperCase() + eatDay.slice(1) + " — Planned vs Actual"} data={data} who={activeTab} saveData={saveData} date={dd} doc={weekChildren} />; })()}
+            {/* v2.54.0: the day's Summary (top) replaces the Planned vs Actual table that was here */}
 
             {/* Day notes */}
 
