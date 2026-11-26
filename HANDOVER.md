@@ -28,7 +28,7 @@ The version table (changelog) is in **[docs/CHANGELOG.md](docs/CHANGELOG.md)** (
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.56.3** (hotfix PR #29, merged 26 Nov 2026, `dd2aa66`; v2.56.2 via PR #28) — awaiting JC's beta test; build = **v2.59.0** (`15603f4`, 26 Nov 2026; brief 26 Nov evening P1–P4 done — awaiting JC's test of /build/).
+- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.56.3** (hotfix PR #29, merged 26 Nov 2026, `dd2aa66`; v2.56.2 via PR #28) — awaiting JC's beta test; build = **v2.60.0** (`85dedee`, 26 Nov 2026; brief 26 Nov evening P1–P4 + steps in the day — awaiting JC's test of /build/).
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -3120,3 +3120,13 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **For JC / Architect to decide:** Edit Item on **Week → Set Defaults** still opens the list item in Update Eating Lists (P1 inline is for day rows). The Home Snap tile on wide screens keeps a phone-sized width (mood buttons stretch there).
 - **Queued next (Architect, 26 Nov): "Show steps in the day"**, starting now as v2.60.0 on build.
 - **Resume point:** `build` @ `15603f4` (v2.59.0); beta `dd2aa66` (v2.56.3); main @ this commit.
+
+### (Coder) 26 Nov 2026 — QUEUED (Architect, 26 Nov): show steps in the day — v2.60.0
+- **Done — build `85dedee` (v2.60.0):** read-only views of the steps the sync already stores (`p.dailyActivity`), behind the steps feature (`useSteps`: on /build/, off on beta/prod; there the old v2.17.1 day line stays as it was). New `lib/stepsView.js` (`stepsDay`, `stepsText`, `stepsWeek`, `stepsCtx`, `stepsSetUp`) and `components/StepsLine.jsx` (`StepsDay`, `StepsWeek`, `stepsShown`).
+  - **My Exercise, each day:** "👣 Steps 6,240 steps · +180 kcal" (the steps' share of the exercise credit, `dayCredit`); "· active 320 kcal" when active calories are on; "—" on a day with none; "Connect my steps" (opens Settings at the steps card) if never set up.
+  - **My Exercise → week:** there's no separate Week view in My Exercise, so "👣 Steps this week" sits above the day tabs: each day, the week total and the daily average (days up to today with steps).
+  - **Home → My Day:** today's steps under My Exercises.
+  - **Summary tables (Week and Day):** the Exercise Benefit number is a button; tapping shows a row "Steps +N · Workouts +N" ("Active calories +N" / "Measured burn +N" in those modes). Shown on every environment (a detail on tap).
+  - **Companions:** `getCrossSectionCtx` adds a STEPS line (today, yesterday, week total/average; "may mention steps briefly"), with the feature only.
+  - No new permissions; nothing written. Tests `tests/v2600.spec.js` (day line, "—", week total/average, active calories, Home, Connect link → Settings, the breakdown parts add up, the Companion request contains the steps, feature off = nothing). APP_GUIDE updated. No visual baseline change.
+- **Resume point:** `build` @ `85dedee` (v2.60.0); beta `dd2aa66` (v2.56.3); main @ this commit. STOP for JC's test. Do NOT merge to beta or main without JC.
