@@ -28,7 +28,7 @@ The version table (changelog) is in **[docs/CHANGELOG.md](docs/CHANGELOG.md)** (
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.20.2** (PR #27, merged 17 Nov 2026, `bcac68e`) — awaiting JC's beta test; build = **v2.41.0** (night batch in progress; full brief 23 Nov done: How Lifecare works, onboarding choice; body photos hidden; meal change as a conversation; exercise reasons + Skip; beta sizes back; visual freeze test; no advertising-ID permissions; under-18 store check; screen readers + text size; app lock, sign out everywhere; weigh-in entry st/lb | kg; weight reader, Help sections; weigh-ins, prompt caching, no US AI fallback, review demo; data by area, per-area sharing, App Check, the iPhone app, pilot features; earlier: plans, steps, onboarding/consent, individual accounts, deploy-ready functions, go-live switches — all OFF on beta/prod). Vite build, deployed by GitHub Actions. Test environments: `/Life-Care/beta/` (real data) and `/Life-Care/build/` (`data_build`)
+- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.20.2** (PR #27, merged 17 Nov 2026, `bcac68e`) — awaiting JC's beta test; build = **v2.56.1** (`bf41ed8`, 26 Nov 2026; night batch 25 Nov done — awaiting JC's test of /build/).
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
