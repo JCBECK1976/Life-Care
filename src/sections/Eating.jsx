@@ -34,6 +34,13 @@ import { dateOf, foodKey, loadWeekDoc, makeChild, occurrences, ragNote, reconcil
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
+/* v2.56.3 HOTFIX: the eating picker (MealSelect) used to be a component created inside the section's render, so every
+   keystroke (a picker state change → a re-render) made a NEW component type: React re-mounted the whole sheet and the
+   search box lost focus (the phone keyboard closed after each letter). Now ONE stable component; the section hands it
+   the current render logic through context, so its hooks and its input stay mounted while typing. */
+var MealSelectCtx = React.createContext(null);
+function MealSelect(props) { var useView = React.useContext(MealSelectCtx); return useView(props); }   // always the same hooks, in this one component
+
 export default function EatingSection({ ctx }) {
   const {
     accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, addingCategory,
@@ -917,7 +924,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           var f1 = function(v) { var n = Number(v); return isFinite(n) ? Math.round(n * 10) / 10 : 0; };
           var fk = function(v) { var n = Number(v); return isFinite(n) ? Math.round(n) : 0; };
           var sgn = function(v, dp) { var r = dp ? f1(v) : fk(v); return (r > 0 ? "+" : "") + r; };
-          var MealSelect = function(props) {
+          var useMealSelectView = function(props) {   /* rendered by the stable MealSelect above (v2.56.3) */
             useFavs();
             var items = props.items; var value = props.value; var onChange = props.onChange; var row = props.row || null;
             var placeholder = props.placeholder || "Select...";
@@ -1021,7 +1028,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             </div>);
           };
 
-          return (<div>
+          return (<MealSelectCtx.Provider value={useMealSelectView}><div>
           {/* Week header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
             <button onClick={function() { setWeekOff(function(o) { return o - 1; }); }} style={{ background: "#e2e8f0", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>&lsaquo;</button>
@@ -2405,4 +2412,4 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
           </div>)}
           {/* Generate meals */}
           
-        </div>); } catch(eatErr) { return (<div style={{ padding: 20, color: "#b91c1c" }}>Eating section error: {String(eatErr)}</div>); } }
+        </div></MealSelectCtx.Provider>); } catch(eatErr) { return (<div style={{ padding: 20, color: "#b91c1c" }}>Eating section error: {String(eatErr)}</div>); } }
