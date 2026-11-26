@@ -51,7 +51,7 @@ You can pinch to zoom anywhere in the app (since v2.15.2). With a keyboard, the 
 ### The main tabs
 | Tab | What it's for |
 |---|---|
-| **Home** | Your daily dashboard: greeting, Companion Energy, mood, My Day summary, journal, profile/setup and your overall Companion check-in. |
+| **Home** | Your daily dashboard: greeting, Companion Energy with the **📷 Snap** tile beside it, mood, My Day summary, journal, profile/setup and your overall Companion check-in. |
 | **My Body** | Body composition stats (weight, body fat, muscle etc.) and tape measurements, with progress charts and feedback. |
 | **My Exercise** | Your training plan by day, logging sessions, progress, exercise guides and session feedback. |
 | **My Eating** | Planning and tracking meals, your food lists, ratings, nutrition totals, meal generator and eating feedback. |
@@ -130,6 +130,13 @@ Every photo you give the app (📷 Snap, 📷 Upload, Body Type Photos, measurem
 
 ### Greeting and welcome
 "Good morning / afternoon / evening, [name]" with a rotating encouraging message. If no profile exists yet you'll see "New User".
+
+### 📷 Snap (Home)
+The white **📷 Snap** tile next to Companion Energy checks a meal straight from Home. Tap it: the Snap panel opens just below, with the yellow **💡 Additional Information** box for anything you know (weight, calories, portion size). Tap **📷 Take photo**; your Companion shows what it sees and its values in the same place. Then:
+- **Add to:** choose Breakfast, Lunch, Dinner, Desserts, Drinks or Snacks (it starts on the one for the time of day);
+- on a shared account, **For:** choose the person;
+- **Confirm** adds it as a new row in today's meal (this meal only — your lists aren't changed) and shows *"Added to today's lunch"* with **Undo**; **↻ Re-check** looks again (add details first if you like); **Cancel** (or ✕ Close / Esc) closes it with nothing saved.
+The photo is only looked at, never stored. Snap is part of Silver and up; on Bronze the tile shows the plan details.
 
 ### ⚡ Companion Energy
 Companion Energy shows how much energy is left for Companion features, as a percentage. Every time the Companion generates feedback, answers a chat or calculates nutrition, it uses a little energy.

@@ -66,6 +66,7 @@ export var GUIDE = [
     [sample(btnP(true), "My Companion Feedback"), "My Companion Feedback", "Your Companion's view of a section, or of everything on Home.", "Home and each section"],
     [<span aria-hidden="true" style={{ display: "inline-flex", width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", fontSize: 13 }}>💬</span>, "Chat 💬", "Talk to your Companion about anything in the app.", "The round button, bottom right"],
     [sample(btnMuted, "🏋️ My training style"), "My training style", "My training style: in My Profile. Your rep range (Strength, Muscle, Endurance or Mixed) and pace, for your Companion's suggestions (Silver and up).", "My Profile (Home → ▼ My Profile)"],
+    [sample({ background: "#fff", border: "1px solid #cbd5e1", borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 700, color: "#0f172a" }, "📷 Snap"), "Snap (Home)", "Photograph a meal from Home: your Companion checks it, you choose Add to (breakfast, lunch…) and, on a shared account, the person; Confirm adds a new row to today (with Undo). The photo is never stored.", "Home, next to Companion Energy"],
     [<span aria-hidden="true" style={{ display: "inline-block", width: 90, height: 6, borderRadius: 3, background: "linear-gradient(90deg, #22c55e 70%, #e2e8f0 70%)" }} />, "Energy meter", "This month's Companion Energy left; top up in My Plan.", "Settings → My Plan, and the header"],
   ]],
   ["Home", [

@@ -17,11 +17,13 @@ import { sSet } from "../lib/storage.js";
 import { BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, SNACKS } from "../constants/food.js";
 import { tiersOn, usePlan } from "../lib/myPlan.js";
 import TrainingStyleCard from "../components/TrainingStyleCard.jsx";
+import HomeSnap from "../components/HomeSnap.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
 export default function HomeSection({ ctx }) {
   const {
+    addSnapToToday, homePeople,
     accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, assessment,
     assessmentExpanded, btnMT, calcAge, checkCompanionEnergy, companionEnergy, customBreakfasts, customDesserts, customDrinks,
     customLunches, customMeals, customSnacks, dailyMood, data, energyLoading, feedbackHistory, feedbackLoading,
@@ -73,7 +75,7 @@ export default function HomeSection({ ctx }) {
             /* v2.22.3: with plans on, Energy is the PLAN's (own balance or the family pool); Bronze has none, so no bar.
                The shared account (not previewing) keeps the developer-key level as before. */
             if (tiersOn() && plan.loaded && !(plan.joint && !plan.preview)) {
-              if (plan.tier === "bronze") return null;
+              if (plan.tier === "bronze") return <HomeSnap people={homePeople} activeKey={activeTab} addSnapToToday={addSnapToToday} accentBorder={accentBorder} energy={null} />;   /* v2.59.0: Bronze has no Energy bar but sees the Snap tile (plan prompt) */
               rawPct = plan.energyPct != null ? plan.energyPct : (plan.preview ? 100 : 0); hasEnergy = true; keyStatus = "active";
             }
             var pct = rawPct <= 0 ? 0 : rawPct;
@@ -85,7 +87,8 @@ export default function HomeSection({ ctx }) {
             var statusEmoji = !hasEnergy ? "" : keyStatus === "active" ? "✓ " : keyStatus === "no_key" || keyStatus === "invalid_key" ? "✗ " : "";
             var pctColor = pct > 20 ? "#22c55e" : pct > 0 ? "#f59e0b" : "#ef4444";
 
-            return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "9px 16px", marginBottom: 10 }}>
+            /* v2.59.0 (brief 26 Nov P4): the Energy box (narrower) + the Snap tile on one row; the Snap panel opens below it */
+            return (<HomeSnap people={homePeople} activeKey={activeTab} addSnapToToday={addSnapToToday} accentBorder={accentBorder} energy={<div data-testid="energy-box" style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "9px 16px", flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                   <span style={{ fontSize: 13 }}>⚡</span>
@@ -106,7 +109,7 @@ export default function HomeSection({ ctx }) {
                 <div style={{ fontSize: 9, color: "#475569" }}>{statusEmoji}{statusLabel}</div>
                   <button onClick={checkCompanionEnergy} disabled={energyLoading} style={{ background: "none", border: "none", fontSize: 9, color: "#1d4ed8", cursor: energyLoading ? "not-allowed" : "pointer", padding: "2px 6px" }}>↻ Refresh</button>
               </div>
-            </div>);
+            </div>} />);
           })()}
 
           {/* Profile */}
