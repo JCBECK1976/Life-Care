@@ -68,7 +68,10 @@ import { isCardioEx, cardioHasForm } from "./lib/cardio.js";
 import { trainingStyleCtx, companionProfileCtx } from "./lib/profileCtx.js";
 import { startNativeShare } from "./lib/nativeShare.js";
 import { stripMeasurementPhotos, stripPhotoFragments } from "./lib/bodyBalance.js";
-import { childItems, dateOf, emptyDoc, loadParentLookup, loadWeekDoc, reconcile, recalcChild, saveWeekDoc, viewFromDoc, weekKey, ymd } from "./lib/children.js";
+import { childItems, dateOf, emptyDoc, loadParentLookup, loadWeekDoc, makeChild, reconcile, recalcChild, saveWeekDoc, viewFromDoc, weekKey, ymd } from "./lib/children.js";
+import { gramsLine as snapGrams } from "./lib/snap.js";
+import { stepsCtx } from "./lib/stepsView.js";
+import { stepsShown } from "./components/StepsLine.jsx";
 
 const { useState, useEffect, useCallback, useRef } = React;
 function Dashboard() {
@@ -773,6 +776,34 @@ function Dashboard() {
     setWeekChildren(doc); setMeals(viewFromDoc(doc));
     await saveWeekDoc(activeTab, weekStart, doc);
     return prev;
+  };
+  /* v2.59.0 (brief 26 Nov P4): Home's Snap tile → the checked food as a NEW row (after the last filled one) in TODAY's
+     chosen category for the chosen person, as "this meal only" (adhoc, the photo values). Returns an Undo. The photo is
+     never stored. The person's current week is used live when it is the one on screen; otherwise it is loaded and saved. */
+  const addSnapToToday = async (who, cat, info, desc) => {
+    var now = new Date(), ws = new Date(baseStart.getTime() + Math.floor((now - baseStart) / (7 * 864e5)) * 7 * 864e5);
+    var weekday = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][now.getDay()];
+    var live = who === activeTab && ymd(ws) === ymd(weekStart);
+    var doc = live ? JSON.parse(JSON.stringify(weekChildrenRef.current)) : await loadWeekDoc(who, ws, { write: false, lookup: await loadParentLookup() });
+    doc.children = doc.children || {};
+    var view = viewFromDoc(doc)[weekday] || {};
+    var numbered = cat === "o" || cat === "ds" || cat === "dr", max = cat === "o" ? 20 : numbered ? 5 : 10;
+    var key = function(i) { return numbered ? cat + i : (i === 1 ? cat : cat + i); };
+    var last = 0; for (var i = 1; i <= max; i++) { var v = view[key(i)]; if (v && v !== "__empty__") last = i; }
+    if (last >= max) throw new Error("That meal is full for today");
+    var slot = key(last + 1), date = dateOf(ws, weekday);
+    var vals = { kcal: info.kcal || 0, protein: info.protein || 0, fat: info.fat || 0, satFat: info.satFat || 0, addedSugar: info.addedSugar || 0, carbs: info.carbs || 0, fibre: info.fibre || 0, salt: info.salt || 0 };
+    var portion = { source: "photo", values: vals, assumed: snapGrams(info) || info.assumed || "", grams: parseFloat(info.totalGrams) || null, check: info._deep ? "deep dive" : "first check" };
+    var child = makeChild(Object.assign({ name: info.name || "Food", jcKcal: vals.kcal, beckKcal: vals.kcal }, vals), { date: date, weekday: weekday, slot: slot, source: "adhoc", isJC: who === "jc", parentId: null, portion: portion, notes: desc || "", limits: personalLimits(data && data[who]) });
+    doc.children[child.id] = child; doc.empty = (doc.empty || []).filter(function(k) { return k !== weekday + ":" + slot; });
+    if (live) { setWeekChildren(doc); setMeals(viewFromDoc(doc)); }
+    await saveWeekDoc(who, ws, doc);
+    return { who: who, slot: slot, name: child.snapshot.name, undo: async function() {
+      var d2 = who === activeTab && ymd(ws) === ymd(weekStart) ? JSON.parse(JSON.stringify(weekChildrenRef.current)) : await loadWeekDoc(who, ws, { write: false, lookup: await loadParentLookup() });
+      delete (d2.children || {})[child.id];
+      if (who === activeTab && ymd(ws) === ymd(weekStart)) { setWeekChildren(d2); setMeals(viewFromDoc(d2)); }
+      await saveWeekDoc(who, ws, d2);
+    } };
   };
   const childItemsList = childItems(weekChildren, parentLookupNow(), limitsForActive);
   const pickMeal = (dk, id) => { const n = { ...meals, [dk]: id }; setMeals(n); saveMeals(n); setEditDay(null); };
@@ -1531,7 +1562,8 @@ function Dashboard() {
     var _bn = bodyNotesCtx(data && data[tab]); if (_bn) lines.push(_bn);
     /* v2.18.0: the person's goal, timescale, required pace and progress — every companion */
     try { lines.push(goalCtx(data && data[tab])); } catch (e) { /* goal context is optional */ }
-    var _ts = trainingStyleCtx(data && data[tab]); if (_ts) lines.push(_ts);   // v2.48.0 (brief 24 Nov P3): the training style, every Companion
+    var _ts = trainingStyleCtx(data && data[tab]); if (_ts) lines.push(_ts);
+    var _stp = stepsShown() ? stepsCtx(data && data[tab]) : null; if (_stp) lines.push(_stp);   // v2.60.0: steps (read-only), every Companion — exercise and Home can mention them   // v2.48.0 (brief 24 Nov P3): the training style, every Companion
     /* v2.20.0: one shared summary of THIS person's recent Companion conversations (14 days, small budget). Every source is
        keyed by `tab`; state that only holds the active person (body/measurement feedback, journal) is used only when tab is active. */
     var areas = [], th = function(fb) { return fb && fb._thread ? fb._thread : null; };
@@ -1924,7 +1956,7 @@ function Dashboard() {
         {/* HOME */}
         <SharePicker people={data ? peopleOf(data) : []} activeKey={activeTab} accentMid={accentMid} setPerson={function(k) { setActiveTab(k); loadUserSettings(k); }} go={function(kind) { if (kind === "body" || kind === "progress") setSection("body"); else if (kind === "food") setSection("shop"); else if (kind === "eat") setSection("meals"); }} />
         {data && data[activeTab] && <SetupGuide who={activeTab} p={data[activeTab]} data={data} saveData={saveData} section={section} go={setSection} openGoal={openGoalSetup} goalOpen={goalSetupOpen} colour={userColour} setColour={setUserColour} onHold={function(h) { setGoalHold(function(q) { if (!!q[activeTab] === h) return q; var o = Object.assign({}, q); o[activeTab] = h; return o; }); }} />}   {/* v2.38.0 (brief P5c): set-up guide, checklist, tips */}
-        {section === "overview" && (<ErrorBoundary name="Home"><HomeSection ctx={{ weekChildren, openGoalSetup, accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, assessment, assessmentExpanded, btnMT, calcAge, checkCompanionEnergy, companionEnergy, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, dailyMood, data, energyLoading, feedbackHistory, feedbackLoading, feedbackResults, genPlanLoading, generateFeedback, generatedTargets, getCrossSectionCtx, homeFbExpanded, isJC, journalEntries, journalText, meals, onboardInputs, p, profileInputs, renderThread, saveData, setAssessment, setAssessmentExpanded, setDailyMood, setEatDay, setExerciseDay, setFormMsg, setGenPlanLoading, setGeneratedTargets, setHomeFbExpanded, setJournalEntries, setJournalText, setOnboardInputs, setProfileInputs, setSection, setSetupDirty, setSetupTab, setShowFbHistory, setShowFullJournal, setShowMyDay, setShowOnboarding, setShowProfile, setShowRecentJournal, setUserMood, setupDirty, setupTab, showFbHistory, showFullJournal, showMyDay, showOnboarding, showProfile, showRecentJournal, updateHomeFb, userMood }} /></ErrorBoundary>)}
+        {section === "overview" && (<ErrorBoundary name="Home"><HomeSection ctx={{ addSnapToToday, homePeople: data ? peopleOf(data) : [], weekChildren, openGoalSetup, accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, assessment, assessmentExpanded, btnMT, calcAge, checkCompanionEnergy, companionEnergy, customBreakfasts, customDesserts, customDrinks, customLunches, customMeals, customSnacks, dailyMood, data, energyLoading, feedbackHistory, feedbackLoading, feedbackResults, genPlanLoading, generateFeedback, generatedTargets, getCrossSectionCtx, homeFbExpanded, isJC, journalEntries, journalText, meals, onboardInputs, p, profileInputs, renderThread, saveData, setAssessment, setAssessmentExpanded, setDailyMood, setEatDay, setExerciseDay, setFormMsg, setGenPlanLoading, setGeneratedTargets, setHomeFbExpanded, setJournalEntries, setJournalText, setOnboardInputs, setProfileInputs, setSection, setSetupDirty, setSetupTab, setShowFbHistory, setShowFullJournal, setShowMyDay, setShowOnboarding, setShowProfile, setShowRecentJournal, setUserMood, setupDirty, setupTab, showFbHistory, showFullJournal, showMyDay, showOnboarding, showProfile, showRecentJournal, updateHomeFb, userMood }} /></ErrorBoundary>)}
 
         {/* BODY */}
         {section === "body" && (<ErrorBoundary name="Body"><BodySection ctx={{ accent, accentBorder, accentLight, accentMid, activeTab, addMeasName, addMeasOpen, bodyFbAll, bodyFbExpanded, bodyFbLoading, bodyFeedback, bodyInputs, bodyMetricOpen, bodyMetricShowAll, bodyView, btnST, data, editMeasKey, editMeasName, getCrossSectionCtx, getOnboardingCtx, idealSt, isJC, measFbAll, measFbExpanded2, measFbLoading, measFeedback, measLogInputs, measLogKey, measMetricOpen, measMetricShowAll, p, renderThread, saveBodyComp, saveData, setAddMeasName, setAddMeasOpen, setBodyFbExpanded, setBodyFbLoading, setBodyFeedback, setBodyInputs, setBodyMetricOpen, setBodyMetricShowAll, setBodyView, setEditMeasKey, setEditMeasName, setFormMsg, setMeasFbExpanded2, setMeasFbLoading, setMeasFeedback, setMeasLogInputs, setMeasLogKey, setMeasMetricOpen, setMeasMetricShowAll, setShowBodyForm, showBodyForm, updateBodyFb, updateMeasFb, userMood, weekLabel, wt, wtCheck, wtDelta, wtSign, wtStr }} /></ErrorBoundary>)}

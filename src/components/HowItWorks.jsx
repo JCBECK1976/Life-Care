@@ -32,7 +32,7 @@ export var GUIDE = [
   ]],
   ["Eating", [
     [<span aria-hidden="true" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 8px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11, color: "#475569" }}>Add breakfast… <b style={{ color: "#1e3a5f" }}>+</b></span>, "Eating row (✎ / +)", "One box per item: + adds, ✎ changes. Tap it to open the picker.", "My Eating days and Week → Set Defaults"],
-    [<span aria-hidden="true" style={{ fontSize: 11, color: "#1e3a5f" }}>📷 Snap · ♡ Favourites · + Add New · ✎ Edit Item · 🗑 Remove</span>, "Picker action bar", "At the top of the picker: Snap this row, show favourites only, add a food not in your list, edit the item, or remove it (and its row).", "The eating picker"],
+    [<span aria-hidden="true" style={{ fontSize: 11, color: "#1e3a5f" }}>📷 Snap · ♡ Favourites · + Add New · ✎ Edit Item · 🗑 Remove</span>, "Picker action bar", "At the top of the picker: Snap this row, show favourites only, add a food not in your list, edit the item right there in the picker, or remove it (and its row).", "The eating picker"],
     [<span aria-hidden="true" style={{ color: "#dc2626", fontSize: 13 }}>♥</span>, "♥ Favourite", "Tick ♥ Favourite when you save or edit an item; it shows with a red ♥ and the Favourites filter. Each person has their own.", "Update Eating Lists; the picker"],
     [sample(btnP(true), "Confirm"), "Confirm (portions)", "After you pick: say how many portions (e.g. 3 biscuits), then Confirm. A new blank row appears under the last one.", "The eating picker"],
     [sample(btnMuted, "+ Not in my list?"), "+ Not in my list?", "Add a food that isn't in that list yet.", "Food pickers"],
@@ -66,6 +66,7 @@ export var GUIDE = [
     [sample(btnP(true), "My Companion Feedback"), "My Companion Feedback", "Your Companion's view of a section, or of everything on Home.", "Home and each section"],
     [<span aria-hidden="true" style={{ display: "inline-flex", width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", fontSize: 13 }}>💬</span>, "Chat 💬", "Talk to your Companion about anything in the app.", "The round button, bottom right"],
     [sample(btnMuted, "🏋️ My training style"), "My training style", "My training style: in My Profile. Your rep range (Strength, Muscle, Endurance or Mixed) and pace, for your Companion's suggestions (Silver and up).", "My Profile (Home → ▼ My Profile)"],
+    [sample({ background: "#fff", border: "1px solid #cbd5e1", borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 700, color: "#0f172a" }, "📷 Snap"), "Snap (Home)", "Photograph a meal from Home: your Companion checks it, you choose Add to (breakfast, lunch…) and, on a shared account, the person; Confirm adds a new row to today (with Undo). The photo is never stored.", "Home, next to Companion Energy"],
     [<span aria-hidden="true" style={{ display: "inline-block", width: 90, height: 6, borderRadius: 3, background: "linear-gradient(90deg, #22c55e 70%, #e2e8f0 70%)" }} />, "Energy meter", "This month's Companion Energy left; top up in My Plan.", "Settings → My Plan, and the header"],
   ]],
   ["Home", [

@@ -215,16 +215,20 @@ export default function EatingSection({ ctx }) {
                   next.portion = { factor: factor };
                 }
                 await setChildAt(o.day, o.slot, next);
+                if (o.inPicker) { backToPicker(); setPickToast({ text: "✓ Saved for this meal only", undo: null }); return; }
                 setSlotOpen({ day: o.day, slot: o.slot, first: o.first, editing: false, msg: "✓ Saved for this meal only. To update the list item permanently, please go to 'Update Eating Lists'." });
               } catch (e) { setSlotOpen(Object.assign({}, o, { draft: d, msg: "⚠️ Couldn't recalculate: " + String(e.message || e).substring(0, 90) + ". Nothing was changed." })); }
             };
+            /* v2.57.0 (brief 26 Nov P1): opened from the picker's Edit Item → shown INSIDE the picker, already editing;
+               Close / Cancel / Save go back to the same picker list; Remove empties the row and leaves the picker open on it */
+            var backToPicker = function() { setSlotOpen(null); setPicker(function(cur) { return cur ? Object.assign({}, cur, { edit: false }) : cur; }); };
             var srcLabel = { manual: "picked", default: "your default", generator: "generated", snap: "📷 snap", adhoc: "📷 snap", copy: "copied", migrated: "earlier" }[c.source] || c.source;
             return (<OpenForm testid="slot-open-form" title={c.snapshot.name} subtitle={(parent ? "From your list" : "This meal only (not in your lists)") + " · " + srcLabel} editing={o.editing} message={o.msg}
               onEdit={function() { setSlotOpen(Object.assign({}, o, { editing: true, draft: d, msg: "" })); }}
-              onCancelEdit={function() { setSlotOpen(Object.assign({}, o, { editing: false, draft: null, msg: "" })); }}
-              onSave={save}
-              dangerKind="remove" onDanger={function() { if (!confirm("Remove " + c.snapshot.name + " from this meal? Your list is not changed.")) return; setSlotOpen(null); setMeal(o.day, o.slot, o.first ? "__empty__" : ""); }}
-              onClose={function() { setSlotOpen(null); }}>
+              onCancelEdit={function() { if (o.inPicker) { backToPicker(); return; } setSlotOpen(Object.assign({}, o, { editing: false, draft: null, msg: "" })); }}
+              onSave={save} dangerWhileEditing={!!o.inPicker}
+              dangerKind="remove" onDanger={function() { if (!confirm("Remove " + c.snapshot.name + " from this meal? Your list is not changed.")) return; if (o.inPicker) { backToPicker(); setMeal(o.day, o.slot, "__empty__"); return; } setSlotOpen(null); setMeal(o.day, o.slot, o.first ? "__empty__" : ""); }}
+              onClose={function() { if (o.inPicker) { backToPicker(); return; } setSlotOpen(null); }}>
               <Field label="Portion" testid="slot-portion">{o.editing ? <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
                   {["0.5", "1", "1.5", "2"].map(function(f) { return <button key={f} type="button" onClick={function() { setD({ factor: f }); }} style={{ ...btnMuted, color: String(d.factor) === f ? "#1e3a5f" : "#475569", borderColor: String(d.factor) === f ? "#1e3a5f" : "#e2e8f0" }}>{f === "0.5" ? "½" : f === "1.5" ? "1½" : f}×</button>; })}
                   <input aria-label="Portion factor" value={d.factor} onChange={function(e) { setD({ factor: e.target.value }); }} style={Object.assign({}, openInput, { width: 60 })} />
@@ -792,8 +796,21 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           var defs = mealDefaults[activeTab] || {};
           var dayMeals = meals[eatDay] || {};
-          var otherSlots = [];
-          for (var oi = 1; oi <= 20; oi++) { if (dayMeals["o" + oi] || oi <= Math.max(getOtherCount(eatDay), 1) || dayMeals["o" + oi] === "__empty__") otherSlots.push(oi); }
+          /* v2.58.1 (brief 26 Nov P3): the rows SHOWN for a category = every row up to the last FILLED one (gaps kept, e.g. after
+             Remove in Edit Item) + EXACTLY ONE blank "Add …" row after it — whatever filled it (a pick, Add New / Update Lists,
+             Snap, share, Home Snap, Copy Day/Week, defaults). Display only: nothing is written; stale blanks beyond it are hidden. */
+          var shownRows = function(prefix, mode, getV) {
+            var numbered = prefix === "o" || (mode === "day" && (prefix === "ds" || prefix === "dr"));
+            var max = prefix === "o" ? 20 : mode === "day" && (prefix === "ds" || prefix === "dr") ? 5 : 10;
+            var key = function(i) { return numbered ? prefix + i : (i === 1 ? prefix : prefix + i); };
+            var full = function(v) { return !!v && v !== "__empty__" && v !== "__placeholder__"; };
+            var last = 0, i; for (i = 1; i <= max; i++) if (full(getV(key(i)))) last = i;
+            var out = []; for (i = 1; i <= last; i++) if (i === 1 || getV(key(i))) out.push(i);
+            if (last < max) out.push(last + 1);
+            return out;
+          };
+          var dayV = function(k) { return dayMeals[k] || ""; }, defV = function(k) { return defs[k] || ""; };
+          var otherSlots = shownRows("o", "day", dayV);
 
           /* v2.8.0 F5: a list item opened read-only. Edit = the Update Item editor; Delete from list lives ONLY here. */
           var nutritionRows = function(n, kcal) { return (<>
@@ -938,8 +955,10 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             var sorted = items.slice().sort(function(a,b) { return a.name.localeCompare(b.name); });
             var pool = favOnly ? sorted.filter(function(it) { return isFav(it.id); }) : sorted;
             var filtered = search ? fuzzyFind(search, pool, function(it) { return it.name || ""; }, 200) : pool;   /* v2.20.0: forgiving search, as in Update Lists */
+            /* v2.60.1 (JC): a filled row opens the list with its SELECTED item first (highlighted), on day rows and Set Defaults */
+            if (!search && value) { var _ci = allItemsLookup[value], _cid = _ci && _ci.parentId ? _ci.parentId : value; var _ix = filtered.findIndex(function(it) { return it.id === _cid || it.id === value; }); if (_ix > 0) filtered = [filtered[_ix]].concat(filtered.slice(0, _ix), filtered.slice(_ix + 1)); }
             var flash = !!value && !!pickFlash && (pickFlash === value || !!(allItemsLookup[value] && allItemsLookup[value].parentId === pickFlash));
-            var close = function() { setOpen(false); };
+            var close = function() { setOpen(false); if (slotOpen && slotOpen.inPicker) setSlotOpen(null); };
             var choose = function(item) {
               if (row) { upd({ pending: item, qty: "1" }); return; }   // v2.50.0: confirm first
               var prev = value; onChange({ target: { value: item.id } }); close(); setPickFlash(item.id); setPickToast({ text: "Added: " + item.name, undo: function() { onChange({ target: { value: prev || "" } }); } }); try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) { /* no haptics */ }
@@ -985,7 +1004,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               {row.mode !== "defaults" && act("📷", "Snap", "act-snap", function() { setPicker(Object.assign({}, ps, { snap: true, pending: null })); openSnap(row.slot); })}
               {act(favOnly ? "♥" : "♡", "Favourites", "act-fav", function() { setFavOnly(!favOnly); }, { pressed: favOnly, heart: true })}
               {act("+", "Add New", "act-add", function() { close(); onChange({ target: { value: "__add_new__", searchText: search } }); })}
-              {act("✎", "Edit Item", "act-edit", function() { close(); editRow(row); }, { disabled: !filled || (row.mode === "defaults" && !(it0 && it0._isCustom !== false)), title: !filled ? "Nothing to edit yet" : "" })}
+              {act("✎", "Edit Item", "act-edit", function() { if (row.mode !== "defaults") { setPicker(Object.assign({}, ps, { edit: true, pending: null, snap: false })); setSlotOpen({ day: row.day, slot: row.slot, first: /^[bld]$/.test(row.slot), editing: true, msg: "", inPicker: true }); return; } close(); editRow(row); }, { disabled: !filled || (row.mode === "defaults" && !(it0 && it0._isCustom !== false)), title: !filled ? "Nothing to edit yet" : "" })}
               {act("🗑", "Remove", "act-remove", function() { close(); removeRow(row); }, { danger: true })}
             </div>) : null;
             var rowsEl = (<>
@@ -1021,9 +1040,9 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                     <button aria-label="Close the list" onClick={close} style={{minWidth:44,minHeight:40,padding:"8px 12px",background:"#fff",border:"1px solid #2563eb",borderRadius:8,fontSize:13,fontWeight:700,color:"#1e3a8a",cursor:"pointer"}}>✕ Close</button>
                   </div>
                   {bar}
-                  {!pending && !(ps && ps.snap) && <div style={{ padding: "8px 12px", borderBottom: "1px solid #e2e8f0" }}><input ref={inputRef} autoFocus={!(window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches)} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Type to search..." aria-label="Search items" style={{width:"100%",padding:"10px 12px",border:"1px solid "+accent,borderRadius:8,fontSize:16,background:"#fff",boxSizing:"border-box"}} /></div>}
+                  {!pending && !(ps && ps.snap) && !(ps && ps.edit) && <div style={{ padding: "8px 12px", borderBottom: "1px solid #e2e8f0" }}><input ref={inputRef} autoFocus={!(window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches)} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Type to search..." aria-label="Search items" style={{width:"100%",padding:"10px 12px",border:"1px solid "+accent,borderRadius:8,fontSize:16,background:"#fff",boxSizing:"border-box"}} /></div>}
                 </div>
-                {ps && ps.snap && portionSlot === row.slot ? <div data-testid="picker-snap" style={{ flex: 1, overflowY: "auto", padding: "10px 12px" }}>{renderSnapPanel()}</div> : pending ? confirmEl : <div data-testid="picker-results" role="listbox" aria-label="Items" style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>{rowsEl}</div>}
+                {ps && ps.edit && slotOpen && slotOpen.inPicker && slotOpen.day === row.day && slotOpen.slot === row.slot ? <div data-testid="picker-edit" style={{ flex: 1, overflowY: "auto", padding: "6px 12px" }}>{renderSlotForm()}</div> : ps && ps.snap && portionSlot === row.slot ? <div data-testid="picker-snap" style={{ flex: 1, overflowY: "auto", padding: "10px 12px" }}>{renderSnapPanel()}</div> : pending ? confirmEl : <div data-testid="picker-results" role="listbox" aria-label="Items" style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>{rowsEl}</div>}
               </div>
             </div>);
           };
@@ -1564,7 +1583,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <button onClick={function() { saveDef("b", defs["b"], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["b"] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes["b"] || "individual") === "all" ? "#0f172a" : "#475569" }}>All</button>
                 </div>
               </div>
-              {(function() { var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "b" : "b" + si; if (defs[sk] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
+              {shownRows("b", "defaults", defV).map(function(n) {
                 var slotKey = n === 1 ? "b" : "b" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
@@ -1582,7 +1601,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <button onClick={function() { saveDef("l", defs["l"], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["l"] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes["l"] || "individual") === "all" ? "#0f172a" : "#475569" }}>All</button>
                 </div>
               </div>
-              {(function() { var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "l" : "l" + si; if (defs[sk] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
+              {shownRows("l", "defaults", defV).map(function(n) {
                 var slotKey = n === 1 ? "l" : "l" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
@@ -1600,7 +1619,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <button onClick={function() { saveDef("d", defs["d"], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["d"] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes["d"] || "individual") === "all" ? "#0f172a" : "#475569" }}>All</button>
                 </div>
               </div>
-              {(function() { var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "d" : "d" + si; if (defs[sk] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
+              {shownRows("d", "defaults", defV).map(function(n) {
                 var slotKey = n === 1 ? "d" : "d" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
@@ -1618,7 +1637,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <button onClick={function() { saveDef("ds", defs["ds"], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["ds"] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes["ds"] || "individual") === "all" ? "#0f172a" : "#475569" }}>All</button>
                 </div>
               </div>
-              {(function() { var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "ds" : "ds" + si; if (defs[sk] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
+              {shownRows("ds", "defaults", defV).map(function(n) {
                 var slotKey = n === 1 ? "ds" : "ds" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
@@ -1637,7 +1656,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <button onClick={function() { saveDef("dr", defs["dr"], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["dr"] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes["dr"] || "individual") === "all" ? "#0f172a" : "#475569" }}>All</button>
                 </div>
               </div>
-              {(function() { var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "dr" : "dr" + si; if (defs[sk] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
+              {shownRows("dr", "defaults", defV).map(function(n) {
                 var slotKey = n === 1 ? "dr" : "dr" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
@@ -1655,7 +1674,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <button onClick={function() { saveDef("o1", defs["o1"], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["o1"] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes["o1"] || "individual") === "all" ? "#0f172a" : "#475569" }}>All</button>
                 </div>
               </div>
-              {(function() { var slots = []; for (var si = 1; si <= 20; si++) { if (defs["o" + si] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
+              {shownRows("o", "defaults", defV).map(function(n) {
                 var slotKey = "o" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
@@ -2005,7 +2024,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Breakfast</span>
               {(function() {
-                var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "b" : "b" + si; if (getMeal(eatDay, sk) || si <= 1) slots.push(si); }
+                var slots = shownRows("b", "day", dayV);
                 return slots.map(function(idx) {
                   var slotKey = idx === 1 ? "b" : "b" + idx;
                   var _hasItem = allBfast.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
@@ -2019,7 +2038,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   </div>);
                 });
               })()}
-              {slotOpen && slotOpen.day === eatDay && /^b\d*$/.test(slotOpen.slot) && renderSlotForm()}
+              {slotOpen && !slotOpen.inPicker && slotOpen.day === eatDay && /^b\d*$/.test(slotOpen.slot) && renderSlotForm()}
               {portionSlot && portionSlot.match(/^b\d*$/) && (portionLoading || portionResult || snapPre === portionSlot) && !(picker && picker.snap) && renderSnapPanel()}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             </div>
@@ -2043,7 +2062,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Lunch</span>
               {(function() {
-                var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "l" : "l" + si; if (getMeal(eatDay, sk) || si <= 1) slots.push(si); }
+                var slots = shownRows("l", "day", dayV);
                 return slots.map(function(idx) {
                   var slotKey = idx === 1 ? "l" : "l" + idx;
                   var _hasItem = allLunch.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
@@ -2057,7 +2076,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   </div>);
                 });
               })()}
-              {slotOpen && slotOpen.day === eatDay && /^l\d*$/.test(slotOpen.slot) && renderSlotForm()}
+              {slotOpen && !slotOpen.inPicker && slotOpen.day === eatDay && /^l\d*$/.test(slotOpen.slot) && renderSlotForm()}
               {portionSlot && portionSlot.match(/^l\d*$/) && (portionLoading || portionResult || snapPre === portionSlot) && !(picker && picker.snap) && renderSnapPanel()}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             </div>
@@ -2081,7 +2100,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Dinner</span>
               {(function() {
-                var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "d" : "d" + si; if (getMeal(eatDay, sk) || si <= 1) slots.push(si); }
+                var slots = shownRows("d", "day", dayV);
                 return slots.map(function(idx) {
                   var slotKey = idx === 1 ? "d" : "d" + idx;
                   var sIdx = slotKey === "d" ? "" : slotKey.replace("d", "");
@@ -2118,7 +2137,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   </div>);
                 });
               })()}
-              {slotOpen && slotOpen.day === eatDay && /^d\d*$/.test(slotOpen.slot) && renderSlotForm()}
+              {slotOpen && !slotOpen.inPicker && slotOpen.day === eatDay && /^d\d*$/.test(slotOpen.slot) && renderSlotForm()}
               {portionSlot && portionSlot.match(/^d\d*$/) && !portionSlot.match(/^d[sr]/) && (portionLoading || portionResult || snapPre === portionSlot) && !(picker && picker.snap) && renderSnapPanel()}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             </div>
@@ -2142,7 +2161,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Desserts</span>
               {(function() {
-                var slots = []; for (var di = 1; di <= 5; di++) { if (getMeal(eatDay, "ds" + di) || di <= 1) slots.push(di); }
+                var slots = shownRows("ds", "day", dayV);
                 return slots.map(function(idx) {
                   return (<div key={"ds"+idx} style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: "1 1 5em", minWidth: 0 }}>
@@ -2151,7 +2170,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   </div>);
                 });
               })()}
-              {slotOpen && slotOpen.day === eatDay && /^ds/.test(slotOpen.slot) && renderSlotForm()}
+              {slotOpen && !slotOpen.inPicker && slotOpen.day === eatDay && /^ds/.test(slotOpen.slot) && renderSlotForm()}
               {portionSlot && portionSlot.match(/^ds/) && (portionLoading || portionResult || snapPre === portionSlot) && !(picker && picker.snap) && renderSnapPanel()}
             </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -2175,7 +2194,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Drinks</span>
               {(function() {
-                var slots = []; for (var di = 1; di <= 5; di++) { if (getMeal(eatDay, "dr" + di) || di <= 1) slots.push(di); }
+                var slots = shownRows("dr", "day", dayV);
                 return slots.map(function(idx) {
                   return (<div key={"dr"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
@@ -2184,7 +2203,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   </div>);
                 });
               })()}
-              {slotOpen && slotOpen.day === eatDay && /^dr/.test(slotOpen.slot) && renderSlotForm()}
+              {slotOpen && !slotOpen.inPicker && slotOpen.day === eatDay && /^dr/.test(slotOpen.slot) && renderSlotForm()}
               {portionSlot && portionSlot.match(/^dr/) && (portionLoading || portionResult || snapPre === portionSlot) && !(picker && picker.snap) && renderSnapPanel()}
             </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -2214,7 +2233,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                 </div>
               </div>);
             })}
-            {slotOpen && slotOpen.day === eatDay && /^o/.test(slotOpen.slot) && renderSlotForm()}
+            {slotOpen && !slotOpen.inPicker && slotOpen.day === eatDay && /^o/.test(slotOpen.slot) && renderSlotForm()}
               {portionSlot && portionSlot.match(/^o/) && (portionLoading || portionResult || snapPre === portionSlot) && !(picker && picker.snap) && renderSnapPanel()}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             </div>

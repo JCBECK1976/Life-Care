@@ -30,6 +30,7 @@ export default function OpenForm(props) {
       {!editing && props.onDanger && <button data-kind={props.dangerKind === "remove" ? "remove" : "delete"} onClick={props.onDanger} style={props.dangerKind === "remove" ? styles.remove : styles.delete}>{props.dangerLabel || (props.dangerKind === "remove" ? "Remove" : "Delete")}</button>}
       {!editing && <button onClick={props.onClose} style={styles.grey}>Close</button>}
       {editing && <button onClick={props.onSave} disabled={props.busy} style={Object.assign({}, styles.primary, { opacity: props.busy ? 0.6 : 1 })}>{props.busy ? "Saving…" : (props.saveLabel || "Save")}</button>}
+      {editing && props.onDanger && props.dangerWhileEditing && <button data-kind={props.dangerKind === "remove" ? "remove" : "delete"} onClick={props.onDanger} disabled={props.busy} style={props.dangerKind === "remove" ? styles.remove : styles.delete}>{props.dangerLabel || (props.dangerKind === "remove" ? "Remove" : "Delete")}</button>}   {/* v2.57.0: the picker's inline edit */}
       {editing && <button onClick={props.onCancelEdit} disabled={props.busy} style={styles.grey}>Cancel</button>}
     </div>}
   </div>);

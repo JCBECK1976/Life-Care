@@ -35,8 +35,17 @@ export function averageDaily(p, doc, dates, today) {
 }
 function wtdText(w) { return w ? "Week to date: " + signed(w.kcal) + " kcal (" + signed(w.pct) + "%)" : "Week to date: —"; }
 
+/* v2.60.0 (Architect, 26 Nov): what the Exercise Benefit is made of — "Steps +180 · Workouts +96" (or the phone's active
+   calories / total burn when those are used instead). */
+export function benefitParts(t) {
+  var e = t.exercise || {};
+  if (e.mode === "active") return "Active calories +" + n(e.actual);
+  if (e.mode === "total") return "Measured burn +" + n(e.actual);
+  return "Steps +" + n(e.steps || 0) + " · Workouts +" + n(e.logged || 0);
+}
 function SummaryTable(props) {
   var rows = props.rows, today = props.today, surplus = rows[0] && rows[0].t.aim.kcal > 0;
+  var _o = React.useState(null), openBen = _o[0], setOpenBen = _o[1];
   return (<div style={{ overflowX: "auto" }}><table data-testid={props.testid} style={{ width: "100%", fontSize: 11, borderCollapse: "collapse", color: "#0f172a" }}>
     <thead><tr>
       <th scope="col" style={Object.assign({}, thc, { textAlign: "left" })}>Day</th>
@@ -49,15 +58,16 @@ function SummaryTable(props) {
     </tr></thead>
     <tbody>{rows.map(function(r) {
       var t = r.t, future = r.d > today;
-      return (<tr key={r.d} data-testid="sum-row" data-date={r.d}>
+      return (<React.Fragment key={r.d}><tr data-testid="sum-row" data-date={r.d}>
         <th scope="row" style={Object.assign({}, td, { textAlign: "left", fontWeight: 700 })}>{DAYNAME[new Date(r.d + "T12:00:00").getDay()].slice(0, 3)}{r.d === today && <span data-testid="sum-today" style={{ display: "block", fontSize: 8, fontWeight: 500, lineHeight: 1.1, whiteSpace: "normal", color: "#475569" }}>(today, so far)</span>}</th>
         <td style={td} data-col="burn">{n(t.burn)}</td>
         <td style={td} data-col="target">{n(Math.abs(t.aim.kcal))}</td>
-        <td style={td} data-col="exercise">{n(t.exercise.actual)}</td>
+        <td style={td} data-col="exercise"><button type="button" data-testid="sum-benefit" aria-expanded={openBen === r.d} aria-label={"Exercise benefit " + n(t.exercise.actual) + " — show what it's made of"} onClick={function() { setOpenBen(openBen === r.d ? null : r.d); }}
+          style={{ background: "none", border: "none", padding: "2px 4px", font: "inherit", color: "#1d4ed8", textDecoration: "underline dotted", cursor: "pointer", minHeight: 24 }}>{n(t.exercise.actual)}</button></td>
         <td style={Object.assign({}, td, { fontWeight: 700 })} data-col="goal">{n(t.goal.actual)}</td>
         <td style={td} data-col="actual">{future ? "—" : n(t.eating.actual)}</td>
         <td style={td} data-col="ontrack">{future || !t.hasActual ? "—" : <span style={{ color: COL[t.onTrack.colour] || "#475569", fontWeight: 700 }}>{signed(t.onTrack.kcal)}<span style={{ display: "block", fontSize: 9 }}>{signed(t.onTrack.pct)}%</span></span>}</td>
-      </tr>);
+      </tr>{openBen === r.d && <tr data-testid="sum-benefit-row"><td colSpan={7} style={{ padding: "4px 6px", fontSize: 11, color: "#334155", background: "#f8fafc", textAlign: "center" }}>{benefitParts(t)}</td></tr>}</React.Fragment>);
     })}</tbody>
   </table></div>);
 }

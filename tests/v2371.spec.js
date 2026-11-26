@@ -50,8 +50,7 @@ test("My Eating → Open → Edit → Changes: the Companion asks, you answer, y
   await tab(page, "My Eating");
   await page.locator('[data-testid=picker-trigger]:has([data-testid=row-icon]:text-is("✎"))').first().click(); await page.getByTestId("act-edit").click();   // v2.50.0: Edit Item in the picker
   const form = page.getByTestId("slot-open-form");
-  await form.getByRole("button", { name: "Edit", exact: true }).click();
-  await form.getByLabel("Changes to this meal").fill("extra cheese on top");
+  await form.getByLabel("Changes to this meal").fill("extra cheese on top");                         // v2.57.0: opens already editing
   await form.getByRole("button", { name: "Save", exact: true }).click();
   await expect(form.getByTestId("slot-clarify")).toContainText("How much extra cheese, roughly?");
   await expect(form).not.toContainText(/didn't understand|couldn't work out/i);
@@ -63,7 +62,7 @@ test("My Eating → Open → Edit → Changes: the Companion asks, you answer, y
   const kids = async () => JSON.stringify(await getKey(thisWeek().childKey));
   expect(await kids()).not.toContain("620");                                                       // nothing saved before the review
   await form.getByTestId("slot-review-save").click();
-  await expect(form.getByTestId("open-form-msg")).toContainText("✓ Saved for this meal only");
+  await expect(page.getByTestId("pick-toast")).toContainText("✓ Saved for this meal only");      // v2.57.0: back to the picker list
   await expect.poll(kids).toContain("620");
   expect(asked[1].messages.map((m) => m.content).join(" ")).toContain("about 30 g of cheddar");     // the answer went back to the Companion
   expect(asked[0].messages[0].content).toContain('with these changes: "extra cheese on top"');
