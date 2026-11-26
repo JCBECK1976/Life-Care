@@ -28,7 +28,7 @@ The version table (changelog) is in **[docs/CHANGELOG.md](docs/CHANGELOG.md)** (
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.56.2** (PR #28, merged 26 Nov 2026, `31af816`) — awaiting JC's beta test; build = **v2.56.2** (`f7f418e`, 26 Nov 2026; Snap tip + Summary tables + one week-to-date rule after the 25 Nov night batch — awaiting JC's test of /build/).
+- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.56.2** (PR #28, merged 26 Nov 2026, `31af816`) — awaiting JC's beta test; build = **v2.56.3** (`35135c6`, 26 Nov 2026; HOTFIX: picker search keeps the keyboard open — awaiting JC's phone check, then straight to beta).
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -3090,3 +3090,11 @@ Sizes are % of a weekly allowance, including Architect checks.
 ### (Coder) 26 Nov 2026 — smoke test: sign-in wording per environment
 - **Done (main, CI tooling only, no app change):** `scripts/automation/smoke.mjs` now waits for "Continue with Google" on /build/ (useAccounts on) and "Sign in with Google" on prod and beta. This fixes the /build/ smoke failure. It was committed straight to `main` (JC's request: its own small commit) because the smoke workflow runs from main. `build`/`beta` still have the old copy. That's harmless, because only main's copy runs; it comes back in line at the next release merge, or I can copy it to build if wanted.
 - **Resume point:** main @ this commit; beta `31af816` (v2.56.2), build `f7f418e`.
+
+### (Coder) 26 Nov 2026 — v2.56.3 HOTFIX: picker search closed the phone keyboard
+- **Cause (traced):** `MealSelect` (the eating picker, used on every day row and in Week → Set Defaults) was a component defined INSIDE the Eating section's render. Each keystroke changed the picker state → the section re-rendered → a new component type → React re-mounted the whole sheet and its search box. The box lost focus, so the phone keyboard closed. On desktop `autoFocus` hid it; on phones autoFocus is off (coarse pointer), so it showed.
+- **Fix — build `35135c6` (v2.56.3):** `MealSelect` is now ONE module-level component. The section passes it the current render logic through a context (`MealSelectCtx`, value `useMealSelectView`). Its hooks and its input stay mounted while typing, with no programmatic focus or blur. No other change.
+- **Checked every text box:** picker search (day + Set Defaults), Single item search, Build a meal search, My own description, Add Exercise search, Help guide search, Help FAQ search, chat. Only the picker had the bug (no other nested components or unstable keys in `src/`).
+- **Test `tests/v2563.spec.js`** (Pixel 7 emulation: touch, mobile): types key by key, then deletes 3 keys, in each of those boxes, and asserts `document.activeElement` is the same connected element after every key and the value is the full text. Against the old code it fails on the first letter in the picker; with the fix all pass. Full gate green.
+- **Next:** JC's quick phone check on /build/ (footer v2.56.3), then PR build → beta straight away (hotfix only). NOT main.
+- **Resume point:** build `35135c6` (v2.56.3); beta `31af816` (v2.56.2); main @ this commit.
