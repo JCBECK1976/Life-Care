@@ -3086,3 +3086,7 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **Smoke test:** run 247 (after this note's deploy) shows **prod v2.15.1 ok, beta v2.56.2 ok**, and data and data_build ok. Run 246 had started before the deploy finished, so it still saw beta at v2.20.2. **Open:** It also fails on **/build/**: the "Sign in with Google" text isn't found within 20 s. That has happened on every run today and predates this merge (build shows a different first screen). It needs a look: either the smoke test or the build sign-in screen.
 - **Next (JC):** test /beta/ (close the tab, reopen it, and check the footer says v2.56.2-beta.N). The prod release (beta → main) only on JC's yes; the Architect tags it.
 - **Resume point:** beta @ `31af816`, build @ `f7f418e`, main @ this commit. Do NOT merge to main without JC.
+
+### (Coder) 26 Nov 2026 — smoke test: sign-in wording per environment
+- **Done (main, CI tooling only, no app change):** `scripts/automation/smoke.mjs` now waits for "Continue with Google" on /build/ (useAccounts on) and "Sign in with Google" on prod and beta. This fixes the /build/ smoke failure. It was committed straight to `main` (JC's request: its own small commit) because the smoke workflow runs from main. `build`/`beta` still have the old copy. That's harmless, because only main's copy runs; it comes back in line at the next release merge, or I can copy it to build if wanted.
+- **Resume point:** main @ this commit; beta `31af816` (v2.56.2), build `f7f418e`.
