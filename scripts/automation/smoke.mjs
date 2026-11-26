@@ -5,7 +5,9 @@ import fs from "node:fs";
 import { adminDb, counts, requireSecret } from "./common.mjs";
 requireSecret("FIREBASE_SERVICE_ACCOUNT");
 const SITE = process.env.SITE_URL || "https://jcbeck1976.github.io/Life-Care/";
-const ENVS = [{ name: "prod", path: "", root: "data" }, { name: "beta", path: "beta/", root: "data" }, { name: "build", path: "build/", root: "data_build" }];
+// The sign-in button's wording differs by environment: /build/ has useAccounts on ("Continue with Google"), prod and beta
+// don't ("Sign in with Google") — see src/components/AuthGate.jsx.
+const ENVS = [{ name: "prod", path: "", root: "data", signIn: "Sign in with Google" }, { name: "beta", path: "beta/", root: "data", signIn: "Sign in with Google" }, { name: "build", path: "build/", root: "data_build", signIn: "Continue with Google" }];
 const expected = JSON.parse(process.env.EXPECTED_VERSIONS || "{}");      // { prod: "v2.14.0", beta: "v2.14.0", build: "v2.14.0" }
 const IGNORE = [/accounts\.google\.com/i, /gsi/i, /favicon/i];          // Google sign-in script noise is not ours
 const browser = await chromium.launch(); let failed = 0; const lines = [];
@@ -17,7 +19,7 @@ for (const env of ENVS) {
   try {
     const res = await page.goto(url, { waitUntil: "networkidle", timeout: 45000 });
     if (!res || !res.ok()) { ok = false; errors.push("HTTP " + (res && res.status())); }
-    await page.getByText("Sign in with Google").first().waitFor({ timeout: 20000 });
+    await page.getByText(env.signIn).first().waitFor({ timeout: 20000 });
     const html = await (await fetch(url)).text(); const js = (html.match(/assets\/index-[\w-]+\.js/) || [])[0];
     if (js) { const src = await (await fetch(url + js)).text(); version = (src.match(/"(v\d+\.\d+\.\d+)"/) || [])[1] || "?"; }
     if (expected[env.name] && version !== expected[env.name]) { ok = false; errors.push(`version ${version}, expected ${expected[env.name]}`); }
