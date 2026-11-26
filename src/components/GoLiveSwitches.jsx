@@ -24,7 +24,7 @@ export default function GoLiveSwitches() {
     try { await firebase.database().ref("platform/publicFlags/" + k).set(v); setMsg((v ? "✓ On" : "Off") + ": " + INFO[k][0] + ". Everyone gets it the next time they open the app."); }
     catch (e) { setF(before); setMsg("Couldn't change it: " + ((e && e.message) || e) + " (needs the next database rules deployed and your account in platform/admins — GO_LIVE_CHECKLIST)."); }
   };
-  return (<div data-testid="go-live-switches" style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
+  return (<div data-testid="go-live-switches" data-ai-ok="" style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
     <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>🚦 Go-live switches (everyone)</div>
     <div style={{ fontSize: 12, color: "#475569", margin: "4px 0 6px" }}>Turn on <b>in this order</b>, checking each one first (GO_LIVE_CHECKLIST, section E). Turning one off again is the rollback.</div>
     {GO_LIVE_ORDER.map(function(k, i) { return (<label key={k} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 0", borderTop: "1px solid #f1f5f9", fontSize: 13, minHeight: 44 }}>

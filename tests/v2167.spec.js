@@ -55,7 +55,7 @@ test("pilot flag on: AI off in the choices → AI requests are not sent", async 
   const n0 = aiCalls.length;
   await page.getByRole("button", { name: /^Help/ }).first().click();
   await page.locator("#help-input-jc").fill("hello"); await page.locator("#help-input-jc").locator("xpath=following::button[1]").click();
-  await expect(page.getByText(/AI features are off in your privacy choices/).first()).toBeVisible();
+  await expect(page.getByText(/Companion features are off in your privacy choices/).first()).toBeVisible();
   expect(JSON.stringify(aiCalls.slice(n0))).not.toContain("hello");
   expect(errors).toEqual([]);
 });

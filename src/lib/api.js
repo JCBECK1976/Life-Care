@@ -77,7 +77,7 @@ window.fetch = function() {
     /* v2.16.7 P9: while pilotConsent is on, AI (and photo) requests need the person's consent */
     var _isPhoto = typeof opts.body === "string" && opts.body.indexOf('"type":"image"') >= 0;
     if (url.indexOf("/v1/messages") !== -1 && (!allowedBy(window._lcConsent, "ai") || (_isPhoto && !allowedBy(window._lcConsent, "photos")))) {
-      return Promise.resolve(new Response(JSON.stringify({ type: "error", error: { type: "consent", message: (_isPhoto ? "Photo checks" : "AI features") + " are off in your privacy choices (Settings → Privacy & consent)" } }), { status: 200, headers: { "Content-Type": "application/json" } }));
+      return Promise.resolve(new Response(JSON.stringify({ type: "error", error: { type: "consent", message: (_isPhoto ? "Photo checks" : "Companion features") + " are off in your privacy choices (Settings → Privacy & your data)" } }), { status: 200, headers: { "Content-Type": "application/json" } }));
     }
     /* v2.31.1 (Architect): per-person accounts ALWAYS go through the server (EU, never the US direct API, even before the
        go-live switch); only the joint household account keeps the direct route until useAiProxy is switched on. */

@@ -52,7 +52,7 @@ export default function GpSummary({ p, data, activeTab, saveData }) {
         var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-lc-feature": "gpSummary", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
           body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 700, system: pr.system, messages: [{ role: "user", content: pr.user }] }) });
         var r = await resp.json();
-        if (r.error) throw new Error(r.error.message || "AI error");
+        if (r.error) throw new Error(r.error.message || "Your Companion couldn't answer just now");
         text = (r.content || []).map(function(b) { return b.text || ""; }).join("").trim();
       } else text = "No symptoms, readings, weight or notes were recorded in this period.";
       setDraft({ facts: facts, text: text });

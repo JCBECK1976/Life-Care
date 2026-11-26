@@ -189,7 +189,7 @@ export default function ShopSection({ ctx }) {
               if (result.error) throw new Error(result.error.message || "API error");
               var text = (result.content || []).map(function(blk) { return blk.text || ""; }).join("");
               var cleanShop = text.replace(/```json|```/g, "").trim().replace(/\n/g, " ").replace(/[\x00-\x1F]/g, " ");
-              if (!cleanShop) throw new Error("Empty AI response");
+              if (!cleanShop) throw new Error("No answer came back from your Companion");
               var shopData;
               try { shopData = JSON.parse(cleanShop); } catch(je) {
                 var fixed = cleanShop;

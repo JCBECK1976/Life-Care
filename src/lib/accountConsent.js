@@ -27,7 +27,7 @@ export function optins() {
 }
 export var NEEDS = CONSENT_NEEDS;   // shared with the server (constants/tiers.js)
 export var NOTE = {
-  ai: "AI features are off because you chose not to use AI processing. You can turn it on in Settings → Privacy & your data.",
+  ai: "Companion features are off in your privacy choices. You can turn them on in Settings → Privacy & your data.",
   photos: "Photo checks are off in your privacy choices. You can turn photo analysis on in Settings → Privacy & your data.",
   health: "Health sync is off in your privacy choices. You can turn it on in Settings → Privacy & your data.",
   bodyBalance: "Body balance checks are off in your privacy choices. You can turn them on in Settings → Privacy & your data.",

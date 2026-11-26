@@ -9,7 +9,7 @@ export default function ConsentScreen(props) {
   var [view, setView] = React.useState(null);
   var [busy, setBusy] = React.useState(false);
   var row = { display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 0", borderBottom: "1px solid #f1f5f9", fontSize: 12, color: "#0f172a" };
-  return (<div role="dialog" aria-modal="true" aria-labelledby="consent-title" data-testid="consent-screen" style={{ position: "fixed", inset: 0, zIndex: 130, background: "#f1f5f9", overflowY: "auto" }}>
+  return (<div role="dialog" aria-modal="true" aria-labelledby="consent-title" data-testid="consent-screen" data-ai-ok="" style={{ position: "fixed", inset: 0, zIndex: 130, background: "#f1f5f9", overflowY: "auto" }}>
     <div style={{ maxWidth: 480, margin: "0 auto", padding: 16 }}>
       <h2 id="consent-title" style={{ fontSize: 18, margin: "8px 0 4px", color: "#0f172a" }}>Before you start{props.name ? ", " + props.name : ""}</h2>
       <div style={{ fontSize: 12, color: "#334155", lineHeight: 1.5, marginBottom: 10 }}>Lifecare Companion keeps health and fitness data you enter. We only use it with your permission. Choose what you're happy with; you can change it any time in Settings.</div>

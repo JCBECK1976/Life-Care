@@ -78,12 +78,12 @@ export default function Onboarding() {
       {step === 3 && <>
         <h2 id="ob-title" style={{ fontSize: 20, margin: "4px 0 6px", color: "#0f172a" }}>Your choices</h2>
         <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.55 }}>Each one is separate and off until you turn it on. You can change any of them later in <b>Settings → Privacy &amp; your data</b>. Without AI processing the app still works for manual tracking.</div>
-        <div style={cardS}>
+        <div style={cardS} data-ai-ok="">
           {optins().map(function(o) { var dis = !!needs[o.k]; return (<label key={o.k} style={Object.assign({}, row, { opacity: dis ? 0.55 : 1 })}>
             <input type="checkbox" data-testid={"ob-" + o.k} disabled={dis} checked={!!ch[o.k]} onChange={function(e) { set(o.k, e.target.checked); }} style={{ width: 20, height: 20, marginTop: 2 }} />
             <span><b>{o.label}</b><br /><span style={{ color: "#475569", fontSize: 12 }}>{o.hint}</span></span></label>); })}
         </div>
-        {!ch.ai && <div data-testid="ob-no-ai-note" style={{ marginTop: 10, padding: 10, borderRadius: 8, background: "#eff6ff", border: "1px solid #bfdbfe", fontSize: 12, color: "#0f172a" }}>That's fine: you can track your health, eating and exercise by hand. The Companion's feedback and other AI features stay off until you turn AI processing on.</div>}
+        {!ch.ai && <div data-testid="ob-no-ai-note" data-ai-ok="" style={{ marginTop: 10, padding: 10, borderRadius: 8, background: "#eff6ff", border: "1px solid #bfdbfe", fontSize: 12, color: "#0f172a" }}>That's fine: you can track your health, eating and exercise by hand. The Companion's feedback and other AI features stay off until you turn AI processing on.</div>}
         {err && <div role="alert" style={{ marginTop: 8, fontSize: 12, color: "#b91c1c" }}>{err}</div>}
         <button type="button" data-testid="ob-finish" disabled={busy} style={btnP} onClick={async function() { setBusy(true); setErr(""); try { await saveAccountConsent(ch); await loadPlan(); setBusy(false); setStep(5); }   /* v2.38.0 (brief P5c): then "How would you like to get started?" */ catch (e) { setErr("Couldn't save: " + ((e && e.message) || e)); setBusy(false); } }}>{busy ? "Saving…" : "Continue to set up your goals"}</button>
       </>}

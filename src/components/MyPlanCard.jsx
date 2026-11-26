@@ -21,7 +21,7 @@ var ROWS = [
   ["GP prep summary", function(t, T) { return tierAllows(t, "gpSummary", T); }, "pilot"],   // v2.30.0: only while the pilot features are on
   ["Help", function(t, T) { return tierAllows(t, "aiHelp", T) ? "Ask" : "FAQ"; }],
   ["Generate meals and shopping lists", function(t, T) { return tierAllows(t, "mealGenerator", T); }],
-  ["AI training plans (warm-up, cool-down)", function(t, T) { return tierAllows(t, "aiPlans", T); }],
+  ["Companion training plans (warm-up, cool-down)", function(t, T) { return tierAllows(t, "aiPlans", T); }],
   ["Family: up to 5 people, sharing", function(t, T) { return tierAllows(t, "household", T); }],
 ];
 var SHORT = { bronze: "Bronze", silver: "Silver", gold: "Gold", platinum: "Platinum" };
@@ -65,7 +65,7 @@ export default function MyPlanCard(props) {
         {plan.source === "play" && plan.expires && <div data-testid="plan-renewal" style={{ fontSize: 12, color: "#475569" }}>{plan.autoRenew ? "Renews " : "Ends "}{fmtDate(plan.expires)}{plan.basePlan ? " · " + plan.basePlan : ""}</div>}
         {cur !== "bronze" && energy != null && <div data-testid="plan-energy" style={{ marginTop: 4 }}>⚡ Companion Energy this month{plan.role === "owner" && !plan.joint ? " (family pool)" : ""}: <b>{energy}%</b>{plan.topup > 0 ? <span data-testid="plan-topup-left"> + {plan.topup.toLocaleString("en-GB")} top-up</span> : null}
           <div aria-hidden="true" style={{ height: 6, background: "#e2e8f0", borderRadius: 3, marginTop: 3 }}><div style={{ width: energy + "%", height: 6, borderRadius: 3, background: energy > 20 ? "#16a34a" : "#dc2626" }} /></div></div>}
-        {cur === "bronze" && <div style={{ fontSize: 12, color: "#475569" }}>Manual tracking for Health, Eating and Exercise. No AI.</div>}
+        {cur === "bronze" && <div style={{ fontSize: 12, color: "#475569" }}>Manual tracking for Health, Eating and Exercise. No Companion.</div>}
       </div>
       {plan.joint && canPreview() && <label style={{ display: "block", fontSize: 12, color: "#475569", marginTop: 8 }}>Testing on /build/: preview the app as
         <select data-testid="plan-preview" value={plan.preview ? cur + (plan.role === "member" ? "-member" : "") : ""} onChange={function(e) { var v = e.target.value; setPreview(v ? { tier: v.replace("-member", ""), role: /member/.test(v) ? "member" : undefined } : null); }}
@@ -107,7 +107,7 @@ export default function MyPlanCard(props) {
       {/* v2.27.3: what Companion Energy is (figures from config: admin-configurable) */}
       <details data-testid="energy-explainer" open style={{ marginTop: 10, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "8px 10px", fontSize: 12, color: "#0f172a", lineHeight: 1.5 }}>
         <summary style={{ fontWeight: 700, cursor: "pointer" }}>⚡ About Companion Energy</summary>
-        <div style={{ marginTop: 4 }}>Energy pays for the Companion's AI work. Typical Energy per action:</div>
+        <div style={{ marginTop: 4 }}>Energy pays for your Companion's work. Typical Energy per action:</div>
         <ul style={{ margin: "4px 0", paddingLeft: 18 }}>
           {(((plan.guide || {}).typical) || []).map(function(t) { return <li key={t.k}>{t.label}: about <b>{t.energy}</b></li>; })}
         </ul>

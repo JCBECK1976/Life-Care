@@ -21,7 +21,7 @@ export var FEATURES = {
   healthSync: "Steps and health sync",
   mealGenerator: "Generate meals",
   shoppingGenerator: "Generate shopping list",
-  aiPlans: "AI training plans",
+  aiPlans: "Companion training plans",
   household: "Household sharing",
   buyEnergy: "Companion Energy top-up",
   editNutrition: "Editing nutrition values",

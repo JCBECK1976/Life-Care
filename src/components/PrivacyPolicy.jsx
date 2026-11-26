@@ -15,7 +15,7 @@ export default function PrivacyPolicy({ ctx }) {
 
   return (<>
 {showPrivacy && (<div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-        <div ref={dlgRef} role="dialog" aria-modal="true" aria-label="Privacy policy" style={{ background: "#fff", borderRadius: 16, maxWidth: 500, width: "100%", maxHeight: "85vh", overflow: "auto", padding: "24px 20px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+        <div ref={dlgRef} role="dialog" aria-modal="true" aria-label="Privacy policy" data-ai-ok="" style={{ background: "#fff", borderRadius: 16, maxWidth: 500, width: "100%", maxHeight: "85vh", overflow: "auto", padding: "24px 20px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a" }}>Privacy Policy</div>
             <button aria-label="Close privacy policy" onClick={function(){ setShowPrivacy(false); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, width: 32, height: 32, fontSize: 16, cursor: "pointer", color: "#475569", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>

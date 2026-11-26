@@ -24,7 +24,7 @@ export default function PrivacyDataCard(props) {
   React.useEffect(function() { if (pilot) loadConsent(who).then(setC); }, [who, pilot]);
   React.useEffect(function() { var live = true; var u = auth.currentUser; isProtectedAccount(u && u.uid).then(function(p) { if (live) setLocked(p); }); return function() { live = false; }; }, []);
   var say = function(t) { setMsg(t); setTimeout(function() { setMsg(""); }, 4000); };
-  return (<div data-testid="privacy-data-card" style={card}>
+  return (<div data-testid="privacy-data-card" data-ai-ok="" style={card}>
     <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🔒 Privacy & your data — {props.name}</div>
     <button style={btn} data-testid="export-my-data" onClick={async function() { try { await confirmItsYou("Confirm it's you to download your data"); await exportMyData(who); auditLog("export", who, "JSON download"); say("✓ Your data was downloaded as a JSON file"); } catch (e) { say("✗ Couldn't export: " + String(e.message || e).slice(0, 60)); } }}>⬇ Download my data (JSON)</button>
     <div style={{ fontSize: 10, color: "#475569", marginTop: 4 }}>Everything recorded for {props.name}, in a portable file. Photos are never stored, so none are included.</div>

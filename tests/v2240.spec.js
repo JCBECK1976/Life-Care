@@ -69,7 +69,7 @@ test("AI declined: every AI feature is off whatever the plan (calm note + 'Priva
   expect(aiCalls.length).toBe(0);
   await page.getByRole("button", { name: /chat/i }).first().click();
   const gate = page.getByTestId("plan-gate-chat");
-  await expect(gate).toContainText("AI features are off because you chose not to use AI processing");
+  await expect(gate).toContainText("Companion features are off in your privacy choices");
   await expect(gate.getByTestId("see-plans")).toHaveCount(0);
   await gate.getByTestId("privacy-choices").click();
   await expect(page.getByTestId("account-consent")).toBeInViewport();

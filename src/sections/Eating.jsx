@@ -645,7 +645,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
               if (pasteEl) pasteEl.value = "";
               setBulkReviewItems(null); setBulkCat("");
             }
-            if (addedCount > 0 && !failed.length) setBulkDone(addedCount + " item" + (addedCount === 1 ? "" : "s") + " added to " + catLabel(bulkCatArg) + ". Ratings are AI estimates. Open each item and check the weight, portion and ingredients match what you actually have, then update where needed.");
+            if (addedCount > 0 && !failed.length) setBulkDone(addedCount + " item" + (addedCount === 1 ? "" : "s") + " added to " + catLabel(bulkCatArg) + ". Ratings are your Companion's estimates. Open each item and check the weight, portion and ingredients match what you actually have, then update where needed.");
           };
           /* D5: Cancel stops the requests and discards anything that arrives afterwards */
           var cancelBulk = function() {
@@ -1129,7 +1129,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <button onClick={function() { setOffResults([]); addNewItem(); }} disabled={newItemLoading || !newItemName.trim()} style={{ flex: 1, padding: "8px 12px", background: newItemLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{newItemLoading ? <span>Adding <LoadingDots /></span> : "Add"}</button>
                   <button onClick={function() { setAddingNew(false); setNewItemName(""); setOffResults([]); setAddingSlotKey(null); setAddingSlotDay(null); }} style={{ padding: "8px 16px", background: accentBtnLight, border: "1px solid " + accentBtnBorder, borderRadius: 6, fontSize: 12, color: "#475569", cursor: "pointer", flexShrink: 0 }}>Cancel</button>
                 </div>
-                <div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type to search UK food products or describe a homemade dish. Select a result below or click Add for AI lookup.</div>
+                <div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 4 }}>Type to search UK food products or describe a homemade dish. Select a result below or tap Add and your Companion will look it up.</div>
                 {(offResults.length > 0 || offLoading) && newItemName.length >= 2 && !cameraPreview && (<div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, maxHeight: 180, overflowY: "auto", marginTop: 6, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
                   {offLoading && <div style={{ padding: "8px 10px", fontSize: 10, color: "#475569" }}>🔍 Searching Open Food Facts...</div>}
                   {offResults.map(function(prod, pi) {
@@ -1220,7 +1220,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>📋 Bulk Add Items</div>
                   <button aria-label="Close bulk add" onClick={cancelBulk} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
                 </div>
-                <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: 8, borderRadius: 6, marginBottom: 8, lineHeight: 1.4 }}>Paste your list of items below (one per line or comma-separated). Items will be added automatically with AI-calculated nutrition. You can edit any item afterwards for accuracy.</div>
+                <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: 8, borderRadius: 6, marginBottom: 8, lineHeight: 1.4 }}>Paste your list of items below (one per line or comma-separated). Items will be added automatically with nutrition worked out by your Companion. You can edit any item afterwards for accuracy.</div>
                 <div style={{ fontSize: 10, color: "#92400e", marginBottom: 6 }}>Long lists are rated {BULK_BATCH} at a time; each finished batch is saved straight away.</div>
                 {bulkRun && newItemLoading && <div role="progressbar" aria-valuemin={0} aria-valuemax={bulkRun.total} aria-valuenow={bulkRun.done} data-testid="bulk-progress" style={{ height: 6, background: "#fde68a", borderRadius: 3, marginBottom: 8, overflow: "hidden" }}><div style={{ width: Math.round(100 * bulkRun.done / Math.max(1, bulkRun.total)) + "%", height: "100%", background: "#d97706" }} /></div>}
                 <textarea id="bulk-paste-textarea" placeholder={"e.g.\nOvernight oats\nGreek yogurt\nChicken wrap\nProtein shake"} style={{ width: "100%", padding: "8px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11, minHeight: 80, resize: "vertical", boxSizing: "border-box", lineHeight: 1.5, marginBottom: 8 }} />

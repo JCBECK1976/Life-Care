@@ -13,7 +13,7 @@ export default function AiUsageCard() {
   var sm = ledger ? summarise(ledger, 14) : null;
   var th = { textAlign: "left", fontSize: 9, color: "#475569", fontWeight: 700, padding: "3px 4px", borderBottom: "1px solid #e2e8f0" };
   var td = { fontSize: 10, color: "#0f172a", padding: "3px 4px", borderBottom: "1px solid #f1f5f9", whiteSpace: "nowrap" };
-  return (<div data-testid="ai-usage" style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
+  return (<div data-testid="ai-usage" data-ai-ok="" style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
     <button onClick={function() { setOpen(!open); }} style={{ background: "none", border: "none", padding: 0, fontSize: 12, fontWeight: 700, color: "#0f172a", cursor: "pointer" }}>{open ? "▲" : "▼"} 📊 AI usage</button>
     <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, margin: "4px 0 6px" }}>Calls and tokens per day and feature (counts only, no content), with the estimated cost at list prices. Companion Energy is worked out from this.</div>
     {open && !sm && <div style={{ fontSize: 10, color: "#475569" }}>Loading…</div>}

@@ -569,7 +569,7 @@ export default function ExerciseSection({ ctx }) {
                       <div style={{fontSize:11,fontWeight:700,color:accent,marginBottom:2}}>{(p.profile && p.profile.name) || activeTab}</div>
                       <div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Edit: {addExConfirm.name}</div>
                       {addExConfirm._generating && <div role="status" data-testid="ex-generating" style={{fontSize:12,fontWeight:600,color:"#1e3a5f",marginBottom:8,padding:8,background:"#eff6ff",borderRadius:8,display:"flex",alignItems:"center",gap:6}}><span aria-hidden="true" style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Your Companion is looking for recommendations…</div>}{addExConfirm._failed && addExConfirm._offer && <div role="status" data-testid="ex-gen-failed" style={{fontSize:12,color:"#92400e",background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:8,padding:8,marginBottom:8}}>Your Companion couldn't prepare a plan just now.<div style={{display:"flex",gap:6,marginTop:6}}><button type="button" data-testid="ex-gen-retry" onClick={function(){ startExGen(addExConfirm._spec || { name: addExConfirm.name, type: addExConfirm.type }); }} style={{...btnS,flex:1}}>Try again</button><button type="button" data-testid="ex-gen-self" onClick={function(){ setAddExConfirm(Object.assign({}, addExConfirm, { _offer: false })); }} style={{...btnS,flex:1}}>Fill in myself</button></div></div>}{addExConfirm._failed && !addExConfirm._offer && !addExConfirm.type && <div role="status" data-testid="ex-gen-type-first" style={{fontSize:11,color:"#92400e",marginBottom:8}}>Choose the type first, then fill in the rest.</div>}
-                      {addExLoading && !addExConfirm._generating && <div style={{fontSize:11,color:"#475569",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Getting AI recommendations...</div>}
+                      {addExLoading && !addExConfirm._generating && <div style={{fontSize:11,color:"#475569",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Your Companion is looking for recommendations…</div>}
                       <fieldset disabled={!!addExConfirm._generating} data-testid="ex-add-fields" style={{border:0,padding:0,margin:0,minWidth:0}}>
                       <div style={{display:"flex",gap:8,marginBottom:8}}>
                         <div style={{flex:1}}>
@@ -628,14 +628,14 @@ export default function ExerciseSection({ ctx }) {
                       <div style={{marginBottom:10,padding:10,background:"#f0fdf4",borderRadius:8,border:"1px solid #bbf7d0"}}>
                         <div style={{fontSize:10,fontWeight:700,color:"#166534",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.5px"}}>📖 Exercise Guide</div>
                         <div style={{fontSize:11,color:"#15803d",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{addExConfirm.exerciseGuide}</div>
-                        <div style={{fontSize:9,color:"#86efac",marginTop:4,fontStyle:"italic"}}>AI-generated — review for accuracy</div>
+                        <div style={{fontSize:9,color:"#86efac",marginTop:4,fontStyle:"italic"}}>Prepared by your Companion — please check it</div>
                       </div>
                       )}
                       {addExConfirm.prePostGuide && (
                       <div style={{marginBottom:10,padding:10,background:"#eff6ff",borderRadius:8,border:"1px solid #bfdbfe"}}>
                         <div style={{fontSize:10,fontWeight:700,color:"#1e40af",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.5px"}}>🧘 Pre & Post Exercise</div>
                         <div style={{fontSize:11,color:"#1d4ed8",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{addExConfirm.prePostGuide}</div>
-                        <div style={{fontSize:9,color:"#93c5fd",marginTop:4,fontStyle:"italic"}}>AI-generated — review for accuracy</div>
+                        <div style={{fontSize:9,color:"#93c5fd",marginTop:4,fontStyle:"italic"}}>Prepared by your Companion — please check it</div>
                       </div>
                       )}
                       <div style={{display:"flex",gap:8}}>
@@ -687,7 +687,7 @@ export default function ExerciseSection({ ctx }) {
                       <div style={{fontSize:11,fontWeight:700,color:accent,marginBottom:2}}>{(p.profile && p.profile.name) || activeTab}</div>
                       <div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Confirm: {addExConfirm.name}</div>
                       {addExConfirm._generating && <div role="status" data-testid="ex-generating" style={{fontSize:12,fontWeight:600,color:"#1e3a5f",marginBottom:8,padding:8,background:"#eff6ff",borderRadius:8,display:"flex",alignItems:"center",gap:6}}><span aria-hidden="true" style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Your Companion is looking for recommendations…</div>}{addExConfirm._failed && addExConfirm._offer && <div role="status" data-testid="ex-gen-failed" style={{fontSize:12,color:"#92400e",background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:8,padding:8,marginBottom:8}}>Your Companion couldn't prepare a plan just now.<div style={{display:"flex",gap:6,marginTop:6}}><button type="button" data-testid="ex-gen-retry" onClick={function(){ startExGen(addExConfirm._spec || { name: addExConfirm.name, type: addExConfirm.type }); }} style={{...btnS,flex:1}}>Try again</button><button type="button" data-testid="ex-gen-self" onClick={function(){ setAddExConfirm(Object.assign({}, addExConfirm, { _offer: false })); }} style={{...btnS,flex:1}}>Fill in myself</button></div></div>}{addExConfirm._failed && !addExConfirm._offer && !addExConfirm.type && <div role="status" data-testid="ex-gen-type-first" style={{fontSize:11,color:"#92400e",marginBottom:8}}>Choose the type first, then fill in the rest.</div>}
-                      {addExLoading && !addExConfirm._generating && <div style={{fontSize:11,color:"#475569",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Getting AI recommendations...</div>}
+                      {addExLoading && !addExConfirm._generating && <div style={{fontSize:11,color:"#475569",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Your Companion is looking for recommendations…</div>}
                       <fieldset disabled={!!addExConfirm._generating} data-testid="ex-add-fields" style={{border:0,padding:0,margin:0,minWidth:0}}>
                       <div style={{display:"flex",gap:8,marginBottom:8}}>
                         <div style={{flex:1}}>
@@ -749,14 +749,14 @@ export default function ExerciseSection({ ctx }) {
                       <div style={{marginBottom:10,padding:10,background:"#f0fdf4",borderRadius:8,border:"1px solid #bbf7d0"}}>
                         <div style={{fontSize:10,fontWeight:700,color:"#166534",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.5px"}}>📖 Exercise Guide</div>
                         <div style={{fontSize:11,color:"#15803d",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{addExConfirm.exerciseGuide}</div>
-                        <div style={{fontSize:9,color:"#86efac",marginTop:4,fontStyle:"italic"}}>AI-generated — review for accuracy</div>
+                        <div style={{fontSize:9,color:"#86efac",marginTop:4,fontStyle:"italic"}}>Prepared by your Companion — please check it</div>
                       </div>
                       )}
                       {addExConfirm.prePostGuide && (
                       <div style={{marginBottom:10,padding:10,background:"#eff6ff",borderRadius:8,border:"1px solid #bfdbfe"}}>
                         <div style={{fontSize:10,fontWeight:700,color:"#1e40af",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.5px"}}>🧘 Pre & Post Exercise</div>
                         <div style={{fontSize:11,color:"#1d4ed8",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{addExConfirm.prePostGuide}</div>
-                        <div style={{fontSize:9,color:"#93c5fd",marginTop:4,fontStyle:"italic"}}>AI-generated — review for accuracy</div>
+                        <div style={{fontSize:9,color:"#93c5fd",marginTop:4,fontStyle:"italic"}}>Prepared by your Companion — please check it</div>
                       </div>
                       )}
                       <div style={{display:"flex",gap:8}}>

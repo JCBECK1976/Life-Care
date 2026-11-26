@@ -346,7 +346,7 @@ export default function HomeSection({ ctx }) {
                   {/* Body Type Photo Upload */}
                   <div style={{ marginTop: 12, padding: 12, background: "#eff6ff", borderRadius: 8, border: "1px solid #bfdbfe" }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>📸 Body Type Photos</div>
-                    <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>Upload photos for AI body type analysis. Best results from:<br/>• Front relaxed (full body, arms at sides)<br/>• Bicep flex (single arm, side on)<br/>• Side profile (relaxed)<br/>• Back relaxed or flexed<br/>• Legs: quad flex and calf raise</div>
+                    <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>Upload photos for your Companion's body type analysis. Best results from:<br/>• Front relaxed (full body, arms at sides)<br/>• Bicep flex (single arm, side on)<br/>• Side profile (relaxed)<br/>• Back relaxed or flexed<br/>• Legs: quad flex and calf raise</div>
                     <label style={{ display: "block", padding: 10, background: "#fff", border: "2px dashed #93c5fd", borderRadius: 8, textAlign: "center", cursor: "pointer", fontSize: 11, color: "#1e3a5f" }}>
                       📷 Upload Body Type Photos
                       <input id="bodytype-photos" type="file" data-share="bodytype" accept="image/*" multiple onChange={function(e) { var picked = Array.prototype.slice.call(e.target.files || []); e.target.value = ""; runBodyTypePhotos(picked); }} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)", border: 0 }} />
@@ -515,7 +515,7 @@ export default function HomeSection({ ctx }) {
                 {/* Privacy notice */}
                 <div style={{ padding: 10, background: "linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)", borderRadius: 8, border: "1px solid #bfdbfe", marginBottom: 10, fontSize: 10, color: "#475569", lineHeight: 1.6 }}>
                   <div style={{ fontWeight: 700, fontSize: 11, color: "#1e40af", marginBottom: 4 }}>🔒 Your information is private</div>
-                  Your data is used solely by your Lifecare Companion™ to tailor recommendations, feedback and support to work best with you and achieve the best possible outcome. No information is shared with third parties. Any AI-generated content is processed without linking it to any identifiable individual. You choose what information to share — more detail helps your Lifecare Companion™ provide better, more personalised guidance, but every field is optional.
+                  Your data is used solely by your Lifecare Companion™ to tailor recommendations, feedback and support to work best with you and achieve the best possible outcome. No information is shared with third parties. Anything your Companion prepares is processed without linking it to any identifiable individual. You choose what information to share — more detail helps your Lifecare Companion™ provide better, more personalised guidance, but every field is optional.
                 </div>
                 </div>{/* end grey sub-container */}
               </div>);

@@ -25,7 +25,7 @@ export default function AccountConsentCard() {
     await saveAccountConsent(n);
     setMsg(v ? "✓ Turned on." : "Turned off. The features that need it are off now; nothing you've recorded is deleted.");
   };
-  return (<div ref={ref} data-testid="account-consent" style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
+  return (<div ref={ref} data-testid="account-consent" data-ai-ok="" style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginBottom: 14 }}>
     <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>🔐 My privacy choices</div>
     <div style={{ fontSize: 12, color: "#475569", marginBottom: 6 }}>Terms and Privacy accepted ({TERMS_VERSION}). Change any choice at any time.</div>
     {optins().map(function(o) { var dis = (o.k === "photos" && !c.ai) || (o.k === "bodyBalance" && (!c.ai || !c.photos)); return (<label key={o.k} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 0", borderTop: "1px solid #f1f5f9", fontSize: 13, minHeight: 44, opacity: dis ? 0.55 : 1 }}>

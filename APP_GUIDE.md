@@ -10,7 +10,7 @@
 
 ## 1. What Lifecare Companion is
 
-Lifecare Companion™ is a personal health and wellbeing app that brings together **exercise, eating, body composition, measurements and health records** in one place, and pairs them with an AI **Companion** that reviews your data and gives personalised feedback, like a knowledgeable friend who knows your whole picture.
+Lifecare Companion™ is a personal health and wellbeing app that brings together **exercise, eating, body composition, measurements and health records** in one place, and pairs them with a **Companion** that reviews your data and gives personalised feedback, like a knowledgeable friend who knows your whole picture.
 
 The big idea: everything is connected. What you eat affects your body stats; your training affects your measurements; your bloods, medications and wellbeing shape what good advice looks like. Because the Companion can see all of it, its feedback in one area takes the others into account. For example, eating feedback can reflect your blood results, and exercise feedback can reflect a recent injury you logged in My Health.
 
@@ -20,7 +20,7 @@ The big idea: everything is connected. What you eat affects your body stats; you
 - The app is not intended for anyone under 16.
 
 ### The Companion
-The Companion is the AI built into the app (it uses Anthropic's Claude). It:
+The Companion is built into the app (how it works and what it sees: **Photos and privacy** below). It:
 - writes **feedback** on your sessions, eating, body stats, measurements and health;
 - holds **conversations** with you about that feedback (you can reply and it responds);
 - **chats** with you about anything to do with your health (the 💬 chat button);
@@ -71,7 +71,7 @@ You can pinch to zoom anywhere in the app (since v2.15.2). With a keyboard, the 
 - **Lock the app** (Android and iPhone apps; Settings → 🔐 Account): the app then asks for your fingerprint, face or phone PIN when it opens and after it has been in the background for the time you choose (**Lock after**: straight away, 1, 5 (the usual), 15 or 30 minutes). It's a setting for that phone only. While locked, tap **🔓 Unlock**, or **Sign out**. If the card says to set up a screen lock, add a PIN, fingerprint or face on the phone first.
 - **Sign out everywhere** (same card): signs you out of Lifecare Companion on every phone, tablet and computer, including this one. Use it if a phone is lost or you signed in on someone else's computer; sign in again with Google afterwards.
 - **Confirm it's you:** before **Download my data** and **Delete my account**, the apps ask for your fingerprint, face or phone PIN; on a computer, Google asks you to confirm if you signed in more than 5 minutes ago. If you cancel, nothing is done.
-- **Settings → 🔒 Privacy & your data:** **⬇ Download my data (JSON)** saves everything recorded for the selected person in one file (photos are never stored, so none are included). For the pilot, this card also shows the Privacy Notice and Terms (pilot version), your privacy choices (AI, photo checks, Google Health; in the pilot also symptom and HRT tracking) and **Delete my data**; new pilot users are asked to accept these the first time they use the app.
+- **Settings → 🔒 Privacy & your data:** **⬇ Download my data (JSON)** saves everything recorded for the selected person in one file (photos are never stored, so none are included). For the pilot, this card also shows the Privacy Notice and Terms (pilot version), your privacy choices (Companion features, photo checks, Google Health; in the pilot also symptom and HRT tracking) and **Delete my data**; new pilot users are asked to accept these the first time they use the app.
 - **Delete my account** (same card): erases the selected person's records, removes your Google sign-in from Lifecare Companion and signs you out (your Google account itself isn't affected; backups age out within 12 months). Tap **⬇ Download my data first** if you want a copy, then type **DELETE**, tap **Delete my account** and confirm. If you last signed in more than 5 minutes ago, Google asks you to confirm it's you first. The household's shared/administrator account can't be deleted here: it shows *"This account can't be deleted here: contact the developer."* (deleting it would lock everyone out of their data). Without the app: https://jcbeck1976.github.io/Life-Care/delete-account.html
 
 ### Installing the app on your phone
@@ -91,6 +91,7 @@ Once the app is installed, you can send a photo straight from your Gallery, Came
 - **Later (keep it)** keeps the image on the phone until you choose; **Discard** throws it away.
 
 ### Photos and privacy
+**How the Companion works:** the Companion uses **AI — Claude by Anthropic, provided via Google Cloud**. When you use a Companion feature, what that feature needs (what you entered, asked or photographed, plus the relevant parts of your profile) is sent to it to give you the answer. You choose this in your privacy choices (Settings → Privacy & your data) and can turn it off.
 Every photo you give the app (📷 Snap, 📷 Upload, Body Type Photos, measurement Snap, Body balance check, shared images) is **sent to the Companion to be analysed and then discarded: it is never stored**, not in the app's data and not in backups. Only the result is kept (values, ratings, scores and notes). You'll see this note under the photo buttons: *"Images are analysed and then discarded — they're never stored."*
 - **No food in the photo?** If a food photo (📷 Snap, Food Checker, adding food by photo, Help Me with What to Eat) shows no food, you'll see *"No food found in this photo — try another photo, or add a description and Re-check"*. No rating or nutrition is shown and **Confirm** is greyed out: use **Re-check** (optionally with a description) or **Cancel**. Nothing is saved. The measurement 📷 Snap works the same way when it can't read a value, or when the photo shows a different body part (e.g. a calf photo when logging Bicep).
 - **Body photos must be recognised.** In the **📸 Body balance check** each photo must be a person, full body, in the pose asked for (photo 1 front, photo 2 side, photo 3 back); in **Body Type Photos** each must be a person in one of the requested poses. If one isn't, you'll see e.g. *"Photo 2: This doesn't look like a full-body side photo — please retake it"*, no scores or analysis, and **Save** greyed out: use **Retake** or **Cancel**. Nothing is saved until every photo is valid.
@@ -101,7 +102,7 @@ Every photo you give the app (📷 Snap, 📷 Upload, Body Type Photos, measurem
 - **Pickers** — some choices (the exercise type when adding an exercise, the unit in Build a meal, and the person when there are more than three people: **👥 All**) open a list from the bottom of the screen with large rows; tap one, or × / outside to close.
 - **Bigger text** — the Android and iPhone apps follow your phone's text size (up to double size), and pick up a change as soon as you come back to the app; screens rearrange rather than run off the side.
 - **Screen readers** (TalkBack, VoiceOver) — every button and box is announced by name (e.g. "Weight progress", "Mood: Good"), and each screen has headings you can jump between. Charts read out a summary, and full charts have **As text** to show the numbers.
-- **My Companion … Feedback** buttons (deep blue) — generate AI feedback for that area. After it is generated, **▼ Show Feedback / ▲ Hide Feedback** opens or closes it.
+- **My Companion … Feedback** buttons (deep blue) — ask your Companion for feedback on that area. After it is generated, **▼ Show Feedback / ▲ Hide Feedback** opens or closes it.
 - **Conversation threads** — under most feedback you can type a reply ("Respond to this feedback…") and the Companion answers. Your messages appear on the right in your colour; Your Companion's replies appear on the left in dark grey, labelled **Your Companion**. The **newest message is at the top**, with the reply box above it, and the box is always full width. Earlier conversation is remembered next time feedback is generated, so it respects what you pushed back on.
 - **Feedback History** — older feedback is kept and can be shown with Show/Hide.
 - **Open** — anything you've saved (a Progress week, a food list item, a meal you've chosen, a weigh-in or measurement entry) is shown as a short row with an **Open** button. Open shows it **read-only** first ("Viewing"). From there:
@@ -131,18 +132,18 @@ Every photo you give the app (📷 Snap, 📷 Upload, Body Type Photos, measurem
 "Good morning / afternoon / evening, [name]" with a rotating encouraging message. If no profile exists yet you'll see "New User".
 
 ### ⚡ Companion Energy
-Companion Energy shows how much AI energy is left for Companion features, as a percentage. Every time the Companion generates feedback, answers a chat or calculates nutrition, it uses a little energy.
+Companion Energy shows how much energy is left for Companion features, as a percentage. Every time the Companion generates feedback, answers a chat or calculates nutrition, it uses a little energy.
 
-- **100%** is a full recharge; **0%** is empty. The bar goes down gradually as AI features are used. Normal use takes very little, so use the features freely.
+- **100%** is a full recharge; **0%** is empty. The bar goes down gradually as Companion features are used. Normal use takes very little, so use the features freely.
 - **↻ Refresh** checks the connection. (On opening the app it is checked at most once a day.)
 - Status labels:
   - *Good energy / Getting low / Running low* — normal operation.
-  - *Empty — recharge needed* — the AI service has no energy left. AI features won't work until the app owner recharges it.
-  - *Recharged — level resets in Settings* — the AI is working but the bar needs resetting to 100% by the app owner.
-  - *No API key / Invalid key* — the app owner needs to check the AI key in Settings.
+  - *Empty — recharge needed* — your Companion has no energy left. Companion features won't work until the app owner recharges it.
+  - *Recharged — level resets in Settings* — your Companion is working but the bar needs resetting to 100% by the app owner.
+  - *No API key / Invalid key* — the app owner needs to check the Companion's key in Settings.
   - *Rate limited* — too many requests in a short time; wait a moment.
-  - *Connection error* — couldn't reach the AI service.
-- If a feature shows "⚡ Companion Energy Empty. Please top up!", the AI service has genuinely run out. Let the app owner know.
+  - *Connection error* — couldn't reach your Companion.
+- If a feature shows "⚡ Companion Energy Empty. Please top up!", your Companion has genuinely run out of energy. Let the app owner know.
 - **For the app owner:** after recharging credit at console.anthropic.com, open **⚙ Settings → ⚡ Companion Energy Level**, enter the new balance and tap **Set as 100%**. The bar then runs from that level down to 0%.
 
 ### My Mood
@@ -295,9 +296,9 @@ Tape measurements in cm (e.g. chest, waist, hips, arms, thighs).
 - **Open week N** shows that week read-only: each set, **Range** and **Form** (as a chip: **Good** or **Working towards**), **My Notes**, and the **Companion Feedback** for that week (if any) with **your decision** (Accepted / Rejected and your note). **Edit** lets you change the week number, any set (**+ Add set**), Range, Form, My Notes and your decision on the feedback, then **Save**. **Remove** takes the week out (asks first).
 - Changing or removing an **older** week never changes the exercise card or its status badge. Only the latest week does: if you change or remove it, the card shows the new latest week and the status clears until your next session feedback.
 - **Strength vs Population** — an estimate of where your performance sits against people of your sex and age (untrained, and including trained). Estimated from cable machine performance, so treat it as a guide, not a test result.
-- **ℹ️ Exercise Information:** **📖 Exercise Guide** (how to perform it), **🧘 Pre & Post Exercise** (prep and stretches), **Progression Rules** (your editable rules, e.g. build to 15 reps before increasing weight). Guides are AI-generated, so review them for accuracy. Older exercises can use **🔄 Generate / Update Guides**.
+- **ℹ️ Exercise Information:** **📖 Exercise Guide** (how to perform it), **🧘 Pre & Post Exercise** (prep and stretches), **Progression Rules** (your editable rules, e.g. build to 15 reps before increasing weight). Guides are prepared by your Companion, so check them. Older exercises can use **🔄 Generate / Update Guides**.
 - **Exercise Settings:**
-  - **✎ Edit** — change type, sets, starting values, progression rules, notes and equipment/form notes. AI recommendations are fetched to help.
+  - **✎ Edit** — change type, sets, starting values, progression rules, notes and equipment/form notes. Your Companion's recommendations are fetched to help.
   - **🗑 Delete** — permanently removes the exercise and all its history.
   - **⏸ Stop Exercise** — pauses an exercise without losing anything (see below).
   - **▶ Restart Exercise** — shown instead of Stop on a stopped exercise.
@@ -419,7 +420,7 @@ Start typing: after 2 letters results appear as you type, in this order: **In yo
 - If UK product search isn't responding, your lists and common foods still show; tap **Try again**.
 
 #### Build a meal
-For meals made of several things, e.g. a pasta bake: search on the left (the same forgiving search: your lists, common foods, UK products) and tap items to move them to the right. When you tap one, the search clears, **"Added: …"** appears and the new ingredient is highlighted. Tapping something that's already in the meal asks *"… is already in this meal. Add another portion?"* (**Yes** adds a portion to that row, **No** leaves it). Set an **amount** for each (**portions**, or **grams** for items whose weight is known), name the meal and answer **How many portions does this make?** (required, there's no default; until you fill it the box shows the whole dish's total). For a bake, curry, stew, pie, chilli or lasagne, or anything over 900 kcal, a note asks *"Is this the whole dish? Most bakes serve 3–4."* Each ingredient is a small card: its name, then amount, unit and kcal, with **✕** to remove it. UK products with only per-100 g values come in **in grams** (the pack size) so you can check the amount. The values per portion are **Σ ingredients ÷ serves**, worked out by the app itself, no AI. Example: a jar of pasta bake sauce (500 g) + penne (250 g) + mozzarella (125 g) + chicken (300 g), serves 4 → about **445 kcal per portion**. **Next** → choose lists → **Save**.
+For meals made of several things, e.g. a pasta bake: search on the left (the same forgiving search: your lists, common foods, UK products) and tap items to move them to the right. When you tap one, the search clears, **"Added: …"** appears and the new ingredient is highlighted. Tapping something that's already in the meal asks *"… is already in this meal. Add another portion?"* (**Yes** adds a portion to that row, **No** leaves it). Set an **amount** for each (**portions**, or **grams** for items whose weight is known), name the meal and answer **How many portions does this make?** (required, there's no default; until you fill it the box shows the whole dish's total). For a bake, curry, stew, pie, chilli or lasagne, or anything over 900 kcal, a note asks *"Is this the whole dish? Most bakes serve 3–4."* Each ingredient is a small card: its name, then amount, unit and kcal, with **✕** to remove it. UK products with only per-100 g values come in **in grams** (the pack size) so you can check the amount. The values per portion are **Σ ingredients ÷ serves**, worked out by the app itself, not the Companion. Example: a jar of pasta bake sauce (500 g) + penne (250 g) + mozzarella (125 g) + chicken (300 g), serves 4 → about **445 kcal per portion**. **Next** → choose lists → **Save**.
 
 **After Save** you stay on the form: it shows **"✓ Saved … to Dinners (… kcal per portion)"** with **Add to a day** (choose the day, today by default, and the meal, by default the list you ticked) and **Done**. If you already have a different item with the same name in that list, the app asks first: **Replace it with this one** or **Keep both**. This works the same for Single item, Build a meal and My own.
 
@@ -450,7 +451,7 @@ Under **📷 Photo or bulk paste**, tap **📋 Bulk** and paste a list (one per 
 - **Cancel** really stops: anything still on its way is ignored. If earlier batches were already saved, you're told how many, with **Undo**.
 - Every line gets values for **one portion** with what a portion is ("1 portion = 1 bag (25 g)"); answers that don't make sense are re-asked automatically.
 - Lines your Companion can't work out aren't dropped: they're listed as **"needs a little more from you"**, each with **Finish with my Companion**, which opens the conversation with its question.
-- When it finishes, a message (tap **OK**) reminds you that ratings are AI estimates. New items show **Check me** until you've opened and saved them.
+- When it finishes, a message (tap **OK**) reminds you that ratings are your Companion's estimates. New items show **Check me** until you've opened and saved them.
 
 ### Ingredients and the shopping list
 For prepared dinners, the ingredients become shopping list items. For packaged items, the product itself goes on the list.
@@ -556,8 +557,8 @@ A note such as "birthday week" or "after a long flight" is saved with that weigh
 
 ### Symptoms, HRT and GP prep (pilot — v2.30.0, on the test site first)
 Three more tabs in My Health. Symptom and HRT tracking has its **own privacy choice** (Settings → Privacy & your data → **Symptom and HRT tracking**); while it is off these tabs say so, and you can delete what you recorded.
-- **Symptoms** — a **daily check-in**: for each symptom (hot flushes, night sweats, sleep, low mood, anxiety, brain fog, tiredness, aches, headaches, palpitations, libido, dryness) tap **None, Mild, Moderate or Severe** (tap again to clear), add a note, **Save check-in**. One check-in per day: saving the same day again updates it, and you can pick an earlier day. **Trends** shows the last 14, 30 or 90 days as a bar chart (colour = that day's average), a sentence describing it and a table per symptom (average, highest, days moderate or worse). In every plan; no AI.
-- **HRT** — **your record only**: **+ Add to my HRT record** → date, what happened (Started, Changed, Stopped or a Note), the product as on the box, type, how it's taken, the dose as prescribed, notes. **Current HRT** shows what you're using now; **History** lists every entry (🗑 Delete asks first). **The Companion never gives advice about HRT**, and your HRT entries are never sent to the AI. Ask your GP, nurse or pharmacist.
+- **Symptoms** — a **daily check-in**: for each symptom (hot flushes, night sweats, sleep, low mood, anxiety, brain fog, tiredness, aches, headaches, palpitations, libido, dryness) tap **None, Mild, Moderate or Severe** (tap again to clear), add a note, **Save check-in**. One check-in per day: saving the same day again updates it, and you can pick an earlier day. **Trends** shows the last 14, 30 or 90 days as a bar chart (colour = that day's average), a sentence describing it and a table per symptom (average, highest, days moderate or worse). In every plan; no Companion needed.
+- **HRT** — **your record only**: **+ Add to my HRT record** → date, what happened (Started, Changed, Stopped or a Note), the product as on the box, type, how it's taken, the dose as prescribed, notes. **Current HRT** shows what you're using now; **History** lists every entry (🗑 Delete asks first). **The Companion never gives advice about HRT**, and your HRT entries are never sent to the Companion. Ask your GP, nurse or pharmacist.
 - **GP prep** — a clear, **factual summary of your own records** for a GP appointment (Silver and up; about 5 Companion Energy). Pick the dates (or **Last 1/3/6 months**) and what to include, then **Prepare summary**. The Companion describes only what you recorded — **no diagnosis, no advice**, nothing about medication or HRT (those are listed exactly as you recorded them). **Check your summary**: change any wording, then **Save summary**, **Share / PDF** (the phone's share sheet, or a download on a computer) or **Discard**. Nothing is saved until you choose Save. Every summary says *"For discussion with your GP… not a diagnosis or medical advice."* **Saved summaries** can be viewed again, turned into a PDF or deleted.
 
 ---
@@ -568,7 +569,7 @@ Three more tabs in My Health. Symptom and HRT tracking has its **own privacy cho
 Ask anything about your health, training, nutrition or progress, e.g. "Why did my bicep curl reps drop?", "Am I eating enough protein?", "What should I focus on next?". The Companion answers using your full data. The **newest message is at the top** (the Companion's reply sits above the question it answers), so you see it straight away. **Show older messages** (at the end) reveals earlier ones. All Companion conversations, including Help and the feedback replies, work the same way, with the reply box above the conversation.
 
 ### Help ?
-Tap **Help ?** at the top right of the screen, next to the Settings gear. On **Bronze**, Help is a **searchable guide** (type a few words, open a result) with no AI; asking the Companion is part of Silver. Ask how to use the app: where something is, what something means, how to do something, why it works the way it does. The Help companion answers from this guide, in the same conversation style. It helps with the **app**; for questions about your own health data, use 💬 Chat.
+Tap **Help ?** at the top right of the screen, next to the Settings gear. On **Bronze**, Help is a **searchable guide** (type a few words, open a result) without the Companion; asking the Companion is part of Silver. Ask how to use the app: where something is, what something means, how to do something, why it works the way it does. The Help companion answers from this guide, in the same conversation style. It helps with the **app**; for questions about your own health data, use 💬 Chat.
 - **Help, top to bottom:** **How Lifecare works** — the app's real buttons and labels in sections you open one at a time (**Everywhere · Eating · Exercise · Body & Health · Your Companion · Home · Account & plans**, all closed to start). Each section is a table: **Button / label · What it does · Where you'll see it** (on a phone, "Where" sits under the explanation). **Find a button or label** filters the rows and opens the sections that match. Help doesn't pop the keyboard up on a phone; then **Search the guide** (every plan); then **Ask the Companion** (Silver and up; on Bronze it shows what each plan includes).
 
 ### Getting started (new accounts) and Settings → 🧭 Set-up guide
@@ -628,9 +629,9 @@ Change any choice at any time in **Settings → 🔐 My privacy choices**. Turni
 
 ### 💳 My Plan — Bronze, Silver, Gold, Platinum Family (being tested on Build)
 Every plan includes the three pillars: **Health, Eating and Exercise**.
-- **Bronze (free):** manual tracking with progress and charts, the built-in food and exercise lists, UK products, your own lists, Build a meal (totals from stored values), mood and journal, a manual shopping list, and a **searchable Help guide**. No AI, and nutrition values can't be edited. **Food ratings** (the red / amber / green colours, words and badges) are part of Silver: on Bronze foods show in normal text, with all calories and portions; "🔒 Ratings: Silver" on the My Eating Lists header opens My Plan. Ratings are kept, so they come back if you upgrade.
+- **Bronze (free):** manual tracking with progress and charts, the built-in food and exercise lists, UK products, your own lists, Build a meal (totals from stored values), mood and journal, a manual shopping list, and a **searchable Help guide**. No Companion, and nutrition values can't be edited. **Food ratings** (the red / amber / green colours, words and badges) are part of Silver: on Bronze foods show in normal text, with all calories and portions; "🔒 Ratings: Silver" on the My Eating Lists header opens My Plan. Ratings are kept, so they come back if you upgrade.
 - **Silver (£5.99 a month or £49 a year):** everything in Bronze, plus the Companion: feedback everywhere, chat, food ratings, Snap, My own item, body balance, steps and health sync, Ask the Companion in Help, and auto-generated info. Includes £1.50 of Companion Energy each month.
-- **Gold (£9.99 a month or £79 a year):** everything in Silver, plus planning: generate meals, generate a shopping list, AI training plans with warm-up and cool-down. Includes £2.50 of Energy each month.
+- **Gold (£9.99 a month or £79 a year):** everything in Silver, plus planning: generate meals, generate a shopping list, Companion training plans with warm-up and cool-down. Includes £2.50 of Energy each month.
 - **Platinum Family (£15.99 a month or £159 a year):** Gold for up to **5 people** (you plus 4 invited), with **one shared family Energy pool** of £7.50 a month. Household sharing (seeing each other's data, "log for me") is Platinum only.
 
 **My Plan** (Settings, under the colour theme; closed until you tap it) shows: your plan, when it renews, and your Companion Energy % (not on Bronze) · the four plans side by side, with a **Monthly / Yearly** switch · **Upgrade**, **Change plan** and **Manage or cancel** (Google Play's subscription page) · **⚡ Top up Companion Energy: £5** (Silver and up; on Platinum it goes into the family pool) · on Platinum, the owner's **👪 My family**: members, invite by email, remove, and the family pool %.
@@ -669,8 +670,8 @@ At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature
 
 | Problem | What to do |
 |---|---|
-| "⚡ Companion Energy Empty. Please top up!" | The AI service is out of energy. The app owner recharges it at console.anthropic.com, then sets the new level in **⚙ Settings → ⚡ Companion Energy Level**. |
-| Energy bar looks wrong (e.g. low but AI works) | The app owner resets it in **⚙ Settings → ⚡ Companion Energy Level → Set as 100%**. |
+| "⚡ Companion Energy Empty. Please top up!" | Your Companion is out of energy. The app owner recharges it at console.anthropic.com, then sets the new level in **⚙ Settings → ⚡ Companion Energy Level**. |
+| Energy bar looks wrong (e.g. low but your Companion works) | The app owner resets it in **⚙ Settings → ⚡ Companion Energy Level → Set as 100%**. |
 | "Invalid API key" / "No API key" | The app owner needs to check the Claude key in Settings → API Keys. |
 | "Rate limit reached" / "API busy" | Wait a moment and try again. |
 | Feedback was "cut off" | Press the feedback button again. |
@@ -691,8 +692,8 @@ At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature
 
 ## 14. Glossary
 
-- **Companion** — the AI built into the app.
-- **Companion Energy** — how much AI energy is left, as a percentage of the last recharge.
+- **Companion** — your helper built into the app (see **Photos and privacy** for how it works).
+- **Companion Energy** — how much Companion energy is left, as a percentage of the last recharge.
 - **RAG / rating** — GREAT (green), AMBER, RED food ratings.
 - **Packaged** — a shop-bought product with fixed label nutrition.
 - **Ingredient Prepared** — something you make; nutrition is calculated from your ingredients and amounts.

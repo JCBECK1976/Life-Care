@@ -31,7 +31,7 @@ var PAGES = "https://jcbeck1976.github.io/Life-Care/";
 var PROJECT = (function() { try { return firebase.app().options.projectId; } catch (e) { return ""; } })();
 var card = { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 8, marginBottom: 14 };
 function AdminSection(props) {
-  return (<div data-testid={"admin-section-" + props.id} style={{ marginTop: 22, paddingTop: 10, borderTop: "2px solid #e2e8f0" }}>
+  return (<div data-testid={"admin-section-" + props.id} data-ai-ok="" style={{ marginTop: 22, paddingTop: 10, borderTop: "2px solid #e2e8f0" }}>
     <div role="heading" aria-level={3} style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>{props.title}</div>
     <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, marginTop: 2 }}>{props.help}</div>
   </div>);
@@ -108,7 +108,7 @@ export default function SettingsSection({ ctx }) {
           {/* v2.15.0 C: admin Settings in clear sections, each with short helper text */}
           {isAdmin && <AdminSection id="app-ai" title="App & AI" help="The Claude key, Companion Energy, what the AI has used, where feedback emails go, and Debug Mode." />}
           {/* API Key — Admin only */}
-          {isAdmin && (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
+          {isAdmin && (<div data-ai-ok="" style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🔑 API Keys</div>
             <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>Required for AI features. Get your Claude key from <strong>console.anthropic.com</strong> → API Keys.</div>
             <label style={labelStyle}>Claude API Key</label>
