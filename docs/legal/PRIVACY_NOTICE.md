@@ -41,9 +41,9 @@ You can withdraw consent at any time (see section 8). Withdrawing does not affec
 We do not sell your data, use it for advertising, or share it with anyone except the processors below.
 
 ## 5. AI processing and photos
-- **AI requests:** to generate feedback, the relevant data and your question are sent to **Anthropic** (the provider of the Claude AI model), an external **processor**.
-- **International transfer:** AI requests are **currently processed by Anthropic in the United States**, under Anthropic's Data Processing Addendum [JC to confirm the DPA applies to the account].
-- **Planned move to the EU:** before any users other than JC and Becks, AI processing will move to the **EU**. Requests will go through Claude on Google Cloud Vertex AI at an EU regional or multi-region endpoint, under Google's existing terms. This notice will be updated when that happens.
+- **AI requests:** your Companion's feedback, answers and photo checks are produced by **Claude**, an AI model made by **Anthropic**. To generate them, the relevant data and your question are sent, through our server, to **Google Cloud's Vertex AI**, which runs Claude for us as our **processor**, under Google's terms.
+- **Where:** AI requests for app users are processed in the **EU** (Google Cloud EU region). They are **not** sent to the United States; if the EU service is unavailable, AI features pause and tracking carries on.
+- **Before the pilot:** while the only users were the founding household (JC and Becks), AI requests were sent to Anthropic directly, in the United States, under Anthropic's Data Processing Addendum. [Solicitor to review this section.]
 - **Model training:** according to the provider's terms for its API, data sent through the API is not used to train its models.
 - **Photos are analysed and then discarded:**
   - When you take or choose a photo (food, a measurement, a body-composition screen, body photos), it is shrunk and sent for analysis, then discarded.
