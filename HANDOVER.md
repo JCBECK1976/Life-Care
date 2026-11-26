@@ -28,7 +28,7 @@ The version table (changelog) is in **[docs/CHANGELOG.md](docs/CHANGELOG.md)** (
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.56.2** (PR #28, merged 26 Nov 2026, `31af816`) — awaiting JC's beta test; build = **v2.56.3** (`35135c6`, 26 Nov 2026; HOTFIX: picker search keeps the keyboard open — awaiting JC's phone check, then straight to beta).
+- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.56.3** (hotfix PR #29, merged 26 Nov 2026, `dd2aa66`; v2.56.2 via PR #28) — awaiting JC's beta test; build = **v2.56.3** (`35135c6`, 26 Nov 2026; HOTFIX: picker search keeps the keyboard open; JC checked it on his phone; on beta).
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -3098,3 +3098,9 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **Test `tests/v2563.spec.js`** (Pixel 7 emulation: touch, mobile): types key by key, then deletes 3 keys, in each of those boxes, and asserts `document.activeElement` is the same connected element after every key and the value is the full text. Against the old code it fails on the first letter in the picker; with the fix all pass. Full gate green.
 - **Next:** JC's quick phone check on /build/ (footer v2.56.3), then PR build → beta straight away (hotfix only). NOT main.
 - **Resume point:** build `35135c6` (v2.56.3); beta `31af816` (v2.56.2); main @ this commit.
+
+### (Coder) 26 Nov 2026 — v2.56.3 hotfix → beta (PR #29)
+- **Done:** JC confirmed v2.56.3 on his phone. PR #29 `build → beta` (hotfix only: one commit, `35135c6`) was merged as `dd2aa66`. **Not main**: prod stays v2.15.1.
+- **Smoke test run 252: all green**: prod v2.15.1, beta v2.56.3, build v2.56.3, data and data_build ok. (Noted: data_build now shows the same key count and size as data, 120 keys / 520,798 bytes; before it was 121 / 514,431. Looks like a refresh from data; I didn't touch either.)
+- **Next (JC):** test /beta/ (close the tab, reopen it, and check the footer says v2.56.3). Prod (beta → main) only on JC's yes.
+- **Resume point:** beta `dd2aa66` (v2.56.3) = build `35135c6`; main @ this commit.
