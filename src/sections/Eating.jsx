@@ -796,8 +796,21 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
 
           var defs = mealDefaults[activeTab] || {};
           var dayMeals = meals[eatDay] || {};
-          var otherSlots = [];
-          for (var oi = 1; oi <= 20; oi++) { if (dayMeals["o" + oi] || oi <= Math.max(getOtherCount(eatDay), 1) || dayMeals["o" + oi] === "__empty__") otherSlots.push(oi); }
+          /* v2.58.1 (brief 26 Nov P3): the rows SHOWN for a category = every row up to the last FILLED one (gaps kept, e.g. after
+             Remove in Edit Item) + EXACTLY ONE blank "Add …" row after it — whatever filled it (a pick, Add New / Update Lists,
+             Snap, share, Home Snap, Copy Day/Week, defaults). Display only: nothing is written; stale blanks beyond it are hidden. */
+          var shownRows = function(prefix, mode, getV) {
+            var numbered = prefix === "o" || (mode === "day" && (prefix === "ds" || prefix === "dr"));
+            var max = prefix === "o" ? 20 : mode === "day" && (prefix === "ds" || prefix === "dr") ? 5 : 10;
+            var key = function(i) { return numbered ? prefix + i : (i === 1 ? prefix : prefix + i); };
+            var full = function(v) { return !!v && v !== "__empty__" && v !== "__placeholder__"; };
+            var last = 0, i; for (i = 1; i <= max; i++) if (full(getV(key(i)))) last = i;
+            var out = []; for (i = 1; i <= last; i++) if (i === 1 || getV(key(i))) out.push(i);
+            if (last < max) out.push(last + 1);
+            return out;
+          };
+          var dayV = function(k) { return dayMeals[k] || ""; }, defV = function(k) { return defs[k] || ""; };
+          var otherSlots = shownRows("o", "day", dayV);
 
           /* v2.8.0 F5: a list item opened read-only. Edit = the Update Item editor; Delete from list lives ONLY here. */
           var nutritionRows = function(n, kcal) { return (<>
@@ -1568,7 +1581,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <button onClick={function() { saveDef("b", defs["b"], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["b"] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes["b"] || "individual") === "all" ? "#0f172a" : "#475569" }}>All</button>
                 </div>
               </div>
-              {(function() { var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "b" : "b" + si; if (defs[sk] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
+              {shownRows("b", "defaults", defV).map(function(n) {
                 var slotKey = n === 1 ? "b" : "b" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
@@ -1586,7 +1599,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <button onClick={function() { saveDef("l", defs["l"], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["l"] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes["l"] || "individual") === "all" ? "#0f172a" : "#475569" }}>All</button>
                 </div>
               </div>
-              {(function() { var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "l" : "l" + si; if (defs[sk] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
+              {shownRows("l", "defaults", defV).map(function(n) {
                 var slotKey = n === 1 ? "l" : "l" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
@@ -1604,7 +1617,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <button onClick={function() { saveDef("d", defs["d"], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["d"] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes["d"] || "individual") === "all" ? "#0f172a" : "#475569" }}>All</button>
                 </div>
               </div>
-              {(function() { var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "d" : "d" + si; if (defs[sk] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
+              {shownRows("d", "defaults", defV).map(function(n) {
                 var slotKey = n === 1 ? "d" : "d" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
@@ -1622,7 +1635,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <button onClick={function() { saveDef("ds", defs["ds"], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["ds"] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes["ds"] || "individual") === "all" ? "#0f172a" : "#475569" }}>All</button>
                 </div>
               </div>
-              {(function() { var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "ds" : "ds" + si; if (defs[sk] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
+              {shownRows("ds", "defaults", defV).map(function(n) {
                 var slotKey = n === 1 ? "ds" : "ds" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
@@ -1641,7 +1654,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <button onClick={function() { saveDef("dr", defs["dr"], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["dr"] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes["dr"] || "individual") === "all" ? "#0f172a" : "#475569" }}>All</button>
                 </div>
               </div>
-              {(function() { var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "dr" : "dr" + si; if (defs[sk] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
+              {shownRows("dr", "defaults", defV).map(function(n) {
                 var slotKey = n === 1 ? "dr" : "dr" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
@@ -1659,7 +1672,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
                   <button onClick={function() { saveDef("o1", defs["o1"], "all"); }} style={{ padding: "2px 8px", border: "none", borderRadius: 3, fontSize: 9, fontWeight: 600, cursor: "pointer", background: (defScopes["o1"] || "individual") === "all" ? "#fff" : "transparent", color: (defScopes["o1"] || "individual") === "all" ? "#0f172a" : "#475569" }}>All</button>
                 </div>
               </div>
-              {(function() { var slots = []; for (var si = 1; si <= 20; si++) { if (defs["o" + si] || si <= 1) slots.push(si); } return slots; })().map(function(n) {
+              {shownRows("o", "defaults", defV).map(function(n) {
                 var slotKey = "o" + n;
                 return (<div key={n} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
@@ -2009,7 +2022,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Breakfast</span>
               {(function() {
-                var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "b" : "b" + si; if (getMeal(eatDay, sk) || si <= 1) slots.push(si); }
+                var slots = shownRows("b", "day", dayV);
                 return slots.map(function(idx) {
                   var slotKey = idx === 1 ? "b" : "b" + idx;
                   var _hasItem = allBfast.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
@@ -2047,7 +2060,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Lunch</span>
               {(function() {
-                var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "l" : "l" + si; if (getMeal(eatDay, sk) || si <= 1) slots.push(si); }
+                var slots = shownRows("l", "day", dayV);
                 return slots.map(function(idx) {
                   var slotKey = idx === 1 ? "l" : "l" + idx;
                   var _hasItem = allLunch.some(function(it){ return it.id === getMeal(eatDay, slotKey); });
@@ -2085,7 +2098,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Dinner</span>
               {(function() {
-                var slots = []; for (var si = 1; si <= 10; si++) { var sk = si === 1 ? "d" : "d" + si; if (getMeal(eatDay, sk) || si <= 1) slots.push(si); }
+                var slots = shownRows("d", "day", dayV);
                 return slots.map(function(idx) {
                   var slotKey = idx === 1 ? "d" : "d" + idx;
                   var sIdx = slotKey === "d" ? "" : slotKey.replace("d", "");
@@ -2146,7 +2159,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Desserts</span>
               {(function() {
-                var slots = []; for (var di = 1; di <= 5; di++) { if (getMeal(eatDay, "ds" + di) || di <= 1) slots.push(di); }
+                var slots = shownRows("ds", "day", dayV);
                 return slots.map(function(idx) {
                   return (<div key={"ds"+idx} style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: "1 1 5em", minWidth: 0 }}>
@@ -2179,7 +2192,7 @@ var getOtherCount = function(dayKey) { var m = meals[dayKey]; if (!m) return 0; 
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: "#475569" }}>Drinks</span>
               {(function() {
-                var slots = []; for (var di = 1; di <= 5; di++) { if (getMeal(eatDay, "dr" + di) || di <= 1) slots.push(di); }
+                var slots = shownRows("dr", "day", dayV);
                 return slots.map(function(idx) {
                   return (<div key={"dr"+idx} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
                     <div style={{ flex: 1 }}>
