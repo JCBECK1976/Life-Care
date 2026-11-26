@@ -162,7 +162,7 @@ Between My Day and My Journal. One table with two columns, **Planned** and **Act
 | **Goal** (bold) | Body burn + your goal deficit + Exercise. |
 | **Eating** | Planned: the day's selections at their original planned values. Actual: what's stored now, after portion changes, 📷 Snap checks and variations. |
 | **On track** | In **both** columns: Planned = planned eating − planned goal, Actual = actual eating − actual goal, e.g. "−120" with "−6%" underneath: green at or under, red over. |
-- **Week to date ±N%** (top right): everything you ate on the past days of this week that have something logged, against those days' goals. Today and future days never count, and nor do days with nothing logged.
+- **Week to date ±N%** (top right): everything you ate this week up to and including today (today so far) on the days that have something logged, against those days' goals. Future days never count, and nor do days with nothing logged.
 - **▸ Show earlier days this week** shows the same table for each earlier day.
 - The note under the table: *"Actual includes eating selections stored in the day which need to be kept up to date, plus any exercises logged when completed"*. In other words, keep your eating selections up to date and log exercises when you finish them, and the Actual column stays right.
 - Until your goal setup is done the card says so and offers **Set up my goal**.
@@ -506,8 +506,8 @@ On days without step data it decides how much daily living adds to your BMR: *Mo
 **What does the note "Actual includes eating selections stored in the day…" mean?**
 The Actual column can only be as good as what's in the app. Keep each day's eating selections up to date (change portions, Snap or skip what you didn't eat) and log exercises when you finish them, and the Actual column and "Week to date" are right.
 
-**What does "Week to date" show, and why doesn't it count today?**
-It adds up what you ate on the past days of this week and compares it with those days' goals, e.g. "Week to date −4%" (green at or under, red over). It counts only **complete days** (Sunday to yesterday) that have something logged: today isn't finished yet, future days haven't happened, and a day you forgot to log doesn't drag your score down. Tap **▸ Show earlier days this week** for each day's table.
+**What does "Week to date" show, and does it count today?**
+It adds up what you ate this week, **up to and including today**, and compares it with those days' goals, e.g. "Week to date −4%" (green at or under, red over). Today counts **so far** (marked *(today, so far)* in the Summary tables), so it can change as you log more. Future days haven't happened, and a day with nothing logged doesn't drag your score down. The same rule is used on Home, the Week Summary and each day's Summary (for a past day: up to and including that day). Tap **▸ Show earlier days this week** for each day's table.
 
 **What is BMR and why does it change?**
 BMR (basal metabolic rate) is the calories your body burns at complete rest. The app uses the Katch-McArdle formula on your **lean mass** (weight minus fat), averaged over your **last 3–4 weigh-ins** that include body fat %. So it moves as your weight and body fat change; more muscle means a higher BMR. If body fat % is missing it's estimated from weight, height, age and sex (labelled **estimate**): add a weigh-in with body fat % for a better figure.
@@ -714,7 +714,7 @@ At the bottom of the app: **💬 Send Feedback** (choose 🐛 Bug or ✨ Feature
 - **Goal (person goal)** — the one goal you chose (e.g. Work towards a healthy body weight); it sets your daily calorie goal.
 - **Aim** — your goal's daily adjustment: − for a deficit, + for a surplus.
 - **Activity level** — Mostly sitting / On my feet a fair bit / Very active; used on days without step data.
-- **Week to date** — what you ate on this week's past logged days against their goals.
+- **Week to date** — what you ate on this week's logged days, up to and including today, against their goals.
 - **Safe minimum** — the lowest calorie goal the app sets: 90% of your BMR, at least 1,200 kcal (women) / 1,500 kcal (men).
 - **Step allowance** — the steps already included in your baseline; only steps beyond it add calories.
 - **MET** — how hard an exercise is compared with resting; used to count exercise calories.

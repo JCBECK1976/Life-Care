@@ -10,8 +10,9 @@ var n = function(x) { return Math.round(x).toLocaleString("en-GB"); };
 var signed = function(x) { return (x > 0 ? "+" : x < 0 ? "−" : "±") + n(Math.abs(x)); };
 var DAYNAME = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 var box = { background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: "10px 12px", marginBottom: 12 };
-var td = { padding: "4px 3px", borderTop: "1px solid #f1f5f9", textAlign: "right", whiteSpace: "nowrap" };
-var thc = Object.assign({}, td, { borderTop: "none", color: "#475569", fontSize: 10, fontWeight: 700, whiteSpace: "normal", lineHeight: 1.2, verticalAlign: "bottom" });
+/* v2.56.2: every row the same height (room for the two-line On Track cell), headers and numbers centred, Day left */
+var td = { padding: "4px 3px", borderTop: "1px solid #f1f5f9", textAlign: "center", whiteSpace: "nowrap", height: 40, boxSizing: "border-box", verticalAlign: "middle" };
+var thc = Object.assign({}, td, { borderTop: "none", color: "#475569", fontSize: 10, fontWeight: 700, whiteSpace: "normal", lineHeight: 1.2, verticalAlign: "bottom", height: "auto" });
 var COL = { green: "#15803d", red: "#b91c1c" };
 
 function Pill(props) {
@@ -49,7 +50,7 @@ function SummaryTable(props) {
     <tbody>{rows.map(function(r) {
       var t = r.t, future = r.d > today;
       return (<tr key={r.d} data-testid="sum-row" data-date={r.d}>
-        <th scope="row" style={Object.assign({}, td, { textAlign: "left", fontWeight: 700 })}>{DAYNAME[new Date(r.d + "T12:00:00").getDay()].slice(0, 3)}</th>
+        <th scope="row" style={Object.assign({}, td, { textAlign: "left", fontWeight: 700 })}>{DAYNAME[new Date(r.d + "T12:00:00").getDay()].slice(0, 3)}{r.d === today && <span data-testid="sum-today" style={{ display: "block", fontSize: 8, fontWeight: 500, lineHeight: 1.1, whiteSpace: "normal", color: "#475569" }}>(today, so far)</span>}</th>
         <td style={td} data-col="burn">{n(t.burn)}</td>
         <td style={td} data-col="target">{n(Math.abs(t.aim.kcal))}</td>
         <td style={td} data-col="exercise">{n(t.exercise.actual)}</td>

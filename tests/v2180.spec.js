@@ -78,17 +78,18 @@ test("the table: planned eating from snapshots, actual from stored selections; e
   expect(dayTable({ ...p, goal: {} }, D, doc)).toMatchObject({ ready: false });            // no targets until setup is complete
 });
 
-test("Week to date (fixed clock, Wednesday): past days with actual data only — never today, the future or unlogged days", () => {
+test("Week to date (fixed clock, Wednesday): days up to AND INCLUDING today with actual data (v2.56.2) — never the future or unlogged days", () => {
   const p = withGoal({ id: "maintain" });
   const doc = { children: {
     s: { date: "2026-11-08", snapshot: { kcal: 2000 }, nutrition: { kcal: 2000 } },      // Sun −126
     t: { date: "2026-11-10", snapshot: { kcal: 2400 }, nutrition: { kcal: 2400 } },      // Tue +274 (Mon not logged)
-    w: { date: "2026-11-11", nutrition: { kcal: 5000 } },                                  // today: not counted
+    w: { date: "2026-11-11", nutrition: { kcal: 5000 } },                                  // today: counted so far (v2.56.2)
     f: { date: "2026-11-13", nutrition: { kcal: 9999 } } } };                             // future: never counted
   const w = weekToDate(p, doc, new Date(2026, 10, 11, 15));
-  expect(w.days).toEqual(["2026-11-08", "2026-11-10"]);
-  expect(w.kcal).toBe(4400 - 2 * 2126); expect(w.pct).toBe(Math.round(148 / 4252 * 100)); expect(w.colour).toBe("red");
-  expect(weekToDate(p, doc, new Date(2026, 10, 8, 9)).pct).toBe(null);                   // Sunday morning: nothing yet
+  expect(w.days).toEqual(["2026-11-08", "2026-11-10", "2026-11-11"]);
+  expect(w.kcal).toBe(9400 - 3 * 2126); expect(w.pct).toBe(Math.round((9400 - 3 * 2126) / (3 * 2126) * 100)); expect(w.colour).toBe("red");
+  expect(weekToDate(p, doc, new Date(2026, 10, 8, 9)).days).toEqual(["2026-11-08"]);     // Sunday morning: today so far
+  expect(weekToDate({ ...p }, { children: {} }, new Date(2026, 10, 8, 9)).pct).toBe(null); // nothing logged yet
 });
 
 test("goal context for companions: goal, description, timescale, pace, progress; suggestions only", () => {

@@ -252,11 +252,12 @@ export function dayTable(p, date, doc) {
     onTrack: { kcal: diff, pct: goalA ? Math.round(diff / goalA * 100) : 0, colour: diff <= 0 ? "green" : "red" }, onTrackPlanned: { kcal: diffP, pct: goalP ? Math.round(diffP / goalP * 100) : 0, colour: diffP <= 0 ? "green" : "red" }, hasActual: actualEat > 0, stepAllowance: pl.stepAllowance, adjPct: settingsOf(p).adjPct };
 }
 
-/** Week to date: Σ actual eating vs Σ actual goal over PAST days this week that have actual data (never today or the future). */
+/** Week to date: Σ actual eating vs Σ actual goal over this week's days UP TO AND INCLUDING TODAY that have actual data (never the
+ *  future). v2.56.2 (JC): one rule everywhere — today counts "so far" (it used to be left out). */
 export function weekToDate(p, doc, now) {
   now = new Date(now || Date.now());
   var today = isoDay(now);
-  var days = weekDates(now).filter(function(d) { return d < today; }).map(function(d) { return dayTable(p, d, doc); }).filter(function(t) { return t.ready && t.hasActual; });
+  var days = weekDates(now).filter(function(d) { return d <= today; }).map(function(d) { return dayTable(p, d, doc); }).filter(function(t) { return t.ready && t.hasActual; });
   if (!days.length) return { pct: null, kcal: 0, days: [], colour: "none" };
   var eat = days.reduce(function(s, t) { return s + t.eating.actual; }, 0), goal = days.reduce(function(s, t) { return s + t.goal.actual; }, 0);
   var diff = eat - goal;
