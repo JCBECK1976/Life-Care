@@ -28,7 +28,7 @@ The version table (changelog) is in **[docs/CHANGELOG.md](docs/CHANGELOG.md)** (
 ### Live Product
 - **URL**: https://jcbeck1976.github.io/Life-Care
 - **Repo**: https://github.com/JCBECK1976/Life-Care
-- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.20.2** (PR #27, merged 17 Nov 2026, `bcac68e`) — awaiting JC's beta test; build = **v2.56.1** (`bf41ed8`, 26 Nov 2026; night batch 25 Nov done — awaiting JC's test of /build/).
+- **Version**: **v2.15.1 in prod** (released 12 Nov 2026, PR #25, tag v2.15.1); beta = **v2.20.2** (PR #27, merged 17 Nov 2026, `bcac68e`) — awaiting JC's beta test; build = **v2.56.2** (`d4ba2de`, 26 Nov 2026; Snap tip fix after the 25 Nov night batch — awaiting JC's test of /build/).
 - **Status**: In daily use by JC and Beck for tracking exercise, nutrition, body composition, and health
 - **Build**: Vite, from component files in `src/` (since v2.0.0). No in-browser Babel; loads in ~1–2s instead of ~70s.
 
@@ -3066,3 +3066,8 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **Open:** the Privacy Policy text (section 5) names Anthropic but not "provided via Google Cloud" — legal wording left for the Architect/JC. Flaky `tests/v2330.spec.js` unchanged (not seen in this batch's last runs). P5 signing check from the 24 Nov batch still waits for the prod release.
 - **Next (JC):** test /build/ (footer v2.56.1): Snap from the picker (tip, Confirm/Re-check/Cancel inside it); My Eating → Week (Week Summary, Show days, Full Breakdown) and a day (Day Calories, Week to date, Full Breakdown, the nutrition table at phone width); My Exercise → + Add Exercise → "Running" (main button, then the blank form with the status; "Add custom"); the day-tab numbers; no "AI" wording outside privacy/consent/legal.
 - **Resume point:** `build` @ `bf41ed8` (v2.56.1); main @ this commit. Do NOT merge to beta or main without JC.
+
+### (Coder) 26 Nov 2026 — v2.56.2 Snap tip fix (JC, before beta)
+- **Done — build `d4ba2de` (v2.56.2):** the yellow "💡 Additional Information – …" box is now on the FIRST Snap step ("Snap a photo of your food"), directly above 📷 Take photo, with the optional details box inside it (yellow outline, `snap-pre-hint`). The result screen shows only "💡 Re-check – …" (never Additional Information again). One shared panel (`renderSnapPanel`), so the same everywhere it's used: the picker and the day rows. The shared photo ("Add to today's eating") already has its photo, so it goes straight to the result and its Re-check tip. The scales/measurement photo uses a different panel (`MeasureSnap`, body measurements, switched off), so it's unchanged. Tests: v2520 (tip on the first step, above Take photo, yellow details box; result = Re-check only), v2440 (share → Re-check tip). APP_GUIDE updated. No visual baseline change.
+- **Next (JC):** test /build/ (footer v2.56.2): Snap from a meal's picker → the first step shows the tip; take a photo → the result shows the Re-check tip.
+- **Resume point:** `build` @ `d4ba2de` (v2.56.2). Do NOT merge to beta or main without JC.
