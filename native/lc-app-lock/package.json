@@ -1,0 +1,8 @@
+{
+  "name": "lc-app-lock",
+  "version": "1.0.0",
+  "private": true,
+  "description": "v2.33.0: the optional app lock for the iPhone app (LocalAuthentication: Face ID / Touch ID / passcode). Android has its own LcAppLockPlugin in android/app.",
+  "main": "index.js",
+  "capacitor": { "ios": { "src": "ios" } }
+}

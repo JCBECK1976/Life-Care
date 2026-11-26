@@ -18,6 +18,17 @@ firebase.initializeApp({
 // v2.6.0: Google sign-in. Users stay signed in on the device (local persistence, the default).
 export const auth = firebase.auth();
 
+/* v2.26.0: App Check (web: reCAPTCHA Enterprise). Off until JC creates the site key (GO_LIVE_CHECKLIST C) and the
+   build gets VITE_APPCHECK_SITE_KEY; the server only ENFORCES it when ENFORCE_APP_CHECK=true. The Android app's Play
+   Integrity provider needs a native plugin (open item), so enforcement waits until that is in place too. */
+/* v2.28.2: in the native apps, App Check comes from the device (Play Integrity / App Attest) — lib/appCheck.js */
+if (import.meta.env.VITE_NATIVE) import("./appCheck.js").then(function(m) { return m.startNativeAppCheck(firebase); }).catch(function() { /* never blocks the app */ });
+else if (!import.meta.env.DEV && import.meta.env.VITE_APPCHECK_SITE_KEY) {
+  import("firebase/compat/app-check").then(function() {
+    try { firebase.appCheck().activate(new firebase.appCheck.ReCaptchaEnterpriseProvider(import.meta.env.VITE_APPCHECK_SITE_KEY), true); } catch (e) { /* not blocking: the server decides */ }
+  });
+}
+
 if (import.meta.env.DEV) {
   firebase.database().useEmulator("127.0.0.1", 9000);
   auth.useEmulator("http://127.0.0.1:9099", { disableWarnings: true });
@@ -27,7 +38,12 @@ if (import.meta.env.DEV) {
 
 // Where the app's data lives in Firebase. Set per environment by the deploy workflow:
 // "data" for prod and beta, "data_build" for build. Defaults to "data".
-export const DATA_ROOT = import.meta.env.VITE_DATA_ROOT || "data";
+export const SHARED_ROOT = import.meta.env.VITE_DATA_ROOT || "data";
+/* v2.25.0 (Step 5, flag useAccounts): a LIVE binding — the shared joint account keeps SHARED_ROOT; an individual account
+   reads and writes only its own store, apps/lifecare/users/{uid}/store (lib/accounts.js switches it at sign-in, before
+   any data is read). Every module that imports DATA_ROOT sees the switch. */
+export let DATA_ROOT = SHARED_ROOT;
+export function setDataRoot(root) { DATA_ROOT = root || SHARED_ROOT; }
 
 // Global API key holder
 window._anthropicKey = "";

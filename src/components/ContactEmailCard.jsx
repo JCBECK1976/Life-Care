@@ -19,9 +19,9 @@ export default function ContactEmailCard() {
   };
   return (<div data-testid="contact-email" style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
     <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>📧 Feedback email</div>
-    <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.5, marginBottom: 8 }}>Feedback is always saved to the 📝 Tracker. If an address is set here, 💬 Send Feedback also opens the person's email app with a message to it filled in (they press Send there). Also shown as the contact in the Privacy Policy.</div>
+    <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>Feedback is always saved to the 📝 Tracker. If an address is set here, 💬 Send Feedback also opens the person's email app with a message to it filled in (they press Send there). Also shown as the contact in the Privacy Policy.</div>
     {draft === null ? (<div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-      <div data-testid="contact-email-value" style={{ flex: 1, minWidth: 0, fontSize: 12, color: saved ? "#0f172a" : "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{saved || "Not set (Tracker only)"}</div>
+      <div data-testid="contact-email-value" style={{ flex: 1, minWidth: 0, fontSize: 12, color: saved ? "#0f172a" : "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{saved || "Not set (Tracker only)"}</div>
       <button onClick={function() { setDraft(saved); setMsg(""); }} style={btnOpen}>Edit</button>
     </div>) : (<div style={{ display: "flex", gap: 6 }}>
       <input aria-label="Feedback email" type="email" value={draft} onChange={function(e) { setDraft(e.target.value); setMsg(""); }} placeholder="name@example.com" style={Object.assign({}, inputStyle, { flex: 1, minWidth: 0 })} />

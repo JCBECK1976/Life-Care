@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { openApp, tab } from "./helpers.js";
+import { openApp, tab, PROGRESS, withBodyPhotos } from "./helpers.js";
+test.beforeEach(async ({ page }) => { await withBodyPhotos(page); });   // v2.37.2: these features are hidden unless switched on
 
 // v2.13.2: Open forms / Progress panels scroll into view at 360px; tappable Open buttons; privacy notes.
 const NS = "?ns=life-care-app-64d04-default-rtdb";
@@ -38,7 +39,7 @@ test("My Body: Weigh In panel, Measurements panel and history Open forms scroll 
   await expect(open2).toHaveCSS("border-top-color", "rgb(147, 197, 253)");              // light-blue outline
   await opensIntoView(page, open2, page.getByTestId("body-hist-open-form"));
   await page.getByRole("button", { name: "Measurements", exact: true }).click();
-  await opensIntoView(page, page.getByRole("button", { name: "👁 Progress" }).last(), page.getByTestId("meas-panel"));
+  await opensIntoView(page, page.getByRole("button", { name: PROGRESS }).last(), page.getByTestId("meas-panel"));
   await opensIntoView(page, page.getByTestId("meas-panel").getByRole("button", { name: "Open week 1" }), page.getByTestId("meas-hist-open-form"));
   await page.getByTestId("meas-panel").getByRole("button", { name: /^📋 Log / }).click();
   await expect(page.getByTestId("privacy-note").first()).toHaveText("Images are analysed and then discarded — they're never stored.");
@@ -54,8 +55,8 @@ test("Exercise: Progress panel and week Open form scroll into view at 360px", as
   await setKey("dashboard:data", d); await page.reload();
   await tab(page, "My Exercise");
   await page.getByRole("button", { name: "Sun", exact: true }).click();
-  const n = await page.getByRole("button", { name: "👁 Progress" }).count();
-  await opensIntoView(page, page.getByRole("button", { name: "👁 Progress" }).nth(n - 1), page.getByTestId("ex-progress-panel"));
+  const n = await page.getByRole("button", { name: PROGRESS }).count();
+  await opensIntoView(page, page.getByRole("button", { name: PROGRESS }).nth(n - 1), page.getByTestId("ex-progress-panel"));
   await opensIntoView(page, page.getByRole("button", { name: "Open week 1" }), page.getByTestId("prog-open-form"));
   expect(errors).toEqual([]);
 });
@@ -70,13 +71,13 @@ test("Eating: meal-slot Open and Update Lists Open scroll into view at 360px; ne
   await setKey(key, { [today]: { d: dinner.id } });
   await page.waitForTimeout(300); await fetch(url(childKey), { method: "DELETE", headers: { Authorization: "Bearer owner" } });
   await page.reload(); await tab(page, "My Eating");
-  await opensIntoView(page, page.getByRole("button", { name: "Open this meal" }).first(), page.getByTestId("slot-open-form"));
+  await page.locator('[data-testid=picker-trigger]:has([data-testid=row-icon]:text-is("✎"))').first().click();   // v2.50.0: the box → Edit Item
+  await opensIntoView(page, page.getByTestId("act-edit"), page.getByTestId("slot-open-form"));
   const form = page.getByTestId("slot-open-form");
-  await form.getByRole("button", { name: "Edit", exact: true }).click();
-  await form.getByRole("button", { name: "2×", exact: true }).click();
+  await form.getByRole("button", { name: "2×", exact: true }).click();                              // v2.57.0: opens already editing
   await form.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(form.getByTestId("open-form-msg")).toHaveText("✓ Saved for this meal only. To update the list item permanently, please go to 'Update Eating Lists'.");
-  await form.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(page.getByTestId("pick-toast")).toContainText("✓ Saved for this meal only");         // back to the picker list
+  await page.getByTestId("picker-sheet").getByRole("button", { name: "Close the list" }).click();
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
   await opensIntoView(page, page.getByRole("button", { name: "Open Test Fish & Potato" }), page.getByTestId("item-view"));
   expect(errors).toEqual([]);

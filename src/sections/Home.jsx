@@ -1,20 +1,30 @@
 import { readImageForAI } from "../lib/image.js";
+import TodayCard from "../components/TodayCard.jsx";
+import { dayTable, goalDef, aimText, kcalTargetText, recommendedTarget, isOwnTarget } from "../lib/goals.js";
+import { isoDay } from "../lib/calories.js";
+import LoadingDots from "../components/LoadingDots.jsx";
 import PrivacyNote from "../components/PrivacyNote.jsx";
 import React from "react";
 import { bodyTypeCheckRule, looseJson, photoIssues } from "../lib/bodyPhotoCheck.js";
 import { btnDelete, btnMuted, btnP, inputStyle, labelStyle } from "../constants/styles.js";
 import { latestFirst } from "../lib/chat.js";
+import { mealName, namesLine } from "../lib/mealNames.js";
 import { accentVariant } from "../lib/colour.js";
 import { TONE_RULES } from "../constants/tone.js";
 import { getMoodContext } from "../lib/aiContext.js";
-import { MOOD_COLORS, MOOD_EMOJIS, MOOD_LABELS } from "../constants/mood.js";
+import { MOOD_COLORS, MOOD_EMOJIS, MOOD_LABELS, MOOD_TEXT } from "../constants/mood.js";
 import { sSet } from "../lib/storage.js";
 import { BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, SNACKS } from "../constants/food.js";
+import { tiersOn, usePlan } from "../lib/myPlan.js";
+import TrainingStyleCard from "../components/TrainingStyleCard.jsx";
+import HomeSnap from "../components/HomeSnap.jsx";
+import { StepsDay } from "../components/StepsLine.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
 export default function HomeSection({ ctx }) {
   const {
+    addSnapToToday, homePeople,
     accent, accentBorder, accentBtnBorder, accentBtnLight, accentLight, accentMid, activeTab, assessment,
     assessmentExpanded, btnMT, calcAge, checkCompanionEnergy, companionEnergy, customBreakfasts, customDesserts, customDrinks,
     customLunches, customMeals, customSnacks, dailyMood, data, energyLoading, feedbackHistory, feedbackLoading,
@@ -23,8 +33,10 @@ export default function HomeSection({ ctx }) {
     setAssessmentExpanded, setDailyMood, setEatDay, setExerciseDay, setFormMsg, setGenPlanLoading, setGeneratedTargets, setHomeFbExpanded,
     setJournalEntries, setJournalText, setOnboardInputs, setProfileInputs, setSection, setSetupDirty, setSetupTab, setShowFbHistory,
     setShowFullJournal, setShowMyDay, setShowOnboarding, setShowProfile, setShowRecentJournal, setUserMood, setupDirty, setupTab,
-    showFbHistory, showFullJournal, showMyDay, showOnboarding, showProfile, showRecentJournal, updateHomeFb, userMood
+    showFbHistory, showFullJournal, showMyDay, showOnboarding, showProfile, showRecentJournal, updateHomeFb, userMood, openGoalSetup,
+    weekChildren,
   } = ctx;
+  const plan = usePlan();   /* v2.22.3: the Energy bar follows the plan */
 
   /* v2.14.2: Body Type Photos — every photo is checked first (a person, one of the requested poses). If any photo is not
      recognised: a message per photo, no analysis, Save disabled (Retake / Cancel only) and NOTHING is saved. */
@@ -37,7 +49,7 @@ export default function HomeSection({ ctx }) {
     if (!imageContents.length) { setFormMsg(""); return; }
     try {
       var content = imageContents.concat([{ type: "text", text: "Analyse this person's physique. " + bodyTypeCheckRule() + "Then determine: 1) Somatotype, 2) Upper or lower body dominant, 3) Fast-twitch or slow-twitch dominant, 4) Notable strengths. Return ONLY JSON: {\"photos\":[{\"photo\":1,\"isPerson\":true,\"pose\":\"front relaxed\",\"matchesPose\":true}],\"bodyType\":\"...\",\"dominance\":\"...\",\"fibreType\":\"...\",\"strengths\":\"...\",\"notes\":\"...\"}" }]);
-      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: content }] }) });
+      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-lc-feature": "snap", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: content }] }) });
       var result = await resp.json(); var txt = ""; (result.content || []).forEach(function(c) { if (c.text) txt += c.text; });
       var parsed = looseJson(txt);
       if (!parsed) throw new Error("The analysis came back in a form I couldn't read — please try again");
@@ -59,9 +71,15 @@ export default function HomeSection({ ctx }) {
           {/* ── COMPANION ENERGY ── */}
           {(() => {
             var rawPct = companionEnergy ? companionEnergy.pct : 0;
-            var pct = rawPct <= 0 ? 0 : rawPct;
             var hasEnergy = companionEnergy !== null;
             var keyStatus = companionEnergy ? companionEnergy.keyStatus : null;
+            /* v2.22.3: with plans on, Energy is the PLAN's (own balance or the family pool); Bronze has none, so no bar.
+               The shared account (not previewing) keeps the developer-key level as before. */
+            if (tiersOn() && plan.loaded && !(plan.joint && !plan.preview)) {
+              if (plan.tier === "bronze") return <HomeSnap people={homePeople} activeKey={activeTab} addSnapToToday={addSnapToToday} accentBorder={accentBorder} energy={null} />;   /* v2.59.0: Bronze has no Energy bar but sees the Snap tile (plan prompt) */
+              rawPct = plan.energyPct != null ? plan.energyPct : (plan.preview ? 100 : 0); hasEnergy = true; keyStatus = "active";
+            }
+            var pct = rawPct <= 0 ? 0 : rawPct;
             var segCount = 20;
             var filledSegs = hasEnergy ? Math.round(pct / 5) : 0;
             var emptySegs = segCount - filledSegs;
@@ -70,13 +88,14 @@ export default function HomeSection({ ctx }) {
             var statusEmoji = !hasEnergy ? "" : keyStatus === "active" ? "✓ " : keyStatus === "no_key" || keyStatus === "invalid_key" ? "✗ " : "";
             var pctColor = pct > 20 ? "#22c55e" : pct > 0 ? "#f59e0b" : "#ef4444";
 
-            return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "9px 16px", marginBottom: 10 }}>
+            /* v2.59.0 (brief 26 Nov P4): the Energy box (narrower) + the Snap tile on one row; the Snap panel opens below it */
+            return (<HomeSnap people={homePeople} activeKey={activeTab} addSnapToToday={addSnapToToday} accentBorder={accentBorder} energy={<div data-testid="energy-box" style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "9px 16px", flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                   <span style={{ fontSize: 13 }}>⚡</span>
                   <span style={{ fontSize: 11, fontWeight: 700, color: "#0f172a" }}>Companion Energy</span>
                 </div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: hasEnergy ? pctColor : "#94a3b8" }}>{energyLoading ? "Checking..." : hasEnergy ? Math.round(pct) + "%" : "—"}</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: hasEnergy ? (pct > 20 ? "#15803d" : pct > 0 ? "#b45309" : "#b91c1c") : "#475569" }}>{energyLoading ? "Checking..." : hasEnergy ? Math.round(pct) + "%" : "—"}</div>
               </div>
               <div style={{ display: "flex", gap: 1, marginBottom: 4 }}>
                 {Array.from({ length: segCount }).map(function(_, i) {
@@ -88,16 +107,16 @@ export default function HomeSection({ ctx }) {
                 })}
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ fontSize: 9, color: "#94a3b8" }}>{statusEmoji}{statusLabel}</div>
-                  <button onClick={checkCompanionEnergy} disabled={energyLoading} style={{ background: "none", border: "none", fontSize: 9, color: "#2563eb", cursor: energyLoading ? "not-allowed" : "pointer", padding: "2px 6px" }}>↻ Refresh</button>
+                <div style={{ fontSize: 9, color: "#475569" }}>{statusEmoji}{statusLabel}</div>
+                  <button onClick={checkCompanionEnergy} disabled={energyLoading} style={{ background: "none", border: "none", fontSize: 9, color: "#1d4ed8", cursor: energyLoading ? "not-allowed" : "pointer", padding: "2px 6px" }}>↻ Refresh</button>
               </div>
-            </div>);
+            </div>} />);
           })()}
 
           {/* Profile */}
           {(() => { const prof = p.profile || {}; const hasBaseline = p.body && p.body.weight && p.body.weight.length > 0; var welcomeMsgs = ["Ready to make today count?", "Let's keep the momentum going!", "Small steps, big results — let's go!", "Your future self will thank you for today.", "Consistency beats perfection — you've got this!", "Every healthy choice adds up. What's first today?", "Welcome back — let's pick up where you left off!", "Progress isn't always visible, but it's always happening.", "You're building something great here — one day at a time.", "Let's check in and keep things moving forward."]; var welcomeIdx = Math.floor((new Date().getHours() * 60 + new Date().getMinutes()) / 144) % welcomeMsgs.length; var firstName = (prof.name || "").split(" ")[0]; var greetHour = new Date().getHours(); var greetWord = greetHour < 12 ? "Good morning" : greetHour < 17 ? "Good afternoon" : "Good evening"; return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginTop: 14, marginBottom: 14, overflow: "hidden" }}>
             <div style={{ padding: "18px 16px", borderBottom: showOnboarding ? "1px solid #e2e8f0" : "none" }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em" }}>{firstName ? greetWord + ", " + firstName : "New User"}</div>
+              <div role="heading" aria-level={2} style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em" }}>{firstName ? greetWord + ", " + firstName : "New User"}</div>
               {!showOnboarding && <div style={{ fontSize: 13, color: accent, marginTop: 6, lineHeight: 1.4, fontStyle: "italic" }}>{welcomeMsgs[welcomeIdx]}</div>}
             </div>
 
@@ -142,7 +161,7 @@ export default function HomeSection({ ctx }) {
                     return (<div key={key} style={{ marginTop: 6 }}>
                       <label style={labelStyle}>{label}</label>
                       <input type="date" value={ob[key] || ""} onChange={function(e) { setOB(key, e.target.value); }} style={inputStyle} />
-                      {key === "dob" && ob.dob && calcAge(ob.dob) !== null && <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>Age: {calcAge(ob.dob)}</div>}
+                      {key === "dob" && ob.dob && calcAge(ob.dob) !== null && <div style={{ fontSize: 10, color: "#475569", marginTop: 2 }}>Age: {calcAge(ob.dob)}</div>}
                     </div>);
                   }
                   return (<div key={key} style={{ marginTop: 6 }}>
@@ -173,13 +192,13 @@ export default function HomeSection({ ctx }) {
                   <div style={{ display: "flex", gap: 0, background: accentMid, borderRadius: 8, padding: 2, marginBottom: 2 }}>
                     {SETUP_TABS.slice(0, 4).map(function(tab) {
                       var active = setupTab === tab.id;
-                      return (<button key={tab.id} onClick={function() { setSetupTab(tab.id); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: active ? "#fff" : "transparent", color: active ? "#0f172a" : "rgba(255,255,255,0.7)" }}>{tab.l}</button>);
+                      return (<button key={tab.id} onClick={function() { setSetupTab(tab.id); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: active ? "#fff" : "transparent", color: active ? "#0f172a" : "rgba(255,255,255,0.9)" }}>{tab.l}</button>);
                     })}
                   </div>
                   <div style={{ display: "flex", gap: 0, background: accentMid, borderRadius: 8, padding: 2 }}>
                     {SETUP_TABS.slice(4).map(function(tab) {
                       var active = setupTab === tab.id;
-                      return (<button key={tab.id} onClick={function() { setSetupTab(tab.id); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: active ? "#fff" : "transparent", color: active ? "#0f172a" : "rgba(255,255,255,0.7)" }}>{tab.l}</button>);
+                      return (<button key={tab.id} onClick={function() { setSetupTab(tab.id); }} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", background: active ? "#fff" : "transparent", color: active ? "#0f172a" : "rgba(255,255,255,0.9)" }}>{tab.l}</button>);
                     })}
                   </div>
                 </div>
@@ -187,8 +206,19 @@ export default function HomeSection({ ctx }) {
                 {/* ═══ MY PROFILE (read-only generated) ═══ */}
                 {setupTab === "profile" && (<div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>My Profile</div>
-                  <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Auto-generated from your setup information. Complete the other tabs then generate your profile below.</div>
+                  <div style={{ fontSize: 10, color: "#475569", marginBottom: 10 }}>Auto-generated from your setup information. Complete the other tabs then generate your profile below.</div>
+                  {/* v2.18.0: the person's goal */}
+                  <div data-testid="my-goal" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 11, color: "#0f172a", padding: 10, marginBottom: 8, background: "#eff6ff", borderRadius: 8, border: "1px solid #bfdbfe" }}>
+                    <span style={{ flex: 1 }}><b>My goal:</b> {goalDef(p.goal && p.goal.id) ? (function() { var _t = dayTable(p, isoDay(new Date()), null); return _t.ready ? aimText(_t.aim) : goalDef(p.goal.id).label; })() : "not set yet"}</span>
+                    <button type="button" onClick={openGoalSetup} style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "1px solid #1d4ed8", background: "#fff", color: "#1d4ed8" }}>Change my goal</button>
+                  </div>
+                  {(function() { var _r = recommendedTarget(p); if (!_r) return null; var _g = p.goal || {}; return (<div data-testid="my-target" style={{ fontSize: 11, color: "#0f172a", padding: 10, marginBottom: 8, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                    <div>Your Companion recommends: <b>{_r.kg} kg</b> (range {_r.minKg}–{_r.maxKg} kg){_r.estimate ? " — estimate" : ""}</div>
+                    <div style={{ color: "#475569", marginTop: 2 }}>{_r.why}</div>
+                    {isOwnTarget(_g, _r) && <div data-testid="my-target-own" style={{ marginTop: 4, padding: 6, borderRadius: 6, background: "#fef3c7", color: "#92400e" }}>Your target: {_g.targetKg} kg. This isn't your Companion's recommendation based on your profile.</div>}
+                  </div>); })()}
 
+                  <TrainingStyleCard data={data} activeTab={activeTab} saveData={saveData} />   {/* v2.46.0 (brief 24 Nov P1): its own section after the goal */}
                   {/* Read-only profile summary */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 11, color: "#475569", padding: 10, background: accentVariant(accent, 88), borderRadius: 8, border: "1px solid " + accentBorder }}>
                     <div>Name: <strong>{prof.name || ob.name || "—"}</strong></div>
@@ -199,7 +229,7 @@ export default function HomeSection({ ctx }) {
                     <div>DOB: <strong>{(ob.dob || prof.dob) ? new Date(ob.dob || prof.dob).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}</strong></div>
                     <div style={{ gridColumn: "1 / -1" }}>Type: <strong>{prof.bodyType || "—"}</strong></div>
                     <div style={{ gridColumn: "1 / -1" }}>Fibre: <strong>{prof.fibreType || "—"}</strong></div>
-                    {prof.notes && <div style={{ gridColumn: "1 / -1", color: "#94a3b8", fontSize: 10, marginTop: 4 }}>{prof.notes}</div>}
+                    {prof.notes && <div style={{ gridColumn: "1 / -1", color: "#475569", fontSize: 10, marginTop: 4 }}>{prof.notes}</div>}
                   </div>
 
                   {/* My Companion Recommendations button */}
@@ -215,8 +245,8 @@ export default function HomeSection({ ctx }) {
                       (function(){ var mn = ""; if (p.meds && p.meds.length > 0) mn = ". Current meds: " + p.meds.filter(function(m){return m.active;}).map(function(m){return m.name+" "+(m.dose||m.dosage||"");}).join(", "); return mn; })() +
                       (function(){ var ac = ""; if (p.activity && p.activity.length > 0) { ac = ". Recent activity: " + p.activity.slice(-5).map(function(a){return a.date+": "+(a.steps||"")+"steps "+(a.activity||"");}).join(", "); } return ac; })() +
                       getCrossSectionCtx(activeTab, "recommendations") +
-                      ". Return ONLY JSON: {\"bodyType\":\"e.g. Compact meso-endomorph\",\"fibreType\":\"e.g. Fast-twitch dominant\",\"idealWeight\":\"e.g. 13st 6lb\",\"notes\":\"key notes — use 'you/your' not third person\",\"assessment\":\"3-4 sentence assessment speaking directly to the user with 'you' — current position and realistic expectations over 6-12 months\",\"priorities\":[\"priority 1\",\"priority 2\",\"priority 3\"],\"targets\":{\"calories\":\"e.g. 2000-2200\",\"protein\":\"e.g. 110-130g\",\"satFat\":\"e.g. under 20g\",\"sugar\":\"e.g. under 25g\",\"fibre\":\"e.g. 30-35g\",\"targetWeight\":\"e.g. 82kg\",\"targetBodyFat\":\"e.g. 18-22%\",\"targetWaist\":\"e.g. under 94cm\"}}";
-                      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
+                      ". Return ONLY JSON: {\"bodyType\":\"e.g. Compact meso-endomorph\",\"fibreType\":\"e.g. Fast-twitch dominant\",\"idealWeight\":\"e.g. 13st 6lb\",\"notes\":\"key notes — use 'you/your' not third person\",\"assessment\":\"3-4 sentence assessment speaking directly to the user with 'you' — current position and realistic expectations over 6-12 months\",\"priorities\":[\"priority 1\",\"priority 2\",\"priority 3\"],\"targets\":{\"calories\":\"" + kcalTargetText(p) + " (use exactly this)\",\"protein\":\"e.g. 110-130g\",\"satFat\":\"e.g. under 20g\",\"sugar\":\"e.g. under 25g\",\"fibre\":\"e.g. 30-35g\",\"targetWeight\":\"e.g. 82kg\",\"targetBodyFat\":\"e.g. 18-22%\",\"targetWaist\":\"e.g. under 94cm\"}}";
+                      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-lc-feature": "aiFeedback", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
                       if (txt) {
                         var gen = JSON.parse(txt.replace(/```json|```/g, "").trim());
@@ -234,10 +264,10 @@ export default function HomeSection({ ctx }) {
                       }
                     } catch(e) { setFormMsg(window.isEnergyEmpty(e) ? window.energyEmptyMsg : "✗ Could not generate — check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
                     setGenPlanLoading(false);
-                  }} disabled={genPlanLoading} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: genPlanLoading ? "not-allowed" : "pointer", background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{genPlanLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Recommendations"}</button>
+                  }} disabled={genPlanLoading} style={{ width: "100%", marginTop: 12, padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: genPlanLoading ? "not-allowed" : "pointer", background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{genPlanLoading ? <span>Generating, please wait <LoadingDots /></span> : "My Companion Recommendations"}</button>
 
                   {/* Assessment toggle */}
-                  {(assessment || p.profileAssessment) && <button onClick={function(){ setAssessmentExpanded(!assessmentExpanded); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#64748b", cursor: "pointer", marginTop: 8, marginBottom: 6 }}>{assessmentExpanded ? "▲ Hide Recommendations" : "▼ Show Recommendations"}</button>}
+                  {(assessment || p.profileAssessment) && <button onClick={function(){ setAssessmentExpanded(!assessmentExpanded); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: "#475569", cursor: "pointer", marginTop: 8, marginBottom: 6 }}>{assessmentExpanded ? "▲ Hide Recommendations" : "▼ Show Recommendations"}</button>}
                   {assessmentExpanded && (assessment || p.profileAssessment) && (() => { var a = assessment || p.profileAssessment; return (<div style={{ marginTop: 4, background: "linear-gradient(135deg, #1e1b4b 0%, #4c1d95 100%)", borderRadius: 12, padding: 14, color: "#fff" }}>
                     <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", opacity: 0.7, marginBottom: 8 }}>My Companion Recommendations</div>
                     {a.assessment && <div style={{ fontSize: 12, lineHeight: 1.6, marginBottom: 10 }}>{a.assessment}</div>}
@@ -254,30 +284,30 @@ export default function HomeSection({ ctx }) {
                   {/* Recommendations section */}
                   <div style={{ marginTop: 16 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{(p.profile && p.profile.name) || (onboardInputs && onboardInputs.name) || "Your"} Recommendations</div>
-                    <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Personalised daily targets and body composition goals based on your profile, health data, and lifestyle.</div>
+                    <div style={{ fontSize: 10, color: "#475569", marginBottom: 10 }}>Personalised daily targets and body composition goals based on your profile, health data, and lifestyle.</div>
 
                     {/* Daily Nutrition Targets */}
                     <div style={{ background: "#f0fdf4", borderRadius: 10, padding: 12, border: "1px solid #bae6fd", marginBottom: 10 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: "#0c4a6e", marginBottom: 8 }}>Daily Nutrition</div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 11 }}>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
-                          <div style={{ color: "#94a3b8", fontSize: 9 }}>Calories</div>
-                          <div style={{ fontWeight: 700, color: "#0c4a6e" }}>{(p.targets && p.targets.calories) || (generatedTargets && generatedTargets.calories) || (p.generatedTargets && p.generatedTargets.calories) || "—"}</div>
+                          <div style={{ color: "#475569", fontSize: 9 }}>Calories</div>
+                          <div data-testid="target-calories" style={{ fontWeight: 700, color: "#0c4a6e" }}>{(function() { var _t = dayTable(p, isoDay(new Date()), null); return _t.ready ? _t.goal.actual + " kcal (goal)" : "Set up your goal"; })()}</div>
                         </div>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
-                          <div style={{ color: "#94a3b8", fontSize: 9 }}>Protein</div>
+                          <div style={{ color: "#475569", fontSize: 9 }}>Protein</div>
                           <div style={{ fontWeight: 700, color: "#0c4a6e" }}>{(p.targets && p.targets.protein) || (generatedTargets && generatedTargets.protein) || (p.generatedTargets && p.generatedTargets.protein) || "—"}</div>
                         </div>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
-                          <div style={{ color: "#94a3b8", fontSize: 9 }}>Sat Fat</div>
+                          <div style={{ color: "#475569", fontSize: 9 }}>Sat Fat</div>
                           <div style={{ fontWeight: 700, color: "#0c4a6e" }}>{(p.targets && p.targets.satFat) || (generatedTargets && generatedTargets.satFat) || (p.generatedTargets && p.generatedTargets.satFat) || "—"}</div>
                         </div>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
-                          <div style={{ color: "#94a3b8", fontSize: 9 }}>Added Sugar</div>
+                          <div style={{ color: "#475569", fontSize: 9 }}>Added Sugar</div>
                           <div style={{ fontWeight: 700, color: "#0c4a6e" }}>{(p.targets && p.targets.sugar) || (generatedTargets && generatedTargets.sugar) || (p.generatedTargets && p.generatedTargets.sugar) || "—"}</div>
                         </div>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center", gridColumn: "1 / -1" }}>
-                          <div style={{ color: "#94a3b8", fontSize: 9 }}>Fibre</div>
+                          <div style={{ color: "#475569", fontSize: 9 }}>Fibre</div>
                           <div style={{ fontWeight: 700, color: "#0c4a6e" }}>{(p.targets && p.targets.fibre) || (generatedTargets && generatedTargets.fibre) || (p.generatedTargets && p.generatedTargets.fibre) || "—"}</div>
                         </div>
                       </div>
@@ -288,19 +318,19 @@ export default function HomeSection({ ctx }) {
                       <div style={{ fontSize: 12, fontWeight: 700, color: "#1e40af", marginBottom: 8 }}>Body Composition</div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 11 }}>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
-                          <div style={{ color: "#94a3b8", fontSize: 9 }}>Target Weight</div>
+                          <div style={{ color: "#475569", fontSize: 9 }}>Target Weight</div>
                           <div style={{ fontWeight: 700, color: "#1e40af" }}>{(p.targets && p.targets.targetWeight) || (generatedTargets && generatedTargets.targetWeight) || (p.generatedTargets && p.generatedTargets.targetWeight) || (p.profile && p.profile.idealWeight) || "—"}</div>
                         </div>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
-                          <div style={{ color: "#94a3b8", fontSize: 9 }}>Body Fat</div>
+                          <div style={{ color: "#475569", fontSize: 9 }}>Body Fat</div>
                           <div style={{ fontWeight: 700, color: "#1e40af" }}>{(p.targets && p.targets.targetBodyFat) || (generatedTargets && generatedTargets.targetBodyFat) || (p.generatedTargets && p.generatedTargets.targetBodyFat) || "—"}</div>
                         </div>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
-                          <div style={{ color: "#94a3b8", fontSize: 9 }}>Waist</div>
+                          <div style={{ color: "#475569", fontSize: 9 }}>Waist</div>
                           <div style={{ fontWeight: 700, color: "#1e40af" }}>{(p.targets && p.targets.targetWaist) || (generatedTargets && generatedTargets.targetWaist) || (p.generatedTargets && p.generatedTargets.targetWaist) || "—"}</div>
                         </div>
                         <div style={{ background: "#fff", borderRadius: 6, padding: 8, textAlign: "center" }}>
-                          <div style={{ color: "#94a3b8", fontSize: 9 }}>Visceral Fat</div>
+                          <div style={{ color: "#475569", fontSize: 9 }}>Visceral Fat</div>
                           <div style={{ fontWeight: 700, color: "#1e40af" }}>{(p.targets && p.targets.visceralFat) || (generatedTargets && generatedTargets.visceralFat) || (p.generatedTargets && p.generatedTargets.visceralFat) || "—"}</div>
                         </div>
                       </div>
@@ -311,7 +341,7 @@ export default function HomeSection({ ctx }) {
                 {/* ═══ MY DETAILS ═══ */}
                 {setupTab === "details" && (<div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>My Details</div>
-                  <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Your basic personal information.</div>
+                  <div style={{ fontSize: 10, color: "#475569", marginBottom: 10 }}>Your basic personal information.</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     {rf([["name", "Name"], ["dob", "Date of Birth", "date"]])}
                   </div>
@@ -320,7 +350,7 @@ export default function HomeSection({ ctx }) {
                   {/* Body Type Photo Upload */}
                   <div style={{ marginTop: 12, padding: 12, background: "#eff6ff", borderRadius: 8, border: "1px solid #bfdbfe" }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>📸 Body Type Photos</div>
-                    <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>Upload photos for AI body type analysis. Best results from:<br/>• Front relaxed (full body, arms at sides)<br/>• Bicep flex (single arm, side on)<br/>• Side profile (relaxed)<br/>• Back relaxed or flexed<br/>• Legs: quad flex and calf raise</div>
+                    <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>Upload photos for your Companion's body type analysis. Best results from:<br/>• Front relaxed (full body, arms at sides)<br/>• Bicep flex (single arm, side on)<br/>• Side profile (relaxed)<br/>• Back relaxed or flexed<br/>• Legs: quad flex and calf raise</div>
                     <label style={{ display: "block", padding: 10, background: "#fff", border: "2px dashed #93c5fd", borderRadius: 8, textAlign: "center", cursor: "pointer", fontSize: 11, color: "#1e3a5f" }}>
                       📷 Upload Body Type Photos
                       <input id="bodytype-photos" type="file" data-share="bodytype" accept="image/*" multiple onChange={function(e) { var picked = Array.prototype.slice.call(e.target.files || []); e.target.value = ""; runBodyTypePhotos(picked); }} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)", border: 0 }} />
@@ -328,7 +358,7 @@ export default function HomeSection({ ctx }) {
                     <PrivacyNote />
                     {bodyTypeIssues && (<div data-testid="bodytype-issues" style={{ marginTop: 8, padding: 8, borderRadius: 8, background: "#fffbeb", border: "1px solid #fde68a" }}>
                       {bodyTypeIssues.map(function(x) { return <div key={x.photo} role="alert" data-testid="bodytype-issue" style={{ fontSize: 11, fontWeight: 600, color: "#92400e", marginBottom: 4 }}>Photo {x.photo}: {x.msg}</div>; })}
-                      <div style={{ fontSize: 10, color: "#64748b", marginBottom: 6 }}>No analysis was done and nothing was saved.</div>
+                      <div style={{ fontSize: 10, color: "#475569", marginBottom: 6 }}>No analysis was done and nothing was saved.</div>
                       <div style={{ display: "flex", gap: 6 }}>
                         <button disabled style={{ flex: 1, padding: 8, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, opacity: 0.45, cursor: "not-allowed" }}>Save</button>
                         <button onClick={function() { var el = document.getElementById("bodytype-photos"); if (el) el.click(); }} style={{ flex: 1, padding: 8, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>Retake</button>
@@ -354,7 +384,7 @@ export default function HomeSection({ ctx }) {
                       (function(){ var ac = ""; if (p.activity && p.activity.length > 0) { ac = ". Recent activity: " + p.activity.slice(-5).map(function(a){return a.date+": "+(a.steps||"")+"steps "+(a.activity||"");}).join(", "); } return ac; })() +
                       getCrossSectionCtx(activeTab, "bodytype") +
                       ". Return ONLY JSON: {\"bodyType\":\"e.g. Compact meso-endomorph\",\"fibreType\":\"e.g. Fast-twitch dominant\",\"idealWeight\":\"e.g. 13st 6lb\",\"notes\":\"key notes — use 'you/your' not third person\",\"assessment\":\"3-4 sentence assessment speaking directly to the user with 'you' — current position and realistic expectations over 6-12 months\",\"priorities\":[\"priority 1\",\"priority 2\",\"priority 3\"]}";
-                        var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: prompt }] }) });
+                        var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-lc-feature": "aiFeedback", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: prompt }] }) });
                         var result = await resp.json(); var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
                         if (txt) {
                           var gen = JSON.parse(txt.replace(/```json|```/g, "").trim());
@@ -370,13 +400,13 @@ export default function HomeSection({ ctx }) {
                         }
                       } catch(e) { setFormMsg(window.isEnergyEmpty(e) ? window.energyEmptyMsg : "\u2717 Could not generate \u2014 check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
                       setGenPlanLoading(false);
-                    }} disabled={genPlanLoading} style={{ width: "100%", padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: genPlanLoading ? "not-allowed" : "pointer", background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{genPlanLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "\ud83d\udd0d My Companion Body Type Check"}</button>
+                    }} disabled={genPlanLoading} style={{ width: "100%", padding: 10, color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: genPlanLoading ? "not-allowed" : "pointer", background: genPlanLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{genPlanLoading ? <span>Analysing, please wait <LoadingDots /></span> : "\ud83d\udd0d My Companion Body Type Check"}</button>
                   </div>
 
                   {/* Baseline Body Comp Upload */}
                   {(() => { var hasBaseline = p.body && p.body.weight && p.body.weight.length > 0; return (
                     <div style={{ marginTop: 10, padding: 10, background: hasBaseline ? "#f1f5f9" : "#fef3c7", borderRadius: 8, border: "1px solid " + (hasBaseline ? "#e2e8f0" : "#fcd34d"), opacity: hasBaseline ? 0.6 : 1 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: hasBaseline ? "#64748b" : "#92400e" }}>{hasBaseline ? "✓ Baseline body composition recorded" : "📊 Upload baseline body composition from your scales app (weight, body fat %, muscle mass etc)"}</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: hasBaseline ? "#475569" : "#92400e" }}>{hasBaseline ? "✓ Baseline body composition recorded" : "📊 Upload baseline body composition from your scales app (weight, body fat %, muscle mass etc)"}</div>
                     </div>
                   ); })()}
 
@@ -384,13 +414,13 @@ export default function HomeSection({ ctx }) {
                   <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     {[["bodyType","Body Type"],["fibreType","Fibre Type"],["idealWeight","Ideal Weight"]].map(function(pair) { return (<div key={pair[0]} style={pair[0] === "bodyType" ? { gridColumn: "1 / -1" } : {}}><label style={labelStyle}>{pair[1]}</label><input value={profileInputs[pair[0]] || prof[pair[0]] || ""} onChange={function(e) { setProfileInputs(function(q) { var n = Object.assign({}, q); n[pair[0]] = e.target.value; return n; }); }} style={inputStyle} /></div>); })}
                   </div>
-                  <div style={{ marginTop: 8 }}><label style={labelStyle}>Notes</label><textarea value={profileInputs.notes || prof.notes || ""} onChange={function(e) { setProfileInputs(function(q) { return Object.assign({}, q, { notes: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
+                  <div style={{ marginTop: 8 }}><label style={labelStyle}>My Notes</label><textarea value={profileInputs.notes || prof.notes || ""} onChange={function(e) { setProfileInputs(function(q) { return Object.assign({}, q, { notes: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
                 </div>)}
 
                 {/* ═══ MY FAMILY ═══ */}
                 {setupTab === "family" && (<div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>My Family</div>
-                  <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Who you live with and relevant family health history.</div>
+                  <div style={{ fontSize: 10, color: "#475569", marginBottom: 10 }}>Who you live with and relevant family health history.</div>
                   {rf([
                     ["livingSituation", "Living situation", "ta", "e.g. Live with partner and 2 children, dog..."],
                     ["familyHistory", "Family health history", "ta", "e.g. Father — Type 2 diabetes, Mother — high cholesterol, Familial Hypercholesterolaemia suspected..."]
@@ -400,7 +430,7 @@ export default function HomeSection({ ctx }) {
                 {/* ═══ MY PERSONALITY ═══ */}
                 {setupTab === "personality" && (<div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>My Personality</div>
-                  <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Understanding your personality helps tailor motivation strategies and habit formation approaches.</div>
+                  <div style={{ fontSize: 10, color: "#475569", marginBottom: 10 }}>Understanding your personality helps tailor motivation strategies and habit formation approaches.</div>
                   {rf([
                     ["personalityType", "Personality type or profile", "ta", "e.g. Yellow/Red Insights, INTJ, Type A, introvert..."],
                     ["motivationStyle", "What motivates you?", "ta", "e.g. Visible progress, training with partner, routine, competition, self-improvement..."],
@@ -412,7 +442,7 @@ export default function HomeSection({ ctx }) {
                 {/* ═══ MY LIFESTYLE ═══ */}
                 {setupTab === "lifestyle" && (<div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>My Lifestyle</div>
-                  <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Your daily routines, work pattern, and current activity level.</div>
+                  <div style={{ fontSize: 10, color: "#475569", marginBottom: 10 }}>Your daily routines, work pattern, and current activity level.</div>
                   {rf([
                     ["occupation", "Occupation", "text", "e.g. Software engineer, nurse, teacher, retired..."],
                     ["workPattern", "Work pattern", "select", "", "Office full-time", "Office part-time", "Hybrid", "Work from home", "Shift work", "Retired", "Other"],
@@ -430,7 +460,7 @@ export default function HomeSection({ ctx }) {
                 {/* ═══ MY EATING & DRINKING ═══ */}
                 {setupTab === "eating" && (<div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>My Eating & Drinking</div>
-                  <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Your current eating habits and relationship with food help us build a sustainable plan.</div>
+                  <div style={{ fontSize: 10, color: "#475569", marginBottom: 10 }}>Your current eating habits and relationship with food help us build a sustainable plan.</div>
                   {rf([
                     ["dietary", "Dietary preferences, restrictions, or allergies", "ta", "e.g. Vegetarian, gluten-free, nut allergy, low sodium..."],
                     ["cookingConfidence", "Cooking confidence (1-5)", "select", "", "1 — Can't cook", "2 — Very basic", "3 — Can follow recipes", "4 — Confident cook", "5 — Skilled/enthusiastic"],
@@ -447,7 +477,7 @@ export default function HomeSection({ ctx }) {
                 {/* ═══ MY WELLBEING ═══ */}
                 {setupTab === "wellbeing" && (<div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>My Wellbeing</div>
-                  <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Sleep, mental health and neurodiversity inform how we approach habit formation and support.</div>
+                  <div style={{ fontSize: 10, color: "#475569", marginBottom: 10 }}>Sleep, mental health and neurodiversity inform how we approach habit formation and support.</div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 4, marginTop: 8 }}>Sleep</div>
                   {rf([
                     ["sleepHours", "Average hours of sleep per night", "text", "e.g. 6-7 hours"],
@@ -470,7 +500,7 @@ export default function HomeSection({ ctx }) {
                 {/* ═══ MY HEALTH ═══ */}
                 {setupTab === "health" && (<div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>My Health</div>
-                  <div style={{ fontSize: 10, color: "#64748b", marginBottom: 10 }}>Medical history and current health status. This helps your Companion understand your starting point.</div>
+                  <div style={{ fontSize: 10, color: "#475569", marginBottom: 10 }}>Medical history and current health status. This helps your Companion understand your starting point.</div>
                   {rf([
                     ["conditions", "Medical conditions", "ta", "e.g. Thyroid, high cholesterol, diabetes, PCOS, heart conditions..."],
                     ["medications", "Current medications and supplements", "ta", "e.g. Atorvastatin 20mg, Levothyroxine 200mcg, Vitamin D..."],
@@ -484,12 +514,12 @@ export default function HomeSection({ ctx }) {
                 </div>)}
 
                 {/* Save Setup button - below form */}
-                <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; var ob = onboardInputs; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; if (ob.conditions) { nd[activeTab].healthProfile = ob.conditions; } if (ob.painAreas) { nd[activeTab].healthNotes = ob.painAreas; } if (ob.medications) { if (!Array.isArray(nd[activeTab].meds)) nd[activeTab].meds = []; var newMeds = ob.medications.split(",").map(function(m){return m.trim();}).filter(function(m){return m && !nd[activeTab].meds.some(function(em){return (em.name||em).toLowerCase() === m.toLowerCase();});}); newMeds.forEach(function(m){ nd[activeTab].meds.push({name:m,dose:"",freq:"",time:"",notes:"",started:new Date().toISOString().slice(0,10),active:true}); }); } if (ob.bloods) { var bl = nd[activeTab].bloods || []; bl.push({date:new Date().toISOString().slice(0,10),notes:ob.bloods,source:"setup"}); nd[activeTab].bloods = bl; } await saveData(nd); setSetupDirty(false); setFormMsg("✓ Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} disabled={!setupDirty} style={{ width: "100%", marginTop: 12, marginBottom: 10, padding: 10, color: setupDirty ? "#fff" : "#94a3b8", border: setupDirty ? "none" : "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: setupDirty ? "pointer" : "default", background: setupDirty ? "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" : "#f1f5f9" }}>{setupDirty ? "Save Setup" : "✓ Saved"}</button>
+                <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].onboarding = onboardInputs; if (!nd[activeTab].profile) nd[activeTab].profile = {}; var ob = onboardInputs; if (ob.name) nd[activeTab].profile.name = ob.name; if (ob.dob) { nd[activeTab].profile.dob = ob.dob; nd[activeTab].profile.age = calcAge(ob.dob); } if (ob.sex) nd[activeTab].profile.sex = ob.sex; if (ob.height) nd[activeTab].profile.height = ob.height; if (ob.conditions) { nd[activeTab].healthProfile = ob.conditions; } if (ob.painAreas) { nd[activeTab].healthNotes = ob.painAreas; } if (ob.medications) { if (!Array.isArray(nd[activeTab].meds)) nd[activeTab].meds = []; var newMeds = ob.medications.split(",").map(function(m){return m.trim();}).filter(function(m){return m && !nd[activeTab].meds.some(function(em){return (em.name||em).toLowerCase() === m.toLowerCase();});}); newMeds.forEach(function(m){ nd[activeTab].meds.push({name:m,dose:"",freq:"",time:"",notes:"",started:new Date().toISOString().slice(0,10),active:true}); }); } if (ob.bloods) { var bl = nd[activeTab].bloods || []; bl.push({date:new Date().toISOString().slice(0,10),notes:ob.bloods,source:"setup"}); nd[activeTab].bloods = bl; } await saveData(nd); setSetupDirty(false); setFormMsg("✓ Setup saved"); setTimeout(function() { setFormMsg(""); }, 3000); }} disabled={!setupDirty} style={{ width: "100%", marginTop: 12, marginBottom: 10, padding: 10, color: setupDirty ? "#fff" : "#475569", border: setupDirty ? "none" : "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: setupDirty ? "pointer" : "default", background: setupDirty ? "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" : "#f1f5f9" }}>{setupDirty ? "Save Setup" : "✓ Saved"}</button>
 
                 {/* Privacy notice */}
                 <div style={{ padding: 10, background: "linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)", borderRadius: 8, border: "1px solid #bfdbfe", marginBottom: 10, fontSize: 10, color: "#475569", lineHeight: 1.6 }}>
                   <div style={{ fontWeight: 700, fontSize: 11, color: "#1e40af", marginBottom: 4 }}>🔒 Your information is private</div>
-                  Your data is used solely by your Lifecare Companion™ to tailor recommendations, feedback and support to work best with you and achieve the best possible outcome. No information is shared with third parties. Any AI-generated content is processed without linking it to any identifiable individual. You choose what information to share — more detail helps your Lifecare Companion™ provide better, more personalised guidance, but every field is optional.
+                  Your data is used solely by your Lifecare Companion™ to tailor recommendations, feedback and support to work best with you and achieve the best possible outcome. No information is shared with third parties. Anything your Companion prepares is processed without linking it to any identifiable individual. You choose what information to share — more detail helps your Lifecare Companion™ provide better, more personalised guidance, but every field is optional.
                 </div>
                 </div>{/* end grey sub-container */}
               </div>);
@@ -500,20 +530,20 @@ export default function HomeSection({ ctx }) {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {[["name","Name"],["age","Age"],["sex","Sex"],["height","Height"],["bodyType","Body Type"],["fibreType","Fibre Type"],["idealWeight","Ideal Weight"]].map(function(pair) { return (<div key={pair[0]}><label style={labelStyle}>{pair[1]}</label><input value={profileInputs[pair[0]] || ""} onChange={function(e) { setProfileInputs(function(q) { var n = Object.assign({}, q); n[pair[0]] = e.target.value; return n; }); }} style={inputStyle} /></div>); })}
               </div>
-              <div style={{ marginTop: 8 }}><label style={labelStyle}>Notes</label><textarea value={profileInputs.notes || ""} onChange={function(e) { setProfileInputs(function(q) { return Object.assign({}, q, { notes: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
+              <div style={{ marginTop: 8 }}><label style={labelStyle}>My Notes</label><textarea value={profileInputs.notes || ""} onChange={function(e) { setProfileInputs(function(q) { return Object.assign({}, q, { notes: e.target.value }); }); }} style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
               <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].profile = profileInputs; await saveData(nd); setShowProfile(false); setFormMsg("✓ Profile updated"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(), marginTop: 8 }}>Save Profile</button>
             </div>)}
 
             <div style={{ textAlign: "center", padding: showOnboarding ? "8px 14px 10px" : "0 14px 10px", borderTop: showOnboarding ? "1px solid #e2e8f0" : "none" }}>
-              <button onClick={() => { if (!showOnboarding) { var ob2 = p.onboarding || {}; setOnboardInputs(Object.assign({ conditions: "", medications: "", neurodiversity: "", bloods: "", goals: "", activity: "", equipment: "", dietary: "", allergies: "", livingSituation: "", familyHistory: "", personalityType: "", motivationStyle: "", whatDerails: "", accountabilityPref: "", occupation: "", workPattern: "", workHours: "", commute: "", sleepHours: "", sleepQuality: "", sleepIssues: "", screensBed: "", caffeineCutoff: "", cookingConfidence: "", eatingOutFreq: "", whoCooks: "", mealRegularity: "", emotionalEating: "", waterIntake: "", caffeineDaily: "", alcoholFrequency: "", stressLevel: "", mainStressors: "", copingStrategies: "", mentalHealth: "", currentSupport: "", injuries: "", painAreas: "", weightHighest: "", weightLowest: "", previousDiets: "" }, ob2, { name: ob2.name || prof.name || "", dob: ob2.dob || prof.dob || "", sex: ob2.sex || prof.sex || "", height: ob2.height || prof.height || "" })); setSetupTab("profile"); } setShowOnboarding(!showOnboarding); }} style={{ background: "none", border: "none", fontSize: 11, color: "#94a3b8", cursor: "pointer", padding: "4px 12px" }}>{showOnboarding ? "▲ Hide Profile" : "▼ My Profile"}</button>
+              <button onClick={() => { if (!showOnboarding) { var ob2 = p.onboarding || {}; setOnboardInputs(Object.assign({ conditions: "", medications: "", neurodiversity: "", bloods: "", goals: "", activity: "", equipment: "", dietary: "", allergies: "", livingSituation: "", familyHistory: "", personalityType: "", motivationStyle: "", whatDerails: "", accountabilityPref: "", occupation: "", workPattern: "", workHours: "", commute: "", sleepHours: "", sleepQuality: "", sleepIssues: "", screensBed: "", caffeineCutoff: "", cookingConfidence: "", eatingOutFreq: "", whoCooks: "", mealRegularity: "", emotionalEating: "", waterIntake: "", caffeineDaily: "", alcoholFrequency: "", stressLevel: "", mainStressors: "", copingStrategies: "", mentalHealth: "", currentSupport: "", injuries: "", painAreas: "", weightHighest: "", weightLowest: "", previousDiets: "" }, ob2, { name: ob2.name || prof.name || "", dob: ob2.dob || prof.dob || "", sex: ob2.sex || prof.sex || "", height: ob2.height || prof.height || "" })); setSetupTab("profile"); } setShowOnboarding(!showOnboarding); }} style={{ background: "none", border: "none", fontSize: 11, color: "#475569", cursor: "pointer", padding: "4px 12px" }}>{showOnboarding ? "▲ Hide Profile" : "▼ My Profile"}</button>
             </div>
           </div>); })()}
 
           {/* ── MY MOOD ── */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "10px 16px", marginBottom: 14 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Mood</div>
-              {userMood !== null && <div style={{ fontSize: 10, color: MOOD_COLORS[userMood], fontWeight: 600 }}>{MOOD_LABELS[userMood]}</div>}
+              <div role="heading" aria-level={3} style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Mood</div>
+              {userMood !== null && <div style={{ fontSize: 10, color: MOOD_TEXT[userMood], fontWeight: 600 }}>{MOOD_LABELS[userMood]}</div>}
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginTop: 6 }}>
               {MOOD_EMOJIS.map(function(emoji, idx) {
@@ -527,7 +557,7 @@ export default function HomeSection({ ctx }) {
                   setUserMood(newMood);
                   await sSet("daily_mood_" + activeTab, JSON.stringify(newDailyMood));
                   await sSet("user_mood_" + activeTab, JSON.stringify(newMood));
-                }} title={MOOD_LABELS[idx]} style={{ flex: 1, padding: "6px 0", border: isSelected ? "2px solid " + MOOD_COLORS[idx] : "1px solid " + accentBorder, borderRadius: 8, background: isSelected ? MOOD_COLORS[idx] + "18" : accentLight, fontSize: 16, cursor: "pointer", transition: "all 0.2s ease", transform: isSelected ? "scale(1.08)" : "scale(1)", filter: (currentMood !== null && !isSelected) ? "grayscale(0.5) opacity(0.5)" : "none" }}>{emoji}</button>);
+                }} title={MOOD_LABELS[idx]} aria-label={"Mood: " + MOOD_LABELS[idx]} aria-pressed={isSelected} style={{ flex: 1, padding: "6px 0", border: isSelected ? "2px solid " + MOOD_COLORS[idx] : "1px solid " + accentBorder, borderRadius: 8, background: isSelected ? MOOD_COLORS[idx] + "18" : accentLight, fontSize: 16, cursor: "pointer", transition: "all 0.2s ease", transform: isSelected ? "scale(1.08)" : "scale(1)", filter: (currentMood !== null && !isSelected) ? "grayscale(0.5) opacity(0.5)" : "none" }}>{emoji}</button>);
               })}
             </div>
           </div>
@@ -553,7 +583,7 @@ export default function HomeSection({ ctx }) {
             var allDrHome = [].concat(customDrinks);
             var allDeHome = [].concat(customDesserts);
             var allFoodHome = [].concat(allBfHome, allLuHome, allDinHome, allSnHome, allDrHome, allDeHome);
-            var findFood = function(id) { if (!id || id === "__empty__") return null; var f = allFoodHome.find(function(x) { return x.id === id; }); if (f) return f.name; /* Format raw IDs: replace underscores, title case */ return id.replace(/_/g, " ").replace(/\b\w/g, function(c) { return c.toUpperCase(); }); };
+            var findFood = function(id) { return mealName(id, { children: weekChildren, items: allFoodHome }); };   /* v2.20.0: shared helper — never a raw key */
 
             var bfName = findFood(dayMealsObj.b);
             var luName = findFood(dayMealsObj.l);
@@ -569,8 +599,8 @@ export default function HomeSection({ ctx }) {
               { label: "Breakfast", value: bfName },
               { label: "Lunch", value: luName },
               { label: "Dinner", value: dinName },
-              { label: "Snacks", value: snackNames.length > 0 ? snackNames.join(", ") : null },
-              { label: "Drinks", value: drinkNames.length > 0 ? drinkNames.join(", ") : null }
+              { label: "Snacks", value: namesLine(snackNames) },
+              { label: "Drinks", value: namesLine(drinkNames) }
             ];
 
             /* ── Exercise data ── */
@@ -579,14 +609,14 @@ export default function HomeSection({ ctx }) {
 
             /* ── Render My Eating sub-panel ── */
             var renderEating = function() {
-              return (<div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+              return (<div data-testid="myday-eating" style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#334155", padding: "8px 10px", background: "transparent", borderBottom: "1px solid #cbd5e1", borderRadius: "8px 8px 0 0" }}>My Eating</div>
                 <div style={{ padding: "6px 10px", flex: 1, display: "flex", flexDirection: "column" }}>
                   <div style={{ flex: 1 }}>
                   {eatSlots.map(function(slot) {
                     return (<div key={slot.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0", borderBottom: "1px solid #f8fafc" }}>
-                      <div style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", width: 55 }}>{slot.label}</div>
-                      <div style={{ fontSize: 11, color: slot.value ? "#334155" : "#cbd5e1", fontStyle: slot.value ? "normal" : "italic", flex: 1, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{slot.value || "—"}</div>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", width: 55 }}>{slot.label}</div>
+                      <div style={{ fontSize: 11, color: slot.value ? "#334155" : "#475569", fontStyle: slot.value ? "normal" : "italic", flex: 1, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{slot.value || "—"}</div>
                     </div>);
                   })}
                   </div>
@@ -600,13 +630,14 @@ export default function HomeSection({ ctx }) {
               return (<div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#334155", padding: "8px 10px", background: "transparent", borderBottom: "1px solid #cbd5e1", borderRadius: "8px 8px 0 0" }}>My Exercises</div>
                 <div style={{ padding: "6px 10px", flex: 1, display: "flex", flexDirection: "column" }}>
+                  <StepsDay p={p} date={(function(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })(new Date())} testid="home-steps" style={{ fontSize: 10, marginBottom: 4 }} />{/* v2.60.0: steps today */}
                   <div style={{ flex: 1 }}>
-                  {todayExercises.length === 0 && <div style={{ fontSize: 11, color: "#cbd5e1", fontStyle: "italic", padding: "4px 0" }}>No exercises planned</div>}
-                  {sessionNum && todayExercises.length > 0 && <div style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8", padding: "2px 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Session {sessionNum}</div>}
+                  {todayExercises.length === 0 && <div style={{ fontSize: 11, color: "#475569", fontStyle: "italic", padding: "4px 0" }}>No exercises planned</div>}
+                  {sessionNum && todayExercises.length > 0 && <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", padding: "2px 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Session {sessionNum}</div>}
                   {todayExercises.slice(0, 5).map(function(ex, i) {
                     return (<div key={i} style={{ fontSize: 11, color: "#334155", padding: "3px 0", borderBottom: "1px solid #f8fafc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ex.name || ex}</div>);
                   })}
-                  {todayExercises.length > 5 && <div style={{ fontSize: 10, color: "#94a3b8", padding: "2px 0" }}>+{todayExercises.length - 5} more</div>}
+                  {todayExercises.length > 5 && <div style={{ fontSize: 10, color: "#475569", padding: "2px 0" }}>+{todayExercises.length - 5} more</div>}
                   </div>
                   <button onClick={function() { setSection("weights"); setExerciseDay(todayFull); }} style={{ ...btnMT, width: "100%", justifyContent: "center", marginTop: 6, gap: 4, fontSize: 11, background: accentVariant(accent, 85) }}><span style={{ fontSize: 11 }}>🏋️</span> Open</button>
                 </div>
@@ -616,10 +647,10 @@ export default function HomeSection({ ctx }) {
             return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginBottom: 14, overflow: "hidden" }}>
               <button onClick={function() { setShowMyDay(!showMyDay); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", background: "none", border: "none", cursor: "pointer" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Day</span>
-                  <span style={{ fontSize: 11, color: "#94a3b8" }}>{todayLabel}</span>
+                  <span role="heading" aria-level={3} style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Day</span>
+                  <span style={{ fontSize: 11, color: "#475569" }}>{todayLabel}</span>
                 </div>
-                <span style={{ fontSize: 11, color: "#94a3b8" }}>{showMyDay ? "▲" : "▼"}</span>
+                <span style={{ fontSize: 11, color: "#475569" }}>{showMyDay ? "▲" : "▼"}</span>
               </button>
               {showMyDay && (<div style={{ padding: "0 12px 12px" }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
@@ -630,17 +661,20 @@ export default function HomeSection({ ctx }) {
             </div>);
           })()}
 
+          {/* v2.18.0: Today — Planned | Actual (replaces the calorie line and the Week so far box) */}
+          <TodayCard data={data} who={activeTab} saveData={saveData} onSetup={openGoalSetup} />
+
           {/* ── MY JOURNAL ── */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginBottom: 14, overflow: "hidden" }}>
             <div style={{ padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Journal</span>
-                <span style={{ fontSize: 10, color: "#94a3b8" }}>{(() => { var todayEntries = journalEntries.filter(function(e) { return e.date === new Date().toISOString().split("T")[0]; }); return todayEntries.length > 0 ? todayEntries.length + " today" : ""; })()}</span>
+                <span role="heading" aria-level={3} style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Journal</span>
+                <span style={{ fontSize: 10, color: "#475569" }}>{(() => { var todayEntries = journalEntries.filter(function(e) { return e.date === new Date().toISOString().split("T")[0]; }); return todayEntries.length > 0 ? todayEntries.length + " today" : ""; })()}</span>
               </div>
             </div>
             <div style={{ margin: "0 12px 12px", background: accentLight, borderRadius: 8, border: "1px solid " + accentBorder, padding: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6 }}>Journal Entry</div>
-              <textarea value={journalText} onChange={function(e) { setJournalText(e.target.value); }} placeholder="How are you feeling? What's on your mind today..." style={{ width: "100%", minHeight: 60, padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, lineHeight: 1.5, color: "#334155", resize: "vertical", fontFamily: "inherit", boxSizing: "border-box", background: "#fff" }} />
+              <textarea value={journalText} onChange={function(e) { setJournalText(e.target.value); }} placeholder="How are you feeling? What's on your mind today..." style={{ width: "100%", minHeight: 60, padding: "10px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12, lineHeight: 1.5, color: "#334155", resize: "vertical", fontFamily: "inherit", boxSizing: "border-box", background: "#fff" }} />
               <button onClick={async function() {
                 if (!journalText.trim()) return;
                 var todayStr = new Date().toISOString().split("T")[0];
@@ -657,8 +691,8 @@ export default function HomeSection({ ctx }) {
             {/* Recent entries (last 4) */}
             {journalEntries.length > 0 && (<div style={{ borderTop: "1px solid #e2e8f0", marginTop: 10 }}>
               <button onClick={function() { setShowRecentJournal(!showRecentJournal); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", background: "none", border: "none", cursor: "pointer" }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b" }}>Recent Entries</span>
-                <span style={{ fontSize: 10, color: "#94a3b8" }}>{showRecentJournal ? "▲" : "▼"}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#475569" }}>Recent Entries</span>
+                <span style={{ fontSize: 10, color: "#475569" }}>{showRecentJournal ? "▲" : "▼"}</span>
               </button>
               {showRecentJournal && (<div>
                 {journalEntries.slice(0, 4).map(function(entry) {
@@ -669,7 +703,7 @@ export default function HomeSection({ ctx }) {
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         {entry.mood !== null && entry.mood !== undefined && <span style={{ fontSize: 13 }}>{MOOD_EMOJIS[entry.mood]}</span>}
-                        <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>{dateLabel}{timeLabel ? " · " + timeLabel : ""}</span>
+                        <span style={{ fontSize: 10, color: "#475569", fontWeight: 600 }}>{dateLabel}{timeLabel ? " · " + timeLabel : ""}</span>
                       </div>
                       <button onClick={async function() {
                         if (!window.confirm("Delete this journal entry? This can't be undone.")) return;
@@ -687,8 +721,8 @@ export default function HomeSection({ ctx }) {
             {/* Full history */}
             {journalEntries.length > 4 && (<div style={{ borderTop: "1px solid #e2e8f0" }}>
               <button onClick={function() { setShowFullJournal(!showFullJournal); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", background: "none", border: "none", cursor: "pointer" }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b" }}>Full History ({journalEntries.length} entries)</span>
-                <span style={{ fontSize: 10, color: "#94a3b8" }}>{showFullJournal ? "▲" : "▼"}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#475569" }}>Full History ({journalEntries.length} entries)</span>
+                <span style={{ fontSize: 10, color: "#475569" }}>{showFullJournal ? "▲" : "▼"}</span>
               </button>
               {showFullJournal && (<div style={{ maxHeight: 400, overflowY: "auto" }}>
                 {journalEntries.slice(4).map(function(entry) {
@@ -698,9 +732,9 @@ export default function HomeSection({ ctx }) {
                   return (<div key={entry.id} style={{ padding: "8px 10px", marginBottom: 6, background: "#f1f5f9", borderRadius: 8, border: "1px solid #e2e8f0" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                       {entry.mood !== null && entry.mood !== undefined && <span style={{ fontSize: 13 }}>{MOOD_EMOJIS[entry.mood]}</span>}
-                      <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600 }}>{dateLabel}{timeLabel ? " · " + timeLabel : ""}</span>
+                      <span style={{ fontSize: 10, color: "#475569", fontWeight: 600 }}>{dateLabel}{timeLabel ? " · " + timeLabel : ""}</span>
                     </div>
-                    <div style={{ fontSize: 11, lineHeight: 1.5, color: "#64748b", whiteSpace: "pre-wrap" }}>{entry.text}</div>
+                    <div style={{ fontSize: 11, lineHeight: 1.5, color: "#475569", whiteSpace: "pre-wrap" }}>{entry.text}</div>
                   </div>);
                 })}
               </div>)}
@@ -708,10 +742,10 @@ export default function HomeSection({ ctx }) {
             </div>
           </div>
 
-          <button onClick={generateFeedback} disabled={feedbackLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: feedbackLoading ? "not-allowed" : "pointer", opacity: feedbackLoading ? 0.7 : 1, background: feedbackLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", marginBottom: 14 }}>{feedbackLoading ? <span>Generating, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Feedback"}</button>
-          <button onClick={function(){setHomeFbExpanded(!homeFbExpanded);}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#64748b",cursor:"pointer",marginTop:4}}>{homeFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>
+          <button onClick={generateFeedback} disabled={feedbackLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: feedbackLoading ? "not-allowed" : "pointer", opacity: feedbackLoading ? 0.7 : 1, background: feedbackLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", marginBottom: 14 }}>{feedbackLoading ? <span>Generating, please wait <LoadingDots /></span> : "My Companion Feedback"}</button>
+          <button onClick={function(){setHomeFbExpanded(!homeFbExpanded);}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#475569",cursor:"pointer",marginTop:4}}>{homeFbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>
           {homeFbExpanded && feedbackResults[activeTab] && (() => { const fb = feedbackResults[activeTab]; return (<div style={{ marginBottom: 14 }}><div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" }}>
-            {fb._when && <div style={{ padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" }}>Generated {fb._when} for {isJC ? "JC" : "Becks"}</div>}
+            {fb._when && <div style={{ padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#475569", borderBottom: "1px solid #e2e8f0" }}>Generated {fb._when} for {isJC ? "JC" : "Becks"}</div>}
             <div style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0" }}><div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 14 }}>☕</span><span style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f" }}>Companion Check-in</span></div></div>
             {fb.chat ? (<div style={{ padding: "14px 16px" }}>{fb.chat.split("\n\n").map(function(para, pi) { return <p key={pi} style={{ fontSize: 12, lineHeight: 1.6, color: "#334155", margin: pi === 0 ? 0 : "10px 0 0 0" }}>{para}</p>; })}</div>) : (<div>
             <div style={{ padding: "12px 14px", background: "#e0f2fe", borderBottom: "1px solid #bae6fd" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#0c4a6e" }}>What's going well</div>{fb.good?.map((g, i) => <div key={i} style={{ fontSize: 12, color: "#0c4a6e", marginTop: 4 }}>✓ {g}</div>)}</div>
@@ -722,10 +756,10 @@ export default function HomeSection({ ctx }) {
           {renderThread(fb, "home", activeTab, updateHomeFb, activeTab)}
           </div>); })()}
           {feedbackHistory[activeTab] && feedbackHistory[activeTab].length > 0 && (<div style={{ marginBottom: 14, marginTop: 10, textAlign: "center" }}>
-            <button onClick={() => setShowFbHistory(!showFbHistory)} style={{ fontSize: 11, color: "#64748b", background: accentBtnLight, border: "1px solid " + accentBtnBorder, borderRadius: 6, padding: "6px 12px", cursor: "pointer", marginBottom: 8 }}>{showFbHistory ? "Hide" : "Show"} Feedback History ({feedbackHistory[activeTab].length})</button>
+            <button onClick={() => setShowFbHistory(!showFbHistory)} style={{ fontSize: 11, color: "#475569", background: accentBtnLight, border: "1px solid " + accentBtnBorder, borderRadius: 6, padding: "6px 12px", cursor: "pointer", marginBottom: 8 }}>{showFbHistory ? "Hide" : "Show"} Feedback History ({feedbackHistory[activeTab].length})</button>
             {showFbHistory && feedbackHistory[activeTab].map((hb, hi) => (
               <div key={hi} style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 8, overflow: "hidden", opacity: 0.8 }}>
-                <div style={{ padding: "6px 12px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" }}>Generated {hb._when}</div>
+                <div style={{ padding: "6px 12px", background: "#f8fafc", fontSize: 10, color: "#475569", borderBottom: "1px solid #e2e8f0" }}>Generated {hb._when}</div>
                 <div style={{ padding: "8px 12px", fontSize: 11 }}>
                   {hb.chat ? (<div style={{ color: "#334155", lineHeight: 1.5 }}>{hb.chat.split("\n\n").map(function(para, pi) { return <p key={pi} style={{ margin: pi === 0 ? 0 : "6px 0 0 0" }}>{para}</p>; })}</div>) : (<div>
                   <div style={{ color: "#0c4a6e", marginBottom: 4 }}>{(hb.good || []).map((g, gi) => <span key={gi}>✓ {g} </span>)}</div>
@@ -733,7 +767,7 @@ export default function HomeSection({ ctx }) {
                   <div style={{ color: "#1e40af" }}>★ {Array.isArray(hb.focus) ? hb.focus.join("; ") : hb.focus}</div>
                   </div>)}
                 </div>
-                {hb._thread && hb._thread.length > 0 && <div style={{ padding: "6px 12px", background: "#f8fafc", borderTop: "1px solid #e2e8f0" }}>{latestFirst(hb._thread).map(function(m, mi) { return <div key={mi} style={{ fontSize: 11, color: m.role === "user" ? "#1e3a5f" : "#475569", marginBottom: 2 }}><span style={{ fontWeight: 600 }}>{m.role === "user" ? "You" : "Companion"}:</span> {m.text} {m.when ? <span style={{ fontSize: 9, color: "#94a3b8" }}>· {m.when}</span> : null}</div>; })}</div>}
+                {hb._thread && hb._thread.length > 0 && <div style={{ padding: "6px 12px", background: "#f8fafc", borderTop: "1px solid #e2e8f0" }}>{latestFirst(hb._thread).map(function(m, mi) { return <div key={mi} style={{ fontSize: 11, color: m.role === "user" ? "#1e3a5f" : "#475569", marginBottom: 2 }}><span style={{ fontWeight: 600 }}>{m.role === "user" ? "You" : "Your Companion"}:</span> {m.text} {m.when ? <span style={{ fontSize: 9, color: "#475569" }}>· {m.when}</span> : null}</div>; })}</div>}
                 {!hb._thread && hb._comment && <div style={{ padding: "6px 12px", background: "#f8fafc", borderTop: "1px solid #e2e8f0", fontSize: 11, color: "#334155" }}>Response: {hb._comment} {hb._commentWhen ? "· " + hb._commentWhen : ""}</div>}
               </div>
             ))}

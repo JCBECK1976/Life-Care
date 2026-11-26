@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openApp } from "./helpers.js";
+import { openApp, PROGRESS } from "./helpers.js";
 import { entrySets, fmtEntry, logSetsFrom, setsDiffer, setsToSave, weightLabel } from "../src/lib/exercise.js";
 
 // v2.6.1: D1 (form belongs to its person), D2 (weight and reps per set), D12 (Form and Range must be chosen).
@@ -49,10 +49,12 @@ test("D2: different weights per set are saved and shown per set; Edit Previous E
   const saved = ex.prog.find((p) => p.sets);
   expect(saved.sets).toEqual([{ w: "16", r: "10" }, { w: "22", r: "8" }, { w: "22", r: "8" }]);
   expect(saved.w).toBe("16kg"); // old field kept for older readers (set 1)
-  await page.getByRole("button", { name: "👁 Progress" }).first().click();
+  await page.getByRole("button", { name: PROGRESS }).first().click();
   await expect(page.getByTestId("prog-sets").first()).toHaveText("Sets: 16kg×10, 22kg×8, 22kg×8");
   await page.getByRole("button", { name: "📋 Log", exact: true }).first().click();
-  await expect(page.getByText(/Previous: 16kg×10, 22kg×8, 22kg×8/)).toBeVisible();
+  // v2.16.0 D23: this week is already logged, so the form opens it for editing ("Update"); Previous = the week before
+  await expect(page.getByRole("button", { name: "Update", exact: true })).toBeVisible();
+  await expect(page.getByTestId("log-previous")).not.toContainText("16kg×10, 22kg×8, 22kg×8");
   expect(await w.evaluateAll((els) => els.slice(0, 3).map((e) => e.value))).toEqual(["16", "22", "22"]);
   expect(errors).toEqual([]);
 });
@@ -174,7 +176,7 @@ test("a new week's log pre-fills each set from the previous entry; Progress and 
   await page.getByRole("button", { name: "My Exercise", exact: true }).first().click();
   await page.getByRole("button", { name: "Sun", exact: true }).click();
   await expect(page.getByText(/56–63kg · /).first()).toBeVisible();                    // header shows range
-  await page.getByRole("button", { name: "👁 Progress" }).nth(i).click();
+  await page.getByRole("button", { name: PROGRESS }).nth(i).click();
   await expect(page.getByTestId("prog-weight").filter({ hasText: "56–63kg" })).toHaveCount(1);
   await expect(page.getByTestId("prog-sets")).toHaveCount(1);                          // only the mixed entry
   await expect(page.getByTestId("prog-sets")).toHaveText("Sets: 63kg×10, 56kg×8, 63kg×8");

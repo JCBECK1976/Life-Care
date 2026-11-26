@@ -1,13 +1,38 @@
+import { installNativeBackButton, followPhoneTextSize, watchPhoneTextSize } from "./lib/native.js";
+import { watchOrphanLabels } from "./lib/a11yLabels.js";
+import { installFieldHelpers } from "./lib/a11y.js";
+import { installUndo } from "./lib/undo.js";
+import { installTapGuard } from "./lib/tapGuard.js";
+import UndoToast from "./components/UndoToast.jsx";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import Dashboard from "./App.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import AuthGate from "./components/AuthGate.jsx";
+import { startPlan } from "./lib/myPlan.js";
+import { loadRemoteFlags } from "./lib/platform.js";
+import firebase from "./lib/firebase.js";
+import { PlanGateHost, PreviewBar } from "./components/PlanGate.jsx";
+import Onboarding from "./components/Onboarding.jsx";
+import InviteScreen from "./components/InviteScreen.jsx";
+import { captureInvite } from "./lib/accounts.js";
 
-ReactDOM.createRoot(document.getElementById("root")).render(<ErrorBoundary name="App"><AuthGate><Dashboard /></AuthGate></ErrorBoundary>);
+installFieldHelpers();   // v2.20.0: numeric keypad, select-all on focus, haptic tap
+installNativeBackButton();   // v2.21.0: Android Back closes dialogs
+installUndo();   // v2.30.1: Undo after deletes of a person's records
+installTapGuard();   // v2.30.1: one tap = one save/add/delete
+followPhoneTextSize();   // v2.30.1: the phone's text size (up to 200%), in the Android and iPhone apps
+watchPhoneTextSize();   // v2.34.0: …and again whenever the app comes back to the front
+watchOrphanLabels();   // v2.34.0: screen readers get the name of every labelled box
+/* v2.27.0: read the go-live switches first (max 3 s), then start */
+loadRemoteFlags(firebase.database()).then(function() {
+  captureInvite();   // v2.25.0: ?join= / ?pilot= links survive the sign-in
+  startPlan();
+  ReactDOM.createRoot(document.getElementById("root")).render(<ErrorBoundary name="App"><AuthGate><Dashboard /><PlanGateHost /><PreviewBar /><UndoToast /><InviteScreen /><Onboarding /></AuthGate></ErrorBoundary>);
+});
 
 // Installable app: register the network-only service worker (builds only, never the dev server).
-if ("serviceWorker" in navigator && !import.meta.env.DEV) {
+if ("serviceWorker" in navigator && !import.meta.env.DEV && !import.meta.env.VITE_NATIVE) {   // v2.21.0: no service worker inside the native app
   window.addEventListener("load", () => {
     navigator.serviceWorker.register(import.meta.env.BASE_URL + "sw.js", { scope: import.meta.env.BASE_URL })
       .catch((e) => console.warn("Lifecare Companion: service worker not registered", e));

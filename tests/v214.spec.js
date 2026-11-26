@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
-import { openApp, tab } from "./helpers.js";
+import { openApp, tab, withBodyPhotos } from "./helpers.js";
 import { addToLedger, energyFromLedger, featureOf, costOf, summarise } from "../src/lib/aiUsage.js";
+test.beforeEach(async ({ page }) => { await withBodyPhotos(page); });   // v2.37.2: these features are hidden unless switched on
 
 // v2.14.0 Step 1b + tracker.
 const NS = "?ns=life-care-app-64d04-default-rtdb";
@@ -16,6 +17,9 @@ async function bigPhoto(page) {
   return { name: "phone.jpg", mimeType: "image/jpeg", buffer: Buffer.from(b64, "base64") };
 }
 
+// v2.52.0: Cancel in a picker Snap goes back to the picker list — close it before the next row
+async function closePicker(page) { const c = page.getByRole("button", { name: "Close the list" }); if (await c.count()) await c.first().click(); }
+
 test("item 1: every photo feature sends a shrunk photo (request < 1 MB, long edge ≤ 1568)", async ({ page }) => {
   test.setTimeout(120000);
   const { errors } = await openApp(page);
@@ -26,8 +30,9 @@ test("item 1: every photo feature sends a shrunk photo (request < 1 MB, long edg
   const expectSent = async (n) => { await expect.poll(() => sizes.length, { timeout: 10000 }).toBe(n); };
   // 📷 Snap (My Eating)
   await tab(page, "My Eating");
-  await page.getByRole("button", { name: "Snap a photo of your food" }).first().click();
+  await closePicker(page); await page.getByTestId("picker-trigger").first().click(); await page.getByTestId("act-snap").click();   // v2.50.0: Snap is in the picker
   await page.getByTestId("snap-pre").locator('input[type="file"]').setInputFiles(photo); await expectSent(1);
+  await closePicker(page);   // v2.52.0: the Snap result is in the picker
   // Food Checker (My Shop)
   await tab(page, "My Shop"); await page.locator('input[data-share="food"]').setInputFiles(photo); await expectSent(2);
   // Body balance (My Body)
@@ -45,7 +50,7 @@ test("item 1: every photo feature sends a shrunk photo (request < 1 MB, long edg
   expect(errors).toEqual([]);
 });
 
-test("item 3: Help sends the guide as a cached system prompt (cache_control), the question after it", async ({ page }) => {
+test("item 3 → v2.32.2: Help sends the fixed part (instructions + section index) as the cached prefix, then only the matching guide sections; the question after them", async ({ page }) => {
   const { errors } = await openApp(page);
   const bodies = [];
   page.on("request", (r) => { if (/api\.anthropic\.com/.test(r.url())) { try { const b = r.postDataJSON(); if (b && b.system) bodies.push(b); } catch {} } });
@@ -54,9 +59,11 @@ test("item 3: Help sends the guide as a cached system prompt (cache_control), th
   await page.locator("#help-input-jc").locator("xpath=following::button[1]").click();
   await expect.poll(() => bodies.length).toBe(1);
   const sys = bodies[0].system;
-  expect(sys.at(-1).cache_control).toEqual({ type: "ephemeral" });                    // breakpoint on the guide
+  expect(sys.at(-2).cache_control).toEqual({ type: "ephemeral" });                    // breakpoint after the fixed part
+  expect(sys.at(-2).text).toContain("=== GUIDE SECTIONS (index) ===");
   expect(sys.at(-1).text).toContain("=== APP GUIDE ===");
-  expect(sys.at(-1).text.length).toBeGreaterThan(4 * 1024 * 4);                        // well over the 1,024-token minimum
+  expect(sys.at(-1).text).toMatch(/### .*[Mm]easurement/);                             // the matching section
+  expect(sys.at(-1).text.length).toBeLessThan(12500);                                  // ≈ 3,000 tokens at most (was the whole guide)
   expect(JSON.stringify(sys)).not.toContain("How do I log a measurement?");             // the question is after the cached prefix
   expect(bodies[0].messages.at(-1).content).toContain("How do I log a measurement?");
   expect(errors).toEqual([]);
@@ -69,9 +76,9 @@ test("item 4: the boot/sign-in logo is the small WebP file, same 640px resolutio
   await page.goto("./");
   const img = page.locator('img[alt="Lifecare Companion"]').first();
   await expect(img).toBeVisible();
-  await expect.poll(() => img.evaluate((i) => i.complete && i.getBoundingClientRect().width)).toBe(220);   // loaded and laid out
-  const r = await img.evaluate((i) => ({ src: i.currentSrc, nw: i.naturalWidth, w: i.getBoundingClientRect().width }));
-  expect(r.src).toMatch(/app-logo-640\.webp$/); expect(r.nw).toBe(640); expect(r.w).toBe(220);
+  // one read of all three: React replaces the loading-screen logo with the sign-in one, so two separate reads could see
+  // two different images (the cause of an occasional 0 px width)
+  await expect.poll(() => img.evaluate((i) => ({ src: /app-logo-640\.webp$/.test(i.currentSrc), nw: i.naturalWidth, w: i.complete ? i.getBoundingClientRect().width : 0 })).catch(() => null)).toEqual({ src: true, nw: 640, w: 220 });
 });
 
 test("item 8: the energy ping runs once a day on open; ↻ Refresh still pings", async ({ page }) => {
@@ -122,6 +129,7 @@ test("item 9: a mocked AI reply's token counts are recorded (counts only) and dr
   const L = await get("ai_usage"); const day = Object.keys(L.days)[0];
   expect(L.days[day].Help).toEqual({ n: 1, in: 1000, out: 200, cw: 0, cr: 12000, cost: 0.0096 });
   expect(JSON.stringify(L)).not.toContain("secret question");                              // counts only, no content
+  await expect.poll(async () => ((await get("companion_energy")) || {}).spent - (before.spent || 0)).toBeGreaterThan(0);   // Energy is updated just after the usage record
   const after = await get("companion_energy");
   expect(after.spent - (before.spent || 0)).toBeCloseTo(0.0096, 6);
   expect(after.ledgerAtCalibration).toBeDefined();
@@ -152,7 +160,7 @@ test("item 10: Send Feedback also saves a Feedback/New tracker entry (masked acc
   await expect.poll(async () => Object.keys(await trackerAll()).length).toBe(1);
   const e = Object.values(await trackerAll())[0];
   expect(e).toMatchObject({ category: "Feedback", status: "New", kind: "feature", person: "jc", text: "Please add a water tracker", env: "prod", source: "feedback" });
-  expect(e.version).toMatch(/^v2\.1[4-9]\./); expect(e.created).toMatch(/^\d{4}-\d\d-\d\dT/);
+  expect(e.version).toMatch(/^v2\.(1[4-9]|[2-9]\d)\./); expect(e.created).toMatch(/^\d{4}-\d\d-\d\dT/);
   expect(e.account).toMatch(/^.\*\*\*@.\*\*\*\..+$/);                                    // masked, never the address
   await expect.poll(() => page.evaluate(() => window._mailto.length)).toBe(1);           // existing email behaviour kept (to the admin setting)
   expect(errors).toEqual([]);

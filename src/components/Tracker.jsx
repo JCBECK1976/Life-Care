@@ -80,12 +80,12 @@ export default function Tracker(props) {
     </OpenForm>);
   };
 
-  var th = { textAlign: "left", fontSize: 9, color: "#64748b", fontWeight: 700, padding: "3px 4px", borderBottom: "1px solid #e2e8f0" };
+  var th = { textAlign: "left", fontSize: 9, color: "#475569", fontWeight: 700, padding: "3px 4px", borderBottom: "1px solid #e2e8f0" };
   var td = { fontSize: 10, color: "#0f172a", padding: "4px", borderBottom: "1px solid #f1f5f9", verticalAlign: "top" };
   var setF = function(k) { return function(v) { var n = Object.assign({}, filt); n[k] = v; setFilt(n); }; };
   return (<div data-testid="tracker" style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
     <button onClick={expand} style={{ background: "none", border: "none", padding: 0, fontSize: 12, fontWeight: 700, color: "#0f172a", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>{expanded ? "▲" : "▼"} 📝 Tracker {newCount > 0 && <span data-testid="tracker-new-badge" style={{ background: "#dc2626", color: "#fff", borderRadius: 10, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>{newCount} new</span>}</button>
-    <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.5, margin: "4px 0 6px" }}>Send Feedback entries land here as Feedback / New: re-categorise, set status, priority, a note and a ref. The plan (docs/plan.json) is loaded each time you open this: its items are "managed by plan" and only their admin note can be edited here. Token % = estimated share of a weekly allowance. Text only, no images.</div>
+    <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, margin: "4px 0 6px" }}>Send Feedback entries land here as Feedback / New: re-categorise, set status, priority, a note and a ref. The plan (docs/plan.json) is loaded each time you open this: its items are "managed by plan" and only their admin note can be edited here. Token % = estimated share of a weekly allowance. Text only, no images.</div>
     {expanded && (<div>
       <div data-testid="tracker-plan-status" style={{ fontSize: 10, color: planInfo === "none" ? "#991b1b" : "#475569", marginBottom: 6 }}>{planInfo === "busy" ? "⏳ Loading the plan…" : planInfo === "none" ? "⚠️ Couldn't read the plan (plan.json): showing what's saved." : planInfo ? "Plan: " + planInfo.total + " items" + (planInfo.updated ? " (updated " + planInfo.updated + ")" : "") + (planInfo.written ? ", " + planInfo.written + " changed" : ", no changes") : ""}</div>
       {totals.length > 0 && (<div data-testid="tracker-phase-totals" style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "6px 8px", marginBottom: 8 }}>
@@ -100,14 +100,14 @@ export default function Tracker(props) {
         <button onClick={function() { setOpen({ add: true, draft: { category: "Defect", status: "New", priority: "", note: "", ref: "", text: "" }, msg: "" }); }} style={btnOpen}>+ Add</button>
       </div>
       {open && open.add && renderAdd()}
-      {items === null ? <div style={{ fontSize: 10, color: "#64748b" }}>Loading…</div> : list.length === 0 ? <div style={{ fontSize: 10, color: "#64748b" }}>Nothing here.</div> : (
+      {items === null ? <div style={{ fontSize: 10, color: "#475569" }}>Loading…</div> : list.length === 0 ? <div style={{ fontSize: 10, color: "#475569" }}>Nothing here.</div> : (
         <table data-testid="tracker-list" style={{ borderCollapse: "collapse", width: "100%", tableLayout: "fixed" }}>
           <thead><tr><th style={th}>Item</th><th style={Object.assign({}, th, { width: 58 })}>Status</th><th style={Object.assign({}, th, { width: 36 })}>Prio</th><th style={Object.assign({}, th, { width: 34 })}>Tok %</th><th style={Object.assign({}, th, { width: 52 })}></th></tr></thead>
           <tbody>{list.map(function(e) { var plan = e.source === "plan"; return (<React.Fragment key={e.id}>
             <tr data-testid="tracker-row" data-plan={plan ? e.planId : undefined}>
               <td style={Object.assign({}, td, { overflow: "hidden" })}>
                 <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{plan ? <strong>{e.planId} </strong> : null}{e.text}</div>
-                <div style={{ fontSize: 9, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><span style={{ color: CAT_COLOUR[e.category], fontWeight: 700 }}>{e.category}</span>{" · " + (plan ? (e.phase || "—") + (e.version ? " · " + e.version : "") + " · plan" : day(e.created))}</div>
+                <div style={{ fontSize: 9, color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><span style={{ color: CAT_COLOUR[e.category], fontWeight: 700 }}>{e.category}</span>{" · " + (plan ? (e.phase || "—") + (e.version ? " · " + e.version : "") + " · plan" : day(e.created))}</div>
               </td>
               <td style={td}>{e.status}</td><td style={td}>{e.priority ? e.priority.charAt(0) === "M" ? "Med" : e.priority : "—"}</td><td style={td}>{plan ? pct(e.tokenPct) : "—"}</td>
               <td style={td}><button aria-label={"Open " + (plan ? e.planId : e.category + " " + e.id)} onClick={function() { setOpen(open && open.id === e.id ? null : { id: e.id, editing: false, draft: draftOf(e), msg: "" }); }} style={btnOpen}>Open</button></td></tr>

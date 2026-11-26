@@ -18,6 +18,7 @@ async function seed() {
   d.journal_jc = JSON.stringify([{ id: "1", date: today, text: "JC-ONLY-JOURNAL", mood: 4, ts: today + "T08:00:00Z" }]);
   d["meal_tracking:jc"] = JSON.stringify({ JC_ONLY_MEAL_TRACKING: true });
   d["portion_overrides:jc"] = JSON.stringify({ JC_ONLY_PORTION: 2 });
+  { const b = JSON.parse(d["dashboard:data"]); for (const k of ["jc", "becks"]) if (b[k]) { b[k].goal = { id: "maintain", setAt: "2026-10-01" }; b[k].profile = { age: 45, height: "170cm", ...b[k].profile, sex: (b[k].profile && b[k].profile.sex) || (k === "jc" ? "Male" : "Female"), activityLevel: "sitting" }; } d["dashboard:data"] = JSON.stringify(b); }   // v2.18.0: goal setup done
   for (const k of ["daily_mood_becks", "journal_becks", "meal_tracking:becks", "portion_overrides:becks", "user_mood_becks", "google_token_becks"]) delete d[k];
   const res = await fetch(DB, { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify(d) });
   if (!res.ok) throw new Error("seed failed");

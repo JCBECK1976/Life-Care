@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0f172a">
@@ -11,7 +11,7 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; }
-    #root { max-width: 480px; margin: 0 auto; min-height: 100vh; }
+    #root { max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: calc(80px + env(safe-area-inset-bottom)); }   /* v2.20.0: room under the last buttons for the floating chat button */
     @keyframes dotPulse {
       0%, 20% { opacity: 0.3; }
       50% { opacity: 1; }
@@ -20,6 +20,15 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+    /* v2.20.0 (JC): one subtle grey border and radius on every white box where data is entered or selected
+       (token also in src/constants/styles.js FIELD_BORDER / FIELD_RADIUS); inline styles may still set a colour for errors. */
+    :root { --field-border: #cbd5e1; --field-radius: 8px; }
+    input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=hidden]), select, textarea { border: 1px solid var(--field-border); border-radius: var(--field-radius); }
+    /* v2.36.0 (Architect, 23 Nov): the v2.20.0 touch-screen minimum of 44 px (WCAG 2.5.5, AAA — not required) is removed;
+       sizes are back to beta v2.20.2. AA 2.5.8 is met by ≥ 24 px targets or spacing (styles.js gives small buttons 2 px each side). */
+    /* v2.17.0 P6 (WCAG 2.4.7): a clearly visible keyboard focus on every control */
+    :focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; border-radius: 4px; }
+    @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
     .loading-dots span { animation: dotPulse 1.4s infinite; font-size: 18px; }
     .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
     .loading-dots span:nth-child(3) { animation-delay: 0.4s; }

@@ -1,3 +1,4 @@
+import { useDialog } from "../lib/a11y.js";
 import React from "react";
 import { loadContactEmail } from "../lib/contact.js";
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
@@ -6,6 +7,7 @@ export default function PrivacyPolicy({ ctx }) {
   const {
     accent, setShowPrivacy, showPrivacy
   } = ctx;
+  const dlgRef = useDialog(!!(showPrivacy), () => setShowPrivacy(false));   /* v2.20.0: Esc closes, focus kept inside */
   /* v2.14.1: the contact address is an admin setting (not in the source); without one, people use Send Feedback */
   var _c = React.useState(""); var email = _c[0]; var setEmail = _c[1];
   React.useEffect(function() { if (showPrivacy) loadContactEmail().then(setEmail).catch(function() {}); }, [showPrivacy, setEmail]);
@@ -13,12 +15,12 @@ export default function PrivacyPolicy({ ctx }) {
 
   return (<>
 {showPrivacy && (<div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-        <div style={{ background: "#fff", borderRadius: 16, maxWidth: 500, width: "100%", maxHeight: "85vh", overflow: "auto", padding: "24px 20px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+        <div ref={dlgRef} role="dialog" aria-modal="true" aria-label="Privacy policy" data-ai-ok="" style={{ background: "#fff", borderRadius: 16, maxWidth: 500, width: "100%", maxHeight: "85vh", overflow: "auto", padding: "24px 20px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a" }}>Privacy Policy</div>
-            <button onClick={function(){ setShowPrivacy(false); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, width: 32, height: 32, fontSize: 16, cursor: "pointer", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+            <button aria-label="Close privacy policy" onClick={function(){ setShowPrivacy(false); }} style={{ background: "#f1f5f9", border: "none", borderRadius: 8, width: 32, height: 32, fontSize: 16, cursor: "pointer", color: "#475569", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
           </div>
-          <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 16 }}>Last updated: 28 October 2026</div>
+          <div style={{ fontSize: 10, color: "#475569", marginBottom: 16 }}>Last updated: 28 October 2026</div>
 
           <div style={{ fontSize: 12, color: "#334155", lineHeight: 1.7 }}>
             <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: "#0f172a" }}>1. Who We Are</div>

@@ -1,0 +1,13 @@
+# v2.16.1 SAD-A5: weekly dependency update PRs. Takes effect once this file is on main (the default branch).
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule: { interval: "weekly", day: "monday" }
+    open-pull-requests-limit: 5
+    target-branch: "build"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule: { interval: "weekly", day: "monday" }
+    open-pull-requests-limit: 5
+    target-branch: "build"

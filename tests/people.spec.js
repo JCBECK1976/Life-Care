@@ -19,6 +19,8 @@ async function seedPeople(n) {
     blob[k] = JSON.parse(JSON.stringify(blob.becks));
     blob[k].profile = { ...blob.becks.profile, name: EXTRA[i - 2] };
   }
+  /* v2.18.0: goal setup complete for everyone, so the mandatory setup dialog doesn't cover the layout under test */
+  Object.keys(blob).filter((k) => k !== "config").forEach((k) => { blob[k].goal = { id: "maintain", setAt: "2026-10-01" }; blob[k].profile = { age: 45, height: "170cm", ...blob[k].profile, sex: (blob[k].profile && blob[k].profile.sex) || "Female", activityLevel: "sitting" }; });
   data["dashboard:data"] = JSON.stringify(blob);
   const res = await fetch(DB, { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify(data) });
   if (!res.ok) throw new Error("seed failed " + res.status);

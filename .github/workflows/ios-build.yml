@@ -1,0 +1,39 @@
+# v2.29.0: proves the iPhone app compiles — UNSIGNED, for the simulator, on a GitHub macOS runner. No Apple account
+# needed. Also checks the Apple Root CA – G3 fingerprint pinned in functions/src/apple.js against the macOS keychain.
+name: iOS → unsigned build (compile check)
+on:
+  push:
+    branches: [build]
+    paths: ["ios/**", "native/**", "capacitor.config.json", "package.json", "package-lock.json", "scripts/build-native.sh", "scripts/check-native.mjs", "src/lib/native.js", "src/lib/appCheck.js", "functions/src/apple.js", ".github/workflows/ios-build.yml"]
+  workflow_dispatch:
+permissions: { contents: read }
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: 22, cache: npm }
+      - name: Apple Root CA – G3 pin matches the macOS keychain
+        run: |
+          FP=$(security find-certificate -c "Apple Root CA - G3" -p /System/Library/Keychains/SystemRootCertificates.keychain | openssl x509 -noout -fingerprint -sha256 | cut -d= -f2)
+          PIN=$(grep -o 'APPLE_ROOT_G3_SHA256 = "[^"]*"' functions/src/apple.js | cut -d'"' -f2)
+          echo "keychain: $FP"; echo "pinned:   $PIN"
+          [ "$FP" = "$PIN" ] || { echo "::error::The pinned Apple root fingerprint is wrong"; exit 1; }
+      - run: npm ci --no-audit --no-fund --loglevel=error
+      - name: Web build for the debug app (data_build) + guard
+        run: bash scripts/build-native.sh debug ios
+      - name: Xcode build (Debug, simulator, unsigned)
+        run: |
+          xcodebuild -version
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/dd" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build > "$RUNNER_TEMP/xcodebuild.log" 2>&1 \
+            || { grep -nE "error:|Failed|could not" "$RUNNER_TEMP/xcodebuild.log" | head -80; tail -30 "$RUNNER_TEMP/xcodebuild.log"; exit 1; }
+          tail -20 "$RUNNER_TEMP/xcodebuild.log"
+      - name: Result
+        run: ls -la "$RUNNER_TEMP/dd/Build/Products/Debug-iphonesimulator/" && echo "✓ the iPhone app compiles"

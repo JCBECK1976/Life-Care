@@ -1,22 +1,23 @@
 import { test, expect } from "@playwright/test";
 import { openApp, tab } from "./helpers.js";
 
-test("My Eating: add item → Review Item → edit ingredients → Confirm → values updated → Continue — Add", async ({ page }) => {
+// v2.19.1 (F27): a typed description goes to the clarifying conversation ("Create my own item"), values per portion
+test("My Eating: typed item → the clarifying conversation → per portion → Save", async ({ page }) => {
   const { errors } = await openApp(page);
   await tab(page, "My Eating");
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
-  await page.getByRole("button", { name: "+ Add New Item to Lists" }).click();
-  await page.getByPlaceholder("e.g. Costa Rocky Road, Protein shake...").fill("Test Porridge");
+  await page.getByRole("button", { name: "📷 Photo or bulk paste" }).click();
+  await page.getByPlaceholder("e.g. Costa Rocky Road, Protein shake...").fill("Test Stew with beef and veg");
   await page.getByRole("button", { name: "Add", exact: true }).click();
-  await expect(page.getByText("Review Item").first()).toBeVisible();
-  await page.locator("#review-item-ingredients").fill("oats 80g, milk 250ml");
-  const panel = page.locator("div", { has: page.locator("#review-item-ingredients") })
-    .filter({ has: page.getByRole("button", { name: "✓ Confirm" }) }).last();
-  await panel.getByRole("button", { name: /^breakfast$/i }).click();
-  await panel.getByRole("button", { name: "✓ Confirm" }).click();
-  await expect(page.getByText("Nutritional values updated").first()).toBeVisible();
-  await page.getByRole("button", { name: /Continue — Add/ }).first().click();
-  await expect(page.getByText("Test Porridge").first()).toBeVisible();
+  const ul = page.getByTestId("update-lists");
+  await expect(ul.getByRole("tab", { name: "My own" })).toHaveAttribute("aria-selected", "true");
+  await expect(ul.getByLabel("Describe your item")).toHaveValue("Test Stew with beef and veg");
+  await ul.getByRole("button", { name: "Send" }).click();
+  await expect(ul.getByTestId("own-confirm").getByTestId("portion-label")).toContainText("1 portion = 1 of 4 servings");
+  await ul.getByRole("button", { name: "Confirm" }).click();
+  await ul.getByRole("button", { name: "Save" }).click();
+  await expect(ul.getByTestId("saved-card")).toContainText("✓ Saved Test Stew");
+  await expect(page.getByText(/could not be read|did not return/)).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -25,7 +26,7 @@ test("My Eating: bulk paste adds items", async ({ page }) => {
   page.on("dialog", (d) => d.accept());                     // v2.6.3: "Add 2 items to Breakfast?"
   await tab(page, "My Eating");
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
-  await page.getByRole("button", { name: "+ Add New Item to Lists" }).click();
+  await page.getByRole("button", { name: "📷 Photo or bulk paste" }).click();
   await page.getByRole("button", { name: "📋 Bulk" }).click();
   await page.locator("#bulk-paste-textarea").fill("Test Apple\nTest Pear");
   const bulk = page.locator("div", { has: page.locator("#bulk-paste-textarea") })

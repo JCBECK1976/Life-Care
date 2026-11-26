@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { BottomSheet } from "./BottomSheet.jsx";
 
 // A row of person tabs, used in the header and in the exercise log (v2.5.0).
 // - Each tab is at least as wide as its name. With few people the tabs share the width
@@ -19,6 +20,12 @@ export function personName(data, key) {
 
 export function peopleOf(data) {
   return Object.keys(data || {}).filter((k) => k !== "config").map((k) => ({ key: k, name: personName(data, k) }));
+}
+
+/** v2.27.3: family members who keep their data private — greyed tabs after everyone else (names only; their data is
+ *  never requested). window._lcHiddenMembers comes from lib/accounts.js loadHousehold. */
+export function hiddenTabs() {
+  return (window._lcHiddenMembers || []).map((h, i) => ({ key: "hidden:" + i, name: h.name, hidden: true }));
 }
 
 export default function PersonTabs({ people, activeKey, onSelect, tabStyle, activeStyle, inactiveStyle, rowStyle, testId }) {
@@ -43,17 +50,41 @@ export default function PersonTabs({ people, activeKey, onSelect, tabStyle, acti
     for (const tab of row.children) ro.observe(tab);
     return () => ro.disconnect();
   }, [activeKey, people.length]);
-  return (
+  const [note, setNote] = useState("");
+  const [sheet, setSheet] = useState(false);   // v2.30.1: with more than three people, a bottom-sheet list of everyone
+  const many = people.filter((p) => !p.hidden).length > 3;
+  return (<div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+    <div style={{ display: "flex", gap: 4, flex: 1, minWidth: 0 }}>
     <div ref={rowRef} data-testid={testId} style={{ display: "flex", gap: 4, flex: 1, minWidth: 0, overflowX: "auto", scrollbarWidth: "none", ...rowStyle }}>
       {people.map((p) => {
+        if (p.hidden) return (   /* v2.27.3: a greyed tab — tapping it only says why; it never switches person */
+          <button key={p.key} type="button" data-testid="hidden-tab" aria-disabled="true" title={p.name + " keeps this private"}
+            onClick={() => setNote(note === p.name ? "" : p.name)}
+            style={{ ...tabStyle, ...inactiveStyle, flex: "1 0 0", minWidth: "max-content", whiteSpace: "nowrap", opacity: 0.55, fontStyle: "italic", cursor: "default" }}>
+            <span aria-hidden="true">🔒 </span>{tabLabel(p.name)}
+          </button>);
         const active = p.key === activeKey;
         return (
-          <button key={p.key} data-active={active ? "true" : "false"} title={p.name} onClick={() => onSelect(p.key)}
+          <button key={p.key} data-active={active ? "true" : "false"} aria-pressed={active} title={p.name} onClick={() => onSelect(p.key)}
             style={{ ...tabStyle, ...(active ? activeStyle : inactiveStyle), flex: "1 0 0", minWidth: "max-content", whiteSpace: "nowrap" }}>
             {tabLabel(p.name)}
           </button>
         );
       })}
     </div>
-  );
+    {many && <button type="button" data-testid={(testId || "person") + "-all"} aria-haspopup="dialog" aria-label="Choose a person" onClick={() => setSheet(true)}
+      style={{ ...tabStyle, ...inactiveStyle, flex: "0 0 auto", minWidth: 44, whiteSpace: "nowrap" }}><span aria-hidden="true">👥 All</span></button>}
+    </div>
+    <BottomSheet open={sheet} title="Choose a person" onClose={() => setSheet(false)} testId={(testId || "person") + "-sheet"}>
+      <div role="listbox" aria-label="People">
+        {people.map((p) => { const on = p.key === activeKey; return (
+          <button key={p.key} type="button" role="option" aria-selected={on} aria-disabled={p.hidden || undefined}
+            onClick={() => { if (p.hidden) { setNote(p.name); setSheet(false); return; } setSheet(false); onSelect(p.key); }}
+            style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between", minHeight: 48, padding: "10px 12px", marginBottom: 4, border: "none", borderRadius: 10, background: on ? "#eff6ff" : "transparent", color: p.hidden ? "#64748b" : "#0f172a", fontSize: 15, fontWeight: on ? 700 : 500, textAlign: "left", cursor: "pointer", fontStyle: p.hidden ? "italic" : "normal" }}>
+            <span>{p.hidden ? "🔒 " + p.name + " (keeps this private)" : p.name}</span>{on && <span aria-hidden="true" style={{ color: "#2563eb" }}>✓</span>}
+          </button>); })}
+      </div>
+    </BottomSheet>
+    {note && <div role="status" data-testid="hidden-note" style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", padding: "6px 4px 2px" }}>{note} keeps this private.</div>}
+  </div>);
 }

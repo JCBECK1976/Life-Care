@@ -8,12 +8,13 @@ const reply = (text, status = 200) => ({ status, contentType: "application/json"
   ? { id: "m", type: "message", role: "assistant", model: "claude-sonnet-4-6", content: [{ type: "text", text }], stop_reason: "end_turn", usage: { input_tokens: 1, output_tokens: 1 } }
   : { type: "error", error: { type: "api_error", message: "Overloaded" } }) });
 const linesOf = (prompt) => (prompt.split("Items to look up:\n")[1] || "").split("\n\nReturn")[0].split("\n").filter(Boolean);
-const itemsFor = (lines) => JSON.stringify(lines.map((n) => ({ name: n, kcal: 100, protein: 2, fat: 1, satFat: 0.5, carbs: 10, fibre: 1, salt: 0.1, rating: "GREAT", itemType: "packaged", ingredients: [] })));
+// v2.19.1: per-portion items, one per line (the shared schema)
+const itemsFor = (lines) => JSON.stringify(lines.map((n) => ({ line: n, type: "item", name: n, portionDesc: "1 can (330 ml)", portionGrams: null, servings: 1, ingredients: [], perPortion: { kcal: 100, protein: 2, fat: 1, satFat: 0.5, carbs: 20, sugar: 5, addedSugar: 0, fibre: 1, salt: 0.1 } })));
 
 async function openBulk(page) {
   await tab(page, "My Eating");
   await page.getByRole("button", { name: "Update Eating Lists" }).click();
-  await page.getByRole("button", { name: "+ Add New Item to Lists" }).click();
+  await page.getByRole("button", { name: "📷 Photo or bulk paste" }).click();
   await page.getByRole("button", { name: "📋 Bulk" }).click();
   return page.locator("div", { has: page.locator("#bulk-paste-textarea") }).filter({ has: page.getByRole("button", { name: "Cancel" }) }).last();
 }
@@ -31,7 +32,7 @@ test("D4 + F4: no category is pre-selected; confirm names the category; OK messa
   await expect(bulk.getByRole("button", { name: "Choose a category first" })).toBeDisabled();
   await bulk.getByRole("button", { name: /^drink$/i }).click();
   await bulk.getByRole("button", { name: "Upload Items" }).click();
-  await expect(page.getByTestId("bulk-done")).toHaveText(/2 items added to Drinks\. Ratings are AI estimates\. Open each item and check the weight, portion and ingredients/);
+  await expect(page.getByTestId("bulk-done")).toHaveText(/2 items added to Drinks\. Ratings are your Companion's estimates\. Open each item and check the weight, portion and ingredients/);
   expect(dialogs).toEqual(["Add 2 items to Drinks?"]);
   await page.getByRole("button", { name: "OK", exact: true }).click();
   const drinks = await getKey("custom_drinks");

@@ -1,16 +1,31 @@
+import FloatingSave from "../components/FloatingSave.jsx";
 import { DEFAULT_EXERCISES, EXERCISE_DATABASE, EXERCISE_TYPES } from "../constants/exercise.js";
-import { calcWeek, fbIcon, sBg, sColor, sLabel } from "../lib/utils.js";
+import LoadingDots from "../components/LoadingDots.jsx";
+import { calcWeek, fbIcon, sBg, sColor, sLabel, setPlainNote } from "../lib/utils.js";
 import { buildExProfileInfo, getMoodContext } from "../lib/aiContext.js";
 import { sSet } from "../lib/storage.js";
 import { scrollOnMount } from "../lib/scrollIntoView.js";
-import { entrySets, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsDiffer, setsToSave, syncAfterProgChange, weightLabel } from "../lib/exercise.js";
+import { applyNextValue, displayCurrent, latestEntry, measureOf, parseProgressionValue, progressionNote, progressionRange, resolveTargetWeight, setWeekNote, tidyNotes } from "../lib/exercise.js";
+import { attachCompanion, companionFromSession, sameExercise, setCompanionDecision, entrySets, findWeekIdx, previousEntry, fmtEntry, fmtReps, getExerciseType, getExerciseTypeConfig, logSetsFrom, parseReps, setsDiffer, setsToSave, syncAfterProgChange, weightLabel } from "../lib/exercise.js";
 import React from "react";
+import { displayStatus, whyLine, rangeLabel, skipEntry, skipCheckIn, weekFeedback, weekNote, isSkipped } from "../lib/exerciseWhy.js";
+import { autoStatus } from "../lib/exercise.js";
+import { PILLS, SKIPPED_PILL, PROGRESSION, pillOf } from "../lib/pills.js";
+import { styleContext } from "../lib/trainingStyle.js";
+import { fromGenerated, showMeasure, measureProse, isProse, cardioHeadline } from "../lib/exerciseGen.js";
+var BLANK_TYPE = { hasSets: true, metric1: "none", metric2: "none", metric1Label: "", metric2Label: "" };   // v2.49.0: no type yet → no measures
+import { companionProfileCtx } from "../lib/profileCtx.js";
+import { isCardioEx, cardioHasForm, EFFORT, effortLabel } from "../lib/cardio.js";
+import SetNextSession from "../components/SetNextSession.jsx";
+import { aiExerciseContext, autoDerivedTarget, isSkippedEntry, makeTarget, nextTarget, prefillFrom, targetHeadline } from "../lib/nextTarget.js";
 import OpenForm, { Field, inputStyle as openInput } from "../components/OpenForm.jsx";
 import { btnAction, btnActionLg, btnDelete, btnEdit, btnFilledOn, btnLog, btnMuted, btnOpen, btnP, btnProgress, btnS, inputStyle, labelStyle } from "../constants/styles.js";
 import { FullChart } from "../components/charts.jsx";
 import { TONE_RULES } from "../constants/tone.js";
 import { handleApiError } from "../lib/api.js";
 import PersonTabs, { peopleOf, personName } from "../components/PersonTabs.jsx";
+import { SheetSelect } from "../components/BottomSheet.jsx";
+import { StepsDay, StepsWeek, stepsShown } from "../components/StepsLine.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -19,7 +34,7 @@ export default function ExerciseSection({ ctx }) {
     accent, accentBorder, accentLight, accentMid, activeTab, addExConfirm, addExLoading, addExOpen,
     addExSearch, btnST, coolDownOpen, customExercises, data, dayView, decisionsExpanded, editExercise,
     editPrev, exInfoOpen, exerciseDay, fbExpanded, getCrossSectionCtx, getOnboardingCtx, isJC, loadUserSettings,
-    logComment, logEx, logFormRef, logFullRange, logGoodForm, logOverride, logSets, logWeek,
+    logComment, logSkipped, setLogSkipped, logEffort, setLogEffort, logEx, logFormRef, logFullRange, logGoodForm, logOverride, logSets, logWeek,
     newExName, openLogForm, p, prevComment, renderThread, saveData, saveLog, selectedEx,
     sessionFbLoading, sessionFeedback, sessionGuideLoading, setActiveTab, setAddExConfirm, setAddExLoading, setAddExOpen, setAddExSearch,
     setCoolDownOpen, setCustomExercises, setDayView, setDecisionsExpanded, setEditExercise, setEditPrev, setExInfoOpen, setExerciseDay,
@@ -28,6 +43,8 @@ export default function ExerciseSection({ ctx }) {
     setShowNewSection, setStoppedExOpen, setWarmUpOpen, stoppedExOpen, updateSessionFb, userMood, warmUpOpen, weekLabel
   } = ctx;
   /* v2.8.0 F1: a Progress week opens in the shared "Open" form (read-only → Edit → Save, or Delete inside the form) */
+  const [exToast, setExToast] = React.useState(null);   // v2.20.2: { text, undo } — "✓ Next weight set: 70 kg" with Undo for ~5 s
+  React.useEffect(function() { if (!exToast) return; var t = setTimeout(function() { setExToast(null); }, 5000); return function() { clearTimeout(t); }; }, [exToast]);
   const [openProg, setOpenProg] = React.useState(null); // { day, exIdx, progIdx, editing, draft, msg }
 
           const allExNames = [...DEFAULT_EXERCISES, ...customExercises].sort();
@@ -64,7 +81,7 @@ export default function ExerciseSection({ ctx }) {
               if (pd.measurements) { var measParts = []; Object.keys(pd.measurements).forEach(function(mk){ if (pd.measurements[mk] && pd.measurements[mk].length > 0) { measParts.push(mk + ": " + pd.measurements[mk][pd.measurements[mk].length - 1].v + "cm"); } }); if (measParts.length > 0) healthCtx += " Measurements: " + measParts.join(", ") + "."; }
               var exerciseList = dayExList.map(function(ex) { return ex.name + " (" + (ex.exType || "weights") + ", " + ex.current + " " + ex.reps + ")"; }).join(", ");
               var guidePrompt = "Generate a warm-up and cool-down for this training session.\n\nPerson: " + profileInfo + "." + healthCtx + "\n\nSession exercises: " + exerciseList + "\n\nRules:\n- Warm-up: 3 minutes max. 3-4 activities. Tailored to the specific exercises in this session and this person's health profile.\n- Cool-down: 3 minutes max. 3-4 stretches. Target the muscle groups worked in this session. Consider any injuries, conditions, or medications.\n- Each line should be one activity with brief instruction (e.g. '1. Arm circles — 20 seconds each direction, loosen shoulders').\n- Number each line. Keep each to one short sentence.\n- Write in direct 2nd person.\n- Do NOT include any JSON formatting or labels — just the plain text.\n\nReturn ONLY JSON: {\"warmup\":\"numbered lines for warm-up\",\"cooldown\":\"numbered lines for cool-down\"}";
-              var guideResp = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{"Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:500,messages:[{role:"user",content:guidePrompt}]})});
+              var guideResp = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{ "x-lc-feature": "autoInfo","Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:500,messages:[{role:"user",content:guidePrompt}]})});
               var guideResult = await guideResp.json();
               var guideTxt = ""; if(guideResult.content){for(var gi=0;gi<guideResult.content.length;gi++){if(guideResult.content[gi].text)guideTxt+=guideResult.content[gi].text;}}
               var guideData = JSON.parse(guideTxt.replace(/```json|```/g,"").trim());
@@ -83,7 +100,7 @@ export default function ExerciseSection({ ctx }) {
           };
           const removeExercise = async (day, idx) => {
             var exName = data[activeTab].exercises[day][idx] ? data[activeTab].exercises[day][idx].name : "this exercise";
-            if (!confirm("Remove " + exName + " from " + day + "? This cannot be undone.")) return;
+            if (!confirm("Remove " + exName + " from " + day + "?")) return;
             const nd = JSON.parse(JSON.stringify(data));
             nd[activeTab].exercises[day].splice(idx, 1);
             await saveData(nd); setFormMsg("✓ Removed"); setTimeout(() => setFormMsg(""), 3000);
@@ -116,29 +133,65 @@ export default function ExerciseSection({ ctx }) {
           };
           const openEntry = (day, exIdx, progIdx) => {
             var e = data[activeTab].exercises[day][exIdx].prog[progIdx];
-            setOpenProg({ day: day, exIdx: exIdx, progIdx: progIdx, editing: false, msg: "", draft: { wk: String(e.wk), sets: logSetsFrom(e, Math.max(1, (e.sets || []).length || parseReps(e.r).length || 3)), fullRange: e.fullRange || "", goodForm: e.goodForm || "", note: e.note || "" } });
+            setOpenProg({ day: day, exIdx: exIdx, progIdx: progIdx, editing: false, msg: "", skipped: isSkippedEntry(e), draft: { wk: String(e.wk), sets: (function() { var _x = data[activeTab].exercises[day][exIdx], _c = getExerciseTypeConfig(_x.exType || getExerciseType(_x.name)); return isCardioEx(_x) && !_c.hasSets ? logSetsFrom(e, 1).slice(0, 1) : logSetsFrom(e, Math.max(1, (e.sets || []).length || parseReps(e.r).length || 3)); })(), effort: e.effort || "", fullRange: e.fullRange || "", goodForm: e.goodForm || "", note: e.note || "", companion: e.companion ? Object.assign({}, e.companion) : companionFromSession(sessionFeedback, activeTab, day, data[activeTab].exercises[day][exIdx].name, e.wk) /* F11b: older feedback */ } });
           };
           const setDraft = (patch) => setOpenProg(function(o) { return Object.assign({}, o, { draft: Object.assign({}, o.draft, patch), msg: "" }); });
           const saveEntry = async () => {
             var o = openProg; var d = o.draft;
-            if (!d.fullRange || !d.goodForm) { setOpenProg(Object.assign({}, o, { msg: "Choose Form and Range to save" })); return; }
+            var _cur = data[activeTab].exercises[o.day][o.exIdx].prog[o.progIdx];
+            if (isSkippedEntry(_cur)) { var ndS = JSON.parse(JSON.stringify(data)); ndS[activeTab].exercises[o.day][o.exIdx].prog[o.progIdx].note = (d.note || "").trim(); await saveData(ndS); setOpenProg(Object.assign({}, o, { editing: false, msg: "✓ Week " + _cur.wk + " saved" })); return; }   // v2.37.0: a skipped week keeps only its note
+            var _oex = data[activeTab].exercises[o.day][o.exIdx], _oc = isCardioEx(_oex);   // v2.49.0 (P1d): cardio — How hard did it feel?
+            if (_oc ? (!d.effort || (cardioHasForm(_oex) && !d.goodForm)) : (!d.fullRange || !d.goodForm)) { setOpenProg(Object.assign({}, o, { msg: _oc ? "Choose how hard it felt to save" : "Choose Form and Range to save" })); return; }
             var sets = setsToSave(d.sets.filter(function(x) { return String(x.w).trim() || String(x.r).trim(); }));
             if (!sets.length) { setOpenProg(Object.assign({}, o, { msg: "Enter at least one set" })); return; }
             var nd = JSON.parse(JSON.stringify(data));
             var ex2 = nd[activeTab].exercises[o.day][o.exIdx]; var e = ex2.prog[o.progIdx];
-            var before = ex2.prog.slice().sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); }).pop(); before = Object.assign({}, before);
+            var before = ex2.prog.filter(function(x) { return !x.skipped; }).sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); }).pop(); before = Object.assign({}, before);
             e.wk = parseInt(d.wk) || e.wk; e.sets = sets; e.w = String(sets[0].w).replace(/kg$/, "") + "kg"; e.r = fmtReps(sets.map(function(x) { return parseInt(x.r) || 0; }));
             e.fullRange = d.fullRange; e.goodForm = d.goodForm; e.note = d.note.trim();
+            if (_oc) { e.effort = d.effort; delete e.fullRange; if (!cardioHasForm(_oex)) delete e.goodForm; }
+            if (d.companion && !e.companion) e.companion = { verdict: d.companion.verdict, recommendation: d.companion.recommendation, at: d.companion.at }; /* F11b: keep it once edited */
+            if (d.companion && e.companion) { if (d.companion.decision) e.companion.decision = d.companion.decision; else delete e.companion.decision; e.companion.decisionNote = (d.companion.decisionNote || "").trim(); } // F11
             ex2.prog.sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
             syncAfterProgChange(ex2, before);   // D20
             await saveData(nd);
             setOpenProg(Object.assign({}, o, { progIdx: ex2.prog.indexOf(e), editing: false, msg: "✓ Week " + e.wk + " saved" }));
           };
+          /* v2.55.0 (Architect night batch 25 Nov, PART 4): the Companion prepares a new exercise's plan — the form stays blank
+             and disabled with a status above the fields; numbers only; a friendly failure within 20 s (Try again / Fill in myself). */
+          const startExGen = (spec) => {
+            var name = spec.name;
+            setAddExConfirm({ name: name, type: spec.type || "", sets: "", m1: "", m2: "", progression: "", notes: "", exerciseGuide: "", prePostGuide: "", isCustom: !!spec.isCustom, _generating: true, _spec: spec });
+            setAddExOpen(false); setAddExLoading(true);
+            (async function() {
+              var done = false;
+              try {
+                var prof2 = (data[activeTab] || (activeTab === "jc" ? data.jc : data.becks)).profile || {};
+                var known = spec.type ? " It is a " + getExerciseTypeConfig(spec.type).label + " exercise (exerciseType: " + spec.type + ")." : "";
+                var prompt2 = "New exercise: " + name + "." + known + " Person: " + buildExProfileInfo(prof2) + ".\nDetermine the exercise type from: weights, bodyweight, timed_hold, cardio, walking, sports, stretching.\nmetric1 and metric2 are PLAIN NUMBERS ONLY (no words, no ranges, no units): metric1 = kg for weights, seconds for holds/stretches, minutes for cardio/walking/sports, 0 if none; metric2 = reps per set, seconds, km, or 0 if none. Put every description (pace, effort, sessions per week) in progressionNotes.\nReturn ONLY JSON: {\"exerciseType\":\"one of weights|bodyweight|timed_hold|cardio|walking|sports|stretching\",\"sets\":3,\"metric1\":20,\"metric2\":10,\"progressionNotes\":\"specific progression rules (all advice and plan wording goes HERE)\",\"equipmentNotes\":\"any equipment or form notes\"}";
+                var call = fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-lc-feature": "autoInfo", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: prompt2 }] }) }).then(function(r) { return r.json(); });
+                var slow = new Promise(function(_, rej) { setTimeout(function() { rej(new Error("slow")); }, window.__lcExGenTimeout || 20000); });
+                var result2 = await Promise.race([call, slow]);
+                var txt2 = ""; if (result2.content) { for (var ri = 0; ri < result2.content.length; ri++) { if (result2.content[ri].text) txt2 += result2.content[ri].text; } }
+                var g = fromGenerated(JSON.parse(txt2.replace(/```json|```/g, "").trim()), spec.type || "");
+                if (spec.type) g.type = spec.type;
+                setAddExConfirm(function(prev) { if (!prev || prev.name !== name || !prev._generating) return prev; return Object.assign({}, prev, { type: g.type, sets: g.sets, m1: g.m1, m2: g.m2, progression: g.progression || "Double progression: build reps to target then increase weight.", notes: g.notes, _generating: false, _failed: !g.type }); });
+                done = true;
+              } catch (ae) { /* falls through to the friendly failure */ }
+              if (!done) setAddExConfirm(function(prev) { if (!prev || prev.name !== name || !prev._generating) return prev; return Object.assign({}, prev, { _generating: false, _failed: true, _offer: true }); });
+              setAddExLoading(false);
+            })();
+          };
           const renderEntryForm = (ex) => {
             var o = openProg; var d = o.draft; var ed = o.editing; var cfg = getExerciseTypeConfig(ex.exType || getExerciseType(ex.name));
             var l1 = cfg.metric1 !== "none" ? cfg.metric1Label : "Weight"; var l2 = cfg.metric2 !== "none" ? cfg.metric2Label : "Reps";
+            var cardio = isCardioEx(ex), oneRow = cardio && !cfg.hasSets;   // v2.49.0 (P1d): the cardio layout, as in the Log form
+            var unit = function(lbl) { var m = /\(([^)]+)\)/.exec(lbl || ""); return m ? " " + m[1] : ""; };
+            var choice = function(field, label, opts) { var v = d[field], hit = opts.find(function(x) { return x[0] === v; });
+              if (!ed) return <Field label={label} testid={"entry-" + field}>{hit ? <span data-testid={"entry-" + field + "-chip"} style={{ display: "inline-block", padding: "3px 10px", borderRadius: 12, fontSize: 11, fontWeight: 700, color: "#fff", background: v === "hard" ? "#b45309" : "#166534" }}>{hit[1]}</span> : <span style={{ color: "#475569" }}>not recorded</span>}</Field>;
+              return <Field label={label} testid={"entry-" + field}><div style={{ display: "flex", border: "1px solid " + (ed && !d[field] && o.msg ? "#dc2626" : "#cbd5e1"), borderRadius: 6, overflow: "hidden" }}>{opts.map(function(x) { return seg(field, x[0], x[1]); })}</div></Field>; };
             var seg = function(field, val, label) { var on = d[field] === val; return <button key={val} type="button" aria-pressed={on} disabled={!ed} onClick={function() { setDraft({ [field]: val }); }} style={{ flex: 1, padding: "6px 4px", fontSize: 11, fontWeight: 600, border: "none", cursor: ed ? "pointer" : "default", background: on ? (val === "good" ? "#166534" : "#b45309") : "#fff", color: on ? "#fff" : "#475569" }}>{label}</button>; };
-            var group = function(field, label) { if (!ed) { var v = d[field]; /* D21: viewing shows the chosen value as one chip */ return <Field label={label} testid={"entry-" + field}>{v ? <span data-testid={"entry-" + field + "-chip"} style={{ display: "inline-block", padding: "3px 10px", borderRadius: 12, fontSize: 11, fontWeight: 700, color: "#fff", background: v === "good" ? "#166534" : "#b45309" }}>{v === "good" ? "Good" : "Working towards"}</span> : <span style={{ color: "#94a3b8" }}>not recorded</span>}</Field>; }
+            var group = function(field, label) { if (!ed) { var v = d[field]; /* D21: viewing shows the chosen value as one chip */ return <Field label={label} testid={"entry-" + field}>{v ? <span data-testid={"entry-" + field + "-chip"} style={{ display: "inline-block", padding: "3px 10px", borderRadius: 12, fontSize: 11, fontWeight: 700, color: "#fff", background: v === "good" ? "#166534" : "#b45309" }}>{v === "good" ? "Good" : "Working towards"}</span> : <span style={{ color: "#475569" }}>not recorded</span>}</Field>; }
               return <Field label={label} testid={"entry-" + field}><div style={{ display: "flex", border: "1px solid " + (ed && !d[field] && o.msg ? "#dc2626" : "#cbd5e1"), borderRadius: 6, overflow: "hidden" }}>{seg(field, "working", "Working towards")}{seg(field, "good", "Good")}</div></Field>; };
             return (<OpenForm testid="prog-open-form" title={ex.name + " — week " + d.wk} subtitle={ed ? "Change anything, then Save." : "As logged. Edit to change it."} editing={ed} message={o.msg} busy={false}
               onEdit={function() { setOpenProg(Object.assign({}, o, { editing: true, msg: "" })); }}
@@ -147,14 +200,31 @@ export default function ExerciseSection({ ctx }) {
               onSave={saveEntry}
               dangerKind="remove" onDanger={function() { deleteProg(o.day, o.exIdx, o.progIdx); }}>
               <Field label="Week">{ed ? <input aria-label="Week" value={d.wk} onChange={function(e) { setDraft({ wk: e.target.value }); }} style={Object.assign({}, openInput, { width: 70 })} /> : d.wk}</Field>
-              {d.sets.map(function(st, si) { return (<Field key={si} label={"Set " + (si + 1)} testid={"entry-set-" + (si + 1)}>{ed ? <div style={{ display: "flex", gap: 6 }}>
-                  <input aria-label={"Set " + (si + 1) + " " + l1} placeholder={l1} value={st.w} onChange={function(e) { var ns = d.sets.slice(); ns[si] = Object.assign({}, st, { w: e.target.value }); setDraft({ sets: ns }); }} style={openInput} />
-                  <input aria-label={"Set " + (si + 1) + " " + l2} placeholder={l2} value={st.r} onChange={function(e) { var ns = d.sets.slice(); ns[si] = Object.assign({}, st, { r: e.target.value }); setDraft({ sets: ns }); }} style={openInput} />
-                </div> : <span>{st.w}{/^[\d.]+$/.test(String(st.w)) ? "kg" : ""} × {st.r}</span>}</Field>); })}
-              {ed && <button type="button" onClick={function() { setDraft({ sets: d.sets.concat([{ w: (d.sets[d.sets.length - 1] || {}).w || "", r: "" }]) }); }} style={{...btnMuted, marginBottom: 6}}>+ Add set</button>}
-              {group("fullRange", "Range")}
-              {group("goodForm", "Form")}
-              <Field label="Notes" testid="entry-note">{ed ? <textarea aria-label="Notes" value={d.note} onChange={function(e) { setDraft({ note: e.target.value }); }} style={Object.assign({}, openInput, { minHeight: 44 })} /> : (d.note || <span style={{ color: "#94a3b8" }}>—</span>)}</Field>
+              {o.skipped && <Field label="This week" testid="entry-skipped"><span style={{ color: "#64748b", fontStyle: "italic" }}>Skipped — doesn't count towards progression</span></Field>}
+              {!o.skipped && d.sets.map(function(st, si) { return (<Field key={si} label={oneRow ? (cfg.metric2 !== "none" ? "Log (" + l1.replace(/ \(.*\)/, "") + " / " + l2.replace(/ \(.*\)/, "") + ")" : l1) : "Set " + (si + 1)} testid={"entry-set-" + (si + 1)}>{ed ? <div style={{ display: "flex", gap: 6 }}>
+                  <input aria-label={(oneRow ? "" : "Set " + (si + 1) + " ") + l1} placeholder={l1} value={st.w} onChange={function(e) { var ns = d.sets.slice(); ns[si] = Object.assign({}, st, { w: e.target.value }); setDraft({ sets: ns }); }} style={openInput} />
+                  {(!oneRow || cfg.metric2 !== "none") && <input aria-label={(oneRow ? "" : "Set " + (si + 1) + " ") + l2} placeholder={l2} value={st.r} onChange={function(e) { var ns = d.sets.slice(); ns[si] = Object.assign({}, st, { r: e.target.value }); setDraft({ sets: ns }); }} style={openInput} />}
+                </div> : cardio ? <span>{showMeasure(String(st.w).replace(/kg$/i, ""))}{unit(l1)}{cfg.metric2 !== "none" && String(st.r) !== "" && String(st.r) !== "0" ? " · " + showMeasure(st.r) + unit(l2) : ""}</span> : <span>{st.w}{/^[\d.]+$/.test(String(st.w)) ? "kg" : ""} × {st.r}</span>}</Field>); })}
+              {ed && !o.skipped && !oneRow && <button type="button" onClick={function() { setDraft({ sets: d.sets.concat([{ w: (d.sets[d.sets.length - 1] || {}).w || "", r: "" }]) }); }} style={{...btnMuted, marginBottom: 6}}>+ Add set</button>}
+              {!o.skipped && cardio && choice("effort", "How hard did it feel?", EFFORT)}
+              {!o.skipped && !cardio && group("fullRange", "Range")}
+              {!o.skipped && (!cardio || cardioHasForm(ex)) && group("goodForm", "Form")}
+              <Field label="My Notes" testid="entry-note">{ed ? <textarea aria-label="My Notes" value={d.note} onChange={function(e) { setDraft({ note: e.target.value }); }} style={Object.assign({}, openInput, { minHeight: 44 })} /> : (d.note || <span style={{ color: "#475569" }}>—</span>)}</Field>
+              {d.companion && (function() { var c = d.companion; var setC = function(patch) { setDraft({ companion: Object.assign({}, c, patch) }); };
+                var decLabel = c.decision === "accepted" ? "✓ Accepted" : c.decision === "rejected" ? "✕ Rejected" : "No decision yet";
+                return (<div data-testid="entry-companion" style={{ margin: "8px 0 4px", padding: 8, borderRadius: 8, background: "#fef3c7", border: "1px solid #fcd34d" }}>   {/* v2.40.0 (night batch P2): yellow */}
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Your Companion said (week {d.wk}){c.at ? <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, color: "#475569" }}> · {c.at}</span> : null}</div>
+                  {c.verdict && <div data-testid="entry-companion-verdict" style={{ fontSize: 11, color: "#1e293b", lineHeight: 1.5 }}>{c.verdict}</div>}
+                  {c.recommendation && <div style={{ fontSize: 11, color: "#9a3412", fontWeight: 600, marginTop: 3 }}>{c.recommendation}</div>}
+                  {ed ? (<div style={{ marginTop: 6 }}>
+                    <div role="group" aria-label="Your decision" style={{ display: "flex", border: "1px solid #cbd5e1", borderRadius: 6, overflow: "hidden" }}>
+                      {[["accepted", "✓ Accept"], ["rejected", "✕ Reject"]].map(function(o) { var on = c.decision === o[0]; return <button key={o[0]} type="button" aria-pressed={on} onClick={function() { setC({ decision: on ? "" : o[0] }); }} style={{ flex: 1, padding: "6px 4px", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", background: on ? (o[0] === "accepted" ? "#166534" : "#475569") : "#fff", color: on ? "#fff" : "#334155" }}>{o[1]}</button>; })}
+                    </div>
+                    <textarea aria-label="Note on the feedback" placeholder="Note on the feedback (optional)" value={c.decisionNote || ""} onChange={function(e) { setC({ decisionNote: e.target.value }); }} style={Object.assign({}, openInput, { minHeight: 36, marginTop: 6 })} />
+                  </div>) : (<div data-testid="entry-companion-decision" style={{ fontSize: 11, marginTop: 4, color: "#334155" }}><b>Your decision:</b> {decLabel}{c.decisionNote ? " — " + c.decisionNote : ""}</div>)}
+                  {weekNote(ex, d.wk) && <div data-testid="entry-progression-note" style={{ fontSize: 11, marginTop: 4, color: "#334155" }}><b>Progression:</b> {weekNote(ex, d.wk)}</div>}
+                </div>); })()}
+              {!d.companion && <div data-testid="entry-companion-none" style={{ margin: "8px 0 4px", fontSize: 11, color: "#475569" }}>No Companion feedback recorded this week.{weekNote(ex, d.wk) ? <div style={{ marginTop: 3, color: "#334155" }}><b>Progression:</b> {weekNote(ex, d.wk)}</div> : null}</div>}
             </OpenForm>);
           };
           const deleteProg = async (day, exIdx, progIdx) => {
@@ -163,7 +233,7 @@ export default function ExerciseSection({ ctx }) {
             if (!confirm("Remove week " + (entry ? entry.wk : progIdx+1) + " from " + ex2.name + "?")) return;
             var nd = JSON.parse(JSON.stringify(data));
             var exN = nd[activeTab].exercises[day][exIdx];
-            var before = exN.prog.slice().sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); }).pop();
+            var before = exN.prog.filter(function(x) { return !x.skipped; }).sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); }).pop();
             exN.prog.splice(progIdx, 1);
             syncAfterProgChange(exN, before);   // D20: only a change to the LATEST week touches the card / status pill
             await saveData(nd); setOpenProg(null);
@@ -175,17 +245,22 @@ export default function ExerciseSection({ ctx }) {
           {/* Week header — centred like Eating */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
             <div style={{ width: 36 }}></div>
-            <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800 }}>Week {currentWeek}</div><div style={{ fontSize: 10, color: "#64748b" }}>{weekLabel}</div></div>
+            {exToast && <div role="status" aria-live="polite" data-testid="ex-toast" style={{ position: "fixed", left: 12, right: 12, bottom: "calc(84px + env(safe-area-inset-bottom))", zIndex: 1200, maxWidth: 456, margin: "0 auto", display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 10, background: "#166534", color: "#fff", fontSize: 13, fontWeight: 700, boxShadow: "0 6px 20px rgba(0,0,0,0.25)" }}>
+              <span style={{ flex: 1, minWidth: 0 }}>{exToast.text}</span>
+              {exToast.undo && <button type="button" onClick={function() { var u = exToast.undo; setExToast(null); if (u) u(); }} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid #fff", background: "transparent", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Undo</button>}
+            </div>}
+            <div style={{ textAlign: "center" }}><div role="heading" aria-level={2} style={{ fontSize: 16, fontWeight: 800 }}>Week {currentWeek}</div><div style={{ fontSize: 10, color: "#475569" }}>{weekLabel}</div></div>
             <div style={{ width: 36 }}></div>
           </div>
           
           
           
           {/* Day Cards */}
+          <StepsWeek p={p} />{/* v2.60.0: the week's steps (with the steps feature) */}
           
 
           <div style={{ display: "flex", gap: 0, background: accentMid, borderRadius: "8px 8px 0 0", padding: 2, marginBottom: 0 }}>
-            {["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].map(function(d) { var dl = {sunday:"Sun",monday:"Mon",tuesday:"Tue",wednesday:"Wed",thursday:"Thu",friday:"Fri",saturday:"Sat"}; return (<button key={d} onClick={function(){setExerciseDay(d);setSelectedEx(null);setFbExpanded(false);setLogEx(null);}} style={{flex:1,padding:"6px 2px",border:"none",borderRadius:6,fontSize:10,fontWeight:600,cursor:"pointer",background:exerciseDay===d?"#fff":"transparent",color:exerciseDay===d?"#0f172a":"#94a3b8",lineHeight:1.2}}>{dl[d]}</button>);})}
+            {["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].map(function(d) { var dl = {sunday:"Sun",monday:"Mon",tuesday:"Tue",wednesday:"Wed",thursday:"Thu",friday:"Fri",saturday:"Sat"}; return (<button key={d} onClick={function(){setExerciseDay(d);setSelectedEx(null);setFbExpanded(false);setLogEx(null);}} style={{flex:1,padding:"6px 2px",border:"none",borderRadius:6,fontSize:10,fontWeight:600,cursor:"pointer",background:exerciseDay===d?"#fff":"transparent",color:exerciseDay===d?"#0f172a":"#e2e8f0",lineHeight:1.2}}>{dl[d]}</button>);})}
           </div>
           {[exerciseDay].map(function(day) {
             var label = dayLabels[day] || day.charAt(0).toUpperCase() + day.slice(1);
@@ -194,60 +269,103 @@ export default function ExerciseSection({ ctx }) {
             var setDv = function(v) { setDayView(function(prev) { var n = Object.assign({}, prev); n[day] = v; return n; }); };
             return (<div key={day} style={{ marginBottom: 16 }}>
                                           <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", overflow: "hidden" }}>
-                <div style={{ padding: "8px 12px 0", fontSize: 13, fontWeight: 800, color: "#0f172a" }}>{label}</div>
+                <div role="heading" aria-level={3} style={{ padding: "8px 12px 0", fontSize: 13, fontWeight: 800, color: "#0f172a" }}>{label}</div>
+                {(function() { var ws = new Date(); ws.setHours(12, 0, 0, 0); ws.setDate(ws.getDate() - ws.getDay()); var dt = new Date(ws); dt.setDate(ws.getDate() + ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].indexOf(day)); if (stepsShown()) return <StepsDay p={p} date={dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0")} style={{ padding: "2px 12px 0" }} />;   /* v2.60.0: the steps line (— / Connect my steps) */ var key = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0"); var a = p.dailyActivity && p.dailyActivity[key]; return a && a.steps != null ? <div data-testid="day-steps" style={{ padding: "2px 12px 0", fontSize: 11, color: "#334155" }}>👣 {Number(a.steps).toLocaleString("en-GB")} steps{a.source ? " (" + a.source + ")" : ""}</div> : null; })() /* v2.17.1: steps from Google/Apple Health on this day */}
                 {/* ACTIVITY TAB */}
                 {dv === "activity" && (<div>
                 <div style={{ background: accentLight, borderRadius: 8, padding: "4px 12px 12px", margin: 8, border: "1px solid " + accentBorder }}>
                   {/* Session Warm-Up */}
                   {p.sessionGuides && p.sessionGuides[day] && p.sessionGuides[day].warmup && (
                     <div style={{ padding: "8px 6px 10px", borderBottom: "1px solid #e2e8f0", marginBottom: 2 }}>
-                      <div onClick={() => setWarmUpOpen(!warmUpOpen)} style={{ fontSize: 10, fontWeight: 700, color: "#ea580c", textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: 4, cursor: "pointer", userSelect: "none" }}>🔥 Warm-Up <span style={{ fontSize: 9, fontWeight: 400, color: "#94a3b8", textTransform: "none", letterSpacing: 0 }}>~3 min</span> <span style={{ marginLeft: "auto", fontSize: 10, color: "#94a3b8", transform: warmUpOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span></div>
+                      <div onClick={() => setWarmUpOpen(!warmUpOpen)} style={{ fontSize: 10, fontWeight: 700, color: "#9a3412", textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: 4, cursor: "pointer", userSelect: "none" }}>🔥 Warm-Up <span style={{ fontSize: 9, fontWeight: 400, color: "#475569", textTransform: "none", letterSpacing: 0 }}>~3 min</span> <span style={{ marginLeft: "auto", fontSize: 10, color: "#475569", transform: warmUpOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span></div>
                       {warmUpOpen && <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.6, whiteSpace: "pre-wrap", marginTop: 6 }}>{p.sessionGuides[day].warmup}</div>}
                     </div>
                   )}
                   {(function() { var _renderEx = function(ex, i) { return (<div key={i} id={"ex-" + day + "-" + i} style={{ padding: "10px 3px", borderBottom: i < exList.length - 1 ? "1px solid #cbd5e1" : "none", position: "relative" }}>
                     {editExercise && editExercise.day === day && editExercise.idx === i ? (
                       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                        <select value={ex.name} onChange={function(e) { renameExercise(day, i, e.target.value); }} style={{ ...inputStyle, flex: 1 }}>
-                          {allExNames.map(function(n) { return <option key={n} value={n}>{n}</option>; })}
-                        </select>
+                        <SheetSelect label="Exercise" title="Choose an exercise" testId="ex-choice" value={ex.name} options={allExNames.map(function(n) { return { value: n, label: n }; })} onChange={function(v) { renameExercise(day, i, v); }} style={{ flex: 1 }} />
                         <button onClick={function() { removeExercise(day, i); }} style={btnDelete}>🗑 Remove</button>
                         <button onClick={function() { setEditExercise(null); }} style={btnS}>Cancel</button>
                       </div>
                     ) : (<>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }} onClick={function() { var curType=ex.exType||getExerciseType(ex.name);var tc=getExerciseTypeConfig(curType);var curM2=(ex.reps||tc.defaultM2).replace(/x\d+$/,"");setSelectedEx({day:day,idx:i});setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:ex.current||tc.defaultM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",exerciseGuide:ex.exerciseGuide||"",prePostGuide:ex.prePostGuide||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});setAddExOpen(false); }}>{ex.name} <span style={{ fontSize: 9, color: "#94a3b8" }}>✎</span></div>
-                          <div style={{ color: "#64748b", fontSize: 11, fontWeight: 500 }}>{(ex.prog && ex.prog.length && setsDiffer(ex.prog[ex.prog.length - 1])) ? weightLabel(ex.prog[ex.prog.length - 1]) : ex.current} · {ex.reps}{ex.exType && ex.exType !== "weights" && <span style={{fontSize:9,color:"#94a3b8",marginLeft:6}}>{EXERCISE_TYPES[ex.exType] ? EXERCISE_TYPES[ex.exType].label : ""}</span>}</div>
-                          {ex.status && <div style={{ marginTop: 3 }}><span style={{ fontSize: 9, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap", border: "1px solid " + sColor(ex.status) + "40" }}>{sLabel(ex.status)}</span></div>}
+                          <div style={{ fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }} onClick={function() { var curType=ex.exType||getExerciseType(ex.name);var tc=getExerciseTypeConfig(curType);var curM2=(ex.reps||tc.defaultM2).replace(/x\d+$/,"");setSelectedEx({day:day,idx:i});setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:ex.current||tc.defaultM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",exerciseGuide:ex.exerciseGuide||"",prePostGuide:ex.prePostGuide||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});setAddExOpen(false); }}>{ex.name} <span style={{ fontSize: 9, color: "#475569" }}>✎</span></div>
+                          <div style={{ color: "#475569", fontSize: 11, fontWeight: 500 }}><span data-testid="ex-headline">{targetHeadline(ex) || (isCardioEx(ex) ? cardioHeadline(ex) : <>{(ex.prog && ex.prog.length && setsDiffer(ex.prog[ex.prog.length - 1]) && !(ex.progressionValue && ex.progressionSetWk)) ? weightLabel(ex.prog[ex.prog.length - 1]) : showMeasure(displayCurrent(ex))} · {showMeasure(ex.reps)}</>)}</span>{ex.exType && ex.exType !== "weights" && <span style={{fontSize:9,color:"#475569",marginLeft:6}}>{EXERCISE_TYPES[ex.exType] ? EXERCISE_TYPES[ex.exType].label : ""}</span>}</div>
+                          {autoDerivedTarget(ex) && !ex.stopped && <div data-testid="ex-set-next" style={{ fontSize: 10, color: "#1e3a5f", marginTop: 2 }}>→ Set my next session (in My Companion Session Feedback)</div>}   {/* v2.41.0 (night batch P4b): an app-worked-out target is ignored */}
+                          {!ex.stopped && (function() { var _st = pillOf(ex.status), _pl = PILLS[_st], _wkE = (ex.prog || []).find(function(pp) { return parseInt(pp.wk, 10) === currentWeek; }); /* v2.42.0 (night batch P3): three pills; older statuses shown as one of them; a greyed Skipped marker */
+                            return (<div style={{ marginTop: 3 }} data-derived-status={!ex.status ? "1" : undefined}>
+                              <span data-testid="ex-status" style={{ fontSize: 9, fontWeight: 600, color: _pl.color, background: _pl.bg, padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap", border: "1px solid " + _pl.color + "40" }}>{_pl.label}</span>
+                              {isSkippedEntry(_wkE) && <span data-testid="ex-skipped-pill" style={{ marginLeft: 4, fontSize: 9, fontWeight: 600, color: SKIPPED_PILL.color, background: SKIPPED_PILL.bg, padding: "2px 7px", borderRadius: 20, border: "1px solid #cbd5e1" }}>Skipped</span>}
+                            </div>); })()}
                         </div>
                         <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0,alignItems:"flex-end"}}>
-                        <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} style={selectedEx&&selectedEx.day===day&&selectedEx.idx===i?btnFilledOn:btnProgress}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕ Progress":"👁 Progress"}</button>
+                        <button onClick={function(){if(selectedEx&&selectedEx.day===day&&selectedEx.idx===i){setSelectedEx(null);setLogEx(null);}else{setSelectedEx({day:day,idx:i});setLogEx(null);}}} aria-label={(selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"Close ":"")+(ex.name||"exercise")+" progress"} aria-expanded={!!(selectedEx&&selectedEx.day===day&&selectedEx.idx===i)} style={selectedEx&&selectedEx.day===day&&selectedEx.idx===i?btnFilledOn:btnProgress}>{selectedEx&&selectedEx.day===day&&selectedEx.idx===i?"✕ Progress":"👁 Progress"}</button>
                         {!ex.stopped && <button onClick={function(){setSelectedEx({day:day,idx:i});openLogForm(day,i);}} style={btnLog}>📋 Log</button>}
                         </div>
                       </div>
-                      {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 6 }}>📋 {ex.notes}</div>}
+                      {ex.notes && <div data-testid="ex-notes" style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 6 }}>📋 {tidyNotes(ex.notes)}</div>}
+                      {measureProse(ex) && <div data-testid="ex-plan-note" style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "3px 6px", borderRadius: 4, marginTop: 4 }}>📋 Plan: {measureProse(ex)}</div>}   {/* v2.49.0 (P1c): words from an older plan, shown as a note */}
                     
                     {selectedEx&&selectedEx.day===day&&selectedEx.idx===i&&(<div ref={scrollOnMount} data-testid="ex-progress-panel" style={{marginTop:10,padding:12,background:accentLight,borderRadius:8,border:"1px solid "+accentBorder,width:"100%"}}>
-                      {ex.stopped ? <div style={{fontSize:11,color:"#64748b",background:"#f1f5f9",padding:"8px 10px",borderRadius:6,textAlign:"center"}}>⏸ Stopped — view only. Restart in Exercise Settings to log again.</div> : <button onClick={function() { openLogForm(day, i); }} style={btnActionLg}>📋 Log {ex.name}</button>}
+                      {(function() { var _nx = prefillFrom(ex, latestEntry(ex.prog)); var _mu = measureOf(ex).unit; return _nx ? <div data-testid="progress-next" style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 8 }}>Next session: {targetHeadline(ex) || (_mu === "kg" ? _nx.w + " kg × " + _nx.r : _nx.r + " " + _mu)} ({_nx.source})</div> : null; })()}
+                      {ex.stopped ? <div style={{fontSize:11,color:"#475569",background:"#f1f5f9",padding:"8px 10px",borderRadius:6,textAlign:"center"}}>⏸ Stopped — view only. Restart in Exercise Settings to log again.</div> : <button onClick={function() { openLogForm(day, i); }} style={btnActionLg}>📋 Log {ex.name}</button>}
                       {logEx && logEx.day === day && logEx.idx === i && (() => {
             const ex = p.exercises[logEx.day] && p.exercises[logEx.day][logEx.idx]; if (!ex) return null;
-            const prev = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null;
+            const prev = previousEntry(ex.prog, currentWeek); // D23: latest logged week before the current week
             return (<div ref={logFormRef} style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginTop: 10, marginBottom: 14 }}>
               <div data-testid="log-for" style={{ fontSize: 11, fontWeight: 700, color: accent, marginBottom: 2 }}>Logging for {personName(data, activeTab)}</div>
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Log: {ex.name}</div>
-              <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>Previous: {prev ? fmtEntry(prev) + " (Wk " + prev.wk + ")" : "No data"}</div>
+              <div style={{ fontSize: 11, color: "#475569", marginBottom: 6 }}><span data-testid="log-previous">Previous: {prev ? (isCardioEx(ex) ? (isProse(prev.w) ? "—" : String(prev.w || "").replace(/kg$/i, "") + " min") + (prev.r && String(prev.r) !== "0" ? " · " + (isProse(prev.r) ? "—" : prev.r + " km") : "") : fmtEntry(prev)) + " (Wk " + prev.wk + ")" : "No data"}</span></div>
+              {(function() { var _nx = prefillFrom(ex, prev); var _mu = measureOf(ex).unit; return _nx ? <div data-testid="log-progression" style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>Progression: {targetHeadline(ex) || (_mu === "kg" ? _nx.w + " kg × " + _nx.r : _nx.r + " " + _mu)} ({_nx.source}) — pre-filled below</div> : null; })()}
               {prevComment && (<div style={{ padding: 8, background: "#fef3c7", borderRadius: 8, marginBottom: 8, border: "1px solid #fcd34d" }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>📋 NOTES FROM LAST SESSION</div>
                 <div style={{ fontSize: 11, color: "#92400e", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{prevComment}</div>
               </div>)}
-              {prev && <button onClick={() => { setEditPrev(!editPrev); if (!editPrev) { setLogSets(logSetsFrom(prev, 3)); setLogWeek(String(prev.wk)); } else { setLogSets(logSetsFrom(prev, 3).map(function(x) { return { w: x.w, r: "" }; })); (function() { var mwk = 0; var cex = data[activeTab].exercises[logEx.day][logEx.idx]; if (cex && cex.prog) { for (var mi = 0; mi < cex.prog.length; mi++) { if (cex.prog[mi].wk > mwk) mwk = cex.prog[mi].wk; } } setLogWeek(String(mwk > 0 ? mwk + 1 : calcWeek(data.config.trainingStart))); })(); } }} style={{ ...btnST, marginBottom: 8, fontSize: 11, background: editPrev ? "#fef3c7" : "#f1f5f9" }}>{editPrev ? "Cancel Edit — Log New Instead" : "Edit Previous Entry"}</button>}
-              <div style={{ marginBottom: 8 }}><label style={labelStyle}>Week</label><input type="number" value={logWeek} onChange={e => setLogWeek(e.target.value)} style={{ ...inputStyle, width: 80 }} /></div>
+              {/* v2.40.0 (night batch P2b): last week's Companion feedback for this exercise — yellow, hidden every time the form opens */}
+              {(function() { var lc = prev && (prev.companion || companionFromSession(sessionFeedback, activeTab, logEx.day, ex.name, prev.wk)); if (!lc || !(lc.recommendation || lc.verdict)) return null;
+                return (<details data-testid="log-fb" onToggle={function(e) { var t = e.currentTarget.querySelector("[data-fb-toggle]"); if (t) t.textContent = e.currentTarget.open ? "Hide" : "Show"; }} style={{ padding: 8, background: "#fef3c7", borderRadius: 8, marginBottom: 8, border: "1px solid #fcd34d", color: "#92400e" }}>
+                  <summary style={{ fontSize: 10, fontWeight: 700, cursor: "pointer", display: "flex", justifyContent: "space-between", listStyle: "none" }}><span>💬 COMPANION FEEDBACK (WEEK {prev.wk})</span><span data-fb-toggle="1" style={{ textDecoration: "underline" }}>Show</span></summary>
+                  <div style={{ fontSize: 11, lineHeight: 1.5, marginTop: 4 }}>
+                    {lc.recommendation && <div><b>Recommendation:</b> {lc.recommendation}</div>}
+                    {lc.verdict && <div><b>Why:</b> {lc.verdict}</div>}
+                    <div data-testid="log-fb-decision"><b>You:</b> {lc.decision === "accepted" ? "accepted it" : lc.decision === "rejected" || lc.decision === "declined" ? "didn't accept it" : "didn't decide"}{lc.decisionNote ? " — " + lc.decisionNote : ""}</div>
+                  </div>
+                </details>); })()}
+              {/* v2.40.0 (night batch P2c): one small line — range + why */}
+              {(function() { var st = displayStatus(ex, autoStatus), why = whyLine(ex, st), rl = rangeLabel(ex); return (why || rl) ? <div data-testid="log-why" style={{ fontSize: 10, color: "#475569", marginBottom: 6, lineHeight: 1.4 }}>{rl && <b style={{ color: "#334155" }}>{rl} · </b>}{why}</div> : null; })()}
+              {prev && <button onClick={() => { setEditPrev(!editPrev); if (!editPrev) { window._lcEditWk = prev.wk; setLogSets(logSetsFrom(prev, 3)); setLogWeek(String(prev.wk)); setLogFullRange(prev.fullRange || ""); setLogGoodForm(prev.goodForm || ""); setLogComment(prev.note || ""); } else { setLogSets(logSetsFrom(prev, 3).map(function(x) { return { w: x.w, r: "" }; })); window._lcEditWk = null; setLogWeek(String(currentWeek)); setLogFullRange(""); setLogGoodForm(""); setLogComment(""); } }} style={{ ...btnST, marginBottom: 8, fontSize: 11, background: editPrev ? "#fef3c7" : "#f1f5f9" }}>{editPrev ? "Cancel Edit — Log New Instead" : "Edit Previous Entry"}</button>}
+              <div style={{ marginBottom: 8 }}><label htmlFor="log-week" style={labelStyle}>Week</label><input id="log-week" type="number" inputMode="numeric" value={logWeek} onChange={e => setLogWeek(e.target.value)} style={{ ...inputStyle, width: 80 }} /></div>
+              <div data-testid="log-sets" aria-disabled={logSkipped || undefined} style={{ opacity: logSkipped ? 0.45 : 1 }}>
               {(() => { var exTypeName = ex.exType || getExerciseType(ex.name); var etc = getExerciseTypeConfig(exTypeName); var numSets = ex.sets || 3; var showM1 = etc.metric1 !== "none"; var m1ph = etc.metric1Label ? etc.metric1Label.replace(/\s*\(.*\)/,"") : "value"; var m2ph = etc.metric2Label ? etc.metric2Label.replace(/\s*\(.*\)/,"") : "value"; var showM2 = etc.metric2 !== "none"; var setsLabel = etc.hasSets ? "Sets" : "Log"; return (<div><div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>{etc.hasSets ? setsLabel + " (" + (showM1 ? m1ph : "") + (showM1 && showM2 ? " × " : "") + (showM2 ? m2ph : "") + ")" : "Log (" + (showM1 ? m1ph : "") + (showM1 && showM2 ? " / " : "") + (showM2 ? m2ph : "") + ")"}</div>
-              {logSets.slice(0, etc.hasSets ? numSets : 1).map((s, i) => (<div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}>{etc.hasSets && <span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", width: 20 }}>S{i + 1}</span>}{showM1 && <input type="number" placeholder={m1ph} value={s.w} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], w: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} />}{showM1 && showM2 && <span style={{ color: "#94a3b8" }}>×</span>}{showM2 && <input type="number" placeholder={m2ph} value={s.r} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], r: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} />}</div>))}</div>); })()}
+              {logSets.slice(0, etc.hasSets ? numSets : 1).map((s, i) => (<div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}>{etc.hasSets && <span style={{ fontSize: 12, fontWeight: 600, color: "#475569", width: 20 }}>S{i + 1}</span>}{showM1 && <input type="number" disabled={logSkipped} placeholder={m1ph} value={s.w} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], w: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} />}{showM1 && showM2 && <span style={{ color: "#475569" }}>×</span>}{showM2 && <input type="number" disabled={logSkipped} placeholder={m2ph} value={s.r} onChange={e => { const n = [...logSets]; n[i] = { ...n[i], r: e.target.value }; setLogSets(n); }} style={{ ...inputStyle, width: 80 }} />}</div>))}</div>); })()}
+              </div>
 
+              {/* v2.40.0 (night batch P2e): Skipped this session — between the sets and Session Quality */}
+              <label data-testid="log-skipped" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, fontSize: 12, fontWeight: 600, color: "#334155", cursor: "pointer" }}>
+                <input type="checkbox" checked={!!logSkipped} onChange={function(e) { setLogSkipped(e.target.checked); setLogNeedChoice(""); }} style={{ width: 18, height: 18 }} /> Skipped this session
+                <span style={{ fontWeight: 400, color: "#475569", fontSize: 11 }}>{logSkipped ? "— add why in My Notes if you like" : ""}</span>
+              </label>
+              {skipCheckIn(ex) && <div data-testid="log-skip-checkin" role="note" style={{ fontSize: 11, color: "#1e3a5f", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 6, padding: "4px 8px", marginTop: 4 }}>{skipCheckIn(ex)}</div>}
               {/* Quality toggles — Full Range / Completed in One + Good Form */}
-              {(() => { var exTypeName2 = ex.exType || getExerciseType(ex.name); var isWeightType = ["weights","bodyweight","timed_hold","stretching"].indexOf(exTypeName2) >= 0; var toggle1Label = isWeightType ? "Full Range of Motion" : "Completed in One"; var toggle1Tip = isWeightType ? "Full controlled movement through the complete range" : "Completed without stopping and restarting";
+              {isCardioEx(ex) ? (<>   {/* v2.47.0 (brief 24 Nov P2): cardio — How hard did it feel? (Form only where it makes sense, e.g. rowing) */}
+              <div data-testid="session-quality" data-kind="cardio" style={{ marginTop: 10, padding: 10, background: accentLight, borderRadius: 8, border: "1px solid " + accentBorder }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#475569", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Session Quality</div>
+                {[["effort", "How hard did it feel?", logEffort, setLogEffort, EFFORT]].concat(cardioHasForm(ex) ? [["form", "Good Form", logGoodForm, setLogGoodForm, [["working", "Working towards"], ["good", "Good"]]]] : []).map(function(q) { var missing = !!logNeedChoice && !q[2]; return (
+                  <div key={q[0]} style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#334155", marginBottom: 4 }}>{q[1]}</div>
+                    <div data-testid={"quality-" + q[0]} data-missing={missing ? "true" : "false"} style={{ display: "flex", borderRadius: 8, overflow: "hidden", background: "#fff", border: missing ? "2px solid #dc2626" : "1px solid #cbd5e1" }}>
+                      {q[4].map(function(o, oi) { var sel = q[2] === o[0]; var on = o[0] === "hard" || o[0] === "working" ? "#b45309" : "#166534"; return (
+                        <button key={o[0]} type="button" aria-pressed={sel} onClick={function() { q[3](o[0]); }} style={{ flex: 1, padding: "9px 4px", border: "none", borderLeft: oi ? "1px solid #cbd5e1" : "none", fontSize: 12, fontWeight: sel ? 700 : 500, cursor: "pointer", background: sel ? on : "#fff", color: sel ? "#fff" : "#334155", minHeight: 24 }}>{o[1]}</button>
+                      ); })}
+                    </div>
+                  </div>
+                ); })}
+                <div style={{ fontSize: 9, color: "#475569", marginTop: 2, fontStyle: "italic" }}>Easy or About right lets the pill move up when you reach your target; Very hard keeps it at Consolidate.</div>
+              </div>
+              {logNeedChoice && (!logEffort || (cardioHasForm(ex) && !logGoodForm)) && <div role="alert" data-testid="log-need-choice" style={{ marginTop: 6, fontSize: 12, fontWeight: 700, color: "#b91c1c" }}>{logNeedChoice}</div>}
+              </>) : (() => { var exTypeName2 = ex.exType || getExerciseType(ex.name); var isWeightType = ["weights","bodyweight","timed_hold","stretching"].indexOf(exTypeName2) >= 0; var toggle1Label = isWeightType ? "Full Range of Motion" : "Completed in One"; var toggle1Tip = isWeightType ? "Full controlled movement through the complete range" : "Completed without stopping and restarting";
               return (<>
               <div data-testid="session-quality" style={{ marginTop: 10, padding: 10, background: accentLight, borderRadius: 8, border: "1px solid " + accentBorder }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#475569", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Session Quality</div>
@@ -261,26 +379,23 @@ export default function ExerciseSection({ ctx }) {
                     </div>
                   </div>
                 ); })}
-                <div style={{ fontSize: 9, color: "#94a3b8", marginTop: 2, fontStyle: "italic" }}>{toggle1Tip}</div>
+                <div style={{ fontSize: 9, color: "#475569", marginTop: 2, fontStyle: "italic" }}>{toggle1Tip}</div>
               </div>
-              {logNeedChoice && (!logFullRange || !logGoodForm) && <div role="alert" data-testid="log-need-choice" style={{ marginTop: 6, fontSize: 12, fontWeight: 700, color: "#dc2626" }}>{logNeedChoice}</div>}
+              {logNeedChoice && (!logFullRange || !logGoodForm) && <div role="alert" data-testid="log-need-choice" style={{ marginTop: 6, fontSize: 12, fontWeight: 700, color: "#b91c1c" }}>{logNeedChoice}</div>}
               </>); })()}
 
               <div style={{ marginTop: 8 }}>
-                <label style={labelStyle}>Progression</label>
-                <select value={logOverride} onChange={function(e) { setLogOverride(e.target.value); }} style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, marginBottom: 8, background: logOverride === "move_up" ? "#e0f2fe" : logOverride === "hold" ? "#fef3c7" : logOverride === "reduce" ? "#fee2e2" : "#fff" }}>
-                  <option value="standard">Standard (follow progression rules)</option>
-                  <option value="move_up">Move Up (override — ready to increase weight)</option>
-                  <option value="hold">Hold (override — maintain current weight)</option>
-                  <option value="reduce">Reduce (override — drop weight)</option>
+                <label htmlFor="log-progression-select" style={labelStyle}>Progression</label>
+                <select id="log-progression-select" value={logOverride} onChange={function(e) { setLogOverride(e.target.value); }} style={{ width: "100%", padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12, marginBottom: 8, background: logOverride === "reduce" ? "#fee2e2" : logOverride === "maintain" ? "#fef3c7" : logOverride === "reduce" ? "#fee2e2" : "#fff" }}>
+                  {PROGRESSION.map(function(o) { return <option key={o[0]} value={o[0]}>{o[1]}</option>; })}   {/* v2.42.0 (night batch P3): exactly these three */}
                 </select>
               </div>
-              <div style={{ marginTop: 4 }}><label style={labelStyle}>Notes (carried to next session)</label><textarea value={logComment} onChange={e => setLogComment(e.target.value)} placeholder="Notes for next session..." style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
+              <div style={{ marginTop: 4 }}><label htmlFor="log-notes" style={labelStyle}>My Notes (carried to next session)</label><textarea id="log-notes" value={logComment} onChange={e => setLogComment(e.target.value)} placeholder="Notes for next session..." style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} /></div>
               <div style={{ marginTop: 8, marginBottom: 4 }}>
                 <div style={{ display: "flex", background: accentMid, borderRadius: 6, padding: 2, marginBottom: 6 }}>
                   <PersonTabs testId="log-person-tabs" people={peopleOf(data)} activeKey={activeTab} rowStyle={{ gap: 0 }}
                     tabStyle={{ padding: "5px 10px", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}
-                    activeStyle={{ background: "#fff", color: "#0f172a" }} inactiveStyle={{ background: "transparent", color: "rgba(255,255,255,0.7)" }}
+                    activeStyle={{ background: "#fff", color: "#0f172a" }} inactiveStyle={{ background: "transparent", color: "rgba(255,255,255,0.9)" }}
                     onSelect={function(tab) {
                       // Save current form state before switching
                       if (!window._dualLogState) window._dualLogState = {};
@@ -308,7 +423,7 @@ export default function ExerciseSection({ ctx }) {
                         if (otherEx) {
                           var otherCurWk = calcWeek(data.config.trainingStart);
                           var otherCurEntry = null;
-                          if (otherEx.prog) { for (var oci = 0; oci < otherEx.prog.length; oci++) { if (otherEx.prog[oci].wk === otherCurWk) { otherCurEntry = otherEx.prog[oci]; break; } } }
+                          var _oci = findWeekIdx(otherEx.prog, otherCurWk); if (_oci >= 0) otherCurEntry = otherEx.prog[_oci]; // D23
                           if (otherCurEntry) {
                             // Current week data exists — pre-fill from it
                             var ocReps = otherCurEntry.r ? parseReps(otherCurEntry.r) : [];
@@ -325,25 +440,26 @@ export default function ExerciseSection({ ctx }) {
                             window._dualLogState[tab] = { sets: ocSets, comment: ocComment, override: "standard", week: String(otherCurWk), fullRange: ocFR, goodForm: ocGF, _edited: false, _orig: { sets: ocSets.map(function(s){return s.w+"x"+s.r;}).join(","), comment: ocComment } };
                           } else {
                             // No current week data — load from last entry as before
-                            var otherLast = otherEx.prog && otherEx.prog.length > 0 ? otherEx.prog[otherEx.prog.length - 1] : null;
+                            var otherLast = previousEntry(otherEx.prog, otherCurWk); // D23
                             var oReps = otherLast && otherLast.r ? parseReps(otherLast.r) : [];
                             var oSets = otherLast ? logSetsFrom(otherLast, 3) : [{ w: "", r: "" }, { w: "", r: "" }, { w: "", r: "" }];
                             setLogSets(oSets);
                             setLogComment("");
-                            setLogOverride("standard");
+                            setLogOverride("standard"); setLogWeek(String(otherCurWk)); // D23: never inherit the other person's week
                             var olFR = ""; var olGF = ""; // D12: a new entry starts unselected
                             setLogFullRange(olFR); setLogGoodForm(olGF);
                             // Record original state for edit detection
                             if (!window._dualLogState) window._dualLogState = {};
-                            window._dualLogState[tab] = { sets: oSets, comment: "", override: "standard", week: logWeek, fullRange: olFR, goodForm: olGF, _edited: false, _orig: { sets: oSets.map(function(s){return s.w+"x"+s.r;}).join(","), comment: "" } };
+                            window._dualLogState[tab] = { sets: oSets, comment: "", override: "standard", week: String(otherCurWk), fullRange: olFR, goodForm: olGF, _edited: false, _orig: { sets: oSets.map(function(s){return s.w+"x"+s.r;}).join(","), comment: "" } };
                           }
                         }
                       }
                     }} />
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 10 }}><button onClick={saveLog} disabled={!logSets[0].r} style={{ ...btnP(!!logSets[0].r), flex: 1 }}>{editPrev ? "Update" : "Save"}</button><button onClick={() => setLogEx(null)} style={btnS}>Cancel</button></div>
-              <p style={{ fontSize: 9, color: "#94a3b8", textAlign: "center", margin: "8px 0 0", fontStyle: "italic", lineHeight: 1.3 }}>It's important to track accurate and honest information for your companion to give you the most appropriate feedback</p>
+              <FloatingSave targetId="log-actions" onClick={saveLog} disabled={!logSets[0].r} label={editPrev ? "Update" : "Save"} />{/* v2.20.0: Save stays reachable on the long log form */}
+              <div id="log-actions" data-testid="log-actions" style={{ display: "flex", gap: 8, marginTop: 10 }}><button onClick={saveLog} disabled={!logSets[0].r} style={{ ...btnP(!!logSets[0].r), flex: 1 }}>{editPrev ? "Update" : "Save"}</button><button onClick={() => setLogEx(null)} style={btnS}>Cancel</button></div>
+              <p style={{ fontSize: 9, color: "#475569", textAlign: "center", margin: "8px 0 0", fontStyle: "italic", lineHeight: 1.3 }}>It's important to track accurate and honest information for your companion to give you the most appropriate feedback</p>
             </div>);
           })()}
                     
@@ -352,20 +468,21 @@ export default function ExerciseSection({ ctx }) {
                   {exList.filter(function(x,xi){return xi===i;}).map(function(ex) { var exIdx = i; return (<div key={exIdx} style={{ marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid #e2e8f0" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{ex.name}</div>
-                      {ex.status && <span style={{ fontSize: 10, fontWeight: 600, color: sColor(ex.status), background: sBg(ex.status), padding: "2px 8px", borderRadius: 20, border: "1px solid " + sColor(ex.status) + "40" }}>{sLabel(ex.status)}</span>}
+                      {ex.status && (function() { var _pp = PILLS[pillOf(ex.status)]; return <span style={{ fontSize: 10, fontWeight: 600, color: _pp.color, background: _pp.bg, padding: "2px 8px", borderRadius: 20, border: "1px solid " + _pp.color + "40" }}>{_pp.label}</span>; })()}
                     </div>
-                    {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "4px 8px", borderRadius: 4, marginBottom: 6 }}>{ex.notes}</div>}
-                    {(() => { var _etc = getExerciseTypeConfig(ex.exType || getExerciseType(ex.name)); var _h1 = _etc.metric1 !== "none" ? _etc.metric1Label.replace(/\s*\(.*\)/,"").toUpperCase() : ""; var _h2 = _etc.metric2 !== "none" ? _etc.metric2Label.replace(/\s*\(.*\)/,"").toUpperCase() : ""; return (<div style={{ display: "flex", gap: 6, padding: "3px 0", marginBottom: 2, fontSize: 9, color: "#94a3b8", fontWeight: 600 }}>
+                    {ex.notes && <div style={{ fontSize: 10, color: "#92400e", background: "#fef3c7", padding: "4px 8px", borderRadius: 4, marginBottom: 6 }}>{tidyNotes(ex.notes)}</div>}
+                    {(() => { var _etc = getExerciseTypeConfig(ex.exType || getExerciseType(ex.name)); var _h1 = _etc.metric1 !== "none" ? _etc.metric1Label.replace(/\s*\(.*\)/,"").toUpperCase() : ""; var _h2 = _etc.metric2 !== "none" ? _etc.metric2Label.replace(/\s*\(.*\)/,"").toUpperCase() : ""; return (<div style={{ display: "flex", gap: 6, padding: "3px 0", marginBottom: 2, fontSize: 9, color: "#475569", fontWeight: 600 }}>
                       <span style={{ width: 40 }}>WEEK</span>{_h1 && <span style={{ width: 55 }}>{_h1}</span>}{_h2 && <span style={{ width: 65 }}>{_h2}</span>}<span style={{ flex: 1 }}></span>
                     </div>); })()}
                     {ex.prog && ex.prog.slice().reverse().slice(0, selectedEx && selectedEx.showAll ? 999 : 4).map(function(pr, pi) { var realPi = ex.prog.length - 1 - pi; return (<div key={pi}><div style={{ display: "flex", gap: 4, alignItems: "center", padding: "3px 0", borderBottom: "1px solid #f8fafc", fontSize: 11, overflow: "hidden" }}>
                       <span data-testid="prog-wk" style={{ width: 40, textAlign: "center", fontWeight: 600, color: "#334155" }}>{pr.wk}</span>
+                      {isSkippedEntry(pr) ? <span data-testid="prog-skipped" style={{ width: 135, fontSize: 11, color: "#64748b", fontStyle: "italic" }}>Skipped{pr.note ? " — " + pr.note : ""}</span> : <>   {/* v2.37.0: a skipped week, greyed */}
                       <span data-testid="prog-weight" style={{ width: 70, fontSize: 11 }}>{weightLabel(pr) || pr.w}</span>
-                      <span style={{ width: 65, fontSize: 11 }}>{pr.r}</span>
-                      <span style={{ flex: 1, minWidth: 0, fontSize: 9, color: "#64748b" }}>{pr.goodForm || pr.fullRange ? "Form " + (pr.goodForm === "good" ? "✓" : pr.goodForm ? "…" : "–") + " · Range " + (pr.fullRange === "good" ? "✓" : pr.fullRange ? "…" : "–") : ""}</span>
-                      <button aria-label={"Open week " + pr.wk} onClick={function() { openEntry(day, exIdx, realPi); }} style={btnOpen}>Open</button>
-                    </div>{setsDiffer(pr) && <div data-testid="prog-sets" style={{ fontSize: 10, color: "#64748b", padding: "0 0 4px 44px" }}>Sets: {fmtEntry(pr)}</div>}{openProg && openProg.day === day && openProg.exIdx === exIdx && openProg.progIdx === realPi && renderEntryForm(ex)}</div>); })}
-                    {(!ex.prog || ex.prog.length === 0) && <div style={{ fontSize: 10, color: "#94a3b8" }}>No progression data yet</div>}
+                      <span style={{ width: 65, fontSize: 11 }}>{pr.r}</span></>}
+                      <span style={{ flex: 1, minWidth: 0 }}></span>
+                      <button aria-label={"Open week " + pr.wk} onClick={function() { openEntry(day, exIdx, realPi); }} style={Object.assign({}, btnOpen, { flexShrink: 0 })}>Open</button>
+                    </div>{setsDiffer(pr) && <div data-testid="prog-sets" style={{ fontSize: 10, color: "#475569", padding: "0 0 4px 44px" }}>Sets: {fmtEntry(pr)}</div>}{/* v2.16.4: Form/Range shown only inside the Open card (JC: pills under rows looked cluttered) */}{openProg && openProg.day === day && openProg.exIdx === exIdx && openProg.progIdx === realPi && renderEntryForm(ex)}</div>); })}
+                    {(!ex.prog || ex.prog.length === 0) && <div style={{ fontSize: 10, color: "#475569" }}>No progression data yet</div>}
                     {ex.prog && ex.prog.length > 4 && <button onClick={function(){setSelectedEx(Object.assign({},selectedEx,{showAll:!selectedEx.showAll}));}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:accent,cursor:"pointer",marginBottom:6}}>{selectedEx && selectedEx.showAll ? "▲ Show less" : "▼ View more (" + (ex.prog.length - 4) + " entries)"}</button>}
                     <button onClick={async function() { var nd = JSON.parse(JSON.stringify(data)); var wk = calcWeek(nd.config.trainingStart); var existWk = -1; for (var awi = 0; awi < nd[activeTab].exercises[day][exIdx].prog.length; awi++) { if (nd[activeTab].exercises[day][exIdx].prog[awi].wk === wk) { existWk = awi; break; } }
                       if (existWk >= 0) { if (!confirm("Week " + wk + " already exists. OK = Update, Cancel = Go back")) return; nd[activeTab].exercises[day][exIdx].prog[existWk].w = ex.current || "0kg"; nd[activeTab].exercises[day][exIdx].prog[existWk].r = ex.reps || "0"; } else { nd[activeTab].exercises[day][exIdx].prog.push({ wk: wk, w: ex.current || "0kg", r: ex.reps || "0", note: "" }); } var latestNote = nd[activeTab].exercises[day][exIdx].prog[nd[activeTab].exercises[day][exIdx].prog.length-1].note || ""; nd[activeTab].exercises[day][exIdx].notes = latestNote; await saveData(nd); setFormMsg("✓ Week " + wk + " added"); setTimeout(function() { setFormMsg(""); }, 2000); }} style={{...btnAction, marginTop: 4}}>+ Add Week</button>
@@ -374,37 +491,37 @@ export default function ExerciseSection({ ctx }) {
                     {ex.prog && ex.prog.length >= 2 && (() => {
                       var _chartTC = getExerciseTypeConfig(ex.exType || getExerciseType(ex.name));
                       var _numSets = ex.sets || 3;
-                      var repData = ex.prog.map(function(pr) { var w = parseFloat(pr.w) || 0; return { wk: pr.wk, v: w }; });
+                      var repData = ex.prog.filter(function(pp) { return !isSkippedEntry(pp); }).map(function(pr) { var w = parseFloat(pr.w) || 0; return { wk: pr.wk, v: w }; });
                       var chartSeries = [];
                       if (_chartTC.metric1 !== "none") {
                         chartSeries.push({ label: _chartTC.chartLabel1, color: accent, data: repData });
                         if (_chartTC.hasSets && _numSets > 1) {
-                          var setData = ex.prog.map(function(pr) { var w = parseFloat(pr.w) || 0; return { wk: pr.wk, v: w * _numSets }; });
-                          chartSeries.push({ label: _chartTC.chartLabel2, color: "#f59e0b", data: setData });
+                          var setData = ex.prog.filter(function(pp) { return !isSkippedEntry(pp); }).map(function(pr) { var w = parseFloat(pr.w) || 0; return { wk: pr.wk, v: w * _numSets }; });
+                          chartSeries.push({ label: _chartTC.chartLabel2, color: "#b45309", data: setData });
                         }
                       }
                       if (_chartTC.metric2 !== "none" && _chartTC.metric1 === "none") {
-                        var m2Data = ex.prog.map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r }; });
+                        var m2Data = ex.prog.filter(function(pp) { return !isSkippedEntry(pp); }).map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r }; });
                         chartSeries.push({ label: _chartTC.chartLabel1, color: accent, data: m2Data });
                         if (_chartTC.hasSets && _numSets > 1) {
-                          var totalData = ex.prog.map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r * _numSets }; });
-                          chartSeries.push({ label: _chartTC.chartLabel2, color: "#f59e0b", data: totalData });
+                          var totalData = ex.prog.filter(function(pp) { return !isSkippedEntry(pp); }).map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r * _numSets }; });
+                          chartSeries.push({ label: _chartTC.chartLabel2, color: "#b45309", data: totalData });
                         }
                       }
                       if (_chartTC.chartLabel2 && _chartTC.metric1 !== "none" && _chartTC.metric2 !== "none" && !_chartTC.hasSets) {
-                        var m2Data2 = ex.prog.map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r }; });
-                        chartSeries.push({ label: _chartTC.chartLabel2, color: "#f59e0b", data: m2Data2 });
+                        var m2Data2 = ex.prog.filter(function(pp) { return !isSkippedEntry(pp); }).map(function(pr) { var r = parseFloat(pr.r) || 0; return { wk: pr.wk, v: r }; });
+                        chartSeries.push({ label: _chartTC.chartLabel2, color: "#b45309", data: m2Data2 });
                       }
                       if (chartSeries.length === 0) return null;
                       return (<div style={{ marginTop: 12 }}>
                         <FullChart title={ex.name + " Progress"} series={chartSeries} height={140} />
                       </div>);
                     })()}
-                    {ex.prog && ex.prog.length < 2 && <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", padding: 12, marginTop: 8 }}>Need 2+ weeks of data to show chart</div>}
+                    {ex.prog && ex.prog.length < 2 && <div style={{ fontSize: 11, color: "#475569", textAlign: "center", padding: 12, marginTop: 8 }}>Need 2+ weeks of data to show chart</div>}
                     <div style={{marginTop:12}}>
                       <button onClick={function(){setExInfoOpen(!exInfoOpen);}} style={{background:"none",border:"1px solid #e2e8f0",borderRadius:6,padding:"6px 10px",fontSize:11,fontWeight:600,color:"#475569",cursor:"pointer",width:"100%",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                         <span>ℹ️ Exercise Information</span>
-                        <span style={{fontSize:9,color:"#94a3b8"}}>{exInfoOpen ? "▲" : "▼"}</span>
+                        <span style={{fontSize:9,color:"#475569"}}>{exInfoOpen ? "▲" : "▼"}</span>
                       </button>
                     </div>
                     {exInfoOpen && (<div>
@@ -422,7 +539,7 @@ export default function ExerciseSection({ ctx }) {
                     )}
 <div style={{marginTop:12}}>
                       <div style={{fontSize:11,fontWeight:700,color:"#0f172a",marginBottom:4}}>Progression Rules</div>
-                      <textarea value={ex.progressionNotes || "Progression: build reps to target then increase weight. User defines increment method and ranges."} onChange={async function(e) { var nd=JSON.parse(JSON.stringify(data)); var exs=nd[activeTab].exercises[day]; if(exs&&exs[i]) { exs[i].progressionNotes=e.target.value; await saveData(nd); }}} style={{width:"100%",padding:8,border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#475569",background:"#fff",minHeight:60,resize:"vertical",lineHeight:1.4,boxSizing:"border-box"}} />
+                      <textarea value={ex.progressionNotes || "Progression: build reps to target then increase weight. User defines increment method and ranges."} onChange={async function(e) { var nd=JSON.parse(JSON.stringify(data)); var exs=nd[activeTab].exercises[day]; if(exs&&exs[i]) { exs[i].progressionNotes=e.target.value; await saveData(nd); }}} style={{width:"100%",padding:8,border: "1px solid #cbd5e1",borderRadius: 8,fontSize:11,color:"#475569",background:"#fff",minHeight:60,resize:"vertical",lineHeight:1.4,boxSizing:"border-box"}} />
                     </div>
                     </div>)}
                     <div style={{marginTop:12,paddingTop:8,borderTop:"1px solid #e2e8f0"}}>
@@ -437,7 +554,7 @@ export default function ExerciseSection({ ctx }) {
                           setAddExConfirm({name:ex.name,type:curType,sets:ex.sets||3,m1:curM1,m2:curM2,progression:ex.progressionNotes||"Double progression: build reps to target then increase weight.",notes:ex.notes||"",exerciseGuide:ex.exerciseGuide||"",prePostGuide:ex.prePostGuide||"",isCustom:false,_editMode:true,_editDay:day,_editIdx:i});
                           setAddExOpen(false);
                         }} style={{...btnEdit,flex:1}}>✎ Edit</button>
-                        <button onClick={async function(){if(confirm("Delete "+ex.name+"?\n\nThis will permanently remove this exercise and all its progress history. This cannot be undone.")){var nd=JSON.parse(JSON.stringify(data));var exs=nd[activeTab].exercises[day];if(exs){exs.splice(i,1);await saveData(nd);setSelectedEx(null);setLogEx(null);}}}} style={{...btnDelete,flex:1}}>🗑 Delete</button>
+                        <button onClick={async function(){if(confirm("Delete "+ex.name+"?\n\nThis removes this exercise and all its progress history (you can Undo straight after).")){var nd=JSON.parse(JSON.stringify(data));var exs=nd[activeTab].exercises[day];if(exs){exs.splice(i,1);await saveData(nd);setSelectedEx(null);setLogEx(null);}}}} style={{...btnDelete,flex:1}}>🗑 Delete</button>
                       </div>
                       <button onClick={async function(){
                         var stopping = !ex.stopped;
@@ -453,29 +570,29 @@ export default function ExerciseSection({ ctx }) {
                     <div style={{marginTop:12,padding:10,background:"#fff",borderRadius:10,border:"2px solid "+accent}}>
                       <div style={{fontSize:11,fontWeight:700,color:accent,marginBottom:2}}>{(p.profile && p.profile.name) || activeTab}</div>
                       <div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Edit: {addExConfirm.name}</div>
-                      {addExLoading && <div style={{fontSize:11,color:"#64748b",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Getting AI recommendations...</div>}
+                      {addExConfirm._generating && <div role="status" data-testid="ex-generating" style={{fontSize:12,fontWeight:600,color:"#1e3a5f",marginBottom:8,padding:8,background:"#eff6ff",borderRadius:8,display:"flex",alignItems:"center",gap:6}}><span aria-hidden="true" style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Your Companion is looking for recommendations…</div>}{addExConfirm._failed && addExConfirm._offer && <div role="status" data-testid="ex-gen-failed" style={{fontSize:12,color:"#92400e",background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:8,padding:8,marginBottom:8}}>Your Companion couldn't prepare a plan just now.<div style={{display:"flex",gap:6,marginTop:6}}><button type="button" data-testid="ex-gen-retry" onClick={function(){ startExGen(addExConfirm._spec || { name: addExConfirm.name, type: addExConfirm.type }); }} style={{...btnS,flex:1}}>Try again</button><button type="button" data-testid="ex-gen-self" onClick={function(){ setAddExConfirm(Object.assign({}, addExConfirm, { _offer: false })); }} style={{...btnS,flex:1}}>Fill in myself</button></div></div>}{addExConfirm._failed && !addExConfirm._offer && !addExConfirm.type && <div role="status" data-testid="ex-gen-type-first" style={{fontSize:11,color:"#92400e",marginBottom:8}}>Choose the type first, then fill in the rest.</div>}
+                      {addExLoading && !addExConfirm._generating && <div style={{fontSize:11,color:"#475569",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Your Companion is looking for recommendations…</div>}
+                      <fieldset disabled={!!addExConfirm._generating} data-testid="ex-add-fields" style={{border:0,padding:0,margin:0,minWidth:0}}>
                       <div style={{display:"flex",gap:8,marginBottom:8}}>
                         <div style={{flex:1}}>
                           <label style={labelStyle}>Type</label>
-                          <select value={addExConfirm.type} onChange={function(e){var tc=getExerciseTypeConfig(e.target.value);setAddExConfirm(Object.assign({},addExConfirm,{type:e.target.value,sets:tc.defaultSets,m1:tc.defaultM1,m2:tc.defaultM2}));}} style={{...inputStyle,width:"100%"}}>
-                            {Object.keys(EXERCISE_TYPES).map(function(t){return <option key={t} value={t}>{EXERCISE_TYPES[t].label}</option>;})}
-                          </select>
+                          <SheetSelect label="Exercise type" title="Choose the exercise type" testId="ex-type" value={addExConfirm.type} options={Object.keys(EXERCISE_TYPES).map(function(t){return { value: t, label: EXERCISE_TYPES[t].label };})} onChange={function(v){var tc=getExerciseTypeConfig(v);var blank=!addExConfirm.type;setAddExConfirm(Object.assign({},addExConfirm,{type:v,sets:blank?"":tc.defaultSets,m1:blank?"":tc.defaultM1,m2:blank?"":tc.defaultM2}));}} style={{width:"100%"}} />
                         </div>
                         <div style={{width:70}}>
-                          <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].hasSets ? "Sets" : "Sessions"}</label>
-                          <input type="number" value={addExConfirm.sets} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{sets:parseInt(e.target.value)||1}));}} style={{...inputStyle,width:"100%"}} min="1" max="10" />
+                          <label style={labelStyle}>{(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).hasSets ? "Sets" : "Sessions"}</label>
+                          <input type="number" aria-label={(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).hasSets ? "Sets" : "Sessions"} value={addExConfirm.sets} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{sets:parseInt(e.target.value)||1}));}} style={{...inputStyle,width:"100%",minHeight:44,boxSizing:"border-box"}} min="1" max="10" />
                         </div>
                       </div>
                       <div style={{display:"flex",gap:8,marginBottom:8}}>
-                        {EXERCISE_TYPES[addExConfirm.type].metric1 !== "none" && (
+                        {(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).metric1 !== "none" && (
                           <div style={{flex:1}}>
-                            <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].metric1Label}</label>
+                            <label style={labelStyle}>{(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).metric1Label}</label>
                             <input value={addExConfirm.m1} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{m1:e.target.value}));}} style={{...inputStyle,width:"100%"}} />
                           </div>
                         )}
-                        {EXERCISE_TYPES[addExConfirm.type].metric2 !== "none" && (
+                        {(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).metric2 !== "none" && (
                           <div style={{flex:1}}>
-                            <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].metric2Label}</label>
+                            <label style={labelStyle}>{(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).metric2Label}</label>
                             <input value={addExConfirm.m2} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{m2:e.target.value}));}} style={{...inputStyle,width:"100%"}} />
                           </div>
                         )}
@@ -485,18 +602,19 @@ export default function ExerciseSection({ ctx }) {
                         <textarea value={addExConfirm.progression} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{progression:e.target.value}));}} style={{...inputStyle,width:"100%",minHeight:60,resize:"vertical",boxSizing:"border-box"}} />
                       </div>
                       <div style={{marginBottom:10}}>
-                        <label style={labelStyle}>Equipment / Form Notes</label>
+                        <label style={labelStyle}>My Notes (equipment / form)</label>
                         <textarea value={addExConfirm.notes||""} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{notes:e.target.value}));}} placeholder="Optional notes..." style={{...inputStyle,width:"100%",minHeight:40,resize:"vertical",boxSizing:"border-box"}} />
                       </div>
+                      </fieldset>
                       <div style={{marginBottom:10}}>
                         <button onClick={async function(){
                           setAddExLoading(true);
                           try {
-                            var prof3 = (activeTab === "jc" ? data.jc : data.becks).profile || {};
+                            var prof3 = (data[activeTab] || (activeTab === "jc" ? data.jc : data.becks)).profile || {};
                             var profileInfo3 = buildExProfileInfo(prof3);
                             var typeCfg3 = getExerciseTypeConfig(addExConfirm.type);
                             var prompt3 = "Exercise: " + addExConfirm.name + " (type: " + typeCfg3.label + "). Person: " + profileInfo3 + ".\nReturn ONLY JSON: {\"exerciseGuide\":\"A concise how-to guide for performing this exercise correctly. Cover: starting position, movement execution with emphasis on full range of motion, breathing pattern, tempo recommendation (e.g. 3-second eccentric), and the most common mistakes to avoid. Write in direct 2nd person. 3-5 short sentences.\",\"prePostGuide\":\"Recommended warm-up stretches and preparation BEFORE this specific exercise, and cool-down stretches AFTER it. Customise to the muscle groups this exercise targets and this person's profile. Format as: PRE: 2-3 specific stretches/movements with brief instruction. POST: 2-3 specific stretches with brief instruction. Write in direct 2nd person. Keep each stretch to one sentence.\"}";
-                            var resp3 = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{"Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,messages:[{role:"user",content:prompt3}]})});
+                            var resp3 = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{ "x-lc-feature": "autoInfo","Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,messages:[{role:"user",content:prompt3}]})});
                             var result3 = await resp3.json();
                             var txt3 = ""; if(result3.content){for(var ri3=0;ri3<result3.content.length;ri3++){if(result3.content[ri3].text)txt3+=result3.content[ri3].text;}}
                             var info3 = JSON.parse(txt3.replace(/```json|```/g,"").trim());
@@ -504,22 +622,22 @@ export default function ExerciseSection({ ctx }) {
                           } catch(ae3) { console.error("Guide update failed:", ae3); }
                           setAddExLoading(false);
                         }} disabled={addExLoading} style={{width:"100%",fontSize:11,padding:"8px 0",color:"#fff",border:"none",borderRadius:6,fontWeight:600,cursor:addExLoading?"not-allowed":"pointer",opacity:addExLoading?0.7:1,background:addExLoading?"#94a3b8":"linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",textAlign:"center",display:"flex",justifyContent:"center",alignItems:"center",gap:4}}>
-                          {addExLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🔄 Generate / Update Guides"}
+                          {addExLoading ? <span>Generating <LoadingDots /></span> : "🔄 Generate / Update Guides"}
                         </button>
-                        {!addExConfirm.exerciseGuide && !addExConfirm.prePostGuide && <div style={{fontSize:9,color:"#94a3b8",textAlign:"center",marginTop:4,fontStyle:"italic"}}>This exercise was added before guides were available — tap above to generate them</div>}
+                        {!addExConfirm.exerciseGuide && !addExConfirm.prePostGuide && <div style={{fontSize:9,color:"#475569",textAlign:"center",marginTop:4,fontStyle:"italic"}}>This exercise was added before guides were available — tap above to generate them</div>}
                       </div>
                       {addExConfirm.exerciseGuide && (
                       <div style={{marginBottom:10,padding:10,background:"#f0fdf4",borderRadius:8,border:"1px solid #bbf7d0"}}>
                         <div style={{fontSize:10,fontWeight:700,color:"#166534",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.5px"}}>📖 Exercise Guide</div>
                         <div style={{fontSize:11,color:"#15803d",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{addExConfirm.exerciseGuide}</div>
-                        <div style={{fontSize:9,color:"#86efac",marginTop:4,fontStyle:"italic"}}>AI-generated — review for accuracy</div>
+                        <div style={{fontSize:9,color:"#86efac",marginTop:4,fontStyle:"italic"}}>Prepared by your Companion — please check it</div>
                       </div>
                       )}
                       {addExConfirm.prePostGuide && (
                       <div style={{marginBottom:10,padding:10,background:"#eff6ff",borderRadius:8,border:"1px solid #bfdbfe"}}>
                         <div style={{fontSize:10,fontWeight:700,color:"#1e40af",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.5px"}}>🧘 Pre & Post Exercise</div>
                         <div style={{fontSize:11,color:"#1d4ed8",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{addExConfirm.prePostGuide}</div>
-                        <div style={{fontSize:9,color:"#93c5fd",marginTop:4,fontStyle:"italic"}}>AI-generated — review for accuracy</div>
+                        <div style={{fontSize:9,color:"#93c5fd",marginTop:4,fontStyle:"italic"}}>Prepared by your Companion — please check it</div>
                       </div>
                       )}
                       <div style={{display:"flex",gap:8}}>
@@ -530,7 +648,7 @@ export default function ExerciseSection({ ctx }) {
                           var repsStr = c.sets > 1 ? c.m2 + "x" + c.sets : c.m2;
                           var editDay = c._editDay; var editIdx = c._editIdx;
                           var existingEx = nd[activeTab].exercises[editDay][editIdx];
-                          existingEx.name = c.name; existingEx.exType = c.type; existingEx.current = m1Val; existingEx.reps = repsStr; existingEx.progressionNotes = c.progression; existingEx.notes = c.notes || ""; existingEx.sets = c.sets; if (c.exerciseGuide) existingEx.exerciseGuide = c.exerciseGuide; if (c.prePostGuide) existingEx.prePostGuide = c.prePostGuide;
+                          existingEx.name = c.name; existingEx.exType = c.type; existingEx.current = m1Val; existingEx.reps = repsStr; existingEx.progressionNotes = c.progression; existingEx.notes = tidyNotes(c.notes || ""); (function() { var _lw = latestEntry(existingEx.prog), _cv = parseProgressionValue(m1Val); delete existingEx.target; if (_cv && _lw && _cv > (parseProgressionValue(_lw.w) || 0)) existingEx.progressionValue = _cv; else delete existingEx.progressionValue; })();   /* v2.20.2: ✎ changes the target weight */ existingEx.sets = c.sets; if (c.exerciseGuide) existingEx.exerciseGuide = c.exerciseGuide; if (c.prePostGuide) existingEx.prePostGuide = c.prePostGuide;
                           await saveData(nd);
                           setFormMsg("✓ " + c.name + " updated"); setTimeout(function(){setFormMsg("");},3000);
                           setAddExConfirm(null); setAddExOpen(false); setAddExSearch("");
@@ -548,8 +666,8 @@ export default function ExerciseSection({ ctx }) {
                   var _nStopped = exList.filter(function(e) { return e.stopped; }).length;
                   var _out = exList.map(function(ex, i) { return ex.stopped ? null : _renderEx(ex, i); });
                   if (_nStopped > 0) {
-                    _out.push(<button key="stopped-toggle" onClick={function(){ setStoppedExOpen(!stoppedExOpen); }} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#64748b",cursor:"pointer",marginTop:8}}>{stoppedExOpen ? "▲ Hide Stopped Exercises (" + _nStopped + ")" : "▼ Stopped Exercises (" + _nStopped + ")"}</button>);
-                    if (stoppedExOpen) { exList.forEach(function(ex, i) { if (ex.stopped) _out.push(<div key={"stopped-" + i} style={{ opacity: 0.8, background: "#f8fafc", borderRadius: 6, marginTop: 6 }}><div style={{ fontSize: 9, fontWeight: 700, color: "#64748b", padding: "6px 6px 0", textTransform: "uppercase", letterSpacing: "0.5px" }}>⏸ Stopped</div>{_renderEx(ex, i)}</div>); }); }
+                    _out.push(<button key="stopped-toggle" onClick={function(){ setStoppedExOpen(!stoppedExOpen); }} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#475569",cursor:"pointer",marginTop:8}}>{stoppedExOpen ? "▲ Hide Stopped Exercises (" + _nStopped + ")" : "▼ Stopped Exercises (" + _nStopped + ")"}</button>);
+                    if (stoppedExOpen) { exList.forEach(function(ex, i) { if (ex.stopped) _out.push(<div key={"stopped-" + i} style={{ opacity: 0.8, background: "#f8fafc", borderRadius: 6, marginTop: 6 }}><div style={{ fontSize: 9, fontWeight: 700, color: "#475569", padding: "6px 6px 0", textTransform: "uppercase", letterSpacing: "0.5px" }}>⏸ Stopped</div>{_renderEx(ex, i)}</div>); }); }
                   }
                   return _out; })()}
                   
@@ -558,7 +676,7 @@ export default function ExerciseSection({ ctx }) {
                 {/* Session Cool-Down */}
                   {p.sessionGuides && p.sessionGuides[day] && p.sessionGuides[day].cooldown && (
                     <div style={{ padding: "10px 6px 8px", borderTop: "1px solid #e2e8f0", marginTop: 2 }}>
-                      <div onClick={() => setCoolDownOpen(!coolDownOpen)} style={{ fontSize: 10, fontWeight: 700, color: "#2563eb", textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: 4, cursor: "pointer", userSelect: "none" }}>🧊 Cool-Down <span style={{ fontSize: 9, fontWeight: 400, color: "#94a3b8", textTransform: "none", letterSpacing: 0 }}>~3 min</span> <span style={{ marginLeft: "auto", fontSize: 10, color: "#94a3b8", transform: coolDownOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span></div>
+                      <div onClick={() => setCoolDownOpen(!coolDownOpen)} style={{ fontSize: 10, fontWeight: 700, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: 4, cursor: "pointer", userSelect: "none" }}>🧊 Cool-Down <span style={{ fontSize: 9, fontWeight: 400, color: "#475569", textTransform: "none", letterSpacing: 0 }}>~3 min</span> <span style={{ marginLeft: "auto", fontSize: 10, color: "#475569", transform: coolDownOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span></div>
                       {coolDownOpen && <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.6, whiteSpace: "pre-wrap", marginTop: 6 }}>{p.sessionGuides[day].cooldown}</div>}
                     </div>
                   )}
@@ -570,29 +688,29 @@ export default function ExerciseSection({ ctx }) {
                     <div style={{padding:10,background:"#fff",borderRadius:10,border:"2px solid "+accent}}>
                       <div style={{fontSize:11,fontWeight:700,color:accent,marginBottom:2}}>{(p.profile && p.profile.name) || activeTab}</div>
                       <div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Confirm: {addExConfirm.name}</div>
-                      {addExLoading && <div style={{fontSize:11,color:"#64748b",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Getting AI recommendations...</div>}
+                      {addExConfirm._generating && <div role="status" data-testid="ex-generating" style={{fontSize:12,fontWeight:600,color:"#1e3a5f",marginBottom:8,padding:8,background:"#eff6ff",borderRadius:8,display:"flex",alignItems:"center",gap:6}}><span aria-hidden="true" style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Your Companion is looking for recommendations…</div>}{addExConfirm._failed && addExConfirm._offer && <div role="status" data-testid="ex-gen-failed" style={{fontSize:12,color:"#92400e",background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:8,padding:8,marginBottom:8}}>Your Companion couldn't prepare a plan just now.<div style={{display:"flex",gap:6,marginTop:6}}><button type="button" data-testid="ex-gen-retry" onClick={function(){ startExGen(addExConfirm._spec || { name: addExConfirm.name, type: addExConfirm.type }); }} style={{...btnS,flex:1}}>Try again</button><button type="button" data-testid="ex-gen-self" onClick={function(){ setAddExConfirm(Object.assign({}, addExConfirm, { _offer: false })); }} style={{...btnS,flex:1}}>Fill in myself</button></div></div>}{addExConfirm._failed && !addExConfirm._offer && !addExConfirm.type && <div role="status" data-testid="ex-gen-type-first" style={{fontSize:11,color:"#92400e",marginBottom:8}}>Choose the type first, then fill in the rest.</div>}
+                      {addExLoading && !addExConfirm._generating && <div style={{fontSize:11,color:"#475569",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Your Companion is looking for recommendations…</div>}
+                      <fieldset disabled={!!addExConfirm._generating} data-testid="ex-add-fields" style={{border:0,padding:0,margin:0,minWidth:0}}>
                       <div style={{display:"flex",gap:8,marginBottom:8}}>
                         <div style={{flex:1}}>
                           <label style={labelStyle}>Type</label>
-                          <select value={addExConfirm.type} onChange={function(e){var tc=getExerciseTypeConfig(e.target.value);setAddExConfirm(Object.assign({},addExConfirm,{type:e.target.value,sets:tc.defaultSets,m1:tc.defaultM1,m2:tc.defaultM2}));}} style={{...inputStyle,width:"100%"}}>
-                            {Object.keys(EXERCISE_TYPES).map(function(t){return <option key={t} value={t}>{EXERCISE_TYPES[t].label}</option>;})}
-                          </select>
+                          <SheetSelect label="Exercise type" title="Choose the exercise type" testId="ex-type" value={addExConfirm.type} options={Object.keys(EXERCISE_TYPES).map(function(t){return { value: t, label: EXERCISE_TYPES[t].label };})} onChange={function(v){var tc=getExerciseTypeConfig(v);var blank=!addExConfirm.type;setAddExConfirm(Object.assign({},addExConfirm,{type:v,sets:blank?"":tc.defaultSets,m1:blank?"":tc.defaultM1,m2:blank?"":tc.defaultM2}));}} style={{width:"100%"}} />
                         </div>
                         <div style={{width:70}}>
-                          <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].hasSets ? "Sets" : "Sessions"}</label>
-                          <input type="number" value={addExConfirm.sets} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{sets:parseInt(e.target.value)||1}));}} style={{...inputStyle,width:"100%"}} min="1" max="10" />
+                          <label style={labelStyle}>{(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).hasSets ? "Sets" : "Sessions"}</label>
+                          <input type="number" aria-label={(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).hasSets ? "Sets" : "Sessions"} value={addExConfirm.sets} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{sets:parseInt(e.target.value)||1}));}} style={{...inputStyle,width:"100%",minHeight:44,boxSizing:"border-box"}} min="1" max="10" />
                         </div>
                       </div>
                       <div style={{display:"flex",gap:8,marginBottom:8}}>
-                        {EXERCISE_TYPES[addExConfirm.type].metric1 !== "none" && (
+                        {(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).metric1 !== "none" && (
                           <div style={{flex:1}}>
-                            <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].metric1Label}</label>
+                            <label style={labelStyle}>{(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).metric1Label}</label>
                             <input value={addExConfirm.m1} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{m1:e.target.value}));}} style={{...inputStyle,width:"100%"}} />
                           </div>
                         )}
-                        {EXERCISE_TYPES[addExConfirm.type].metric2 !== "none" && (
+                        {(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).metric2 !== "none" && (
                           <div style={{flex:1}}>
-                            <label style={labelStyle}>{EXERCISE_TYPES[addExConfirm.type].metric2Label}</label>
+                            <label style={labelStyle}>{(EXERCISE_TYPES[addExConfirm.type] || BLANK_TYPE).metric2Label}</label>
                             <input value={addExConfirm.m2} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{m2:e.target.value}));}} style={{...inputStyle,width:"100%"}} />
                           </div>
                         )}
@@ -602,20 +720,21 @@ export default function ExerciseSection({ ctx }) {
                         <textarea value={addExConfirm.progression} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{progression:e.target.value}));}} style={{...inputStyle,width:"100%",minHeight:60,resize:"vertical",boxSizing:"border-box"}} />
                       </div>
                       <div style={{marginBottom:10}}>
-                        <label style={labelStyle}>Equipment / Form Notes</label>
+                        <label style={labelStyle}>My Notes (equipment / form)</label>
                         <textarea value={addExConfirm.notes||""} onChange={function(e){setAddExConfirm(Object.assign({},addExConfirm,{notes:e.target.value}));}} placeholder="Optional notes..." style={{...inputStyle,width:"100%",minHeight:40,resize:"vertical",boxSizing:"border-box"}} />
                       </div>
+                      </fieldset>
                       {/* Update Guides button — regenerate AI guides */}
                       {addExConfirm._editMode && (
                       <div style={{marginBottom:10}}>
                         <button onClick={async function(){
                           setAddExLoading(true);
                           try {
-                            var prof3 = (activeTab === "jc" ? data.jc : data.becks).profile || {};
+                            var prof3 = (data[activeTab] || (activeTab === "jc" ? data.jc : data.becks)).profile || {};
                             var profileInfo3 = buildExProfileInfo(prof3);
                             var typeCfg3 = getExerciseTypeConfig(addExConfirm.type);
                             var prompt3 = "Exercise: " + addExConfirm.name + " (type: " + typeCfg3.label + "). Person: " + profileInfo3 + ".\nReturn ONLY JSON: {\"exerciseGuide\":\"A concise how-to guide for performing this exercise correctly. Cover: starting position, movement execution with emphasis on full range of motion, breathing pattern, tempo recommendation (e.g. 3-second eccentric), and the most common mistakes to avoid. Write in direct 2nd person. 3-5 short sentences.\",\"prePostGuide\":\"Recommended warm-up stretches and preparation BEFORE this specific exercise, and cool-down stretches AFTER it. Customise to the muscle groups this exercise targets and this person's profile. Format as: PRE: 2-3 specific stretches/movements with brief instruction. POST: 2-3 specific stretches with brief instruction. Write in direct 2nd person. Keep each stretch to one sentence.\"}";
-                            var resp3 = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{"Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,messages:[{role:"user",content:prompt3}]})});
+                            var resp3 = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{ "x-lc-feature": "autoInfo","Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,messages:[{role:"user",content:prompt3}]})});
                             var result3 = await resp3.json();
                             var txt3 = ""; if(result3.content){for(var ri3=0;ri3<result3.content.length;ri3++){if(result3.content[ri3].text)txt3+=result3.content[ri3].text;}}
                             var info3 = JSON.parse(txt3.replace(/```json|```/g,"").trim());
@@ -623,23 +742,23 @@ export default function ExerciseSection({ ctx }) {
                           } catch(ae3) { console.error("Guide update failed:", ae3); }
                           setAddExLoading(false);
                         }} disabled={addExLoading} style={{width:"100%",fontSize:11,padding:"8px 0",color:"#fff",border:"none",borderRadius:6,fontWeight:600,cursor:addExLoading?"not-allowed":"pointer",opacity:addExLoading?0.7:1,background:addExLoading?"#94a3b8":"linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",textAlign:"center",display:"flex",justifyContent:"center",alignItems:"center",gap:4}}>
-                          {addExLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "🔄 Generate / Update Guides"}
+                          {addExLoading ? <span>Generating <LoadingDots /></span> : "🔄 Generate / Update Guides"}
                         </button>
-                        {!addExConfirm.exerciseGuide && !addExConfirm.prePostGuide && <div style={{fontSize:9,color:"#94a3b8",textAlign:"center",marginTop:4,fontStyle:"italic"}}>This exercise was added before guides were available — tap above to generate them</div>}
+                        {!addExConfirm.exerciseGuide && !addExConfirm.prePostGuide && <div style={{fontSize:9,color:"#475569",textAlign:"center",marginTop:4,fontStyle:"italic"}}>This exercise was added before guides were available — tap above to generate them</div>}
                       </div>
                       )}
                       {addExConfirm.exerciseGuide && (
                       <div style={{marginBottom:10,padding:10,background:"#f0fdf4",borderRadius:8,border:"1px solid #bbf7d0"}}>
                         <div style={{fontSize:10,fontWeight:700,color:"#166534",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.5px"}}>📖 Exercise Guide</div>
                         <div style={{fontSize:11,color:"#15803d",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{addExConfirm.exerciseGuide}</div>
-                        <div style={{fontSize:9,color:"#86efac",marginTop:4,fontStyle:"italic"}}>AI-generated — review for accuracy</div>
+                        <div style={{fontSize:9,color:"#86efac",marginTop:4,fontStyle:"italic"}}>Prepared by your Companion — please check it</div>
                       </div>
                       )}
                       {addExConfirm.prePostGuide && (
                       <div style={{marginBottom:10,padding:10,background:"#eff6ff",borderRadius:8,border:"1px solid #bfdbfe"}}>
                         <div style={{fontSize:10,fontWeight:700,color:"#1e40af",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.5px"}}>🧘 Pre & Post Exercise</div>
                         <div style={{fontSize:11,color:"#1d4ed8",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{addExConfirm.prePostGuide}</div>
-                        <div style={{fontSize:9,color:"#93c5fd",marginTop:4,fontStyle:"italic"}}>AI-generated — review for accuracy</div>
+                        <div style={{fontSize:9,color:"#93c5fd",marginTop:4,fontStyle:"italic"}}>Prepared by your Companion — please check it</div>
                       </div>
                       )}
                       <div style={{display:"flex",gap:8}}>
@@ -652,7 +771,7 @@ export default function ExerciseSection({ ctx }) {
                             // Edit existing exercise — preserve prog data
                             var editDay = c._editDay; var editIdx = c._editIdx;
                             var existingEx = nd[activeTab].exercises[editDay][editIdx];
-                            existingEx.name = c.name; existingEx.exType = c.type; existingEx.current = m1Val; existingEx.reps = repsStr; existingEx.progressionNotes = c.progression; existingEx.notes = c.notes || ""; existingEx.sets = c.sets; if (c.exerciseGuide) existingEx.exerciseGuide = c.exerciseGuide; if (c.prePostGuide) existingEx.prePostGuide = c.prePostGuide;
+                            existingEx.name = c.name; existingEx.exType = c.type; existingEx.current = m1Val; existingEx.reps = repsStr; existingEx.progressionNotes = c.progression; existingEx.notes = tidyNotes(c.notes || ""); (function() { var _lw = latestEntry(existingEx.prog), _cv = parseProgressionValue(m1Val); delete existingEx.target; if (_cv && _lw && _cv > (parseProgressionValue(_lw.w) || 0)) existingEx.progressionValue = _cv; else delete existingEx.progressionValue; })();   /* v2.20.2: ✎ changes the target weight */ existingEx.sets = c.sets; if (c.exerciseGuide) existingEx.exerciseGuide = c.exerciseGuide; if (c.prePostGuide) existingEx.prePostGuide = c.prePostGuide;
                             await saveData(nd);
                             setFormMsg("✓ " + c.name + " updated"); setTimeout(function(){setFormMsg("");},3000);
                           } else {
@@ -669,7 +788,7 @@ export default function ExerciseSection({ ctx }) {
                           var triggerDay = c._editMode ? c._editDay : day;
                           regenerateSessionGuides(activeTab, triggerDay, nd);
                           setAddExConfirm(null); setAddExOpen(false); setAddExSearch("");
-                        }} style={{...btnP(true),flex:1}}>{addExConfirm && addExConfirm._editMode ? "Save Changes" : "Add Exercise"}</button>
+                        }} disabled={!!(addExConfirm && (addExConfirm._generating || !addExConfirm.type))} style={Object.assign({},btnP(true),{flex:1},addExConfirm && (addExConfirm._generating || !addExConfirm.type) ? {opacity:0.5,cursor:"not-allowed"} : {})}>{addExConfirm && addExConfirm._editMode ? "Save Changes" : "Add Exercise"}</button>
                         {!addExConfirm._editMode && <button onClick={function(){setAddExConfirm(null);setAddExOpen(true);}} style={btnS}>Back</button>}
                         <button onClick={function(){setAddExConfirm(null);setAddExOpen(false);setAddExSearch("");}} style={btnS}>Cancel</button>
                       </div>
@@ -678,69 +797,22 @@ export default function ExerciseSection({ ctx }) {
                     /* ---- SEARCH/SELECT LIST ---- */
                     <div style={{padding:8,background:accentLight,borderRadius:8,border:"1px solid "+accentBorder}}>
                       <div style={{fontSize:11,fontWeight:700,marginBottom:6}}>Add Exercise</div>
-                      <input value={addExSearch} onChange={function(e){setAddExSearch(e.target.value);}} placeholder="Search exercises or type new name..." style={{width:"100%",padding:"6px 8px",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,marginBottom:6,boxSizing:"border-box"}} autoFocus />
+                      <input value={addExSearch} onChange={function(e){setAddExSearch(e.target.value);}} placeholder="Search exercises or type new name..." style={{width:"100%",padding:"6px 8px",border: "1px solid #cbd5e1",borderRadius: 8,fontSize:11,marginBottom:6,boxSizing:"border-box"}} autoFocus />
                       {addExSearch && (() => {
                         var term = addExSearch.toLowerCase();
                         var dbMatches = EXERCISE_DATABASE.filter(function(e){return e.name.toLowerCase().indexOf(term)>=0;});
                         var customMatches = customExercises.filter(function(n){return n.toLowerCase().indexOf(term)>=0 && !dbMatches.find(function(d){return d.name===n;});});
                         var allMatches = dbMatches.map(function(e){return {name:e.name,type:e.type,cat:e.category,isCustom:false};}).concat(customMatches.map(function(n){return {name:n,type:"weights",cat:"Custom",isCustom:true};}));
-                        var openConfirmForm = function(match) {
-                          var tc = getExerciseTypeConfig(match.type);
-                          setAddExConfirm({name:match.name,type:match.type,sets:tc.defaultSets,m1:tc.defaultM1,m2:tc.defaultM2,progression:"Loading AI recommendation...",notes:"",exerciseGuide:"",prePostGuide:"",isCustom:match.isCustom});
-                          setAddExOpen(false);
-                          // Call AI for personalised defaults
-                          setAddExLoading(true);
-                          (async function(){
-                            try {
-                              var prof2 = (activeTab === "jc" ? data.jc : data.becks).profile || {};
-                              var profileInfo = buildExProfileInfo(prof2);
-                              var typeCfg = getExerciseTypeConfig(match.type);
-                              var prompt2 = "Exercise: " + match.name + " (type: " + typeCfg.label + "). Person: " + profileInfo + ".\nReturn ONLY JSON: {\"sets\":" + tc.defaultSets + ",\"metric1\":\"recommended starting " + (typeCfg.metric1Label||"value") + " e.g. " + tc.defaultM1 + "\",\"metric2\":\"recommended starting " + (typeCfg.metric2Label||"value") + " e.g. " + tc.defaultM2 + "\",\"progressionNotes\":\"specific progression rules for this exercise for this person\",\"equipmentNotes\":\"any equipment or form notes specific to this person\",\"exerciseGuide\":\"A concise how-to guide for performing this exercise correctly. Cover: starting position, movement execution with emphasis on full range of motion, breathing pattern, tempo recommendation (e.g. 3-second eccentric), and the most common mistakes to avoid. Write in direct 2nd person. 3-5 short sentences.\",\"prePostGuide\":\"Recommended warm-up stretches and preparation BEFORE this specific exercise, and cool-down stretches AFTER it. Customise to the muscle groups this exercise targets and this person's profile. Format as: PRE: 2-3 specific stretches/movements with brief instruction. POST: 2-3 specific stretches with brief instruction. Write in direct 2nd person. Keep each stretch to one sentence.\"}";
-                              var resp2 = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{"Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:900,messages:[{role:"user",content:prompt2}]})});
-                              var result2 = await resp2.json();
-                              var txt2 = ""; if(result2.content){for(var ri=0;ri<result2.content.length;ri++){if(result2.content[ri].text)txt2+=result2.content[ri].text;}}
-                              var info2 = JSON.parse(txt2.replace(/```json|```/g,"").trim());
-                              setAddExConfirm(function(prev){if(!prev||prev.name!==match.name)return prev;return Object.assign({},prev,{sets:info2.sets||prev.sets,m1:info2.metric1||prev.m1,m2:info2.metric2||prev.m2,progression:info2.progressionNotes||"Double progression: build reps to target then increase weight.",notes:info2.equipmentNotes||"",exerciseGuide:info2.exerciseGuide||"",prePostGuide:info2.prePostGuide||""});});
-                            } catch(ae) {
-                              setAddExConfirm(function(prev){if(!prev||prev.name!==match.name)return prev;return Object.assign({},prev,{progression:"Double progression: build reps to target then increase weight. User defines increment method and ranges.",exerciseGuide:"",prePostGuide:""});});
-                            }
-                            setAddExLoading(false);
-                          })();
-                        };
-                        return (<div style={{maxHeight:200,overflowY:"auto"}}>
-                          {allMatches.slice(0,8).map(function(m){return (<div key={m.name} onClick={function(){openConfirmForm(m);}} style={{padding:"6px 8px",fontSize:11,cursor:"pointer",borderBottom:"1px solid #f1f5f9",color:"#0f172a",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                            <span>{m.name}</span>
-                            <span style={{fontSize:9,color:"#94a3b8",background:"#f1f5f9",padding:"1px 6px",borderRadius:10}}>{EXERCISE_TYPES[m.type] ? EXERCISE_TYPES[m.type].label : m.type}{m.cat ? " · " + m.cat : ""}</span>
-                          </div>);})}
+                        var openConfirmForm = function(match) { startExGen({ name: match.name, type: match.type, isCustom: match.isCustom }); };   /* v2.55.0 */
+                        return (<div style={{maxHeight:260,overflowY:"auto",paddingTop:6}}>
+                          {allMatches.slice(0,8).map(function(m){ var tl = EXERCISE_TYPES[m.type] ? EXERCISE_TYPES[m.type].label : m.type; return (<button type="button" key={m.name} data-testid="ex-match" onClick={function(){openConfirmForm(m);}} style={{display:"flex",width:"100%",justifyContent:"center",alignItems:"center",minHeight:44,margin:"0 0 6px",padding:"10px 12px",border:"none",borderRadius:10,background:"linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>{m.name + " · " + tl}</button>);})}   {/* v2.55.0: the match is the main action, one label */}
                           {allMatches.length === 0 && addExSearch.trim() && (
-                            <div style={{padding:"8px",fontSize:11,color:"#64748b",textAlign:"center"}}>No matches found</div>
+                            <div style={{padding:"8px",fontSize:11,color:"#475569",textAlign:"center"}}>No matches found</div>
                           )}
                         </div>);
                       })()}
-                      {addExSearch.trim() && (<button onClick={function(){
-                        var name = addExSearch.trim();
-                        var tc = getExerciseTypeConfig("weights");
-                        setAddExConfirm({name:name,type:"weights",sets:tc.defaultSets,m1:tc.defaultM1,m2:tc.defaultM2,progression:"Loading AI recommendation...",notes:"",isCustom:true});
-                        setAddExOpen(false);
-                        setAddExLoading(true);
-                        (async function(){
-                          try {
-                            var prof2 = (activeTab === "jc" ? data.jc : data.becks).profile || {};
-                            var profileInfo = buildExProfileInfo(prof2);
-                            var prompt2 = "New exercise: " + name + ". Person: " + profileInfo + ".\nDetermine the exercise type from: weights, bodyweight, timed_hold, cardio, walking, sports, stretching.\nReturn ONLY JSON: {\"exerciseType\":\"one of weights|bodyweight|timed_hold|cardio|walking|sports|stretching\",\"sets\":3,\"metric1\":\"recommended starting value\",\"metric2\":\"recommended starting value\",\"progressionNotes\":\"specific progression rules\",\"equipmentNotes\":\"any equipment or form notes\"}";
-                            var resp2 = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{"Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:400,messages:[{role:"user",content:prompt2}]})});
-                            var result2 = await resp2.json();
-                            var txt2 = ""; if(result2.content){for(var ri=0;ri<result2.content.length;ri++){if(result2.content[ri].text)txt2+=result2.content[ri].text;}}
-                            var info2 = JSON.parse(txt2.replace(/```json|```/g,"").trim());
-                            var detectedType = info2.exerciseType && EXERCISE_TYPES[info2.exerciseType] ? info2.exerciseType : "weights";
-                            setAddExConfirm(function(prev){if(!prev||prev.name!==name)return prev;return Object.assign({},prev,{type:detectedType,sets:info2.sets||prev.sets,m1:info2.metric1||prev.m1,m2:info2.metric2||prev.m2,progression:info2.progressionNotes||"Double progression: build reps to target then increase weight.",notes:info2.equipmentNotes||""});});
-                          } catch(ae) {
-                            setAddExConfirm(function(prev){if(!prev)return prev;return Object.assign({},prev,{progression:"Double progression: build reps to target then increase weight."});});
-                          }
-                          setAddExLoading(false);
-                        })();
-                      }} style={{width:"100%",padding:8,background:"linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",color:"#fff",border:"none",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer",marginTop:4}}>Add Custom: {addExSearch}</button>)}
-                      <button onClick={function(){setAddExOpen(false);setAddExSearch("");}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:10,color:"#64748b",cursor:"pointer",marginTop:4}}>Cancel</button>
+                      {addExSearch.trim() && (<button type="button" data-testid="ex-add-custom" onClick={function(){ startExGen({ name: addExSearch.trim(), type: "", isCustom: true }); }} style={{width:"100%",minHeight:40,padding:8,background:"#fff",color:"#1e3a5f",border:"1px solid #1e3a5f",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",marginTop:4}}>Add custom: {addExSearch}</button>)}   {/* v2.55.0: secondary */}
+                      <button onClick={function(){setAddExOpen(false);setAddExSearch("");}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:10,color:"#475569",cursor:"pointer",marginTop:4}}>Cancel</button>
                     </div>
                   )}
                   {/* Generate / Regenerate Warm-Up & Cool-Down */}
@@ -758,7 +830,8 @@ export default function ExerciseSection({ ctx }) {
                           if (p.measurements) { var measParts = []; Object.keys(p.measurements).forEach(function(mk){ if (p.measurements[mk] && p.measurements[mk].length > 0) { measParts.push(mk + ": " + p.measurements[mk][p.measurements[mk].length - 1].v + "cm"); } }); if (measParts.length > 0) healthCtx += " Measurements: " + measParts.join(", ") + "."; }
                           var exerciseList = exList.map(function(ex) { return ex.name + " (" + (ex.exType || "weights") + ", " + ex.current + " " + ex.reps + ")"; }).join(", ");
                           var guidePrompt = "Generate a warm-up and cool-down for this training session.\n\nPerson: " + profileInfo + "." + healthCtx + "\n\nSession exercises: " + exerciseList + "\n\nRules:\n- Warm-up: 3 minutes max. 3-4 activities. Tailored to the specific exercises in this session and this person's health profile.\n- Cool-down: 3 minutes max. 3-4 stretches. Target the muscle groups worked in this session. Consider any injuries, conditions, or medications.\n- Each line should be one activity with brief instruction (e.g. '1. Arm circles — 20 seconds each direction, loosen shoulders').\n- Number each line. Keep each to one short sentence.\n- Write in direct 2nd person.\n- Do NOT include any JSON formatting or labels — just the plain text.\n\nReturn ONLY JSON: {\"warmup\":\"numbered lines for warm-up\",\"cooldown\":\"numbered lines for cool-down\"}";
-                          var guideResp = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{"Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:500,messages:[{role:"user",content:guidePrompt}]})});
+                          guidePrompt += "\n\n" + companionProfileCtx(p);   /* v2.48.0 (brief 24 Nov P3): goal + training style */
+                          var guideResp = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",headers:{ "x-lc-feature": "aiPlans","Content-Type":"application/json","x-api-key":await window.ensureApiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:500,messages:[{role:"user",content:guidePrompt}]})});
                           var guideResult = await guideResp.json();
                           var guideTxt = ""; if(guideResult.content){for(var gi=0;gi<guideResult.content.length;gi++){if(guideResult.content[gi].text)guideTxt+=guideResult.content[gi].text;}}
                           var guideData = JSON.parse(guideTxt.replace(/```json|```/g,"").trim());
@@ -769,7 +842,7 @@ export default function ExerciseSection({ ctx }) {
                         } catch(ge) { console.error("Session guide generation failed:", ge); setFormMsg(window.isEnergyEmpty(ge) ? window.energyEmptyMsg : "✗ Could not generate — check API key in Admin"); setTimeout(function() { setFormMsg(""); }, 4000); }
                         setSessionGuideLoading(false);
                       }} disabled={sessionGuideLoading} style={{ width: "100%", padding: "6px 0", background: sessionGuideLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, color: "#fff", cursor: sessionGuideLoading ? "not-allowed" : "pointer", opacity: sessionGuideLoading ? 0.7 : 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 4 }}>
-                        {sessionGuideLoading ? <span>Analysing, please wait <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : (p.sessionGuides && p.sessionGuides[day] ? "🔄 Regenerate Warm-Up & Cool-Down" : "🔥 Generate Warm-Up & Cool-Down")}
+                        {sessionGuideLoading ? <span>Analysing, please wait <LoadingDots /></span> : (p.sessionGuides && p.sessionGuides[day] ? "🔄 Regenerate Warm-Up & Cool-Down" : "🔥 Generate Warm-Up & Cool-Down")}
                       </button>
                     </div>
                   )}
@@ -780,15 +853,15 @@ export default function ExerciseSection({ ctx }) {
                     setSessionFbLoading(true); setFbExpanded(true); var clearKey = activeTab + "_" + day; var clearFb = Object.assign({}, sessionFeedback); delete clearFb[clearKey]; setSessionFeedback(clearFb);
                     try {
                       var prof = p.profile || {};
-                      var daySummary = exList.filter(function(ex) { return !ex.stopped; }).map(function(ex) { var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null; var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null; var progNote = latest && latest.note ? latest.note : ""; var allNotes = [ex.notes, progNote].filter(Boolean).join("; "); var progRules = ex.progressionNotes || "Progression: build reps to target then increase weight. User defines increment method and ranges."; var eqInfo = ex.equipment ? " [EQUIPMENT: " + (ex.equipment.type || "") + ", increments: " + (ex.equipment.increments || "standard") + (ex.equipment.formNotes ? ", form: " + ex.equipment.formNotes : "") + "]" : ""; var histLines = ex.prog ? ex.prog.slice(-4).map(function(p){var ql=""; if(p.fullRange||p.goodForm){ql=" [FR:"+(p.fullRange==="good"?"Good":"WT")+",GF:"+(p.goodForm==="good"?"Good":"WT")+"]";} return "Wk"+p.wk+": "+fmtEntry(p)+ql+(p.note?" ("+p.note+")":"");}).join(", ") : "no data";
+                      var daySummary = exList.filter(function(ex) { return !ex.stopped; }).map(function(ex) { var latest = ex.prog && ex.prog.length > 0 ? ex.prog[ex.prog.length - 1] : null; var prev = ex.prog && ex.prog.length > 1 ? ex.prog[ex.prog.length - 2] : null; var progNote = latest && latest.note ? latest.note : ""; var allNotes = [ex.notes, progNote].filter(Boolean).join("; "); var progRules = ex.progressionNotes || "Progression: build reps to target then increase weight. User defines increment method and ranges."; var eqInfo = ex.equipment ? " [EQUIPMENT: " + (ex.equipment.type || "") + ", increments: " + (ex.equipment.increments || "standard") + (ex.equipment.formNotes ? ", form: " + ex.equipment.formNotes : "") + "]" : ""; var histLines = ex.prog ? ex.prog.slice(-4).map(function(p){var ql=""; if(p.fullRange||p.goodForm){ql=" [FR:"+(p.fullRange==="good"?"Good":"WT")+",GF:"+(p.goodForm==="good"?"Good":"WT")+"]";} if (p.skipped) return "Wk"+p.wk+": SKIPPED"+(p.note?" (why: "+p.note+")":""); return "Wk"+p.wk+": "+fmtEntry(p)+ql+(p.note?" ("+p.note+")":"");}).join(", ") : "no data";
                         // Cross-day context: pull data from other sessions of the same exercise (parent/child model)
                         var crossDayCtx = "";
                         var otherDays = ["sunday", "monday", "friday"].filter(function(cd) { return cd !== day; });
                         var crossDayLines = [];
                         otherDays.forEach(function(cd) { var cdExList = p.exercises[cd] || []; for (var cdi = 0; cdi < cdExList.length; cdi++) { if (cdExList[cdi].name === ex.name && cdExList[cdi].prog && cdExList[cdi].prog.length > 0) { crossDayLines.push(cd + ": " + cdExList[cdi].prog.slice(-3).map(function(cp) { return "Wk" + cp.wk + ": " + cp.w + " " + cp.r + (cp.note ? " (" + cp.note + ")" : ""); }).join(", ")); } } });
                         if (crossDayLines.length > 0) { crossDayCtx = " [OTHER SESSIONS: " + crossDayLines.join("; ") + "]"; }
-                        var qualityCtx = ""; if (latest) { var frLabel = (function(){ var et = ex.exType || "weights"; return ["weights","bodyweight","timed_hold","stretching"].indexOf(et) >= 0 ? "Full Range" : "Completed in One"; })(); qualityCtx = " [QUALITY: " + frLabel + "=" + (latest.fullRange === "good" ? "Good" : "Working Towards") + ", Good Form=" + (latest.goodForm === "good" ? "Good" : "Working Towards") + "]"; } var guideCtx = ex.exerciseGuide ? " [EXERCISE GUIDE: " + ex.exerciseGuide.substring(0, 200) + "]" : ""; return ex.name + ": LATEST LOGGED=" + (latest ? latest.w + " " + latest.r : "none") + " (" + ex.status + ")" + qualityCtx + " HISTORY=[" + histLines + "]" + (ex.target ? " TARGET: " + ex.target : "") + (allNotes ? " [NOTES: " + allNotes + "]" : "") + " [PROGRESSION RULES: " + progRules + "]" + eqInfo + guideCtx + crossDayCtx; }).join("; ");
-                      var jsonFormat = '{"exercises":[{"name":"...","verdict":"max 25 words honest assessment","icon":"check|triangle|arrow|warning|circle|star","newStatus":"building|moved up|consolidating|ready to move|maintaining|reduce","recommendation":"optional progression suggestion","targetWeight":"recommended weight for next session e.g. 49kg or BW","targetReps":"recommended reps for next session e.g. 12x3 or 15x3"}],"summary":"2-3 sentences honest overall assessment — speak like a mate who trains with them","nextSession":"one sentence — specific focus for next session, warm and direct"}';
+                        var qualityCtx = ""; if (latest && latest.effort) { qualityCtx = " [QUALITY (cardio): How hard it felt=" + effortLabel(latest.effort) + (latest.goodForm ? ", Good Form=" + (latest.goodForm === "good" ? "Good" : "Working Towards") : "") + "]"; } else if (latest) { var frLabel = (function(){ var et = ex.exType || "weights"; return ["weights","bodyweight","timed_hold","stretching"].indexOf(et) >= 0 ? "Full Range" : "Completed in One"; })(); qualityCtx = " [QUALITY: " + frLabel + "=" + (latest.fullRange === "good" ? "Good" : "Working Towards") + ", Good Form=" + (latest.goodForm === "good" ? "Good" : "Working Towards") + "]"; } var guideCtx = ex.exerciseGuide ? " [EXERCISE GUIDE: " + ex.exerciseGuide.substring(0, 200) + "]" : ""; var _real = latestEntry(ex.prog); void histLines; /* v2.41.0 (night batch P4c): logged history and the target, labelled apart; this session day only */ return ex.name + " (" + day + " session): LATEST LOGGED=" + (_real ? _real.w + " " + _real.r : "none") + " (" + ex.status + ")" + qualityCtx + " [" + aiExerciseContext(ex, 8) + "]" + styleContext(ex, p) + (allNotes ? " [NOTES: " + allNotes + "]" : "") + " [PROGRESSION RULES: " + progRules + "]" + eqInfo + guideCtx + crossDayCtx; }).join("; ");
+                      var jsonFormat = '{"exercises":[{"name":"...","verdict":"max 25 words honest assessment","icon":"check|triangle|arrow|warning|circle|star","newStatus":"ready to progress|consolidate|reduce","recommendation":"ONE primary recommendation in technical ranges (e.g. add 2.5–5%, reps back to the bottom of the range)","alternative":"optional: at most ONE close alternative and its trade-off, else empty","targetWeight":"a technical step only, e.g. +2.5–5% or same load — NEVER an exact equipment weight","targetReps":"recommended reps for next session e.g. 12x3 or 15x3"}],"summary":"2-3 sentences honest overall assessment — speak like a mate who trains with them","nextSession":"one sentence — specific focus for next session, warm and direct"}';
                       // Build previous session feedback context including accept/decline decisions
                       var prevSfbKey = activeTab + "_" + day;
                       var prevSfb = sessionFeedback ? sessionFeedback[prevSfbKey] : null;
@@ -852,15 +925,17 @@ export default function ExerciseSection({ ctx }) {
                         (function(){ var ac = ""; if (p.activity && p.activity.length > 0) { ac = "Recent activity: " + p.activity.slice(-3).map(function(a){return a.date+": "+(a.steps||"")+"steps "+(a.activity||"");}).join(", ") + ". "; } return ac; })() +
                         getOnboardingCtx(activeTab) + prevSfbCtx + getCrossSectionCtx(activeTab, "session") + "\n\n" +
                         "DATA & PROGRESSION RULES:\n" +
+                        "- Weeks marked SKIPPED were skipped on purpose: they don't count towards progression and are not a failure. Read the person's reason if given. If an exercise was skipped 3 weeks in a row, gently check in or suggest an easier alternative — never criticise.\n" +
                         "1) USE THE LATEST LOGGED DATA AND HISTORY for each exercise — this is the actual recorded data. Do NOT use card display values which may reflect targets, not actuals. If notes mention holding, injury, pain, protection, concern, or any reason for caution, respect that decision and do NOT recommend increasing weight. A deliberate hold means MAINTAINING status, not building. If a hold has lasted several weeks and notes suggest recovery, you MAY gently suggest a cautious attempt, but acknowledge the concern.\n" +
                         "2) If current autoStatus seems wrong based on data and notes, set newStatus to what it SHOULD be and explain why in the verdict.\n" +
                         "3) Be genuinely honest — if someone is sandbagging, say so warmly. If they should push harder, encourage it like a mate would.\n" +
-                        "4) PROGRESSION: Each exercise has [PROGRESSION RULES]. Follow them exactly. If rules say build to 15 reps before increasing weight, do NOT recommend weight increase at 12 reps — that is BUILDING status. Only recommend weight increase when the rep target is met for two consecutive sessions.\n" +
-                        "5) STATUS RULES: Default target is 15x3 unless rules state otherwise. Two consecutive sessions hitting target = ready to move (star). First time hitting target = consolidating (arrow). Below target = building (arrow). Weight increase = moved up (triangle). Holding deliberately = maintaining (circle). Dropped = reduce (warning).\n" +
+                        "4) PROGRESSION: Each exercise has [PROGRESSION RULES] and a [STYLE] (rep range and step size). Follow them. Only recommend more load when range and form are both Good and the next target was met (or the top of the [STYLE] rep range on every set).\n" +
+                        "5) STATUS (only three): ready to progress = range AND form both Good and the logged sets met the next target (or the top of the rep range on every set when no target); reduce = the person chose Reduce or there is a clear reason to drop the load; consolidate = everything else. newStatus must be exactly one of: ready to progress, consolidate, reduce.\n" +
                         "6) Max 25 words per verdict. Be specific not generic.\n" +
                         "7) QUALITY TRACKING: Each exercise has [QUALITY] data — Full Range (or Completed in One for cardio) and Good Form toggles. 'Working Towards' means they are still developing that aspect. CRITICAL: If Full Range is 'Working Towards', do NOT recommend increasing weight — prioritise full range of motion with controlled 3-second eccentric tempo first. If Good Form is 'Working Towards', acknowledge their honesty and encourage form focus. Only recommend weight increases when BOTH quality indicators are 'Good' AND rep targets are met. Praise honesty when someone marks Working Towards — it shows self-awareness.\n\n" +
+                        "8) STYLE-AWARE PROGRESSION: use the 4-week [PATTERN] (an observation, never a verdict — you may mention it), the [STYLE], their goal, form/range and notes. Give ONE primary recommendation and at most ONE close alternative (in alternative) with its trade-off. TECHNICAL RANGES ONLY (e.g. add 2.5–5%, one small step, reps back to the bottom of the range) — NEVER an exact equipment weight or stack step. If something is marked [UNSOUND], or they want a jump over 10%, more load while form or range is Working towards, or they keep failing sets, do not simply agree: say so kindly and give the sounder option. They choose their exact numbers with Set my next session.\n9) CARDIO (exercises with a [CARDIO STYLE]): change ONE variable at a time — time first, then speed or level, in line with their cardio focus (Endurance and Fat burn: more time first; Fitness-speed: same time, faster or a higher level; Intervals: the balance of work and recovery); keep weekly increases to 10% or less; technical ranges only (e.g. add 5–10% time); [QUALITY (cardio)] is how hard it felt: suggest progressing only after Easy or About right; ONE primary recommendation + at most ONE alternative; kindly flag unsafe jumps.\n" +
                         "Return ONLY valid JSON: " + jsonFormat;
-                      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2500, messages: [{ role: "user", content: prompt }] }) });
+                      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-lc-feature": "aiFeedback", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 2500, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                       if (result.stop_reason === "max_tokens") throw new Error("Feedback was cut off before it finished — please press the button again");
                       var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
@@ -871,25 +946,27 @@ export default function ExerciseSection({ ctx }) {
                         fb._feedbackWeek = fbWeekNum;
                         fb._feedbackFor = activeTab;
                         if (fb.exercises) { fb.exercises.forEach(function(fbEx) { var srcEx = exList.find(function(e) { return e.name === fbEx.name; }); if (srcEx) { var srcLatest = srcEx.prog && srcEx.prog.length > 0 ? srcEx.prog[srcEx.prog.length - 1] : null; if (srcLatest) fbEx._prevData = srcLatest.w + " " + srcLatest.r; } }); }
+                        if (fb.exercises && fb.exercises.length) { var ndF = JSON.parse(JSON.stringify(data)); var nF = 0; fb.exercises.forEach(function(fbEx) { var tgt = (ndF[activeTab].exercises[day] || []).find(function(e) { return sameExercise(e.name, fbEx.name); }); if (attachCompanion(tgt, fbEx, fb._generatedAt)) nF++; }); if (nF) await saveData(ndF); } // F11: keep it with the logged week
                         setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb })); var sfUpdate = Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: fb }); await sSet("session_feedback_all", JSON.stringify(sfUpdate));
                         // Recommendations shown to user - they accept/decline individually
                         }
                     } catch(e) { setSessionFeedback(Object.assign({}, sessionFeedback || {}, { [activeTab + "_" + day]: { exercises: [], summary: window.isEnergyEmpty(e) ? window.energyEmptyMsg : "Error: " + String(e).substring(0, 100), nextSession: "" } })); }
                     setSessionFbLoading(false);
-                  }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{sessionFbLoading ? <span>Generating <span className="loading-dots" dangerouslySetInnerHTML={{ __html: "<span>.</span><span>.</span><span>.</span>" }} /></span> : "My Companion Session Feedback"}</button>
-                  <button onClick={function(){setFbExpanded(!fbExpanded);}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#64748b",cursor:"pointer",marginTop:4}}>{fbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>
+                  }} disabled={sessionFbLoading} style={{ width: "100%", padding: 12, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: sessionFbLoading ? "not-allowed" : "pointer", opacity: sessionFbLoading ? 0.7 : 1, background: sessionFbLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>{sessionFbLoading ? <span>Generating <LoadingDots /></span> : "My Companion Session Feedback"}</button>
+                  <button onClick={function(){setFbExpanded(!fbExpanded);}} style={{width:"100%",padding:6,background:"none",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,color:"#475569",cursor:"pointer",marginTop:4}}>{fbExpanded ? "▲ Hide Feedback" : "▼ Show Feedback"}</button>
                   {fbExpanded && sessionFeedback && sessionFeedback[activeTab + "_" + day] && (<div style={{ marginTop: 10 }}>
                     <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 8 }}>
-                    {sessionFeedback[activeTab + "_" + day]._generatedAt && <div style={{ padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#94a3b8", borderBottom: "1px solid #e2e8f0" }}>Generated {sessionFeedback[activeTab + "_" + day]._generatedAt} for {isJC ? "JC" : "Becks"}</div>}
+                    {sessionFeedback[activeTab + "_" + day]._generatedAt && <div style={{ padding: "6px 14px", background: "#f8fafc", fontSize: 10, color: "#475569", borderBottom: "1px solid #e2e8f0" }}>Generated {sessionFeedback[activeTab + "_" + day]._generatedAt} for {isJC ? "JC" : "Becks"}</div>}
                     <div style={{ padding: "8px 14px", borderBottom: "1px solid #e2e8f0" }}><div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 14 }}>🏋️</span><span style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f" }}>Session Companion Check-in</span></div></div>
                     {sessionFeedback[activeTab + "_" + day].summary && (<div style={{ padding: "12px 14px", borderBottom: sessionFeedback[activeTab + "_" + day].nextSession ? "1px solid #e2e8f0" : "none" }}><div style={{ fontSize: 12, color: "#334155", lineHeight: 1.5 }}>{sessionFeedback[activeTab + "_" + day].summary}</div></div>)}
                     {sessionFeedback[activeTab + "_" + day].nextSession && <div style={{ padding: "12px 14px" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#1e40af" }}>Next session</div><div style={{ fontSize: 12, color: "#334155", marginTop: 4 }}>★ {sessionFeedback[activeTab + "_" + day].nextSession}</div></div>}
                     </div>
-                    {sessionFeedback[activeTab + "_" + day].exercises && (function() { var decKey2 = activeTab + "_" + day; var totalRecs2 = sessionFeedback[decKey2].exercises.filter(function(ex){return ex.newStatus||ex.recommendation;}).length; var decidedCount2 = sessionFeedback[decKey2].exercises.filter(function(ex){return ex._decision;}).length; var pendingCount2 = totalRecs2 - decidedCount2; return (<div><button onClick={function(){setDecisionsExpanded(function(prev){return Object.assign({},prev,{[decKey2]:!prev[decKey2]});});}} style={{width:"100%",padding:"8px 12px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:8,fontSize:11,fontWeight:600,color:"#475569",cursor:"pointer",marginTop:8,marginBottom:decisionsExpanded[decKey2]?6:0,textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}><span>{decisionsExpanded[decKey2]?"▲":"▼"} Exercise Feedback{totalRecs2>0?" & Recommendations":""}</span>{totalRecs2>0&&pendingCount2>0?<span style={{fontSize:9,background:"#fff7ed",color:"#ea580c",padding:"2px 8px",borderRadius:10,fontWeight:700}}>{pendingCount2} pending</span>:decidedCount2>0?<span style={{fontSize:9,background:"#e0f2fe",color:"#0c4a6e",padding:"2px 8px",borderRadius:10,fontWeight:700}}>All reviewed</span>:null}</button></div>); })()}
+                    {sessionFeedback[activeTab + "_" + day].exercises && (function() { var decKey2 = activeTab + "_" + day; var totalRecs2 = sessionFeedback[decKey2].exercises.filter(function(ex){return ex.newStatus||ex.recommendation;}).length; var decidedCount2 = sessionFeedback[decKey2].exercises.filter(function(ex){return ex._decision;}).length; var pendingCount2 = totalRecs2 - decidedCount2; return (<div><button onClick={function(){setDecisionsExpanded(function(prev){return Object.assign({},prev,{[decKey2]:!prev[decKey2]});});}} style={{width:"100%",padding:"8px 12px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:8,fontSize:11,fontWeight:600,color:"#475569",cursor:"pointer",marginTop:8,marginBottom:decisionsExpanded[decKey2]?6:0,textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}><span>{decisionsExpanded[decKey2]?"▲":"▼"} Exercise Feedback{totalRecs2>0?" & Recommendations":""}</span>{totalRecs2>0&&pendingCount2>0?<span style={{fontSize:9,background:"#fff7ed",color:"#9a3412",padding:"2px 8px",borderRadius:10,fontWeight:700}}>{pendingCount2} pending</span>:decidedCount2>0?<span style={{fontSize:9,background:"#e0f2fe",color:"#0c4a6e",padding:"2px 8px",borderRadius:10,fontWeight:700}}>All reviewed</span>:null}</button></div>); })()}
                     {decisionsExpanded[activeTab + "_" + day] && sessionFeedback[activeTab + "_" + day].exercises && sessionFeedback[activeTab + "_" + day].exercises.map(function(ex, ei) { return (<div key={ei} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc", alignItems: "center" }}><span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{fbIcon(ex.icon)}</span><div><div style={{ fontSize: 12, fontWeight: 700 }}>{ex.name}</div><div style={{ fontSize: 11, color: "#475569" }}>{ex.verdict}</div>{(ex.newStatus || ex.recommendation) && (<div id={"rec-" + ei + "-" + day} style={{ marginTop: 4, padding: 8, background: ex._decision === "accepted" ? "#e0f2fe" : ex._decision === "declined" ? "#f1f5f9" : "#fff7ed", borderRadius: 6, border: "1px solid " + (ex._decision === "accepted" ? "#86efac" : ex._decision === "declined" ? "#e2e8f0" : "#fed7aa") }}>
-                      {ex._decision ? (<div style={{ fontSize: 11, fontWeight: 600, color: ex._decision === "accepted" ? "#0c4a6e" : "#64748b", padding: 4 }}>{ex._decision === "accepted" ? "Accepted — " + ex.name + " updated" + (ex._userNote ? " — " + ex._userNote : "") : "Declined — no changes made" + (ex._userNote ? " — " + ex._userNote : "")}</div>) : (<div><div style={{ fontSize: 10, color: "#ea580c", fontWeight: 600, marginBottom: 4 }}>{ex.recommendation || ("Recommendation: " + ex.newStatus)}</div>
-                      <div style={{marginTop:6,marginBottom:6}}><input id={"user-note-"+ei+"-"+day} placeholder="Add a note (optional)..." style={{width:"100%",padding:6,border:"1px solid #e2e8f0",borderRadius:4,fontSize:10,boxSizing:"border-box"}} /></div><div style={{ display: "flex", gap: 6 }}>
+                      {ex._decision ? (<div style={{ fontSize: 11, fontWeight: 600, color: ex._decision === "accepted" ? "#0c4a6e" : "#475569", padding: 4 }}>{ex._decision === "accepted" ? "Accepted — " + ex.name + " updated" + (ex._userNote ? " — " + ex._userNote : "") : "Declined — no changes made" + (ex._userNote ? " — " + ex._userNote : "")}</div>) : (<div><div style={{ fontSize: 10, color: "#9a3412", fontWeight: 600, marginBottom: 4 }}>{ex.recommendation || ("Recommendation: " + ex.newStatus)}</div>{ex.alternative && <div data-testid="fb-alternative" style={{ fontSize: 10, color: "#475569", marginBottom: 4 }}>Alternative: {ex.alternative}</div>}<SetNextSession name={ex.name} idx={ei} day={day} data={data} activeTab={activeTab} saveData={saveData} currentWeek={currentWeek} noteId={"user-note-" + ei + "-" + day} />
+                      <div style={{marginTop:6,marginBottom:6}}><input id={"user-note-"+ei+"-"+day} placeholder="Add a note (optional)..." style={{width:"100%",padding:6,border: "1px solid #cbd5e1",borderRadius: 8,fontSize:10,boxSizing:"border-box"}} /></div><div style={{ display: "flex", gap: 6 }}>
                         <button onClick={async function() {
+                          var _ne0 = document.getElementById("user-note-"+ei+"-"+day); var userNote = _ne0 ? _ne0.value.trim() : "";   /* v2.41.0 bug fix: the note was read after the loop that uses it, so numbers typed before Accept were ignored */
                           var nd3 = JSON.parse(JSON.stringify(data));
                           var dayExs3 = nd3[activeTab].exercises[day] || [];
                           for (var di3 = 0; di3 < dayExs3.length; di3++) {
@@ -898,8 +975,9 @@ export default function ExerciseSection({ ctx }) {
                               var origW = latestProg3 ? latestProg3.w : (dayExs3[di3].current || "");
                               var origR = latestProg3 ? latestProg3.r : (dayExs3[di3].reps || "");
                               dayExs3[di3]._from = origW + " " + origR;
-                              dayExs3[di3].status = ex.newStatus;
-                              var newW = ex.targetWeight || origW;
+                              dayExs3[di3].status = pillOf(ex.newStatus); dayExs3[di3].statusSource = "Companion";   /* v2.42.0: precedence — accepted feedback refines the save-time pill */
+                              var _rw = measureOf(dayExs3[di3]).unit === "kg" ? resolveTargetWeight(ex.targetWeight, origW, dayExs3[di3]) : null;   /* v2.20.0: a number, never prose / the previous weight */
+                              var newW = _rw ? _rw + "kg" : (measureOf(dayExs3[di3]).unit === "kg" ? origW : (ex.targetWeight || origW));
                               var newR = ex.targetReps || origR;
                               var isUserOverride = false;
                               if (userNote) {
@@ -910,19 +988,26 @@ export default function ExerciseSection({ ctx }) {
                                   newR = rM ? rM[1] + "x3" : newR;
                                   isUserOverride = true;
                                 }
-                                dayExs3[di3].notes = (dayExs3[di3].notes ? dayExs3[di3].notes + "; " : "") + "Wk" + currentWeek + " accepted: " + userNote;
+                                var _pv = parseProgressionValue(userNote); if (_pv) { dayExs3[di3].progressionValue = _pv; dayExs3[di3].progressionSetWk = currentWeek; }   /* v2.20.0: the person's exact next value */
+                                dayExs3[di3].notes = setWeekNote(dayExs3[di3].notes, currentWeek, _pv ? progressionNote(dayExs3[di3], currentWeek, _pv, "set by you") : "Wk" + currentWeek + " accepted: " + userNote);   /* v2.20.2: one line per week, replaced */
                               }
                               dayExs3[di3].target = newW + " x " + newR;
+                              /* v2.41.0 (night batch P4a): the one next target — the person's numbers, else the Companion's explicit ones */
+                              var _u3 = measureOf(dayExs3[di3]).unit, _w3 = _u3 === "kg" || _u3 === "plate";
+                              var _m1 = _w3 ? (isUserOverride && wM ? wM[1] : (_rw || "")) : "";
+                              var _m2 = isUserOverride && rM ? rM[1] : (ex.targetReps ? String(parseInt(ex.targetReps, 10) || "") : "");
+                              if (_m1 || _m2) dayExs3[di3].next = makeTarget(_m1, _m2, isUserOverride ? "set by you" : "Companion");
                               dayExs3[di3].current = newW;
                               dayExs3[di3].reps = newR;
                               dayExs3[di3]._userOverride = isUserOverride;
                               break;
                             }
                           }
+                          (function() { var ne = document.getElementById("user-note-"+ei+"-"+day); setCompanionDecision(dayExs3.find(function(e) { return sameExercise(e.name, ex.name); }), "accepted", ne ? ne.value : "", ex); })(); // F11
                           await saveData(nd3);
                           var el = document.getElementById("rec-" + ei + "-" + day);
-                          var noteEl = document.getElementById("user-note-"+ei+"-"+day); var userNote = noteEl ? noteEl.value.trim() : ""; ex._decision = "accepted"; ex._userNote = userNote;  if (userNote) { var exRef = nd3[activeTab].exercises[day]; if (exRef && exRef[di3]) { exRef[di3].notes = (exRef[di3].notes ? exRef[di3].notes + "; " : "") + "Wk" + currentWeek + " accepted: " + userNote; } } var sfbKey = activeTab + "_" + day; var curFb = sessionFeedback[sfbKey]; if (curFb && curFb.exercises) { curFb.exercises[ei]._decision = "accepted"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#e0f2fe"; el.style.borderColor = "#86efac"; el.innerHTML = "<div style=\"font-size:11px;color:#0c4a6e;font-weight:600;padding:4px\">\u2705 Accepted — " + ex.name + " updated to " + ex.newStatus + ". Activity updated.</div>"; }
-                        }} style={{ padding: "5px 14px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Accept</button>
+                          var noteEl = document.getElementById("user-note-"+ei+"-"+day); var userNote = noteEl ? noteEl.value.trim() : ""; ex._decision = "accepted"; ex._userNote = userNote;  /* v2.20.2: the note is written once above (this used to append it a second time) */ var sfbKey = activeTab + "_" + day; var curFb = sessionFeedback[sfbKey]; if (curFb && curFb.exercises) { curFb.exercises[ei]._decision = "accepted"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#e0f2fe"; el.style.borderColor = "#86efac"; setPlainNote(el, "\u2705 Accepted — " + ex.name + " updated to " + ex.newStatus + ". Activity updated.", { fontSize: "11px", color: "#0c4a6e", fontWeight: "600", padding: "4px" }); }
+                        }} style={{ padding: "5px 14px", background: "#15803d", color: "#fff", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Accept</button>
                         <button onClick={function() {
                           var el = document.getElementById("rec-" + ei + "-" + day);
                           var noteEl2 = document.getElementById("user-note-"+ei+"-"+day); var userNote2 = noteEl2 ? noteEl2.value.trim() : ""; ex._decision = "declined"; ex._userNote = userNote2;
@@ -942,11 +1027,12 @@ export default function ExerciseSection({ ctx }) {
                                   var nW2 = wM2 ? wM2[1] + "kg" : origW4;
                                   var nR2 = rM2 ? rM2[1] + "x3" : origR4;
                                   dayExs4[di4].target = nW2 + " x " + nR2;
+                                  dayExs4[di4].next = makeTarget(wM2 ? wM2[1] : "", rM2 ? rM2[1] : "", "set by you");   // v2.41.0: their own numbers
                                   dayExs4[di4].current = nW2;
                                   dayExs4[di4].reps = nR2;
                                   isUserOverride4 = true;
                                 }
-                                dayExs4[di4].notes = (dayExs4[di4].notes ? dayExs4[di4].notes + "; " : "") + "Wk" + currentWeek + " declined: " + userNote2;
+                                dayExs4[di4].notes = setWeekNote(dayExs4[di4].notes, currentWeek, "Wk" + currentWeek + " declined: " + userNote2);
                               } else {
                                 dayExs4[di4].current = origW4;
                                 dayExs4[di4].reps = origR4;
@@ -956,12 +1042,13 @@ export default function ExerciseSection({ ctx }) {
                               break;
                             }
                           }
+                          setCompanionDecision(dayExs4.find(function(e) { return sameExercise(e.name, ex.name); }), "rejected", userNote2, ex); // F11
                           saveData(nd4);
-                          var sfbKey2 = activeTab + "_" + day; var curFb2 = sessionFeedback[sfbKey2]; if (curFb2 && curFb2.exercises) { curFb2.exercises[ei]._decision = "declined"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#f1f5f9"; el.style.borderColor = "#e2e8f0"; el.innerHTML = "<div style=\"font-size:11px;color:#64748b;padding:4px\">\u21a9 Declined — no changes made to Activity.</div>"; }
+                          var sfbKey2 = activeTab + "_" + day; var curFb2 = sessionFeedback[sfbKey2]; if (curFb2 && curFb2.exercises) { curFb2.exercises[ei]._decision = "declined"; setSessionFeedback(Object.assign({}, sessionFeedback)); sSet("session_feedback_all", JSON.stringify(Object.assign({}, sessionFeedback))); } if (el) { el.style.background = "#f1f5f9"; el.style.borderColor = "#e2e8f0"; setPlainNote(el, "\u21a9 Declined — no changes made to Activity.", { fontSize: "11px", color: "#475569", padding: "4px" }); }
                         }} style={{ padding: "5px 14px", background: "#e2e8f0", color: "#475569", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Decline</button>
                       </div></div>)}
                     </div>)}
-                    <div style={{textAlign:"right",marginTop:4}}><button onClick={async function(){if(!confirm("Remove "+ex.name+" from "+day+"?"))return;var nd=JSON.parse(JSON.stringify(data));var _rmIdx=nd[activeTab].exercises[day].findIndex(function(e){return e.name===ex.name;});if(_rmIdx<0){setFormMsg("Could not find "+ex.name+" on "+day);setTimeout(function(){setFormMsg("");},3000);return;}nd[activeTab].exercises[day].splice(_rmIdx,1);await saveData(nd);regenerateSessionGuides(activeTab,day,nd);}} style={{...btnDelete,fontSize:9,background:"#fee2e2",color:"#dc2626",border:"none"}}>🗑 remove</button></div></div></div>); })}
+                    <div style={{textAlign:"right",marginTop:4}}><button onClick={async function(){if(!confirm("Remove "+ex.name+" from "+day+"?"))return;var nd=JSON.parse(JSON.stringify(data));var _rmIdx=nd[activeTab].exercises[day].findIndex(function(e){return e.name===ex.name;});if(_rmIdx<0){setFormMsg("Could not find "+ex.name+" on "+day);setTimeout(function(){setFormMsg("");},3000);return;}nd[activeTab].exercises[day].splice(_rmIdx,1);await saveData(nd);regenerateSessionGuides(activeTab,day,nd);}} style={{...btnDelete,fontSize:9,background:"#fee2e2",color:"#b91c1c",border:"none"}}>🗑 remove</button></div></div></div>); })}
                     {renderThread(sessionFeedback[activeTab + "_" + day], "session", activeTab + "-" + day, function(updatedFb) { updateSessionFb(updatedFb, activeTab + "_" + day); }, activeTab + "_" + day)}
                   </div>)}
                 </div>

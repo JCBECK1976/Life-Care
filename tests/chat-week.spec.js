@@ -6,9 +6,9 @@ import { latestFirst } from "../src/lib/chat.js";
 const NS = "?ns=life-care-app-64d04-default-rtdb";
 const setKey = (k, obj) => fetch("http://127.0.0.1:9000/data/" + k + ".json" + NS, { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify(JSON.stringify(obj)) });
 
-test("D8: threads are shown latest exchange first, each question above its answer", () => {
+test("D8 → v2.20.0: threads are shown newest MESSAGE first (the reply above its question)", () => {
   const t = [{ role: "user", text: "q1" }, { role: "assistant", text: "a1" }, { role: "user", text: "q2" }, { role: "assistant", text: "a2a" }, { role: "assistant", text: "a2b" }];
-  expect(latestFirst(t).map((m) => m.text)).toEqual(["q2", "a2a", "a2b", "q1", "a1"]);
+  expect(latestFirst(t).map((m) => m.text)).toEqual(["a2b", "a2a", "q2", "a1", "q1"]);
   expect(latestFirst([])).toEqual([]);
 });
 

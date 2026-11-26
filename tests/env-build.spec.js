@@ -33,6 +33,7 @@ test("build environment: its own installable app (name, scope, tinted icons)", a
 // v2.7.1: Backup/Restore are environment-aware at build time. The Build app also backs up and restores its own copy.
 test("build environment: Download backup has data + data_build; Full restore targets data_build", async ({ page }) => {
   const { errors } = await openApp(page);
+  await page.getByTestId("goal-setup").getByRole("button", { name: "Later" }).click();   // v2.18.0: the build copy's default people have no goal yet
   await page.locator("button").nth(1).click();                                 // Settings
   await page.getByRole("button", { name: "Open Data viewer" }).click();
   const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "⬇️ Download backup" }).click()]);

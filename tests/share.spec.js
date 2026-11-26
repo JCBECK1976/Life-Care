@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { openApp, gotoSignedIn, tab } from "./helpers.js";
+import { openApp, gotoSignedIn, tab, withBodyPhotos } from "./helpers.js";
+test.beforeEach(async ({ page }) => { await withBodyPhotos(page); });   // v2.37.2: these features are hidden unless switched on
 
 // v2.11.0 F8: "Share to Lifecare Companion" (Android Web Share Target). A real-device check is left for JC.
 const BASE = "/Life-Care/";

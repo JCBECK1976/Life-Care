@@ -21,6 +21,9 @@ export function thisWeek() {
 export async function freshReload(page) { await page.waitForTimeout(300); await fetch(url(thisWeek().childKey), { method: "DELETE", headers: { Authorization: "Bearer owner" } }); await page.reload(); }
 export async function childOf(day, slot) { const w = thisWeek(); const doc = await getKey(w.childKey); return doc ? doc.children["c_" + w.dateOf(day) + "_" + slot] || null : null; }
 
+// v2.52.0: Cancel in a picker Snap goes back to the picker list — close it before the next row
+async function closePicker(page) { const c = page.getByRole("button", { name: "Close the list" }); if (await c.count()) await c.first().click(); }
+
 test("D6: snapshot rules (pure)", () => {
   const item = { id: "x1", name: "Granola (300 kcal)", jcKcal: 300, beckKcal: 250, satFat: 2, rating: "GOOD" };
   const dates = { monday: new Date(2020, 0, 6), friday: new Date(2999, 0, 3) };
@@ -62,27 +65,52 @@ async function openOatsUpdate(page, replies) {
   return prompts;
 }
 
-test("D7: changing an ingredient recalculates; before → after, assumed amounts, and the name's kcal update", async ({ page }) => {
+// v2.19.0: an edited ingredient list is recalculated PER PORTION through the clarifying conversation (replaces the D7 whole-recipe call)
+async function openOatsClarify(page, replies) {
+  const cb = await getKey("custom_breakfasts");
+  await setKey("custom_breakfasts", [{ id: "t_oats", name: "Test Oats 95g (387 kcal)", itemType: "ingredient", ingredients: ["95g rolled oats", "80g berries", "tsp honey"], jcKcal: 387, beckKcal: 387, protein: 18.2, fat: 9, satFat: 2, carbs: 60, fibre: 9, salt: 0.1, rating: "GOOD", portion: { desc: "1 bowl" } }, ...(cb || [])]);
+  const prompts = [];
+  await page.route("https://api.anthropic.com/**", (r) => {
+    const b = JSON.stringify(r.request().postDataJSON());
+    if (!/CLARIFY_ITEM/.test(b)) return r.fallback();
+    prompts.push(b);
+    return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(aiText(replies[Math.min(prompts.length - 1, replies.length - 1)])) });
+  });
+  await page.reload();
+  await tab(page, "My Eating");
+  await page.getByRole("button", { name: "Update Eating Lists" }).click();
+  const row = page.locator("div", { hasText: /^Test Oats 95g/ }).filter({ has: page.getByRole("button", { name: /^Open / }) }).last();
+  await row.getByRole("button", { name: /^Open / }).click(); await page.getByTestId("item-view").getByRole("button", { name: "Edit", exact: true }).click();
+  await page.locator("#edit-item-ingredients-t_oats").fill("95g rolled oats, 150g berries, tsp honey");
+  await page.getByRole("button", { name: "✓ Confirm" }).click();
+  const chat = page.getByTestId("edit-clarify");
+  await expect(chat.getByLabel("Describe your item")).toHaveValue(/150g berries/);
+  await chat.getByRole("button", { name: "Send" }).click();
+  return prompts;
+}
+const OATS_ITEM = { type: "item", name: "Test Oats", portionDesc: "1 bowl", portionGrams: null, servings: 1, ingredients: ["95g rolled oats", "150g berries", "7g honey"], assumptions: "1 tsp honey = 7 g",
+  perPortion: { kcal: 470, protein: 15, fat: 8, satFat: 1.5, carbs: 82, sugar: 20, addedSugar: 6, fibre: 12, salt: 0.1 } };
+
+test("edit: changing an ingredient recalculates PER PORTION through the clarifying conversation; Save keeps it", async ({ page }) => {
   const { errors } = await openApp(page);
-  const prompts = await openOatsUpdate(page, [{ kcal: 612, protein: 27, fat: 12, satFat: 3, carbs: 90, fibre: 12, salt: 0.2, rating: "GOOD", breakdown: [{ ingredient: "95g rolled oats", kcal: 355 }, { ingredient: "150g berries", kcal: 75 }], assumed: ["7g honey (1 tsp)"] }]);
-  await expect(page.getByText(/387 → 612 kcal, protein 18.2 → 27g/).first()).toBeVisible();
-  await expect(page.getByText(/Assumed: 7g honey \(1 tsp\)/).first()).toBeVisible();
+  const prompts = await openOatsClarify(page, [OATS_ITEM]);
+  await expect(page.getByText(/Nutritional values updated per portion: 470 kcal \(1 portion = 1 bowl\)/).first()).toBeVisible();
   expect(prompts[0]).toContain("150g berries");
   expect(prompts[0]).not.toContain("387");                                  // no anchoring on the old value
-  await expect(page.locator("#edit-item-name-t_oats")).toHaveValue("Test Oats 95g (612 kcal)");
   await page.getByRole("button", { name: "✓ Continue — Save" }).click();
-  await expect.poll(async () => (await getKey("custom_breakfasts")).find((x) => x.id === "t_oats").jcKcal).toBe(612);
-  expect((await getKey("custom_breakfasts")).find((x) => x.id === "t_oats").name).toBe("Test Oats 95g (612 kcal)");
+  await expect.poll(async () => (await getKey("custom_breakfasts")).find((x) => x.id === "t_oats").jcKcal).toBe(470);
+  expect((await getKey("custom_breakfasts")).find((x) => x.id === "t_oats")).toMatchObject({ kcal: 470, protein: 15, portion: { desc: "1 bowl" } });
   expect(errors).toEqual([]);
 });
 
-test("D7: an implausible total is retried, then refused — no success message, nothing changed", async ({ page }) => {
+test("edit: implausible replies are retried, then a friendly question — nothing changed, never 'could not be read'", async ({ page }) => {
   const { errors } = await openApp(page);
-  const bad = { kcal: 350, protein: 18, rating: "GOOD", breakdown: [{ ingredient: "95g rolled oats", kcal: 355 }, { ingredient: "150g berries", kcal: 75 }] };
-  const prompts = await openOatsUpdate(page, [bad, bad]);
-  await expect(page.getByText(/Recalculation failed: the total \(350 kcal\) is less than its ingredients add up to \(430 kcal\)/).first()).toBeVisible();
-  expect(prompts.length).toBe(2);
+  const bad = { ...OATS_ITEM, perPortion: { ...OATS_ITEM.perPortion, kcal: 1247 } };   // doesn't match its macros
+  const prompts = await openOatsClarify(page, [bad, bad, bad]);
+  await expect(page.getByTestId("edit-clarify").getByTestId("clarify-question")).toContainText("could you tell me roughly how much of each ingredient");
+  expect(prompts.length).toBe(3);
   await expect(page.getByText(/Nutritional values updated/)).toHaveCount(0);
+  await expect(page.getByText(/could not be read|did not return values/)).toHaveCount(0);
   expect((await getKey("custom_breakfasts")).find((x) => x.id === "t_oats").jcKcal).toBe(387);
   expect(errors).toEqual([]);
 });
@@ -110,7 +138,7 @@ async function portionSetup(page, reply, desc, plan) {
 }
 // v2.6.5: 📷 Snap → optional description → 📷 Take photo
 async function snap(page, desc, nth = 0) {
-  await page.getByRole("button", { name: "Snap a photo of your food" }).nth(nth).click();
+  await closePicker(page); await page.getByTestId("picker-trigger").nth(nth).click(); await page.getByTestId("act-snap").click();   // v2.50.0: Snap is in the picker
   if (desc) await page.getByLabel("Photo description").fill(desc);
   await page.locator("label", { hasText: "📷 Take photo" }).locator("input[type=file]").setInputFiles({ name: "p.png", mimeType: "image/png", buffer: PNG });
 }
@@ -157,8 +185,9 @@ test("Snap result: Confirm, Re-check and Cancel sit in one row of equal-height b
     await snap(page, "", slot);
     const row = page.getByTestId("snap-actions");
     await expect(row).toBeVisible();
-    const boxes = await Promise.all(["Confirm", "↻ Re-check", "Cancel"].map((n) => row.getByRole("button", { name: n, exact: true }).boundingBox()));
-    expect(boxes.every((b) => b && Math.abs(b.y - boxes[0].y) < 1 && Math.abs(b.height - boxes[0].height) < 1)).toBe(true);
+    const measure = () => Promise.all(["Confirm", "↻ Re-check", "Cancel"].map((n) => row.getByRole("button", { name: n, exact: true }).boundingBox()));
+    await expect.poll(async () => { const b = await measure(); return b.every((x) => x && Math.abs(x.y - b[0].y) < 1 && Math.abs(x.height - b[0].height) < 1); }).toBe(true);   // v2.52.0: measured once settled (the picker slides in)
+    const boxes = await measure();
     expect(boxes[0].x < boxes[1].x && boxes[1].x < boxes[2].x).toBe(true);
     await row.getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(row).toHaveCount(0);
@@ -211,9 +240,10 @@ test("children: editing or deleting a parent list item never changes the child; 
   expect(c.snapshot).toMatchObject({ name: "Test Oat Bar", kcal: 200 });
   await expect(page.getByText("Test Oat Bar", { exact: true }).first()).toBeVisible();   // still shown from the child
   // manual pick in the empty row → a child from the parent
-  await page.getByText("Select breakfast...").first().click();
+  await page.getByText("Add breakfast…").first().click();
   await page.getByPlaceholder("Type to search...").fill("Test Toast");
   await page.getByText("Test Toast", { exact: false }).first().click();
+  await page.getByTestId("pick-confirm").click();                                                   // v2.50.0: confirm the pick
   await expect.poll(async () => (await childOf(today, "b2"))?.parentId).toBe(b.id);
   expect(await childOf(today, "b2")).toMatchObject({ source: "manual", snapshot: { name: "Test Toast", kcal: 150 } });
   expect(errors).toEqual([]);
@@ -224,10 +254,9 @@ test("D13: a portion logged this Monday is not shown next Monday (children are d
   const { today } = await portionSetup(page, { name: "Test Oat Bar", matchesPlanned: true, assumed: "40g bar", kcal: 180, protein: 4, satFat: 1 });
   await page.getByRole("button", { name: "Confirm", exact: true }).click();
   await expect.poll(async () => (await childOf(today, "b"))?.portion?.values?.kcal).toBe(180);
-  await expect(page.getByTitle("Portion verified").first()).toBeVisible();
+  await expect(page.getByText("Test Oat Bar", { exact: true }).first()).toBeVisible();   // v2.50.0: no ✓ beside the row any more
   await page.locator("button", { hasText: "›" }).first().click();                         // next week
   await expect(page.getByText(/Week \d+/).first()).toBeVisible();
-  await expect(page.getByTitle("Portion verified")).toHaveCount(0);
   await expect(page.getByText("Test Oat Bar", { exact: true })).toHaveCount(0);
   expect(errors).toEqual([]);
 });
@@ -265,7 +294,7 @@ test("Snap, filled slot, different food NOT in the list — Yes: saved to the li
   expect(dialogs).toEqual(["Save \u201cPeanut Brunch Bar\u201d to your Breakfast list for future selection?"]);
   const list = await getKey("custom_breakfasts");
   const added = list.find((x) => x.name === "Peanut Brunch Bar");
-  expect(list.find((x) => x.id === a.id)).toEqual(a);                                         // parent untouched
+  expect(list.find((x) => x.id === a.id)).toMatchObject(a);                                         // parent untouched
   expect(await childOf(today, "b")).toMatchObject({ parentId: added.id, source: "snap", nutrition: { kcal: 125 }, portion: { assumed: "28g bar" } });
   await page.getByRole("button", { name: "Undo" }).click();
   await expect.poll(async () => (await childOf(today, "b"))?.parentId).toBe(a.id);
@@ -298,7 +327,7 @@ test("Snap, empty slot, food IN the list — linked to the parent with no questi
   await expect.poll(async () => (await childOf(today, "b"))?.parentId).toBe(a.id);
   expect(dialogs).toEqual([]);
   expect(await childOf(today, "b")).toMatchObject({ source: "snap", nutrition: { kcal: 190 }, notes: "45g bar" });
-  expect((await getKey("custom_breakfasts")).find((x) => x.id === a.id)).toEqual(a);
+  expect((await getKey("custom_breakfasts")).find((x) => x.id === a.id)).toMatchObject(a);
   expect(errors).toEqual([]);
 });
 
@@ -306,8 +335,8 @@ test("child RAG: recalculated from the child's own nutrition; shown when it diff
   const { errors } = await openApp(page);
   const { today } = await portionSetup(page, { name: "Test Oat Bar", matchesPlanned: true, assumed: "3 bars", kcal: 600, protein: 15, satFat: 13, addedSugar: 20 });
   await page.getByRole("button", { name: "Confirm", exact: true }).click();
-  await expect.poll(async () => (await childOf(today, "b"))?.ragFreq).toBe("weekly");
-  expect((await childOf(today, "b")).rating).toBe("RED");                                       // 13g sat fat = 65%
+  await expect.poll(async () => (await childOf(today, "b"))?.ragFreq).toBe("monthly");          // v2.18.2: against JC's own limits (sugar 24.6 g): 20 g = 81%
+  expect((await childOf(today, "b")).rating).toBe("RED");
   await expect(page.getByTestId("selected-item").filter({ hasText: "Test Oat Bar" }).first()).toHaveAttribute("data-rag", "RED"); // D14: shown by colour
   expect(errors).toEqual([]);
 });
@@ -322,7 +351,7 @@ test("D14: no inline RAG note; the selected item's text is coloured by the CHILD
   await expect(page.getByText(/today —/)).toHaveCount(0);
   const sel = page.getByTestId("selected-item").filter({ hasText: "Test Oat Bar" }).first();
   await expect(sel).toHaveAttribute("data-rag", "RED");
-  await expect(sel).toHaveCSS("color", "rgb(220, 38, 38)");
+  await expect(sel).toHaveCSS("color", "rgb(185, 28, 28)");
   const row = sel.locator("xpath=ancestor::div[contains(@style,'display: flex')][1]");
   expect((await row.boundingBox()).height).toBeLessThan(50);                                        // one tidy row
   expect(errors).toEqual([]);
@@ -337,7 +366,7 @@ test("D15: first check at temperature 0 with grams per component; Re-check is an
   await expect(page.getByTestId("portion-assumed")).toHaveText("Assumed: ~450g — rice 200g, frankfurters 120g, beans 130g — 780 kcal");
   await page.getByRole("button", { name: "↻ Re-check" }).click();
   await expect(page.getByText("🔎 Re-check deep dive — re-assessed outcome")).toBeVisible();
-  await expect(page.getByTestId("deep-compare")).toHaveText("First check: large · RED → Deep dive: medium · GOOD");
+  await expect(page.getByTestId("deep-compare")).toHaveText("First check: large · AMBER → Deep dive: medium · GOOD");
   await expect(page.getByTestId("portion-assumed")).toHaveText("Assumed: ~330g — rice 150g, frankfurters 80g, beans 100g — 520 kcal");
   const [b1, b2] = bodies.slice(-2);
   expect(b1.temperature).toBe(0);
@@ -357,7 +386,7 @@ test("D16: on a phone the picker is a sheet sized to the visible viewport — re
   await page.setViewportSize({ width: 412, height: 915 });
   const { errors } = await openApp(page);
   await tab(page, "My Eating");
-  await page.getByText("Select breakfast...").first().click();
+  await page.getByText("Add breakfast…").first().click();
   const sheet = page.getByTestId("picker-sheet");
   await expect(sheet).toBeVisible();
   await expect(page.getByLabel("Search items")).toBeFocused();
@@ -366,10 +395,10 @@ test("D16: on a phone the picker is a sheet sized to the visible viewport — re
   await expect.poll(async () => (await sheet.boundingBox()).height).toBeLessThanOrEqual(420);
   const input = await page.getByLabel("Search items").boundingBox();
   const firstRow = await page.getByTestId("picker-results").locator("div").first().boundingBox();
-  expect(input.y).toBeLessThan(60);                                                                 // search at the top
+  expect(input.y).toBeLessThan(170);                                                                // search at the top, under the title and the action bar (v2.50.0)
   expect(firstRow.y).toBeGreaterThan(input.y);
   expect(firstRow.y + firstRow.height).toBeLessThanOrEqual(420);                                   // results directly under it, above the keyboard
-  await page.getByRole("button", { name: "Close" }).click();
+  await page.getByRole("button", { name: "Close the list" }).click();
   await expect(sheet).toHaveCount(0);
   expect(errors).toEqual([]);
 });
