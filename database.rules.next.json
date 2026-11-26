@@ -15,6 +15,13 @@
         "$uid": {
           ".read": "auth != null && auth.uid === $uid"
         }
+      },
+      "publicFlags": {
+        ".read": true,
+        ".write": "auth != null && root.child('platform').child('admins').child(auth.uid).val() === true",
+        "$flag": {
+          ".validate": "newData.isBoolean()"
+        }
       }
     },
     "apps": {
@@ -38,30 +45,78 @@
                 "$a": {
                   ".validate": "newData.isBoolean()"
                 }
+              },
+              "logAreas": {
+                "$a": {
+                  ".validate": "newData.isBoolean() && (newData.val() === false || newData.parent().parent().child('visible').val() === true)"
+                }
               }
             },
             "consent": {
               ".read": "auth != null && auth.uid === $uid",
-              ".write": "auth != null && auth.uid === $uid"
+              "accepted": {
+                ".write": "auth != null && auth.uid === $uid"
+              },
+              "adult": {
+                ".write": "auth != null && auth.uid === $uid"
+              },
+              "termsVersion": {
+                ".write": "auth != null && auth.uid === $uid"
+              },
+              "privacyVersion": {
+                ".write": "auth != null && auth.uid === $uid"
+              },
+              "at": {
+                ".write": "auth != null && auth.uid === $uid"
+              },
+              "ai": {
+                ".write": "auth != null && auth.uid === $uid"
+              },
+              "photos": {
+                ".write": "auth != null && auth.uid === $uid"
+              },
+              "health": {
+                ".write": "auth != null && auth.uid === $uid"
+              },
+              "bodyBalance": {
+                ".write": "auth != null && auth.uid === $uid"
+              },
+              "symptoms": {
+                ".write": "auth != null && auth.uid === $uid",
+                ".validate": "newData.isBoolean()"
+              },
+              "history": {
+                "$h": {
+                  ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.exists()"
+                }
+              }
             },
             "data": {
               ".read": "auth != null && auth.uid === $uid",
               ".write": "auth != null && auth.uid === $uid",
               "$area": {
-                ".read": "auth != null && root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val() && root.child('apps').child($app).child('users').child($uid).child('privacy/visible').val() === true && (!root.child('apps').child($app).child('users').child($uid).child('privacy/areas').exists() || root.child('apps').child($app).child('users').child($uid).child('privacy/areas').child($area).val() === true)",
-                ".write": "auth != null && root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val() && root.child('apps').child($app).child('users').child($uid).child('privacy/visible').val() === true && root.child('apps').child($app).child('users').child($uid).child('privacy/logForMe').val() === true && (!root.child('apps').child($app).child('users').child($uid).child('privacy/areas').exists() || root.child('apps').child($app).child('users').child($uid).child('privacy/areas').child($area).val() === true)"
+                ".read": "auth != null && root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val() && ($area === 'exercise' || $area === 'body' || $area === 'eating' || $area === 'health' || $area === 'mood' || $area === 'journal' || $area === 'settings') && (root.child('apps').child($app).child('users').child($uid).child('privacy').child('visible').val() === true && (!root.child('apps').child($app).child('users').child($uid).child('privacy').child('areas').child($area).exists() || root.child('apps').child($app).child('users').child($uid).child('privacy').child('areas').child($area).val() === true))",
+                ".write": "auth != null && root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val() && ($area === 'exercise' || $area === 'body' || $area === 'eating' || $area === 'health' || $area === 'mood' || $area === 'journal' || $area === 'settings') && (root.child('apps').child($app).child('users').child($uid).child('privacy').child('visible').val() === true && (!root.child('apps').child($app).child('users').child($uid).child('privacy').child('areas').child($area).exists() || root.child('apps').child($app).child('users').child($uid).child('privacy').child('areas').child($area).val() === true)) && (root.child('apps').child($app).child('users').child($uid).child('privacy').child('logAreas').child($area).exists() ? root.child('apps').child($app).child('users').child($uid).child('privacy').child('logAreas').child($area).val() === true : root.child('apps').child($app).child('users').child($uid).child('privacy').child('logForMe').val() === true)"
               }
+            },
+            "shared": {
+              ".read": "auth != null && auth.uid === $uid",
+              ".write": "auth != null && auth.uid === $uid"
             }
           }
         },
         "households": {
           "$hid": {
-            ".read": "auth != null && data.child('members').child(auth.uid).val() === true"
+            ".read": "auth != null && data.child('members').child(auth.uid).val() === true",
+            "shared": {
+              ".read": "auth != null && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === $hid",
+              ".write": "auth != null && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === $hid"
+            }
           }
         },
         "entitlements": {
           "$uid": {
-            ".read": "auth != null && auth.uid === $uid"
+            ".read": "auth != null && (auth.uid === $uid || (root.child('apps').child($app).child('memberOf').child(auth.uid).exists() && root.child('apps').child($app).child('memberOf').child(auth.uid).val() === root.child('apps').child($app).child('memberOf').child($uid).val()))"
           }
         },
         "energy": {
@@ -99,6 +154,22 @@
         },
         "audit": {
           ".read": "auth != null && root.child('platform').child('admins').child(auth.uid).val() === true"
+        },
+        "familyEnergy": {
+          "$owner": {
+            ".read": "auth != null && (auth.uid === $owner || (root.child('apps/' + $app + '/memberOf/' + auth.uid).exists() && root.child('apps/' + $app + '/households/' + root.child('apps/' + $app + '/memberOf/' + auth.uid).val() + '/owner').val() === $owner))"
+          }
+        },
+        "familyLedger": {
+          "$owner": {
+            ".read": "auth != null && auth.uid === $owner"
+          }
+        },
+        "purchases": {
+          ".read": false
+        },
+        "pilotInvites": {
+          ".read": false
         }
       }
     }

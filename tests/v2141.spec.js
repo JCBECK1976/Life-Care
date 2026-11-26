@@ -1,9 +1,10 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
-import { openApp, tab } from "./helpers.js";
+import { openApp, tab, withBodyPhotos } from "./helpers.js";
 import { noFood } from "../src/lib/snap.js";
 import { parseReading } from "../src/lib/measureReading.js";
+test.beforeEach(async ({ page }) => { await withBodyPhotos(page); });   // v2.37.2: these features are hidden unless switched on
 
 // v2.14.1: feedback email as an admin setting (not in the source); "no food" / "unreadable" photo results.
 const NS = "?ns=life-care-app-64d04-default-rtdb";
@@ -15,6 +16,9 @@ const ai = (obj) => ({ status: 200, contentType: "application/json", body: JSON.
 const NO_FOOD = "No food found in this photo — try another photo, or add a description and Re-check";
 // every photo request answers "no food" (other AI calls fall back to the default mock)
 async function mockNoFood(page) { const bodies = []; await page.route("https://api.anthropic.com/**", (r) => { const t = r.request().postData() || ""; if (!/"type":"image"/.test(t)) return r.fallback(); bodies.push(t); return r.fulfill(ai({ isFood: false, name: "a person standing in a room", kcal: 0, protein: 0, satFat: 0, addedSugar: 0 })); }); return bodies; }
+
+// v2.52.0: Cancel in a picker Snap goes back to the picker list — close it before the next row
+async function closePicker(page) { const c = page.getByRole("button", { name: "Close the list" }); if (await c.count()) await c.first().click(); }
 
 test("v2.14.1 pure: noFood / readable flags", () => {
   expect(noFood({ isFood: false })).toBe(true); expect(noFood({ isFood: "false" })).toBe(true); expect(noFood(null)).toBe(true);
@@ -69,7 +73,7 @@ test("v2.14.1: no food in a 📷 Snap photo (empty and filled slots) — message
   await tab(page, "My Eating"); await page.waitForTimeout(500);
   const before = JSON.stringify(await getRaw("eat_children:jc:" + await page.evaluate(() => { const b = new Date(2026, 6, 19), n = new Date(); const w = new Date(b); w.setDate(w.getDate() + Math.floor((n - b) / (7 * 864e5)) * 7); return w.getFullYear() + "-" + String(w.getMonth() + 1).padStart(2, "0") + "-" + String(w.getDate()).padStart(2, "0"); })));
   for (const slotIdx of [0, 2]) {                                                                 // breakfast (empty), dinner
-    await page.getByRole("button", { name: "Snap a photo of your food" }).nth(slotIdx).click();
+    await closePicker(page); await page.getByTestId("picker-trigger").nth(slotIdx).click(); await page.getByTestId("act-snap").click();   // v2.50.0: Snap is in the picker
     await page.getByTestId("snap-pre").locator('input[type="file"]').setInputFiles(PNG);
     await expect(page.getByTestId("snap-no-food")).toHaveText(NO_FOOD);
     await expect(page.getByTestId("snap-rating")).toHaveCount(0);

@@ -99,7 +99,7 @@ test("4a from 'Sunday dinner': Build a meal → Save adds it to Dinners AND the 
   await SUNDAY_PREP(); await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
   await page.route(/openfoodfacts\.org/, (r) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ products: [SAUCE] }) }));
   await tab(page, "My Eating");
-  await page.getByText("Select dinner...").first().click();
+  await page.getByText("Add dinner…").first().click();
   await page.getByText("+ Not in my list?").first().click();
   const ul = page.getByTestId("update-lists");
   await expect(ul.getByTestId("return-to")).toContainText("Adding for Sunday dinner");

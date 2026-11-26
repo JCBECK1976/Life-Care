@@ -19,10 +19,12 @@ export var CLARIFY_SYSTEM = "CLARIFY_ITEM. You help a UK user add ONE food item 
 
 function textOf(result) { var t = ""; (result.content || []).forEach(function(c) { if (c.text) t += c.text; }); return t; }
 
-async function callAI(messages) {
+async function callAI(messages, system, feature) {
+  var headers = { "x-lc-feature": "myOwnItem", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" };
+  if (feature === "autoInfo") headers["x-lc-feature"] = "autoInfo";   // v2.37.1: a meal change is plan feature autoInfo (as before), "My own" is myOwnItem
   var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 900, temperature: 0, system: CLARIFY_SYSTEM, messages: messages }) });
+    headers: headers,
+    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 900, temperature: 0, system: system || CLARIFY_SYSTEM, messages: messages }) });
   var result = await resp.json();
   var err = handleApiError(result); if (err) throw new Error(err);
   return textOf(result);
@@ -33,7 +35,7 @@ async function callAI(messages) {
  * Returns { type: "question", question, friendly? } or { type: "item", reply } (reply = the validated JSON). API errors throw.
  */
 export async function clarifyTurn(turns, opts) {
-  var call = (opts && opts.call) || callAI;
+  var call = (opts && opts.call) || function(m) { return callAI(m, opts && opts.system, opts && opts.feature); };
   var asked = turns.filter(function(t) { return t.role === "assistant"; }).length;
   var msgs = turns.map(function(t) { return { role: t.role, content: t.role === "assistant" ? JSON.stringify({ type: "question", question: t.text }) : t.text }; });
   if (asked >= MAX_QUESTIONS) msgs[msgs.length - 1] = { role: "user", content: msgs[msgs.length - 1].content + "\n\n(You have asked enough questions: reply with the item now, stating assumptions.)" };
@@ -49,6 +51,22 @@ export async function clarifyTurn(turns, opts) {
   }
   return { type: "question", question: FRIENDLY, friendly: true };
 }
+
+/* ---------- v2.37.1 (Architect brief 23 Nov, PART 3a): changing a meal in My Eating (Open → Edit → Changes) uses the same
+   conversation: a clarifying question instead of a rejection, strict JSON, retries, values for what was actually eaten,
+   and the person reviews them before anything is saved. ---------- */
+export var CLARIFY_CHANGE = "CLARIFY_MEAL_CHANGE. A UK user ate a meal item with some changes. Work out the nutrition of WHAT THEY ACTUALLY ATE (the stated number of portions, with the changes).\n" +
+  "Reply with ONLY a JSON object, no other text. Either:\n" +
+  '{"type":"question","question":"<one short, friendly question>"}\n' +
+  "when a change is unclear (what replaced what, roughly how much, a brand). Ask one thing at a time; at most " + MAX_QUESTIONS + " questions. Or:\n" +
+  '{"type":"item","name":"<the meal with the changes, short>","servings":1,"portionDesc":"<what was eaten>","change":"<one short sentence on what changed>","assumptions":"<any assumptions, one sentence>","perPortion":{"kcal":0,"protein":0,"fat":0,"satFat":0,"carbs":0,"sugar":0,"addedSugar":0,"fibre":0,"salt":0}}\n' +
+  "perPortion is for everything they ate (servings is 1). Use UK supermarket values; grams for macros, salt in g. After " + MAX_QUESTIONS + " questions, give the item with reasonable stated assumptions.";
+/** The first message for a meal change: the item's standard portion, how many portions, and the change in their words. */
+export function mealChangeRequest(base, factor, text) {
+  var b = base || {};
+  return "The meal item is \"" + (b.name || "a meal") + "\". One standard portion has: " + (b.kcal || 0) + " kcal, " + (b.protein || 0) + " g protein, " + (b.fat || 0) + " g fat, " + (b.satFat || 0) + " g saturated fat, " + (b.carbs || 0) + " g carbs, " + (b.addedSugar || 0) + " g added sugar, " + (b.fibre || 0) + " g fibre, " + (b.salt || 0) + " g salt. They ate " + factor + " × that portion, with these changes: \"" + text + "\".";
+}
+export function clarifyMealChange(turns, opts) { return clarifyTurn(turns, Object.assign({ system: CLARIFY_CHANGE, feature: "autoInfo" }, opts || {})); }
 
 /* ---------- v2.19.1 (F27): the other add paths use the same per-portion schema, validation and retries ---------- */
 function msgText(content) { return typeof content === "string" ? content : content; }

@@ -8,11 +8,21 @@ import { APP_ENV, APP_VERSION } from "../constants/version.js";
 import { saveDebugMode } from "../lib/debugLog.js";
 import AccountCard from "../components/AccountCard.jsx";
 import PrivacyDataCard from "../components/PrivacyDataCard.jsx";
+import { SetupGuideCard } from "../components/SetupGuide.jsx";
 import { auditLog } from "../lib/audit.js";
 import AiUsageCard from "../components/AiUsageCard.jsx";
 import Tracker from "../components/Tracker.jsx";
 import ContactEmailCard from "../components/ContactEmailCard.jsx";
 import { DOCS_INDEX, VAULT_DOCS } from "../constants/docsIndex.js";
+import MyPlanCard from "../components/MyPlanCard.jsx";
+import StepsCard from "../components/StepsCard.jsx";
+import AccountConsentCard from "../components/AccountConsentCard.jsx";
+import FamilySharingCard from "../components/FamilySharingCard.jsx";
+import PilotInviteCard from "../components/PilotInviteCard.jsx";
+import ReviewDemoCard from "../components/ReviewDemoCard.jsx";
+import GoLiveSwitches from "../components/GoLiveSwitches.jsx";
+import { buildFlag } from "../lib/platform.js";
+import { tiersOn, usePlan, setPreview } from "../lib/myPlan.js";
 
 // v2.15.0 C: admin sections. "Reset to Default Data" was removed (recovery = Download backup + Restore).
 var REPO = "https://github.com/JCBECK1976/Life-Care";
@@ -21,7 +31,7 @@ var PAGES = "https://jcbeck1976.github.io/Life-Care/";
 var PROJECT = (function() { try { return firebase.app().options.projectId; } catch (e) { return ""; } })();
 var card = { background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 8, marginBottom: 14 };
 function AdminSection(props) {
-  return (<div data-testid={"admin-section-" + props.id} style={{ marginTop: 22, paddingTop: 10, borderTop: "2px solid #e2e8f0" }}>
+  return (<div data-testid={"admin-section-" + props.id} data-ai-ok="" style={{ marginTop: 22, paddingTop: 10, borderTop: "2px solid #e2e8f0" }}>
     <div role="heading" aria-level={3} style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>{props.title}</div>
     <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, marginTop: 2 }}>{props.help}</div>
   </div>);
@@ -37,6 +47,7 @@ export default function SettingsSection({ ctx }) {
     isAdmin, isJC, measInputs, setCustomMeasTypes, setSection, setDebugLog, setDebugMode, setFormMsg, setGoogleConnected,
     setGoogleToken, setMeasInputs, setUserColour, syncGoogleHealth, syncLoading, userColour
   } = ctx;
+  const plan = usePlan();
 
   return (
 <div>
@@ -55,9 +66,18 @@ export default function SettingsSection({ ctx }) {
             </div>
           </div>
 
+          {/* v2.22.0 (ADR 0017): My Plan, under the colour theme (flag useTiers). A Platinum family member sees only the theme. */}
+          <AccountConsentCard />
+          <FamilySharingCard />   {/* v2.28.1: What my family can see (individual accounts in a family) */}   {/* v2.24.0: an individual account's privacy choices (flag useOnboarding) */}
+          {tiersOn() && plan.role === "member" && <div data-testid="plan-member-note" style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 13, color: "#0f172a" }}>You're on {plan.ownerName}'s Platinum Family plan.{plan.preview && <div><button type="button" onClick={function() { setPreview(null); }} style={{ marginTop: 8, padding: "8px 12px", minHeight: 44, borderRadius: 8, border: "1px solid #1e3a5f", background: "#fff", fontWeight: 700, cursor: "pointer" }}>Stop preview</button></div>}</div>}
+          {tiersOn() && plan.role !== "member" && <MyPlanCard energyPct={companionEnergy && companionEnergy.pct} />}
+          {plan.role !== "member" && (<>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Data Admin</div>
 
           {/* v2.16.2 R4: Google Health (cloud API), rebuilt — token on this device only, honest status */}
+          {buildFlag("useSteps") && <StepsCard data={data} saveData={saveData} />}
+          <GoLiveSwitches />   {/* v2.27.0: the go-live switches (admin) */}
+          <PilotInviteCard /><ReviewDemoCard />   {/* v2.31.2: admin — store-review demo account */}   {/* v2.25.0: admin — pilot test users (flag useAccounts) */}   {/* v2.23.0 N6: Health Connect steps (flag; build only) */}
           {(function() { var gp = data && data[activeTab]; var st = ghStatus(activeTab, gp); return (
           <div data-testid="gh-card" style={{ background: "#fff", borderRadius: 12, border: "1px solid " + (googleConnected ? "#86efac" : "#e2e8f0"), padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>📱 Google Health — calories burned</div>
@@ -88,7 +108,7 @@ export default function SettingsSection({ ctx }) {
           {/* v2.15.0 C: admin Settings in clear sections, each with short helper text */}
           {isAdmin && <AdminSection id="app-ai" title="App & AI" help="The Claude key, Companion Energy, what the AI has used, where feedback emails go, and Debug Mode." />}
           {/* API Key — Admin only */}
-          {isAdmin && (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
+          {isAdmin && (<div data-ai-ok="" style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 14, marginTop: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>🔑 API Keys</div>
             <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>Required for AI features. Get your Claude key from <strong>console.anthropic.com</strong> → API Keys.</div>
             <label style={labelStyle}>Claude API Key</label>
@@ -184,7 +204,9 @@ export default function SettingsSection({ ctx }) {
           </div>)}
 
           <PrivacyDataCard person={activeTab} name={(data && data[activeTab] && data[activeTab].profile && data[activeTab].profile.name) || activeTab} isAdmin={isAdmin} />
+          <SetupGuideCard />   {/* v2.38.0 (brief P5c): Settings → Set-up guide */}
           <AccountCard />
+          </>)}
         </div>
   );
 }

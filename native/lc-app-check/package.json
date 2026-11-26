@@ -1,0 +1,8 @@
+{
+  "name": "lc-app-check",
+  "version": "1.0.0",
+  "private": true,
+  "description": "v2.29.0: Firebase App Check for the iPhone app (App Attest; debug provider in Debug builds). Android has its own LcAppCheckPlugin in android/app.",
+  "main": "index.js",
+  "capacitor": { "ios": { "src": "ios" } }
+}

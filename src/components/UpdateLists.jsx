@@ -1,3 +1,4 @@
+import { setFav } from "../lib/favourites.js";
 import React from "react";
 import { sSet } from "../lib/storage.js";
 import { withRuleRating, bandOf, FREQ_LABEL } from "../lib/rag.js";
@@ -6,6 +7,10 @@ import { clarifyTurn, identifyFood } from "../lib/clarify.js";
 import { fuzzyFind, searchGeneric, correctedQuery, words } from "../lib/foodSearch.js";
 import { searchOff, productType, needsPortionCheck, packSize } from "../lib/off.js";
 import { GENERIC_LABEL } from "../constants/genericFoods.js";
+import { planAllows } from "../lib/myPlan.js";
+import { ratingsShown, ratingLabel, NEUTRAL } from "../lib/rating.js";
+import { GatePrompt } from "./PlanGate.jsx";
+import { SheetSelect } from "./BottomSheet.jsx";
 
 // v2.19.0 Update Lists (docs/design/EATING_LISTS.md §3): Single item · Build a meal · My own.
 // Everything is per portion; all three end with Save → D11 rating (per portion) → the chosen category lists, optionally
@@ -37,8 +42,8 @@ export function PortionValues(props) {
 
 /** Search as you type (2+ letters): own lists, then common foods (the app's catalogue + the UK generic list), then
  *  UK products (Open Food Facts, debounced, spelling-corrected, retried). Local results never wait for the network. */
-function useSearch(props, catalogue) {
-  var [q, setQ] = React.useState("");
+function useSearch(props, catalogue, initial) {
+  var [q, setQ] = React.useState(initial || "");   // v2.37.1 (brief P3b): what was typed in the meal picker, with its results showing
   var [off, setOff] = React.useState([]);
   var [offState, setOffState] = React.useState("");   // "" | "loading" | "none" | "down"
   var [retry, setRetry] = React.useState(0);
@@ -125,7 +130,8 @@ function SaveStep(props) {
   var [addNow, setAddNow] = React.useState(!!rt);
   var [msg, setMsg] = React.useState("");
   var [clash, setClash] = React.useState(null);
-  var [saved, setSaved] = React.useState(null);   // v2.20.1: { name, lists, kcal, ids: { catKey: id }, item } → the confirmation card   // v2.20.1: [{ label, kcal }] — a different item with the same name is already there
+  var [saved, setSaved] = React.useState(null);
+  var [fav, setFavBox] = React.useState(false);   // v2.50.0 (P2f): ♥ Favourite, per person   // v2.20.1: { name, lists, kcal, ids: { catKey: id }, item } → the confirmation card   // v2.20.1: [{ label, kcal }] — a different item with the same name is already there
   var item = withRuleRating(props.item);   // D11 per portion, against the UK reference (list item)
   var b = bandOf(item) || "";
   var key = function(x) { return String((x && x.name) || "").trim().toLowerCase(); };
@@ -150,6 +156,7 @@ function SaveStep(props) {
       if (u) { c.setCustoms(u); await sSet(c.storageKey, JSON.stringify(u)); }
       if (!firstId) firstId = id; if (rt && c.k === rt.cat) forSlot = { id: id, item: it };
       ids[c.k] = id; if (!savedItem) savedItem = it;
+      if (fav) await setFav(id, true);
     }
     if (addNow && rt && props.onAddNow) { await props.onAddNow(forSlot || { id: firstId, item: Object.assign({}, item, { id: firstId }) }, rt); if (props.onSaved) props.onSaved(); return; }   // back to the day
     setSaved({ name: name, lists: chosen.map(function(c) { return c.label; }), firstCat: chosen[0].k, kcal: n0(itemNutrition(item).kcal), ids: ids, firstId: firstId, item: savedItem });
@@ -160,10 +167,11 @@ function SaveStep(props) {
     <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{item.name}</div>
     <div data-testid="portion-label" style={small}>{portionLabel(item)}</div>
     <PortionValues n={itemNutrition(item)} />
-    <div data-testid="save-rating" style={{ fontSize: 11, fontWeight: 700, color: RAGC[item.rating] || "#334155", marginTop: 2 }}>{b ? (b.indexOf("RED") === 0 ? "RED" : b) + " · " + FREQ_LABEL[b] : ""} <span style={{ fontWeight: 400, color: "#475569" }}>(per portion, against the UK reference)</span></div>
+    <div data-testid="save-rating" style={{ fontSize: 11, fontWeight: 700, color: ratingsShown() ? (RAGC[item.rating] || "#334155") : NEUTRAL, marginTop: 2 }}>{ratingLabel(b ? (b.indexOf("RED") === 0 ? "RED" : b) + " · " + FREQ_LABEL[b] : "")} <span style={{ fontWeight: 400, color: "#475569" }}>(per portion, against the UK reference)</span></div>
     <fieldset style={{ border: "none", padding: 0, margin: "8px 0 0" }}><legend style={{ fontSize: 11, fontWeight: 700, color: "#334155" }}>Add to my lists</legend>
       {props.cats.map(function(c) { return (<label key={c.k} style={{ display: "inline-flex", alignItems: "center", gap: 4, marginRight: 10, fontSize: 12 }}><input type="checkbox" checked={!!cats[c.k]} onChange={function(e) { var o = Object.assign({}, cats); o[c.k] = e.target.checked; setCats(o); }} />{c.label}</label>); })}
     </fieldset>
+    <label data-testid="save-fav" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, marginTop: 6 }}><input type="checkbox" checked={fav} onChange={function(e) { setFavBox(e.target.checked); }} /><span><span aria-hidden="true" style={{ color: "#dc2626" }}>♥</span> Favourite</span></label>
     {rt && <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, marginTop: 6 }}><input type="checkbox" checked={addNow} onChange={function(e) { setAddNow(e.target.checked); }} />Add to {rt.label} now</label>}
     {msg && <div role="status" style={{ fontSize: 12, fontWeight: 600, marginTop: 6, color: msg.charAt(0) === "✅" ? "#166534" : "#991b1b" }}>{msg}</div>}
     {clash && (<div role="alertdialog" aria-label="Same name already in your list" data-testid="name-clash" style={{ marginTop: 8, padding: 10, borderRadius: 8, background: "#fffbeb", border: "1px solid #fcd34d", fontSize: 12, color: "#0f172a" }}>
@@ -215,7 +223,9 @@ function SavedCard(props) {
 
 /* ---------- a) Single item ---------- */
 function SingleItem(props) {
-  var s = useSearch(props, props.catalogue);
+  var s = useSearch(props, props.catalogue, (props.returnTo && props.returnTo.text) || "");
+  var typed = (props.returnTo && props.returnTo.text) || "";
+  React.useEffect(function() { if (typed) s.setQ(typed); }, [typed]);   // eslint-disable-line react-hooks/exhaustive-deps
   var [pick, setPick] = React.useState(null);   // the item being confirmed
   var [grams, setGrams] = React.useState("");
   var [guard, setGuard] = React.useState(null); // v2.19.2 wrong-match guard: { type, pack, ok }
@@ -327,9 +337,7 @@ export function MealBuilder(props) {
         {c.check && <div style={Object.assign({}, small, { marginTop: 2 })}><span style={tag}>{c.check}</span>{c.hint || "check the amount — values are per 100 g"}</div>}
         <div style={{ display: "grid", gridTemplateColumns: "minmax(40px, 52px) minmax(80px, 110px) auto minmax(30px, 1fr)", alignItems: "center", columnGap: 12, marginTop: 6 }}>
           <input aria-label={"Amount of " + c.name} type="number" inputMode="decimal" value={c.amount} onChange={function(e) { upd(i, { amount: e.target.value }); }} style={Object.assign({}, inp, { width: "100%", minWidth: 0, padding: "6px 6px", fontSize: 12 })} />
-          <select aria-label={"Unit for " + c.name} value={c.unit} onChange={function(e) { upd(i, { unit: e.target.value }); }} style={Object.assign({}, inp, { width: "100%", minWidth: 0, padding: "6px 2px", fontSize: 12 })}>
-            <option value="portion">portions</option>{canUseGrams(c) && <option value="g">grams</option>}
-          </select>
+          <SheetSelect label={"Unit for " + c.name} title={"Unit for " + c.name} testId="unit-choice" value={c.unit} options={[{ value: "portion", label: "portions" }].concat(canUseGrams(c) ? [{ value: "g", label: "grams" }] : [])} onChange={function(v) { upd(i, { unit: v }); }} style={{ width: "100%", padding: "6px 6px", fontSize: 12 }} />
           <span data-testid="meal-comp-kcal" style={{ fontSize: 12, color: "#334155", whiteSpace: "nowrap" }}>{n ? n0(n.kcal) + " kcal" : "—"}</span>
           <button type="button" aria-label={"Remove " + c.name} style={Object.assign({}, btn, { padding: "4px 8px", justifySelf: "end" })} onClick={function() { setComps(comps.filter(function(x, j) { return j !== i; })); }}>✕</button>
         </div>
@@ -414,7 +422,7 @@ export default function UpdateLists(props) {
     </div>
     {tab === "single" && <SingleItem key={"s" + k} {...common} />}
     {tab === "meal" && <MealBuilder key={"m" + k} {...common} />}
-    {tab === "own" && <OwnItem key={"o" + k} {...common} />}
+    {tab === "own" && (planAllows("myOwnItem") ? <OwnItem key={"o" + k} {...common} /> : <GatePrompt feature="myOwnItem" />)}   {/* v2.22.0: My own is part of Silver */}
   </div>);
 }
 export { withPortionValues };

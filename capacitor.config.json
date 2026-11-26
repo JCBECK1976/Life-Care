@@ -1,0 +1,23 @@
+{
+  "appId": "com.companionappsstudio.lifecare",
+  "appName": "Lifecare Companion",
+  "webDir": "dist-native",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SocialLogin": {
+      "providers": {
+        "google": true,
+        "apple": true,
+        "facebook": false,
+        "twitter": true
+      }
+    }
+  }
+}

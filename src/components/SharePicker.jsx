@@ -1,5 +1,9 @@
 import React from "react";
 import PersonTabs from "./PersonTabs.jsx";
+import { bodyPhotosOn } from "../lib/platform.js";
+import { planAllows } from "../lib/myPlan.js";
+
+import { EAT_CATEGORIES, eatCategoryFor } from "../lib/eatShare.js";
 
 // v2.11.0 F8 "Share to Lifecare Companion" (Android). The service worker keeps images shared from another app in
 // Cache Storage ("lc-share"). This picker appears once the user is signed in (so nothing is lost while signing in),
@@ -36,7 +40,7 @@ async function handTo(kind, files) {
 
 var KINDS = [
   { k: "body", label: "📏 Body measurements", hint: "a screenshot from your scales or measurement app" },
-  { k: "progress", label: "📸 Progress photo", hint: "body balance check (analysed, never stored)" },
+  { k: "progress", label: "📸 Progress photo", hint: "body balance check (analysed, never stored)", bodyPhotos: true },   // v2.37.2: hidden with Body Balance
   { k: "food", label: "🍽 Food", hint: "checked in the Food Checker" },
 ];
 
@@ -45,7 +49,13 @@ export default function SharePicker(props) {
   var _m = React.useState(""); var msg = _m[0]; var setMsg = _m[1];
   // v2.16.4: whose upload is it? Defaults to the current person (same toggle style as the Log form).
   var _p = React.useState(null); var who = _p[0] || props.activeKey; var setWho = _p[1];
-  React.useEffect(function() { readSharedFiles().then(function(f) { if (f.length) setFiles(f); }).catch(function() {}); }, [setFiles]);
+  var _e = React.useState(false); var eatOpen = _e[0]; var setEatOpen = _e[1];
+  var _c = React.useState(function() { return eatCategoryFor(new Date()); }); var eatCat = _c[0]; var setEatCat = _c[1];
+  React.useEffect(function() {
+    var read = function() { readSharedFiles().then(function(f) { if (f.length) setFiles(f); }).catch(function() {}); };
+    read(); window.addEventListener("lc-shared", read);   // v2.44.0: Android hands an image over (lib/nativeShare.js)
+    return function() { window.removeEventListener("lc-shared", read); };
+  }, [setFiles]);
   if (!files) return null;
   var tidyUrl = function() { if (/[?&]share=1/.test(window.location.search)) window.history.replaceState(null, "", window.location.pathname); };
   var choose = async function(kind) {
@@ -54,6 +64,13 @@ export default function SharePicker(props) {
     var ok = await handTo(kind, files);
     if (ok) { await clearShared(); setFiles(null); tidyUrl(); }
     else setMsg("Couldn't open that upload. The image is still kept on this phone; try again.");
+  };
+  var addToEating = async function() {
+    var switched = !!(props.setPerson && who && who !== props.activeKey);
+    window._lcEatShare = { who: who, cat: eatCat, file: files[0], switched: switched };
+    if (switched) props.setPerson(who);
+    props.go("eat");
+    await clearShared(); setFiles(null); tidyUrl();
   };
   var btn = { display: "block", width: "100%", textAlign: "left", padding: "10px 12px", marginBottom: 6, background: "#fff", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontWeight: 600, color: "#0f172a", cursor: "pointer" };
   return (<div role="dialog" aria-modal="true" aria-label="What is this?" data-testid="share-picker" style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(15,23,42,0.5)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
@@ -69,7 +86,15 @@ export default function SharePicker(props) {
             onSelect={function(k) { setWho(k); }} />
         </div>
       </div>)}
-      {KINDS.map(function(o) { return <button key={o.k} onClick={function() { choose(o.k); }} style={btn}>{o.label}<div style={{ fontSize: 10, fontWeight: 400, color: "#475569" }}>{o.hint}</div></button>; })}
+      {KINDS.filter(function(o) { return !o.bodyPhotos || bodyPhotosOn(); }).map(function(o) { return <button key={o.k} onClick={function() { choose(o.k); }} style={btn}>{o.label}<div style={{ fontSize: 10, fontWeight: 400, color: "#475569" }}>{o.hint}</div></button>; })}
+      {planAllows("snap") && (!eatOpen ? <button data-testid="share-eat" onClick={function() { setEatOpen(true); }} style={btn}>🍴 Add to today's eating<div style={{ fontSize: 10, fontWeight: 400, color: "#475569" }}>a new row today, checked with Snap</div></button>
+        : <div data-testid="share-eat-form" style={Object.assign({}, btn, { cursor: "default" })}>
+          <label htmlFor="share-eat-cat" style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Add to today's</label>
+          <select id="share-eat-cat" value={eatCat} onChange={function(e) { setEatCat(e.target.value); }} style={{ width: "100%", padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, marginBottom: 8, background: "#fff" }}>
+            {EAT_CATEGORIES.map(function(o) { return <option key={o[0]} value={o[0]}>{o[1]}</option>; })}
+          </select>
+          <button onClick={addToEating} style={{ width: "100%", padding: 10, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Add and check with Snap</button>
+        </div>)}
       {msg && <div role="alert" style={{ fontSize: 11, color: "#991b1b", fontWeight: 600, margin: "4px 0 8px" }}>{msg}</div>}
       <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
         <button onClick={function() { setFiles(null); tidyUrl(); }} style={{ flex: 1, padding: 10, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>Later (keep it)</button>

@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { openApp, tab } from "./helpers.js";
+import { openApp, tab, PROGRESS } from "./helpers.js";
 function thisWeek() { const DAYS = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"]; const base = new Date(2026, 6, 19), now = new Date(); const ws = new Date(base); ws.setDate(ws.getDate() + Math.floor((now - base) / (7 * 864e5)) * 7); const d = ws.getFullYear() + "-" + String(ws.getMonth() + 1).padStart(2, "0") + "-" + String(ws.getDate()).padStart(2, "0"); return { key: "mealplan:" + d + ":jc", today: DAYS[now.getDay()] }; }
 const DB = (k) => "http://127.0.0.1:9000/data/" + encodeURIComponent(k) + ".json?ns=life-care-app-64d04-default-rtdb";
 const H = { Authorization: "Bearer owner" };
@@ -24,7 +24,7 @@ test("axe: Settings and an open Progress week", async ({ page }) => {
   expect(await scan(page)).toEqual([]);
   await tab(page, "My Exercise");
   await page.getByRole("button", { name: "Sun", exact: true }).click();
-  await page.getByRole("button", { name: "👁 Progress" }).first().click();
+  await page.getByRole("button", { name: PROGRESS }).first().click();
   await page.getByRole("button", { name: /^Open week/ }).first().click();
   expect(await scan(page)).toEqual([]);
   expect(errors).toEqual([]);

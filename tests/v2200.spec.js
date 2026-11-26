@@ -198,23 +198,27 @@ test("4 Exercise feedback thread at 360 px: full-width textarea (never a narrow 
 });
 
 /* ---------- 5. Exercise progression chain ---------- */
-import { nextLogPrefill, progressionRange, resolveTargetWeight, displayCurrent, parseProgressionValue } from "../src/lib/exercise.js";
 const ROW = { name: "Seated Cable Row", exType: "weights", status: "ready to move", current: "Next increment up from 42kg", reps: "12x3", target: "Next increment up from 42kg x 12x3", sets: 3,
   prog: [{ wk: 1, w: "42kg", r: "15x3" }, { wk: 2, w: "42kg", r: "15x3" }] };
-test("5 progression helpers: Ready to Move pre-fills the NEXT weight (never the previous), a concrete range, the person's own value", () => {
-  const last = ROW.prog[1];
-  expect(resolveTargetWeight("Next increment up from 42kg", 42, ROW)).toBe(49);          // pin stack 42 → 49
-  expect(resolveTargetWeight("45–47kg", 42, ROW)).toBe(45);
-  expect(resolveTargetWeight("49kg", 42, ROW)).toBe(49);
-  expect(nextLogPrefill(ROW, last)).toMatchObject({ w: "49", r: "12" });
-  expect(nextLogPrefill({ ...ROW, target: "", progressionNotes: "increments: 45, 47, 49" }, last)).toMatchObject({ w: "45", r: "12", source: "next step up" });
-  expect(progressionRange({ ...ROW, progressionNotes: "increments: 45, 47, 49" }, last).text).toBe("Next: try 45–47 kg (the next 1–2 steps on your stack)");
-  expect(nextLogPrefill({ ...ROW, progressionValue: 47 }, last)).toMatchObject({ w: "47", source: "your next weight" });
-  expect(nextLogPrefill({ ...ROW, progressionValue: 40, status: "building", target: "" }, last)).toBe(null);           // stale value ignored
-  expect(nextLogPrefill({ name: "Single-leg Calf Raise", exType: "weights", status: "moved up", progressionValue: 8 }, { w: "5kg", r: "15x3" })).toMatchObject({ w: "8" });   // Becks 5 → 8 kg
-  expect(nextLogPrefill({ ...ROW, status: "building", target: "" }, last)).toBe(null);                                // not ready: previous stays
-  expect(displayCurrent(ROW)).toBe("42kg");
-  expect(parseProgressionValue("I'll use 47kg")).toBe(47); expect(parseProgressionValue("plate 8")).toBe(8);
+/* v2.41.0 (night batch P4): ONE next target; "next increment" text is never turned into an exact stack weight; app-worked
+   targets are ignored and the card says "Set my next session". (These replace the v2.20.0 stack-step tests.) */
+test("5 helpers: no stack weights from 'next increment'; explicit weights stay; the person's value pre-fills", async ({ page }) => {
+  await openApp(page);
+  const r = await page.evaluate(async (ROW) => {
+    const e = await import("/Life-Care/src/lib/exercise.js"); const t = await import("/Life-Care/src/lib/nextTarget.js");
+    const last = ROW.prog[1];
+    return [e.resolveTargetWeight("Next increment up from 42kg", 42, ROW), e.resolveTargetWeight("45–47kg", 42, ROW), e.resolveTargetWeight("49kg", 42, ROW),
+      t.prefillFrom(ROW, last), t.autoDerivedTarget(ROW), t.prefillFrom({ ...ROW, progressionValue: 47, progressionSetWk: 3 }, last),
+      t.prefillFrom({ ...ROW, next: t.makeTarget("", "9", "set by you") }, { w: "22kg", r: "8x3" }), t.targetHeadline({ ...ROW, next: t.makeTarget("", "9", "set by you"), current: "22kg" }),
+      e.displayCurrent(ROW), e.parseProgressionValue("I'll use 47kg")];
+  }, ROW);
+  expect(r[0]).toBe(null);                                                                   // never a stack step
+  expect(r.slice(1, 3)).toEqual([45, 49]);
+  expect(r[3]).toBe(null); expect(r[4]).toBe(true);                                          // app-worked target ignored
+  expect(r[5]).toMatchObject({ w: "47", r: "12", source: "set by you" });
+  expect(r[6]).toMatchObject({ w: "22", r: "9" });                                           // Butterfly: reps-only target pre-fills (was 8)
+  expect(r[7]).toBe("9×3");
+  expect(r[8]).toBe("42kg"); expect(r[9]).toBe(47);
 });
 
 async function seedExercises(page, list) {
@@ -223,45 +227,34 @@ async function seedExercises(page, list) {
   await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
   await tab(page, "My Exercise");
 }
-test("5 chain (UI): card shows the real weight + a concrete next range; the log pre-fills 49 kg × 12, Previous stays 42 kg; a user-set weight wins", async ({ page }) => {
+test("5 chain (UI): an app-worked target is ignored — the card says 'Set my next session', the log pre-fills from the last entry", async ({ page }) => {
   const { errors } = await openApp(page);
-  const CALF = { name: "Single-leg Calf Raise", exType: "weights", status: "ready to move", current: "5kg", reps: "15x3", sets: 3, prog: [{ wk: 1, w: "5kg", r: "15x3" }, { wk: 2, w: "5kg", r: "15x3" }] };
-  await seedExercises(page, [ROW, CALF]);
+  await seedExercises(page, [ROW]);
   await expect(page.getByText("Seated Cable Row").first()).toBeVisible();
   await expect(page.locator("body")).not.toContainText("Next increment up from");
-  await expect(page.getByText(/^42kg · 12x3/).first()).toBeVisible();
-  await expect(page.getByTestId("ex-next").nth(0)).toContainText("Next: try 49–55 kg (the next 1–2 steps on your stack)");
+  await expect(page.getByTestId("ex-set-next")).toContainText("Set my next session");
   await page.getByRole("button", { name: "📋 Log", exact: true }).nth(0).click();
   await expect(page.getByTestId("log-previous")).toContainText("Previous: 42kg");
-  await expect(page.getByTestId("log-progression")).toHaveText("Progression: 49 kg × 12 (accepted progression) — pre-filled below");
-  const w1 = page.locator('input[placeholder="Weight"]').first();
-  await expect(w1).toHaveValue("49");
-  // Becks-style: the person sets their own next weight (5 → 8 kg) and it is recorded and pre-filled
-  const calfNext = page.getByTestId("ex-next").nth(1);
-  await calfNext.getByTestId("next-value-input").fill("8");
-  await calfNext.getByTestId("next-value-save").click();
-  await expect(page.getByTestId("ex-next")).toHaveCount(1);                                             // v2.20.2: Set applies it and the row closes
-  await expect(page.getByText(/next weight 8 kg \(set by you\)/).first()).toBeVisible();
-  await page.getByRole("button", { name: "📋 Log", exact: true }).nth(1).click();
-  await expect(page.getByTestId("log-progression")).toContainText("Progression: 8 kg × 12 (your next weight)");
-  await expect(page.locator('input[placeholder="Weight"]').first()).toHaveValue("8");
-  const saved = (await get("dashboard:data")).jc.exercises[DAYS[new Date().getDay()]].find((e) => e.name === "Single-leg Calf Raise");
-  expect(saved.progressionValue).toBe(8);
+  await expect(page.getByTestId("log-progression")).toHaveCount(0);
+  await expect(page.locator('input[placeholder="Weight"]').first()).toHaveValue("42");
   expect(errors).toEqual([]);
 });
 
-test("5 chain (UI): accepting 'Next increment up from 42kg' stores 49kg (a number, not the sentence) and the next log pre-fills it", async ({ page }) => {
+test("5 chain (UI): accepting 'Next increment up from 42kg' stores no invented weight; accepting with your own numbers sets the one target (card = log pre-fill)", async ({ page }) => {
   const { errors } = await openApp(page);
   const d = DAYS[new Date().getDay()];
-  await put("session_feedback_all", { ["jc_" + d]: { summary: "Good", nextSession: "", exercises: [{ name: "Seated Cable Row", verdict: "Two clean 15×3s.", icon: "star", newStatus: "ready to move", recommendation: "Move up — tell me the exact weight you'll use.", targetWeight: "Next increment up from 42kg", targetReps: "12x3" }] } });
+  const fb = (rec) => ({ ["jc_" + d]: { summary: "Good", nextSession: "", exercises: [{ name: "Seated Cable Row", verdict: "Two clean 15×3s.", icon: "star", newStatus: "ready to move", recommendation: rec, targetWeight: "Next increment up from 42kg", targetReps: "12x3" }], _feedbackWeek: 0, _generatedAt: "now" } });
+  await put("session_feedback_all", fb("Move up a small step"));
   await seedExercises(page, [{ ...ROW, status: "consolidating", current: "42kg", target: "" }]);
   await page.getByRole("button", { name: "▼ Show Feedback" }).first().click();
   await page.getByRole("button", { name: /Exercise Feedback & Recommendations/ }).click();
+  await page.locator('[id^="user-note-"]').first().fill("I'll do 45kg x 12");
   await page.getByRole("button", { name: "Accept", exact: true }).click();
-  await expect.poll(async () => (await get("dashboard:data")).jc.exercises[d][0].current).toBe("49kg");
+  await expect.poll(async () => (await get("dashboard:data")).jc.exercises[d][0].next).toMatchObject({ m1: "45", m2: "12", source: "set by you" });
+  await expect(page.getByTestId("ex-headline").first()).toHaveText("45kg · 12×3");
   await page.getByRole("button", { name: "📋 Log", exact: true }).first().click();
-  await expect(page.locator('input[placeholder="Weight"]').first()).toHaveValue("49");
-  await expect(page.getByTestId("log-previous")).toContainText("42kg");
+  await expect(page.locator('input[placeholder="Weight"]').first()).toHaveValue("45");
+  await expect(page.locator('input[placeholder="Reps"]').first()).toHaveValue("12");
   expect(errors).toEqual([]);
 });
 
@@ -307,7 +300,7 @@ test("7 every input/select/textarea (and the meal picker) has the subtle 1px bor
   }
   expect(bad).toEqual([]);
   await tab(page, "My Eating");
-  const picker = page.getByTestId("selected-item").first().locator("xpath=ancestor::div[1]");
+  const picker = page.getByTestId("selected-item").first().locator("xpath=ancestor::button[1]");   // v2.50.0: the row box is a button
   if (await page.getByTestId("selected-item").count()) {
     await expect(picker).toHaveCSS("border-top-color", "rgb(203, 213, 225)");
     await expect(picker).toHaveCSS("border-top-left-radius", "8px");
@@ -328,7 +321,7 @@ test("8 axe at 360 px: Update Lists (search results, Build a meal, My own), the 
   expect(await axe(page)).toEqual([]);
   await page.getByRole("tab", { name: "Build a meal" }).click(); expect(await axe(page)).toEqual([]);
   await page.getByRole("tab", { name: "My own" }).click(); expect(await axe(page)).toEqual([]);
-  await tab(page, "My Exercise"); await page.getByRole("button", { name: "📋 Log", exact: true }).first().click(); expect(await axe(page)).toEqual([]);
+  await tab(page, "My Exercise"); await page.getByRole("button", { name: "Sun", exact: true }).click(); await page.getByRole("button", { name: "📋 Log", exact: true }).first().click(); expect(await axe(page)).toEqual([]);
   await openChat(page); expect(await axe(page)).toEqual([]);
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: /Help/ }).first().click(); expect(await axe(page)).toEqual([]);
@@ -347,26 +340,17 @@ test("8 Chat and Help are dialogs: focus moves into the box, Tab stays inside, E
   await expect(dlg).toHaveCount(0);
   await page.getByRole("button", { name: /Help/ }).first().click();
   const h = page.getByRole("dialog", { name: "Help — using the app" });
-  await expect(page.locator("#help-input-jc")).toBeFocused();
+  await expect(page.locator("#help-faq-search")).toBeFocused();   // v2.38.0: Help starts with the guide and its search box (Ask the Companion is below)
+  expect(await h.evaluate((d) => d.contains(document.activeElement))).toBe(true);
   await page.keyboard.press("Escape"); await expect(h).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
-test("8 touch screens: buttons and fields are at least 44 px tall; icon-only buttons 44 × 44", async ({ browser }) => {
-  const ctx = await browser.newContext({ viewport: { width: 360, height: 800 }, hasTouch: true, isMobile: true });
-  const page = await ctx.newPage();
-  const { errors } = await openApp(page);
-  await tab(page, "My Exercise");
-  const small = await page.evaluate(() => [...document.querySelectorAll("button, select, input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=hidden])")]
-    .filter((e) => e.offsetParent !== null).map((e) => { const r = e.getBoundingClientRect(); return { t: (e.getAttribute("aria-label") || e.innerText || e.tagName).slice(0, 30), h: r.height, w: r.width, icon: e.hasAttribute("aria-label") && e.tagName === "BUTTON" }; })
-    .filter((x) => x.h < 43.5 || (x.icon && x.w < 43.5)));
-  expect(small).toEqual([]);
-  expect(errors).toEqual([]);
-  await ctx.close();
-});
+// v2.36.0 (Architect, 23 Nov): the 44 px touch minimum was WCAG 2.5.5 (AAA, not required) and is removed; the AA
+// target-size check (2.5.8: 24 px or spacing) is tests/v2360.spec.js.
 
 /* ---------- 9. Polish ---------- */
-test("9a/b phone picker: forgiving search, 56 px rows, current item highlighted, ✕ Close; picking shows 'Added: …' with Undo", async ({ page }) => {
+test("9a/b phone picker: forgiving search, ~44 px rows (v2.50.0), current item highlighted, ✕ Close; picking shows 'Added: …' with Undo", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   const { errors } = await openApp(page);
   const list = (await get("custom_breakfasts")) || [];
@@ -382,8 +366,9 @@ test("9a/b phone picker: forgiving search, 56 px rows, current item highlighted,
   await page.getByLabel("Search items").fill("porrige");                                             // misspelt
   const row = sheet.getByTestId("picker-row").filter({ hasText: "Test Porridge Oats" });
   await expect(row).toBeVisible();
-  expect((await row.boundingBox()).height).toBeGreaterThanOrEqual(56);
+  expect((await row.boundingBox()).height).toBeGreaterThanOrEqual(43);
   await row.dispatchEvent("mousedown");
+  await page.getByTestId("pick-confirm").click();                                                   // v2.50.0: confirm the pick
   await expect(sheet).toHaveCount(0);
   const toast = page.getByTestId("pick-toast");
   await expect(toast).toContainText("Added: Test Porridge Oats");
@@ -400,6 +385,7 @@ test("9c/d number fields: numeric keypad, typing replaces the value; the log's S
   await page.setViewportSize({ width: 360, height: 640 });
   const { errors } = await openApp(page);
   await tab(page, "My Exercise");
+  await page.getByRole("button", { name: "Sun", exact: true }).click();                               // a day the test data has exercises on
   await page.getByRole("button", { name: "📋 Log", exact: true }).first().click();
   const w = page.locator('input[placeholder="Weight"]').first();
   await expect(w).toHaveAttribute("inputmode", "decimal");

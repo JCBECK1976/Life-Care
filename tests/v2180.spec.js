@@ -78,17 +78,18 @@ test("the table: planned eating from snapshots, actual from stored selections; e
   expect(dayTable({ ...p, goal: {} }, D, doc)).toMatchObject({ ready: false });            // no targets until setup is complete
 });
 
-test("Week to date (fixed clock, Wednesday): past days with actual data only — never today, the future or unlogged days", () => {
+test("Week to date (fixed clock, Wednesday): days up to AND INCLUDING today with actual data (v2.56.2) — never the future or unlogged days", () => {
   const p = withGoal({ id: "maintain" });
   const doc = { children: {
     s: { date: "2026-11-08", snapshot: { kcal: 2000 }, nutrition: { kcal: 2000 } },      // Sun −126
     t: { date: "2026-11-10", snapshot: { kcal: 2400 }, nutrition: { kcal: 2400 } },      // Tue +274 (Mon not logged)
-    w: { date: "2026-11-11", nutrition: { kcal: 5000 } },                                  // today: not counted
+    w: { date: "2026-11-11", nutrition: { kcal: 5000 } },                                  // today: counted so far (v2.56.2)
     f: { date: "2026-11-13", nutrition: { kcal: 9999 } } } };                             // future: never counted
   const w = weekToDate(p, doc, new Date(2026, 10, 11, 15));
-  expect(w.days).toEqual(["2026-11-08", "2026-11-10"]);
-  expect(w.kcal).toBe(4400 - 2 * 2126); expect(w.pct).toBe(Math.round(148 / 4252 * 100)); expect(w.colour).toBe("red");
-  expect(weekToDate(p, doc, new Date(2026, 10, 8, 9)).pct).toBe(null);                   // Sunday morning: nothing yet
+  expect(w.days).toEqual(["2026-11-08", "2026-11-10", "2026-11-11"]);
+  expect(w.kcal).toBe(9400 - 3 * 2126); expect(w.pct).toBe(Math.round((9400 - 3 * 2126) / (3 * 2126) * 100)); expect(w.colour).toBe("red");
+  expect(weekToDate(p, doc, new Date(2026, 10, 8, 9)).days).toEqual(["2026-11-08"]);     // Sunday morning: today so far
+  expect(weekToDate({ ...p }, { children: {} }, new Date(2026, 10, 8, 9)).pct).toBe(null); // nothing logged yet
 });
 
 test("goal context for companions: goal, description, timescale, pace, progress; suggestions only", () => {
@@ -119,7 +120,7 @@ test("UI: mandatory setup gate — no targets until complete; saving the goal sh
   await dlg.getByLabel(/Work towards a healthy body weight/).check();
   await expect(dlg.getByTestId("goal-recommend")).toContainText("Your Companion recommends:");   // v2.18.1: recommended, not typed
   await dlg.getByRole("button", { name: "Change", exact: true }).click();
-  await dlg.getByLabel("My target weight (kg)").fill("50");
+  await dlg.getByTestId("goal-target-unit-kg").click(); await dlg.getByTestId("goal-target-kg").fill("50");   // v2.32.3: unit-aware boxes
   await expect(dlg.getByTestId("goal-bmi-block")).toBeVisible();                             // never below BMI 18.5
   await dlg.getByRole("button", { name: "Accept recommendation" }).click();
   await dlg.getByLabel("Mostly sitting").check();
@@ -139,7 +140,7 @@ test("UI: the slider shows the pace colour and healthier alternatives", async ({
   await expect(dlg).toBeVisible({ timeout: 20000 });
   await dlg.getByLabel(/Work towards a healthy body weight/).check();
   await dlg.getByRole("button", { name: "Change", exact: true }).click();
-  await dlg.getByLabel("My target weight (kg)").fill("70");
+  await dlg.getByTestId("goal-target-unit-kg").click(); await dlg.getByTestId("goal-target-kg").fill("70");   // v2.32.3: unit-aware boxes
   await dlg.getByLabel(/Timescale/).fill("3");
   await expect(dlg.getByTestId("goal-pace")).toHaveAttribute("data-level", "red");
   await expect(dlg.getByTestId("goal-pace")).toContainText("Steady:");
@@ -163,13 +164,12 @@ test("UI: one goal everywhere — Home Today and My Eating show the same goal; t
   await tab(page, "My Eating");
   const wd = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()];
   await page.getByRole("button", { name: wd, exact: true }).first().click();
-  const day = page.getByTestId("day-plan-actual");
-  await expect(day.getByTestId("pa-goal").locator("td").nth(1)).toHaveText(homeGoal);
-  await expect(day.getByTestId("pa-footnote")).toBeVisible();
+  const day = page.getByTestId("day-summary");                                                  // v2.54.0: the day's Summary
+  await expect(day.getByTestId("sum-row").locator('[data-col="goal"]')).toHaveText(homeGoal);
   await expect(page.getByText("Deficit:", { exact: false })).toHaveCount(0);                  // no user-facing deficit control
   await page.getByRole("button", { name: "Week", exact: true }).first().click();
-  await expect(page.getByTestId("week-plan-actual").getByTestId("wpa-row")).toHaveCount(7);
-  await expect(page.getByTestId("week-plan-actual").getByTestId("pa-footnote")).toBeVisible();
+  await page.getByTestId("week-summary").getByTestId("sum-toggle").click();                    // v2.53.0: Week Summary, days on Show
+  await expect(page.getByTestId("week-summary").getByTestId("sum-row")).toHaveCount(7);
   expect(errors).toEqual([]);
 });
 

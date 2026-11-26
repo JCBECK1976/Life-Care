@@ -32,7 +32,7 @@ test("D4 + F4: no category is pre-selected; confirm names the category; OK messa
   await expect(bulk.getByRole("button", { name: "Choose a category first" })).toBeDisabled();
   await bulk.getByRole("button", { name: /^drink$/i }).click();
   await bulk.getByRole("button", { name: "Upload Items" }).click();
-  await expect(page.getByTestId("bulk-done")).toHaveText(/2 items added to Drinks\. Ratings are AI estimates\. Open each item and check the weight, portion and ingredients/);
+  await expect(page.getByTestId("bulk-done")).toHaveText(/2 items added to Drinks\. Ratings are your Companion's estimates\. Open each item and check the weight, portion and ingredients/);
   expect(dialogs).toEqual(["Add 2 items to Drinks?"]);
   await page.getByRole("button", { name: "OK", exact: true }).click();
   const drinks = await getKey("custom_drinks");

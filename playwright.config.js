@@ -12,7 +12,9 @@ export default defineConfig({
   globalSetup: "./tests/global-setup.js",
   use: { baseURL: "http://127.0.0.1:5173/Life-Care/", viewport: { width: 412, height: 915 } },
   projects: [
-    { name: "app", testIgnore: /env-build\.spec/ },
+    { name: "app", testIgnore: /env-build\.spec|visual-freeze\.spec/ },
+    // PART 0 (23 Nov): the visual freeze vs beta v2.20.2 — synthetic data only, so its baselines live in the repo.
+    { name: "visual", testMatch: /visual-freeze\.spec/, snapshotPathTemplate: "tests/visual-baseline/{arg}{ext}" },
     // A dev server built as the "build" environment, to test the badge, title, version and noindex.
     { name: "env-build", testMatch: /env-build\.spec/, use: { baseURL: "http://127.0.0.1:5175/Life-Care/build/" } },
   ],

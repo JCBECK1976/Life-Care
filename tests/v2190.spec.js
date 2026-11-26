@@ -106,7 +106,7 @@ test("UI: drop-downs list only items already in that list, ending with '+ Not in
   await tab(page, "My Eating");
   await page.getByRole("button", { name: /^Sun( |$)/ }).first().click();
   const custom = (await get("custom_breakfasts")) || [];
-  await page.getByText(/Select breakfast|Select\.\.\./).first().click().catch(async () => { await page.locator('[data-testid="selected-item"]').first().click(); });
+  await page.getByText(/Add breakfast…|Select\.\.\./).first().click().catch(async () => { await page.locator('[data-testid="selected-item"]').first().click(); });
   const rows = page.locator("text=— not added");
   await expect(rows).toHaveCount(0);
   await expect(page.getByText("+ Not in my list?").first()).toBeVisible();
@@ -120,7 +120,7 @@ test("UI: '+ Not in my list?' → Add single item (UK product, per portion) → 
   await tab(page, "My Eating");
   const wd = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()];
   await page.getByRole("button", { name: new RegExp("^" + wd + "( |$)") }).first().click();
-  await page.getByText(/Select breakfast|Select\.\.\./).first().click().catch(async () => { await page.locator('[data-testid="selected-item"]').first().click(); });
+  await page.getByText(/Add breakfast…|Select\.\.\./).first().click().catch(async () => { await page.locator('[data-testid="selected-item"]').first().click(); });
   await page.getByText("+ Not in my list?").first().click();
   const ul = page.getByTestId("update-lists");
   await expect(ul.getByTestId("return-to")).toContainText(/Adding for \w+day breakfast/);
@@ -152,7 +152,8 @@ test("UI: Build a meal — the Aldi pasta bake, serves 4, computed in code and l
     await mb.getByLabel("Search available items").fill(term);
     await mb.getByTestId("avail-off").first().click();
     const row = mb.getByTestId("meal-comp").last();
-    await row.getByLabel(/^Unit for/).selectOption("g");
+    await row.getByRole("button", { name: /^Unit for/ }).click();                       // v2.30.1: a bottom-sheet picker
+    await page.getByRole("dialog", { name: /^Unit for/ }).getByRole("option", { name: "grams" }).click();
     await row.getByLabel(/^Amount of/).fill(String(g));
   }
   await mb.getByLabel("Meal name").fill("Aldi chicken pasta bake");

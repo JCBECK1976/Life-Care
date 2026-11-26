@@ -5,16 +5,19 @@ export const MODEL = "claude-sonnet-4-6";                 // the app's model; no
 // AI cost → pence. Prices per million tokens in USD (Sonnet), converted at USD_GBP. Check before go-live.
 export const PRICES = { inUsd: 3, outUsd: 15, cacheWriteUsd: 3.75, cacheReadUsd: 0.3 };
 export const USD_GBP = parseFloat(process.env.USD_GBP || "0.79");
-// Energy packs: 100% mark-up — the price is twice the AI cost credited. Stripe fees come out of the margin.
-export const PACKS = {   // any tier
-  pack5: { pricePence: 500, creditPence: 250, name: "Companion Energy — £5 pack" },
-  pack10: { pricePence: 1000, creditPence: 500, name: "Companion Energy — £10 pack" },
+// v2.22.0 (JC 17 Nov 2026): one Energy top-up, £5 → £2.50 of AI cost, Silver and up. Bought through Google Play in the
+// native app (playVerify). The Stripe route below stays in the code but is OFF unless STRIPE_WEB_ENABLED=true (a possible
+// web-only route later) and is always refused for the native apps.
+export const PACKS = {
+  pack5: { pricePence: 500, creditPence: 250, name: "Companion Energy — £5 top-up" },
 };
+export const STRIPE_WEB_ENABLED = () => process.env.STRIPE_WEB_ENABLED === "true";
+export const PLAY_PACKAGE = "com.companionappsstudio.lifecare";
 export const AI_BACKEND = () => process.env.AI_BACKEND || "direct";   // "vertex" (EU) | "direct" (fallback) | "mock" (emulator)
 export const VERTEX = { region: process.env.VERTEX_REGION || "europe-west1", project: process.env.GCLOUD_PROJECT || process.env.VERTEX_PROJECT || "" };
 
 // The P7 medication rule (same text as src/lib/safety.js in the app; the server adds it to every request).
-export const MEDICATION_RULE = "MEDICATION SAFETY (always applies): Never suggest starting, stopping or changing any medication or dose, including supplements taken as medicine. If medication comes up, say it is a question for their GP or pharmacist.";
+export const MEDICATION_RULE = "MEDICATION SAFETY (always applies): Never suggest starting, stopping or changing any medication or dose, including supplements taken as medicine. If medication comes up, say it is a question for their GP or pharmacist. This includes HRT (hormone replacement therapy): HRT entries are the person's own record only — never comment on or advise about HRT products, doses, routes, timing, side effects, or starting, stopping or changing HRT; say it is for their GP, nurse or pharmacist.";
 
 export function costPence(usage) {
   const u = usage || {};
@@ -22,22 +25,21 @@ export function costPence(usage) {
     + (u.cache_creation_input_tokens || 0) * PRICES.cacheWriteUsd + (u.cache_read_input_tokens || 0) * PRICES.cacheReadUsd) / 1e6;
   return Math.round(usd * USD_GBP * 100 * 10000) / 10000;   // pence, 4 dp
 }
+// v2.21.1 SAFETY: the UID the live database rules are locked to (database.rules.json). It is never deletable.
+export const LOCKED_UIDS = ["3iEIfsbZlaUMwUiGY6Lro4jAQef1"];
 export const P = {
   energy: (app, uid) => `apps/${app}/energy/${uid}`,
   ledger: (app, uid) => `apps/${app}/ledger/${uid}`,
   usage: (app, uid, day) => `apps/${app}/usage/${uid}/${day}`,
   ent: (app, uid) => `apps/${app}/entitlements/${uid}`,
   tiers: (app) => `apps/${app}/config/tiers`,
+  config: (app, k) => `apps/${app}/config/${k}`,   // v2.31.1: admin settings (e.g. allowDirectFallback)
   account: (app, uid) => `apps/${app}/admin/accounts/${uid}`,
   admin: (uid) => `platform/admins/${uid}`,
+  // v2.22.0 Platinum: ONE shared Energy pool per family, keyed by the owner's uid (members' AI calls debit it)
+  pool: (app, owner) => `apps/${app}/familyEnergy/${owner}`,
+  poolLedger: (app, owner) => `apps/${app}/familyLedger/${owner}`,
+  purchases: (app, key) => `apps/${app}/purchases/${key}`,          // Play purchase token (hashed) → uid; no content
 };
-// v2.16.5 (JC, 14 Nov): defaults — admin can change them in apps/{appId}/config/tiers without a code change.
-// allowancePence = AI cost included per month. Prices in pence; yearly where offered.
-export const DEFAULT_TIERS = {
-  bronze: { pricePence: 0, allowancePence: 20,
-    tracking: true, ratings: true, help: true, aiFeedback: false, snap: false, mealGenerator: false, bodyBalance: false, aiPlans: false, healthSync: false, household: false },
-  silver: { pricePence: 599, yearlyPence: 4900, allowancePence: 150,
-    tracking: true, ratings: true, help: true, aiFeedback: true, snap: true, mealGenerator: true, bodyBalance: false, aiPlans: false, healthSync: false, household: false },
-  gold: { pricePence: 999, yearlyPence: 7900, allowancePence: 250,
-    tracking: true, ratings: true, help: true, aiFeedback: true, snap: true, mealGenerator: true, bodyBalance: true, aiPlans: true, healthSync: true, household: true },
-};
+// v2.22.0: the four plans (JC 17 Nov 2026) — the same file as the app's src/constants/tiers.js.
+export { DEFAULT_TIERS, TIER_ORDER, TOP_UP, STORE_PRODUCTS, CONSENT_NEEDS, ENERGY_PER_AI_PENNY, tierAllows } from "./tiers.js";

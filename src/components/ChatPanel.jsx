@@ -6,11 +6,15 @@ import { qaToMessages } from "../lib/memory.js";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
+import { planAllows, usePlan } from "../lib/myPlan.js";
+import { GatePrompt } from "./PlanGate.jsx";
+
 export default function ChatPanel({ ctx }) {
   const {
     accentBorder, accentChatUser, activeTab, askQuestion, qaHistory, qaLoading, qaMsg, qaOpen,
     setQaOpen, setShowQaHistory, showQaHistory
   } = ctx;
+  usePlan();   /* v2.22.0: re-render when the plan changes */
   const dlgRef = useDialog(!!(qaOpen), () => setQaOpen(false));   /* v2.20.0: Esc closes, focus kept inside */
 
   return (<>
@@ -21,6 +25,7 @@ export default function ChatPanel({ ctx }) {
             <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Chat with your Companion</div>
             <button aria-label="Close chat" onClick={() => setQaOpen(false)} style={{...btnClose, fontSize: 14, padding: "4px 8px"}}>✕</button>
           </div>
+          {planAllows("chat") ? (
           <div style={{ padding: "8px 16px 8px", borderBottom: "1px solid #f1f5f9" }}>   {/* v2.20.0: input at the top, above the newest message */}
             {qaMsg && <div role="status" aria-live="polite" style={{ marginBottom: 6, padding: 8, borderRadius: 6, background: qaMsg.startsWith("Error") ? "#fee2e2" : "#dbeafe", color: qaMsg.startsWith("Error") ? "#991b1b" : "#1e40af", fontSize: 11, fontWeight: 600 }}>{qaMsg}</div>}
             <div style={{ display: "flex", gap: 6 }}>
@@ -28,6 +33,7 @@ export default function ChatPanel({ ctx }) {
               <button onClick={askQuestion} disabled={qaLoading} style={{ padding: "8px 14px", background: qaLoading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: qaLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>{qaLoading ? <LoadingDots /> : "Send"}</button>
             </div>
           </div>
+          ) : <div style={{ padding: "8px 16px" }}><GatePrompt feature="chat" /></div>}   {/* v2.22.0: past chats stay readable */}
           <div style={{ padding: "8px 16px 10px", overflowY: "auto", flex: 1 }}>
             <div style={{ fontSize: 11, color: "#475569", marginBottom: 10 }}>Ask anything about your health, training, nutrition, or progress. Your full data history is used to answer.</div>
             {qaHistory[activeTab] && qaHistory[activeTab].length > 0 && (<div>

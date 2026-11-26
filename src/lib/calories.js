@@ -8,6 +8,7 @@
 //            a) total calories burned for the day (Google/Apple Health) → max(0, total − baseline); nothing added on top;
 //            b) otherwise steps above a per-person basal allowance + logged exercise (MET − 1) × kg × hours;
 //            c) × the person's activity adjustment % (R5, default 100%).
+import { entryKg } from "./weight.js";
 export var BASELINE_FACTOR = 1.15;
 export var DEFAULT_DEFICIT_PCT = 20;
 export var KCAL_PER_KG_KM = 0.5;          // walking cost above rest, kcal per kg per km
@@ -36,7 +37,7 @@ export var WEEKDAY = ["sunday", "monday", "tuesday", "wednesday", "thursday", "f
 /** Rolling average of the last 3–4 weigh-ins with body fat: { weightKg, bodyFatPct, leanKg, n } or null. */
 export function leanMass(body, n) {
   n = n || 4;
-  var w = lastN(body && body.weight, n).map(function(e) { return toKg(e.v); }).filter(Boolean);
+  var w = lastN(body && body.weight, n).map(function(e) { return entryKg(e); }).filter(Boolean);   // v2.32.2: the shared weight reader
   var f = lastN(body && body.bodyFat, n).map(function(e) { return parseFloat(e.v); }).filter(function(x) { return x > 2 && x < 70; });
   if (w.length < 3 || f.length < 3) return null;
   var wk = avg(w), bf = avg(f);
@@ -45,7 +46,7 @@ export function leanMass(body, n) {
 export function katchMcArdle(leanKg) { return Math.round(370 + 21.6 * leanKg); }
 export function mifflin(kg, cm, age, male) { return Math.round(10 * kg + 6.25 * cm - 5 * age + (male ? 5 : -161)); }
 
-export function weightKg(p) { var w = lastN(p && p.body && p.body.weight, 4).map(function(e) { return toKg(e.v); }).filter(Boolean); if (w.length) return avg(w); var s = parseFloat(p && p.profile && p.profile.weightKg); return s > 0 ? s : null; }   // v2.18.0: setup weight when there are no weigh-ins
+export function weightKg(p) { var w = lastN(p && p.body && p.body.weight, 4).map(function(e) { return entryKg(e); }).filter(Boolean); if (w.length) return avg(w); var s = parseFloat(p && p.profile && p.profile.weightKg); return s > 0 ? s : null; }   // v2.18.0: setup weight when there are no weigh-ins
 export function heightCm(p) {
   var h = String((p && p.profile && p.profile.height) || ""); var m;
   if ((m = /(\d+)\s*'\s*(\d+)?/.exec(h))) return Math.round((parseInt(m[1]) * 12 + (parseInt(m[2]) || 0)) * 2.54);
@@ -122,12 +123,17 @@ export function dayCredit(p, date, plan) {
     var c = Math.max(0, total - plan.baseline);
     return { mode: "total", totalBurned: Math.round(total), credit: Math.round(c * adj), steps: 0, exercise: 0, stepsCount: stepsOn(p, date) };
   }
+  var act = activeOn(p, date);
+  if (act != null) return { mode: "active", credit: Math.round(act * adj), steps: 0, exercise: 0, activeKcal: Math.round(act), stepsCount: stepsOn(p, date) };
   var steps = stepsOn(p, date);
   var stepsK = steps != null ? Math.max(0, steps - plan.stepAllowance) * plan.kcalPerStep : 0;
   var ex = exerciseOn(p, date);
   var exK = ex.done.reduce(function(s, x) { return s + exerciseKcal(x.met, plan.weightKg, x.minutes); }, 0);
   return { mode: "parts", credit: Math.round((stepsK + exK) * adj), steps: Math.round(stepsK * adj), exercise: Math.round(exK * adj), stepsCount: steps, sessions: ex.done.length };
 }
+/** v2.23.0: active calories for a date (Health Connect / HealthKit, behind its own toggle), and where the day's data came from. */
+export function activeOn(p, date) { var s = p && p.dailyActivity && p.dailyActivity[date]; return s && isFinite(parseFloat(s.activeKcal)) ? parseFloat(s.activeKcal) : null; }
+export function sourceOn(p, date) { var s = p && p.dailyActivity && p.dailyActivity[date]; return (s && s.source) || ""; }
 export function stepsOn(p, date) { var s = p && p.dailyActivity && p.dailyActivity[date]; return s && isFinite(parseFloat(s.steps)) ? parseFloat(s.steps) : null; }
 
 /** Everything the calorie line shows for a date. foodKcal from the eating record. */

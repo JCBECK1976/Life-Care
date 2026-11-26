@@ -31,7 +31,7 @@ test("flag useAiProxy on: the request goes to the server proxy with the user's t
   await askHelp(page, "How do I log?");
   await expect(page.getByText("Reply from the proxy.").first()).toBeVisible();
   expect(seen.auth).toMatch(/^Bearer ey/);
-  expect(seen.body.data).toMatchObject({ appId: "lifecare", feature: "help" });
+  expect(seen.body.data).toMatchObject({ appId: "lifecare", feature: "aiHelp" });   // v2.22.0: the plan feature (x-lc-feature)
   expect(seen.body.data.request.messages.length).toBeGreaterThan(0);
   expect(JSON.stringify(aiCalls.slice(n0))).not.toContain("How do I log?");   // the question never went to api.anthropic.com
   expect(errors).toEqual([]);

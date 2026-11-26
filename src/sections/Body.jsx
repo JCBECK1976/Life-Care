@@ -12,7 +12,12 @@ import BodyBalance from "./BodyBalance.jsx";
 import PrivacyNote from "../components/PrivacyNote.jsx";
 import { scrollOnMount } from "../lib/scrollIntoView.js";
 import HistoryRows from "../components/HistoryRows.jsx";
+import { readWeight, withKg, latestLabel, stLabel, STONE_KG, unitOf, weighInEntry, fmtWeight } from "../lib/weight.js";
+import WeightInput from "../components/WeightInput.jsx";
+import WeightFix from "../components/WeightFix.jsx";
 import MeasureSnap from "../components/MeasureSnap.jsx";
+import { bodyPhotosOn } from "../lib/platform.js";
+import WeighInsPanel from "../components/WeighInsPanel.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -25,11 +30,16 @@ export default function BodySection({ ctx }) {
     renderThread, saveBodyComp, saveData, setAddMeasName, setAddMeasOpen, setBodyFbExpanded, setBodyFbLoading, setBodyFeedback,
     setBodyInputs, setBodyMetricOpen, setBodyMetricShowAll, setBodyView, setEditMeasKey, setEditMeasName, setFormMsg, setMeasFbExpanded2,
     setMeasFbLoading, setMeasFeedback, setMeasLogInputs, setMeasLogKey, setMeasMetricOpen, setMeasMetricShowAll, setShowBodyForm, showBodyForm,
-    updateBodyFb, updateMeasFb, userMood, weekLabel, wt, wtDelta, wtSign, wtStr
+    updateBodyFb, updateMeasFb, userMood, weekLabel, wt, wtCheck, wtDelta, wtSign, wtStr
   } = ctx;
 
+  /* v2.32.3: the person's weight unit (st/lb or kg), saved with their profile */
+  var saveUnit = async function(u) { var nd = JSON.parse(JSON.stringify(window._lcData || data)); nd[activeTab].profile = Object.assign({}, nd[activeTab].profile, { weightUnit: u }); await saveData(nd); };
+  var unit = unitOf(p);
+  var [fix, setFix] = React.useState(null);   // { i, entry } — the "check this weigh-in" editor
   return (
 <div>
+          {fix && <WeightFix entry={fix.entry} unit={unit} onUnit={saveUnit} onClose={function() { setFix(null); }} onSave={async function(kg) { var nd = JSON.parse(JSON.stringify(window._lcData || data)); var arr = nd[activeTab].body.weight; arr[fix.i] = Object.assign({}, arr[fix.i], weighInEntry(arr[fix.i].wk, kg)); await saveData(nd); setFix(null); setFormMsg("✓ Weigh-in for week " + arr[fix.i].wk + " saved"); setTimeout(function() { setFormMsg(""); }, 2500); }} />}
           {/* BODY COMPOSITION CARD */}
           <div style={{ marginBottom: 16 }}>
             {/* Week header — centred like Eating */}
@@ -45,16 +55,18 @@ export default function BodySection({ ctx }) {
             </div>
             <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", padding: 12 }}>
               {bodyView === "data" && (<div>
+              <WeighInsPanel p={p} data={data} activeTab={activeTab} saveData={saveData} />   {/* v2.32.0: scales + imported weigh-ins (flag useWeighIns) */}
           {showBodyForm && (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Body Composition</div>
+            <div role="heading" aria-level={3} style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Body Composition</div>
             <div style={{ marginBottom: 10 }}><label style={labelStyle}>Week</label><input type="number" value={bodyInputs.week} onChange={e => setBodyInputs(q => ({ ...q, week: e.target.value }))} style={{ ...inputStyle, width: 80 }} /></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {[["weight","Weight (stone)"],["bodyFat","Body Fat %"],["muscleMass","Muscle Mass"],["muscleRate","Muscle Rate %"],["skeletalMuscle","Skeletal Muscle %"],["visceralFat","Visceral Fat"],["subcutFat","Subcut Fat %"],["bmr","BMR (kcal)"],["bodyWater","Body Water %"],["boneMass","Bone Mass"],["bodyAge","Body Age"],["bmi","BMI"]].map(([k,l]) => (<div key={k}><label style={labelStyle}>{l}</label><input value={bodyInputs[k]} onChange={e => setBodyInputs(q => ({ ...q, [k]: e.target.value }))} style={inputStyle} /></div>))}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+              <div style={{ gridColumn: "1 / -1" }}><WeightInput id="bw" label="Weight" kg={bodyInputs.weightKg || null} unit={unitOf(p)} onUnit={saveUnit} onChange={function(k) { setBodyInputs(function(q) { return Object.assign({}, q, { weightKg: k, weight: "" }); }); }} /></div>   {/* v2.32.3: st/lb or kg */}
+              {[["bodyFat","Body Fat %"],["muscleMass","Muscle Mass"],["muscleRate","Muscle Rate %"],["skeletalMuscle","Skeletal Muscle %"],["visceralFat","Visceral Fat"],["subcutFat","Subcut Fat %"],["bmr","BMR (kcal)"],["bodyWater","Body Water %"],["boneMass","Bone Mass"],["bodyAge","Body Age"],["bmi","BMI"]].map(([k,l]) => (<div key={k}><label style={labelStyle}>{l}</label><input value={bodyInputs[k]} onChange={e => setBodyInputs(q => ({ ...q, [k]: e.target.value }))} style={inputStyle} /></div>))}
             </div>
             <div style={{ marginTop: 10 }}><label style={labelStyle}>My Notes</label><input type="text" aria-label="My Notes" placeholder="e.g. birthday week, after a long flight" value={bodyInputs.note || ""} onChange={e => setBodyInputs(q => ({ ...q, note: e.target.value }))} style={inputStyle} /></div>
             <div style={{ display: "flex", gap: 8, marginTop: 12 }}><button onClick={saveBodyComp} style={{ ...btnP(!!bodyInputs.week), flex: 1 }}>Save</button><button onClick={() => setShowBodyForm(false)} style={btnS}>Cancel</button></div>
           </div>)}
-          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}><span>My Body Stats</span><div style={{ display: "flex", gap: 4 }}><button onClick={() => { setShowBodyForm(true); setBodyInputs({ weight: "", bodyFat: "", muscleMass: "", muscleRate: "", skeletalMuscle: "", visceralFat: "", subcutFat: "", bmr: "", bodyWater: "", boneMass: "", bodyAge: "", bmi: "", week: String(calcWeek(data.config.trainingStart)) }); }} style={btnAction}>📋 Record</button><label style={{...btnAction, display: "inline-flex"}}>📷 Upload<input type="file" data-share="body" accept="image/*" onChange={async function(e) {
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}><span role="heading" aria-level={2}>My Body Stats</span><div style={{ display: "flex", gap: 4 }}><button onClick={() => { setShowBodyForm(true); setBodyInputs({ weight: "", bodyFat: "", muscleMass: "", muscleRate: "", skeletalMuscle: "", visceralFat: "", subcutFat: "", bmr: "", bodyWater: "", boneMass: "", bodyAge: "", bmi: "", week: String(calcWeek(data.config.trainingStart)) }); }} style={btnAction}>📋 Log</button><label style={{...btnAction, display: "inline-flex"}}>📷 Upload<input type="file" data-share="body" accept="image/*" onChange={async function(e) {
                 var file = e.target.files ? e.target.files[0] : null;
                 if (!file) return;
                 setFormMsg("Reading image...");
@@ -71,7 +83,7 @@ export default function BodySection({ ctx }) {
                     };
                     img.src = rawB64;
                   });
-                  var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }, { type: "text", text: 'Extract body comp values from this Fitdays screenshot. Return ONLY JSON. WEIGHT: The Fitdays screen shows weight as stones and pounds like 14 6.8 meaning 14st 6.8lb. Return the EXACT raw value as shown combining stones and pounds with a dot: 14st 6.8lb becomes 14.68, 14st 4.9lb becomes 14.49, 15st 0.3lb becomes 15.03. Do NOT convert or calculate - just read the digits and combine them. All other values as numbers exactly as shown on screen: {"weight":"14.579","bodyFat":"25.8","muscleMass":"","muscleRate":"","skeletalMuscle":"","visceralFat":"","subcutFat":"","bmr":"","bodyWater":"","boneMass":"","bodyAge":"","bmi":""}' }] }] }) });
+                  var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-lc-feature": "snap", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }, { type: "text", text: 'Extract body comp values from this Fitdays screenshot. Return ONLY JSON. WEIGHT: The Fitdays screen shows weight as stones and pounds like 14 6.8 meaning 14st 6.8lb. Return the EXACT raw value as shown combining stones and pounds with a dot: 14st 6.8lb becomes 14.68, 14st 4.9lb becomes 14.49, 15st 0.3lb becomes 15.03. Do NOT convert or calculate - just read the digits and combine them. All other values as numbers exactly as shown on screen: {"weight":"14.579","bodyFat":"25.8","muscleMass":"","muscleRate":"","skeletalMuscle":"","visceralFat":"","subcutFat":"","bmr":"","bodyWater":"","boneMass":"","bodyAge":"","bmi":""}' }] }] }) });
                   var result = await resp.json();
                   var apiErr = handleApiError(result);
                   if (apiErr) { setFormMsg("API: " + apiErr); setTimeout(function() { setFormMsg(""); }, 8000); return; }
@@ -81,7 +93,7 @@ export default function BodySection({ ctx }) {
                     try {
                       var parsed = JSON.parse(txt.replace(/```json|```/g, "").trim());
                       parsed.week = String(calcWeek(data.config.trainingStart));
-                      setBodyInputs(function(prev) { return Object.assign({}, prev, parsed); });
+                      setBodyInputs(function(prev) { var rw = parsed && parsed.weight ? readWeight({ v: String(parsed.weight) }) : null; return Object.assign({}, prev, parsed, { weight: "", weightKg: rw && !rw.ambiguous ? rw.kg : prev.weightKg }); });   /* v2.32.3: the photo fills the st/lb (or kg) boxes */
                       setShowBodyForm(true);
                       setFormMsg("✓ Values extracted — review and save");
                     } catch(pe) { setFormMsg("Parse error: " + txt.substring(0, 80)); setTimeout(function() { setFormMsg(""); }, 8000); }
@@ -91,8 +103,8 @@ export default function BodySection({ ctx }) {
                 e.target.value = "";
               }} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)", border: 0 }} /></label></div></div>
           <div style={{ background: accentLight, borderRadius: 8, padding: 12, border: "1px solid " + accentBorder }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-            <BodyCard label="Weight" value={wtStr} rating="High" trend={wtDelta ? (wtSign === "-" ? "-" : "+") + wtDelta.split("lb")[0] + "lb" : ""} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "weight" ? null : "weight"); }} eyeOpen={bodyMetricOpen === "weight"} />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, marginBottom: 10 }}>
+            <BodyCard label="Weight" value={wtStr} rating="High" trend={wtDelta ? (wtSign === "-" ? "-" : "+") + wtDelta.replace(/ from baseline$/, "") : ""} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "weight" ? null : "weight"); }} eyeOpen={bodyMetricOpen === "weight"} />{wtCheck && <div data-testid="weight-check" role="note" style={{ gridColumn: "1 / -1", fontSize: 12, color: "#92400e", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "6px 10px" }}>⚠ <b>Check this weigh-in:</b> the stored number could mean two weights (for example 1.1 lb or 11 lb over the stone). <button type="button" data-testid="weight-check-fix" onClick={function() { setFix({ i: wt.length - 1, entry: wt[wt.length - 1] }); }} style={{ marginLeft: 6, minHeight: 32, padding: "2px 10px", borderRadius: 6, border: "1px solid #92400e", background: "#fff", color: "#92400e", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Fix it</button></div>}
             <BodyCard label="Body Fat %" value={p.body.bodyFat?.[p.body.bodyFat.length-1]?.v} rating={isJC ? "Acceptable" : "Too High"} onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "bodyFat" ? null : "bodyFat"); }} eyeOpen={bodyMetricOpen === "bodyFat"} />
             <BodyCard label="Muscle Mass" value={p.body.muscleMass?.[p.body.muscleMass.length-1]?.v} rating="Excellent" onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "muscleMass" ? null : "muscleMass"); }} eyeOpen={bodyMetricOpen === "muscleMass"} />
             <BodyCard label="Muscle Rate %" value={p.body.muscleRate?.[p.body.muscleRate.length-1]?.v} rating="Excellent" onEye={() => { setBodyMetricShowAll(false); setBodyMetricOpen(bodyMetricOpen === "muscleRate" ? null : "muscleRate"); }} eyeOpen={bodyMetricOpen === "muscleRate"} />
@@ -111,12 +123,12 @@ export default function BodySection({ ctx }) {
             {mArr.length === 0 && <div style={{ fontSize: 11, color: "#475569", textAlign: "center", padding: 16 }}>No progress data yet</div>}
             {mArr.length > 0 && (<div>
               {/* v2.13.0 F9: rows = week + value + Open; edit / remove inside the Open form */}
-              <HistoryRows testid="body-hist" label={metricLabels[bodyMetricOpen] || bodyMetricOpen} entries={mArr} limit={bodyMetricShowAll ? 999 : 4}
-                onSave={async function(ei, patch) { var nd = JSON.parse(JSON.stringify(data)); var arr = nd[activeTab].body[bodyMetricOpen]; Object.assign(arr[ei], patch); if (!patch.note) delete arr[ei].note; arr.sort(function(x, y) { return x.wk - y.wk; }); await saveData(nd); setFormMsg("✓ Week " + patch.wk + " saved"); setTimeout(function() { setFormMsg(""); }, 2000); }}
+              <HistoryRows testid="body-hist" label={metricLabels[bodyMetricOpen] || bodyMetricOpen} entries={mArr} limit={bodyMetricShowAll ? 999 : 4} fmt={bodyMetricOpen === "weight" ? function(e) { var rw = readWeight(e); return rw ? (rw.ambiguous ? rw.label : fmtWeight(rw.kg, unit)) : String(e.v); } : null} badge={bodyMetricOpen === "weight" ? function(e) { var rw = readWeight(e); return rw && rw.ambiguous ? "check this weigh-in" : null; } : null} onBadge={bodyMetricOpen === "weight" ? function(i, e) { setFix({ i: i, entry: e }); } : null} weight={bodyMetricOpen === "weight" ? { unit: unit, onUnit: saveUnit } : null}
+                onSave={async function(ei, patch) { var nd = JSON.parse(JSON.stringify(data)); var arr = nd[activeTab].body[bodyMetricOpen]; if (bodyMetricOpen === "weight") { patch = withKg(patch, patch.v); if (!patch.kg) delete arr[ei].kg; } Object.assign(arr[ei], patch);   /* v2.32.2: + canonical kg */ if (!patch.note) delete arr[ei].note; arr.sort(function(x, y) { return x.wk - y.wk; }); await saveData(nd); setFormMsg("✓ Week " + patch.wk + " saved"); setTimeout(function() { setFormMsg(""); }, 2000); }}
                 onRemove={async function(ei) { var nd = JSON.parse(JSON.stringify(data)); nd[activeTab].body[bodyMetricOpen].splice(ei, 1); await saveData(nd); setFormMsg("✓ Removed"); setTimeout(function() { setFormMsg(""); }, 2000); }} />
               {mArr.length > 4 && <button onClick={function() { setBodyMetricShowAll(!bodyMetricShowAll); }} style={{ width: "100%", padding: 6, background: "none", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11, color: accent, cursor: "pointer", marginTop: 6 }}>{bodyMetricShowAll ? "▲ Show less" : "▼ View more (" + (mArr.length - 4) + " entries)"}</button>}
             </div>)}
-            {(function() { var chartData = (bodyMetricOpen === "weight" ? wt : mArr).map(function(d) { return { wk: d.wk, v: typeof d.v === "number" ? d.v : parseFloat(d.v), note: d.note }; }).filter(function(d) { return !isNaN(d.v); }); var chartColors = { weight: accent, bodyFat: "#ef4444", muscleMass: "#22c55e", muscleRate: "#22c55e", visceralFat: "#f97316", subcutFat: "#f97316", bodyWater: "#3b82f6", boneMass: "#8b5cf6", bmr: "#3b82f6", bodyAge: "#d97706", skeletalMuscle: "#22c55e" }; var chartRefs = { weight: idealSt, bodyFat: isJC ? 18 : 28 }; if (chartData.length >= 2) return <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}><FullChart title={metricLabels[bodyMetricOpen] || bodyMetricOpen} series={[{ label: metricLabels[bodyMetricOpen] || bodyMetricOpen, color: chartColors[bodyMetricOpen] || accent, data: chartData }]} refLine={chartRefs[bodyMetricOpen]} height={120} /></div>; if (mArr.length > 0 && chartData.length < 2) return <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}><div style={{ fontSize: 11, color: "#475569", textAlign: "center", padding: 12 }}>Need 2+ entries for chart</div></div>; return null; })()}
+            {(function() { var chartData = (bodyMetricOpen === "weight" ? wt : mArr).map(function(d) { var rw = bodyMetricOpen === "weight" ? readWeight(d) : null; return { wk: d.wk, v: rw ? Math.round(rw.st * 1000) / 1000 : typeof d.v === "number" ? d.v : parseFloat(d.v), note: d.note }; })   /* v2.32.2: weight plotted in true stones */.filter(function(d) { return !isNaN(d.v); }); var chartColors = { weight: accent, bodyFat: "#ef4444", muscleMass: "#22c55e", muscleRate: "#22c55e", visceralFat: "#f97316", subcutFat: "#f97316", bodyWater: "#3b82f6", boneMass: "#8b5cf6", bmr: "#3b82f6", bodyAge: "#d97706", skeletalMuscle: "#22c55e" }; var chartRefs = { weight: readWeight(idealSt) ? Math.round(readWeight(idealSt).st * 1000) / 1000 : idealSt, bodyFat: isJC ? 18 : 28 }; if (chartData.length >= 2) return <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}><FullChart title={metricLabels[bodyMetricOpen] || bodyMetricOpen} series={[{ label: metricLabels[bodyMetricOpen] || bodyMetricOpen, color: chartColors[bodyMetricOpen] || accent, data: chartData }]} refLine={chartRefs[bodyMetricOpen]} height={120} fmt={bodyMetricOpen === "weight" ? function(v) { return stLabel(v * STONE_KG).replace(/lb$/, ""); } : null} /></div>; if (mArr.length > 0 && chartData.length < 2) return <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}><div style={{ fontSize: 11, color: "#475569", textAlign: "center", padding: 12 }}>Need 2+ entries for chart</div></div>; return null; })()}
           </div>); })()}
           </div>{/* end grey sub-container */}
 
@@ -127,8 +139,8 @@ export default function BodySection({ ctx }) {
               setBodyFbLoading(true);
               try {
                 var prof = p.profile || {};
-                var bodySum = "Weight: " + (wt.length > 0 ? wt[wt.length-1].v + "st" : "none") + ", Body Fat: " + ((p.body.bodyFat||[]).length > 0 ? p.body.bodyFat[p.body.bodyFat.length-1].v + "pct" : "none") + ", Muscle Mass: " + ((p.body.muscleMass||[]).length > 0 ? p.body.muscleMass[p.body.muscleMass.length-1].v : "none") + ", Muscle Rate: " + ((p.body.muscleRate||[]).length > 0 ? p.body.muscleRate[p.body.muscleRate.length-1].v + "pct" : "none") + ", Visceral: " + ((p.body.visceralFat||[]).length > 0 ? p.body.visceralFat[p.body.visceralFat.length-1].v : "none") + ", Subcut Fat: " + ((p.body.subcutFat||[]).length > 0 ? p.body.subcutFat[p.body.subcutFat.length-1].v + "pct" : "none") + ", BMR: " + ((p.body.bmr||[]).length > 0 ? p.body.bmr[p.body.bmr.length-1].v : "none") + ", Body Water: " + ((p.body.bodyWater||[]).length > 0 ? p.body.bodyWater[p.body.bodyWater.length-1].v + "pct" : "none") + ", Bone Mass: " + ((p.body.boneMass||[]).length > 0 ? p.body.boneMass[p.body.boneMass.length-1].v : "none") + ", Body Age: " + ((p.body.bodyAge||[]).length > 0 ? p.body.bodyAge[p.body.bodyAge.length-1].v : "none") + ", Ideal: " + (prof.idealWeight || "unknown");
-                var prevEntries = wt.length > 1 ? "Previous weights: " + wt.slice(-4).map(function(w) { return w.v + "st (Wk" + w.wk + ")"; }).join(", ") : "";
+                var bodySum = "Weight: " + (wt.length > 0 ? latestLabel(wt) : "none") + ", Body Fat: " + ((p.body.bodyFat||[]).length > 0 ? p.body.bodyFat[p.body.bodyFat.length-1].v + "pct" : "none") + ", Muscle Mass: " + ((p.body.muscleMass||[]).length > 0 ? p.body.muscleMass[p.body.muscleMass.length-1].v : "none") + ", Muscle Rate: " + ((p.body.muscleRate||[]).length > 0 ? p.body.muscleRate[p.body.muscleRate.length-1].v + "pct" : "none") + ", Visceral: " + ((p.body.visceralFat||[]).length > 0 ? p.body.visceralFat[p.body.visceralFat.length-1].v : "none") + ", Subcut Fat: " + ((p.body.subcutFat||[]).length > 0 ? p.body.subcutFat[p.body.subcutFat.length-1].v + "pct" : "none") + ", BMR: " + ((p.body.bmr||[]).length > 0 ? p.body.bmr[p.body.bmr.length-1].v : "none") + ", Body Water: " + ((p.body.bodyWater||[]).length > 0 ? p.body.bodyWater[p.body.bodyWater.length-1].v + "pct" : "none") + ", Bone Mass: " + ((p.body.boneMass||[]).length > 0 ? p.body.boneMass[p.body.boneMass.length-1].v : "none") + ", Body Age: " + ((p.body.bodyAge||[]).length > 0 ? p.body.bodyAge[p.body.bodyAge.length-1].v : "none") + ", Ideal: " + (prof.idealWeight || "unknown");
+                var prevEntries = wt.length > 1 ? "Previous weights: " + wt.slice(-4).map(function(w) { var rw = readWeight(w); return (rw ? rw.label : w.v + "st") + " (Wk" + w.wk + ")"; }).join(", ") : "";
                 var allBodyTrends = "";
                 ["bodyFat","muscleRate","visceralFat","subcutFat","bmr","bodyWater","boneMass","bodyAge","skeletalMuscle","muscleMass"].forEach(function(mk) {
                   var arr = p.body[mk] || [];
@@ -162,7 +174,7 @@ export default function BodySection({ ctx }) {
                   "3. 'outlook': One sentence — the honest but encouraging big picture trajectory.\n" +
                   "Keep it tight — similar length to the home page companion feedback. Quality over quantity.\n\n" +
                   "Return ONLY valid JSON: {\"wins\":[\"point\",\"point\"],\"tweaks\":[\"point\",\"point\"],\"outlook\":\"one sentence\"}";
-                var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1200, messages: [{ role: "user", content: prompt }] }) });
+                var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-lc-feature": "aiFeedback", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1200, messages: [{ role: "user", content: prompt }] }) });
                 var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                 var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
                 if (txt) { var bfParsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); if (leanMass(p.body)) { var ndR5 = JSON.parse(JSON.stringify(data)); var beforeR5 = JSON.stringify(ndR5[activeTab].calorieSettings || null); applyAiAdj(ndR5[activeTab], bfParsed.adjSuggestion); if (JSON.stringify(ndR5[activeTab].calorieSettings || null) !== beforeR5) await saveData(ndR5); } delete bfParsed.adjSuggestion; /* v2.16.2 R5: suggestion lives in calorieSettings */ bfParsed._at = new Date().toLocaleString("en-GB"); bfParsed._when = new Date().toLocaleString("en-GB"); setBodyFeedback(bfParsed); sSet("body_feedback", JSON.stringify(Object.assign({}, bodyFbAll || {}, { [activeTab]: bfParsed }))); }
@@ -193,9 +205,9 @@ export default function BodySection({ ctx }) {
           </div>
               </div>)}
               {bodyView === "measurements" && (<div>
-                <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a" }}>My Body Measurements</div>
+                <div role="heading" aria-level={2} style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: "#0f172a" }}>My Body Measurements</div>
           <div style={{ background: accentLight, borderRadius: 8, padding: "4px 12px 12px", border: "1px solid " + accentBorder }}>
-            {Object.entries(p.measurements).map(function(pair, mi) { var k = pair[0]; var d = pair[1]; var latest = d.length > 0 ? d[d.length - 1] : null; var prev = d.length > 1 ? d[d.length - 2] : null; var delta = (latest && prev && typeof latest.v === "number" && typeof prev.v === "number") ? (latest.v - prev.v).toFixed(1) : null; var measColors = ["#2563eb","#7c3aed","#059669","#d97706","#dc2626","#0891b2","#ec4899"]; return (<div key={k} style={{ padding: "10px 3px", borderBottom: mi < Object.entries(p.measurements).length - 1 ? "1px solid #e2e8f0" : "none", position: "relative" }}>
+            {Object.entries(p.measurements).filter(function(pair) { return pair[0] !== "fullBody" || bodyPhotosOn(); }).map(function(pair, mi) { var k = pair[0]; var d = pair[1]; var latest = d.length > 0 ? d[d.length - 1] : null; var prev = d.length > 1 ? d[d.length - 2] : null; var delta = (latest && prev && typeof latest.v === "number" && typeof prev.v === "number") ? (latest.v - prev.v).toFixed(1) : null; var measColors = ["#2563eb","#7c3aed","#059669","#d97706","#dc2626","#0891b2","#ec4899"]; return (<div key={k} style={{ padding: "10px 3px", borderBottom: mi < Object.entries(p.measurements).length - 1 ? "1px solid #e2e8f0" : "none", position: "relative" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>{k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})} <span onClick={function(e) { e.stopPropagation(); setMeasMetricOpen(k); setEditMeasKey(k); setEditMeasName(k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})); }} style={{ fontSize: 9, color: "#475569", cursor: "pointer" }}>✎</span></div>
@@ -204,7 +216,7 @@ export default function BodySection({ ctx }) {
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0, alignItems: "flex-end" }}>
-                  <button onClick={function(){ if (measMetricOpen === k) { setMeasMetricOpen(null); setMeasLogKey(null); } else { setMeasMetricOpen(k); setMeasMetricShowAll(false); setMeasLogKey(null); } }} style={measMetricOpen === k ? btnFilledOn : btnProgress}>{measMetricOpen === k ? "✕ Progress" : "👁 Progress"}</button>
+                  <button onClick={function(){ if (measMetricOpen === k) { setMeasMetricOpen(null); setMeasLogKey(null); } else { setMeasMetricOpen(k); setMeasMetricShowAll(false); setMeasLogKey(null); } }} aria-label={(measMetricOpen === k ? "Close " : "") + k.replace(/([A-Z])/g, " $1").toLowerCase() + " progress"} aria-expanded={measMetricOpen === k} style={measMetricOpen === k ? btnFilledOn : btnProgress}>{measMetricOpen === k ? "✕ Progress" : "👁 Progress"}</button>
                   <button onClick={function(){ if (measLogKey === k) { setMeasLogKey(null); } else { setMeasMetricOpen(k); setMeasLogKey(k); setMeasLogInputs({ week: calcWeek(data.config.trainingStart), value: "", note: "", image: null }); } }} style={measLogKey === k ? btnFilledOn : btnLog}>{measLogKey === k ? "✕ Log" : "📋 Log"}</button>
                 </div>
               </div>
@@ -218,7 +230,7 @@ export default function BodySection({ ctx }) {
                     <div><label style={{ fontSize: 10, color: "#475569", display: "block", marginBottom: 2 }}>Week</label><input type="number" value={measLogInputs.week} onChange={function(e){ setMeasLogInputs(Object.assign({}, measLogInputs, { week: e.target.value })); }} style={{ width: 50, padding: "4px 6px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12 }} /></div>
                     <div><label style={{ fontSize: 10, color: "#475569", display: "block", marginBottom: 2 }}>cm</label><input type="number" step="0.5" value={measLogInputs.value} onChange={function(e){ setMeasLogInputs(Object.assign({}, measLogInputs, { value: e.target.value })); }} style={{ width: 60, padding: "4px 6px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12 }} placeholder={latest ? "was " + latest.v : "cm"} /></div>
                     {/* v2.13.0 F10: 📷 Snap reads the value from a photo; Confirm fills the value; the photo is never saved */}
-                    <MeasureSnap key={k} label={k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})} unit="cm" previous={latest ? latest.v : null} onConfirm={function(v) { setMeasLogInputs(function(prev) { return Object.assign({}, prev, { value: String(v) }); }); }} />
+                    {bodyPhotosOn() && <MeasureSnap key={k} label={k.replace(/([A-Z])/g, " $1").replace(/^./, function(s){return s.toUpperCase();})} unit="cm" previous={latest ? latest.v : null} onConfirm={function(v) { setMeasLogInputs(function(prev) { return Object.assign({}, prev, { value: String(v) }); }); }} />}   {/* v2.37.2: measurement photos hidden (BUG-MEASPHOTO) */}
                   </div>
                   <div style={{ marginTop: 8 }}><label style={{ fontSize: 10, color: "#475569", display: "block", marginBottom: 2 }}>My Notes</label><input type="text" value={measLogInputs.note} onChange={function(e){ setMeasLogInputs(Object.assign({}, measLogInputs, { note: e.target.value })); }} style={{ width: "100%", padding: "4px 6px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 11, boxSizing: "border-box" }} placeholder="optional" /></div>
                   <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
@@ -264,7 +276,7 @@ export default function BodySection({ ctx }) {
                 <div style={{ marginTop: 12 }}>
                   {!addMeasOpen ? (<button onClick={function() { setAddMeasOpen(true); setAddMeasName(""); }} style={{...btnActionLg, width: "100%", justifyContent: "center"}}>+ Add Body Measurement</button>)
                   : (<div style={{ background: "#fff", borderRadius: 12, border: "2px solid " + accent, padding: 14 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Add Body Measurement</div>
+                    <div role="heading" aria-level={3} style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Add Body Measurement</div>
                     <div><label style={{ fontSize: 10, color: "#475569", display: "block", marginBottom: 2 }}>Measurement name</label><input type="text" value={addMeasName} onChange={function(e) { setAddMeasName(e.target.value); }} placeholder="e.g. Hips, Neck, Thigh" style={{ width: "100%", padding: "6px 8px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 12, boxSizing: "border-box" }} /></div>
                     <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                       <button onClick={async function() { var name = addMeasName.trim().toLowerCase().replace(/\s+(.)/g, function(m, c) { return c.toUpperCase(); }); if (!name) return; var nd = JSON.parse(JSON.stringify(data)); if (!nd[activeTab].measurements) nd[activeTab].measurements = {}; if (nd[activeTab].measurements[name]) { setFormMsg("⚠️ " + addMeasName + " already exists"); setTimeout(function() { setFormMsg(""); }, 3000); return; } nd[activeTab].measurements[name] = []; await saveData(nd); setAddMeasOpen(false); setAddMeasName(""); setFormMsg("✓ " + addMeasName + " added"); setTimeout(function() { setFormMsg(""); }, 3000); }} style={{ ...btnP(!!addMeasName.trim()), flex: 1 }}>Add</button>
@@ -285,7 +297,7 @@ export default function BodySection({ ctx }) {
                 Object.entries(p.measurements).forEach(function(pair) {
                   if (pair[1].length >= 2) { measTrends += pair[0] + " trend: " + pair[1].slice(-4).map(function(e) { return e.v + "cm (Wk" + e.wk + ")"; }).join(" → ") + ". "; }
                 });
-                var bodySum = "Weight: " + (wt.length > 0 ? wt[wt.length-1].v + "st" : "none") + ", Body Fat: " + ((p.body.bodyFat||[]).length > 0 ? p.body.bodyFat[p.body.bodyFat.length-1].v + "pct" : "none") + ", Muscle Rate: " + ((p.body.muscleRate||[]).length > 0 ? p.body.muscleRate[p.body.muscleRate.length-1].v + "pct" : "none") + ", Visceral: " + ((p.body.visceralFat||[]).length > 0 ? p.body.visceralFat[p.body.visceralFat.length-1].v : "none");
+                var bodySum = "Weight: " + (wt.length > 0 ? latestLabel(wt) : "none") + ", Body Fat: " + ((p.body.bodyFat||[]).length > 0 ? p.body.bodyFat[p.body.bodyFat.length-1].v + "pct" : "none") + ", Muscle Rate: " + ((p.body.muscleRate||[]).length > 0 ? p.body.muscleRate[p.body.muscleRate.length-1].v + "pct" : "none") + ", Visceral: " + ((p.body.visceralFat||[]).length > 0 ? p.body.visceralFat[p.body.visceralFat.length-1].v : "none");
                 var prevMeasFb = measFeedback;
                 var prevMeasCtx = "";
                 if (prevMeasFb && prevMeasFb._at) {
@@ -312,7 +324,7 @@ export default function BodySection({ ctx }) {
                   "3. ‘outlook’: One sentence — the honest but encouraging trajectory shown by the tape. Frame it as a mate who can read the measurements and see the recomposition story.\n" +
                   "Keep it tight — similar length to the home page companion feedback. Quality over quantity.\n\n" +
                   "Return ONLY valid JSON: {\"wins\":[\"point\",\"point\"],\"tweaks\":[\"point\",\"point\"],\"outlook\":\"one sentence\"}";
-                var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1200, messages: [{ role: "user", content: prompt }] }) });
+                var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-lc-feature": "aiFeedback", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1200, messages: [{ role: "user", content: prompt }] }) });
                 var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);
                 var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
                 if (txt) { var mfParsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); mfParsed._at = new Date().toLocaleString("en-GB"); mfParsed._when = new Date().toLocaleString("en-GB"); setMeasFeedback(mfParsed); sSet("meas_feedback", JSON.stringify(Object.assign({}, measFbAll || {}, { [activeTab]: mfParsed }))); }
@@ -346,7 +358,7 @@ export default function BodySection({ ctx }) {
           </div>
 
           {/* v2.12.0 F2: body balance from progress photos (analyse-and-discard) */}
-          <BodyBalance p={p} data={data} activeTab={activeTab} saveData={saveData} />
+          {bodyPhotosOn() && <BodyBalance p={p} data={data} activeTab={activeTab} saveData={saveData} />}   {/* v2.37.2: Body Balance hidden (BUG-MEASPHOTO) */}
         </div>
   );
 }

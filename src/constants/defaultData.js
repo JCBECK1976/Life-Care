@@ -297,3 +297,16 @@ export const DEFAULT_DATA = {
       },
   },
 };
+
+/* v2.25.0: a NEW individual account starts EMPTY — never with the household's data above. One person, in slot "jc"
+   (the app's first slot), named from the sign-in; the goal setup then asks for the rest. */
+export function newAccountData(name) {
+  var d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - d.getDay());
+  var ymd = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  return {
+    config: { week: 1, session: 15, trainingStart: ymd, lastUpdate: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) },
+    jc: { profile: { name: String(name || "Me").split(/\s+/)[0].slice(0, 20), age: "", sex: "", height: "", bodyType: "", fibreType: "", idealWeight: "", notes: "" }, meds: [], medsHistory: [],
+      body: { weight: [], bodyFat: [], muscleMass: [], muscleRate: [], skeletalMuscle: [], visceralFat: [], subcutFat: [], bmr: [], bodyWater: [], boneMass: [], bodyAge: [], bmi: [] },
+      measurements: { bicep: [], forearm: [], calf: [], quad: [], chest: [], waist: [], shoulders: [], fullBody: [] }, bloods: [], exercises: { sunday: [], monday: [], tuesday: [], wednesday: [], thursday: [], friday: [], saturday: [] } },
+  };
+}

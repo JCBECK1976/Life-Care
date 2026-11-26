@@ -1,0 +1,89 @@
+apply plugin: 'com.android.application'
+
+android {
+    buildFeatures { buildConfig true }   // v2.28.2: BuildConfig.DEBUG picks the App Check provider
+    namespace = "com.companionappsstudio.lifecare"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.companionappsstudio.lifecare"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode((System.getenv("LC_VERSION_CODE") ?: "1") as Integer)   // CI: increases on every upload
+        versionName System.getenv("LC_VERSION_NAME") ?: "dev"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    // v2.21.0 (N1): the UPLOAD key is never in the repo. CI writes it from GitHub Actions secrets and passes these
+    // environment variables; Google Play re-signs every release with the Play App Signing key.
+    signingConfigs {
+        upload {
+            def ks = System.getenv("LC_UPLOAD_KEYSTORE")
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv("LC_UPLOAD_STORE_PASSWORD")
+                keyAlias System.getenv("LC_UPLOAD_KEY_ALIAS")
+                keyPassword System.getenv("LC_UPLOAD_KEY_PASSWORD")
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            applicationIdSuffix ".debug"   // installs beside the Play app; uses data_build (scripts/build-native.sh debug)
+            versionNameSuffix "-debug"
+        }
+        release {
+            if (System.getenv("LC_UPLOAD_KEYSTORE")) signingConfig signingConfigs.upload
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation "androidx.biometric:biometric:1.1.0"   // v2.33.0: the app lock (BiometricPrompt)
+    implementation "com.google.android.play:age-signals:0.0.4"   // v2.35.0: Play Age Signals (under-18 check at onboarding)
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+    // v2.28.2: Firebase App Check — Play Integrity for releases; the debug provider ONLY in debug builds
+    implementation platform('com.google.firebase:firebase-bom:34.19.0')
+    implementation 'com.google.firebase:firebase-appcheck-playintegrity'
+    debugImplementation 'com.google.firebase:firebase-appcheck-debug'
+}
+
+apply from: 'capacitor.build.gradle'
+
+// v2.21.0 (N1): the native build guard runs before every Gradle build — a release must carry the prod web build on the
+// real data ("data"); a debug build must use "data_build". scripts/build-native.sh prepares the files.
+["Release", "Debug"].each { v ->
+    def check = tasks.register("checkNativeWeb${v}", Exec) {
+        workingDir rootProject.projectDir.parentFile
+        commandLine "node", "scripts/check-native.mjs", v.toLowerCase(), "android/app/src/main/assets/public"
+    }
+    tasks.matching { it.name == "pre${v}Build" }.configureEach { dependsOn check }
+}
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

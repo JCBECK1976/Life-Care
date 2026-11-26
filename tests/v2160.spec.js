@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openApp } from "./helpers.js";
+import { openApp, PROGRESS } from "./helpers.js";
 import { attachCompanion, findWeekIdx, previousEntry, setCompanionDecision } from "../src/lib/exercise.js";
 
 // v2.16.0: D23 (Log week defaults), D24 (Progress chips), F11 (Companion feedback per week), F12 (My Notes), Documentation index.
@@ -53,7 +53,7 @@ async function progWithCompanion(page) {
   await page.reload();
   await page.getByRole("button", { name: "My Exercise", exact: true }).first().click();
   await page.getByRole("button", { name: "Sun", exact: true }).click();
-  await page.getByRole("button", { name: "👁 Progress" }).first().click();
+  await page.getByRole("button", { name: PROGRESS }).first().click();
 }
 
 test("D24 (v2.16.4): no Form/Range pills under Progress rows; Open fits at 360px; Form/Range shown in the Open card", async ({ page }) => {

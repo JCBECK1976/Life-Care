@@ -1,6 +1,7 @@
 import { useDialog } from "../lib/a11y.js";
 import { btnActionLg, btnClose } from "../constants/styles.js";
 import NoFoodPanel from "./NoFoodPanel.jsx";
+import { ratingsShown, ratingColor, ratingBg, ratingBorder, ratingDot, ratingLabel } from "../lib/rating.js";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -30,7 +31,7 @@ export default function ReviewItemOverlay({ ctx }) {
             {cameraPreview.fibre > 0 && <span><b>{cameraPreview.fibre}g</b> fibre</span>}
           </div>
           <div style={{ display: "flex", gap: 4, marginBottom: 8, flexWrap: "wrap" }}>
-            <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, background: cameraPreview.rating === "RED" ? "#fef2f2" : cameraPreview.rating === "AMBER" ? "#fffbeb" : "#f0fdf4", color: cameraPreview.rating === "RED" ? "#b91c1c" : cameraPreview.rating === "AMBER" ? "#b45309" : "#15803d", border: "1px solid " + (cameraPreview.rating === "RED" ? "#fecaca" : cameraPreview.rating === "AMBER" ? "#fcd34d" : "#86efac") }}>{cameraPreview.rating}</div>
+            <div style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, background: ratingBg(cameraPreview.rating), color: ratingColor(cameraPreview.rating), border: "1px solid " + (ratingBorder(cameraPreview.rating)) }}>{ratingLabel(cameraPreview.rating)}</div>
           </div>
           {cameraPreview.suitability && <div style={{ fontSize: 10, color: "#475569", fontStyle: "italic", lineHeight: 1.4, marginBottom: 8 }}>{cameraPreview.suitability}</div>}
           <div style={{ marginBottom: 8 }}>

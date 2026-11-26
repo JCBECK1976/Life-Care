@@ -21,7 +21,7 @@ export function aimLabel(a) { return a && a.kcal > 0 ? "Your goal surplus" : "Yo
 /** The table body for one day (also used for each earlier day). */
 export function DayRows(props) {
   var t = props.t, a = t.aim;
-  return (<table data-testid={props.testid || "pa-table"} style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", color: "#0f172a" }}>
+  return (<div style={{ overflowX: "auto", maxWidth: "100%" }}><table data-testid={props.testid || "pa-table"} style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", color: "#0f172a" }}>
     <thead><tr><td style={Object.assign({}, th, { borderTop: "none" })}></td><th style={Object.assign({}, td, { borderTop: "none", color: "#475569", fontSize: 11 })}>Planned</th><th style={Object.assign({}, td, { borderTop: "none", color: "#475569", fontSize: 11 })}>Actual</th></tr></thead>
     <tbody>
       <tr data-testid="pa-burn"><th scope="row" style={Object.assign({}, th, { fontWeight: 800 })}>Body burn <span style={{ color: "#475569", fontSize: 10, fontWeight: 400 }}>(BMR + daily living)</span></th><td style={Object.assign({}, td, { fontWeight: 800 })}>{n(t.burn)}</td><td style={Object.assign({}, td, { fontWeight: 800 })}>{n(t.burn)}</td></tr>
@@ -31,7 +31,7 @@ export function DayRows(props) {
       <tr data-testid="pa-eating"><th scope="row" style={th}>Eating</th><td style={td}>{n(t.eating.planned)}</td><td style={td}>{n(t.eating.actual)}</td></tr>
       <tr data-testid="pa-ontrack"><th scope="row" style={th}>On track</th><td style={td}><OnTrackCell o={t.onTrackPlanned} testid="pa-ontrack-planned" /></td><td style={td}><OnTrackCell o={t.onTrack} testid="pa-ontrack-actual" /></td></tr>
     </tbody>
-  </table>);
+  </table></div>);
 }
 
 export default function PlanActual(props) {
@@ -72,9 +72,9 @@ export default function PlanActual(props) {
     <div data-testid="pa-footnote" style={{ fontSize: 10, color: "#475569", marginTop: 4, fontStyle: "italic" }}>{FOOTNOTE}</div>
     <button type="button" aria-expanded={how} onClick={function() { setHow(!how); }} style={Object.assign({}, btn, { marginTop: 4, border: "none", background: "none", padding: 0, color: "#1d4ed8" })}>{how ? "▾" : "▸"} How this is calculated</button>
     {how && (<div data-testid="calorie-how" style={{ fontSize: 10, color: "#334155", lineHeight: 1.6, marginTop: 4 }}>
-      <div>BMR {n(t.bmr)} kcal ({t.method === "katch" ? "from your lean mass" : "estimate"}). Body burn = BMR × {t.measured ? "1.15 (step data today)" : (ACTIVITY[t.activity].factor + " (" + ACTIVITY[t.activity].label.toLowerCase() + ")")} = {n(t.burn)}.</div>
+      <div>BMR {n(t.bmr)} kcal ({t.method === "katch" ? "from your lean mass" : "estimate"}). Body burn = BMR × {t.measured ? "1.15 (step data today" + (t.exercise.source ? " from " + t.exercise.source : "") + ")" : (ACTIVITY[t.activity].factor + " (" + ACTIVITY[t.activity].label.toLowerCase() + ")")} = {n(t.burn)}.</div>
       <div>Aim {signed(t.aim.kcal)} kcal: {t.aim.approach}{t.aim.pace ? " — about " + t.aim.pace.kgPerWeek + " kg a week" : ""}{t.aim.capped ? " (limited for safety)" : ""}.</div>
-      <div>Exercise: {t.exercise.mode === "total" ? "device total " + n(t.exercise.totalBurned || 0) + " − body burn" : "steps above " + n(t.stepAllowance) + " (+" + n(t.exercise.steps) + ") + logged exercise (+" + n(t.exercise.logged) + "), net of resting"}{t.adjPct !== 100 ? ", at " + t.adjPct + "%" : ""}. Planned = that day's planned exercises.</div>
+      <div>Exercise: {t.exercise.mode === "total" ? "device total " + n(t.exercise.totalBurned || 0) + " − body burn" : t.exercise.mode === "active" ? "active calories " + n(t.exercise.activeKcal || 0) + " (already net of resting; nothing added on top)" : "steps above " + n(t.stepAllowance) + " (+" + n(t.exercise.steps) + ") + logged exercise (+" + n(t.exercise.logged) + "), net of resting"}{t.adjPct !== 100 ? ", at " + t.adjPct + "%" : ""}. Planned = that day's planned exercises.</div>
       <div>Safe minimum {n(t.minimum)} kcal (90% of BMR, at least 1,200 women / 1,500 men).</div>
       <div style={{ marginTop: 4 }}>Activity adjustment: <b data-testid="adj-pct">{t.adjPct}%</b>{" "}
         {!edit ? <button type="button" style={btn} onClick={function() { setEdit(true); setVal(String(t.adjPct)); }}>Change adjustment</button>

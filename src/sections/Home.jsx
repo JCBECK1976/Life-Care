@@ -15,6 +15,8 @@ import { getMoodContext } from "../lib/aiContext.js";
 import { MOOD_COLORS, MOOD_EMOJIS, MOOD_LABELS, MOOD_TEXT } from "../constants/mood.js";
 import { sSet } from "../lib/storage.js";
 import { BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DINNERS, LUNCHES, SNACKS } from "../constants/food.js";
+import { tiersOn, usePlan } from "../lib/myPlan.js";
+import TrainingStyleCard from "../components/TrainingStyleCard.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -31,6 +33,7 @@ export default function HomeSection({ ctx }) {
     showFbHistory, showFullJournal, showMyDay, showOnboarding, showProfile, showRecentJournal, updateHomeFb, userMood, openGoalSetup,
     weekChildren,
   } = ctx;
+  const plan = usePlan();   /* v2.22.3: the Energy bar follows the plan */
 
   /* v2.14.2: Body Type Photos — every photo is checked first (a person, one of the requested poses). If any photo is not
      recognised: a message per photo, no analysis, Save disabled (Retake / Cancel only) and NOTHING is saved. */
@@ -43,7 +46,7 @@ export default function HomeSection({ ctx }) {
     if (!imageContents.length) { setFormMsg(""); return; }
     try {
       var content = imageContents.concat([{ type: "text", text: "Analyse this person's physique. " + bodyTypeCheckRule() + "Then determine: 1) Somatotype, 2) Upper or lower body dominant, 3) Fast-twitch or slow-twitch dominant, 4) Notable strengths. Return ONLY JSON: {\"photos\":[{\"photo\":1,\"isPerson\":true,\"pose\":\"front relaxed\",\"matchesPose\":true}],\"bodyType\":\"...\",\"dominance\":\"...\",\"fibreType\":\"...\",\"strengths\":\"...\",\"notes\":\"...\"}" }]);
-      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: content }] }) });
+      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-lc-feature": "snap", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: content }] }) });
       var result = await resp.json(); var txt = ""; (result.content || []).forEach(function(c) { if (c.text) txt += c.text; });
       var parsed = looseJson(txt);
       if (!parsed) throw new Error("The analysis came back in a form I couldn't read — please try again");
@@ -65,9 +68,15 @@ export default function HomeSection({ ctx }) {
           {/* ── COMPANION ENERGY ── */}
           {(() => {
             var rawPct = companionEnergy ? companionEnergy.pct : 0;
-            var pct = rawPct <= 0 ? 0 : rawPct;
             var hasEnergy = companionEnergy !== null;
             var keyStatus = companionEnergy ? companionEnergy.keyStatus : null;
+            /* v2.22.3: with plans on, Energy is the PLAN's (own balance or the family pool); Bronze has none, so no bar.
+               The shared account (not previewing) keeps the developer-key level as before. */
+            if (tiersOn() && plan.loaded && !(plan.joint && !plan.preview)) {
+              if (plan.tier === "bronze") return null;
+              rawPct = plan.energyPct != null ? plan.energyPct : (plan.preview ? 100 : 0); hasEnergy = true; keyStatus = "active";
+            }
+            var pct = rawPct <= 0 ? 0 : rawPct;
             var segCount = 20;
             var filledSegs = hasEnergy ? Math.round(pct / 5) : 0;
             var emptySegs = segCount - filledSegs;
@@ -103,7 +112,7 @@ export default function HomeSection({ ctx }) {
           {/* Profile */}
           {(() => { const prof = p.profile || {}; const hasBaseline = p.body && p.body.weight && p.body.weight.length > 0; var welcomeMsgs = ["Ready to make today count?", "Let's keep the momentum going!", "Small steps, big results — let's go!", "Your future self will thank you for today.", "Consistency beats perfection — you've got this!", "Every healthy choice adds up. What's first today?", "Welcome back — let's pick up where you left off!", "Progress isn't always visible, but it's always happening.", "You're building something great here — one day at a time.", "Let's check in and keep things moving forward."]; var welcomeIdx = Math.floor((new Date().getHours() * 60 + new Date().getMinutes()) / 144) % welcomeMsgs.length; var firstName = (prof.name || "").split(" ")[0]; var greetHour = new Date().getHours(); var greetWord = greetHour < 12 ? "Good morning" : greetHour < 17 ? "Good afternoon" : "Good evening"; return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginTop: 14, marginBottom: 14, overflow: "hidden" }}>
             <div style={{ padding: "18px 16px", borderBottom: showOnboarding ? "1px solid #e2e8f0" : "none" }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em" }}>{firstName ? greetWord + ", " + firstName : "New User"}</div>
+              <div role="heading" aria-level={2} style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em" }}>{firstName ? greetWord + ", " + firstName : "New User"}</div>
               {!showOnboarding && <div style={{ fontSize: 13, color: accent, marginTop: 6, lineHeight: 1.4, fontStyle: "italic" }}>{welcomeMsgs[welcomeIdx]}</div>}
             </div>
 
@@ -205,6 +214,7 @@ export default function HomeSection({ ctx }) {
                     {isOwnTarget(_g, _r) && <div data-testid="my-target-own" style={{ marginTop: 4, padding: 6, borderRadius: 6, background: "#fef3c7", color: "#92400e" }}>Your target: {_g.targetKg} kg. This isn't your Companion's recommendation based on your profile.</div>}
                   </div>); })()}
 
+                  <TrainingStyleCard data={data} activeTab={activeTab} saveData={saveData} />   {/* v2.46.0 (brief 24 Nov P1): its own section after the goal */}
                   {/* Read-only profile summary */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 11, color: "#475569", padding: 10, background: accentVariant(accent, 88), borderRadius: 8, border: "1px solid " + accentBorder }}>
                     <div>Name: <strong>{prof.name || ob.name || "—"}</strong></div>
@@ -232,7 +242,7 @@ export default function HomeSection({ ctx }) {
                       (function(){ var ac = ""; if (p.activity && p.activity.length > 0) { ac = ". Recent activity: " + p.activity.slice(-5).map(function(a){return a.date+": "+(a.steps||"")+"steps "+(a.activity||"");}).join(", "); } return ac; })() +
                       getCrossSectionCtx(activeTab, "recommendations") +
                       ". Return ONLY JSON: {\"bodyType\":\"e.g. Compact meso-endomorph\",\"fibreType\":\"e.g. Fast-twitch dominant\",\"idealWeight\":\"e.g. 13st 6lb\",\"notes\":\"key notes — use 'you/your' not third person\",\"assessment\":\"3-4 sentence assessment speaking directly to the user with 'you' — current position and realistic expectations over 6-12 months\",\"priorities\":[\"priority 1\",\"priority 2\",\"priority 3\"],\"targets\":{\"calories\":\"" + kcalTargetText(p) + " (use exactly this)\",\"protein\":\"e.g. 110-130g\",\"satFat\":\"e.g. under 20g\",\"sugar\":\"e.g. under 25g\",\"fibre\":\"e.g. 30-35g\",\"targetWeight\":\"e.g. 82kg\",\"targetBodyFat\":\"e.g. 18-22%\",\"targetWaist\":\"e.g. under 94cm\"}}";
-                      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
+                      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-lc-feature": "aiFeedback", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }) });
                       var result = await resp.json(); var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
                       if (txt) {
                         var gen = JSON.parse(txt.replace(/```json|```/g, "").trim());
@@ -336,7 +346,7 @@ export default function HomeSection({ ctx }) {
                   {/* Body Type Photo Upload */}
                   <div style={{ marginTop: 12, padding: 12, background: "#eff6ff", borderRadius: 8, border: "1px solid #bfdbfe" }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>📸 Body Type Photos</div>
-                    <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>Upload photos for AI body type analysis. Best results from:<br/>• Front relaxed (full body, arms at sides)<br/>• Bicep flex (single arm, side on)<br/>• Side profile (relaxed)<br/>• Back relaxed or flexed<br/>• Legs: quad flex and calf raise</div>
+                    <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.5, marginBottom: 8 }}>Upload photos for your Companion's body type analysis. Best results from:<br/>• Front relaxed (full body, arms at sides)<br/>• Bicep flex (single arm, side on)<br/>• Side profile (relaxed)<br/>• Back relaxed or flexed<br/>• Legs: quad flex and calf raise</div>
                     <label style={{ display: "block", padding: 10, background: "#fff", border: "2px dashed #93c5fd", borderRadius: 8, textAlign: "center", cursor: "pointer", fontSize: 11, color: "#1e3a5f" }}>
                       📷 Upload Body Type Photos
                       <input id="bodytype-photos" type="file" data-share="bodytype" accept="image/*" multiple onChange={function(e) { var picked = Array.prototype.slice.call(e.target.files || []); e.target.value = ""; runBodyTypePhotos(picked); }} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)", border: 0 }} />
@@ -370,7 +380,7 @@ export default function HomeSection({ ctx }) {
                       (function(){ var ac = ""; if (p.activity && p.activity.length > 0) { ac = ". Recent activity: " + p.activity.slice(-5).map(function(a){return a.date+": "+(a.steps||"")+"steps "+(a.activity||"");}).join(", "); } return ac; })() +
                       getCrossSectionCtx(activeTab, "bodytype") +
                       ". Return ONLY JSON: {\"bodyType\":\"e.g. Compact meso-endomorph\",\"fibreType\":\"e.g. Fast-twitch dominant\",\"idealWeight\":\"e.g. 13st 6lb\",\"notes\":\"key notes — use 'you/your' not third person\",\"assessment\":\"3-4 sentence assessment speaking directly to the user with 'you' — current position and realistic expectations over 6-12 months\",\"priorities\":[\"priority 1\",\"priority 2\",\"priority 3\"]}";
-                        var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: prompt }] }) });
+                        var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-lc-feature": "aiFeedback", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, messages: [{ role: "user", content: prompt }] }) });
                         var result = await resp.json(); var txt = ""; if (result.content) { for (var ci = 0; ci < result.content.length; ci++) { if (result.content[ci].text) txt += result.content[ci].text; } }
                         if (txt) {
                           var gen = JSON.parse(txt.replace(/```json|```/g, "").trim());
@@ -505,7 +515,7 @@ export default function HomeSection({ ctx }) {
                 {/* Privacy notice */}
                 <div style={{ padding: 10, background: "linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)", borderRadius: 8, border: "1px solid #bfdbfe", marginBottom: 10, fontSize: 10, color: "#475569", lineHeight: 1.6 }}>
                   <div style={{ fontWeight: 700, fontSize: 11, color: "#1e40af", marginBottom: 4 }}>🔒 Your information is private</div>
-                  Your data is used solely by your Lifecare Companion™ to tailor recommendations, feedback and support to work best with you and achieve the best possible outcome. No information is shared with third parties. Any AI-generated content is processed without linking it to any identifiable individual. You choose what information to share — more detail helps your Lifecare Companion™ provide better, more personalised guidance, but every field is optional.
+                  Your data is used solely by your Lifecare Companion™ to tailor recommendations, feedback and support to work best with you and achieve the best possible outcome. No information is shared with third parties. Anything your Companion prepares is processed without linking it to any identifiable individual. You choose what information to share — more detail helps your Lifecare Companion™ provide better, more personalised guidance, but every field is optional.
                 </div>
                 </div>{/* end grey sub-container */}
               </div>);
@@ -528,7 +538,7 @@ export default function HomeSection({ ctx }) {
           {/* ── MY MOOD ── */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "10px 16px", marginBottom: 14 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Mood</div>
+              <div role="heading" aria-level={3} style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Mood</div>
               {userMood !== null && <div style={{ fontSize: 10, color: MOOD_TEXT[userMood], fontWeight: 600 }}>{MOOD_LABELS[userMood]}</div>}
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginTop: 6 }}>
@@ -543,7 +553,7 @@ export default function HomeSection({ ctx }) {
                   setUserMood(newMood);
                   await sSet("daily_mood_" + activeTab, JSON.stringify(newDailyMood));
                   await sSet("user_mood_" + activeTab, JSON.stringify(newMood));
-                }} title={MOOD_LABELS[idx]} style={{ flex: 1, padding: "6px 0", border: isSelected ? "2px solid " + MOOD_COLORS[idx] : "1px solid " + accentBorder, borderRadius: 8, background: isSelected ? MOOD_COLORS[idx] + "18" : accentLight, fontSize: 16, cursor: "pointer", transition: "all 0.2s ease", transform: isSelected ? "scale(1.08)" : "scale(1)", filter: (currentMood !== null && !isSelected) ? "grayscale(0.5) opacity(0.5)" : "none" }}>{emoji}</button>);
+                }} title={MOOD_LABELS[idx]} aria-label={"Mood: " + MOOD_LABELS[idx]} aria-pressed={isSelected} style={{ flex: 1, padding: "6px 0", border: isSelected ? "2px solid " + MOOD_COLORS[idx] : "1px solid " + accentBorder, borderRadius: 8, background: isSelected ? MOOD_COLORS[idx] + "18" : accentLight, fontSize: 16, cursor: "pointer", transition: "all 0.2s ease", transform: isSelected ? "scale(1.08)" : "scale(1)", filter: (currentMood !== null && !isSelected) ? "grayscale(0.5) opacity(0.5)" : "none" }}>{emoji}</button>);
               })}
             </div>
           </div>
@@ -632,7 +642,7 @@ export default function HomeSection({ ctx }) {
             return (<div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginBottom: 14, overflow: "hidden" }}>
               <button onClick={function() { setShowMyDay(!showMyDay); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", background: "none", border: "none", cursor: "pointer" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Day</span>
+                  <span role="heading" aria-level={3} style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Day</span>
                   <span style={{ fontSize: 11, color: "#475569" }}>{todayLabel}</span>
                 </div>
                 <span style={{ fontSize: 11, color: "#475569" }}>{showMyDay ? "▲" : "▼"}</span>
@@ -653,7 +663,7 @@ export default function HomeSection({ ctx }) {
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", marginBottom: 14, overflow: "hidden" }}>
             <div style={{ padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Journal</span>
+                <span role="heading" aria-level={3} style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>My Journal</span>
                 <span style={{ fontSize: 10, color: "#475569" }}>{(() => { var todayEntries = journalEntries.filter(function(e) { return e.date === new Date().toISOString().split("T")[0]; }); return todayEntries.length > 0 ? todayEntries.length + " today" : ""; })()}</span>
               </div>
             </div>

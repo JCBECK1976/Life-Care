@@ -14,11 +14,11 @@ export function countStatus(ex) {
   return { movedUp: unique.filter(e => e.status === "moved up").length, ready: unique.filter(e => e.status === "ready to move").length, building: unique.filter(e => e.status === "building").length, consolidating: unique.filter(e => e.status === "consolidating").length, maintaining: unique.filter(e => e.status === "maintaining").length, reduce: unique.filter(e => e.status === "reduce").length, total: unique.length };
 }
 
-export const sColor = s => s === "moved up" ? "#166534" : s === "ready to move" ? "#1d4ed8" : s === "building" ? "#6d28d9" : s === "consolidating" ? "#be185d" : s === "maintaining" ? "#0e7490" : s === "reduce" ? "#b91c1c" : "#475569";
+export const sColor = s => s === "moved up" ? "#166534" : s === "ready to move" ? "#1d4ed8" : s === "building" ? "#6d28d9" : s === "consolidating" ? "#be185d" : s === "maintaining" ? "#0e7490" : s === "reduce" ? "#b91c1c" : s === "building back up" ? "#b45309" : "#475569";
 
-export const sBg = s => s === "moved up" ? "#e0f2fe" : s === "ready to move" ? "#dbeafe" : s === "building" ? "#ede9fe" : s === "consolidating" ? "#fce7f3" : s === "maintaining" ? "#cffafe" : s === "reduce" ? "#fee2e2" : "#f1f5f9";
+export const sBg = s => s === "moved up" ? "#e0f2fe" : s === "ready to move" ? "#dbeafe" : s === "building" ? "#ede9fe" : s === "consolidating" ? "#fce7f3" : s === "maintaining" ? "#cffafe" : s === "reduce" ? "#fee2e2" : s === "building back up" ? "#fef3c7" : "#f1f5f9";
 
-export const sLabel = s => s === "moved up" ? "Moved Up" : s === "ready to move" ? "Ready to Move" : s === "building" ? "Building" : s === "consolidating" ? "Consolidating" : s === "maintaining" ? "Maintaining" : s === "reduce" ? "Reduce" : s;
+export const sLabel = s => s === "moved up" ? "Moved Up" : s === "ready to move" ? "Ready to Move" : s === "building" ? "Building" : s === "consolidating" ? "Consolidating" : s === "maintaining" ? "Maintaining" : s === "reduce" ? "Reduce" : s === "building back up" ? "Building back up" : s;
 
 // Calculate current training week from start date
 

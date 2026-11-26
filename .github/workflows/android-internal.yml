@@ -1,0 +1,96 @@
+# v2.21.0 (N1): builds the signed Android App Bundle and uploads it to Google Play's INTERNAL TESTING track.
+# Manual only (Actions → "Android → Play internal testing" → Run workflow). No sideloading: JC and Becks install
+# from Play, through the same Play App Signing pipeline the pilot (closed testing) will use.
+# Release builds always carry the prod web build on the real data ("data"); the guard (scripts/check-native.mjs) stops
+# anything else. Secrets (Settings → Secrets and variables → Actions):
+#   ANDROID_UPLOAD_KEYSTORE_BASE64, ANDROID_UPLOAD_STORE_PASSWORD, ANDROID_UPLOAD_KEY_ALIAS, ANDROID_UPLOAD_KEY_PASSWORD,
+#   PLAY_SERVICE_ACCOUNT_JSON; repository variable GOOGLE_WEB_CLIENT_ID (the Firebase web OAuth client ID, not secret).
+name: Android → Play internal testing
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch or tag to build (main = the released app; build = to try a build early)"
+        default: main
+      upload:
+        description: "Upload to the internal testing track (untick to only build the AAB)"
+        type: boolean
+        default: true
+      status:
+        description: "Release status: completed, or draft while the Play listing is still a draft"
+        type: choice
+        options: [completed, draft]
+        default: completed
+permissions:
+  contents: read
+concurrency:
+  group: android-play
+  cancel-in-progress: false
+jobs:
+  aab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PACKAGE: com.companionappsstudio.lifecare
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v4
+      - name: Install, lint
+        run: npm ci --no-audit --no-fund --loglevel=error && npm run lint
+      - name: Web build for the release (prod, data) + guard
+        env:
+          VITE_GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+        run: bash scripts/build-native.sh release
+      - name: Firebase config for the Android app (App Check / Play Integrity) — optional
+        # v2.28.2: google-services.json from Firebase (J23). Not a secret in itself, kept out of the repo by .gitignore.
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json; echo "App Check: on (Play Integrity)"; else echo "App Check: not configured yet (J23)"; fi
+      - name: Upload key (from secrets) and its fingerprints
+        env:
+          KS: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          STORE_PW: ${{ secrets.ANDROID_UPLOAD_STORE_PASSWORD }}
+          ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+        run: |
+          if [ -z "$KS" ]; then echo "::error title=No upload key::Add the ANDROID_UPLOAD_* secrets (J steps)"; exit 1; fi
+          echo "$KS" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          FP=$(keytool -list -v -keystore "$RUNNER_TEMP/upload.jks" -storepass "$STORE_PW" -alias "$ALIAS" 2>/dev/null | grep -E "SHA1:|SHA256:" | sed 's/^[[:space:]]*//')
+          { echo "### Upload key fingerprints (add both to Firebase → Android app)"; echo '```'; echo "$FP"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Signed AAB
+        env:
+          LC_UPLOAD_KEYSTORE: ${{ runner.temp }}/upload.jks
+          LC_UPLOAD_STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_STORE_PASSWORD }}
+          LC_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          LC_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+        run: |
+          export LC_VERSION_NAME=$(node -e 'const s=require("fs").readFileSync("src/constants/version.js","utf8");console.log(/APP_VERSION_BASE = "v([^"]+)"/.exec(s)[1])')
+          export LC_VERSION_CODE=$((1000 + ${{ github.run_number }}))
+          echo "versionName $LC_VERSION_NAME, versionCode $LC_VERSION_CODE"
+          cd android && ./gradlew --no-daemon bundleRelease
+          jarsigner -verify app/build/outputs/bundle/release/app-release.aab | tail -1
+          echo "- AAB: \`$PACKAGE\` $LC_VERSION_NAME (versionCode $LC_VERSION_CODE) from \`${{ inputs.ref }}\`" >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep the AAB (for the first manual upload in Play Console)
+        uses: actions/upload-artifact@v7
+        with:
+          name: lifecare-aab-${{ github.run_number }}
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 14
+      - name: Upload to Play — internal testing
+        if: ${{ inputs.upload }}
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: node scripts/play-upload.mjs "$PACKAGE" android/app/build/outputs/bundle/release/app-release.aab internal "${{ inputs.status }}" "v$(node -e 'const s=require("fs").readFileSync("src/constants/version.js","utf8");console.log(/APP_VERSION_BASE = "v([^"]+)"/.exec(s)[1])') (${{ inputs.ref }} #${{ github.run_number }})"
+      - name: Remove the key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload.jks"

@@ -2,7 +2,8 @@
 // One goal per person drives the daily calorie goal everywhere (Home, My Eating, every companion):
 //   Goal = Body burn (BMR + daily living) + Aim (from the person's goal and timescale) + Exercise.
 import { MET, DEFAULT_MET, MIN_PER_SET, WEEKDAY, bmrOf, leanMass, dayFoodKcal, exerciseKcal, exerciseOn, heightCm, isMale, ageOf, isoDay, planOf,
-  safeMinimum, settingsOf, stepsOn, toKg, weekDates, BASELINE_FACTOR } from "./calories.js";
+  safeMinimum, settingsOf, stepsOn, toKg, weekDates, BASELINE_FACTOR, activeOn, sourceOn } from "./calories.js";
+import { entryKg } from "./weight.js";   // v2.32.2
 
 export var KCAL_PER_KG = 7700;
 export var WEEKS_PER_MONTH = 52 / 12;
@@ -35,8 +36,8 @@ export function activityOf(p) { var a = p && p.profile && p.profile.activityLeve
 
 /** Latest weight in kg: the newest weigh-in, else the weight given at setup. */
 export function currentKg(p) {
-  var w = ((p && p.body && p.body.weight) || []).filter(function(e) { return e && toKg(e.v); }).slice().sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
-  if (w.length) return toKg(w[w.length - 1].v);
+  var w = ((p && p.body && p.body.weight) || []).filter(function(e) { return e && entryKg(e); }).slice().sort(function(a, b) { return (a.wk || 0) - (b.wk || 0); });
+  if (w.length) return entryKg(w[w.length - 1]);
   return num(p && p.profile && p.profile.weightKg);
 }
 export function bmiOf(kg, cm) { return kg && cm ? kg / Math.pow(cm / 100, 2) : null; }
@@ -226,12 +227,14 @@ export function dayTable(p, date, doc) {
   var pl = planOf(p, null, Math.max(minimum, round(b * BASELINE_FACTOR) + aim.kcal));
   var steps = stepsOn(p, date);
   var g = p.googleDaily && p.googleDaily[date]; var total = g && num(g.kcal);
-  var measured = steps != null || total != null;
+  var act = activeOn(p, date);   /* v2.23.0: Health Connect active calories (separate toggle) */
+  var measured = steps != null || total != null || act != null;
   var burn = round(b * (measured ? BASELINE_FACTOR : (ACTIVITY[activityOf(p)].factor)));
   var kg = pl.weightKg;
   var exPlanned = round(plannedExercise(p, date).reduce(function(s, x) { return s + exerciseKcal(x.met, kg, x.minutes); }, 0) * adj);
   var exActual, mode, stepsK = 0, loggedK = 0;
   if (total != null) { mode = "total"; exActual = round(Math.max(0, total - burn) * adj); }
+  else if (act != null) { mode = "active"; exActual = round(act * adj); }   /* active calories already exclude resting burn and include workouts: nothing added on top */
   else {
     mode = "parts";
     stepsK = steps != null ? Math.max(0, steps - pl.stepAllowance) * pl.kcalPerStep : 0;
@@ -244,16 +247,17 @@ export function dayTable(p, date, doc) {
   var diff = actualEat - goalA;
   var diffP = plannedEat - goalP;   /* v2.20.0: On track for the Planned column too */
   return { ready: true, date: date, bmr: b, method: pl.method, estimate: pl.estimate, burn: burn, measured: measured, activity: activityOf(p), aim: aim, minimum: minimum, floored: floored,
-    exercise: { planned: exPlanned, actual: exActual, mode: mode, steps: round(stepsK * adj), logged: round(loggedK * adj), stepsCount: steps, totalBurned: total },
+    exercise: { planned: exPlanned, actual: exActual, mode: mode, steps: round(stepsK * adj), logged: round(loggedK * adj), stepsCount: steps, totalBurned: total, activeKcal: act, source: sourceOn(p, date) },
     goal: { planned: goalP, actual: goalA }, eating: { planned: plannedEat, actual: actualEat },
     onTrack: { kcal: diff, pct: goalA ? Math.round(diff / goalA * 100) : 0, colour: diff <= 0 ? "green" : "red" }, onTrackPlanned: { kcal: diffP, pct: goalP ? Math.round(diffP / goalP * 100) : 0, colour: diffP <= 0 ? "green" : "red" }, hasActual: actualEat > 0, stepAllowance: pl.stepAllowance, adjPct: settingsOf(p).adjPct };
 }
 
-/** Week to date: Σ actual eating vs Σ actual goal over PAST days this week that have actual data (never today or the future). */
+/** Week to date: Σ actual eating vs Σ actual goal over this week's days UP TO AND INCLUDING TODAY that have actual data (never the
+ *  future). v2.56.2 (JC): one rule everywhere — today counts "so far" (it used to be left out). */
 export function weekToDate(p, doc, now) {
   now = new Date(now || Date.now());
   var today = isoDay(now);
-  var days = weekDates(now).filter(function(d) { return d < today; }).map(function(d) { return dayTable(p, d, doc); }).filter(function(t) { return t.ready && t.hasActual; });
+  var days = weekDates(now).filter(function(d) { return d <= today; }).map(function(d) { return dayTable(p, d, doc); }).filter(function(t) { return t.ready && t.hasActual; });
   if (!days.length) return { pct: null, kcal: 0, days: [], colour: "none" };
   var eat = days.reduce(function(s, t) { return s + t.eating.actual; }, 0), goal = days.reduce(function(s, t) { return s + t.goal.actual; }, 0);
   var diff = eat - goal;
@@ -274,11 +278,11 @@ export function progressOf(p, now) {
 /** In the healthy BMI range at every weigh-in of the last 6+ weeks (dated or by training week). */
 function healthySixWeeks(p, now) {
   var cm = heightCm(p); var r = healthyRange(cm); if (!r) return false;
-  var w = ((p.body && p.body.weight) || []).filter(function(e) { return e && toKg(e.v); });
+  var w = ((p.body && p.body.weight) || []).filter(function(e) { return e && entryKg(e); });
   if (w.length < 2) return false;
   var span = (w[w.length - 1].wk || 0) - (w[0].wk || 0);
   var recent = w.filter(function(e) { return (w[w.length - 1].wk || 0) - (e.wk || 0) <= 6; });
-  return span >= 6 && recent.every(function(e) { var k = toKg(e.v); return k >= r.minKg && k <= r.maxKg; });
+  return span >= 6 && recent.every(function(e) { var k = entryKg(e); return k >= r.minKg && k <= r.maxKg; });
 }
 /** A goal change the app (and the companions) may suggest. Suggestion only: the person accepts or dismisses. */
 export function goalSuggestion(p, now) {

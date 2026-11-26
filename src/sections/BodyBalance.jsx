@@ -32,7 +32,7 @@ export default function BodyBalance(props) {
         images.push({ type: "image", source: { type: "base64", media_type: _img.mediaType, data: b64 } });
       }
       var prompt = buildPrompt({ name: name, count: files.length, prev: latestStructured(p.progressPhotos), trends: measurementTrends(p.measurements) });
-      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+      var resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-lc-feature": "bodyBalance", "Content-Type": "application/json", "x-api-key": await window.ensureApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
         body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1500, temperature: 0, messages: [{ role: "user", content: images.concat([{ type: "text", text: prompt }]) }] }) });
       images = null;                                                     // the photos go no further than this request
       var result = await resp.json(); var apiErr = handleApiError(result); if (apiErr) throw new Error(apiErr);

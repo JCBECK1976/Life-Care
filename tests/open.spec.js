@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openApp, tab } from "./helpers.js";
+import { openApp, tab, PROGRESS } from "./helpers.js";
 // own helpers (importing food.spec.js would also run its tests)
 const NS = "?ns=life-care-app-64d04-default-rtdb";
 const url = (k) => "http://127.0.0.1:9000/data/" + k + ".json" + NS;
@@ -24,7 +24,7 @@ test("F1: Progress rows show key data + Open (no notes, no Del); Open → read-o
   await setKey("dashboard:data", d); await page.reload();
   await tab(page, "My Exercise");
   await page.getByRole("button", { name: "Sun", exact: true }).click();
-  await page.getByRole("button", { name: "👁 Progress" }).nth(i).click();
+  await page.getByRole("button", { name: PROGRESS }).nth(i).click();
   await expect(page.getByTestId("prog-wk")).toHaveCount(2);
   await expect(page.getByText("tough last set")).toHaveCount(0);                       // no notes text in the rows
   for (const row of await page.getByTestId("prog-wk").locator("xpath=..").all()) await expect(row.getByRole("button")).toHaveText(["Open"]);   // only Open, no Del
@@ -51,7 +51,7 @@ test("F1: Progress rows show key data + Open (no notes, no Del); Open → read-o
   await expect.poll(async () => (await getKey("dashboard:data")).jc.exercises.sunday[i].prog.length).toBe(1);
   // v2.18.3: the panel may be re-rendering after Remove; open it if needed and retry (a single count-then-click could close it)
   await expect(async () => {
-    if (!(await page.getByTestId("prog-wk").count())) await page.getByRole("button", { name: "👁 Progress" }).nth(i).click();
+    if (!(await page.getByTestId("prog-wk").count())) await page.getByRole("button", { name: PROGRESS }).nth(i).click();
     await expect(page.getByTestId("prog-wk")).toHaveText(["1"], { timeout: 1500 });     // remaining row shows the right week (old index bug)
   }).toPass({ timeout: 10000 });
   expect(errors).toEqual([]);
@@ -84,9 +84,9 @@ test("F5: a meal selection opens as the CHILD — variations recalculate the chi
   await setKey("custom_meals", [dinner, ...((await getKey("custom_meals")) || [])]);
   await setKey(key, { [today]: { d: dinner.id } });
   const prompts = [];
-  await page.route("https://api.anthropic.com/**", (r) => { const t = r.request().postData() || ""; if (!/The person ate/.test(t)) return r.fallback(); prompts.push(JSON.parse(t)); return r.fulfill(aiText({ kcal: 760, protein: 30, fat: 38, satFat: 14, addedSugar: 1, carbs: 70, fibre: 6, salt: 2, change: "Chips add about 260 kcal and 10g sat fat." })); });
+  await page.route("https://api.anthropic.com/**", (r) => { const t = r.request().postData() || ""; if (!/CLARIFY_MEAL_CHANGE/.test(t)) return r.fallback(); prompts.push(JSON.parse(t)); return r.fulfill(aiText({ type: "item", name: "Test Fish & Chips", servings: 1, perPortion: { kcal: 760, protein: 30, fat: 38, satFat: 14, carbs: 70, sugar: 2, addedSugar: 1, fibre: 6, salt: 2 }, change: "Chips add about 260 kcal and 10g sat fat." })); });   // v2.37.1: the clarifying conversation
   await freshReload(page); await tab(page, "My Eating");
-  await page.getByRole("button", { name: "Open this meal" }).first().click();
+  await page.locator('[data-testid=picker-trigger]:has([data-testid=row-icon]:text-is("✎"))').first().click(); await page.getByTestId("act-edit").click();   // v2.50.0: Edit Item in the picker
   const form = page.getByTestId("slot-open-form");
   await expect(form).toContainText("Test Fish & Potato");
   await expect(form.getByTestId("slot-rating")).toContainText("GREAT");                    // 4g sat fat = 20%, protein credit
@@ -95,6 +95,9 @@ test("F5: a meal selection opens as the CHILD — variations recalculate the chi
   expect(await form.locator("button").evaluateAll((bs) => bs.filter((b) => b.scrollWidth > b.clientWidth + 1).length)).toBe(0);
   await form.getByRole("button", { name: "Edit", exact: true }).click();
   await form.getByLabel("Changes to this meal").fill("chips instead of potato");
+  await form.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(form.getByTestId("slot-review-values")).toContainText("760 kcal");              // v2.37.1: reviewed before it is saved
+  expect(await childOf(today, "d")).toMatchObject({ nutrition: { kcal: 500 } });
   await form.getByRole("button", { name: "Save", exact: true }).click();
   await expect(form.getByTestId("open-form-msg")).toHaveText("✓ Saved for this meal only. To update the list item permanently, please go to 'Update Eating Lists'.");
   expect(prompts[0].temperature).toBe(0);
@@ -114,7 +117,7 @@ test("F5: a meal selection opens as the CHILD — variations recalculate the chi
 test("F5: Open on an empty slot starts adding an item", async ({ page }) => {
   const { errors } = await openApp(page);
   await tab(page, "My Eating");
-  await page.getByRole("button", { name: "Add to this meal" }).first().click();
+  await page.locator('[data-testid=picker-trigger]:has([data-testid=row-icon]:text-is("+"))').first().click(); await page.getByTestId("act-add").click();   // v2.50.0: Add New in the picker
   await expect(page.getByTestId("update-lists").getByTestId("return-to")).toContainText(/Adding for \w+day breakfast/);   // v2.19.0: Update Lists, remembering the slot
   expect(errors).toEqual([]);
 });
@@ -129,7 +132,7 @@ test("v2.11.1: changing the portion of a photo-checked meal scales the PHOTO val
   await setKey("portion_overrides:jc", { [today]: { d: { kcal: 600, protein: 20, satFat: 6, addedSugar: 4 } } });   // photo-checked (migrated)
   await freshReload(page); await tab(page, "My Eating");
   await expect.poll(async () => (await childOf(today, "d"))?.portion?.values?.kcal).toBe(600);
-  await page.getByRole("button", { name: "Open this meal" }).first().click();
+  await page.locator('[data-testid=picker-trigger]:has([data-testid=row-icon]:text-is("✎"))').first().click(); await page.getByTestId("act-edit").click();   // v2.50.0: Edit Item in the picker
   const form = page.getByTestId("slot-open-form");
   await form.getByRole("button", { name: "Edit", exact: true }).click();
   await form.getByRole("button", { name: "1½×", exact: true }).click();

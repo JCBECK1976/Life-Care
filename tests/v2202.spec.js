@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { currentWeek } from "../scripts/make-fixture.mjs";
 import fs from "node:fs";
 import { openApp, tab } from "./helpers.js";
 import { applyNextValue, tidyNotes, setWeekNote, nextLogPrefill } from "../src/lib/exercise.js";
@@ -11,6 +12,9 @@ const get = async (k) => { const v = await (await fetch(KEY(k), { headers: H }))
 const put = (k, v) => fetch(KEY(k), { method: "PUT", headers: H, body: JSON.stringify(JSON.stringify(v)) });
 const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 const SHOTS = "test-results/v2202-shots";
+// The UI test uses the CURRENT training week (it was written in week 18 and failed once the week moved on).
+const W = "Wk" + currentWeek();
+const DUPW = W + " accepted: 70kg; Progression: 70 kg (set by you, " + W + "); Progression: 70 kg (set by you, " + W + "); Progression: 70 kg (set by you, " + W + ")";
 const DUP = "Wk18 accepted: 70kg; Progression: 70 kg (set by you, Wk18); Progression: 70 kg (set by you, Wk18); Progression: 70 kg (set by you, Wk18)";
 const PRESS = { name: "Chest Press", exType: "weights", status: "ready to move", current: "65kg", reps: "15x3", sets: 3, prog: [{ wk: 1, w: "65kg", r: "15x3" }, { wk: 2, w: "65kg", r: "15x3" }] };
 
@@ -37,38 +41,15 @@ test("every measure type: kg, plate number, reps, seconds — the target, Moved 
   expect([secs.reps, secs.notes]).toEqual(["60x3", "Wk18: next hold time 60 seconds (set by you)"]);
 });
 
-for (const who of ["jc", "becks"]) {
-  test(`Set (${who}): the row closes, headline 70kg · 12x3, Moved Up, toast; the Log pre-fills 70 with Previous 65; Undo restores; old duplicate note shown once`, async ({ page }) => {
-    await page.setViewportSize({ width: 360, height: 800 });
-    const { errors } = await openApp(page);
-    const d = DAYS[new Date().getDay()];
-    const dash = await get("dashboard:data"); dash[who].exercises[d] = [{ ...PRESS, notes: DUP }]; await put("dashboard:data", dash);
-    await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
-    if (who === "becks") await page.getByRole("button", { name: /Becks/ }).first().click();
-    await tab(page, "My Exercise");
-    const next = page.getByTestId("ex-next");
-    await expect(next).toBeVisible();
-    await expect(page.getByTestId("ex-notes")).toHaveText("📋 Wk18 accepted: 70kg; Progression: 70 kg (set by you, Wk18)");   // displayed once
-    fs.mkdirSync(SHOTS, { recursive: true });
-    if (who === "jc") { await next.scrollIntoViewIfNeeded(); await page.screenshot({ path: SHOTS + "/360-card-before-set.png" }); }
-    await next.getByTestId("next-value-input").fill("70");
-    await next.getByTestId("next-value-save").click();
-    await expect(page.getByTestId("ex-next")).toHaveCount(0);                                               // the Set row closes
-    await expect(page.getByTestId("ex-headline")).toHaveText("70kg · 12x3");
-    await expect(page.getByText("Moved Up", { exact: true }).first()).toBeVisible();
-    await expect(page.getByTestId("ex-toast")).toContainText("✓ Next weight set: 70 kg");
-    if (who === "jc") { await page.waitForTimeout(150); await page.screenshot({ path: SHOTS + "/360-card-after-set.png" }); }
-    const saved = (await get("dashboard:data"))[who].exercises[d][0];
-    expect(saved).toMatchObject({ current: "70kg", reps: "12x3", status: "moved up", progressionValue: 70 });
-    expect(saved.notes.match(/Wk18|set by you/g).length).toBeLessThanOrEqual(2);
-    expect(saved.notes.split("; ").filter((x) => /Wk18|\(set by you/.test(x))).toHaveLength(1);              // one line for the week (the stored note is rewritten on this save)
-    await page.getByRole("button", { name: "📋 Log", exact: true }).first().click();
-    await expect(page.locator('input[placeholder="Weight"]').first()).toHaveValue("70");
-    await expect(page.getByTestId("log-previous")).toContainText("Previous: 65kg");
-    await page.getByTestId("ex-toast").getByRole("button", { name: "Undo" }).click();
-    await expect.poll(async () => (await get("dashboard:data"))[who].exercises[d][0].status).toBe("ready to move");
-    expect((await get("dashboard:data"))[who].exercises[d][0]).toMatchObject({ current: "65kg", reps: "15x3", notes: DUP });
-    await expect(page.getByTestId("ex-next")).toBeVisible();
-    expect(errors).toEqual([]);
-  });
-}
+// v2.39.0 (night batch P1): the card's "My next weight / Set" row is gone (the card is the beta layout); setting the next
+// session moves into the Companion feedback (P5). The note helpers above are still tested.
+test("the card has no Set row any more", async ({ page }) => {
+  await openApp(page);
+  const d = DAYS[new Date().getDay()];
+  const dash = await get("dashboard:data"); dash.jc.exercises[d] = [{ ...PRESS }]; await put("dashboard:data", dash);
+  await page.reload(); await expect(page.getByText("Week ", { exact: false }).first()).toBeVisible({ timeout: 20000 });
+  await tab(page, "My Exercise");
+  await expect(page.getByText("Chest Press").first()).toBeVisible();
+  await expect(page.getByTestId("ex-next")).toHaveCount(0);
+  await expect(page.getByTestId("next-value-input")).toHaveCount(0);
+});

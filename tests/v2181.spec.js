@@ -14,7 +14,7 @@ const BECKS = { profile: { sex: "Female", age: 47, height: "165cm", activityLeve
 test("body-fat method (known inputs): lean mass ÷ (1 − mid-point of the healthy body-fat range for sex and age)", () => {
   expect(recommendedTarget(JC)).toMatchObject({ kg: 85.6, minKg: 83.5, maxKg: 87.8, method: "body-fat", estimate: false, bodyFatTarget: [18, 22] });   // 68.5 kg lean ÷ 0.80
   expect(recommendedTarget(JC).why).toContain("lean mass (68.5 kg)");
-  expect(recommendedTarget(BECKS)).toMatchObject({ kg: 64.2, minKg: 61.6, maxKg: 67, bodyFatTarget: [25, 31] });                                 // 46.2 kg lean ÷ 0.72
+  expect(recommendedTarget(BECKS)).toMatchObject({ kg: 63.5, minKg: 61, maxKg: 66.3, bodyFatTarget: [25, 31] });                                 // v2.32.2: 10.4 = 10st 4lb (65.3 kg, the app's format; was read as 10.4 st) → 45.7 kg lean ÷ 0.72
   expect(recommendedTarget({ ...JC, profile: { ...JC.profile, age: 30 } })).toMatchObject({ kg: 82.5, bodyFatTarget: [15, 19] });                // younger: slightly lower
   // the aim uses the recommendation when the person hasn't chosen their own target
   const a = aimOf({ ...JC, goal: { id: "healthy_weight", months: 7 } });
@@ -54,9 +54,9 @@ test("UI: setup shows the recommendation; Change shows the amber note; both valu
   await expect(dlg.getByLabel(/My target weight/)).toHaveCount(0);                            // no free entry first
   const recKg = parseFloat(await dlg.getByTestId("goal-recommend-kg").innerText());
   await dlg.getByRole("button", { name: "Change", exact: true }).click();
-  await dlg.getByLabel("My target weight (kg)").fill("40");
+  await dlg.getByTestId("goal-target-unit-kg").click(); await dlg.getByTestId("goal-target-kg").fill("40");   // v2.32.3: unit-aware boxes
   await expect(dlg.getByTestId("goal-bmi-block")).toBeVisible();
-  await dlg.getByLabel("My target weight (kg)").fill(String(Math.round(recKg - 3)));
+  await dlg.getByTestId("goal-target-unit-kg").click(); await dlg.getByTestId("goal-target-kg").fill(String(Math.round(recKg - 3)));   // v2.32.3: unit-aware boxes
   await expect(dlg.getByTestId("goal-own-note")).toHaveText("This isn't your Companion's recommendation based on your profile.");
   await dlg.getByRole("button", { name: "Save my goal" }).click();
   await expect(dlg).toHaveCount(0);

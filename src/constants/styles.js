@@ -41,3 +41,6 @@ export const btnMuted = { padding: "4px 8px", background: "#f1f5f9", border: "1p
 export const btnClose = { padding: "4px 10px", background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 3 };
 
 export const btnClear = { padding: "4px 10px", background: "#dc2626", color: "#fff", border: "none", borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 3 };
+
+/* v2.36.0 (Architect, 23 Nov): the v2.30.1 extra 2 px margins are removed (sizes as beta v2.20.2). The small buttons meet
+   WCAG 2.2 AA 2.5.8 through its spacing rule: no 24 px circle round one target touches another (tests/v2360.spec.js). */

@@ -2,17 +2,27 @@ import { btnFilledOn, btnProgress } from "../constants/styles.js";
 // ═══════════════════════════════════════════════════
 // CHART COMPONENTS
 // ═══════════════════════════════════════════════════
-export function MiniChart({ data, color, height = 48, width = 140 }) {
+// v2.30.1 (FINAL DROP Part 6): every chart has a text alternative — a spoken summary (first → latest, lowest, highest)
+// and, under full charts, the numbers as text.
+var fmt = function(v) { return typeof v === "number" ? (v % 1 === 0 ? String(v) : v.toFixed(1)) : String(v); };
+export function seriesText(label, data, f) {   // v2.32.2: f = how a value is written
+  var pts = (data || []).filter(function(d) { return typeof d.v === "number"; });
+  if (!pts.length) return (label ? label + ": " : "") + "no data yet";
+  var vals = pts.map(function(d) { return d.v; }), first = pts[0], last = pts[pts.length - 1];
+  var wk = function(d) { return d.wk != null ? "week " + d.wk + " " : ""; };
+  return (label ? label + ": " : "") + (pts.length === 1 ? wk(last) + (f || fmt)(last.v) : "from " + wk(first) + (f || fmt)(first.v) + " to " + wk(last) + (f || fmt)(last.v) + " (lowest " + (f || fmt)(Math.min.apply(null, vals)) + ", highest " + (f || fmt)(Math.max.apply(null, vals)) + ", " + pts.length + " entries)");
+}
+export function MiniChart({ data, color, height = 48, width = 140, label }) {
   if (!data || data.length < 2) return null;
   const vals = data.map(d => d.v).filter(v => typeof v === "number");
   if (vals.length < 2) return null;
   const mn = Math.min(...vals), mx = Math.max(...vals), sp = (mx - mn) * 0.3;
   const lo = mn - sp, hi = mx + sp, rng = hi - lo || 1;
   const pts = vals.map((v, i) => ((i / (vals.length - 1)) * width) + "," + (height - ((v - lo) / rng) * height)).join(" ");
-  return (<svg width={width} height={height} style={{ display: "block" }}><polyline points={pts} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />{vals.map((v, i) => <circle key={i} cx={(i / (vals.length - 1)) * width} cy={height - ((v - lo) / rng) * height} r="3.5" fill={color} />)}</svg>);
+  return (<svg width={width} height={height} role="img" aria-label={"Chart. " + seriesText(label, data)} style={{ display: "block" }}><polyline points={pts} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />{vals.map((v, i) => <circle key={i} cx={(i / (vals.length - 1)) * width} cy={height - ((v - lo) / rng) * height} r="3.5" fill={color} />)}</svg>);
 }
 
-export function FullChart({ series, height = 160, title, refLine }) {
+export function FullChart({ series, height = 160, title, refLine, fmt: fmtV }) {   // v2.32.2: fmt = how a value is written (e.g. stones and pounds)
   const W = 320, PAD = 36, PR = 16, PB = 20, PT = 8;
   const cW = W - PAD - PR, cH = height - PB - PT;
   let allVals = [], allWks = [];
@@ -27,7 +37,7 @@ export function FullChart({ series, height = 160, title, refLine }) {
   return (
     <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: "10px 8px", marginBottom: 10 }}>
       {title && <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6, paddingLeft: 4 }}>{title}</div>}
-      <svg viewBox={"0 0 " + W + " " + height} style={{ width: "100%", height: "auto" }}>
+      <svg viewBox={"0 0 " + W + " " + height} role="img" aria-label={(title ? title + " chart. " : "Chart. ") + series.map(s => seriesText(s.label, s.data, fmtV)).join(". ")} style={{ width: "100%", height: "auto" }}>
         {wks.map(wk => (<text key={wk} x={x(wk)} y={height - 4} textAnchor="middle" fontSize="9" fill="#94a3b8">W{wk}</text>))}
         {refLine && <line x1={PAD} x2={W - PR} y1={y(refLine)} y2={y(refLine)} stroke="#ef4444" strokeWidth="1" strokeDasharray="4,3" opacity="0.5" />}
         {refLine && <text x={PAD - 2} y={y(refLine) + 3} textAnchor="end" fontSize="8" fill="#ef4444">{refLine}</text>}
@@ -38,13 +48,17 @@ export function FullChart({ series, height = 160, title, refLine }) {
           return (<g key={si}>
             {pts.length > 1 && <polyline points={line} fill="none" stroke={s.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity={series.length > 3 ? 0.8 : 1} />}
             {pts.map((d, i) => <circle key={i} cx={x(d.wk)} cy={y(d.v)} r={series.length > 5 ? 2.5 : 3} fill={s.color} />)}
-            {series.length <= 3 && pts.map((d, i) => <text key={"t"+i} x={x(d.wk)} y={y(d.v) - 6} textAnchor="middle" fontSize="8" fill={s.color} fontWeight="600">{typeof d.v === "number" ? (d.v % 1 === 0 ? d.v : d.v.toFixed(1)) : d.v}</text>)}
+            {series.length <= 3 && pts.map((d, i) => <text key={"t"+i} x={x(d.wk)} y={y(d.v) - 6} textAnchor="middle" fontSize="8" fill={s.color} fontWeight="600">{fmtV ? fmtV(d.v) : typeof d.v === "number" ? (d.v % 1 === 0 ? d.v : d.v.toFixed(1)) : d.v}</text>)}
           </g>);
         })}
       </svg>
       {series.length > 1 && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingLeft: 4, marginTop: 4 }}>
         {series.map((s, i) => <div key={i} style={{ fontSize: 9, display: "flex", alignItems: "center", gap: 3 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: s.color }} />{s.label}</div>)}
       </div>}
+      <details data-testid="chart-as-text" style={{ marginTop: 4, paddingLeft: 4 }}>
+        <summary style={{ fontSize: 11, color: "#475569", cursor: "pointer", minHeight: 24 }}>As text</summary>
+        <ul style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: 11, color: "#334155" }}>{series.map((s, i) => <li key={i}>{seriesText(s.label || title, s.data, fmtV)}{s.data.filter(d => typeof d.v === "number").length > 1 ? " — " + s.data.filter(d => typeof d.v === "number").map(d => (d.wk != null ? "W" + d.wk + " " : "") + (fmtV || fmt)(d.v)).join(", ") : ""}</li>)}</ul>
+      </details>
     </div>
   );
 }
@@ -54,6 +68,6 @@ export function FullChart({ series, height = 160, title, refLine }) {
 // ═══════════════════════════════════════════════════
 export function BodyCard({ label, value, rating, trend, onEye, eyeOpen }) {
   const rc = rating === "Excellent" || rating === "Acceptable" ? "#15803d" : rating === "Standard" ? "#2563eb" : rating === "High" || rating === "Too High" ? "#b91c1c" : rating === "Low" ? "#d97706" : "#64748b";
-  return (<div style={{ background: "#fff", borderRadius: 10, padding: "10px 12px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 3, position: "relative", height: "100%", boxSizing: "border-box" }}><div style={{ fontSize: 11, color: "#475569", fontWeight: 500 }}>{label}</div><div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", lineHeight: 1.1 }}>{value != null ? value : "—"}</div>{rating && <div style={{ fontSize: 10, fontWeight: 600, color: rc, textTransform: "uppercase" }}>{rating}</div>}{trend && <div style={{ fontSize: 10, color: String(trend).startsWith("-") ? "#15803d" : String(trend).startsWith("+") ? "#b91c1c" : "#475569" }}>{trend}</div>}{onEye && <button onClick={onEye} style={Object.assign({}, eyeOpen ? btnFilledOn : btnProgress, { alignSelf: "flex-end", marginTop: "auto" })}   /* v2.13.4: pinned to the bottom of the card (cards in a row are equal height), so every Progress button lines up */ title={"View " + label + " detail"}>{eyeOpen ? "✕ Progress" : "👁 Progress"}</button>}</div>);
+  return (<div style={{ background: "#fff", borderRadius: 10, padding: "10px 12px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 3, position: "relative", height: "100%", boxSizing: "border-box" }}><div style={{ fontSize: 11, color: "#475569", fontWeight: 500 }}>{label}</div><div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", lineHeight: 1.1 }}>{value != null ? value : "—"}</div>{rating && <div style={{ fontSize: 10, fontWeight: 600, color: rc, textTransform: "uppercase" }}>{rating}</div>}{trend && <div style={{ fontSize: 10, color: String(trend).startsWith("-") ? "#15803d" : String(trend).startsWith("+") ? "#b91c1c" : "#475569" }}>{trend}</div>}{onEye && <button onClick={onEye} style={Object.assign({}, eyeOpen ? btnFilledOn : btnProgress, { alignSelf: "flex-end", marginTop: "auto" })}   /* v2.13.4: pinned to the bottom of the card (cards in a row are equal height), so every Progress button lines up */ title={"View " + label + " detail"} aria-label={(eyeOpen ? "Close " : "") + label + " progress"} aria-expanded={!!eyeOpen}>{eyeOpen ? "✕ Progress" : "👁 Progress"}</button>}</div>);
 }
 

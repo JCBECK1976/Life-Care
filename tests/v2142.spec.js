@@ -1,8 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { openApp, tab } from "./helpers.js";
+import { openApp, tab, withBodyPhotos } from "./helpers.js";
 import { photoIssues } from "../src/lib/bodyPhotoCheck.js";
 import { parseReading, wrongPartMsg } from "../src/lib/measureReading.js";
 import { REGIONS } from "../src/lib/bodyBalance.js";
+test.beforeEach(async ({ page }) => { await withBodyPhotos(page); });   // v2.37.2: these features are hidden unless switched on
 
 // v2.14.2: body photos must be recognised (a person, full body / the expected body area, the requested pose) and the
 // measurement Snap must show the right body part. Otherwise: a message per photo, no scores/analysis, Save/Confirm

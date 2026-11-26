@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openApp, tab } from "./helpers.js";
+import { openApp, tab, PROGRESS, withBodyPhotos } from "./helpers.js";
 import { syncAfterProgChange } from "../src/lib/exercise.js";
 import { parseReading, readingPrompt } from "../src/lib/measureReading.js";
 
@@ -41,7 +41,7 @@ test("D20 + D17 + D21: removing or editing an OLDER week never puts a Reduce pil
   await tab(page, "My Exercise");
   await page.getByRole("button", { name: "Sun", exact: true }).click();
   await expect(page.getByText("Reduce", { exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "👁 Progress" }).nth(i).click();
+  await page.getByRole("button", { name: PROGRESS }).nth(i).click();
   // edit week 2 (an older week)
   await page.getByRole("button", { name: "Open week 2" }).click();
   let form = page.getByTestId("prog-open-form");
@@ -61,7 +61,7 @@ test("D20 + D17 + D21: removing or editing an OLDER week never puts a Reduce pil
   await expect.poll(async () => (await getDash()).jc.exercises.sunday[i].prog.length).toBe(2);
   expect((await getDash()).jc.exercises.sunday[i]).toMatchObject({ status: "building", current: "60kg" });
   await expect(page.getByText("Reduce", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("Building", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Consolidate", { exact: true }).first()).toBeVisible();   // v2.42.0: "building" shows as Consolidate
   expect(errors).toEqual([]);
 });
 
@@ -106,16 +106,16 @@ test("F9: Weigh In and Measurements history rows = key data + Open; Edit/Save an
   await expect(form.getByRole("button")).toHaveText(["Edit", "Remove", "Close"]);
   await noTruncatedButtons(form);
   await form.getByRole("button", { name: "Edit", exact: true }).click();
-  await form.getByLabel("Value").fill("15.2");
+  await form.getByTestId("body-hist-wt-st").fill("15"); await form.getByTestId("body-hist-wt-lb").fill("2");   // v2.32.3: st + lb boxes
   await form.getByRole("button", { name: "Save", exact: true }).click();
-  await expect.poll(async () => (await getDash()).jc.body.weight[1].v).toBe(15.2);
+  await expect.poll(async () => (await getDash()).jc.body.weight[1].v).toBe("15.20");
   await page.getByRole("button", { name: "Open week 1" }).click();
   await page.getByTestId("body-hist-open-form").getByRole("button", { name: "Remove", exact: true }).click();
   await expect.poll(async () => (await getDash()).jc.body.weight.map((e) => e.wk)).toEqual([2]);
   await expect(rows).toHaveCount(1);
   // Measurements: chest history
   await page.getByRole("button", { name: "Measurements", exact: true }).click();
-  await page.getByRole("button", { name: "👁 Progress" }).nth(1).click();          // fullBody (added on load) is first; chest second
+  await page.getByRole("button", { name: PROGRESS }).nth(1).click();          // fullBody (added on load) is first; chest second
   const mrows = page.getByTestId("meas-hist-row");
   await expect(mrows).toHaveCount(2);
   await expect(mrows.first().getByRole("button")).toHaveText(["Open"]);
@@ -180,6 +180,7 @@ test("F10: measurement Log 📷 Snap — description, AI reads the value, Confir
 
 // v2.13.1: one-off idempotent cleanup of photos stored in old measurement entries
 import { stripMeasurementPhotos } from "../src/lib/bodyBalance.js";
+test.beforeEach(async ({ page }) => { await withBodyPhotos(page); });   // v2.37.2: these features are hidden unless switched on
 const JPEG_URL = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/";
 
 test("v2.13.1 pure: only measurements[].img is removed; a second run changes nothing", () => {

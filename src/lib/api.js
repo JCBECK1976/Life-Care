@@ -1,6 +1,8 @@
 import { sGet, sSet } from "./storage.js";
 import { withMedicationRule } from "./safety.js";
-import { flag, viaProxy } from "./platform.js";
+import { withCaching } from "./caching.js";
+import { flag, viaProxy, UNAVAILABLE_MSG } from "./platform.js";
+import { planAllows, showGate, gateText } from "./myPlan.js";
 import { allowedBy } from "./consent.js";
 import { auth } from "./firebase.js";
 import firebase, { DATA_ROOT } from "./firebase.js";
@@ -36,6 +38,8 @@ window.trackApiUsage = async function(usage, model, feature) {
 window.aiUsageTotal = async function() { try { var v = (await firebase.database().ref(DATA_ROOT + "/ai_usage").once("value")).val(); return v ? JSON.parse(v).total.cost : 0; } catch (e) { return 0; } };
 
 /* Intercept all Anthropic API calls to track usage and block when empty */
+/* v2.31.0: cache breakpoints for large stable context (lib/caching.js; the server applies the same) */
+function cached(body) { try { return JSON.stringify(withCaching(JSON.parse(body))); } catch (e) { return body; } }
 export var _origFetch = window.fetch;
 
 window._origFetch = _origFetch;
@@ -50,19 +54,35 @@ window.fetch = function() {
        past 95% of a hardcoded $5, which made all AI features fail while real credit
        was fine, and never reliably reset. */
     var opts = arguments[1] || {};
+    /* v2.22.0 (ADR 0017): every AI call carries its plan feature (header x-lc-feature). It is taken off before the request
+       leaves the device; a feature the plan doesn't include is stopped here (no AI call) and the "part of Silver" prompt shown.
+       The server (aiProxy) checks the same feature again. With the flag off, planAllows is always true. */
+    var planFeature = null;
+    if (opts.headers && opts.headers["x-lc-feature"]) {
+      planFeature = opts.headers["x-lc-feature"];
+      var _h = Object.assign({}, opts.headers); delete _h["x-lc-feature"];
+      opts = Object.assign({}, opts, { headers: _h });
+      arguments[1] = opts;
+    }
+    if (url.indexOf("/v1/messages") !== -1 && !planAllows(planFeature || "aiFeedback")) {
+      showGate(planFeature || "aiFeedback");
+      return Promise.resolve(new Response(JSON.stringify({ type: "error", error: { type: "plan", message: gateText(planFeature || "aiFeedback") } }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    }
     var feature = featureOf(typeof opts.body === "string" ? opts.body : "", { section: window._lcSection, chatOpen: window._lcChatOpen });
     /* v2.15.2 P7: every Messages API request carries the medication safety rule (src/lib/safety.js) */
     var args = Array.prototype.slice.call(arguments);
-    if (url.indexOf("/v1/messages") !== -1 && typeof opts.body === "string") args[1] = Object.assign({}, opts, { body: withMedicationRule(opts.body) });
+    if (url.indexOf("/v1/messages") !== -1 && typeof opts.body === "string") args[1] = Object.assign({}, opts, { body: cached(withMedicationRule(opts.body)) });   /* v2.31.0: + prompt caching */
     /* v2.16.3 Step 4: flag "useAiProxy" (default OFF) sends the request to the server proxy instead (EU, energy checked server-side) */
     var _self = this;
     /* v2.16.7 P9: while pilotConsent is on, AI (and photo) requests need the person's consent */
     var _isPhoto = typeof opts.body === "string" && opts.body.indexOf('"type":"image"') >= 0;
     if (url.indexOf("/v1/messages") !== -1 && (!allowedBy(window._lcConsent, "ai") || (_isPhoto && !allowedBy(window._lcConsent, "photos")))) {
-      return Promise.resolve(new Response(JSON.stringify({ type: "error", error: { type: "consent", message: (_isPhoto ? "Photo checks" : "AI features") + " are off in your privacy choices (Settings → Privacy & consent)" } }), { status: 200, headers: { "Content-Type": "application/json" } }));
+      return Promise.resolve(new Response(JSON.stringify({ type: "error", error: { type: "consent", message: (_isPhoto ? "Photo checks" : "Companion features") + " are off in your privacy choices (Settings → Privacy & your data)" } }), { status: 200, headers: { "Content-Type": "application/json" } }));
     }
-    var send = (flag("useAiProxy") && url.indexOf("/v1/messages") !== -1 && typeof opts.body === "string")
-      ? auth.currentUser.getIdToken().then(function(t) { return viaProxy(args[1].body, feature, t); })
+    /* v2.31.1 (Architect): per-person accounts ALWAYS go through the server (EU, never the US direct API, even before the
+       go-live switch); only the joint household account keeps the direct route until useAiProxy is switched on. */
+    var send = ((flag("useAiProxy") || !!window._lcIndividual) && url.indexOf("/v1/messages") !== -1 && typeof opts.body === "string")
+      ? auth.currentUser.getIdToken().then(function(t) { return viaProxy(args[1].body, planFeature || feature, t); })
       : _origFetch.apply(_self, args);
     return send.then(function(resp) {
       var cloned = resp.clone();
@@ -82,11 +102,13 @@ window.isEnergyEmpty = function(e) { return e && (e.message === "ENERGY_EMPTY" |
 
 window.energyEmptyMsg = "⚡ Companion Energy Empty. Please top up!";
 
-window.aiErrorMsg = function(e, fallback) { return window.isEnergyEmpty(e) ? window.energyEmptyMsg : (fallback || ("Error: " + String(e).substring(0, 100))); };
+window.aiErrorMsg = function(e, fallback) { if (/Your Companion is unavailable/.test(String(e && e.message || e))) return UNAVAILABLE_MSG;   /* v2.31.1: said plainly */
+  return window.isEnergyEmpty(e) ? window.energyEmptyMsg : (fallback || ("Error: " + String(e).substring(0, 100))); };
 
 // Handle API errors - detect credit exhaustion
 export function handleApiError(result) {
   if (result && result.error) {
+    if (result.error.type === "plan") return result.error.message;   /* v2.22.0: "Snap is part of Silver." (the prompt is shown too) */
     var msg = (result.error.message || "").toLowerCase();
     var errType = (result.error.type || "").toLowerCase();
     if (msg.indexOf("credit balance") >= 0 || msg.indexOf("billing") >= 0 || msg.indexOf("payment required") >= 0 || errType === "insufficient_quota") {
