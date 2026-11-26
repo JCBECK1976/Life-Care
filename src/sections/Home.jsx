@@ -18,6 +18,7 @@ import { BREAKFASTS, DEFAULT_BREAKFASTS, DEFAULT_DINNERS_GB, DEFAULT_LUNCHES, DI
 import { tiersOn, usePlan } from "../lib/myPlan.js";
 import TrainingStyleCard from "../components/TrainingStyleCard.jsx";
 import HomeSnap from "../components/HomeSnap.jsx";
+import { StepsDay } from "../components/StepsLine.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -629,6 +630,7 @@ export default function HomeSection({ ctx }) {
               return (<div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#334155", padding: "8px 10px", background: "transparent", borderBottom: "1px solid #cbd5e1", borderRadius: "8px 8px 0 0" }}>My Exercises</div>
                 <div style={{ padding: "6px 10px", flex: 1, display: "flex", flexDirection: "column" }}>
+                  <StepsDay p={p} date={(function(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })(new Date())} testid="home-steps" style={{ fontSize: 10, marginBottom: 4 }} />{/* v2.60.0: steps today */}
                   <div style={{ flex: 1 }}>
                   {todayExercises.length === 0 && <div style={{ fontSize: 11, color: "#475569", fontStyle: "italic", padding: "4px 0" }}>No exercises planned</div>}
                   {sessionNum && todayExercises.length > 0 && <div style={{ fontSize: 10, fontWeight: 600, color: "#475569", padding: "2px 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Session {sessionNum}</div>}

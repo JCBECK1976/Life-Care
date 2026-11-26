@@ -25,6 +25,7 @@ import { TONE_RULES } from "../constants/tone.js";
 import { handleApiError } from "../lib/api.js";
 import PersonTabs, { peopleOf, personName } from "../components/PersonTabs.jsx";
 import { SheetSelect } from "../components/BottomSheet.jsx";
+import { StepsDay, StepsWeek, stepsShown } from "../components/StepsLine.jsx";
 
 // Moved verbatim from Dashboard in App.jsx. It receives the Dashboard values it uses
 // (state, setters, handlers) as one `ctx` prop; state management is unchanged.
@@ -255,6 +256,7 @@ export default function ExerciseSection({ ctx }) {
           
           
           {/* Day Cards */}
+          <StepsWeek p={p} />{/* v2.60.0: the week's steps (with the steps feature) */}
           
 
           <div style={{ display: "flex", gap: 0, background: accentMid, borderRadius: "8px 8px 0 0", padding: 2, marginBottom: 0 }}>
@@ -268,7 +270,7 @@ export default function ExerciseSection({ ctx }) {
             return (<div key={day} style={{ marginBottom: 16 }}>
                                           <div style={{ background: "#fff", borderRadius: "0 0 10px 10px", border: "1px solid #e2e8f0", borderTop: "none", overflow: "hidden" }}>
                 <div role="heading" aria-level={3} style={{ padding: "8px 12px 0", fontSize: 13, fontWeight: 800, color: "#0f172a" }}>{label}</div>
-                {(function() { var ws = new Date(); ws.setHours(12, 0, 0, 0); ws.setDate(ws.getDate() - ws.getDay()); var dt = new Date(ws); dt.setDate(ws.getDate() + ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].indexOf(day)); var key = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0"); var a = p.dailyActivity && p.dailyActivity[key]; return a && a.steps != null ? <div data-testid="day-steps" style={{ padding: "2px 12px 0", fontSize: 11, color: "#334155" }}>👣 {Number(a.steps).toLocaleString("en-GB")} steps{a.source ? " (" + a.source + ")" : ""}</div> : null; })() /* v2.17.1: steps from Google/Apple Health on this day */}
+                {(function() { var ws = new Date(); ws.setHours(12, 0, 0, 0); ws.setDate(ws.getDate() - ws.getDay()); var dt = new Date(ws); dt.setDate(ws.getDate() + ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].indexOf(day)); if (stepsShown()) return <StepsDay p={p} date={dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0")} style={{ padding: "2px 12px 0" }} />;   /* v2.60.0: the steps line (— / Connect my steps) */ var key = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0"); var a = p.dailyActivity && p.dailyActivity[key]; return a && a.steps != null ? <div data-testid="day-steps" style={{ padding: "2px 12px 0", fontSize: 11, color: "#334155" }}>👣 {Number(a.steps).toLocaleString("en-GB")} steps{a.source ? " (" + a.source + ")" : ""}</div> : null; })() /* v2.17.1: steps from Google/Apple Health on this day */}
                 {/* ACTIVITY TAB */}
                 {dv === "activity" && (<div>
                 <div style={{ background: accentLight, borderRadius: 8, padding: "4px 12px 12px", margin: 8, border: "1px solid " + accentBorder }}>

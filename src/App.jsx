@@ -70,6 +70,8 @@ import { startNativeShare } from "./lib/nativeShare.js";
 import { stripMeasurementPhotos, stripPhotoFragments } from "./lib/bodyBalance.js";
 import { childItems, dateOf, emptyDoc, loadParentLookup, loadWeekDoc, makeChild, reconcile, recalcChild, saveWeekDoc, viewFromDoc, weekKey, ymd } from "./lib/children.js";
 import { gramsLine as snapGrams } from "./lib/snap.js";
+import { stepsCtx } from "./lib/stepsView.js";
+import { stepsShown } from "./components/StepsLine.jsx";
 
 const { useState, useEffect, useCallback, useRef } = React;
 function Dashboard() {
@@ -1560,7 +1562,8 @@ function Dashboard() {
     var _bn = bodyNotesCtx(data && data[tab]); if (_bn) lines.push(_bn);
     /* v2.18.0: the person's goal, timescale, required pace and progress — every companion */
     try { lines.push(goalCtx(data && data[tab])); } catch (e) { /* goal context is optional */ }
-    var _ts = trainingStyleCtx(data && data[tab]); if (_ts) lines.push(_ts);   // v2.48.0 (brief 24 Nov P3): the training style, every Companion
+    var _ts = trainingStyleCtx(data && data[tab]); if (_ts) lines.push(_ts);
+    var _stp = stepsShown() ? stepsCtx(data && data[tab]) : null; if (_stp) lines.push(_stp);   // v2.60.0: steps (read-only), every Companion — exercise and Home can mention them   // v2.48.0 (brief 24 Nov P3): the training style, every Companion
     /* v2.20.0: one shared summary of THIS person's recent Companion conversations (14 days, small budget). Every source is
        keyed by `tab`; state that only holds the active person (body/measurement feedback, journal) is used only when tab is active. */
     var areas = [], th = function(fb) { return fb && fb._thread ? fb._thread : null; };
