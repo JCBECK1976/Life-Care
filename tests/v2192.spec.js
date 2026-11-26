@@ -153,8 +153,7 @@ test("Describe it instead: nothing matches → the Companion identifies it and o
   await page.route(/openfoodfacts\.org/, (r) => r.fulfill(OFF_JSON([])));
   const ul = await openSingle(page);
   await ul.getByLabel("Search your lists, common foods and UK products").fill("zzqx thing");
-  await expect(ul.getByTestId("no-match")).toContainText("Nothing matches “zzqx thing”", { timeout: 15000 });
-  await ul.getByTestId("describe-instead").click();
+  await expect(ul.getByLabel(/Describe it in your own words/)).toHaveValue("zzqx thing", { timeout: 15000 });   // v2.58.0: opens by itself
   await ul.getByLabel(/Describe it in your own words/).fill("bag of dried pasta spirals");
   await ul.getByRole("button", { name: "Find it" }).click();
   await expect(ul.getByTestId("describe-choice")).toHaveCount(2);

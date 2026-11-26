@@ -68,9 +68,14 @@ function useSearch(props, catalogue, initial) {
 function FoodSearch(props) {
   var s = props.s, isJC = props.isJC, ids = props.testids || {};
   var [describe, setDescribe] = React.useState(false);
+  var [autoFor, setAutoFor] = React.useState("");   // v2.58.0: the term the Describe box was opened for automatically (once per term)
   var local = s.own.length + s.cat.length + s.gen.length;
   var nothing = s.term.length >= 2 && !local && !s.off.length && s.offState !== "loading";
-  if (describe) return <DescribeIt text={s.term} onPick={function(it) { setDescribe(false); props.onPick("described", it); }} onCancel={function() { setDescribe(false); }} />;
+  /* v2.58.0 (brief 26 Nov P2): NOTHING in my lists, common foods AND UK products (the product search has answered "none")
+     → open "Describe it instead" by itself, filled with what was typed, and start the Companion's check straight away. */
+  var noneAnywhere = !!props.autoDescribe && nothing && s.offState === "none" && s.term.length >= 3;
+  React.useEffect(function() { if (noneAnywhere && autoFor !== s.term) { setAutoFor(s.term); setDescribe("auto"); } }, [noneAnywhere, s.term, autoFor]);
+  if (describe) return <DescribeIt text={s.term} auto={describe === "auto"} onPick={function(it) { setDescribe(false); props.onPick("described", it); }} onCancel={function() { setDescribe(false); }} />;
   return (<div>
     <label style={small} htmlFor={props.inputId}>{props.label}</label>
     <input id={props.inputId} aria-label={props.ariaLabel} style={inp} value={s.q} autoComplete="off" onChange={function(e) { s.setQ(e.target.value); }} placeholder={props.placeholder} />
@@ -102,19 +107,21 @@ function DescribeIt(props) {
   var [choices, setChoices] = React.useState(null);
   var [question, setQuestion] = React.useState(null);
   var [err, setErr] = React.useState("");
+  var started = React.useRef(false);
   var find = async function() {
     if (!text.trim() || busy) return; setBusy(true); setErr("");
     try { var r = await identifyFood(text); if (r.type === "choices") setChoices(r.choices.map(itemFromReply)); else setQuestion(r.question); }
     catch (e) { setErr(window.isEnergyEmpty && window.isEnergyEmpty(e) ? window.energyEmptyMsg : "Your Companion isn't reachable right now — your text is kept, try again."); }
     setBusy(false);
   };
+  React.useEffect(function() { if (props.auto && !started.current) { started.current = true; find(); } });   // v2.58.0: opened automatically → check straight away
   if (question) return <ClarifyChat initialTurns={[{ role: "user", text: text }, { role: "assistant", text: question }]} onResult={props.onPick} />;
   return (<div data-testid="describe-it" style={box}>
     <label style={small} htmlFor="describe-text">Describe it in your own words (e.g. “bag of dried pasta spirals”)</label>
     <textarea id="describe-text" style={Object.assign({}, inp, { minHeight: 44 })} value={text} onChange={function(e) { setText(e.target.value); setChoices(null); }} />
     {choices && <div style={head}>Is it one of these? Tap to choose</div>}
     {choices && choices.map(function(it, i) { return <button key={i} type="button" data-testid="describe-choice" style={opt} onClick={function() { props.onPick(it); }}>{it.name} <span style={small}>· {n0(it.kcal)} kcal · {portionLabel(it)}</span></button>; })}
-    {busy && <div style={small}>Your Companion is working it out…</div>}
+    {busy && <div data-testid="describe-busy" role="status" style={small}>Your Companion is checking…</div>}
     {err && <div role="alert" style={{ fontSize: 12, color: "#991b1b", marginTop: 4 }}>{err}</div>}
     <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
       <button type="button" style={btnP} onClick={find} disabled={busy}>{choices ? "Look again" : "Find it"}</button>
@@ -266,7 +273,7 @@ function SingleItem(props) {
     </div>);
   }
   return (<div style={box}>
-    <FoodSearch s={s} isJC={props.isJC} inputId="single-search" label="Search your lists, common foods and UK products" placeholder="e.g. fusilli, porridge, Aldi pasta bake" onPick={choose} />
+    <FoodSearch s={s} isJC={props.isJC} autoDescribe inputId="single-search" label="Search your lists, common foods and UK products" placeholder="e.g. fusilli, porridge, Aldi pasta bake" onPick={choose} />
   </div>);
 }
 
