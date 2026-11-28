@@ -3153,3 +3153,14 @@ JC's Beta findings (prod/beta v2.60.1):
 6. **Shopping generator:** generate when at least ONE item is planned (don't require all meals planned).
 
 - Note on item 3 (JC, 28 Nov): JC's screenshots were examples found after the fact. Real cases mixed data logged BEFORE the target/pre-fill fixes with logs made AFTER them, so also check how legacy entries and targets display alongside new ones (include mixed legacy and new data in the test matrix).
+
+### (Architect) 28 Nov 2026 17:40 — BASELINE: move business ownership to companionappsstudio@gmail.com (JC decision)
+The business Google account is **companionappsstudio@gmail.com**. Its password goes in JC's Google Password Manager ("github" entry, one place). Next week, in this order (JC with the Architect, one step at a time):
+1. **Harden the account:** 2-Step Verification, recovery phone/email, password saved in Google Password Manager.
+2. **Google Play Console (J16):** sign up with the business account (personal type, developer name "Companion Apps Studio"), ID and device verification.
+3. **Firebase / Google Cloud (life-care-app-64d04):** add the business account as **Owner** (IAM) and as **Billing Account Administrator**. Set the budget-alert recipient and the Firebase "Support email" (Project settings → General → Public settings) to the business account. Keep the joint account as Owner until the switch is verified; no data or code change.
+4. **Contact addresses:** set the support/contact email to the business account in the Privacy Policy, Terms, delete-account page, Play listing (PLAY_LISTING.md) and in-app Settings → Privacy contact. Coder: config value plus the docs. Architect: legal docs.
+5. **Anthropic API account:** billing and contact email to business (or retire it at the Vertex switch).
+6. **Domain (Spaceship, lifecarecompanion.app):** registrant/contact email to business.
+7. **Apple Developer (J15, later):** enrol with an Apple ID created from the business email.
+8. **NOT moving now (decision):** the GitHub repos stay under JCBECK1976. Moving them would change the app's web address (Firebase authorised domains, CSP, Play links). Revisit with the custom domain after the pilot. Optionally add the business email to GitHub for notifications only. App admin rights stay with JC's own (to-be-individual) account, never the business mailbox.
