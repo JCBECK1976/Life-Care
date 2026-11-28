@@ -3151,3 +3151,5 @@ JC's Beta findings (prod/beta v2.60.1):
 4. **RAG ratings review (Architect + JC, discussion first, no code):** JC's original plan meant Red = once a month, Amber = once a week. Check whether current item and selection ratings are too harsh; agree the rules before any change.
 5. **My Shop:** moving the week on updates the dates (6–12 Dec) but the label stays "Week 19". Fix the week number.
 6. **Shopping generator:** generate when at least ONE item is planned (don't require all meals planned).
+
+- Note on item 3 (JC, 28 Nov): JC's screenshots were examples found after the fact. Real cases mixed data logged BEFORE the target/pre-fill fixes with logs made AFTER them, so also check how legacy entries and targets display alongside new ones (include mixed legacy and new data in the test matrix).
