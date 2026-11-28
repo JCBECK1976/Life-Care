@@ -3138,3 +3138,16 @@ Sizes are % of a weekly allowance, including Architect checks.
 - **Now possible:** `.github/workflows/android-internal.yml` is on `main`, so Actions → "Android → Play internal testing" → Run workflow (ref `main`) can be dispatched. This also unblocks the signing check from 24 Nov P5 (compare the upload-key fingerprints in the run summary with Firebase).
 - **Rollback:** `git revert -m 1 0305355` on main.
 - **Resume point:** main = beta = build source at v2.60.1. Next: JC on prod (close the tab, reopen it, check the footer says v2.60.1).
+
+### (Architect) 28 Nov 2026 17:30 — QUEUED for after JC's Monday token reset (do NOT start before JC sends it)
+JC's Beta findings (prod/beta v2.60.1):
+1. **Home Snap doesn't add the item:** it says "Added to today's …" but no row appears in the day's category. Fix and test end to end on the real path.
+2. **Companion recommendation "Remove" deleted the whole exercise (Bicep Curl, JC):** Undo didn't restore it. (a) RESTORE Bicep Curl from the nightly backup taken before the deletion (JC approval, backup first, counts-only report); (b) replace "Remove" on each Companion exercise recommendation with "Undo" = revert it to the un-decided state (Accept / Decline, Set my next session, notes available again). Never delete the exercise from there.
+3. **Card vs Log form still confusing JC (trust issue):**
+   - No target set by the Companion or the user → the card shows only the pill (or "Next session: to be set"), no numbers. The Log form pre-fills last session's data with the line "[Name] to set this session's exercise data".
+   - Target set → the card shows the target, and Log pre-fills the TARGET (not last week), with "[Name] set this session's data since the last session".
+   - When the week is ALREADY logged, Log opens that entry in edit mode ("Cancel Edit — Log New Instead"); make that state unmistakable (e.g. "Editing this week's log (week 19)") so it isn't mistaken for the pre-fill.
+   - Add an automated end-to-end test matrix: no target / user-set / Companion-set / already logged this week × weight-only / reps-only / both → card text, Log pre-fill and pill agree.
+4. **RAG ratings review (Architect + JC, discussion first, no code):** JC's original plan meant Red = once a month, Amber = once a week. Check whether current item and selection ratings are too harsh; agree the rules before any change.
+5. **My Shop:** moving the week on updates the dates (6–12 Dec) but the label stays "Week 19". Fix the week number.
+6. **Shopping generator:** generate when at least ONE item is planned (don't require all meals planned).
